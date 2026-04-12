@@ -73,29 +73,26 @@ function AuthenticatedPatientProfilePage({
   } = usePatientProfilePage(session);
 
   return (
-    <main className="min-h-screen bg-white px-5 py-6 text-gray-900 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl space-y-6 pb-10">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <a
-            href="/patients/dashboard"
-            className="inline-flex items-center gap-2 rounded-full border border-sky-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-sky-200 hover:text-gray-950"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Volver al panel
-          </a>
-          <p className="text-sm text-gray-500">Última actualización: {formatTimestamp(lastUpdatedAt)}</p>
+    <main className="min-h-screen bg-white text-neutral-900">
+      {/* Hero */}
+      <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6">
+            <Sparkles className="h-3.5 w-3.5" />
+            Perfil unificado
+          </div>
+          <h1 className="text-4xl lg:text-5xl text-white mb-4 leading-tight">{displayName}</h1>
+          <p className="text-lg text-white/60">Última actualización: {formatTimestamp(lastUpdatedAt)}</p>
         </div>
+      </section>
 
-        <section className="overflow-hidden rounded-[2rem] border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#f4fbff_100%)] shadow-am-2xl">
+      <div className="max-w-6xl mx-auto px-6 lg:px-12 -mt-8 pb-10 space-y-6">
+        <section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg">
           <div className="grid gap-6 px-6 py-7 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] lg:px-8">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
-                <Sparkles className="h-4 w-4" />
-                Perfil unificado del paciente
-              </div>
-              <h1 className="font-heading mt-5 text-4xl leading-tight text-gray-950 sm:text-5xl">
-                {displayName}
-              </h1>
+              <h2 className="text-2xl font-bold text-neutral-900 mb-3">
+                Información personal
+              </h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-gray-600">
                 Este perfil concentra solo la información canónica de identidad y contexto clínico
                 base. La anamnesis, el historial y la prevención leen estos mismos datos para evitar

@@ -313,32 +313,26 @@ function DangerZoneSection() {
 
 export default function PatientSettingsPage() {
   return (
-    <div className="min-h-screen bg-[var(--au-bg)] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-2xl">
-        {/* Header */}
-        <div className="mb-8">
-          <a
-            href="/patients/dashboard"
-            className="inline-flex items-center gap-1 text-sm text-[var(--au-text-secondary)] hover:text-[var(--au-text-primary)] transition-colors mb-4"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Volver al inicio
-          </a>
-          <h1 className="text-2xl font-bold text-[var(--au-text-primary)]">
-            Configuracion
-          </h1>
-          <p className="text-sm text-[var(--au-text-secondary)] mt-1">
-            Administra tu cuenta, notificaciones y privacidad.
+    <div className="min-h-screen bg-white">
+      {/* Hero */}
+      <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6">
+            <Shield className="w-3.5 h-3.5" />
+            Cuenta y privacidad
+          </div>
+          <h1 className="text-4xl lg:text-5xl text-white mb-4 leading-tight">Configuración</h1>
+          <p className="text-lg text-white/60 max-w-lg">
+            Administra tu cuenta, notificaciones y privacidad
           </p>
         </div>
+      </section>
 
-        {/* Sections */}
-        <div className="space-y-6">
-          <ChangePasswordSection />
-          <NotificationsSection />
-          <PrivacySection />
-          <DangerZoneSection />
-        </div>
+      <div className="max-w-3xl mx-auto px-6 lg:px-12 -mt-8 pb-32 space-y-6">
+        <ChangePasswordSection />
+        <NotificationsSection />
+        <PrivacySection />
+        <DangerZoneSection />
       </div>
     </div>
   );

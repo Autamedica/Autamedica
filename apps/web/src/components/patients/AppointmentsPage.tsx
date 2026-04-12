@@ -186,29 +186,35 @@ export default function AppointmentsPage({
 
   return (
     <ErrorBoundary>
-    <div className="min-h-screen bg-[linear-gradient(180deg,_#ffffff_0%,_#f7fbff_100%)]">
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        {/* Header */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="min-h-screen bg-white">
+      {/* Hero Header */}
+      <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
           <div>
-            <h1 className="font-heading text-2xl font-bold tracking-tight text-stone-950 sm:text-3xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6">
+              <Calendar className="size-3.5" />
+              {stats.upcoming + stats.completed} citas
+            </div>
+            <h1 className="text-4xl lg:text-5xl text-white mb-4 leading-tight">
               {isTelemedicineView ? 'Telemedicina' : 'Mis citas'}
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="text-lg text-white/60 max-w-lg">
               {isTelemedicineView
-                ? 'Agenda y gestioná tus videoconsultas con acceso directo a la sala'
+                ? 'Videoconsultas con acceso directo a la sala'
                 : 'Agenda, gestiona y da seguimiento a tus consultas'}
             </p>
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            aria-label={isTelemedicineView ? 'Crear una nueva videoconsulta' : 'Crear una nueva cita médica'}
-            className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-sky-500/20 transition-all hover:bg-sky-600 active:scale-[0.98]"
+            className="inline-flex items-center gap-2 px-7 py-4 bg-white text-neutral-900 rounded-full font-medium hover:bg-neutral-50 transition-all shrink-0"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="size-4" />
             {isTelemedicineView ? 'Nueva videoconsulta' : 'Nueva cita'}
           </button>
         </div>
+      </section>
+
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 -mt-8 pb-32">
 
         {isTelemedicineView && (
           <section className="mb-8 overflow-hidden rounded-[28px] border border-sky-100 bg-white p-6 text-stone-950 shadow-xl shadow-sky-500/5">
