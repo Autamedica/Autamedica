@@ -6,8 +6,7 @@ import {
   setupVisibilityVideoPause,
   patchVideoPlayback,
 } from '../media-optimizations'
-import type { WebRTCClient } from '../webrtc-client'
-import type { CloudflareCallsClient } from '../cloudflare-calls'
+import type { CallProvider } from '../providers/types'
 import type { ConnectionState } from '../webrtc-client'
 import type { CallStatus } from '../calls/types'
 
@@ -21,7 +20,7 @@ interface RemoteUser {
 interface UseCallLifecycleEffectsOptions {
   isInRoom: boolean
   isCallEstablished: boolean
-  client: WebRTCClient | CloudflareCallsClient | null
+  client: CallProvider | null
   callId?: string
   connectionState: ConnectionState
   persistCallStatus: (status: CallStatus, reason?: string) => Promise<void>

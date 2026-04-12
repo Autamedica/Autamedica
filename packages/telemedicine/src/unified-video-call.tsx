@@ -15,6 +15,7 @@ import {
   type WarmUpResult,
 } from './webrtc-client'
 import { CloudflareCallsClient } from './cloudflare-calls'
+import type { CallProvider } from './providers/types'
 import { useCallRecording } from './hooks/useCallRecording'
 import { useCallDuration } from './hooks/useCallDuration'
 import { useCallQuality } from './hooks/useCallQuality'
@@ -80,7 +81,7 @@ export interface UnifiedVideoCallProps {
   /** Runtime engine: 'cloudflare-calls' (SFU) or 'webrtc-p2p'. Shown as badge in CallTopBar. */
   runtime?: 'cloudflare-calls' | 'webrtc-p2p'
   /** Pre-built call provider from createCallProvider(). When set, cloudflareCallsApiUrl/supabase/iceServers are ignored. */
-  provider?: WebRTCClient | CloudflareCallsClient
+  provider?: CallProvider
 }
 
 interface RemoteUser {
@@ -117,7 +118,7 @@ export function UnifiedVideoCall({
   provider: externalProvider,
 }: UnifiedVideoCallProps): JSX.Element {
   /* ── State ── */
-  const [client, setClient] = useState<WebRTCClient | CloudflareCallsClient | null>(null)
+  const [client, setClient] = useState<CallProvider | null>(null)
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
   const [isVideoEnabled, setIsVideoEnabled] = useState(true)
   const [isAudioEnabled, setIsAudioEnabled] = useState(true)
@@ -269,7 +270,7 @@ export function UnifiedVideoCall({
 
     // If an external provider was supplied (from createCallProvider), use it directly.
     // Otherwise fall back to the legacy prop-based selection.
-    let webrtcClient: WebRTCClient | CloudflareCallsClient
+    let webrtcClient: CallProvider
     if (externalProvider) {
       webrtcClient = externalProvider
     } else {

@@ -16,6 +16,7 @@
 
 import { loadSignalingUrl } from '../config/ice-servers'
 import { getAdaptiveConstraints, applyContentHints } from '../media-optimizations'
+import type { CallProvider } from '../providers/types'
 import type {
   ChatMessage,
   ConnectionState,
@@ -46,7 +47,7 @@ export interface CloudflareCallsClientConfig {
   signalingUrl?: string
 }
 
-export class CloudflareCallsClient {
+export class CloudflareCallsClient implements CallProvider {
   private ws: WebSocket | null = null
   private cfSession: CloudflareCallsSession | null = null
   private localStream: MediaStream | null = null
@@ -98,7 +99,7 @@ export class CloudflareCallsClient {
 
   /* ── Media ── */
 
-  async warmUp(): Promise<WarmUpResult> {
+  async warmUp(_constraints?: MediaStreamConstraints): Promise<WarmUpResult> {
     const t0 = Date.now()
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia(getAdaptiveConstraints())

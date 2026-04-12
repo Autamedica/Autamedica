@@ -15,6 +15,7 @@ import { QualityMonitor, type StreamQualitySummary, type CallQualitySummary } fr
 import { BitrateAdapter } from './bitrate-adapter'
 import { TurnManager } from './turn-manager'
 import { PeerConnectionFactory, type PeerState, type ChatMessage, type DataChannelControlMessage } from './peer-connection-factory'
+import type { CallProvider } from './providers/types'
 export type { StreamQualityLevel, StreamQualityMetrics, StreamQualitySummary, CallQualitySummary, CallQualityTimelineEntry, CallQualityWorstMetrics, CallQualityAverageMetrics } from './quality-monitor'
 export type { ChatMessage, DataChannelControlMessage } from './peer-connection-factory'
 
@@ -96,7 +97,7 @@ function createTelemedicineError(
   return Object.assign(wrapped, meta)
 }
 
-export class WebRTCClient {
+export class WebRTCClient implements CallProvider {
   private ws: WebSocket | null = null
   private signalingSocketPromise: Promise<void> | null = null
   private supabaseHandle: { handle: SupabaseSignalingHandle | null } = { handle: null }

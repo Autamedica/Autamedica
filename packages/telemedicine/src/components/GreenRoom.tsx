@@ -19,13 +19,12 @@ import {
 } from 'lucide-react'
 import { springGentle, staggerContainer, staggerChild, buttonGentleHover, buttonGentleTap } from './animation-presets'
 import type { ConnectionState, DeviceInfo, WarmUpResult } from '../webrtc-client'
-import type { WebRTCClient } from '../webrtc-client'
-import type { CloudflareCallsClient } from '../cloudflare-calls'
+import type { CallProvider } from '../providers/types'
 import type { PreflightResult } from '../network/preflight'
 
 export interface GreenRoomProps {
   localVideoRef: RefObject<HTMLVideoElement | null>
-  client: WebRTCClient | CloudflareCallsClient | null
+  client: CallProvider | null
   warmUpResult: WarmUpResult | null
   isWarmingUp: boolean
   audioLevel: number

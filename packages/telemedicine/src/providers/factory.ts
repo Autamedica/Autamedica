@@ -1,9 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
 import type { CallSessionBootstrap } from '../call-session/types'
+import type { CallProvider } from './types'
 import { WebRTCClient } from '../webrtc-client'
 import { CloudflareCallsClient } from '../cloudflare-calls'
 
+/** @deprecated Use CallProvider instead. Kept for backward compat during migration. */
 export type CallClient = WebRTCClient | CloudflareCallsClient
 
 export interface CreateCallProviderOptions {
@@ -14,7 +16,7 @@ export interface CreateCallProviderOptions {
   iceServersOverride?: RTCIceServer[]
 }
 
-export function createCallProvider(opts: CreateCallProviderOptions): CallClient {
+export function createCallProvider(opts: CreateCallProviderOptions): CallProvider {
   const { bootstrap, supabase, iceServersOverride } = opts
   const { runtime, user, roomId, transport } = bootstrap
   const iceServers = iceServersOverride ?? transport.iceServers

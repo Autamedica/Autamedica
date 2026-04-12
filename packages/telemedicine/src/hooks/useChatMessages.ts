@@ -1,8 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import type { TelemedicineDebugLevel } from '../debug'
-import type { WebRTCClient } from '../webrtc-client'
-import type { CloudflareCallsClient } from '../cloudflare-calls'
+import type { CallProvider } from '../providers/types'
 
 export interface UiChatMessage {
   id: string
@@ -16,7 +15,7 @@ export interface UiChatMessage {
 }
 
 interface UseChatMessagesOptions {
-  client: WebRTCClient | CloudflareCallsClient | null
+  client: CallProvider | null
   userId: string
   userType: string
   userName?: string
