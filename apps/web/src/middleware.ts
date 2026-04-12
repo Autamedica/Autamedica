@@ -74,7 +74,7 @@ const BLOCKED_BOT_PATTERNS = [
   /bytespider/i, /petalbot/i, /yandexbot/i, /sogou/i, /exabot/i,
   /claudebot/i, /gptbot/i, /ccbot/i, /anthropic-ai/i, /cohere-ai/i,
   /scrapy/i, /httpclient/i, /python-requests/i, /go-http-client/i,
-  /java\//i, /libwww-perl/i, /wget/i, /curl\//i,
+  /java\//i, /libwww-perl/i,
 ];
 
 // Good bots we allow (Google, Bing, etc.)
