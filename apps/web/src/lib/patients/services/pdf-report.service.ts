@@ -345,224 +345,250 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let y = 20
 
+  // ── Colors ──
+  const DARK = { r: 23, g: 23, b: 23 }         // neutral-900
+  const MID = { r: 115, g: 115, b: 115 }        // neutral-500
+  const LIGHT = { r: 163, g: 163, b: 163 }      // neutral-400
+  const ACCENT = { r: 14, g: 165, b: 233 }      // sky-500
+  const DANGER = { r: 220, g: 38, b: 38 }       // red-600
+  const AMBER = { r: 180, g: 120, b: 0 }        // amber accent
+  const SUCCESS = { r: 22, g: 163, b: 74 }      // green-600
+  const BG_LIGHT = { r: 250, g: 250, b: 250 }   // neutral-50
+  const BG_AMBER = { r: 255, g: 251, b: 235 }   // amber-50
+
   const addPage = () => { doc.addPage(); y = 20 }
-  const checkPageBreak = (needed: number) => { if (y + needed > 270) addPage() }
+  const checkPageBreak = (needed: number) => { if (y + needed > 268) addPage() }
+
+  const setColor = (c: { r: number; g: number; b: number }) => doc.setTextColor(c.r, c.g, c.b)
 
   const writeSection = (title: string, lines: string[]) => {
     if (lines.length === 0) return
-    checkPageBreak(20)
-    doc.setFillColor(245, 245, 245)
-    doc.rect(MARGIN_LEFT, y - 4, CONTENT_WIDTH, 8, 'F')
-    doc.setTextColor(16, 95, 67)
-    doc.setFontSize(10)
+    checkPageBreak(22)
+
+    // Section header — dark pill style
+    doc.setFillColor(DARK.r, DARK.g, DARK.b)
+    doc.roundedRect(MARGIN_LEFT, y - 4, CONTENT_WIDTH, 9, 2, 2, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(9)
     doc.setFont('helvetica', 'bold')
-    doc.text(title, MARGIN_LEFT + 2, y + 1)
-    y += 10
-    doc.setTextColor(40, 40, 40)
+    doc.text(title.toUpperCase(), MARGIN_LEFT + 4, y + 2)
+    y += 12
+
+    setColor(DARK)
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
     for (const line of lines) {
-      const wrapped = doc.splitTextToSize(line, CONTENT_WIDTH - 4)
+      const wrapped = doc.splitTextToSize(line, CONTENT_WIDTH - 8)
       for (const w of wrapped) {
         checkPageBreak(LINE_HEIGHT)
-        doc.text(w, MARGIN_LEFT + 2, y)
+        doc.text(w, MARGIN_LEFT + 4, y)
         y += LINE_HEIGHT
       }
     }
-    y += 4
+    y += 5
   }
 
   const writeBullets = (title: string, items: string[]) => {
     if (items.length === 0) return
-    writeSection(title, items.map(i => `- ${i}`))
+    writeSection(title, items.map(i => `  ${i}`))
   }
 
-  // --- Header ---
-  doc.setFillColor(16, 95, 67)
-  doc.rect(0, 0, PAGE_WIDTH, 35, 'F')
+  // ── Header — Dark editorial ──
+  doc.setFillColor(DARK.r, DARK.g, DARK.b)
+  doc.rect(0, 0, PAGE_WIDTH, 44, 'F')
+
+  // Brand
   doc.setTextColor(255, 255, 255)
-  doc.setFontSize(18)
-  doc.setFont('helvetica', 'bold')
-  doc.text('AutaMedica', MARGIN_LEFT, 15)
+  doc.setFontSize(22)
+  doc.setFont('helvetica', 'normal')
+  doc.text('AutaMedica', MARGIN_LEFT, 16)
+
+  // Subtitle
+  doc.setTextColor(255, 255, 255, 0.5)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
-  doc.text('Historia Clínica del Paciente', MARGIN_LEFT, 23)
-  doc.setFontSize(8)
-  doc.text(`Generado: ${formatDate(new Date().toISOString())}`, MARGIN_LEFT, 30)
-  doc.text(`ID: ${anamnesis.id.slice(0, 8)}`, PAGE_WIDTH - MARGIN_RIGHT, 30, { align: 'right' })
-  y = 45
+  doc.text('Historia Clinica General', MARGIN_LEFT, 24)
 
-  // --- Patient info ---
-  doc.setTextColor(60, 60, 60)
-  doc.setFontSize(9)
+  // Meta right-aligned
+  doc.setTextColor(ACCENT.r, ACCENT.g, ACCENT.b)
+  doc.setFontSize(8)
+  doc.text(formatDate(new Date().toISOString()), PAGE_WIDTH - MARGIN_RIGHT, 16, { align: 'right' })
+  doc.setTextColor(255, 255, 255, 0.4)
+  doc.setFontSize(7)
+  doc.text(`ID ${anamnesis.id.slice(0, 8)}`, PAGE_WIDTH - MARGIN_RIGHT, 22, { align: 'right' })
+
+  // Completion bar in header
+  const barY = 32
+  const barW = 60
+  const barH = 3
+  const barX = PAGE_WIDTH - MARGIN_RIGHT - barW
+  doc.setFillColor(255, 255, 255, 0.15)
+  doc.roundedRect(barX, barY, barW, barH, 1.5, 1.5, 'F')
+  doc.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b)
+  doc.roundedRect(barX, barY, barW * (anamnesis.completionPercentage / 100), barH, 1.5, 1.5, 'F')
+  doc.setTextColor(255, 255, 255, 0.6)
+  doc.setFontSize(7)
+  doc.text(`${anamnesis.completionPercentage}% completada`, barX - 2, barY + 2.5, { align: 'right' })
+
+  y = 54
+
+  // ── Patient info — two-column layout ──
+  setColor(LIGHT)
+  doc.setFontSize(7)
   doc.setFont('helvetica', 'bold')
   doc.text('PACIENTE', MARGIN_LEFT, y)
+
+  y += 5
+  setColor(DARK)
+  doc.setFontSize(11)
+  doc.setFont('helvetica', 'bold')
+  doc.text(patient.name, MARGIN_LEFT, y)
+
   doc.setFont('helvetica', 'normal')
-  y += LINE_HEIGHT
-  doc.text(`Nombre: ${patient.name}`, MARGIN_LEFT, y)
-  if (patient.age) doc.text(`Edad: ${patient.age} años`, MARGIN_LEFT + 90, y)
-  y += LINE_HEIGHT
-  if (patient.gender) doc.text(`Género: ${patient.gender}`, MARGIN_LEFT, y)
-  doc.text(`Completada: ${formatDate(anamnesis.completedAt)}`, MARGIN_LEFT + 90, y)
-  y += LINE_HEIGHT
-  doc.text(`Progreso: ${anamnesis.completionPercentage}%`, MARGIN_LEFT, y)
-  y += LINE_HEIGHT + 4
-
-  // --- Version metadata ---
-  if (version) {
-    const RELEVANCE_LABELS: Record<string, string> = {
-      routine: 'Rutina',
-      new_symptom: 'Sintoma nuevo',
-      follow_up: 'Seguimiento',
-      emergency: 'Emergencia',
-    }
-    const TRIGGER_LABELS: Record<string, string> = {
-      initial: 'Primera consulta',
-      update: 'Actualizacion',
-      review: 'Revision medica',
-    }
-
-    doc.setFillColor(230, 245, 255)
-    doc.rect(MARGIN_LEFT, y - 3, CONTENT_WIDTH, 16, 'F')
-    doc.setTextColor(30, 80, 140)
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'bold')
-    doc.text(`Version ${version.versionNumber}`, MARGIN_LEFT + 3, y + 2)
-    doc.setFont('helvetica', 'normal')
-    doc.text(
-      `${TRIGGER_LABELS[version.trigger] ?? version.trigger} - ${formatDate(version.createdAt)}`,
-      MARGIN_LEFT + 40, y + 2,
-    )
-    if (version.relevance) {
-      doc.text(
-        `[${RELEVANCE_LABELS[version.relevance] ?? version.relevance}]`,
-        PAGE_WIDTH - MARGIN_RIGHT, y + 2, { align: 'right' },
-      )
-    }
-    y += 8
-
-    if (version.changesSummary) {
-      doc.setFontSize(8)
-      doc.setTextColor(60, 60, 60)
-      const parts: string[] = []
-      if (version.changesSummary.added.length > 0) {
-        parts.push(`${version.changesSummary.added.length} nuevas`)
-      }
-      if (version.changesSummary.modified.length > 0) {
-        parts.push(`${version.changesSummary.modified.length} actualizadas`)
-      }
-      if (version.changesSummary.unchanged.length > 0) {
-        parts.push(`${version.changesSummary.unchanged.length} sin cambios`)
-      }
-      if (parts.length > 0) {
-        doc.text(`Secciones: ${parts.join(', ')}`, MARGIN_LEFT + 3, y + 2)
-      }
-      y += 6
-    }
-    y += 4
+  setColor(MID)
+  doc.setFontSize(9)
+  const infoFragments: string[] = []
+  if (patient.age) infoFragments.push(`${patient.age} anos`)
+  if (patient.gender) infoFragments.push(patient.gender)
+  if (infoFragments.length > 0) {
+    doc.text(infoFragments.join('  |  '), MARGIN_LEFT, y + 6)
   }
 
-  doc.setDrawColor(200, 200, 200)
+  // Right column — completion date
+  setColor(LIGHT)
+  doc.setFontSize(7)
+  doc.setFont('helvetica', 'normal')
+  doc.text(anamnesis.completedAt ? `Completada: ${formatDate(anamnesis.completedAt)}` : 'En progreso', PAGE_WIDTH - MARGIN_RIGHT, y, { align: 'right' })
+
+  y += 14
+
+  // ── Version metadata ──
+  if (version) {
+    const TRIGGER_LABELS: Record<string, string> = {
+      initial: 'Primera consulta', update: 'Actualizacion', review: 'Revision medica',
+    }
+    const RELEVANCE_LABELS: Record<string, string> = {
+      routine: 'Rutina', new_symptom: 'Sintoma nuevo', follow_up: 'Seguimiento', emergency: 'Emergencia',
+    }
+
+    doc.setFillColor(BG_LIGHT.r, BG_LIGHT.g, BG_LIGHT.b)
+    doc.roundedRect(MARGIN_LEFT, y - 3, CONTENT_WIDTH, 12, 2, 2, 'F')
+    setColor(ACCENT)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`v${version.versionNumber}`, MARGIN_LEFT + 4, y + 3)
+    setColor(MID)
+    doc.setFont('helvetica', 'normal')
+    doc.text(
+      `${TRIGGER_LABELS[version.trigger] ?? version.trigger}  —  ${formatDate(version.createdAt)}`,
+      MARGIN_LEFT + 16, y + 3,
+    )
+    if (version.relevance) {
+      setColor(DARK)
+      doc.text(
+        RELEVANCE_LABELS[version.relevance] ?? version.relevance,
+        PAGE_WIDTH - MARGIN_RIGHT - 4, y + 3, { align: 'right' },
+      )
+    }
+    y += 14
+  }
+
+  // Thin separator
+  doc.setDrawColor(230, 230, 230)
+  doc.setLineWidth(0.3)
   doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y)
   y += 8
 
-  // --- Coverage summary (AutaMedica IA branding) ---
+  // ── Coverage summary ──
   if (extraction?.argenteCoverage) {
-    checkPageBreak(30)
-    doc.setTextColor(16, 95, 67)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    doc.text('ANÁLISIS CLÍNICO — AutaMedica IA', MARGIN_LEFT, y)
-    y += LINE_HEIGHT + 2
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-
     const adequate = extraction.argenteCoverage.adequatelyCovered ?? []
     const weak = extraction.argenteCoverage.weakOrMissing ?? []
+    const total = adequate.length + weak.length
 
-    doc.setTextColor(80, 80, 80)
-    doc.setFont('helvetica', 'normal')
+    checkPageBreak(25 + (adequate.length + weak.length) * 5)
+
+    setColor(DARK)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Analisis Clinico', MARGIN_LEFT, y)
+    setColor(ACCENT)
     doc.setFontSize(8)
-    doc.text(`Areas cubiertas: ${adequate.length} de ${adequate.length + weak.length}`, MARGIN_LEFT + 2, y)
-    y += LINE_HEIGHT
+    doc.setFont('helvetica', 'normal')
+    doc.text(`AutaMedica IA  —  ${adequate.length}/${total} areas cubiertas`, MARGIN_LEFT + 48, y)
+    y += 8
 
     for (const area of adequate) {
       checkPageBreak(5)
-      doc.setTextColor(34, 139, 34)
-      doc.setFont('helvetica', 'normal')
+      setColor(SUCCESS)
       doc.setFontSize(8)
-      const label = SECTION_NAMES[area] ?? area
-      doc.text(`[OK] ${label}`, MARGIN_LEFT + 4, y)
+      doc.setFont('helvetica', 'normal')
+      doc.text(`+  ${SECTION_NAMES[area] ?? area}`, MARGIN_LEFT + 4, y)
       y += 5
     }
     for (const area of weak) {
       checkPageBreak(5)
-      doc.setTextColor(200, 120, 0)
+      setColor(AMBER)
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(8)
       const label = SECTION_NAMES[area] ?? area
-      const truncated = label.length > 60 ? label.slice(0, 57) + '...' : label
-      doc.text(`[!] ${truncated}`, MARGIN_LEFT + 4, y)
+      doc.text(`!  ${label.length > 60 ? label.slice(0, 57) + '...' : label}`, MARGIN_LEFT + 4, y)
       y += 5
     }
 
-    // Gaps box — compact
     if (weak.length > 0) {
-      y += 3
-      checkPageBreak(12 + weak.length * 5)
-      doc.setFillColor(255, 248, 230)
-      doc.rect(MARGIN_LEFT, y - 3, CONTENT_WIDTH, 7 + weak.length * 5, 'F')
-      doc.setTextColor(140, 90, 0)
+      y += 2
+      checkPageBreak(10 + weak.length * 5)
+      doc.setFillColor(BG_AMBER.r, BG_AMBER.g, BG_AMBER.b)
+      doc.roundedRect(MARGIN_LEFT, y - 3, CONTENT_WIDTH, 7 + weak.length * 5, 2, 2, 'F')
+      setColor(AMBER)
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(8)
-      doc.text('Para completar tu historia clinica, tu medico necesita:', MARGIN_LEFT + 3, y + 1)
+      doc.text('Informacion pendiente para tu medico:', MARGIN_LEFT + 4, y + 1)
       y += 6
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(7)
       for (const area of weak) {
         checkPageBreak(5)
         const gapLabel = SECTION_NAMES[area] ?? area
-        const truncated = gapLabel.length > 70 ? gapLabel.slice(0, 67) + '...' : gapLabel
-        doc.text(`- ${truncated}`, MARGIN_LEFT + 5, y)
+        doc.text(`-  ${gapLabel.length > 70 ? gapLabel.slice(0, 67) + '...' : gapLabel}`, MARGIN_LEFT + 6, y)
         y += 5
       }
     }
-    y += 5
-    doc.setFontSize(9)
+    y += 6
   }
 
-  // --- Chief complaint ---
+  // ── Chief complaint ──
   if (extraction?.chiefComplaint?.normalizedMedicalText) {
-    writeSection('MOTIVO DE CONSULTA', [extraction.chiefComplaint.normalizedMedicalText])
+    writeSection('Motivo de consulta', [extraction.chiefComplaint.normalizedMedicalText])
   }
 
-  // --- Present illness ---
+  // ── Present illness ──
   if (extraction?.presentIllness?.clinicalNarrative) {
     const pi = extraction.presentIllness
     const lines: string[] = [pi.clinicalNarrative]
-    if (pi.chronology) lines.push(`Cronología: ${pi.chronology}`)
+    if (pi.chronology) lines.push(`Cronologia: ${pi.chronology}`)
     if (pi.severity) lines.push(`Severidad: ${pi.severity}`)
-    if (pi.associatedSymptoms?.length) lines.push(`Síntomas asociados: ${pi.associatedSymptoms.join(', ')}`)
+    if (pi.associatedSymptoms?.length) lines.push(`Sintomas asociados: ${pi.associatedSymptoms.join(', ')}`)
     if (pi.aggravatingFactors?.length) lines.push(`Agravantes: ${pi.aggravatingFactors.join(', ')}`)
     if (pi.relievingFactors?.length) lines.push(`Aliviantes: ${pi.relievingFactors.join(', ')}`)
     if (pi.treatmentsTried?.length) lines.push(`Tratamientos previos: ${pi.treatmentsTried.join(', ')}`)
-    writeSection('ENFERMEDAD ACTUAL', lines)
+    writeSection('Enfermedad actual', lines)
   }
 
-  // --- Personal history ---
+  // ── Personal history ──
   if (extraction?.personalHistory) {
     const ph = extraction.personalHistory
     const lines: string[] = []
-    if (ph.physiological?.length) lines.push(`Fisiológicos: ${ph.physiological.join(', ')}`)
-    if (ph.pathological?.length) lines.push(`Patológicos: ${ph.pathological.join(', ')}`)
+    if (ph.physiological?.length) lines.push(`Fisiologicos: ${ph.physiological.join(', ')}`)
+    if (ph.pathological?.length) lines.push(`Patologicos: ${ph.pathological.join(', ')}`)
     if (ph.lifestyleAndContext?.length) lines.push(`Estilo de vida: ${ph.lifestyleAndContext.join(', ')}`)
-    writeSection('ANTECEDENTES PERSONALES', lines)
+    writeSection('Antecedentes personales', lines)
   }
 
-  // --- Family history ---
-  writeBullets('ANTECEDENTES FAMILIARES', extraction?.familyHistory ?? [])
+  // ── Family history ──
+  writeBullets('Antecedentes familiares', extraction?.familyHistory ?? [])
 
-  // --- Review of systems ---
+  // ── Review of systems ──
   if (extraction?.reviewOfSystems) {
     const ros = extraction.reviewOfSystems
     const lines: string[] = []
@@ -571,39 +597,38 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
         lines.push(`${SECTION_NAMES[system] ?? system}: ${findings.join(', ')}`)
       }
     }
-    writeSection('REVISIÓN POR SISTEMAS', lines)
+    writeSection('Revision por sistemas', lines)
   }
 
-  // --- Safety flags ---
+  // ── Safety flags ──
   if (extraction?.safetyFlags?.length) {
     checkPageBreak(20)
-    doc.setTextColor(180, 0, 0)
-    doc.setFontSize(10)
+    doc.setFillColor(DANGER.r, DANGER.g, DANGER.b)
+    doc.roundedRect(MARGIN_LEFT, y - 4, CONTENT_WIDTH, 9, 2, 2, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(9)
     doc.setFont('helvetica', 'bold')
-    doc.text('BANDERAS DE SEGURIDAD', MARGIN_LEFT, y)
-    y += LINE_HEIGHT + 2
+    doc.text('BANDERAS DE SEGURIDAD', MARGIN_LEFT + 4, y + 2)
+    y += 12
+    setColor(DANGER)
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
     for (const flag of extraction.safetyFlags) {
       checkPageBreak(LINE_HEIGHT)
-      doc.text(`- ${flag}`, MARGIN_LEFT + 4, y)
+      doc.text(`!  ${flag}`, MARGIN_LEFT + 4, y)
       y += LINE_HEIGHT
     }
     y += 4
   }
 
-  // --- Raw sections (deduplicated, human labels, only unique fields per section) ---
-  // Only show if extraction is missing (fallback) or as compact supplement
+  // ── Raw sections (deduplicated) ──
   const seenFields = new Set<string>()
   const sectionsWithUniqueData = sections.map(section => {
     const uniqueEntries = Object.entries(section.data)
       .filter(([key, v]) => {
         if (v === null || v === '' || v === undefined) return false
         if (ACCUMULATED_FIELDS.has(key)) return false
-        if (v === true || v === false) {
-          // Only show boolean fields that are clinically relevant (true = symptom present)
-          if (v === false) return false
-        }
+        if (v === false) return false
         const fieldKey = `${key}:${JSON.stringify(v)}`
         if (seenFields.has(fieldKey)) return false
         seenFields.add(fieldKey)
@@ -614,23 +639,28 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
 
   if (sectionsWithUniqueData.length > 0) {
     checkPageBreak(15)
-    doc.setTextColor(16, 95, 67)
+    setColor(DARK)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
-    doc.text('RESPUESTAS DEL PACIENTE', MARGIN_LEFT, y)
+    doc.text('Respuestas del paciente', MARGIN_LEFT, y)
     y += LINE_HEIGHT + 4
 
     for (const section of sectionsWithUniqueData) {
       const label = SECTION_NAMES[section.section] ?? section.section
       checkPageBreak(15)
-      doc.setTextColor(80, 80, 80)
-      doc.setFontSize(9)
+
+      // Section label — light bg
+      doc.setFillColor(BG_LIGHT.r, BG_LIGHT.g, BG_LIGHT.b)
+      doc.roundedRect(MARGIN_LEFT, y - 3, CONTENT_WIDTH, 7, 1.5, 1.5, 'F')
+      setColor(DARK)
+      doc.setFontSize(8)
       doc.setFont('helvetica', 'bold')
-      doc.text(label, MARGIN_LEFT + 2, y)
-      y += LINE_HEIGHT
+      doc.text(label, MARGIN_LEFT + 3, y + 1)
+      y += 8
 
       doc.setFont('helvetica', 'normal')
-      doc.setTextColor(60, 60, 60)
+      setColor(MID)
+      doc.setFontSize(8)
       for (const [key, value] of section.uniqueEntries) {
         const fieldLabel = FIELD_LABELS[key] ?? key.replace(/_/g, ' ')
         let displayValue: string
@@ -639,34 +669,43 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
           if (items.length === 0) continue
           displayValue = items.join(', ')
         } else if (typeof value === 'boolean') {
-          displayValue = value ? 'Sí' : 'No'
+          displayValue = value ? 'Si' : 'No'
         } else {
           displayValue = String(value)
         }
         const text = `${fieldLabel}: ${displayValue}`
-        const wrapped = doc.splitTextToSize(text, CONTENT_WIDTH - 8)
+        const wrapped = doc.splitTextToSize(text, CONTENT_WIDTH - 10)
         for (const w of wrapped) {
-          checkPageBreak(LINE_HEIGHT)
+          checkPageBreak(5)
           doc.text(w, MARGIN_LEFT + 6, y)
-          y += LINE_HEIGHT
+          y += 5
         }
       }
-      y += 3
+      y += 4
     }
   }
 
-  // --- Footer ---
+  // ── Footer — editorial minimal ──
   const pageCount = doc.getNumberOfPages()
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
-    doc.setDrawColor(200, 200, 200)
-    doc.line(MARGIN_LEFT, 280, PAGE_WIDTH - MARGIN_RIGHT, 280)
-    doc.setTextColor(150, 150, 150)
-    doc.setFontSize(7)
+
+    // Thin line
+    doc.setDrawColor(230, 230, 230)
+    doc.setLineWidth(0.3)
+    doc.line(MARGIN_LEFT, 278, PAGE_WIDTH - MARGIN_RIGHT, 278)
+
+    // Left: legal
+    setColor(LIGHT)
+    doc.setFontSize(6.5)
     doc.setFont('helvetica', 'normal')
-    doc.text('Documento confidencial — Ley 26.529 de Derechos del Paciente', MARGIN_LEFT, 285)
-    doc.text(`Página ${i} de ${pageCount}`, PAGE_WIDTH - MARGIN_RIGHT, 285, { align: 'right' })
-    doc.text('AutaMedica IA — Investigador: E.M. — En fase de validación clínica ampliada', MARGIN_LEFT, 289)
+    doc.text('Documento confidencial  —  Ley 26.529 de Derechos del Paciente', MARGIN_LEFT, 283)
+    doc.text('AutaMedica IA  —  En fase de validacion clinica ampliada', MARGIN_LEFT, 287)
+
+    // Right: page number
+    setColor(LIGHT)
+    doc.setFontSize(7)
+    doc.text(`${i} / ${pageCount}`, PAGE_WIDTH - MARGIN_RIGHT, 283, { align: 'right' })
   }
 
   const buffer = doc.output('arraybuffer')
