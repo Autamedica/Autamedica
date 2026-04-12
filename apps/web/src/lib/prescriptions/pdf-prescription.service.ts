@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { rctaService } from './rcta.service';
-import { getSubstanceCategory, getValidityPeriodDays } from './strict-validation';
+import { getValidityPeriodDays } from './strict-validation';
 
 export interface PrescriptionPdfInput {
   prescriptionId: string;
