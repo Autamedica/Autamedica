@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { PatientsPanel } from '../../components/doctors/patients/PatientsPanel';
+import { DoctorsPatientsPage } from '../../components/doctors/DoctorsPatientsPage';
 ---
 
 <Layout
@@ -9,15 +9,5 @@ import { PatientsPanel } from '../../components/doctors/patients/PatientsPanel';
   canonical="https://www.autamedica.com/doctors/patients"
   robots="noindex, nofollow, noarchive"
 >
-  <main class="page-shell">
-    <PatientsPanel client:load />
-  </main>
+  <DoctorsPatientsPage client:load />
 </Layout>
-
-<style>
-  .page-shell {
-    min-height: 100vh;
-    padding: clamp(2rem, 4vh, 3rem) var(--section-px) var(--space-16);
-    background: var(--au-bg);
-  }
-</style>
