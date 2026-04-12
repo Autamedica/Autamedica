@@ -41,6 +41,7 @@ export const featureFlags = {
   // Video/Telemedicine
   get USE_MOCK_VIDEO() { return envIs('PUBLIC_USE_MOCK_VIDEO', 'true'); },
   get USE_LIVEKIT() { return envIs('PUBLIC_USE_LIVEKIT', 'true'); },
+  get FORCE_WEBRTC_P2P() { return envIs('PUBLIC_FORCE_WEBRTC_P2P', 'true'); },
 
   // Medical Data
   get USE_MOCK_MEDICAL_DATA() { return envIs('PUBLIC_USE_MOCK_MEDICAL_DATA', 'true'); },
@@ -87,8 +88,8 @@ export function validateFeatureFlags(): void {
   if (featureFlags.IS_PRODUCTION && isMockMode()) {
     warnings.push('WARNING: Mocks activos en PRODUCCION');
   }
-  if (!featureFlags.USE_MOCK_VIDEO && !featureFlags.USE_LIVEKIT) {
-    warnings.push('WARNING: Video real requiere LiveKit (USE_LIVEKIT=true)');
+  if (!featureFlags.USE_MOCK_VIDEO && !featureFlags.USE_LIVEKIT && !envExists('CLOUDFLARE_CALLS_APP_ID')) {
+    warnings.push('WARNING: Video real requiere Cloudflare Calls (CLOUDFLARE_CALLS_APP_ID) o LiveKit (USE_LIVEKIT=true)');
   }
   if (!featureFlags.USE_MOCK_AI && !featureFlags.USE_REAL_AI) {
     warnings.push('WARNING: AI real requiere ANTHROPIC_API_KEY o GOOGLE_AI_API_KEY');
@@ -107,7 +108,7 @@ export function logFeatureFlags(): void {
   if (featureFlags.IS_PRODUCTION) return;
   logger.info('Feature Flags:', {
     mocks: { video: featureFlags.USE_MOCK_VIDEO, medical: featureFlags.USE_MOCK_MEDICAL_DATA, ai: featureFlags.USE_MOCK_AI },
-    services: { livekit: featureFlags.USE_LIVEKIT, aiProvider: getAIProvider() },
+    services: { livekit: featureFlags.USE_LIVEKIT, forceP2P: featureFlags.FORCE_WEBRTC_P2P, aiProvider: getAIProvider() },
     env: { production: featureFlags.IS_PRODUCTION, staging: featureFlags.IS_STAGING, dev: featureFlags.IS_DEVELOPMENT },
   });
 }

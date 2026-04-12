@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
-import { UnifiedVideoCall, createCallService, useTurnCredentials } from '@autamedica/telemedicine'
+import { UnifiedVideoCall, createCallProvider, createCallService, useTurnCredentials } from '@autamedica/telemedicine'
 import type { CallStatus } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import type { UserProfile } from '@autamedica/types'
@@ -216,6 +216,17 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     )
   }
 
+  const callProvider = useMemo(
+    () => callSession
+      ? createCallProvider({
+          bootstrap: callSession,
+          supabase: callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined,
+          iceServersOverride: clientTurnServers ?? undefined,
+        })
+      : null,
+    [callSession?.callId], // recreate only when the call identity changes
+  )
+
   return (
     <UnifiedVideoCall
       roomId={callSession.roomId}
@@ -230,6 +241,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
           : (callSession.transport.cloudflareCallsApiUrl ?? null)
       }
       supabase={callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined}
+      provider={callProvider ?? undefined}
       theme="patient"
       onCallEnd={handleCallEnd}
       persistCallStatus={handlePersistCallStatus}
@@ -237,6 +249,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
       supabaseUrl={import.meta.env.PUBLIC_SUPABASE_URL}
       supabaseAnonKey={import.meta.env.PUBLIC_SUPABASE_ANON_KEY}
       autoStart
+      runtime={callSession.runtime === 'livekit' ? undefined : callSession.runtime}
       className="h-screen"
     />
   )

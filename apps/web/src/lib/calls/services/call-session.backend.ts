@@ -22,11 +22,24 @@ function matchesParticipant(participantId: string | null, callParticipantId: str
 }
 
 function resolveRuntime(): CallSessionRuntime {
+  if (import.meta.env.PUBLIC_FORCE_WEBRTC_P2P === 'true') {
+    logger.info('[resolveRuntime] Forced to webrtc-p2p via PUBLIC_FORCE_WEBRTC_P2P')
+    return 'webrtc-p2p'
+  }
+
   const hasCloudflareCalls =
     Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_ID) &&
     Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_SECRET)
 
-  return hasCloudflareCalls ? 'cloudflare-calls' : 'webrtc-p2p'
+  if (hasCloudflareCalls) return 'cloudflare-calls'
+
+  if (import.meta.env.PROD) {
+    logger.error('[resolveRuntime] CLOUDFLARE_CALLS credentials missing in production — call bootstrap will fail')
+    throw new Error('Cloudflare Calls credentials are required in production. Set CLOUDFLARE_CALLS_APP_ID and CLOUDFLARE_CALLS_APP_SECRET.')
+  }
+
+  logger.warn('[resolveRuntime] No Cloudflare Calls credentials — falling back to webrtc-p2p (dev only)')
+  return 'webrtc-p2p'
 }
 
 function buildWaitingRoom(call: Call, role: CallSessionRole): CallSessionBootstrap['waitingRoom'] {

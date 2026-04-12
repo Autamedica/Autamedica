@@ -77,6 +77,10 @@ export interface UnifiedVideoCallProps {
   className?: string
   theme?: 'doctor' | 'patient'
   autoStart?: boolean
+  /** Runtime engine: 'cloudflare-calls' (SFU) or 'webrtc-p2p'. Shown as badge in CallTopBar. */
+  runtime?: 'cloudflare-calls' | 'webrtc-p2p'
+  /** Pre-built call provider from createCallProvider(). When set, cloudflareCallsApiUrl/supabase/iceServers are ignored. */
+  provider?: WebRTCClient | CloudflareCallsClient
 }
 
 interface RemoteUser {
@@ -109,6 +113,8 @@ export function UnifiedVideoCall({
   className = '',
   theme = userType === 'doctor' ? 'doctor' : 'patient',
   autoStart = false,
+  runtime,
+  provider: externalProvider,
 }: UnifiedVideoCallProps): JSX.Element {
   /* ── State ── */
   const [client, setClient] = useState<WebRTCClient | CloudflareCallsClient | null>(null)
@@ -254,17 +260,26 @@ export function UnifiedVideoCall({
 
   useEffect(() => {
     emitDebug('info', 'Inicializando componente de videollamada', {
+      runtime: runtime ?? (cloudflareCallsApiUrl === null ? 'webrtc-p2p' : 'cloudflare-calls'),
+      sfuUrl: cloudflareCallsApiUrl === null ? 'none' : (cloudflareCallsApiUrl ?? '/api/cloudflare-calls'),
+      hasTurn: hasTurnIceServer(iceServers ?? []),
       autoStart,
       userName,
     })
 
-    // cloudflareCallsApiUrl: undefined → default SFU, null → P2P explícito, string → custom URL
-    const sfuUrl = cloudflareCallsApiUrl === null
-      ? null
-      : (cloudflareCallsApiUrl ?? '/api/cloudflare-calls')
-    const webrtcClient = sfuUrl
-      ? new CloudflareCallsClient({ userId, userName, userType, roomId, apiProxyUrl: sfuUrl })
-      : new WebRTCClient({ userId, userName, userType, roomId, ...(iceServers ? { iceServers } : {}), ...(supabase ? { supabase } : {}) })
+    // If an external provider was supplied (from createCallProvider), use it directly.
+    // Otherwise fall back to the legacy prop-based selection.
+    let webrtcClient: WebRTCClient | CloudflareCallsClient
+    if (externalProvider) {
+      webrtcClient = externalProvider
+    } else {
+      const sfuUrl = cloudflareCallsApiUrl === null
+        ? null
+        : (cloudflareCallsApiUrl ?? '/api/cloudflare-calls')
+      webrtcClient = sfuUrl
+        ? new CloudflareCallsClient({ userId, userName, userType, roomId, apiProxyUrl: sfuUrl })
+        : new WebRTCClient({ userId, userName, userType, roomId, ...(iceServers ? { iceServers } : {}), ...(supabase ? { supabase } : {}) })
+    }
     const unsubs: Array<() => void> = []
     const startConnectingTimeout = () => {
       if (connectingTimerRef.current) {
@@ -564,7 +579,7 @@ export function UnifiedVideoCall({
   // retryKey causa re-mount del cliente cuando se incrementa (intento de reconexión)
   // Callbacks (onCallStart, onError, onStatusChange) viven en refs para evitar
   // que re-renders del parent destruyan la conexión WebRTC en vuelo.
-  }, [addRemoteMessage, autoStart, cleanupSound, cloudflareCallsApiUrl, emitDebug, iceServers, logCallEvent, playParticipantJoinedSound, retryKey, roomId, supabase, userId, userName, userType])
+  }, [addRemoteMessage, autoStart, cleanupSound, cloudflareCallsApiUrl, emitDebug, externalProvider, iceServers, logCallEvent, playParticipantJoinedSound, retryKey, roomId, supabase, userId, userName, userType])
 
   /* ── Duration timer ── */
   useEffect(() => {
@@ -894,6 +909,7 @@ export function UnifiedVideoCall({
           participantCount={totalParticipants}
           isRecording={recordingState.isRecording}
           showControls={controlsVisible}
+          runtime={runtime}
         />
       )}
 

@@ -79,6 +79,10 @@ export { ReconnectingOverlay } from './components/ReconnectingOverlay'
 export type { ReconnectingOverlayProps } from './components/ReconnectingOverlay'
 export type { CallSessionBootstrap, CallSessionRole, CallSessionRuntime } from './call-session/types'
 
+// Provider factory
+export { createCallProvider } from './providers/factory'
+export type { CallClient, CreateCallProviderOptions } from './providers/factory'
+
 // Types
 export type { SignalKind, Signal } from './types'
 export { isSignal } from './types'

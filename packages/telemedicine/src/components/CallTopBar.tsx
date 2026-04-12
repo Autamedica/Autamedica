@@ -37,10 +37,11 @@ export interface CallTopBarProps {
   participantCount: number
   isRecording: boolean
   showControls: boolean
+  runtime?: 'cloudflare-calls' | 'webrtc-p2p'
 }
 
 export function CallTopBar({
-  phase, qualityLevel, formattedDuration, participantCount, isRecording, showControls,
+  phase, qualityLevel, formattedDuration, participantCount, isRecording, showControls, runtime,
 }: CallTopBarProps) {
   const isConnected = phase === 'peer-ready'
   const connectionDotColor = isConnected
@@ -75,6 +76,18 @@ export function CallTopBar({
                 />
                 <span>{statusLabel}</span>
               </div>
+              {runtime && (
+                <div
+                  className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-xl ${
+                    runtime === 'cloudflare-calls'
+                      ? 'bg-cyan-500/15 text-cyan-400 ring-1 ring-cyan-400/20'
+                      : 'bg-amber-500/15 text-amber-400 ring-1 ring-amber-400/20'
+                  }`}
+                  title={runtime === 'cloudflare-calls' ? 'Cloudflare Calls SFU' : 'WebRTC Peer-to-Peer'}
+                >
+                  {runtime === 'cloudflare-calls' ? 'SFU' : 'P2P'}
+                </div>
+              )}
               {qualityLevel !== 'unknown' && (
                 <div className="hidden items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5 backdrop-blur-xl sm:flex">
                   <QualityBars level={qualityLevel} />
