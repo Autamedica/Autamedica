@@ -16,6 +16,7 @@ import { initServerSentry } from './lib/observability/sentry';
 import { checkRateLimit } from './lib/rate-limit';
 import { primeRuntimeEnv, resolvePublicSupabaseEnv } from './lib/runtime-env';
 import './lib/patients/services/clinical-orchestrator.service';
+import './lib/notifications/notification-triggers';
 
 // Rutas que requieren autenticación
 const PROTECTED_ROUTES = [

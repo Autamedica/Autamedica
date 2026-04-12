@@ -1,6 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import BottomNav from '@/components/patients/layout/BottomNav.astro';
+import PatientNotificationsBell from '@/components/patients/PatientNotificationsBell';
 
 interface Props {
   title?: string;
@@ -13,6 +14,10 @@ const { title, description, activeTab = 'inicio' } = Astro.props;
 
 <Layout title={title} description={description}>
   <div class="min-h-screen pb-[env(safe-area-inset-bottom)]">
+    <!-- Floating notification bell -->
+    <div class="fixed right-4 top-4 z-50 md:right-6 md:top-5">
+      <PatientNotificationsBell client:load />
+    </div>
     <slot />
   </div>
   <BottomNav activeTab={activeTab} />

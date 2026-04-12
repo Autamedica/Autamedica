@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import type { Variants } from "framer-motion";
 import type { JSX } from "react";
 import { useMemo } from "react";
 
@@ -47,12 +48,14 @@ function getDoctorDisplayName(
   return fullName || "Doctor/a";
 }
 
-const cardVariants = {
+const EDITORIAL_EASE = [0.25, 0.46, 0.45, 0.94] as const;
+
+const cardVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, delay: 0.1 + i * 0.08, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { duration: 0.5, delay: 0.1 + i * 0.08, ease: EDITORIAL_EASE },
   }),
 };
 
@@ -149,7 +152,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: 0.6, ease: EDITORIAL_EASE }}
         >
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
             <Stethoscope className="h-3.5 w-3.5 text-cyan-400" strokeWidth={1.5} />

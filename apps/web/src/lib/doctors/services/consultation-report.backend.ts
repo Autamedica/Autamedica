@@ -4,7 +4,7 @@
  * Layer 6 of 7-layer architecture.
  */
 import { createAstroAdminClient } from '@/lib/supabase';
-import { buildAnamnesisSummary, logger } from '@autamedica/shared';
+import { buildAnamnesisSummary, domainEvents, logger } from '@autamedica/shared';
 import { generateConsultationReport } from '@/lib/doctors/services/consultation-report-service';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { GenerateReportRequest } from '@autamedica/types';
@@ -113,6 +113,20 @@ export async function generateAndSaveReport(
         error: err,
       });
     }
+  }
+
+  try {
+    await domainEvents.emit('consultation.report_generated', {
+      consultationId: saved.id,
+      doctorId,
+      patientId,
+      reportUrl: '/patients/reports',
+    });
+  } catch (err) {
+    logger.warn('[consultation-report] Failed to publish consultation.report_generated', {
+      recordId: saved.id,
+      error: err,
+    });
   }
 
   logger.info('[consultation-report] Generated and saved', {

@@ -7,6 +7,7 @@ import { useDoctorStats } from "@/hooks/doctors/useDoctorStats";
 import { useCurrentDoctor } from "@/hooks/doctors/useRealDoctors";
 import { signOutLocal } from "@/lib/auth/service";
 import { getOnboardingStatus } from "@/lib/onboarding-grace";
+import DoctorNotificationsBell from "@/components/doctors/DoctorNotificationsBell";
 import {
   Activity,
   ArrowRight,
@@ -352,14 +353,7 @@ export function DoctorsPortalFrame({
               </span>
             </button>
 
-            <button
-              type="button"
-              className="relative rounded-full p-2.5 transition-colors hover:bg-neutral-100"
-              aria-label="Notificaciones"
-            >
-              <Bell className="h-4 w-4 text-neutral-400" strokeWidth={1.5} />
-              <span className="absolute right-1.5 top-1.5 flex h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-            </button>
+            <DoctorNotificationsBell />
 
             <div className="hidden text-right md:block">
               <time className="block font-mono text-sm font-medium text-neutral-900">
