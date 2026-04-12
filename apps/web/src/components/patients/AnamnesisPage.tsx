@@ -14,6 +14,7 @@ import { VoiceAnamnesis } from '@/components/patients/anamnesis/VoiceAnamnesis'
 import { AnalysisResultOverlay } from '@/components/patients/anamnesis/AnalysisResultOverlay'
 import { AnamnesisChatModal } from '@/components/patients/anamnesis/AnamnesisChatModal'
 import { AnamnesisFlowTour } from '@/components/patients/tours/AnamnesisFlowTour'
+import { PdfPreviewModal } from '@/components/patients/anamnesis/PdfPreviewModal'
 
 const SECTION_SHORT_LABELS: Record<string, string> = {
   edad: 'Edad', ocupacion: 'Trabajo', motivo_consulta: 'Motivo',
@@ -283,8 +284,14 @@ export default function AnamnesisPage() {
 
   // ── COMPLETED ──
 
+  const [showPdfPreview, setShowPdfPreview] = useState(false)
+
   if (pageView === 'completed') {
     const completedSections = progress?.completedSections ?? []
+    const patientName = user?.user_metadata?.full_name as string ?? user?.email?.split('@')[0] ?? 'Paciente'
+    const completedDate = anamnesis?.completedAt
+      ? new Date(anamnesis.completedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
+      : null
 
     return (
       <div className="min-h-screen bg-white">
@@ -326,9 +333,8 @@ export default function AnamnesisPage() {
         <section className="max-w-7xl mx-auto px-6 lg:px-12 -mt-12 pb-24">
           <motion.button
             type="button"
-            onClick={() => handleGeneratePdf()}
-            disabled={saving}
-            className="group w-full max-w-2xl mx-auto mb-16 py-6 bg-sky-500 text-white rounded-2xl text-lg font-medium hover:bg-sky-600 transition-all flex items-center justify-center gap-3 shadow-xl shadow-sky-500/20 disabled:opacity-50"
+            onClick={() => setShowPdfPreview(true)}
+            className="group w-full max-w-2xl mx-auto mb-16 py-6 bg-sky-500 text-white rounded-2xl text-lg font-medium hover:bg-sky-600 transition-all flex items-center justify-center gap-3 shadow-xl shadow-sky-500/20"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
@@ -336,9 +342,21 @@ export default function AnamnesisPage() {
             whileTap={{ scale: 0.98 }}
           >
             <FileText className="size-6" />
-            Descargar PDF
+            Ver y descargar PDF
             <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
           </motion.button>
+
+          <PdfPreviewModal
+            open={showPdfPreview}
+            onClose={() => setShowPdfPreview(false)}
+            onDownloadFull={() => handleGeneratePdf()}
+            saving={saving}
+            patientName={patientName}
+            completedDate={completedDate}
+            sections={anamnesisSteps}
+            formData={formData}
+            completedSections={completedSections}
+          />
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-24">
             {[
