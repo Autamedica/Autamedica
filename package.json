@@ -8,9 +8,9 @@
   "scripts": {
     "test:e2e": "node tests/run-playwright.cjs",
     "test:e2e:ui": "playwright test --ui",
-    "test:doctor-videocall": "playwright test tests/e2e/doctor-login-videocall-flow.spec.ts --config=tests/e2e/playwright.doctor-videocall.config.ts",
-    "test:doctor-videocall:headless": "playwright test tests/e2e/doctor-login-videocall-flow.spec.ts --config=tests/e2e/playwright.doctor-videocall.config.ts --headed=false",
-    "test:doctor-videocall:report": "playwright test tests/e2e/doctor-login-videocall-flow.spec.ts --config=tests/e2e/playwright.doctor-videocall.config.ts --reporter=html,json",
+    "test:doctor-videocall": "playwright test tests/e2e/doctor-video-call-flow.spec.ts --config=tests/e2e/playwright.doctor-videocall.config.ts",
+    "test:doctor-videocall:headless": "playwright test tests/e2e/doctor-video-call-flow.spec.ts --config=tests/e2e/playwright.doctor-videocall.config.ts --headed=false",
+    "test:doctor-videocall:report": "playwright test tests/e2e/doctor-video-call-flow.spec.ts --config=tests/e2e/playwright.doctor-videocall.config.ts --reporter=html,json",
     "test:doctor-videocall:ci": "./scripts/doctor-videocall-test-automation.sh --ci --headless --report",
     "test:doctor-videocall:git-flow": "node scripts/git-flow-doctor-videocall-test.js --ci --headless --report --notify",
     "test:signaling-e2e": "PATCHRIGHT_HEADLESS=0 patchright test -c tests/e2e/patchright.signaling.config.ts",
