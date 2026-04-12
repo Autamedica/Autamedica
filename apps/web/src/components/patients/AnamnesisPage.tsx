@@ -1,142 +1,271 @@
-'use client';
+'use client'
 
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  ChevronLeft,
-  Download,
-  Loader2,
-  Lock,
-  Mic,
-  MessageCircle,
-  PlayCircle,
-  Plus,
-} from 'lucide-react';
-import { useAnamnesisFlow } from '@/hooks/patients/useAnamnesisFlow';
-import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps';
-import { AnamnesisField as AnamnesisFieldRenderer } from '@/components/patients/anamnesis/AnamnesisField';
-import { VersionTimeline } from '@/components/patients/anamnesis/VersionTimeline';
-import { PrivacyAcceptanceScreen } from '@/components/patients/anamnesis/PrivacyAcceptanceScreen';
-import { AnamnesisChatModal } from '@/components/patients/anamnesis/AnamnesisChatModal';
-import { AnalysisResultOverlay } from '@/components/patients/anamnesis/AnalysisResultOverlay';
-import { AnamnesisFlowTour } from '@/components/patients/tours/AnamnesisFlowTour';
-import { ConversationalAnamnesis } from '@/components/patients/anamnesis/ConversationalAnamnesis';
-import { VoiceAnamnesis } from '@/components/patients/anamnesis/VoiceAnamnesis';
+  ArrowRight, ArrowLeft, MessageCircle, Mic, Check,
+  ChevronRight, X, FileText, Calendar, Heart, Brain,
+  Pause, Play, Square, Volume2, MicOff, Bot,
+} from 'lucide-react'
+import { useAnamnesisFlow } from '@/hooks/patients/useAnamnesisFlow'
+import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps'
+import { ConversationalAnamnesis } from '@/components/patients/anamnesis/ConversationalAnamnesis'
+import { VoiceAnamnesis } from '@/components/patients/anamnesis/VoiceAnamnesis'
+import { AnalysisResultOverlay } from '@/components/patients/anamnesis/AnalysisResultOverlay'
+import { AnamnesisChatModal } from '@/components/patients/anamnesis/AnamnesisChatModal'
+import { AnamnesisFlowTour } from '@/components/patients/tours/AnamnesisFlowTour'
 
 const SECTION_SHORT_LABELS: Record<string, string> = {
-  edad: 'Edad',
-  ocupacion: 'Trabajo',
-  motivo_consulta: 'Motivo',
-  enfermedades_previas: 'Enfermedades',
-  medicamentos: 'Medicamentos',
-  alergias: 'Alergias',
-  antecedentes_familiares: 'Familia',
-  habitos: 'Hábitos',
-  cardiovascular: 'Corazón',
-  respiratorio: 'Pulmones',
-  digestivo: 'Digestivo',
-  genitourinario: 'Urinario',
-  resumen_final: 'Resumen',
-};
+  edad: 'Edad', ocupacion: 'Trabajo', motivo_consulta: 'Motivo',
+  enfermedades_previas: 'Enfermedades', medicamentos: 'Medicamentos',
+  alergias: 'Alergias', antecedentes_familiares: 'Familia',
+  habitos: 'Hábitos', cardiovascular: 'Corazón', respiratorio: 'Pulmones',
+  digestivo: 'Digestivo', genitourinario: 'Urinario', resumen_final: 'Resumen',
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  filiacion: 'Filiación', motivo_consulta: 'Motivo consulta',
+  antecedentes: 'Antecedentes', habitos: 'Estilo de vida',
+  sistemas: 'Aparatos/Sistemas', cierre: 'Cierre',
+}
 
 const UPDATE_PICKER_OPTIONS = [
-  { id: 'motivo_consulta', label: 'Nuevo motivo de consulta', icon: '🎯' },
-  { id: 'medicamentos', label: 'Medicamentos', icon: '💊' },
-  { id: 'alergias', label: 'Alergias', icon: '⚠️' },
-  { id: 'enfermedades_previas', label: 'Enfermedades', icon: '📋' },
-  { id: 'habitos', label: 'Habitos', icon: '🏃' },
-  { id: 'cardiovascular', label: 'Sintomas cardiovasculares', icon: '❤️' },
-] as const;
+  { id: 'motivo_consulta', label: 'Nuevo motivo de consulta' },
+  { id: 'medicamentos', label: 'Medicamentos' },
+  { id: 'alergias', label: 'Alergias' },
+  { id: 'enfermedades_previas', label: 'Enfermedades' },
+  { id: 'habitos', label: 'Hábitos' },
+  { id: 'cardiovascular', label: 'Síntomas cardiovasculares' },
+] as const
+
+// ── Field Renderer ──
+
+function FieldRenderer({ field, value, onChange }: {
+  field: { id: string; label: string; type: string; placeholder?: string; options?: Array<{ value: string; label: string }> };
+  value: unknown;
+  onChange: (val: unknown) => void;
+}) {
+  const [selectedOptions, setSelectedOptions] = useState<string[]>(
+    Array.isArray(value) ? value : []
+  )
+
+  if (field.type === 'date') {
+    return (
+      <div>
+        <label className="block text-sm text-neutral-700 mb-2">{field.label}</label>
+        <input
+          type="date"
+          value={typeof value === 'string' ? value : ''}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:border-neutral-900 transition-colors text-lg"
+        />
+      </div>
+    )
+  }
+
+  if (field.type === 'text' || field.type === 'number') {
+    return (
+      <div>
+        <label className="block text-sm text-neutral-700 mb-2">{field.label}</label>
+        <input
+          type={field.type === 'number' ? 'number' : 'text'}
+          placeholder={field.placeholder}
+          value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
+          onChange={(e) => onChange(field.type === 'number' ? Number(e.target.value) : e.target.value)}
+          className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:border-neutral-900 transition-colors"
+        />
+      </div>
+    )
+  }
+
+  if (field.type === 'textarea') {
+    return (
+      <div>
+        <label className="block text-sm text-neutral-700 mb-2">{field.label}</label>
+        <textarea
+          rows={4}
+          placeholder={field.placeholder}
+          value={typeof value === 'string' ? value : ''}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:border-neutral-900 transition-colors resize-none"
+        />
+      </div>
+    )
+  }
+
+  if (field.type === 'select') {
+    return (
+      <div>
+        <label className="block text-sm text-neutral-700 mb-2">{field.label}</label>
+        <select
+          value={typeof value === 'string' ? value : ''}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full px-4 py-4 border border-neutral-200 rounded-xl focus:outline-none focus:border-neutral-900 transition-colors"
+        >
+          <option value="">Seleccionar...</option>
+          {field.options?.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      </div>
+    )
+  }
+
+  if (field.type === 'multiselect') {
+    const toggleOption = (optionValue: string) => {
+      const newSelection = selectedOptions.includes(optionValue)
+        ? selectedOptions.filter(o => o !== optionValue)
+        : [...selectedOptions, optionValue]
+      setSelectedOptions(newSelection)
+      onChange(newSelection)
+    }
+
+    return (
+      <div>
+        <label className="block text-sm text-neutral-700 mb-4">{field.label}</label>
+        <div className="space-y-2">
+          {field.options?.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => toggleOption(option.value)}
+              className={`w-full p-4 rounded-xl text-left transition-all border-2 ${
+                selectedOptions.includes(option.value)
+                  ? 'border-neutral-900 bg-neutral-900 text-white'
+                  : 'border-neutral-200 hover:border-neutral-300'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (field.type === 'boolean') {
+    return (
+      <div>
+        <label className="block text-sm text-neutral-700 mb-2">{field.label}</label>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => onChange(true)}
+            className={`flex-1 py-4 border-2 rounded-xl transition-all ${
+              value === true ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-200 hover:border-neutral-900'
+            }`}
+          >
+            Sí
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange(false)}
+            className={`flex-1 py-4 border-2 rounded-xl transition-all ${
+              value === false ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-200 hover:border-neutral-900'
+            }`}
+          >
+            No
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return null
+}
+
+// ── Main Component ──
 
 export default function AnamnesisPage() {
   const {
-    user,
-    guidance,
-    currentStepIndex,
-    currentStep,
-    formData,
-    visibleFields,
-    pageView,
-    completionPct,
-    isFirstStep,
-    isLastStep,
-    isExtracting,
-    isStepCarriedForward,
-    editingCarriedStep,
-    saving,
-    saveError,
-    showClarification,
-    pendingCheckpoint,
-    anamnesisMode,
-    showAnalyzing,
-    analysisResult,
-    showUpdatePicker,
-    showVoiceChat,
-    editMode,
-    anamnesisError,
-    anamnesis,
-    progress,
-    updateSection,
-    updateAnamnesis,
-    setEditingCarriedStep,
-    setShowClarification,
-    setShowUpdatePicker,
-    setShowVoiceChat,
-    switchMode,
-    handleFieldChange,
-    handlePrev,
-    handleNext,
-    handleAcceptPrivacy,
-    handleAnalysisContinue,
-    handleGeneratePdf,
-    handleClarificationComplete,
-    handleVoiceDataExtracted,
-    handleVoiceSwitchToText,
-    selectUpdateSection,
-    handleExitWizard,
-  } = useAnamnesisFlow();
+    user, guidance, currentStepIndex, currentStep, formData,
+    visibleFields, pageView, completionPct, isFirstStep, isLastStep,
+    isExtracting, isStepCarriedForward, editingCarriedStep, saving,
+    saveError, showClarification, pendingCheckpoint, anamnesisMode,
+    showAnalyzing, analysisResult, showUpdatePicker, showVoiceChat,
+    editMode, anamnesisError, anamnesis, progress,
+    updateSection, updateAnamnesis, setEditingCarriedStep,
+    setShowClarification, setShowUpdatePicker, setShowVoiceChat,
+    switchMode, handleFieldChange, handlePrev, handleNext,
+    handleAcceptPrivacy, handleAnalysisContinue, handleGeneratePdf,
+    handleClarificationComplete, handleVoiceDataExtracted,
+    handleVoiceSwitchToText, selectUpdateSection, handleExitWizard,
+  } = useAnamnesisFlow()
 
-  // --- RENDERS ---
+  // ── LOADING ──
 
   if (pageView === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-stone-50 to-sky-50">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-sky-600" />
-          <p className="mt-3 text-sm text-stone-500">Cargando tu historia general...</p>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <motion.div
+            className="size-16 rounded-full bg-neutral-900 flex items-center justify-center mx-auto mb-6"
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            <Heart className="size-8 text-white" />
+          </motion.div>
+          <p className="text-neutral-500">Cargando tu historia general...</p>
+        </motion.div>
       </div>
-    );
+    )
   }
+
+  // ── LOCKED ──
 
   if (pageView === 'locked') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-stone-50 to-sky-50 p-6">
-        <div className="max-w-md text-center">
-          <Lock className="mx-auto h-12 w-12 text-stone-500" />
-          <h1 className="mt-4 text-xl font-bold text-stone-900">Historia general en revisión</h1>
-          <p className="mt-2 text-sm text-stone-600">
-            Tu historia clínica general está siendo revisada por tu equipo médico. No se pueden hacer cambios en este momento.
-          </p>
+      <div className="flex min-h-screen items-center justify-center bg-white p-6">
+        <motion.div
+          className="max-w-md text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="size-20 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-8">
+            <FileText className="size-10 text-neutral-400" />
+          </div>
+          <h1 className="text-3xl text-neutral-900 mb-4">Historia en revisión</h1>
+          <p className="text-neutral-500 mb-8">Tu historia clínica está siendo revisada por tu equipo médico.</p>
           <a
             href="/patients/dashboard"
-            className="mt-6 inline-flex items-center gap-2 rounded-lg border-2 border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:border-sky-200 hover:bg-sky-50"
+            className="inline-flex items-center gap-2 px-6 py-3 border border-neutral-200 rounded-full text-neutral-700 hover:border-neutral-900 transition-all"
           >
-            <ChevronLeft className="h-4 w-4" />
-            Volver al panel
+            <ArrowLeft className="size-4" /> Volver al panel
           </a>
-        </div>
+        </motion.div>
       </div>
-    );
+    )
   }
+
+  // ── VOICE ──
 
   if (showVoiceChat) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 to-sky-50 p-4">
-        <div className="mx-auto max-w-lg pt-8">
+      <div className="min-h-screen bg-white">
+        <header className="sticky top-0 z-50 bg-white border-b border-neutral-100">
+          <div className="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-lg font-medium text-neutral-900">AutaMedica</span>
+              <button
+                type="button"
+                onClick={handleVoiceSwitchToText}
+                className="p-2 hover:bg-neutral-50 rounded-lg transition-colors hidden sm:flex items-center gap-2 text-sm text-neutral-600"
+              >
+                <MessageCircle className="size-4" /> Modo formulario
+              </button>
+            </div>
+            <button type="button" onClick={handleExitWizard} className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors">
+              Guardar y salir
+            </button>
+          </div>
+        </header>
+        <main className="max-w-4xl mx-auto px-6 py-16 lg:py-24">
           <VoiceAnamnesis
-            onDataExtracted={(data) => handleVoiceDataExtracted(data)}
+            onDataExtracted={handleVoiceDataExtracted}
             onSwitchToText={handleVoiceSwitchToText}
             guidance={guidance}
             checkpoint={pendingCheckpoint ?? undefined}
@@ -147,403 +276,463 @@ export default function AnamnesisPage() {
               segment: currentStep?.id
             }}
           />
-        </div>
+        </main>
       </div>
-    );
+    )
   }
 
-  if (pageView === 'completed') {
-    const completedSections = progress?.completedSections ?? [];
-    const totalSteps = anamnesisSteps.length;
-    const completedCount = completedSections.length;
+  // ── COMPLETED ──
 
-    const completedDate = anamnesis?.completedAt
-      ? new Date(anamnesis.completedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
-      : null;
+  if (pageView === 'completed') {
+    const completedSections = progress?.completedSections ?? []
 
     return (
       <div className="min-h-screen bg-white">
-        {/* Hero — video background, white text, immersive */}
-        <div className="relative overflow-hidden bg-black">
-          <video
-            className="absolute inset-0 h-full w-full object-cover opacity-40"
-            autoPlay
-            muted
-            loop
-            playsInline
+        <section className="relative h-[50vh] overflow-hidden bg-neutral-900 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-900" />
+          <motion.div
+            className="relative z-10 text-center px-6"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
           >
-            <source src="/videos/hero_background.mp4" type="video/mp4" />
-          </video>
-          <div className="relative px-6 pb-10 pt-12">
-            <div className="mx-auto max-w-lg">
-              <p className="text-sm font-medium text-white/60">
-                {completedDate ?? 'Completada'}
-              </p>
-              <h1 className="mt-1 font-heading text-3xl font-bold text-white">
-                Tu historia <span className="text-cyan-700">clínica</span>
-              </h1>
-            </div>
-          </div>
-        </div>
+            <motion.div
+              className="size-24 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center mx-auto mb-8"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", delay: 0.2 }}
+            >
+              <Check className="size-12 text-white" />
+            </motion.div>
+            <motion.h1
+              className="text-5xl lg:text-6xl text-white mb-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              Historia completada
+            </motion.h1>
+            <motion.p
+              className="text-lg text-white/70"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              Ya podés acceder a todos nuestros servicios
+            </motion.p>
+          </motion.div>
+        </section>
 
-        <div className="mx-auto max-w-lg space-y-4 px-4 pb-8 pt-6">
-          {/* Primary CTA — cyan accent on white */}
-          <button
+        <section className="max-w-7xl mx-auto px-6 lg:px-12 -mt-12 pb-24">
+          <motion.button
+            type="button"
             onClick={() => handleGeneratePdf()}
             disabled={saving}
-            className="flex w-full items-center gap-4 rounded-2xl bg-cyan-500 p-5 text-left text-white shadow-lg shadow-cyan-500/20 transition-all hover:bg-cyan-600 active:scale-[0.97] disabled:opacity-50"
+            className="group w-full max-w-2xl mx-auto mb-16 py-6 bg-sky-500 text-white rounded-2xl text-lg font-medium hover:bg-sky-600 transition-all flex items-center justify-center gap-3 shadow-xl shadow-sky-500/20 disabled:opacity-50"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20">
-              {saving ? <Loader2 className="h-7 w-7 animate-spin" /> : <Download className="h-7 w-7" />}
-            </div>
-            <div className="min-w-0">
-              <p className="text-lg font-bold leading-tight">Descargar PDF</p>
-              <p className="text-sm text-white/70">Historia clínica completa</p>
-            </div>
-          </button>
+            <FileText className="size-6" />
+            Descargar PDF
+            <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
+          </motion.button>
 
-          {/* Actions — clean black/white with cyan accent */}
-          <div className="grid grid-cols-4 gap-3">
-            <button
-              onClick={() => setShowUpdatePicker(true)}
-              className="flex flex-col items-center gap-2.5 rounded-2xl border border-stone-200 bg-white p-4 transition-all hover:border-cyan-300 hover:bg-cyan-50 active:scale-[0.95]"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-black text-white">
-                <Plus className="h-6 w-6" />
-              </div>
-              <span className="text-xs font-bold text-stone-900">Actualizar</span>
-            </button>
-            <button
-              onClick={() => setShowVoiceChat(true)}
-              className="flex flex-col items-center gap-2.5 rounded-2xl border border-sky-200 bg-sky-50 p-4 transition-all hover:border-sky-400 hover:bg-sky-100 active:scale-[0.95]"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-500 text-white">
-                <Mic className="h-6 w-6" />
-              </div>
-              <span className="text-xs font-bold text-stone-900">Hablar</span>
-            </button>
-            <a
-              href="/patients/dashboard"
-              className="flex flex-col items-center gap-2.5 rounded-2xl border border-stone-200 bg-white p-4 transition-all hover:border-cyan-300 hover:bg-cyan-50 active:scale-[0.95]"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-black text-white">
-                <ArrowLeft className="h-6 w-6" />
-              </div>
-              <span className="text-xs font-bold text-stone-900">Mi panel</span>
-            </a>
-            <a
-              href="/patients/appointments?type=telemedicine"
-              className="flex flex-col items-center gap-2.5 rounded-2xl border border-stone-200 bg-white p-4 transition-all hover:border-cyan-300 hover:bg-cyan-50 active:scale-[0.95]"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500 text-white">
-                <PlayCircle className="h-6 w-6" />
-              </div>
-              <span className="text-xs font-bold text-stone-900">Consultar</span>
-            </a>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-24">
+            {[
+              { icon: Brain, label: 'Actualizar', color: 'neutral' as const, onClick: () => setShowUpdatePicker(true) },
+              { icon: Mic, label: 'Hablar', color: 'sky' as const, onClick: () => setShowVoiceChat(true) },
+              { icon: Heart, label: 'Mi panel', color: 'neutral' as const, href: '/patients/dashboard' },
+              { icon: Calendar, label: 'Consultar', color: 'sky' as const, href: '/patients/appointments?type=telemedicine' },
+            ].map((action, i) => {
+              const Component = action.href ? 'a' : 'button'
+              return (
+                <motion.div
+                  key={action.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 + i * 0.1 }}
+                  whileHover={{ y: -4 }}
+                >
+                  <Component
+                    {...(action.href ? { href: action.href } : { type: 'button' as const, onClick: action.onClick })}
+                    className={`group block w-full p-8 rounded-2xl text-left transition-all border ${
+                      action.color === 'sky'
+                        ? 'bg-sky-500 border-sky-600 text-white hover:bg-sky-600'
+                        : 'bg-white border-neutral-200 hover:border-neutral-900 hover:bg-neutral-50'
+                    }`}
+                  >
+                    <action.icon className={`size-10 mb-6 ${
+                      action.color === 'sky' ? 'text-white' : 'text-neutral-400 group-hover:text-neutral-900'
+                    }`} />
+                    <p className={`text-lg ${action.color === 'sky' ? 'text-white' : 'text-neutral-900'}`}>
+                      {action.label}
+                    </p>
+                  </Component>
+                </motion.div>
+              )
+            })}
           </div>
 
-          {/* Secondary: collapsed by default */}
-          <details className="group">
-            <summary className="flex cursor-pointer items-center justify-between rounded-xl px-1 py-2 text-xs font-semibold text-stone-500 hover:text-stone-600">
-              <span>Ver detalle de secciones</span>
-              <span className="text-[10px] group-open:hidden">{completedCount}/{totalSteps}</span>
-            </summary>
-            <div className="flex flex-wrap gap-2 pt-2">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
+            <h2 className="text-2xl text-neutral-900 mb-6">Secciones completadas</h2>
+            <div className="flex flex-wrap gap-3">
               {anamnesisSteps.map((step) => {
-                const isComplete = completedSections.includes(step.id);
-                const label = SECTION_SHORT_LABELS[step.id] ?? step.id;
+                const isComplete = completedSections.includes(step.id)
                 return (
                   <span
                     key={step.id}
-                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold ${
-                      isComplete
-                        ? 'bg-black text-white'
-                        : 'bg-stone-100 text-stone-500'
+                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium ${
+                      isComplete ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-500'
                     }`}
                   >
-                    {isComplete && <Check className="h-3 w-3" />}
-                    {label}
+                    {isComplete && <Check className="size-3.5" />}
+                    {SECTION_SHORT_LABELS[step.id] ?? step.id}
                   </span>
-                );
+                )
               })}
             </div>
-          </details>
-
-          {/* Version history: collapsed */}
-          <VersionTimeline onDownload={handleGeneratePdf} />
+          </motion.div>
 
           {saveError && (
-            <div className="rounded-xl bg-red-50 p-3 text-center text-xs text-red-600">{saveError}</div>
+            <div className="mt-6 rounded-xl bg-red-50 p-3 text-center text-sm text-red-600">{saveError}</div>
           )}
-        </div>
+        </section>
 
-        {/* Update picker — "What do you want to update?" */}
-        {showUpdatePicker && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm sm:items-center sm:p-4">
-            <div className="absolute inset-0" onClick={() => setShowUpdatePicker(false)} />
-            <div className="relative w-full max-w-md rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl">
-              <h2 className="text-lg font-bold text-stone-900 mb-1">Que queres actualizar?</h2>
-              <p className="text-sm text-stone-500 mb-4">Elegi la seccion y te llevamos directo</p>
-              <div className="space-y-2">
-                {UPDATE_PICKER_OPTIONS.map((option) => (
-                  <button
-                    key={option.id}
-                    onClick={() => selectUpdateSection(option.id)}
-                    className="flex w-full items-center gap-3 rounded-xl border border-stone-100 bg-white px-4 py-3 text-left transition hover:border-sky-200 hover:bg-sky-50 active:scale-[0.98]"
-                  >
-                    <span className="text-xl">{option.icon}</span>
-                    <span className="text-sm font-medium text-stone-900">{option.label}</span>
-                  </button>
-                ))}
-                <button
-                  onClick={() => selectUpdateSection('edad')}
-                  className="w-full rounded-xl border border-dashed border-stone-200 px-4 py-3 text-sm text-stone-500 hover:text-stone-700"
-                >
-                  Revisar todo desde el inicio
-                </button>
-              </div>
-              <button
+        {/* Update Picker */}
+        <AnimatePresence>
+          {showUpdatePicker && (
+            <>
+              <motion.div
+                className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm z-40"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 onClick={() => setShowUpdatePicker(false)}
-                className="mt-3 w-full text-center text-sm text-stone-400 hover:text-stone-600"
+              />
+              <motion.div
+                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 max-h-[80vh] overflow-y-auto"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
               >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
+                <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
+                  <h3 className="text-xl font-medium text-neutral-900">¿Qué querés actualizar?</h3>
+                  <button type="button" onClick={() => setShowUpdatePicker(false)} className="p-2 hover:bg-neutral-100 rounded-lg transition-colors">
+                    <X className="size-5 text-neutral-600" />
+                  </button>
+                </div>
+                <div className="p-6 space-y-3">
+                  {UPDATE_PICKER_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className="group w-full p-4 border border-neutral-200 rounded-xl hover:border-neutral-900 transition-all text-left flex items-center justify-between"
+                      onClick={() => selectUpdateSection(option.id)}
+                    >
+                      <span className="text-neutral-900">{option.label}</span>
+                      <ChevronRight className="size-5 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-1 transition-all" />
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="group w-full p-4 bg-neutral-900 text-white rounded-xl hover:bg-neutral-800 transition-all text-center font-medium"
+                    onClick={() => selectUpdateSection('edad')}
+                  >
+                    Revisar todo desde el inicio
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
-    );
+    )
   }
+
+  // ── PRIVACY ──
 
   if (pageView === 'privacy') {
     return (
-      <PrivacyAcceptanceScreen
-        error={anamnesisError}
-        saving={saving}
-        onAccept={handleAcceptPrivacy}
-      />
-    );
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <motion.div
+          className="max-w-2xl w-full"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <motion.div
+            className="size-20 rounded-full bg-neutral-900 flex items-center justify-center mx-auto mb-12"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", delay: 0.2, duration: 0.6 }}
+          >
+            <Heart className="size-10 text-white" />
+          </motion.div>
+
+          <motion.h1 className="text-5xl lg:text-6xl text-neutral-900 text-center mb-6 leading-tight" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            Tu historia clínica
+          </motion.h1>
+
+          <motion.p className="text-lg text-neutral-500 text-center mb-16 max-w-lg mx-auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
+            Necesitamos conocer tu historial médico para ofrecerte la mejor atención. Toda la información es confidencial y protegida.
+          </motion.p>
+
+          <motion.div className="space-y-6 mb-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+            {[
+              { title: 'Protección de datos', sub: 'Cumplimos con GDPR y normativas de salud' },
+              { title: 'Acceso controlado', sub: 'Solo profesionales autorizados pueden ver tu historia' },
+              { title: 'Control total', sub: 'Puedes actualizar o eliminar tus datos en cualquier momento' },
+            ].map((item) => (
+              <div key={item.title} className="flex items-start gap-4">
+                <div className="size-6 rounded-full bg-neutral-900 flex items-center justify-center shrink-0 mt-1">
+                  <Check className="size-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-neutral-900 mb-1">{item.title}</p>
+                  <p className="text-sm text-neutral-500">{item.sub}</p>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+
+          <motion.button
+            type="button"
+            onClick={handleAcceptPrivacy}
+            disabled={saving}
+            className="group w-full py-5 bg-neutral-900 text-white rounded-full text-lg font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-3 disabled:opacity-50"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            Aceptar y continuar
+            <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
+          </motion.button>
+
+          <motion.p className="text-center text-sm text-neutral-400 mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
+            Al continuar, aceptas nuestra política de privacidad
+          </motion.p>
+
+          {anamnesisError && (
+            <p className="mt-4 text-center text-sm text-red-600">{anamnesisError}</p>
+          )}
+        </motion.div>
+      </div>
+    )
   }
 
-  // --- MODE SWITCH ---
-  // (switchMode defined above early returns to maintain hook order)
+  // ── CONVERSATIONAL ──
 
-  // --- CONVERSATIONAL MODE ---
-  // editMode uses wizard to target a specific section — don't override with conversational
   if (anamnesisMode === 'conversational' && !editMode) {
     return (
       <ConversationalAnamnesis
         initialData={formData}
-        onComplete={() => {
-          // Refresh to show completed view
-          window.location.reload();
-        }}
+        onComplete={() => { window.location.reload() }}
         onSwitchMode={() => switchMode('wizard')}
         updateSection={updateSection}
         updateAnamnesis={updateAnamnesis as (update: Record<string, unknown>) => Promise<boolean>}
       />
-    );
+    )
   }
 
-  // --- WIZARD VIEW ---
+  // ── WIZARD ──
 
-  if (!currentStep) return null;
+  if (!currentStep) return null
+
+  const categoryLabel = CATEGORY_LABELS[currentStep.category] ?? currentStep.category
 
   return (
-    <div className="flex min-h-screen flex-col bg-am-surface-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white shadow-am-xs">
-        <div className="mx-auto max-w-2xl px-5 pb-4 pt-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold tracking-tight text-stone-900">AutaMedica</span>
-            <div className="flex items-center gap-3">
-              {isExtracting && (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-500" />
-              )}
+      <header className="sticky top-0 z-50 bg-white border-b border-neutral-100">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <div className="h-16 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-lg font-medium text-neutral-900">AutaMedica</span>
               <button
+                type="button"
                 onClick={() => switchMode('conversational')}
-                className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600"
-                title="Modo conversacional — una pregunta a la vez"
+                className="p-2 hover:bg-neutral-50 rounded-lg transition-colors hidden sm:flex items-center gap-2 text-sm text-neutral-600"
               >
-                <MessageCircle className="h-4 w-4" />
+                <MessageCircle className="size-4" /> Modo conversacional
               </button>
               <button
-                onClick={handleExitWizard}
-                className="text-xs font-medium text-stone-400 transition-colors hover:text-stone-600"
+                type="button"
+                onClick={() => setShowVoiceChat(true)}
+                className="p-2 hover:bg-neutral-50 rounded-lg transition-colors hidden sm:flex items-center gap-2 text-sm text-neutral-600"
               >
-                {editMode ? 'Volver al resumen' : 'Guardar y salir'}
+                <Mic className="size-4" /> Modo voz
               </button>
             </div>
+            <button type="button" onClick={handleExitWizard} className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors">
+              {editMode ? 'Volver al resumen' : 'Guardar y salir'}
+            </button>
           </div>
 
-          {/* Progress indicator */}
-          <div className="mt-4 flex items-center gap-3.5" data-tour="anamnesis-progress">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-900 text-xs font-bold tabular-nums text-white">
-              {currentStepIndex + 1}
+          {/* Progress */}
+          <div className="py-6">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-neutral-500">Paso {currentStepIndex + 1} de {anamnesisSteps.length}</span>
+              <span className="text-sm text-neutral-900 tabular-nums font-medium">{Math.round(completionPct)}%</span>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">
-                  Paso {currentStepIndex + 1} de {anamnesisSteps.length}
-                </p>
-                <span className="text-[11px] font-medium tabular-nums text-stone-300">
-                  {Math.round(completionPct)}%
-                </span>
-              </div>
-              <div className="mt-1.5 h-[5px] w-full overflow-hidden rounded-full bg-stone-100">
-                <div
-                  className="h-full rounded-full bg-sky-500 transition-all duration-700 ease-out"
-                  style={{ width: `${completionPct}%` }}
-                />
-              </div>
+            <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-sky-500 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${completionPct}%` }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              />
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-8">
-        <div data-tour="anamnesis-section">
-          {/* Educational story */}
-          {currentStep.story && (
-            <div className="mb-8 overflow-hidden rounded-2xl bg-white shadow-am-sm ring-1 ring-stone-950/[0.03]" data-tour="educational-media">
-              <div className="px-6 py-5">
-                <p className="text-[15px] leading-relaxed text-stone-700">{currentStep.story.intro}</p>
-                {currentStep.story.why && (
-                  <p className="mt-3 text-sm leading-relaxed text-stone-500">{currentStep.story.why}</p>
-                )}
-              </div>
-              {currentStep.story.example && (
-                <div className="border-t border-stone-100 bg-stone-50/50 px-6 py-4">
-                  <p className="whitespace-pre-line text-[13px] leading-relaxed text-stone-500">{currentStep.story.example}</p>
-                </div>
-              )}
-              {currentStep.story.didYouKnow && (
-                <div className="border-t border-stone-100 px-6 py-3">
-                  <p className="text-xs italic text-stone-400">{currentStep.story.didYouKnow}</p>
-                </div>
-              )}
-            </div>
-          )}
+      {/* Main Content */}
+      <main className="max-w-3xl mx-auto px-6 py-16 lg:py-24">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStepIndex}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.div
+              className="inline-flex items-center px-3 py-1.5 bg-neutral-100 text-neutral-700 rounded-full text-xs font-medium mb-8"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              {categoryLabel}
+            </motion.div>
 
-          {/* Video */}
-          {currentStep.mediaUrl && (
-            <div className="mb-8 overflow-hidden rounded-2xl shadow-am-sm ring-1 ring-stone-950/[0.03]" data-tour="educational-media">
-              <video
-                src={currentStep.mediaUrl}
-                controls
-                preload="metadata"
-                className="w-full"
+            <motion.h1
+              className="text-4xl lg:text-5xl text-neutral-900 mb-6 leading-tight"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              {currentStep.title}
+            </motion.h1>
+
+            <motion.p
+              className="text-lg text-neutral-500 mb-12"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              {currentStep.subtitle}
+            </motion.p>
+
+            {/* Carried forward preview */}
+            {isStepCarriedForward && !editingCarriedStep ? (
+              <motion.div
+                className="space-y-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
               >
-                <track kind="captions" />
-              </video>
-            </div>
-          )}
-
-          {/* Step title */}
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-stone-900 sm:text-[28px]">{currentStep.title}</h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-stone-400">{currentStep.subtitle}</p>
-
-          {/* Revisit: carried-forward preview */}
-          {isStepCarriedForward && !editingCarriedStep ? (
-            <div className="mt-8 space-y-5">
-              <div className="overflow-hidden rounded-2xl bg-white shadow-am-sm ring-1 ring-stone-950/[0.03]">
-                <div className="border-b border-stone-100 px-6 py-4">
-                  <p className="text-[13px] font-semibold text-stone-800">
-                    {currentStep.mutability === 'carry_forward_additive'
-                      ? 'Datos anteriores — ¿hay algo nuevo?'
-                      : 'Datos anteriores — ¿cambió algo?'}
-                  </p>
+                <div className="border border-neutral-200 rounded-2xl overflow-hidden">
+                  <div className="border-b border-neutral-100 px-6 py-4">
+                    <p className="text-sm font-medium text-neutral-800">
+                      {currentStep.mutability === 'carry_forward_additive' ? 'Datos anteriores — ¿hay algo nuevo?' : 'Datos anteriores — ¿cambió algo?'}
+                    </p>
+                  </div>
+                  <div className="divide-y divide-neutral-100 px-6">
+                    {currentStep.fields.filter(f => formData[currentStep.id]?.[f.id] != null).map(f => {
+                      const val = formData[currentStep.id]?.[f.id]
+                      const display = val === true ? 'Sí' : val === false ? 'No'
+                        : Array.isArray(val) ? (val as string[]).join(', ') || 'Ninguno'
+                        : String(val ?? '')
+                      return (
+                        <div key={f.id} className="flex items-center justify-between py-4">
+                          <span className="text-neutral-500">{f.label}</span>
+                          <span className="max-w-[55%] truncate text-right font-medium text-neutral-900">{display}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-                <div className="divide-y divide-stone-100/70 px-6">
-                  {currentStep.fields.filter(f => formData[currentStep.id]?.[f.id] != null).map(f => {
-                    const val = formData[currentStep.id]?.[f.id];
-                    const display = val === true ? 'Sí' : val === false ? 'No'
-                      : Array.isArray(val) ? (val as string[]).join(', ') || 'Ninguno'
-                      : String(val ?? '');
-                    return (
-                      <div key={f.id} className="flex items-center justify-between py-3.5">
-                        <span className="text-sm text-stone-500">{f.label}</span>
-                        <span className="max-w-[55%] truncate text-right text-sm font-semibold text-stone-900">{display}</span>
-                      </div>
-                    );
-                  })}
+                <div className="flex gap-3">
+                  <motion.button
+                    type="button"
+                    onClick={() => setEditingCarriedStep(true)}
+                    className="flex-1 px-6 py-4 border border-neutral-200 text-neutral-900 rounded-full font-medium hover:border-neutral-900 transition-all"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {currentStep.mutability === 'carry_forward_additive' ? 'Sí, agregar datos' : 'Sí, actualizar'}
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    onClick={handleNext}
+                    className="flex-1 px-6 py-4 bg-neutral-900 text-white rounded-full font-medium hover:bg-neutral-800 transition-all"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    No cambió nada
+                  </motion.button>
                 </div>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setEditingCarriedStep(true)}
-                  className="flex-1 rounded-xl border border-stone-200 bg-white px-5 py-3.5 text-sm font-semibold text-stone-700 shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
-                >
-                  {currentStep.mutability === 'carry_forward_additive' ? 'Sí, agregar datos' : 'Sí, actualizar'}
-                </button>
-                <button
-                  onClick={handleNext}
-                  className="flex-1 rounded-xl bg-stone-900 px-5 py-3.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.98]"
-                >
-                  No cambió nada
-                </button>
-              </div>
-            </div>
-          ) : (
-          /* Fields — normal edit mode */
-          <div className="mt-8 space-y-6" data-tour="anamnesis-field">
-            {visibleFields.map((field) => (
-              <AnamnesisFieldRenderer
-                key={field.id}
-                field={field}
-                value={formData[currentStep.id]?.[field.id] ?? null}
-                onChange={(val) => handleFieldChange(field.id, val)}
-              />
-            ))}
-          </div>
-          )}
+              </motion.div>
+            ) : (
+              <motion.div
+                className="space-y-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                {visibleFields.map((field) => (
+                  <FieldRenderer
+                    key={field.id}
+                    field={field}
+                    value={formData[currentStep.id]?.[field.id] ?? null}
+                    onChange={(val) => handleFieldChange(field.id, val as never)}
+                  />
+                ))}
+              </motion.div>
+            )}
 
-          {/* Save error */}
-          {saveError && (
-            <p className="mt-4 text-center text-xs text-red-600">{saveError}</p>
-          )}
-        </div>
+            {saveError && (
+              <p className="mt-4 text-center text-sm text-red-600">{saveError}</p>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
-      {/* Navigation */}
-      <footer
-        className="sticky bottom-0 bg-white shadow-am-sticky-top"
-        data-tour="navigation-buttons"
-      >
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
-          <button
+      {/* Footer Navigation */}
+      <footer className="sticky bottom-0 bg-white border-t border-neutral-100">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center justify-between gap-4">
+          <motion.button
+            type="button"
             onClick={handlePrev}
             disabled={isFirstStep || saving}
-            className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-stone-400 transition-all hover:bg-stone-50 hover:text-stone-600 disabled:cursor-not-allowed disabled:opacity-30"
+            className="px-6 py-3 border border-neutral-200 text-neutral-900 rounded-full font-medium hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+            whileHover={{ scale: isFirstStep ? 1 : 1.02 }}
+            whileTap={{ scale: isFirstStep ? 1 : 0.98 }}
           >
-            <ArrowLeft className="h-4 w-4" />
-            Anterior
-          </button>
+            <ArrowLeft className="size-4" /> Anterior
+          </motion.button>
 
-          <button
+          <motion.button
+            type="button"
             onClick={handleNext}
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-7 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.97] disabled:opacity-50"
+            className="group px-8 py-3 bg-neutral-900 text-white rounded-full font-medium hover:bg-neutral-800 transition-all flex items-center gap-2 disabled:opacity-50"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : isLastStep ? (
-              <>
-                Finalizar
-                <Check className="h-4 w-4" />
-              </>
-            ) : (
-              <>
-                Siguiente
-                <ArrowRight className="h-4 w-4" />
-              </>
-            )}
-          </button>
+            {isLastStep ? 'Finalizar' : 'Siguiente'}
+            {isLastStep ? <Check className="size-4" /> : <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />}
+          </motion.button>
         </div>
       </footer>
 
-      {/* AI Analysis checkpoint overlay */}
+      {/* Overlays */}
       {showAnalyzing && (
         <AnalysisResultOverlay
           analysisResult={analysisResult}
@@ -553,22 +742,18 @@ export default function AnamnesisPage() {
         />
       )}
 
-      {/* AI Clarification overlay */}
       {showClarification && guidance && (
         <AnamnesisChatModal
           checkpoint={pendingCheckpoint || 'partial'}
           guidance={guidance}
           onClose={() => setShowClarification(false)}
-          onComplete={(turns) => {
-            void handleClarificationComplete(turns);
-          }}
+          onComplete={(turns) => { void handleClarificationComplete(turns) }}
         />
       )}
 
-      {/* Guided tour (first visit) */}
       {pageView === 'wizard' && user && (
         <AnamnesisFlowTour autoStart currentStep={currentStepIndex} />
       )}
     </div>
-  );
+  )
 }
