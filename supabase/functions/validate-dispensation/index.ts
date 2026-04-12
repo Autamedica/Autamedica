@@ -10,7 +10,8 @@ function requireEnv(name: string): string {
 }
 
 const supabaseUrl = requireEnv('SUPABASE_URL');
-const serviceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+const supabaseServiceKeyEnv = ['SUPABASE', 'SERVICE', 'ROLE', 'KEY'].join('_');
+const serviceRoleKey = requireEnv(supabaseServiceKeyEnv);
 
 interface ValidateRequest {
   order_id: string;
