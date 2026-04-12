@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import {
   Bell, Menu, Video, Calendar, FileText, Brain,
