@@ -435,13 +435,13 @@ export default function AnamnesisPage() {
 
           {/* ── Action grid — editorial 4-column ── */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-24">
-            {([
-              { icon: Brain, label: 'Actualizar', sub: 'Modificar secciones', color: 'neutral' as const, onClick: () => setShowUpdatePicker(true) },
-              { icon: Mic, label: 'Hablar', sub: 'Modo voz con IA', color: 'sky' as const, onClick: () => setShowVoiceChat(true) },
-              { icon: Heart, label: 'Mi panel', sub: 'Volver al dashboard', color: 'neutral' as const, href: '/patients/dashboard' },
-              { icon: Video, label: 'Consultar', sub: 'Agendar teleconsulta', color: 'sky' as const, href: '/patients/appointments?type=telemedicine' },
-            ] as const).map((action, i) => {
-              const Component = action.href ? 'a' : 'button'
+            {[
+              { icon: Brain, label: 'Actualizar', sub: 'Modificar secciones', color: 'neutral' as const, onClick: () => setShowUpdatePicker(true), href: undefined as string | undefined },
+              { icon: Mic, label: 'Hablar', sub: 'Modo voz con IA', color: 'sky' as const, onClick: () => setShowVoiceChat(true), href: undefined as string | undefined },
+              { icon: Heart, label: 'Mi panel', sub: 'Volver al dashboard', color: 'neutral' as const, onClick: undefined as (() => void) | undefined, href: '/patients/dashboard' },
+              { icon: Video, label: 'Consultar', sub: 'Agendar teleconsulta', color: 'sky' as const, onClick: undefined as (() => void) | undefined, href: '/patients/appointments?type=telemedicine' },
+            ].map((action, i) => {
+              const isLink = !!action.href
               return (
                 <motion.div
                   key={action.label}
@@ -450,24 +450,46 @@ export default function AnamnesisPage() {
                   transition={{ delay: 0.6 + i * 0.08 }}
                   whileHover={{ y: -4 }}
                 >
-                  <Component
-                    {...(action.href ? { href: action.href } : { type: 'button' as const, onClick: action.onClick })}
-                    className={`group block w-full p-7 rounded-2xl text-left transition-all border ${
-                      action.color === 'sky'
-                        ? 'bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800'
-                        : 'bg-white border-neutral-200/60 hover:border-neutral-300 hover:shadow-md'
-                    }`}
-                  >
-                    <action.icon className={`size-8 mb-5 ${
-                      action.color === 'sky' ? 'text-sky-400' : 'text-neutral-300 group-hover:text-neutral-900'
-                    }`} strokeWidth={1.5} />
-                    <p className={`text-base font-medium ${action.color === 'sky' ? 'text-white' : 'text-neutral-900'}`}>
-                      {action.label}
-                    </p>
-                    <p className={`mt-1 text-[13px] ${action.color === 'sky' ? 'text-white/50' : 'text-neutral-400'}`}>
-                      {action.sub}
-                    </p>
-                  </Component>
+                  {isLink ? (
+                    <a
+                      href={action.href}
+                      className={`group block w-full p-7 rounded-2xl text-left transition-all border ${
+                        action.color === 'sky'
+                          ? 'bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800'
+                          : 'bg-white border-neutral-200/60 hover:border-neutral-300 hover:shadow-md'
+                      }`}
+                    >
+                      <action.icon className={`size-8 mb-5 ${
+                        action.color === 'sky' ? 'text-sky-400' : 'text-neutral-300 group-hover:text-neutral-900'
+                      }`} strokeWidth={1.5} />
+                      <p className={`text-base font-medium ${action.color === 'sky' ? 'text-white' : 'text-neutral-900'}`}>
+                        {action.label}
+                      </p>
+                      <p className={`mt-1 text-[13px] ${action.color === 'sky' ? 'text-white/50' : 'text-neutral-400'}`}>
+                        {action.sub}
+                      </p>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={action.onClick}
+                      className={`group block w-full p-7 rounded-2xl text-left transition-all border ${
+                        action.color === 'sky'
+                          ? 'bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800'
+                          : 'bg-white border-neutral-200/60 hover:border-neutral-300 hover:shadow-md'
+                      }`}
+                    >
+                      <action.icon className={`size-8 mb-5 ${
+                        action.color === 'sky' ? 'text-sky-400' : 'text-neutral-300 group-hover:text-neutral-900'
+                      }`} strokeWidth={1.5} />
+                      <p className={`text-base font-medium ${action.color === 'sky' ? 'text-white' : 'text-neutral-900'}`}>
+                        {action.label}
+                      </p>
+                      <p className={`mt-1 text-[13px] ${action.color === 'sky' ? 'text-white/50' : 'text-neutral-400'}`}>
+                        {action.sub}
+                      </p>
+                    </button>
+                  )}
                 </motion.div>
               )
             })}
