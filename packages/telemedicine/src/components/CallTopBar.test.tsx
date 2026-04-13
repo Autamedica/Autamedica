@@ -9,7 +9,7 @@ afterEach(() => {
 
 describe('CallTopBar', () => {
   const baseProps = {
-    phase: 'peer-ready' as const,
+    phase: 'media-live' as const,
     qualityLevel: 'good' as const,
     formattedDuration: '02:15',
     participantCount: 2,
@@ -35,9 +35,19 @@ describe('CallTopBar', () => {
     expect(screen.queryByText('P2P')).toBeNull()
   })
 
-  it('shows "En consulta" when phase is peer-ready', () => {
+  it('shows "En consulta" when phase is media-live', () => {
     render(<CallTopBar {...baseProps} />)
     expect(screen.getByText('En consulta')).toBeDefined()
+  })
+
+  it('shows "Conectando media..." when phase is peer-ready', () => {
+    render(<CallTopBar {...baseProps} phase="peer-ready" />)
+    expect(screen.getByText('Conectando media...')).toBeDefined()
+  })
+
+  it('shows "Esperando participante" when phase is room-ready', () => {
+    render(<CallTopBar {...baseProps} phase="room-ready" />)
+    expect(screen.getByText('Esperando participante')).toBeDefined()
   })
 
   it('shows "Conectando..." when phase is joining', () => {
