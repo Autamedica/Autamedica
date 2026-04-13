@@ -44,16 +44,19 @@ export interface CallTopBarProps {
 export function CallTopBar({
   phase, qualityLevel, formattedDuration, participantCount, isRecording, showControls, runtime,
 }: CallTopBarProps) {
-  const isConnected = phase === 'peer-ready'
+  const isConnected = phase === 'media-live'
   const connectionDotColor = isConnected
     ? 'bg-emerald-400'
-    : phase === 'room-ready' ? 'bg-sky-400' : phase === 'joining' ? 'bg-amber-400' : 'bg-red-400'
+    : phase === 'peer-ready' ? 'bg-cyan-400'
+    : phase === 'room-ready' ? 'bg-sky-400'
+    : phase === 'joining' ? 'bg-amber-400' : 'bg-red-400'
   const shouldPulse = !isConnected && phase !== 'prejoin'
 
   const statusLabel = isConnected
     ? 'En consulta'
+    : phase === 'peer-ready' ? 'Conectando media...'
     : phase === 'room-ready' ? 'Esperando participante'
-    : phase === 'joining' ? 'Conectando...' : 'Sin conexión'
+    : phase === 'joining' ? 'Conectando...' : 'Sin conexion'
 
   return (
     <AnimatePresence>

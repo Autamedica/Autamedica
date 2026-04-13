@@ -108,6 +108,7 @@ export function UnifiedVideoCall({
   const [callError, setCallError] = useState<string | null>(null)
   const [isChatReady, setIsChatReady] = useState(false)
   const [hasPeerConnection, setHasPeerConnection] = useState(false)
+  const [hasRemoteMedia, setHasRemoteMedia] = useState(false)
 
   /* ── Retry state ── */
   const [retryKey, setRetryKey] = useState(0)
@@ -196,8 +197,8 @@ export function UnifiedVideoCall({
   /* ── Derived ── */
   const accentColor = theme === 'doctor' ? 'violet' : 'sky'
   const totalParticipants = remoteUsers.size + 1
-  const isCallEstablished = hasPeerConnection
-  const sessionPhase = deriveCallSessionPhase({ connectionState, hasPeerConnection })
+  const isCallEstablished = hasRemoteMedia
+  const sessionPhase = deriveCallSessionPhase({ connectionState, hasPeerConnection, hasRemoteMedia })
   const isInRoom = sessionPhase === 'room-ready' || sessionPhase === 'peer-ready'
   const isIdle = sessionPhase === 'prejoin'
   const isTestRoom = /^test(?:[-_]|$)/i.test(roomId)
@@ -329,6 +330,7 @@ export function UnifiedVideoCall({
         } else if (state === 'disconnected' || state === 'closed') {
           setIsChatReady(false)
           setHasPeerConnection(false)
+          setHasRemoteMedia(false)
           setReconnectionState({ isReconnecting: false, attempt: 0, maxAttempts: 0 })
         }
       })
@@ -355,6 +357,19 @@ export function UnifiedVideoCall({
     unsubs.push(
       webrtcClient.on('remote-stream', (stream, remoteUserId) => {
         setHasPeerConnection(true)
+
+        // Detect when media is actually flowing (not just signaling connected)
+        const hasLiveTracks = stream.getTracks().some(t => t.readyState === 'live' && !t.muted)
+        if (hasLiveTracks) {
+          setHasRemoteMedia(true)
+        } else {
+          const onUnmute = () => {
+            setHasRemoteMedia(true)
+            stream.getTracks().forEach(t => t.removeEventListener('unmute', onUnmute))
+          }
+          stream.getTracks().forEach(t => t.addEventListener('unmute', onUnmute))
+        }
+
         setRemoteUsers((prev) => {
           const updated = new Map(prev)
           const existing = updated.get(remoteUserId) || {
@@ -426,6 +441,7 @@ export function UnifiedVideoCall({
           updated.delete(remoteUserId)
           if (updated.size === 0) {
             setHasPeerConnection(false)
+            setHasRemoteMedia(false)
           }
           return updated
         })

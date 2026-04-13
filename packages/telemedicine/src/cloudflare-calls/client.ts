@@ -361,11 +361,11 @@ export class CloudflareCallsClient implements CallProvider {
   private async handleSignalingMessage(msg: ServerMessage): Promise<void> {
     switch (msg.type) {
       case 'room-state': {
-        // Peers ya en sala — anunciar nuestra sesión CF cuando esté lista
         for (const user of msg.data.users) {
           this.emit('user-joined', user.id, user.userType)
         }
-        this.setConnectionState('connected')
+        // Don't set 'connected' here — wait for SFU RTCPeerConnection via onConnectionStateChange.
+        // Signaling is ready but media is not yet flowing.
         this.emit('chat-ready', true)
         this.emitQualityStub()
         break
