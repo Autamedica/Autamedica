@@ -74,6 +74,11 @@ function latestRecordWithPayload(
   return events.find((event) => isPlainObject(event.payload) && predicate(event.payload))
 }
 
+function getNumber(record: Record<string, unknown>, key: string): number | undefined {
+  const value = record[key]
+  return typeof value === 'number' ? value : undefined
+}
+
 function deriveSessionSummary(events: TelemedicineDebugRecord[]) {
   const runtimeRecord = latestRecordWithPayload(events, (payload) => typeof payload.runtime === 'string')
   const turnRecord = latestRecordWithPayload(events, (payload) => typeof payload.hasTurn === 'boolean')
@@ -85,6 +90,20 @@ function deriveSessionSummary(events: TelemedicineDebugRecord[]) {
     events,
     (payload) => typeof payload.providerType === 'string' || typeof payload.iceServerCount === 'number',
   )
+
+  // Metrics from persisted call_events
+  const firstMediaRecord = events.find((e) => e.message === 'first remote media' || (isPlainObject(e.payload) && typeof (e.payload as Record<string, unknown>).timeToFirstRemoteMediaMs === 'number'))
+  const firstMediaPayload = isPlainObject(firstMediaRecord?.payload) ? firstMediaRecord.payload as Record<string, unknown> : undefined
+  const timeToFirstMedia = firstMediaPayload ? getNumber(firstMediaPayload, 'timeToFirstRemoteMediaMs') : undefined
+
+  const reconnectEvents = events.filter((e) => e.message.toLowerCase().includes('reconectando') || e.message.toLowerCase().includes('reconnecting'))
+  const reconnectCount = reconnectEvents.length
+
+  const lastErrorRecord = events.find((e) => e.level === 'error' && isPlainObject(e.payload) && typeof (e.payload as Record<string, unknown>).failureCode === 'string')
+  const lastErrorPayload = isPlainObject(lastErrorRecord?.payload) ? lastErrorRecord.payload as Record<string, unknown> : undefined
+  const lastFailureCode = lastErrorPayload ? getString(lastErrorPayload, 'failureCode') : undefined
+
+  const joinSucceeded = events.some((e) => e.message === 'join succeeded' || (isPlainObject(e.payload) && (e.payload as Record<string, unknown>).joinSucceeded === true))
 
   return {
     runtime: getString((runtimeRecord?.payload as Record<string, unknown>) ?? {}, 'runtime') ?? 'sin dato',
@@ -98,6 +117,10 @@ function deriveSessionSummary(events: TelemedicineDebugRecord[]) {
       return typeof value === 'number' ? value : undefined
     })(),
     connectionState: getString((stateRecord?.payload as Record<string, unknown>) ?? {}, 'state') ?? 'sin dato',
+    timeToFirstMedia,
+    reconnectCount,
+    lastFailureCode,
+    joinSucceeded,
   }
 }
 
@@ -297,6 +320,39 @@ export function TelemedicineDebugPanel({
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Sesion</p>
               <p className="mt-1 text-sm font-semibold text-white">{sessionSummary.connectionState}</p>
             </div>
+
+            <div className={`rounded-xl border px-3 py-2 ${
+              sessionSummary.timeToFirstMedia !== undefined
+                ? sessionSummary.timeToFirstMedia < 4000 ? summaryPillClasses('good')
+                  : sessionSummary.timeToFirstMedia < 8000 ? summaryPillClasses('warn')
+                    : summaryPillClasses('bad')
+                : summaryPillClasses('info')
+            }`}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">1er media</p>
+              <p className="mt-1 text-sm font-semibold text-white">
+                {sessionSummary.timeToFirstMedia !== undefined
+                  ? `${(sessionSummary.timeToFirstMedia / 1000).toFixed(1)}s`
+                  : 'sin dato'}
+              </p>
+            </div>
+
+            <div className={`rounded-xl border px-3 py-2 ${
+              sessionSummary.reconnectCount === 0
+                ? summaryPillClasses('good')
+                : sessionSummary.reconnectCount <= 2
+                  ? summaryPillClasses('warn')
+                  : summaryPillClasses('bad')
+            }`}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Reconexiones</p>
+              <p className="mt-1 text-sm font-semibold text-white">{sessionSummary.reconnectCount}</p>
+            </div>
+
+            {sessionSummary.lastFailureCode && (
+              <div className={`col-span-2 rounded-xl border px-3 py-2 ${summaryPillClasses('bad')}`}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Ultimo error</p>
+                <p className="mt-1 text-sm font-mono font-semibold text-white">{sessionSummary.lastFailureCode}</p>
+              </div>
+            )}
           </div>
 
           <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">

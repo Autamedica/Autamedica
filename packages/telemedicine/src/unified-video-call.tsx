@@ -15,7 +15,7 @@ import { useCallDuration } from './hooks/useCallDuration'
 import { useCallQuality } from './hooks/useCallQuality'
 import { useAutoHideControls } from './hooks/useAutoHideControls'
 import { useGreenRoom } from './hooks/useGreenRoom'
-import { sanitizeErrorForUser } from './utils/error-messages'
+import { sanitizeErrorForUser, messageForFailureCode } from './utils/error-messages'
 import { hasRemoteVideoEvidence } from './utils/stream-helpers'
 import { useViewportDetection } from './hooks/useViewportDetection'
 import { useParticipantSound } from './hooks/useParticipantSound'
@@ -559,8 +559,7 @@ export function UnifiedVideoCall({
         const failureCode = classifyCallError(error)
         emitDebug('error', 'Evento de error WebRTC recibido', { error, failureCode })
         void logCallEvent('call_error', { failureCode, message: error instanceof Error ? error.message : String(error) })
-        const msg = error instanceof Error ? error.message : 'Error desconocido'
-        setCallError(sanitizeErrorForUser(msg))
+        setCallError(messageForFailureCode(failureCode))
         onErrorRef.current?.(error)
       })
     )
