@@ -21,12 +21,26 @@ function matchesParticipant(participantId: string | null, callParticipantId: str
   return callParticipantId === userId || (participantId !== null && callParticipantId === participantId)
 }
 
-function resolveRuntime(): CallSessionRuntime {
+/** @internal Exported for testing only. */
+export function resolveRuntime(): CallSessionRuntime {
+  if (import.meta.env.PUBLIC_FORCE_WEBRTC_P2P === 'true') {
+    logger.info('[resolveRuntime] Forced to webrtc-p2p via PUBLIC_FORCE_WEBRTC_P2P')
+    return 'webrtc-p2p'
+  }
+
   const hasCloudflareCalls =
     Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_ID) &&
     Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_SECRET)
 
-  return hasCloudflareCalls ? 'cloudflare-calls' : 'webrtc-p2p'
+  if (hasCloudflareCalls) return 'cloudflare-calls'
+
+  if (import.meta.env.PROD) {
+    logger.error('[resolveRuntime] CLOUDFLARE_CALLS credentials missing in production — call bootstrap will fail')
+    throw new Error('Cloudflare Calls credentials are required in production. Set CLOUDFLARE_CALLS_APP_ID and CLOUDFLARE_CALLS_APP_SECRET.')
+  }
+
+  logger.warn('[resolveRuntime] No Cloudflare Calls credentials — falling back to webrtc-p2p (dev only)')
+  return 'webrtc-p2p'
 }
 
 function buildWaitingRoom(call: Call, role: CallSessionRole): CallSessionBootstrap['waitingRoom'] {
@@ -148,7 +162,7 @@ export const callSessionBackendService = {
 
     if (matchesParticipant(doctorProfileId, call.doctor_id, viewerUserId)) {
       const data = await buildBootstrap(call, viewerUserId, 'doctor', displayName)
-      if (resolveRuntime() === 'webrtc-p2p' && !hasTurnIceServer(data.transport.iceServers ?? [])) {
+      if (data.runtime === 'webrtc-p2p' && !hasTurnIceServer(data.transport.iceServers ?? [])) {
         logger.warn('[callSessionBackendService] p2p bootstrap without TURN', { roomId, callId: call.id, role: 'doctor' })
       }
       return { kind: 'ok', data }
@@ -156,7 +170,7 @@ export const callSessionBackendService = {
 
     if (matchesParticipant(patientProfileId, call.patient_id, viewerUserId)) {
       const data = await buildBootstrap(call, viewerUserId, 'patient', displayName)
-      if (resolveRuntime() === 'webrtc-p2p' && !hasTurnIceServer(data.transport.iceServers ?? [])) {
+      if (data.runtime === 'webrtc-p2p' && !hasTurnIceServer(data.transport.iceServers ?? [])) {
         logger.warn('[callSessionBackendService] p2p bootstrap without TURN', { roomId, callId: call.id, role: 'patient' })
       }
       return { kind: 'ok', data }

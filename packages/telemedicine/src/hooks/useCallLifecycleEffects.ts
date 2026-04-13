@@ -6,9 +6,8 @@ import {
   setupVisibilityVideoPause,
   patchVideoPlayback,
 } from '../media-optimizations'
-import type { WebRTCClient } from '../webrtc-client'
-import type { CloudflareCallsClient } from '../cloudflare-calls'
-import type { ConnectionState } from '../webrtc-client'
+import type { CallSessionRuntime } from '../call-session/types'
+import type { CallProvider, ConnectionState } from '../providers/types'
 import type { CallStatus } from '../calls/types'
 
 interface RemoteUser {
@@ -21,9 +20,10 @@ interface RemoteUser {
 interface UseCallLifecycleEffectsOptions {
   isInRoom: boolean
   isCallEstablished: boolean
-  client: WebRTCClient | CloudflareCallsClient | null
+  client: CallProvider | null
   callId?: string
   connectionState: ConnectionState
+  runtime?: CallSessionRuntime
   persistCallStatus: (status: CallStatus, reason?: string) => Promise<void>
   hasStartedCallRef: MutableRefObject<boolean>
   manualHangupRef: MutableRefObject<boolean>
@@ -60,6 +60,7 @@ export function useCallLifecycleEffects({
   isChatPanelOpen,
   supabaseUrl,
   supabaseAnonKey,
+  runtime,
 }: UseCallLifecycleEffectsOptions) {
   const hasAnnouncedCallStartRef = useRef(false)
 
@@ -106,7 +107,7 @@ export function useCallLifecycleEffects({
     const handleBeforeUnload = () => {
       if (manualHangupRef.current) return
       const url = `${new URL(supabaseUrl).origin}/functions/v1/update-call-status`
-      const payload = JSON.stringify({ callId, status: 'ended', reason: 'page_closed' })
+      const payload = JSON.stringify({ callId, status: 'ended', reason: 'page_closed', runtime })
       fetch(url, {
         method: 'POST',
         keepalive: true,
@@ -121,7 +122,7 @@ export function useCallLifecycleEffects({
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [callId, hasStartedCallRef, manualHangupRef, supabaseUrl, supabaseAnonKey])
+  }, [callId, hasStartedCallRef, manualHangupRef, runtime, supabaseUrl, supabaseAnonKey])
 
   // Remote stream sync
   useEffect(() => {

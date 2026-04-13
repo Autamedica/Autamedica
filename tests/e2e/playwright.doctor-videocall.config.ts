@@ -5,7 +5,7 @@ const isMockMode = process.env.MOCK_AUTAMEDICA === '1';
 
 export default defineConfig({
   testDir: path.join(__dirname, '.'),
-  testMatch: '**/doctor-login-videocall-flow.spec.ts',
+  testMatch: '**/doctor-video-call-flow.spec.ts',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

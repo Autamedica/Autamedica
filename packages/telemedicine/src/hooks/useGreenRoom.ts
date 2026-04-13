@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import type { WarmUpResult } from '../webrtc-client'
+import type { WarmUpResult } from '../providers/types'
 
 export interface GreenRoomChecks {
   hasVideo: boolean

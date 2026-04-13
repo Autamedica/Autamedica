@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
-import { UnifiedVideoCall, createCallService, useAudioTranscription, useTurnCredentials } from '@autamedica/telemedicine'
+import { UnifiedVideoCall, createCallProvider, createCallService, useAudioTranscription, useTurnCredentials } from '@autamedica/telemedicine'
 import type { TranscriptSegment } from '@autamedica/telemedicine'
 import type { CallStatus } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
@@ -506,6 +506,17 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     )
   }
 
+  const callProvider = useMemo(
+    () => callSession
+      ? createCallProvider({
+          bootstrap: callSession,
+          supabase: callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined,
+          iceServersOverride: clientTurnServers ?? undefined,
+        })
+      : null,
+    [callSession?.callId, callSession?.runtime, clientTurnServers],
+  )
+
   return (
     <div className="h-screen bg-slate-50 overflow-hidden flex">
       {/* Video Call */}
@@ -596,20 +607,15 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               </div>
             </div>
           </div>
-        ) : (
+        ) : callProvider && (
           <UnifiedVideoCall
+            provider={callProvider}
             roomId={callSession.roomId}
             callId={callSession.callId}
             userId={callSession.user.id || userId}
             userType={callSession.user.role}
             userName={callSession.user.displayName || userName}
             iceServers={clientTurnServers ?? callSession.transport.iceServers}
-            cloudflareCallsApiUrl={
-              callSession.runtime === 'webrtc-p2p'
-                ? null
-                : (callSession.transport.cloudflareCallsApiUrl ?? null)
-            }
-            supabase={callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined}
             theme="doctor"
             onCallEnd={handleCallEnd}
             onCallStart={handleCallStart}
@@ -618,6 +624,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             supabaseUrl={import.meta.env.PUBLIC_SUPABASE_URL}
             supabaseAnonKey={import.meta.env.PUBLIC_SUPABASE_ANON_KEY}
             autoStart
+            runtime={callSession.runtime}
             className="h-screen"
             onLocalAudioLevelChange={handleAudioLevelChange}
           />

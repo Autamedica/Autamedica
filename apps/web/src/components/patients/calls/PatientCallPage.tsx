@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
-import { UnifiedVideoCall, createCallService, useTurnCredentials } from '@autamedica/telemedicine'
+import { UnifiedVideoCall, createCallProvider, createCallService, useTurnCredentials } from '@autamedica/telemedicine'
 import type { CallStatus } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import type { UserProfile } from '@autamedica/types'
@@ -216,20 +216,28 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     )
   }
 
+  const callProvider = useMemo(
+    () => callSession
+      ? createCallProvider({
+          bootstrap: callSession,
+          supabase: callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined,
+          iceServersOverride: clientTurnServers ?? undefined,
+        })
+      : null,
+    [callSession?.callId, callSession?.runtime, clientTurnServers],
+  )
+
+  if (!callProvider) return null
+
   return (
     <UnifiedVideoCall
+      provider={callProvider}
       roomId={callSession.roomId}
       callId={callSession.callId}
       userId={callSession.user.id || userId}
       userType={callSession.user.role}
       userName={callSession.user.displayName || userName}
       iceServers={clientTurnServers ?? callSession.transport.iceServers}
-      cloudflareCallsApiUrl={
-        callSession.runtime === 'webrtc-p2p'
-          ? null
-          : (callSession.transport.cloudflareCallsApiUrl ?? null)
-      }
-      supabase={callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined}
       theme="patient"
       onCallEnd={handleCallEnd}
       persistCallStatus={handlePersistCallStatus}
@@ -237,6 +245,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
       supabaseUrl={import.meta.env.PUBLIC_SUPABASE_URL}
       supabaseAnonKey={import.meta.env.PUBLIC_SUPABASE_ANON_KEY}
       autoStart
+      runtime={callSession.runtime}
       className="h-screen"
     />
   )

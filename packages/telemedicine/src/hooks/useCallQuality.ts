@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { StreamQualityLevel } from '../webrtc-client'
-import type { WebRTCClient } from '../webrtc-client'
-import type { CloudflareCallsClient } from '../cloudflare-calls'
+import type { CallProvider } from '../providers/types'
 import type { TelemedicineDebugLevel } from '../debug'
 
 const POOR_QUALITY_THRESHOLD_MS = 30_000
@@ -10,7 +9,7 @@ const REMOTE_MEDIA_TIMEOUT_MESSAGE = 'El video del otro participante está demor
 export { REMOTE_MEDIA_TIMEOUT_MESSAGE }
 
 export interface UseCallQualityParams {
-  client: WebRTCClient | CloudflareCallsClient | null
+  client: CallProvider | null
   callError: string | null
   setCallError: React.Dispatch<React.SetStateAction<string | null>>
   emitDebug: (level: TelemedicineDebugLevel, message: string, payload?: Record<string, unknown>) => void

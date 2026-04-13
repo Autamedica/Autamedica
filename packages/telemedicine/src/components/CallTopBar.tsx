@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Clock, Users } from 'lucide-react'
 import type { StreamQualityLevel } from '../webrtc-client'
 import type { CallSessionPhase } from '../runtime/call-session-phase'
+import type { CallSessionRuntime } from '../call-session/types'
 import { topBarVariants, springSnappy } from './animation-presets'
 
 const qualityConfig: Record<StreamQualityLevel, { color: string; bars: number }> = {
@@ -37,10 +38,11 @@ export interface CallTopBarProps {
   participantCount: number
   isRecording: boolean
   showControls: boolean
+  runtime?: CallSessionRuntime
 }
 
 export function CallTopBar({
-  phase, qualityLevel, formattedDuration, participantCount, isRecording, showControls,
+  phase, qualityLevel, formattedDuration, participantCount, isRecording, showControls, runtime,
 }: CallTopBarProps) {
   const isConnected = phase === 'peer-ready'
   const connectionDotColor = isConnected
@@ -75,6 +77,24 @@ export function CallTopBar({
                 />
                 <span>{statusLabel}</span>
               </div>
+              {runtime && (
+                <div
+                  className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-xl ${
+                    runtime === 'cloudflare-calls'
+                      ? 'bg-cyan-500/15 text-cyan-400 ring-1 ring-cyan-400/20'
+                      : runtime === 'webrtc-p2p'
+                        ? 'bg-amber-500/15 text-amber-400 ring-1 ring-amber-400/20'
+                        : 'bg-red-500/15 text-red-400 ring-1 ring-red-400/20'
+                  }`}
+                  title={
+                    runtime === 'cloudflare-calls' ? 'Cloudflare Calls SFU'
+                      : runtime === 'webrtc-p2p' ? 'WebRTC Peer-to-Peer'
+                        : `Unsupported runtime: ${runtime}`
+                  }
+                >
+                  {runtime === 'cloudflare-calls' ? 'SFU' : runtime === 'webrtc-p2p' ? 'P2P' : runtime.toUpperCase()}
+                </div>
+              )}
               {qualityLevel !== 'unknown' && (
                 <div className="hidden items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5 backdrop-blur-xl sm:flex">
                   <QualityBars level={qualityLevel} />

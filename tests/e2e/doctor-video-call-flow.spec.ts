@@ -66,12 +66,13 @@ test.describe('Doctor Portal – Login + Video Call', () => {
 
       await doctorPage.goto('https://www.autamedica.com/auth/login?role=doctor', { waitUntil: 'networkidle' });
 
-    await doctorPage.getByLabel('Correo electrónico').fill(DOCTOR_EMAIL);
-    await doctorPage.getByLabel('Contraseña').fill(DOCTOR_PASSWORD);
+    await doctorPage.locator('input#email').fill(DOCTOR_EMAIL);
+    await doctorPage.locator('input#password').fill(DOCTOR_PASSWORD);
+    const loginSubmitButton = doctorPage.locator('form button[type="submit"]').first();
 
     await Promise.all([
       doctorPage.waitForURL('**//doctors.autamedica.com/**', { timeout: 60_000 }),
-      doctorPage.getByRole('button', { name: /Iniciar Sesión/i }).click(),
+      loginSubmitButton.click(),
     ]);
 
     await doctorPage.waitForLoadState('networkidle');

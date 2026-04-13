@@ -9,8 +9,7 @@ import {
   MonitorUp,
 } from 'lucide-react'
 import { springGentle } from './animation-presets'
-import type { WebRTCClient } from '../webrtc-client'
-import type { CloudflareCallsClient } from '../cloudflare-calls'
+import type { CallProvider } from '../providers/types'
 import { patchVideoPlayback } from '../media-optimizations'
 
 interface RemoteUser {
@@ -59,7 +58,7 @@ function LocalVideoPiP({
   localLabel,
 }: {
   localVideoRef: RefObject<HTMLVideoElement | null>
-  client: WebRTCClient | CloudflareCallsClient | null
+  client: CallProvider | null
   isVideoEnabled: boolean
   isAudioEnabled: boolean
   localLabel: string
@@ -206,7 +205,7 @@ export interface ActiveCallLayoutProps {
   remoteVideosRef: MutableRefObject<Map<string, HTMLVideoElement>>
   localVideoRef: RefObject<HTMLVideoElement | null>
   screenShareRef: RefObject<HTMLVideoElement | null>
-  client: WebRTCClient | CloudflareCallsClient | null
+  client: CallProvider | null
   isVideoEnabled: boolean
   isAudioEnabled: boolean
   isScreenSharing: boolean

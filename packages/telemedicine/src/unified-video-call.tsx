@@ -2,19 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { JSX } from 'react'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
 import { patchVideoPlayback } from './media-optimizations'
 import type { CallService } from './calls/service'
 import type { CallStatus } from './calls/types'
 import { hasTurnIceServer } from './config/ice-servers'
-import {
-  WebRTCClient,
-  type ConnectionState,
-  type DeviceInfo,
-  type WarmUpResult,
-} from './webrtc-client'
-import { CloudflareCallsClient } from './cloudflare-calls'
+import type { CallProvider, ConnectionState, DeviceInfo, WarmUpResult } from './providers/types'
+import type { CallSessionRuntime } from './call-session/types'
 import { useCallRecording } from './hooks/useCallRecording'
 import { useCallDuration } from './hooks/useCallDuration'
 import { useCallQuality } from './hooks/useCallQuality'
@@ -47,22 +41,15 @@ import {
 type UnifiedVideoCallService = Pick<CallService, 'updateCallStatus' | 'logDebugEvent' | 'logEvent'>
 
 export interface UnifiedVideoCallProps {
+  /** Call provider built via createCallProvider(). */
+  provider: CallProvider
   roomId: string
   callId?: string
   userId: string
   userType: 'doctor' | 'patient' | 'nurse'
   userName?: string
-  /** ICE servers pre-fetched by el parent (e.g. from /api/turn-credentials). Falls back to STUN-only. */
+  /** ICE servers for network preflight test (GreenRoom). */
   iceServers?: RTCIceServer[]
-  /**
-   * URL del proxy API para Cloudflare Calls SFU (e.g., '/api/cloudflare-calls').
-   * - `undefined` (default): usa '/api/cloudflare-calls' automáticamente.
-   * - `null`: opt-out explícito, usa WebRTC P2P directo.
-   * - string: URL personalizada del proxy.
-   */
-  cloudflareCallsApiUrl?: string | null
-  /** Supabase client for P2P signaling via Realtime. Required when cloudflareCallsApiUrl is null. */
-  supabase?: SupabaseClient
   onCallEnd?: () => void
   onCallStart?: () => void
   onStatusChange?: (status: ConnectionState) => void
@@ -77,6 +64,8 @@ export interface UnifiedVideoCallProps {
   className?: string
   theme?: 'doctor' | 'patient'
   autoStart?: boolean
+  /** Runtime engine shown as badge in CallTopBar. */
+  runtime?: CallSessionRuntime
 }
 
 interface RemoteUser {
@@ -89,14 +78,13 @@ interface RemoteUser {
 const QUALITY_WARMUP_MS = 15000
 
 export function UnifiedVideoCall({
+  provider,
   roomId,
   callId,
   userId,
   userType,
   userName,
   iceServers,
-  cloudflareCallsApiUrl,
-  supabase,
   onCallEnd,
   onCallStart,
   onStatusChange,
@@ -109,9 +97,10 @@ export function UnifiedVideoCall({
   className = '',
   theme = userType === 'doctor' ? 'doctor' : 'patient',
   autoStart = false,
+  runtime,
 }: UnifiedVideoCallProps): JSX.Element {
   /* ── State ── */
-  const [client, setClient] = useState<WebRTCClient | CloudflareCallsClient | null>(null)
+  const [client, setClient] = useState<CallProvider | null>(null)
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
   const [isVideoEnabled, setIsVideoEnabled] = useState(true)
   const [isAudioEnabled, setIsAudioEnabled] = useState(true)
@@ -212,12 +201,11 @@ export function UnifiedVideoCall({
   const isInRoom = sessionPhase === 'room-ready' || sessionPhase === 'peer-ready'
   const isIdle = sessionPhase === 'prejoin'
   const isTestRoom = /^test(?:[-_]|$)/i.test(roomId)
+  const hasTurn = useMemo(() => hasTurnIceServer(iceServers ?? []), [iceServers])
   const remoteUsersWithMedia = useMemo(
     () => Array.from(remoteUsers.values()).filter((user) => user.stream),
     [remoteUsers]
   )
-  const isP2PRuntime = cloudflareCallsApiUrl === null
-
   /* ── Extracted hooks ── */
   const { controlsVisible, resetControlsTimer } = useAutoHideControls({ isInRoom })
   const { formattedDuration } = useCallDuration(isCallEstablished)
@@ -254,17 +242,16 @@ export function UnifiedVideoCall({
 
   useEffect(() => {
     emitDebug('info', 'Inicializando componente de videollamada', {
+      runtime: runtime ?? 'unknown',
+      providerType: provider.constructor?.name ?? 'UnknownProvider',
+      hasTurn,
+      iceServerCount: iceServers?.length ?? 0,
+      sessionPhase,
       autoStart,
       userName,
     })
 
-    // cloudflareCallsApiUrl: undefined → default SFU, null → P2P explícito, string → custom URL
-    const sfuUrl = cloudflareCallsApiUrl === null
-      ? null
-      : (cloudflareCallsApiUrl ?? '/api/cloudflare-calls')
-    const webrtcClient = sfuUrl
-      ? new CloudflareCallsClient({ userId, userName, userType, roomId, apiProxyUrl: sfuUrl })
-      : new WebRTCClient({ userId, userName, userType, roomId, ...(iceServers ? { iceServers } : {}), ...(supabase ? { supabase } : {}) })
+    const webrtcClient = provider
     const unsubs: Array<() => void> = []
     const startConnectingTimeout = () => {
       if (connectingTimerRef.current) {
@@ -564,18 +551,18 @@ export function UnifiedVideoCall({
   // retryKey causa re-mount del cliente cuando se incrementa (intento de reconexión)
   // Callbacks (onCallStart, onError, onStatusChange) viven en refs para evitar
   // que re-renders del parent destruyan la conexión WebRTC en vuelo.
-  }, [addRemoteMessage, autoStart, cleanupSound, cloudflareCallsApiUrl, emitDebug, iceServers, logCallEvent, playParticipantJoinedSound, retryKey, roomId, supabase, userId, userName, userType])
+  }, [addRemoteMessage, autoStart, cleanupSound, emitDebug, hasTurn, iceServers?.length, logCallEvent, playParticipantJoinedSound, provider, retryKey, roomId, sessionPhase, userId, userName, userType, runtime])
 
   /* ── Duration timer ── */
   useEffect(() => {
-    if (!isP2PRuntime || !iceServers || hasTurnIceServer(iceServers)) {
+    if (runtime !== 'webrtc-p2p' || !iceServers || hasTurnIceServer(iceServers)) {
       return
     }
 
     emitDebug('warn', 'La llamada P2P no tiene TURN configurado; algunas redes estrictas pueden fallar', {
       iceServerCount: iceServers.length,
     })
-  }, [emitDebug, iceServers, isP2PRuntime])
+  }, [emitDebug, iceServers, runtime])
 
   useEffect(() => {
     if (isCallEstablished) {
@@ -616,6 +603,7 @@ export function UnifiedVideoCall({
     isChatPanelOpen,
     supabaseUrl,
     supabaseAnonKey,
+    runtime,
   })
 
   useEffect(() => {
@@ -894,6 +882,7 @@ export function UnifiedVideoCall({
           participantCount={totalParticipants}
           isRecording={recordingState.isRecording}
           showControls={controlsVisible}
+          runtime={runtime}
         />
       )}
 

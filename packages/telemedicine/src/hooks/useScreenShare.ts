@@ -1,13 +1,12 @@
 import { useState, useCallback } from 'react'
 import { applyScreenShareHint } from '../media-optimizations'
-import type { WebRTCClient } from '../webrtc-client'
-import type { CloudflareCallsClient } from '../cloudflare-calls'
+import type { CallProvider } from '../providers/types'
 
 interface UseScreenShareOptions {
   onError?: (message: string) => void
 }
 
-export function useScreenShare(client: WebRTCClient | CloudflareCallsClient | null, options?: UseScreenShareOptions) {
+export function useScreenShare(client: CallProvider | null, options?: UseScreenShareOptions) {
   const [isScreenSharing, setIsScreenSharing] = useState(false)
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null)
 

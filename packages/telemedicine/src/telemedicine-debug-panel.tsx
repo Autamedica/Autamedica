@@ -67,6 +67,53 @@ function levelBadgeClasses(level: TelemedicineDebugRecord['level']): string {
   }
 }
 
+function latestRecordWithPayload(
+  events: TelemedicineDebugRecord[],
+  predicate: (payload: Record<string, unknown>) => boolean,
+): TelemedicineDebugRecord | undefined {
+  return events.find((event) => isPlainObject(event.payload) && predicate(event.payload))
+}
+
+function deriveSessionSummary(events: TelemedicineDebugRecord[]) {
+  const runtimeRecord = latestRecordWithPayload(events, (payload) => typeof payload.runtime === 'string')
+  const turnRecord = latestRecordWithPayload(events, (payload) => typeof payload.hasTurn === 'boolean')
+  const stateRecord = latestRecordWithPayload(
+    events,
+    (payload) => typeof payload.state === 'string' && payload.state.length > 0,
+  )
+  const initRecord = latestRecordWithPayload(
+    events,
+    (payload) => typeof payload.providerType === 'string' || typeof payload.iceServerCount === 'number',
+  )
+
+  return {
+    runtime: getString((runtimeRecord?.payload as Record<string, unknown>) ?? {}, 'runtime') ?? 'sin dato',
+    providerType: getString((initRecord?.payload as Record<string, unknown>) ?? {}, 'providerType') ?? 'sin dato',
+    hasTurn: (() => {
+      const value = turnRecord?.payload && isPlainObject(turnRecord.payload) ? turnRecord.payload.hasTurn : undefined
+      return typeof value === 'boolean' ? value : undefined
+    })(),
+    iceServerCount: (() => {
+      const value = initRecord?.payload && isPlainObject(initRecord.payload) ? initRecord.payload.iceServerCount : undefined
+      return typeof value === 'number' ? value : undefined
+    })(),
+    connectionState: getString((stateRecord?.payload as Record<string, unknown>) ?? {}, 'state') ?? 'sin dato',
+  }
+}
+
+function summaryPillClasses(kind: 'info' | 'good' | 'warn' | 'bad'): string {
+  switch (kind) {
+    case 'good':
+      return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+    case 'warn':
+      return 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+    case 'bad':
+      return 'border-red-500/30 bg-red-500/10 text-red-200'
+    default:
+      return 'border-slate-700 bg-slate-900 text-slate-200'
+  }
+}
+
 export function TelemedicineDebugPanel({
   callId,
   roomId,
@@ -143,6 +190,7 @@ export function TelemedicineDebugPanel({
     const unique = new Map(merged.map((event) => [event.id, event]))
     return Array.from(unique.values()).sort((left, right) => right.at.localeCompare(left.at))
   }, [localEvents, remoteEvents])
+  const sessionSummary = useMemo(() => deriveSessionSummary(events), [events])
 
   const handleClearLocal = () => {
     clearTelemedicineDebugEvents({ callId, roomId })
@@ -207,6 +255,49 @@ export function TelemedicineDebugPanel({
               <span>{remoteError}</span>
             </div>
           )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className={`rounded-xl border px-3 py-2 ${summaryPillClasses('info')}`}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Runtime</p>
+              <p className="mt-1 text-sm font-semibold text-white">{sessionSummary.runtime}</p>
+              <p className="mt-1 text-[11px] text-slate-400">{sessionSummary.providerType}</p>
+            </div>
+
+            <div
+              className={`rounded-xl border px-3 py-2 ${
+                sessionSummary.hasTurn === true
+                  ? summaryPillClasses('good')
+                  : sessionSummary.hasTurn === false
+                    ? summaryPillClasses('warn')
+                    : summaryPillClasses('info')
+              }`}
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">TURN</p>
+              <p className="mt-1 text-sm font-semibold text-white">
+                {sessionSummary.hasTurn === true ? 'Disponible' : sessionSummary.hasTurn === false ? 'Ausente' : 'Sin dato'}
+              </p>
+              <p className="mt-1 text-[11px] text-slate-400">
+                {typeof sessionSummary.iceServerCount === 'number'
+                  ? `${sessionSummary.iceServerCount} ICE server${sessionSummary.iceServerCount === 1 ? '' : 's'}`
+                  : 'sin conteo'}
+              </p>
+            </div>
+
+            <div
+              className={`col-span-2 rounded-xl border px-3 py-2 ${
+                sessionSummary.connectionState === 'connected'
+                  ? summaryPillClasses('good')
+                  : sessionSummary.connectionState === 'failed'
+                    ? summaryPillClasses('bad')
+                    : sessionSummary.connectionState === 'connecting'
+                      ? summaryPillClasses('warn')
+                      : summaryPillClasses('info')
+              }`}
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Sesion</p>
+              <p className="mt-1 text-sm font-semibold text-white">{sessionSummary.connectionState}</p>
+            </div>
+          </div>
 
           <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
             {events.length === 0 ? (
