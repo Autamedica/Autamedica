@@ -120,7 +120,7 @@ insert into public.subscription_plans (name, slug, price_cents, currency, interv
 (
   'Plan Básico',
   'basico',
-  1500000,
+  4000000,
   'ARS',
   'monthly',
   '["Agenda inteligente", "Recordatorios automáticos", "Perfil profesional público", "Hasta 50 pacientes"]'::jsonb
@@ -128,7 +128,7 @@ insert into public.subscription_plans (name, slug, price_cents, currency, interv
 (
   'Plan Pro',
   'pro',
-  3000000,
+  7000000,
   'ARS',
   'monthly',
   '["Todo en Básico", "Receta electrónica", "Videoconsulta HD", "Pacientes ilimitados", "Historial clínico digital"]'::jsonb
@@ -136,7 +136,7 @@ insert into public.subscription_plans (name, slug, price_cents, currency, interv
 (
   'Plan Premium',
   'premium',
-  5000000,
+  10000000,
   'ARS',
   'monthly',
   '["Todo en Pro", "IA anamnesis automática", "Contabilidad fiscal integrada", "Soporte prioritario", "Analytics avanzados"]'::jsonb

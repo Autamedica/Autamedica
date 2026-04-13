@@ -2,12 +2,13 @@
  * POST /api/doctors/billing/webhook
  * MercadoPago webhook handler for payment and subscription notifications.
  * No auth — validated via webhook signature.
+ * Uses admin client (service_role) because the request comes from MP, not a user.
  */
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { jsonOk, badRequest, unauthorized, internalError } from '@/lib/api-helpers';
 import { billingService } from '@/lib/doctors/services/billing.service';
-import { createAstroServerClientFromRequest } from '@/lib/supabase';
+import { createAstroAdminClient } from '@/lib/supabase';
 import type { MercadoPagoWebhookPayload } from '@autamedica/types';
 
 export const POST: APIRoute = async ({ request }) => {
@@ -31,7 +32,7 @@ export const POST: APIRoute = async ({ request }) => {
       return badRequest('missing_type_or_data_id');
     }
 
-    const supabase = createAstroServerClientFromRequest(request);
+    const supabase = createAstroAdminClient();
 
     await billingService.handlePaymentWebhook(
       supabase,

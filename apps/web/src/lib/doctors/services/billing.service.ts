@@ -119,7 +119,7 @@ export const billingService = {
           currency_id: plan.currency,
         },
         payer_email: doctorEmail,
-        back_url: `${appUrl}/doctor/billing`,
+        back_url: `${appUrl}/doctors/subscription`,
         external_reference: doctorId,
         status: 'pending',
       }),
