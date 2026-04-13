@@ -7,15 +7,15 @@ from pathlib import Path
 
 # Configuración de AutaMedica
 AUTAMEDICA_CONFIG = {
-    "base_url": "http://localhost:3000",
-    "auth_url": "http://localhost:3000/auth",
-    "doctors_url": "http://localhost:3001", 
-    "patients_url": "http://localhost:3003",
-    "signaling_url": "ws://localhost:8888",
-    "doctor_email": "doctor.demo@autamedica.com",
-    "doctor_password": "Demo1234",
-    "patient_id": "patient_001",
-    "patient_name": "Juan Pérez"
+    "base_url": os.environ.get("AUTAMEDICA_BASE_URL", "http://localhost:3000"),
+    "auth_url": os.environ.get("AUTAMEDICA_AUTH_URL", "http://localhost:3000/auth"),
+    "doctors_url": os.environ.get("AUTAMEDICA_DOCTORS_URL", "http://localhost:3001"),
+    "patients_url": os.environ.get("AUTAMEDICA_PATIENTS_URL", "http://localhost:3003"),
+    "signaling_url": os.environ.get("AUTAMEDICA_SIGNALING_URL", "ws://localhost:8888"),
+    "doctor_email": os.environ.get("DOCTOR_DEMO_EMAIL", ""),
+    "doctor_password": os.environ.get("DOCTOR_DEMO_PASSWORD", ""),
+    "patient_id": os.environ.get("TEST_PATIENT_ID", "patient_001"),
+    "patient_name": os.environ.get("TEST_PATIENT_NAME", "Test Patient"),
 }
 
 @pytest.fixture(scope="session")

@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 import type { BrowserContext } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 
-const DOCTOR_EMAIL = process.env.DOCTOR_DEMO_EMAIL ?? 'doctor.demo@autamedica.com';
-const DOCTOR_PASSWORD = process.env.DOCTOR_DEMO_PASSWORD ?? 'Demo1234';
+const DOCTOR_EMAIL = process.env.DOCTOR_DEMO_EMAIL ?? '';
+const DOCTOR_PASSWORD = process.env.DOCTOR_DEMO_PASSWORD ?? '';
 const SUPABASE_URL = process.env.SUPABASE_URL
   ?? process.env.NEXT_PUBLIC_SUPABASE_URL
   ?? 'https://qxjjrpksmwwrmubhvjew.supabase.co';
@@ -25,6 +25,7 @@ test.use({
 test.describe('Doctor Portal – Login + Video Call', () => {
   test('doctor can authenticate, validate profile and complete a patient video call', async ({ browser }, testInfo) => {
     test.skip(!SUPABASE_ANON_KEY, 'Supabase anon key required to validate doctor identity.');
+    test.skip(!DOCTOR_EMAIL || !DOCTOR_PASSWORD, 'DOCTOR_DEMO_EMAIL and DOCTOR_DEMO_PASSWORD env vars required.');
 
     test.setTimeout(180_000);
 
