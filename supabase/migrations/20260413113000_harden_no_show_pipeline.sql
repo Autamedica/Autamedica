@@ -62,6 +62,21 @@ ALTER TABLE public.appointment_reminders
   ADD COLUMN IF NOT EXISTS next_retry_at timestamptz,
   ADD COLUMN IF NOT EXISTS last_error text;
 
+-- Deduplicate existing rows before adding unique constraint.
+-- Keeps the newest row (by id) for each (appointment_id, channel, scheduled_for) group.
+DELETE FROM public.appointment_reminders
+WHERE id IN (
+  SELECT id FROM (
+    SELECT id,
+           ROW_NUMBER() OVER (
+             PARTITION BY appointment_id, channel, scheduled_for
+             ORDER BY created_at DESC, id DESC
+           ) AS rn
+    FROM public.appointment_reminders
+  ) ranked
+  WHERE rn > 1
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS uq_appointment_reminders_schedule
   ON public.appointment_reminders (appointment_id, channel, scheduled_for);
 
