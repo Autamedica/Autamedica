@@ -19,8 +19,8 @@ interface AppointmentSlot {
 
 interface WaitlistOffer {
   id: string
-  preferred_date_start: string | null
-  preferred_date_end: string | null
+  offered_start_time: string | null
+  offered_end_time: string | null
   appointment_type: string | null
 }
 
@@ -91,7 +91,7 @@ export const openclawRepo = {
   ): Promise<WaitlistOffer | null> {
     const { data: offers } = await admin
       .from('appointment_waitlist')
-      .select('id, preferred_date_start, preferred_date_end, appointment_type')
+      .select('id, offered_start_time, offered_end_time, appointment_type')
       .eq('patient_id', patientId)
       .eq('status', 'offered')
       .gt('expires_at', new Date().toISOString())

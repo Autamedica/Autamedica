@@ -1,75 +1,57 @@
 /**
  * Reminder Engine — Programa y gestiona recordatorios de citas.
  *
- * Crea recordatorios automáticos (24h y 2h antes) al agendar una cita.
- * Diseñado para que un worker/cron procese los pendientes y los envíe
- * por el canal correspondiente (WhatsApp vía OpenClaw, email, push, etc).
+ * La creación inicial ahora vive en la base vía RPC/trigger para que
+ * appointment + reminders se creen atómicamente en la misma transacción.
  */
 
 import type {
   AppointmentReminder,
-  AppointmentReminderInsert,
   ReminderChannel,
   ReminderResponse,
-  SchedulingConfig,
 } from '@autamedica/types';
-import { DEFAULT_SCHEDULING_CONFIG } from '@autamedica/types';
 import type { SupabaseLike } from './supabase';
 
+const MAX_REMINDER_RETRIES = 3;
+const BASE_RETRY_MINUTES = 5;
+const MAX_RETRY_MINUTES = 60;
+
+function computeRetryAt(attempt: number): string {
+  const minutes = Math.min(BASE_RETRY_MINUTES * 2 ** Math.max(attempt - 1, 0), MAX_RETRY_MINUTES);
+  return new Date(Date.now() + minutes * 60 * 1000).toISOString();
+}
+
 /**
- * Programa recordatorios para una cita.
- * Por defecto crea recordatorios a 24h y 2h antes.
+ * Programa recordatorios para una cita reusando la función SQL central.
+ * Se usa principalmente en reschedules o reparaciones explícitas.
  */
 export async function scheduleReminders(
   supabase: SupabaseLike,
   appointmentId: string,
   channel: ReminderChannel = 'whatsapp',
-  config?: Partial<SchedulingConfig>,
 ): Promise<AppointmentReminder[]> {
-  // Get appointment start_time
-  const { data: appt, error: apptErr } = await supabase
-    .from('appointments')
-    .select('start_time, status')
-    .eq('id', appointmentId)
-    .single();
+  const { error: rpcError } = await supabase.rpc('schedule_appointment_reminders', {
+    target_appointment_id: appointmentId,
+    reminder_channel: channel,
+  });
 
-  if (apptErr || !appt) throw new Error('Appointment not found');
-  if (appt.status === 'cancelled' || appt.status === 'no_show') {
-    throw new Error('Cannot schedule reminders for cancelled/no-show appointments');
-  }
-
-  const hoursBefore = config?.reminder_hours_before ?? DEFAULT_SCHEDULING_CONFIG.reminder_hours_before;
-  const startTime = new Date(appt.start_time);
-  const now = new Date();
-
-  const inserts: AppointmentReminderInsert[] = [];
-
-  for (const hours of hoursBefore) {
-    const reminderTime = new Date(startTime.getTime() - hours * 60 * 60 * 1000);
-    // Only schedule if the reminder is in the future
-    if (reminderTime > now) {
-      inserts.push({
-        appointment_id: appointmentId as import('@autamedica/types').UUID,
-        channel,
-        scheduled_for: reminderTime.toISOString() as import('@autamedica/types').ISODateString,
-      });
-    }
-  }
-
-  if (inserts.length === 0) return [];
+  if (rpcError) throw new Error(`Error scheduling reminders: ${rpcError.message}`);
 
   const { data, error } = await supabase
     .from('appointment_reminders')
-    .insert(inserts)
-    .select('*');
+    .select('*')
+    .eq('appointment_id', appointmentId)
+    .eq('channel', channel)
+    .neq('status', 'cancelled')
+    .order('scheduled_for', { ascending: true });
 
-  if (error) throw new Error(`Error scheduling reminders: ${error.message}`);
+  if (error) throw new Error(`Error fetching scheduled reminders: ${error.message}`);
   return (data ?? []) as AppointmentReminder[];
 }
 
 /**
  * Obtiene recordatorios pendientes que deben enviarse ahora.
- * Diseñado para ser llamado por un cron/worker cada minuto.
+ * Incluye retries cuyo next_retry_at ya venció.
  */
 export async function getPendingReminders(
   supabase: SupabaseLike,
@@ -82,6 +64,7 @@ export async function getPendingReminders(
     .select('*')
     .eq('status', 'pending')
     .lte('scheduled_for', now)
+    .or(`next_retry_at.is.null,next_retry_at.lte.${now}`)
     .order('scheduled_for', { ascending: true })
     .limit(limit);
 
@@ -102,6 +85,8 @@ export async function markReminderSent(
     .update({
       status: 'sent',
       sent_at: new Date().toISOString(),
+      next_retry_at: null,
+      last_error: null,
       ...(response ? { response } : {}),
     })
     .eq('id', reminderId);
@@ -110,18 +95,50 @@ export async function markReminderSent(
 }
 
 /**
- * Marca un recordatorio como fallido.
+ * Marca un recordatorio como fallido terminal.
  */
 export async function markReminderFailed(
   supabase: SupabaseLike,
   reminderId: string,
+  errorMessage?: string,
 ): Promise<void> {
   const { error } = await supabase
     .from('appointment_reminders')
-    .update({ status: 'failed' })
+    .update({
+      status: 'failed',
+      next_retry_at: null,
+      ...(errorMessage ? { last_error: errorMessage } : {}),
+    })
     .eq('id', reminderId);
 
   if (error) throw new Error(`Error marking reminder failed: ${error.message}`);
+}
+
+/**
+ * Programa un reintento con backoff exponencial. Solo pasa a estado failed
+ * cuando se agota el máximo de intentos.
+ */
+export async function markReminderForRetry(
+  supabase: SupabaseLike,
+  reminder: Pick<AppointmentReminder, 'id' | 'retry_count'>,
+  errorMessage: string,
+  maxRetries: number = MAX_REMINDER_RETRIES,
+): Promise<'retrying' | 'failed'> {
+  const nextAttempt = (reminder.retry_count ?? 0) + 1;
+  const exhausted = nextAttempt >= maxRetries;
+
+  const { error } = await supabase
+    .from('appointment_reminders')
+    .update({
+      status: exhausted ? 'failed' : 'pending',
+      retry_count: nextAttempt,
+      next_retry_at: exhausted ? null : computeRetryAt(nextAttempt),
+      last_error: errorMessage,
+    })
+    .eq('id', reminder.id);
+
+  if (error) throw new Error(`Error scheduling reminder retry: ${error.message}`);
+  return exhausted ? 'failed' : 'retrying';
 }
 
 /**
@@ -134,7 +151,7 @@ export async function cancelReminders(
 ): Promise<number> {
   const { data, error } = await supabase
     .from('appointment_reminders')
-    .update({ status: 'cancelled' })
+    .update({ status: 'cancelled', next_retry_at: null })
     .eq('appointment_id', appointmentId)
     .eq('status', 'pending')
     .select('id');
@@ -153,7 +170,6 @@ export async function processReminderResponse(
   reminderId: string,
   response: ReminderResponse,
 ): Promise<void> {
-  // Get reminder and appointment
   const { data: reminder, error: remErr } = await supabase
     .from('appointment_reminders')
     .select('*, appointments(id, status)')
@@ -162,13 +178,17 @@ export async function processReminderResponse(
 
   if (remErr || !reminder) throw new Error('Reminder not found');
 
-  // Update reminder
   await supabase
     .from('appointment_reminders')
-    .update({ response, status: 'sent', sent_at: new Date().toISOString() })
+    .update({
+      response,
+      status: 'sent',
+      sent_at: new Date().toISOString(),
+      next_retry_at: null,
+      last_error: null,
+    })
     .eq('id', reminderId);
 
-  // Update appointment based on response
   if (response === 'confirmed') {
     await supabase
       .from('appointments')
@@ -182,7 +202,6 @@ export async function processReminderResponse(
       .eq('id', reminder.appointment_id)
       .not('status', 'in', '("completed","cancelled")');
 
-    // Cancel remaining reminders
     await cancelReminders(supabase, reminder.appointment_id);
   }
 }
@@ -200,7 +219,6 @@ export async function sendReminderViaWebhook(
     agentId: string;
   },
 ): Promise<void> {
-  // Get full reminder info including patient and doctor
   const { data: reminder, error } = await supabase
     .from('appointment_reminders')
     .select(`
@@ -232,21 +250,20 @@ export async function sendReminderViaWebhook(
     doctor: { first_name: string; last_name: string } | null
   }
 
-  const appt = reminder.appointments as unknown as AppointmentJoin | null
-  if (!appt) throw new Error('Appointment data missing')
+  const appt = reminder.appointments as AppointmentJoin | null;
+  if (!appt) throw new Error('Appointment data missing');
 
-  const patient = appt.patient
-  const doctor = appt.doctor
+  const patient = appt.patient;
+  const doctor = appt.doctor;
 
   if (!patient?.phone) {
-    throw new Error('Patient phone missing')
+    throw new Error('Patient phone missing');
   }
 
   if (!doctor) {
-    throw new Error('Doctor data missing')
+    throw new Error('Doctor data missing');
   }
 
-  // Format date/time
   const dateObj = new Date(appt.start_time);
   const dateStr = dateObj.toLocaleDateString('es-AR', {
     weekday: 'long',
@@ -258,32 +275,33 @@ export async function sendReminderViaWebhook(
     minute: '2-digit',
   });
 
-  const message = `Envía recordatorio de turno al paciente ${patient.first_name} ${patient.last_name} para el ${dateStr} a las ${timeStr} con Dr. ${doctor.first_name} ${doctor.last_name}. Tipo: ${appt.type}. Ubicación: ${appt.location || 'Consultorio'}.`;
+  const lines = [
+    `Recordatorio de turno`,
+    `Paciente: ${patient.first_name} ${patient.last_name}`.trim(),
+    `Doctor: ${doctor.first_name} ${doctor.last_name}`.trim(),
+    `Fecha: ${dateStr}`,
+    `Hora: ${timeStr}`,
+    `Tipo: ${appt.type}`,
+    appt.location ? `Ubicación: ${appt.location}` : null,
+  ].filter(Boolean);
 
-  try {
-    const response = await fetch(`${config.gatewayUrl}/hooks/agent`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.token}`,
-      },
-      body: JSON.stringify({
-        agentId: config.agentId,
-        message,
-        deliver: true,
-        channel: 'whatsapp',
-        to: patient.phone,
-      }),
-    });
+  const response = await fetch(config.gatewayUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.token}`,
+    },
+    body: JSON.stringify({
+      agentId: config.agentId,
+      to: patient.phone,
+      channel: reminder.channel,
+      message: lines.join('\n'),
+    }),
+  });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OpenClaw Gateway error (${response.status}): ${errorText}`);
-    }
-
-    await markReminderSent(supabase, reminderId);
-  } catch (err) {
-    await markReminderFailed(supabase, reminderId);
-    throw err;
+  if (!response.ok) {
+    throw new Error(`Webhook send failed with status ${response.status}`);
   }
+
+  await markReminderSent(supabase, reminderId);
 }

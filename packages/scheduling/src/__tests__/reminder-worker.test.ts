@@ -21,6 +21,8 @@ describe('processReminderCycle', () => {
     expect(result.processed).toBe(0);
     expect(result.sent).toBe(0);
     expect(result.failed).toBe(0);
+    expect(result.waitlistOffersSent).toBe(0);
+    expect(result.noShowsMarked).toBe(0);
     expect(result.errors).toEqual([]);
   });
 
@@ -33,6 +35,9 @@ describe('processReminderCycle', () => {
       sent_at: null,
       status: 'pending',
       response: null,
+      retry_count: 0,
+      next_retry_at: null,
+      last_error: null,
       created_at: '2026-03-17T10:00:00Z',
     };
 
@@ -78,6 +83,9 @@ describe('processReminderCycle', () => {
       sent_at: null,
       status: 'pending',
       response: null,
+      retry_count: 0,
+      next_retry_at: null,
+      last_error: null,
       created_at: '2026-03-17T10:00:00Z',
     };
 

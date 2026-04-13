@@ -1,5 +1,5 @@
 import { domainEvents, logger } from '@autamedica/shared'
-import { scheduleReminders } from '@autamedica/scheduling'
+import { cancelReminders, scheduleReminders } from '@autamedica/scheduling'
 import { toISODateString } from '@autamedica/types'
 import type { AppointmentUpdate } from '@autamedica/types'
 import { createAstroAdminClient } from '@/lib/supabase'
@@ -36,13 +36,7 @@ export const doctorAppointmentsBackendService = {
       eventBus: domainEvents,
     })
 
-    const created = await useCase.execute({ doctorId: context.doctorId }, payload)
-
-    scheduleReminders(admin, created.id, 'whatsapp').catch((error) => {
-      logger.error('[doctorAppointmentsBackendService] scheduleReminders failed', error)
-    })
-
-    return created
+    return useCase.execute({ doctorId: context.doctorId }, payload)
   },
 
   async updateForDoctor(
@@ -81,6 +75,17 @@ export const doctorAppointmentsBackendService = {
       patch.location = payload.location
     }
 
-    return repo.update(appointmentId, patch)
+    const updated = await repo.update(appointmentId, patch)
+
+    if (payload.start_time || payload.duration_minutes !== undefined) {
+      try {
+        await cancelReminders(admin, appointmentId)
+        await scheduleReminders(admin, appointmentId, 'whatsapp')
+      } catch (error) {
+        logger.error('[doctorAppointmentsBackendService] reschedule reminders failed', error)
+      }
+    }
+
+    return updated
   },
 }

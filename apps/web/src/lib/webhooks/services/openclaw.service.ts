@@ -65,8 +65,8 @@ export const openclawService = {
     if (!offer) throw new Error('No active waitlist offer found')
 
     const result = await acceptWaitlistOffer(admin, offer.id, {
-      start_time: offer.preferred_date_start ?? new Date().toISOString(),
-      end_time: offer.preferred_date_end ?? new Date().toISOString(),
+      start_time: offer.offered_start_time ?? new Date().toISOString(),
+      end_time: offer.offered_end_time ?? new Date().toISOString(),
       type: offer.appointment_type ?? undefined,
     })
 

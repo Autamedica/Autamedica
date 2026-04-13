@@ -136,6 +136,9 @@ export interface WaitlistEntry {
   priority: WaitlistPriority;
   status: WaitlistStatus;
   offered_at: ISODateString | null;
+  offer_sent_at: ISODateString | null;
+  offered_start_time: ISODateString | null;
+  offered_end_time: ISODateString | null;
   expires_at: ISODateString | null;
   created_at: ISODateString;
   updated_at: ISODateString;
@@ -172,6 +175,9 @@ export interface AppointmentReminder {
   sent_at: ISODateString | null;
   status: ReminderStatus;
   response: ReminderResponse | null;
+  retry_count: number;
+  next_retry_at: ISODateString | null;
+  last_error: string | null;
   created_at: ISODateString;
 }
 
@@ -240,16 +246,25 @@ export interface SchedulingConfig {
   waitlist_offer_expiry_hours: number;
   /** Umbral de probabilidad de no-show para habilitar overbooking */
   noshow_overbooking_threshold: number;
+  /** Minutos de gracia luego del fin de la cita antes de marcar no_show */
+  noshow_grace_minutes: number;
   /** Días máximos de anticipación para agendar */
   max_advance_booking_days: number;
   /** Minutos mínimos de anticipación para agendar */
   min_advance_booking_minutes: number;
 }
 
+export interface DoctorSchedulingConfig extends SchedulingConfig {
+  doctor_id: UUID;
+  created_at: ISODateString;
+  updated_at: ISODateString;
+}
+
 export const DEFAULT_SCHEDULING_CONFIG: SchedulingConfig = {
   reminder_hours_before: [24, 2],
   waitlist_offer_expiry_hours: 4,
   noshow_overbooking_threshold: 0.3,
+  noshow_grace_minutes: 30,
   max_advance_booking_days: 60,
   min_advance_booking_minutes: 60,
 };

@@ -2,22 +2,11 @@
  * Edge Function: process-reminders
  *
  * Procesa recordatorios pendientes de citas y los envía vía OpenClaw (WhatsApp).
- * Diseñado para ejecutarse como cron cada minuto vía pg_cron o invocación externa.
- *
- * También expira ofertas de waitlist vencidas.
- *
- * Invocación:
- *   POST /functions/v1/process-reminders
- *   Header: Authorization: Bearer <SUPABASE_ANON_KEY> (o service_role para cron)
- *
- * pg_cron setup:
- *   SELECT cron.schedule('process-reminders', '* * * * *',
- *     $$SELECT net.http_post(
- *       url := '<SUPABASE_URL>/functions/v1/process-reminders',
- *       headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')),
- *       body := '{}'::jsonb
- *     )$$
- *   );
+ * También:
+ * - reintenta reminders fallidos con backoff
+ * - despacha ofertas de waitlist no enviadas
+ * - expira ofertas vencidas
+ * - marca citas vencidas como no_show
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -29,13 +18,26 @@ const OPENCLAW_TOKEN = Deno.env.get('OPENCLAW_TOKEN') ?? ''
 const OPENCLAW_ACCOUNT = Deno.env.get('OPENCLAW_ACCOUNT') ?? 'autamedica'
 const DRY_RUN = Deno.env.get('REMINDER_DRY_RUN') === 'true'
 const BATCH_SIZE = 50
+const MAX_REMINDER_RETRIES = 3
+const BASE_RETRY_MINUTES = 5
+const MAX_RETRY_MINUTES = 60
 
 interface WorkerResult {
   processed: number
   sent: number
   failed: number
+  waitlistOffersSent: number
   waitlistExpired: number
+  noShowsMarked: number
   errors: string[]
+}
+
+interface Reminder {
+  id: string
+  appointment_id: string
+  channel: string
+  scheduled_for: string
+  retry_count?: number | null
 }
 
 Deno.serve(async (req) => {
@@ -57,16 +59,24 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   })
 
-  const result: WorkerResult = { processed: 0, sent: 0, failed: 0, waitlistExpired: 0, errors: [] }
+  const result: WorkerResult = {
+    processed: 0,
+    sent: 0,
+    failed: 0,
+    waitlistOffersSent: 0,
+    waitlistExpired: 0,
+    noShowsMarked: 0,
+    errors: [],
+  }
 
   try {
-    // 1. Fetch pending reminders ready to send
     const now = new Date().toISOString()
     const { data: reminders, error: fetchErr } = await supabase
       .from('appointment_reminders')
       .select('*')
       .eq('status', 'pending')
       .lte('scheduled_for', now)
+      .or(`next_retry_at.is.null,next_retry_at.lte.${now}`)
       .order('scheduled_for', { ascending: true })
       .limit(BATCH_SIZE)
 
@@ -74,24 +84,22 @@ Deno.serve(async (req) => {
 
     result.processed = reminders?.length ?? 0
 
-    // 2. Process each reminder
     for (const reminder of reminders ?? []) {
       try {
-        await processOneReminder(supabase, reminder)
+        await processOneReminder(supabase, reminder as Reminder)
         result.sent++
       } catch (err) {
         result.failed++
         const msg = err instanceof Error ? err.message : 'Unknown'
-        result.errors.push(`${reminder.id}: ${msg}`)
-        // Mark as failed
-        await supabase
-          .from('appointment_reminders')
-          .update({ status: 'failed' })
-          .eq('id', reminder.id)
+        result.errors.push(`${(reminder as Reminder).id}: ${msg}`)
+        await scheduleReminderRetry(supabase, reminder as Reminder, msg)
       }
     }
 
-    // 3. Expire stale waitlist offers
+    const waitlistDispatch = await processUnsentWaitlistOffers(supabase)
+    result.waitlistOffersSent = waitlistDispatch.sent
+    result.errors.push(...waitlistDispatch.errors.map((err) => `Waitlist: ${err}`))
+
     const { data: expired } = await supabase
       .from('appointment_waitlist')
       .update({ status: 'expired' })
@@ -100,6 +108,13 @@ Deno.serve(async (req) => {
       .select('id')
 
     result.waitlistExpired = expired?.length ?? 0
+
+    const { data: noShowCount, error: noShowErr } = await supabase.rpc('mark_overdue_appointments_no_show')
+    if (noShowErr) {
+      result.errors.push(`No-show reaper: ${noShowErr.message}`)
+    } else {
+      result.noShowsMarked = typeof noShowCount === 'number' ? noShowCount : 0
+    }
   } catch (err) {
     result.errors.push(err instanceof Error ? err.message : 'Cycle failed')
   }
@@ -110,20 +125,10 @@ Deno.serve(async (req) => {
   })
 })
 
-// ── Core logic ──
-
-interface Reminder {
-  id: string
-  appointment_id: string
-  channel: string
-  scheduled_for: string
-}
-
 async function processOneReminder(
   supabase: ReturnType<typeof createClient>,
   reminder: Reminder,
 ): Promise<void> {
-  // Fetch appointment with patient + doctor
   const { data: appt, error: apptErr } = await supabase
     .from('appointments')
     .select(`
@@ -136,9 +141,8 @@ async function processOneReminder(
 
   if (apptErr || !appt) throw new Error(`Appointment ${reminder.appointment_id} not found`)
 
-  // Skip cancelled/completed
   if (appt.status === 'cancelled' || appt.status === 'no_show' || appt.status === 'completed') {
-    await markSent(supabase, reminder.id)
+    await markReminderSent(supabase, reminder.id)
     return
   }
 
@@ -148,12 +152,10 @@ async function processOneReminder(
   const doctorProfile = doctor?.profiles as Record<string, string> | null
   const phone = patientProfile?.phone
 
-  if (!phone) throw new Error(`Patient has no phone`)
+  if (!phone) throw new Error('Patient has no phone')
 
-  // Build message
   const startTime = new Date(appt.start_time as string)
   const hoursUntil = (startTime.getTime() - Date.now()) / (1000 * 60 * 60)
-
   const patientName = patientProfile?.first_name ?? 'Paciente'
   const doctorName = [doctorProfile?.first_name, doctorProfile?.last_name].filter(Boolean).join(' ') || 'Doctor'
   const dateStr = startTime.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -166,12 +168,11 @@ async function processOneReminder(
     : buildReminder2h(patientName, doctorName, timeStr, location)
 
   if (DRY_RUN) {
-    console.log(`[DRY RUN] → ${phone}: ${message.substring(0, 80)}...`)
-    await markSent(supabase, reminder.id)
+    console.log(`[DRY RUN] reminder ${reminder.id} -> ${phone}: ${message.substring(0, 80)}...`)
+    await markReminderSent(supabase, reminder.id)
     return
   }
 
-  // Send via OpenClaw webhook
   const res = await fetch(`${OPENCLAW_URL}/hooks/agent`, {
     method: 'POST',
     headers: {
@@ -193,20 +194,163 @@ async function processOneReminder(
     throw new Error(`OpenClaw HTTP ${res.status}: ${text}`)
   }
 
-  await markSent(supabase, reminder.id)
+  await markReminderSent(supabase, reminder.id)
 }
 
-async function markSent(supabase: ReturnType<typeof createClient>, id: string) {
+async function processUnsentWaitlistOffers(
+  supabase: ReturnType<typeof createClient>,
+): Promise<{ sent: number; errors: string[] }> {
+  const now = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('appointment_waitlist')
+    .select(`
+      id,
+      expires_at,
+      offered_at,
+      offered_start_time,
+      offer_sent_at,
+      patients!inner(id, user_id, profiles:profiles!inner(first_name, phone)),
+      doctors!inner(id, user_id, profiles:profiles!inner(first_name, last_name))
+    `)
+    .eq('status', 'offered')
+    .is('offer_sent_at', null)
+    .gt('expires_at', now)
+    .order('offered_at', { ascending: true })
+    .limit(BATCH_SIZE)
+
+  if (error) {
+    throw new Error(`Fetch waitlist offers: ${error.message}`)
+  }
+
+  const result = { sent: 0, errors: [] as string[] }
+
+  for (const rawOffer of data ?? []) {
+    const offer = rawOffer as Record<string, unknown>
+    const patient = offer.patients as Record<string, unknown> | null
+    const doctor = offer.doctors as Record<string, unknown> | null
+    const patientProfile = patient?.profiles as Record<string, string> | null
+    const doctorProfile = doctor?.profiles as Record<string, string> | null
+    const phone = patientProfile?.phone
+    const offeredStartTime = offer.offered_start_time as string | null
+
+    if (!phone) {
+      result.errors.push(`Offer ${offer.id as string}: patient phone missing`)
+      continue
+    }
+
+    if (!offeredStartTime) {
+      result.errors.push(`Offer ${offer.id as string}: offered_start_time missing`)
+      continue
+    }
+
+    const startsAt = new Date(offeredStartTime)
+    const message = buildWaitlistOffer({
+      patientName: patientProfile?.first_name ?? 'Paciente',
+      doctorName: [doctorProfile?.first_name, doctorProfile?.last_name].filter(Boolean).join(' ') || 'Doctor',
+      date: startsAt.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }),
+      time: startsAt.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+      expiresIn: formatExpiryWindow(offer.expires_at as string | null),
+    })
+
+    if (DRY_RUN) {
+      await supabase
+        .from('appointment_waitlist')
+        .update({ offer_sent_at: new Date().toISOString() })
+        .eq('id', offer.id as string)
+      result.sent++
+      continue
+    }
+
+    const res = await fetch(`${OPENCLAW_URL}/hooks/agent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENCLAW_TOKEN}`,
+      },
+      body: JSON.stringify({
+        agentId: OPENCLAW_ACCOUNT,
+        message: `Envía este mensaje exacto al paciente, sin modificar nada:\n\n${message}`,
+        deliver: true,
+        channel: 'whatsapp',
+        to: phone,
+      }),
+      signal: AbortSignal.timeout(30_000),
+    })
+
+    if (!res.ok) {
+      const text = await res.text()
+      result.errors.push(`Offer ${offer.id as string}: OpenClaw HTTP ${res.status}: ${text}`)
+      continue
+    }
+
+    await supabase
+      .from('appointment_waitlist')
+      .update({ offer_sent_at: new Date().toISOString() })
+      .eq('id', offer.id as string)
+
+    result.sent++
+  }
+
+  return result
+}
+
+async function scheduleReminderRetry(
+  supabase: ReturnType<typeof createClient>,
+  reminder: Reminder,
+  errorMessage: string,
+) {
+  const nextAttempt = (reminder.retry_count ?? 0) + 1
+  const exhausted = nextAttempt >= MAX_REMINDER_RETRIES
+  const nextRetryAt = exhausted
+    ? null
+    : new Date(
+      Date.now() + Math.min(BASE_RETRY_MINUTES * 2 ** Math.max(nextAttempt - 1, 0), MAX_RETRY_MINUTES) * 60 * 1000,
+    ).toISOString()
+
   await supabase
     .from('appointment_reminders')
-    .update({ status: 'sent', sent_at: new Date().toISOString() })
+    .update({
+      status: exhausted ? 'failed' : 'pending',
+      retry_count: nextAttempt,
+      next_retry_at: nextRetryAt,
+      last_error: errorMessage,
+    })
+    .eq('id', reminder.id)
+}
+
+async function markReminderSent(
+  supabase: ReturnType<typeof createClient>,
+  id: string,
+) {
+  await supabase
+    .from('appointment_reminders')
+    .update({
+      status: 'sent',
+      sent_at: new Date().toISOString(),
+      next_retry_at: null,
+      last_error: null,
+    })
     .eq('id', id)
 }
 
-// ── Message templates ──
+function formatExpiryWindow(expiresAt: string | null): string {
+  if (!expiresAt) return 'unas horas'
+  const diffMs = new Date(expiresAt).getTime() - Date.now()
+  if (diffMs <= 0) return 'muy poco tiempo'
+  const totalMinutes = Math.max(1, Math.round(diffMs / 60000))
+  if (totalMinutes < 60) return `${totalMinutes} minutos`
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return minutes === 0 ? `${hours} horas` : `${hours}h ${minutes}m`
+}
 
 function buildReminder24h(
-  patient: string, doctor: string, date: string, time: string, type: string, location: string | null,
+  patient: string,
+  doctor: string,
+  date: string,
+  time: string,
+  type: string,
+  location: string | null,
 ): string {
   const loc = location ? `📍 *Ubicación:* ${location}` : `💻 *Modalidad:* Telemedicina`
   return [
@@ -229,5 +373,26 @@ function buildReminder2h(patient: string, doctor: string, time: string, location
     `⏰ *Turno en 2 horas*`, '',
     `${patient}, tu turno con Dr. ${doctor} es a las ${time}.`,
     location ? `📍 ${location}` : `💻 Ingresá a autamedica.com para la videollamada.`,
+  ].join('\n')
+}
+
+function buildWaitlistOffer(data: {
+  patientName: string
+  doctorName: string
+  date: string
+  time: string
+  expiresIn: string
+}): string {
+  return [
+    `🔔 *Turno disponible — AutaMedica*`,
+    ``,
+    `Hola ${data.patientName}, se liberó un turno:`,
+    ``,
+    `👨‍⚕️ Dr. ${data.doctorName}`,
+    `📅 ${data.date} a las ${data.time}`,
+    ``,
+    `⏳ Tenés ${data.expiresIn} para responder.`,
+    ``,
+    `Respondé *ACEPTO* para reservar el turno.`,
   ].join('\n')
 }

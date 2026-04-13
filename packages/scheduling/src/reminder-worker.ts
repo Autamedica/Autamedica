@@ -15,8 +15,9 @@
 import type { SupabaseLike } from './supabase';
 import type { AppointmentReminder } from '@autamedica/types';
 import { logger } from '@autamedica/shared';
-import { getPendingReminders, markReminderSent, markReminderFailed } from './reminders';
+import { getPendingReminders, markReminderForRetry, markReminderSent } from './reminders';
 import { expireStaleOffers } from './waitlist';
+import { markOverdueAppointmentsNoShow } from './no-show-reaper';
 import {
   sendMessageWithFallback,
   buildReminder24h,
@@ -24,6 +25,7 @@ import {
   type OpenClawConfig,
   type ReminderMessageData,
 } from './openclaw';
+import { processUnsentWaitlistOffers } from './waitlist-dispatch';
 
 interface WorkerConfig {
   openclaw: OpenClawConfig;
@@ -37,7 +39,9 @@ interface WorkerResult {
   processed: number;
   sent: number;
   failed: number;
+  waitlistOffersSent: number;
   waitlistExpired: number;
+  noShowsMarked: number;
   errors: string[];
 }
 
@@ -53,7 +57,9 @@ export async function processReminderCycle(
     processed: 0,
     sent: 0,
     failed: 0,
+    waitlistOffersSent: 0,
     waitlistExpired: 0,
+    noShowsMarked: 0,
     errors: [],
   };
 
@@ -71,12 +77,20 @@ export async function processReminderCycle(
         result.failed++;
         const msg = err instanceof Error ? err.message : 'Unknown error';
         result.errors.push(`Reminder ${reminder.id}: ${msg}`);
-        await markReminderFailed(supabase, reminder.id);
+        await markReminderForRetry(supabase, reminder, msg);
       }
     }
 
-    // 3. Expire stale waitlist offers
+    // 3. Dispatch unsent waitlist offers
+    const waitlistDispatch = await processUnsentWaitlistOffers(supabase, config);
+    result.waitlistOffersSent = waitlistDispatch.sent;
+    result.errors.push(...waitlistDispatch.errors.map((err) => `Waitlist: ${err}`));
+
+    // 4. Expire stale waitlist offers
     result.waitlistExpired = await expireStaleOffers(supabase);
+
+    // 5. Mark overdue appointments as no_show
+    result.noShowsMarked = await markOverdueAppointmentsNoShow(supabase);
   } catch (err) {
     result.errors.push(err instanceof Error ? err.message : 'Worker cycle failed');
   }

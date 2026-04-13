@@ -65,9 +65,9 @@ async function tick() {
       dryRun: effectiveDryRun,
     });
 
-    if (result.processed > 0) {
+    if (result.processed > 0 || result.waitlistOffersSent > 0 || result.waitlistExpired > 0 || result.noShowsMarked > 0) {
       console.log(
-        `[${new Date().toISOString()}] Processed: ${result.processed} | Sent: ${result.sent} | Failed: ${result.failed} | Waitlist expired: ${result.waitlistExpired}`,
+        `[${new Date().toISOString()}] Processed: ${result.processed} | Sent: ${result.sent} | Failed: ${result.failed} | Waitlist sent: ${result.waitlistOffersSent} | Waitlist expired: ${result.waitlistExpired} | No-show marked: ${result.noShowsMarked}`,
       );
     }
 

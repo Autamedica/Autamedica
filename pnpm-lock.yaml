@@ -278,6 +278,9 @@ importers:
       '@autamedica/scheduling':
         specifier: workspace:*
         version: link:../../packages/scheduling
+      '@autamedica/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@autamedica/types':
         specifier: workspace:*
         version: link:../../packages/types

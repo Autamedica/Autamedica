@@ -11,6 +11,7 @@ import type {
   SchedulingConfig,
 } from '@autamedica/types';
 import type { SupabaseLike } from './supabase';
+import { getDoctorSchedulingConfig } from './config';
 
 /** Converts "HH:mm" to minutes since midnight for reliable numeric comparison. */
 function timeToMinutes(timeStr: string): number {
@@ -48,7 +49,8 @@ export async function processWaitlist(
   freedSlot: { date: string; start_time: string; end_time: string },
   config?: Partial<SchedulingConfig>,
 ): Promise<WaitlistEntry | null> {
-  const expiryHours = config?.waitlist_offer_expiry_hours ?? 4;
+  const baseConfig = await getDoctorSchedulingConfig(supabase, doctorId);
+  const expiryHours = config?.waitlist_offer_expiry_hours ?? baseConfig.waitlist_offer_expiry_hours;
 
   // Find first waiting entry that matches the freed slot
   const slotDate = freedSlot.date;
@@ -86,6 +88,9 @@ export async function processWaitlist(
     .update({
       status: 'offered',
       offered_at: new Date().toISOString(),
+      offer_sent_at: null,
+      offered_start_time: freedSlot.start_time,
+      offered_end_time: freedSlot.end_time,
       expires_at: expiresAt.toISOString(),
     })
     .eq('id', match.id)
@@ -131,13 +136,16 @@ export async function acceptWaitlistOffer(
   }
 
   // Create the appointment
+  const startTime = wl.offered_start_time ?? appointmentData.start_time;
+  const endTime = wl.offered_end_time ?? appointmentData.end_time;
+
   const { data: appt, error: apptErr } = await supabase
     .from('appointments')
     .insert({
       patient_id: wl.patient_id,
       doctor_id: wl.doctor_id,
-      start_time: appointmentData.start_time,
-      end_time: appointmentData.end_time,
+      start_time: startTime,
+      end_time: endTime,
       type: appointmentData.type ?? wl.appointment_type,
       status: 'scheduled',
     })

@@ -840,6 +840,7 @@ export type {
   NoShowPrediction,
   NoShowFactor,
   SchedulingConfig,
+  DoctorSchedulingConfig,
 } from './scheduling/scheduling.types';
 
 export {

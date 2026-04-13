@@ -24,7 +24,9 @@ type ChainMethod =
   | 'lt'
   | 'lte'
   | 'in'
+  | 'is'
   | 'not'
+  | 'or'
   | 'order'
   | 'limit'
   | 'single'
@@ -53,7 +55,7 @@ export function createMockSupabase(
     const chainMethods: ChainMethod[] = [
       'select', 'insert', 'update', 'delete',
       'eq', 'neq', 'gt', 'gte', 'lt', 'lte',
-      'in', 'not', 'order', 'limit', 'single', 'maybeSingle',
+      'in', 'is', 'not', 'or', 'order', 'limit', 'single', 'maybeSingle',
     ];
 
     const chain: Record<string, unknown> = {};
@@ -111,7 +113,7 @@ export function createSequentialMockSupabase(
     const chainMethods: ChainMethod[] = [
       'select', 'insert', 'update', 'delete',
       'eq', 'neq', 'gt', 'gte', 'lt', 'lte',
-      'in', 'not', 'order', 'limit', 'single', 'maybeSingle',
+      'in', 'is', 'not', 'or', 'order', 'limit', 'single', 'maybeSingle',
     ];
 
     const chain: Record<string, unknown> = {};
