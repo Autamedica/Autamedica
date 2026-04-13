@@ -16,6 +16,7 @@ import {
   Calendar,
   CheckCircle2,
   Clock3,
+  CreditCard,
   FileText,
   Heart,
   Home,
@@ -39,6 +40,7 @@ type ActiveSection =
   | "consultations"
   | "community"
   | "accounting"
+  | "subscription"
   | "profile";
 
 type NavigationItem = {
@@ -245,6 +247,7 @@ export function DoctorsPortalFrame({
         badge: stats?.unreadCommunityCount ? String(stats.unreadCommunityCount) : undefined,
       },
       { href: "/doctors/accounting", label: "Contabilidad", icon: Calculator, key: "accounting" },
+      { href: "/doctors/subscription", label: "Suscripción", icon: CreditCard, key: "subscription" },
       { href: "/doctors/perfil", label: "Configuración", icon: Settings, key: "profile" },
     ],
     [stats?.unreadCommunityCount],
@@ -508,45 +511,61 @@ export function DoctorsPortalFrame({
             {/* ── Right sidebar ── */}
             <aside className="hidden border-l border-neutral-200/60 bg-neutral-50/50 p-5 lg:block">
               <div className="space-y-4">
-                {/* Clarifications / status */}
-                <section className={`rounded-xl border p-5 ${
-                  (stats?.pendingClarifications ?? 0) > 0
-                    ? "border-amber-200/50 bg-amber-50/50"
-                    : "border-neutral-200/60 bg-white"
-                }`}>
-                  <div className="flex flex-col items-center text-center">
-                    <div className="mb-3">
-                      {(stats?.pendingClarifications ?? 0) > 0 ? (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
-                          <Bell className="h-5 w-5" strokeWidth={1.5} />
+                {/* Mandatos: clarifications + clinical triage */}
+                {(() => {
+                  const clarifications = stats?.pendingClarifications ?? 0
+                  const triageMandates = stats?.pendingTriageMandates ?? 0
+                  const totalActive = clarifications + triageMandates
+                  const hasActive = totalActive > 0
+
+                  return (
+                    <section className={`rounded-xl border p-5 ${
+                      hasActive
+                        ? "border-amber-200/50 bg-amber-50/50"
+                        : "border-neutral-200/60 bg-white"
+                    }`}>
+                      <div className="flex flex-col items-center text-center">
+                        <div className="mb-3">
+                          {hasActive ? (
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                              <Bell className="h-5 w-5" strokeWidth={1.5} />
+                            </div>
+                          ) : (
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-neutral-400">
+                              <CheckCircle2 className="h-5 w-5" strokeWidth={1.5} />
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-neutral-400">
-                          <CheckCircle2 className="h-5 w-5" strokeWidth={1.5} />
-                        </div>
-                      )}
-                    </div>
-                    {(stats?.pendingClarifications ?? 0) > 0 ? (
-                      <>
-                        <h3 className="text-[13px] font-semibold text-amber-900">
-                          {stats?.pendingClarifications ?? 0} {(stats?.pendingClarifications ?? 0) === 1 ? "aclaración pendiente" : "aclaraciones pendientes"}
-                        </h3>
-                        <p className="mt-1 text-[11px] leading-relaxed text-amber-700/70">
-                          Farmacias requieren tu respuesta para dispensar recetas.
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <h3 className="text-[13px] font-semibold text-neutral-600">
-                          Sin mandatos activos
-                        </h3>
-                        <p className="mt-1 text-[11px] leading-relaxed text-neutral-400">
-                          La cola prioritaria está despejada.
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </section>
+                        {hasActive ? (
+                          <div className="space-y-1.5">
+                            <h3 className="text-[13px] font-semibold text-amber-900">
+                              {totalActive} {totalActive === 1 ? "mandato activo" : "mandatos activos"}
+                            </h3>
+                            {clarifications > 0 && (
+                              <p className="text-[11px] leading-relaxed text-amber-700/70">
+                                {clarifications} {clarifications === 1 ? "aclaracion de farmacia" : "aclaraciones de farmacia"}
+                              </p>
+                            )}
+                            {triageMandates > 0 && (
+                              <p className="text-[11px] leading-relaxed text-amber-700/70">
+                                {triageMandates} {triageMandates === 1 ? "resolucion clinica pendiente" : "resoluciones clinicas pendientes"}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            <h3 className="text-[13px] font-semibold text-neutral-600">
+                              Sin mandatos activos
+                            </h3>
+                            <p className="mt-1 text-[11px] leading-relaxed text-neutral-400">
+                              La cola prioritaria esta despejada.
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </section>
+                  )
+                })()}
 
                 {/* Expedientes */}
                 <section className="rounded-xl border border-neutral-200/60 bg-white p-5">

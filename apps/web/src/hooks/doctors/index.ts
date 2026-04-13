@@ -15,6 +15,7 @@ export { useAuthenticatedUser } from './useAuthenticatedUser'
 export { useRealDoctors, useCurrentDoctor, useDoctorsBySpecialty } from './useRealDoctors'
 export { useCheckDoctorExists } from './useCheckDoctorExists'
 export { useDoctorStats } from './useDoctorStats'
+export { useSubscription } from './useSubscription'
 
 // AI & Analysis
 export { useAIAnalysis } from './useAIAnalysis'

@@ -48,6 +48,7 @@ const PUBLIC_ROUTES = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/api/health',
+  '/doctors/pricing',
 ];
 
 // Static showcase pages are prerendered at build time and should bypass
