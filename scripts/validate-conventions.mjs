@@ -60,7 +60,7 @@ class ConventionValidator {
       const contentWithoutComments = content
         .replace(/\/\/[^\n]*/g, '')        // Strip // single-line comments
         .replace(/\/\*[\s\S]*?\*\//g, ''); // Strip /* */ block comments
-      const typeMatches = contentWithoutComments.matchAll(/(?:type|interface)\s+([A-Za-z0-9_]+)/g);
+      const typeMatches = contentWithoutComments.matchAll(/(?<![A-Za-z0-9_])(?:type|interface)\s+([A-Za-z0-9_]+)/g);
 
       for (const match of typeMatches) {
         const typeName = match[1];

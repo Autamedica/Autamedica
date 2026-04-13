@@ -151,6 +151,12 @@ export interface CurrentMedicationEntry {
 export interface MedicationSection {
   currentMedications: CanonicalField<CurrentMedicationEntry[]>;
   hasCurrentMedication: CanonicalField<boolean>;
+  currentMedicationNameText: CanonicalField<string>;
+  currentMedicationDoseText: CanonicalField<string>;
+  currentMedicationPrescriber: CanonicalField<string>;
+  currentMedicationDaysRemaining: CanonicalField<number>;
+  currentMedicationAdherence: CanonicalField<string>;
+  currentMedicationResponse: CanonicalField<string>;
 }
 
 export interface SymptomSection {
@@ -168,6 +174,12 @@ export interface SymptomSection {
   daytimeImpact: CanonicalField<'none' | 'mild' | 'moderate' | 'severe'>;
   conciliacionDifficulty: CanonicalField<boolean>;
   mantenimientoDifficulty: CanonicalField<boolean>;
+
+  // Cross-specialty general symptoms (from general anamnesis, clinically relevant for
+  // psychiatric medication monitoring — GI side effects common with SSRIs, stimulants)
+  abdominalPain: CanonicalField<boolean>;
+  heartburn: CanonicalField<boolean>;
+  bowelHabitChange: CanonicalField<string>;
 }
 
 export interface FunctionalImpactSection {
@@ -176,6 +188,21 @@ export interface FunctionalImpactSection {
   homeImpact: CanonicalField<string>;
   concentrationDifficulty: CanonicalField<string>;
   treatmentGoals: CanonicalField<string>;
+}
+
+export interface HistorySection {
+  diagnosisConfirmed: CanonicalField<boolean>;
+  diagnosisSummary: CanonicalField<string>;
+  occupation: CanonicalField<string>;
+  routineSummary: CanonicalField<string>;
+  previousTreatmentResponse: CanonicalField<string>;
+  psychiatricHistory: CanonicalField<string[]>;
+  contraindications: CanonicalField<string[]>;
+}
+
+export interface ReviewSection {
+  monitoringNotes: CanonicalField<string>;
+  finalComments: CanonicalField<string>;
 }
 
 // ─── Conversation Integrity ────────────────────────────────────────────
@@ -221,6 +248,8 @@ export interface ClinicalCaseState {
   medications: MedicationSection;
   symptoms: SymptomSection;
   functionalImpact: FunctionalImpactSection;
+  history: HistorySection;
+  review: ReviewSection;
 
   integrity: ConversationIntegrity;
 

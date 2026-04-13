@@ -120,6 +120,7 @@ export function usePsychiatryWizardNav(
   const resetToStart = useCallback(() => {
     setPhaseIndex(0)
     setStepIndex(0)
+    setVoiceMode(false)
   }, [])
 
   return {

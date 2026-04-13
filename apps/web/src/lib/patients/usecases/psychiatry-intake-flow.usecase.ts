@@ -11,19 +11,36 @@ import type { SegmentKey, WorkflowType } from '@/lib/patients/clinical-state/typ
 
 /** Canonical mapping from intake step IDs to clinical state segment keys. Single source of truth. */
 export const STEP_TO_SEGMENT: Record<string, SegmentKey> = {
+  // Identity
   contexto_personal: 'identity',
   datos_demograficos: 'identity',
+  // Intake context
   consulta_actual: 'intake_context',
   motivo_consulta: 'intake_context',
+  // Medication
   medicacion_actual: 'current_medication',
   medicacion: 'current_medication',
+  monitoreo_tratamiento: 'current_medication',
+  // Symptoms
   sintomas_actuales: 'symptoms',
   sintomas: 'symptoms',
+  historia_sintomas: 'symptoms',
+  // Safety
   seguridad: 'safety',
+  seguridad_clinica: 'safety',
+  contraindicaciones_medicas: 'safety',
+  // Functional impact
   impacto_funcional: 'functional_impact',
+  objetivos_terapeuticos: 'functional_impact',
+  // History
   historial: 'history',
+  diagnostico_y_tratamiento: 'history',
+  respuesta_previa: 'history',
+  antecedentes_mentales: 'history',
+  // Review / closure
   cierre_clinico: 'review',
   relato_clinico: 'review',
+  aclaraciones_finales: 'review',
 }
 
 export type StepStatus = 'locked' | 'conflict' | 'confirm' | 'pending'

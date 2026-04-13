@@ -79,6 +79,8 @@ interface UseClinicalStateReturn {
   getVoiceContext: (segmentFilter?: SegmentKey) => VoiceContextSnapshot | null
   /** Force persist to DB */
   persistNow: () => Promise<void>
+  /** Reset local state for the current case without reusing prior answers */
+  resetState: (nextWorkflowType?: WorkflowType) => void
   /** Whether the state has been initialized */
   initialized: boolean
 }
@@ -183,6 +185,25 @@ export function useClinicalState({
       logger.warn('[useClinicalState] persistNow failed', err)
     }
   }, [])
+
+  const resetState = useCallback((nextWorkflowType?: WorkflowType) => {
+    if (persistTimerRef.current) {
+      clearTimeout(persistTimerRef.current)
+      persistTimerRef.current = null
+    }
+
+    if (!patientId || !caseId) {
+      stateRef.current = null
+      setClinicalState(null)
+      setInitialized(false)
+      return
+    }
+
+    const freshState = createEmptyState(caseId, patientId, nextWorkflowType ?? workflowType)
+    stateRef.current = freshState
+    setClinicalState(freshState)
+    setInitialized(true)
+  }, [caseId, patientId, workflowType])
 
   // ── Initialize: try loading from DB, then hydrate from sections ──
   useEffect(() => {
@@ -465,6 +486,7 @@ export function useClinicalState({
     getPromptSnapshot,
     getVoiceContext,
     persistNow,
+    resetState,
     initialized,
   }
 }

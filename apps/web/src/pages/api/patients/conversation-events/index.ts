@@ -10,11 +10,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = await request.json();
 
+    // Map frontend 'user' role to DB-compatible 'patient'
+    const rawRole = typeof body.role === 'string' ? body.role : 'patient';
+    const normalizedRole = rawRole === 'user' ? 'patient' : rawRole;
+
     const eventPayload = {
       sessionId: body.sessionId,
       caseId: body.caseId,
       patientId: body.patientId,
-      role: body.role,
+      role: normalizedRole,
       channel: body.channel,
       eventType: body.eventType ?? body.event_type,
       segment: body.segment,

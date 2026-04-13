@@ -55,15 +55,25 @@ const FORM_FIELD_MAP: Record<string, string> = {
   tipo_atencion: 'intakeContext.workflowType',
   continuity_request: 'intakeContext.continuityRequest',
   renewal_request: 'intakeContext.renewalRequest',
+  relato_sintomas: 'intakeContext.chiefComplaint',
 
   // Medication
   has_medication: 'medications.hasCurrentMedication',
-  current_medications: 'medications.currentMedications',
-  medicacion_actual: 'medications.currentMedications',
-  medication_name: 'medications.currentMedications',
-  dose: 'medications.currentMedications',
+  current_medications: 'medications.currentMedicationNameText',
+  medicacion_actual: 'medications.currentMedicationNameText',
+  medication_name: 'medications.currentMedicationNameText',
+  dose: 'medications.currentMedicationDoseText',
+  tratamiento_actual: 'medications.hasCurrentMedication',
+  medicacion_continuidad: 'medications.currentMedicationNameText',
+  dosis_continuidad: 'medications.currentMedicationDoseText',
+  dosis_actual: 'medications.currentMedicationDoseText',
+  prescriptor_actual: 'medications.currentMedicationPrescriber',
+  prescriptor_continuidad: 'medications.currentMedicationPrescriber',
+  dias_medicacion_restante: 'medications.currentMedicationDaysRemaining',
+  adherencia: 'medications.currentMedicationAdherence',
+  respuesta_previa_estimulantes: 'medications.currentMedicationResponse',
 
-  // Symptoms
+  // Symptoms — canonical keys
   insomnia: 'symptoms.insomnia',
   appetite_change: 'symptoms.appetiteChange',
   palpitations: 'symptoms.palpitations',
@@ -71,6 +81,18 @@ const FORM_FIELD_MAP: Record<string, string> = {
   chest_pain: 'symptoms.chestPain',
   self_harm: 'symptoms.selfHarmIdeation',
   residual_symptoms: 'symptoms.residualSymptoms',
+  // Symptoms — psychiatric wizard field IDs (seguridad_clinica + monitoreo_tratamiento)
+  insomnio_actual: 'symptoms.insomnia',
+  palpitaciones: 'symptoms.palpitations',
+  dolor_pecho: 'symptoms.chestPain',
+  ideas_autolesion: 'symptoms.selfHarmIdeation',
+  crisis_panico: 'symptoms.panicEpisodes',
+  apetito: 'symptoms.appetiteChange',
+  sintomas_alarma_continuidad: 'symptoms.selfHarmIdeation',
+  // Symptoms — general anamnesis (cross-specialty, GI side effects)
+  dolor_abdominal: 'symptoms.abdominalPain',
+  acidez: 'symptoms.heartburn',
+  cambio_habito_intestinal: 'symptoms.bowelHabitChange',
 
   // Functional impact
   work_impact: 'functionalImpact.workImpact',
@@ -78,6 +100,18 @@ const FORM_FIELD_MAP: Record<string, string> = {
   home_impact: 'functionalImpact.homeImpact',
   concentration: 'functionalImpact.concentrationDifficulty',
   treatment_goals: 'functionalImpact.treatmentGoals',
+  impacto_estudio_trabajo: 'functionalImpact.workImpact',
+  objetivos_tratamiento: 'functionalImpact.treatmentGoals',
+
+  // History / review
+  diagnostico_tdah_confirmado: 'history.diagnosisConfirmed',
+  diagnostico_texto: 'history.diagnosisSummary',
+  ocupacion_actual: 'history.occupation',
+  rutina_principal: 'history.routineSummary',
+  antecedentes_relevantes: 'history.psychiatricHistory',
+  contraindicaciones: 'history.contraindications',
+  comentarios_monitoreo: 'review.monitoringNotes',
+  comentarios_finales: 'review.finalComments',
 };
 
 export function resolveCanonicalKey(rawKey: string): string {
@@ -138,6 +172,12 @@ export function createEmptyState(
     medications: {
       currentMedications: createEmptyField('medications.currentMedications'),
       hasCurrentMedication: createEmptyField('medications.hasCurrentMedication'),
+      currentMedicationNameText: createEmptyField('medications.currentMedicationNameText'),
+      currentMedicationDoseText: createEmptyField('medications.currentMedicationDoseText'),
+      currentMedicationPrescriber: createEmptyField('medications.currentMedicationPrescriber'),
+      currentMedicationDaysRemaining: createEmptyField('medications.currentMedicationDaysRemaining'),
+      currentMedicationAdherence: createEmptyField('medications.currentMedicationAdherence'),
+      currentMedicationResponse: createEmptyField('medications.currentMedicationResponse'),
     },
 
     symptoms: {
@@ -155,6 +195,11 @@ export function createEmptyState(
       daytimeImpact: createEmptyField('symptoms.daytimeImpact'),
       conciliacionDifficulty: createEmptyField('symptoms.conciliacionDifficulty'),
       mantenimientoDifficulty: createEmptyField('symptoms.mantenimientoDifficulty'),
+
+      // Cross-specialty general symptoms
+      abdominalPain: createEmptyField('symptoms.abdominalPain'),
+      heartburn: createEmptyField('symptoms.heartburn'),
+      bowelHabitChange: createEmptyField('symptoms.bowelHabitChange'),
     },
 
     functionalImpact: {
@@ -163,6 +208,21 @@ export function createEmptyState(
       homeImpact: createEmptyField('functionalImpact.homeImpact'),
       concentrationDifficulty: createEmptyField('functionalImpact.concentrationDifficulty'),
       treatmentGoals: createEmptyField('functionalImpact.treatmentGoals'),
+    },
+
+    history: {
+      diagnosisConfirmed: createEmptyField('history.diagnosisConfirmed'),
+      diagnosisSummary: createEmptyField('history.diagnosisSummary'),
+      occupation: createEmptyField('history.occupation'),
+      routineSummary: createEmptyField('history.routineSummary'),
+      previousTreatmentResponse: createEmptyField('history.previousTreatmentResponse'),
+      psychiatricHistory: createEmptyField('history.psychiatricHistory'),
+      contraindications: createEmptyField('history.contraindications'),
+    },
+
+    review: {
+      monitoringNotes: createEmptyField('review.monitoringNotes'),
+      finalComments: createEmptyField('review.finalComments'),
     },
 
     integrity: createFreshIntegrity(),
@@ -228,6 +288,10 @@ export function normalize(
       if (finalValue === 'primera_consulta') finalValue = 'psychiatry_first_visit';
       else if (finalValue === 'continuidad') finalValue = 'psychiatry_continuity';
       else if (finalValue === 'revision_urgente') finalValue = 'psychiatric_urgency';
+    }
+
+    if (finalKey === 'medications.currentMedicationDaysRemaining') {
+      finalValue = normalizeDaysRemaining(finalValue);
     }
 
     return {
@@ -384,15 +448,19 @@ type SectionWithFields = Record<string, CanonicalField<unknown>>;
 function buildFieldMap(state: ClinicalCaseState): Map<string, CanonicalField<unknown>> {
   const map = new Map<string, CanonicalField<unknown>>();
 
-  const sections: Record<string, SectionWithFields> = {
+  const sections: Record<string, SectionWithFields | undefined> = {
     identity: state.identity as unknown as SectionWithFields,
     intakeContext: state.intakeContext as unknown as SectionWithFields,
     medications: state.medications as unknown as SectionWithFields,
     symptoms: state.symptoms as unknown as SectionWithFields,
     functionalImpact: state.functionalImpact as unknown as SectionWithFields,
+    history: state.history as unknown as SectionWithFields,
+    review: state.review as unknown as SectionWithFields,
   };
 
   for (const [sectionName, section] of Object.entries(sections)) {
+    if (!section || typeof section !== 'object') continue;
+
     for (const [fieldName, field] of Object.entries(section)) {
       if (field && typeof field === 'object' && 'key' in field) {
         const canonicalField = field as CanonicalField<unknown>;
@@ -416,9 +484,41 @@ function applyFieldMap(
     const [sectionName, fieldName] = key.split('.');
     if (!sectionName || !fieldName) continue;
 
-    const section = (state as unknown as Record<string, Record<string, unknown>>)[sectionName];
-    if (section && typeof section === 'object') {
-      section[fieldName] = field;
+    const stateRecord = state as unknown as Record<string, Record<string, unknown> | undefined>;
+    let section = stateRecord[sectionName];
+    if (!section || typeof section !== 'object') {
+      section = {};
+      stateRecord[sectionName] = section;
     }
+
+    section[fieldName] = field;
   }
+}
+
+function normalizeDaysRemaining(value: unknown): unknown {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return value;
+  }
+
+  if (trimmed === '0') return 0;
+  if (trimmed === '1-3') return 2;
+  if (trimmed === '4-7') return 5;
+  if (trimmed === '7+') return 8;
+
+  const numericMatch = trimmed.match(/\d+/);
+  if (numericMatch) {
+    const parsed = Number(numericMatch[0]);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return value;
 }

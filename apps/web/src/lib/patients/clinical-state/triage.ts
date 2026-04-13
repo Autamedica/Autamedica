@@ -37,6 +37,172 @@ export interface TriageResult {
 
 const ADHD_STIMULANTS = ['metilfenidato', 'lisdexanfetamina', 'estimulante', 'ritalin', 'concerta', 'venvanse']
 
+function asNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const match = value.match(/\d+/)
+  if (!match) return null
+
+  const parsed = Number(match[0])
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function asTrimmedString(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
+
+function isMedicationEntry(value: unknown): value is CurrentMedicationEntry {
+  if (!value || typeof value !== 'object') return false
+  const maybeEntry = value as Record<string, unknown>
+  return Boolean(
+    maybeEntry.medicationName &&
+    typeof maybeEntry.medicationName === 'object' &&
+    maybeEntry.doseMgPerDay &&
+    typeof maybeEntry.doseMgPerDay === 'object',
+  )
+}
+
+function getMedicationEntries(state: ClinicalCaseState): CurrentMedicationEntry[] {
+  const raw = state.medications?.currentMedications?.value
+  const fromArray = Array.isArray(raw) ? raw.filter(isMedicationEntry) : []
+  if (fromArray.length > 0) {
+    return fromArray
+  }
+
+  const fallbackName = asTrimmedString(state.medications?.currentMedicationNameText?.value)
+  const fallbackDoseText = asTrimmedString(state.medications?.currentMedicationDoseText?.value)
+  const fallbackPrescriber = asTrimmedString(state.medications?.currentMedicationPrescriber?.value)
+  const fallbackDaysRemaining = asNumber(state.medications?.currentMedicationDaysRemaining?.value)
+  const fallbackAdherence = asTrimmedString(state.medications?.currentMedicationAdherence?.value)
+  const fallbackResponse = asTrimmedString(state.medications?.currentMedicationResponse?.value)
+
+  if (!fallbackName && !fallbackDoseText && !fallbackPrescriber && fallbackDaysRemaining == null) {
+    return []
+  }
+
+  return [{
+    medicationName: {
+      key: 'medications.currentMedications[0].medicationName',
+      value: fallbackName ?? null,
+      status: fallbackName ? 'confirmed' : 'missing',
+      confidence: fallbackName ? 'high' : 'low',
+      confirmed: Boolean(fallbackName),
+      locked: Boolean(fallbackName),
+      provenance: [],
+      lastUpdatedAt: new Date().toISOString(),
+      askable: !fallbackName,
+      needsConfirmation: false,
+    },
+    formulation: {
+      key: 'medications.currentMedications[0].formulation',
+      value: null,
+      status: 'missing',
+      confidence: 'low',
+      confirmed: false,
+      locked: false,
+      provenance: [],
+      lastUpdatedAt: new Date().toISOString(),
+      askable: true,
+      needsConfirmation: false,
+    },
+    doseMgPerDay: {
+      key: 'medications.currentMedications[0].doseMgPerDay',
+      value: asNumber(fallbackDoseText),
+      status: fallbackDoseText ? 'draft' : 'missing',
+      confidence: fallbackDoseText ? 'medium' : 'low',
+      confirmed: false,
+      locked: false,
+      provenance: [],
+      lastUpdatedAt: new Date().toISOString(),
+      askable: !fallbackDoseText,
+      needsConfirmation: Boolean(fallbackDoseText),
+    },
+    scheduleText: {
+      key: 'medications.currentMedications[0].scheduleText',
+      value: fallbackDoseText ?? null,
+      status: fallbackDoseText ? 'confirmed' : 'missing',
+      confidence: fallbackDoseText ? 'high' : 'low',
+      confirmed: Boolean(fallbackDoseText),
+      locked: Boolean(fallbackDoseText),
+      provenance: [],
+      lastUpdatedAt: new Date().toISOString(),
+      askable: !fallbackDoseText,
+      needsConfirmation: false,
+    },
+    adherence: {
+      key: 'medications.currentMedications[0].adherence',
+      value: fallbackAdherence ?? null,
+      status: fallbackAdherence ? 'confirmed' : 'missing',
+      confidence: fallbackAdherence ? 'high' : 'low',
+      confirmed: Boolean(fallbackAdherence),
+      locked: Boolean(fallbackAdherence),
+      provenance: [],
+      lastUpdatedAt: new Date().toISOString(),
+      askable: !fallbackAdherence,
+      needsConfirmation: false,
+    },
+    subjectiveBenefit: {
+      key: 'medications.currentMedications[0].subjectiveBenefit',
+      value: fallbackResponse ?? null,
+      status: fallbackResponse ? 'draft' : 'missing',
+      confidence: fallbackResponse ? 'medium' : 'low',
+      confirmed: false,
+      locked: false,
+      provenance: [],
+      lastUpdatedAt: new Date().toISOString(),
+      askable: !fallbackResponse,
+      needsConfirmation: Boolean(fallbackResponse),
+    },
+    prescriberName: {
+      key: 'medications.currentMedications[0].prescriberName',
+      value: fallbackPrescriber ?? null,
+      status: fallbackPrescriber ? 'confirmed' : 'missing',
+      confidence: fallbackPrescriber ? 'high' : 'low',
+      confirmed: Boolean(fallbackPrescriber),
+      locked: Boolean(fallbackPrescriber),
+      provenance: [],
+      lastUpdatedAt: new Date().toISOString(),
+      askable: !fallbackPrescriber,
+      needsConfirmation: false,
+    },
+    prescriberKnown: {
+      key: 'medications.currentMedications[0].prescriberKnown',
+      value: Boolean(fallbackPrescriber),
+      status: fallbackPrescriber ? 'confirmed' : 'missing',
+      confidence: fallbackPrescriber ? 'high' : 'low',
+      confirmed: Boolean(fallbackPrescriber),
+      locked: Boolean(fallbackPrescriber),
+      provenance: [],
+      lastUpdatedAt: new Date().toISOString(),
+      askable: !fallbackPrescriber,
+      needsConfirmation: false,
+    },
+    daysRemaining: {
+      key: 'medications.currentMedications[0].daysRemaining',
+      value: fallbackDaysRemaining,
+      status: fallbackDaysRemaining != null ? 'confirmed' : 'missing',
+      confidence: fallbackDaysRemaining != null ? 'high' : 'low',
+      confirmed: fallbackDaysRemaining != null,
+      locked: fallbackDaysRemaining != null,
+      provenance: [],
+      lastUpdatedAt: new Date().toISOString(),
+      askable: fallbackDaysRemaining == null,
+      needsConfirmation: false,
+    },
+  }]
+}
+
 export function computeTriage(state: ClinicalCaseState): TriageResult {
   const reasons: string[] = []
   const references: string[] = ['WHO Standard Operating Protocol for Medication Reconciliation']
@@ -52,7 +218,7 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
   let mandate = ''
   let suggestedAction = ''
 
-  const ads = (state.medications?.currentMedications?.value as CurrentMedicationEntry[] | null) ?? []
+  const ads = getMedicationEntries(state)
   
   // Capture snapshot from first med if available
   const firstMed = ads[0]

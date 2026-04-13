@@ -74,3 +74,19 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
     return internalError()
   }
 }
+
+export const DELETE: APIRoute = async ({ locals }) => {
+  const context = await resolvePatientContext(request, locals)
+  if (!context) return unauthorized()
+
+  try {
+    const result = await psychiatryIntakeService.reset(
+      createAstroAdminClient(locals.runtime?.env),
+      context.patientId,
+    )
+    return jsonOk(result)
+  } catch (error) {
+    logger.error('[psychiatry-intake/DELETE]', error)
+    return internalError()
+  }
+}

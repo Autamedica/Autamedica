@@ -28,6 +28,35 @@ const fadeSlide = {
   transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
 }
 
+const META_VOICE_PATTERN = /(te( estoy)? escuchando|que( mas)? (preguntas|tengo que contestar|falta)|ya (fue|lo|te) contest(e|ada)|repite|no entiendo|hola|buenas)/i
+
+function normalizeVoiceClinicalText(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const text = value.trim()
+  if (text.length < 8) return null
+  if (META_VOICE_PATTERN.test(text)) return null
+  return text
+}
+
+function resolveVoiceStepValue(params: {
+  fieldId: string
+  extractedFields?: Record<string, unknown>
+  patientLines: string
+  chiefComplaint?: string | null
+  currentValue?: unknown
+}): string | null {
+  const fromFieldExtraction = normalizeVoiceClinicalText(params.extractedFields?.[params.fieldId])
+  if (fromFieldExtraction) return fromFieldExtraction
+
+  const fromPatientTranscript = normalizeVoiceClinicalText(params.patientLines)
+  if (fromPatientTranscript) return fromPatientTranscript
+
+  const fromSummary = normalizeVoiceClinicalText(params.chiefComplaint)
+  if (fromSummary) return fromSummary
+
+  return normalizeVoiceClinicalText(params.currentValue)
+}
+
 export default function PsychiatryIntakePage() {
   const flow = usePsychiatryIntakeFlow()
 
@@ -341,15 +370,17 @@ function VoiceStepContent({ flow, currentStep, segment }: {
           flow.mergeVoiceData((data.extractedFields ?? {}) as Record<string, unknown>, patientLines, segment)
         }
 
-        const hasStructuredExtraction = data.extractedFields && Object.keys(data.extractedFields).length > 0
-        const hasClinicalSummary = data.chiefComplaint && data.chiefComplaint.length >= 10
-          && !/(te( estoy)? escuchando|qué( más)? (preguntas|tengo que contestar|falta)|ya (fue|lo|te) contest(é|ada)|repite|no entiendo|hola|buenas)/i.test(data.chiefComplaint)
+        const resolvedValue = resolveVoiceStepValue({
+          fieldId: currentStep.field.id,
+          extractedFields: data.extractedFields,
+          patientLines,
+          chiefComplaint: data.chiefComplaint,
+          currentValue: flow.currentStepData[currentStep.field.id],
+        })
 
-        let clinicalValue: string | null = null
-        if (hasStructuredExtraction && data.chiefComplaint) clinicalValue = data.chiefComplaint
-        else if (hasClinicalSummary && data.chiefComplaint) clinicalValue = data.chiefComplaint
-
-        flow.updateField(currentStep.field.id, clinicalValue ?? 'Sesión de voz completada. La información fue registrada en el historial clínico para revisión del profesional.')
+        if (resolvedValue) {
+          flow.updateField(currentStep.field.id, resolvedValue)
+        }
         flow.setVoiceMode(false)
       }}
       ledgerContext={{ patientId: flow.patient?.id ?? '', caseId: flow.intake?.id ?? '', workflowType: flow.formData?.consulta_actual?.tipo_atencion === 'continuidad' ? 'psychiatry_continuity' : 'psychiatry_first_visit', segment }}

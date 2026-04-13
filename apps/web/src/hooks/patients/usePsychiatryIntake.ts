@@ -33,6 +33,7 @@ interface UsePsychiatryIntakeReturn {
     data: Record<string, AnamnesisFieldValue>,
     phase?: Exclude<PsychiatryIntakePhase, 'completed'>,
   ) => Promise<boolean>
+  resetIntake: () => Promise<boolean>
   refresh: () => Promise<void>
 }
 
@@ -114,6 +115,20 @@ export function usePsychiatryIntake(): UsePsychiatryIntakeReturn {
     }
   }, [fetchIntake, handleApiError])
 
+  const resetIntake = useCallback(async (): Promise<boolean> => {
+    try {
+      await fetchApi('/api/patients/psychiatry-intake', {
+        method: 'DELETE',
+      })
+      await fetchIntake()
+      return true
+    } catch (err) {
+      logger.error('Error resetting psychiatry intake:', err)
+      handleApiError(err, 'Error al reiniciar la evaluación psiquiátrica')
+      return false
+    }
+  }, [fetchIntake, handleApiError])
+
   const refresh = useCallback(async () => {
     await fetchIntake()
   }, [fetchIntake])
@@ -132,6 +147,7 @@ export function usePsychiatryIntake(): UsePsychiatryIntakeReturn {
     authRequired,
     updateIntake,
     updateSection,
+    resetIntake,
     refresh,
   }
 }
