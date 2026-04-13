@@ -6,6 +6,7 @@ import { logger } from '@autamedica/shared'
 import { patchVideoPlayback } from './media-optimizations'
 import type { CallService } from './calls/service'
 import type { CallStatus } from './calls/types'
+import { classifyCallError } from './calls/classify-error'
 import { hasTurnIceServer } from './config/ice-servers'
 import type { CallProvider, ConnectionState, DeviceInfo, WarmUpResult } from './providers/types'
 import type { CallSessionRuntime } from './call-session/types'
@@ -129,6 +130,8 @@ export function UnifiedVideoCall({
   const autoStartAttemptedRef = useRef(false)
   const manualHangupRef = useRef(false)
   const connectedAtRef = useRef<number | null>(null)
+  const connectStartedAtRef = useRef<number | null>(null)
+  const firstRemoteMediaLoggedRef = useRef(false)
   const retryCountRef = useRef(0)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const connectingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -359,12 +362,29 @@ export function UnifiedVideoCall({
         setHasPeerConnection(true)
 
         // Detect when media is actually flowing (not just signaling connected)
+        const markMediaLive = () => {
+          setHasRemoteMedia(true)
+          if (!firstRemoteMediaLoggedRef.current && connectStartedAtRef.current) {
+            firstRemoteMediaLoggedRef.current = true
+            const hasVideo = stream.getVideoTracks().some(t => t.readyState === 'live')
+            const hasAudio = stream.getAudioTracks().some(t => t.readyState === 'live')
+            const elapsedMs = Date.now() - connectStartedAtRef.current
+            void logCallEvent('first_remote_media', {
+              timeToFirstRemoteMediaMs: elapsedMs,
+              hasVideo,
+              hasAudio,
+              runtime,
+            })
+            void logCallEvent('join_succeeded', { runtime, elapsedMs })
+          }
+        }
+
         const hasLiveTracks = stream.getTracks().some(t => t.readyState === 'live' && !t.muted)
         if (hasLiveTracks) {
-          setHasRemoteMedia(true)
+          markMediaLive()
         } else {
           const onUnmute = () => {
-            setHasRemoteMedia(true)
+            markMediaLive()
             stream.getTracks().forEach(t => t.removeEventListener('unmute', onUnmute))
           }
           stream.getTracks().forEach(t => t.addEventListener('unmute', onUnmute))
@@ -536,7 +556,9 @@ export function UnifiedVideoCall({
     unsubs.push(
       webrtcClient.on('error', (error) => {
         logger.error('[UnifiedVideoCall] WebRTC error:', error)
-        emitDebug('error', 'Evento de error WebRTC recibido', { error })
+        const failureCode = classifyCallError(error)
+        emitDebug('error', 'Evento de error WebRTC recibido', { error, failureCode })
+        void logCallEvent('call_error', { failureCode, message: error instanceof Error ? error.message : String(error) })
         const msg = error instanceof Error ? error.message : 'Error desconocido'
         setCallError(sanitizeErrorForUser(msg))
         onErrorRef.current?.(error)
@@ -688,6 +710,8 @@ export function UnifiedVideoCall({
       hasStartedCallRef.current = true
       manualHangupRef.current = false
       setCallError(null)
+      connectStartedAtRef.current = Date.now()
+      firstRemoteMediaLoggedRef.current = false
       if (callId) {
         void persistCallStatus('connecting')
       }
@@ -697,11 +721,13 @@ export function UnifiedVideoCall({
       setIsVideoEnabled(true)
       setIsAudioEnabled(true)
     } catch (error) {
-      emitDebug('error', 'Fallo al iniciar videollamada', { error })
+      const failureCode = classifyCallError(error)
+      emitDebug('error', 'Fallo al iniciar videollamada', { error, failureCode })
+      void logCallEvent('join_failed', { failureCode, message: error instanceof Error ? error.message : String(error) })
       const msg = error instanceof Error ? error.message : 'Error desconocido'
       setCallError(sanitizeErrorForUser(msg))
     }
-  }, [autoStart, callId, client, connectionState, emitDebug, persistCallStatus, roomId, warmUpResult])
+  }, [autoStart, callId, client, connectionState, emitDebug, logCallEvent, persistCallStatus, roomId, warmUpResult])
 
   const endCall = useCallback(async () => {
     if (!client) return

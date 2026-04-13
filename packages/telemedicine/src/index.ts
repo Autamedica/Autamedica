@@ -1,6 +1,8 @@
 // Call management system
 export type {
   CallStatus,
+  CallFailureCode,
+  CallEndReason,
   Call,
   CallEvent,
   WSMessage,
@@ -22,6 +24,8 @@ export {
   createCallService,
   generateRoomId
 } from './calls/service'
+
+export { classifyCallError } from './calls/classify-error'
 
 export {
   SignalingClient,
