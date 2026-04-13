@@ -68,7 +68,12 @@ export function buildPromptSnapshot(state: ClinicalCaseState): PromptCaseSnapsho
       isRelevantToCurrentWorkflow(f, state.workflow.type)
   );
 
-  const safetyKeys = new Set(['selfHarmIdeation', 'chestPain', 'palpitations', 'panicEpisodes']);
+  const safetyKeys = new Set([
+    'symptoms.selfHarmIdeation',
+    'symptoms.chestPain',
+    'symptoms.palpitations',
+    'symptoms.panicEpisodes',
+  ]);
   
   const safetyCriticalFacts = viableMissingFields
     .filter(f => safetyKeys.has(f.key))

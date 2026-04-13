@@ -80,10 +80,17 @@ function buildSystemInstruction(
   patientInfo?: { name: string; age: number; completedSections: string[]; sectionData?: Record<string, Record<string, unknown>>; clinicalSnapshot?: string },
   guidance?: GuidanceContext,
 ): string {
-  // Prefer canonical clinical snapshot over raw section data dump
+  // Use canonical clinical snapshot as primary source, with raw sectionData as supplement
+  // for cross-flow fields (e.g. digestive symptoms from general anamnesis) that aren't
+  // modeled in the canonical state yet.
   let dataContext = ''
   if (patientInfo?.clinicalSnapshot) {
     dataContext = `\n${patientInfo.clinicalSnapshot}\n`
+    // Append raw sectionData as supplementary context for fields not in the canonical state
+    const supplementary = summarizeSectionData(patientInfo?.sectionData)
+    if (supplementary) {
+      dataContext += `\nDATOS ADICIONALES DEL FORMULARIO (no repetir lo que ya figura en datos confirmados arriba):\n${supplementary}\nIMPORTANTE: Si un dato ya aparece como confirmado o borrador arriba, NO volver a preguntarlo. Usá estos datos adicionales como contexto.`
+    }
   } else {
     const existingData = summarizeSectionData(patientInfo?.sectionData)
     if (existingData) {
@@ -183,6 +190,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const userText = typeof raw.text === 'string' ? raw.text.trim() : ''
   const history = Array.isArray(raw.history) ? (raw.history as Turn[]).slice(-30) : []
   const wantsContext = raw.patientContext !== false // default true
+  const caseId = typeof raw.caseId === 'string' ? raw.caseId : undefined
+  const transientData = raw.transientData && typeof raw.transientData === 'object'
+    ? raw.transientData as Record<string, unknown>
+    : undefined
   const openingPromptSent = raw.openingPromptSent === true
   const guidanceContext: GuidanceContext = {
     checkpoint:
@@ -283,18 +294,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
           }
         }
 
-        // Try to load canonical clinical snapshot
+        // Try to load canonical clinical snapshot.
+        // Prefer caseId (exact) over patientId (latest) to avoid cross-case bleed.
         let clinicalSnapshot: string | undefined
         try {
           const { createClinicalStateAdapter } = await import('@/lib/patients/lib/repos/clinical-state.adapter')
           const { buildPromptText } = await import('@/lib/patients/clinical-state')
           const stateRepo = createClinicalStateAdapter(admin)
-          const canonicalState = await stateRepo.loadByPatientId(context.patientId)
+          const canonicalState = caseId
+            ? (await stateRepo.loadByCaseId(caseId)) ?? (await stateRepo.loadByPatientId(context.patientId))
+            : await stateRepo.loadByPatientId(context.patientId)
           if (canonicalState) {
             clinicalSnapshot = buildPromptText(canonicalState)
           }
         } catch {
           // Fallback: no canonical state, will use raw sectionData
+        }
+
+        // Merge transient unsaved UI state so the AI sees what the patient just typed.
+        if (transientData) {
+          sectionData['transient_ui_state'] = transientData
+          if (!completedSections.includes('transient_ui_state')) {
+            completedSections.push('transient_ui_state')
+          }
         }
 
         patientInfo = { name, age, completedSections, sectionData, clinicalSnapshot }

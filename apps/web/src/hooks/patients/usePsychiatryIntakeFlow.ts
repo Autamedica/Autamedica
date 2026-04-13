@@ -29,6 +29,7 @@ export function usePsychiatryIntakeFlow() {
     authRequired,
     updateIntake,
     updateSection,
+    resetIntake,
   } = usePsychiatryIntake()
 
   // Auth redirect
@@ -57,6 +58,7 @@ export function usePsychiatryIntakeFlow() {
     getPromptSnapshot,
     getVoiceContext,
     persistNow: persistClinicalState,
+    resetState: resetClinicalState,
   } = useClinicalState({
     patientId: patient?.id ?? null,
     caseId: intake?.id ?? null,
@@ -77,7 +79,7 @@ export function usePsychiatryIntakeFlow() {
     get currentPhaseId() { return nav.currentPhaseId },
     get visibleFields() { return persistenceVisibleFieldsRef.current },
     updateSection,
-    updateIntake,
+    resetIntake,
     persistClinicalState,
   })
 
@@ -104,7 +106,7 @@ export function usePsychiatryIntakeFlow() {
       (nav.currentStep as { id: string }).id,
       currentStepDraft,
     ) as Record<string, AnamnesisFieldValue>
-  }, [nav.currentStep, currentStepDraft, hydrateStepData])
+  }, [clinicalState, nav.currentStep, currentStepDraft, hydrateStepData])
 
   // Visible fields
   const visibleFields: AnamnesisField[] = useMemo(() => {
@@ -156,9 +158,14 @@ export function usePsychiatryIntakeFlow() {
 
   // Redo also resets nav
   const handleRedo = useCallback(async () => {
-    await persistence.handleRedo()
+    const resetOk = await persistence.handleRedo()
+    if (!resetOk) return
+
+    const emptyFormData = buildFormData([], patientBirthDate)
+    setFormData(emptyFormData)
+    resetClinicalState(resolveWorkflowType(emptyFormData))
     nav.resetToStart()
-  }, [persistence, nav])
+  }, [nav, patientBirthDate, persistence, resetClinicalState])
 
   return {
     // Auth / loading

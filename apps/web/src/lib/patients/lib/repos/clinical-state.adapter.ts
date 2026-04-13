@@ -17,6 +17,7 @@ export interface IClinicalStateRepository {
   loadByCaseId(caseId: string): Promise<ClinicalCaseState | null>
   loadByPatientId(patientId: string): Promise<ClinicalCaseState | null>
   save(state: ClinicalCaseState): Promise<void>
+  deleteByCaseId(caseId: string): Promise<void>
 }
 
 type ClinicalCaseStateRow = {
@@ -131,6 +132,21 @@ export function createClinicalStateAdapter(supabase: Db): IClinicalStateReposito
         integrityScore: state.integrity.intakeIntegrityScore,
         missingFields: state.planner.missingFieldKeys.length,
       })
+    },
+
+    async deleteByCaseId(caseId: string): Promise<void> {
+      const { error } = await supabase
+        .from('clinical_case_states')
+        .delete()
+        .eq('case_id', caseId)
+
+      if (error) {
+        logger.error('[ClinicalStateAdapter] deleteByCaseId failed', {
+          caseId,
+          error,
+        })
+        throw new Error(`Failed to delete clinical state: ${error.message}`)
+      }
     },
   }
 }

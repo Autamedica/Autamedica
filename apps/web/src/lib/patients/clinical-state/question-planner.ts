@@ -78,15 +78,23 @@ const QUESTION_TEMPLATES: QuestionTemplate[] = [
     clinicalPriority: 1,
   },
   {
-    fieldKey: 'medications.currentMedications',
+    fieldKey: 'medications.currentMedicationNameText',
     segment: 'current_medication',
     collectPrompt: '¿Qué medicación estás tomando? Incluí nombre, dosis y frecuencia si es posible.',
     confirmPrompt: (v) => {
-      const meds = Array.isArray(v) ? v : [];
-      if (meds.length === 0) return '¿Podés contarme qué medicación tomás?';
-      return `Tengo registrada tu medicación. ¿Querés revisar si está todo correcto?`;
+      const text = typeof v === 'string' ? v.trim() : '';
+      if (!text) return '¿Podés contarme qué medicación tomás?';
+      return `Tengo registrada esta medicación: "${text}". ¿Sigue siendo así?`;
     },
     conflictPrompt: () => 'Hay información contradictoria sobre tu medicación. ¿Podés detallarla nuevamente?',
+    clinicalPriority: 1,
+  },
+  {
+    fieldKey: 'medications.currentMedicationDaysRemaining',
+    segment: 'current_medication',
+    collectPrompt: '¿Para cuántos días te queda medicación?',
+    confirmPrompt: (v) => `Tengo registrado que te quedan ${v} días de medicación. ¿Es correcto?`,
+    conflictPrompt: () => 'Hay información contradictoria sobre cuántos días de medicación te quedan. ¿Podés aclararlo?',
     clinicalPriority: 1,
   },
   // ── Symptoms ──

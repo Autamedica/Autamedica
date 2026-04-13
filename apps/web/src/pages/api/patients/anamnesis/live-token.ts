@@ -57,6 +57,7 @@ interface AstroLocals {
 }
 
 interface LiveTokenRequestBody {
+  caseId?: string
   checkpoint?: GeminiLiveCheckpoint
   guidanceQuestions?: string[]
   coverageGaps?: string[]
@@ -136,6 +137,7 @@ async function issueLiveTokenInner(request: Request, locals?: AstroLocals) {
     sessionConfig = await buildGeminiLiveSessionConfig({
       userId: context.userId,
       patientId: context.patientId,
+      caseId: typeof body.caseId === 'string' ? body.caseId : undefined,
       checkpoint:
         body.checkpoint === 'partial' || body.checkpoint === 'final'
           ? body.checkpoint

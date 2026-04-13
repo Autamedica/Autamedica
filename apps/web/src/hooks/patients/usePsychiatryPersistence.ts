@@ -20,14 +20,14 @@ export interface UsePsychiatryPersistenceOptions {
     data: Record<string, AnamnesisFieldValue>,
     phase?: Exclude<PsychiatryIntakePhase, 'completed'>,
   ) => Promise<boolean>
-  updateIntake: (data: Record<string, unknown>) => Promise<boolean>
+  resetIntake: () => Promise<boolean>
   persistClinicalState: () => Promise<void>
 }
 
 export interface UsePsychiatryPersistenceReturn {
   persistCurrentStep: () => Promise<boolean>
   handleDownloadPdf: () => Promise<void>
-  handleRedo: () => Promise<void>
+  handleRedo: () => Promise<boolean>
   saving: boolean
   saveError: string | null
   setSaveError: (e: string | null) => void
@@ -92,11 +92,8 @@ export function usePsychiatryPersistence(
   const handleRedo = useCallback(async () => {
     setSaving(true)
     try {
-      await opts.updateIntake({
-        status: 'in_progress',
-        lastPhase: 'wizard_intake',
-        completedAt: null,
-      })
+      setSaveError(null)
+      return await opts.resetIntake()
     } finally {
       setSaving(false)
     }

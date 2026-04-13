@@ -171,7 +171,7 @@ function isCanonicalField(val: unknown): val is CanonicalField<unknown> {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function flattenAllFields(state: any): CanonicalField<unknown>[] {
-  const sections = ['identity', 'intakeContext', 'medications', 'symptoms', 'functionalImpact'] as const;
+  const sections = ['identity', 'intakeContext', 'medications', 'symptoms', 'functionalImpact', 'history', 'review'] as const;
   const fields: CanonicalField<unknown>[] = [];
   for (const key of sections) {
     const section = state[key];

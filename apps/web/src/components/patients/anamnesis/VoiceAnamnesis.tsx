@@ -63,6 +63,7 @@ interface LiveSessionConfig {
     age: number | null
     completedSections: string[]
     sectionData?: Record<string, Record<string, unknown>>
+    clinicalSnapshot?: string
   }
   guidanceQuestions: string[]
   coverageGaps: string[]
@@ -114,11 +115,33 @@ function summarizeSectionData(sectionData?: Record<string, Record<string, unknow
   return lines.join('\n')
 }
 
+function buildPatientContextSupplement(
+  patient: LiveSessionConfig['patient'],
+  fallbackSummary?: string,
+): string {
+  const parts: string[] = []
+  const snapshot = patient.clinicalSnapshot?.trim() || fallbackSummary?.trim()
+  const rawSectionData = summarizeSectionData(patient.sectionData)
+
+  if (snapshot) {
+    parts.push('Resumen clínico disponible:')
+    parts.push(snapshot)
+  }
+
+  if (rawSectionData) {
+    parts.push('Datos adicionales del formulario:')
+    parts.push(rawSectionData)
+    parts.push('No repitas datos ya resueltos arriba. Si algo ya está documentado, sólo confirmalo si cambió o si necesitás refinación clínica.')
+  }
+
+  return parts.join('\n')
+}
+
 function buildGuidedCheckpointInstruction(config: LiveSessionConfig): string {
   const name = config.patient.name ?? 'paciente'
   const age = config.patient.age ? `, ${config.patient.age} años` : ''
   const completed = config.patient.completedSections.join(', ') || 'ninguna'
-  const existingData = summarizeSectionData(config.patient.sectionData)
+  const existingData = buildPatientContextSupplement(config.patient)
   const gaps = config.coverageGaps.length > 0
     ? `\n\nÁreas con información insuficiente:\n- ${config.coverageGaps.join('\n- ')}`
     : ''
@@ -133,7 +156,7 @@ function buildGuidedCheckpointInstruction(config: LiveSessionConfig): string {
 
 Paciente: ${name}${age}.
 Secciones ya completadas: ${completed}.
-${existingData ? `\nDatos ya registrados del formulario:\n${existingData}` : ''}
+${existingData ? `\nContexto clínico disponible:\n${existingData}` : ''}
 ${summary}${gaps}${questions}
 
 INSTRUCCIONES:
@@ -429,6 +452,7 @@ export function VoiceAnamnesis({
         {
           method: 'POST',
           body: {
+            caseId: ledgerContext?.caseId,
             checkpoint,
             guidanceQuestions: questionsForToken,
             coverageGaps: gapsForToken,
@@ -453,9 +477,13 @@ export function VoiceAnamnesis({
         })
 
         const config = tokenData.sessionConfig
+        const patientContext = buildPatientContextSupplement(
+          config.patient,
+          contextSnapshot?.summaryText,
+        )
         const systemText = config.mode === 'guided_checkpoint'
           ? buildGuidedCheckpointInstruction(config)
-          : `Sos un médico residente de AutaMedica haciendo una anamnesis por voz. Paciente: ${config.patient.name ?? 'sin nombre'}. ${contextSnapshot?.summaryText ?? ''} Seguí 8 bloques: motivo, enfermedad actual, antecedentes, medicación, alergias, hábitos, revisión por sistemas, cierre. UNA pregunta por turno. Español argentino informal.`
+          : `Sos un médico residente de AutaMedica haciendo una anamnesis por voz. Paciente: ${config.patient.name ?? 'sin nombre'}. ${patientContext} Seguí 8 bloques: motivo, enfermedad actual, antecedentes, medicación, alergias, hábitos, revisión por sistemas, cierre. UNA pregunta por turno. Español argentino informal.`
 
         const session = await ai.live.connect({
           model: tokenData.model,
@@ -999,6 +1027,7 @@ export function VoiceAnamnesis({
           body: {
             text: '',
             patientContext: true,
+            caseId: ledgerContext?.caseId,
             checkpoint,
             guidanceQuestions: questionsForRelay,
             coverageGaps: gapsForRelay,

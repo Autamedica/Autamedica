@@ -100,6 +100,18 @@ export function createPsychiatryIntakeAdapter(supabase: Db) {
       return toCamel<PsychiatryIntakeSectionRecord[]>(data ?? [])
     },
 
+    async clearSections(intakeId: string): Promise<void> {
+      const { error } = await supabase
+        .from('psychiatry_intake_sections' as never)
+        .delete()
+        .eq('intake_id', intakeId)
+
+      if (error) {
+        logger.error('[psychiatryIntakeRepo] clearSections failed', error)
+        throw error
+      }
+    },
+
     async upsertSection(
       intakeId: string,
       section: PsychiatryIntakeSection,

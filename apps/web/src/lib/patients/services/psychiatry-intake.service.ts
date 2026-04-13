@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import { createPsychiatryIntakeAdapter } from '@/lib/patients/lib/repos/psychiatry-intake.adapter'
+import { createClinicalStateAdapter } from '@/lib/patients/lib/repos/clinical-state.adapter'
 import {
   PSYCHIATRY_INTAKE_SECTIONS,
   getPsychiatryPhaseFromSection,
@@ -143,5 +144,26 @@ export const psychiatryIntakeService = {
       .catch((error) => logger.warn('[psychiatryIntakeService] saveSection progress sync failed', error))
 
     return { section: savedSection, progress }
+  },
+
+  async reset(
+    supabase: Db,
+    patientId: string,
+  ): Promise<PsychiatryIntakeSnapshot> {
+    const repo = createPsychiatryIntakeAdapter(supabase)
+    const clinicalStateRepo = createClinicalStateAdapter(supabase)
+    const intake = await repo.ensure(patientId)
+
+    await repo.clearSections(intake.id)
+    await clinicalStateRepo.deleteByCaseId(intake.id)
+    await repo.updateMeta(intake.id, {
+      status: 'in_progress',
+      lastPhase: 'wizard_intake',
+      completedAt: null,
+      locked: false,
+    })
+    await repo.updateProgress(intake.id, 0, [])
+
+    return psychiatryIntakeService.get(supabase, patientId)
   },
 }

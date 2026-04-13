@@ -17,10 +17,10 @@ import type {
 } from '../../domain/pharmacy.ports';
 import { logger } from '@autamedica/shared';
 
-const iso = (s: string) => s as unknown as ISODateString;
-const pid = (s: string) => s as unknown as PrescriptionId;
-const patId = (s: string) => s as unknown as PatientId;
-const docId = (s: string) => s as unknown as DoctorId;
+function iso(s: string): ISODateString { return s as unknown as ISODateString; }
+function pid(s: string): PrescriptionId { return s as unknown as PrescriptionId; }
+function patId(s: string): PatientId { return s as unknown as PatientId; }
+function docId(s: string): DoctorId { return s as unknown as DoctorId; }
 
 function toSnakeCase(order: DispensationOrderInsert): Record<string, unknown> {
   return {
