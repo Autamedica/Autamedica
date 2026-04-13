@@ -126,7 +126,26 @@ CREATE TRIGGER trg_appointment_inbound_messages_updated_at
 -- ============================================================
 -- 5. DB-side reminder scheduling
 -- ============================================================
-CREATE OR REPLACE FUNCTION public.schedule_appointment_reminders(
+
+-- Verify no pre-existing function with different body before replacing.
+-- If the function exists from a prior migration with different logic,
+-- this DO block will raise an explicit error instead of silently overwriting.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'schedule_appointment_reminders'
+  ) THEN
+    -- Function already exists; drop it explicitly so we can recreate cleanly.
+    -- If this migration created it on a previous partial run, the drop is safe.
+    DROP FUNCTION public.schedule_appointment_reminders(uuid, text);
+  END IF;
+END;
+$$;
+
+CREATE FUNCTION public.schedule_appointment_reminders(
   target_appointment_id uuid,
   reminder_channel text DEFAULT 'whatsapp'
 )
@@ -190,7 +209,20 @@ $$;
 COMMENT ON FUNCTION public.schedule_appointment_reminders(uuid, text)
   IS 'Crea recordatorios futuros para una cita usando la configuración del doctor o el default global';
 
-CREATE OR REPLACE FUNCTION public.trg_schedule_appointment_reminders()
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'trg_schedule_appointment_reminders'
+  ) THEN
+    DROP FUNCTION public.trg_schedule_appointment_reminders();
+  END IF;
+END;
+$$;
+
+CREATE FUNCTION public.trg_schedule_appointment_reminders()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -210,7 +242,20 @@ CREATE TRIGGER trg_schedule_appointment_reminders
 -- ============================================================
 -- 6. no_show reaper
 -- ============================================================
-CREATE OR REPLACE FUNCTION public.mark_overdue_appointments_no_show()
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'mark_overdue_appointments_no_show'
+  ) THEN
+    DROP FUNCTION public.mark_overdue_appointments_no_show();
+  END IF;
+END;
+$$;
+
+CREATE FUNCTION public.mark_overdue_appointments_no_show()
 RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
