@@ -206,7 +206,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Pacientes</h1>
-            <p className="text-sm text-muted-foreground">{patients.length} pacientes en plataforma</p>
+            <p className="text-sm text-muted-foreground">{patients.length} pacientes asignados</p>
           </div>
         </div>
         <button
@@ -230,7 +230,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
         <div className="flex items-center gap-3 rounded-xl border border-emerald-200/50 bg-emerald-50/50 px-4 py-3">
           <UserCheck className="h-5 w-5 text-emerald-600" />
           <div>
-            <p className="text-xs text-muted-foreground">Con HC</p>
+            <p className="text-xs text-muted-foreground">Datos completos</p>
             <p className="text-lg font-bold">{patientsWithHistoryCount}</p>
           </div>
         </div>
