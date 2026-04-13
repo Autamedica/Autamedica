@@ -94,3 +94,27 @@ export interface CandidateMessage extends WSMessage {
 
 export type ControlMessage = InviteMessage | AcceptMessage | DeclineMessage | CancelMessage | EndMessage
 export type SignalingMessage = JoinMessage | OfferMessage | AnswerMessage | CandidateMessage
+
+/** Classified failure codes for call join/session errors. */
+export type CallFailureCode =
+  | 'signaling_timeout'
+  | 'signaling_reconnect_exhausted'
+  | 'sfu_connection_failed'
+  | 'session_publish_failed'
+  | 'remote_media_timeout'
+  | 'camera_permission_denied'
+  | 'microphone_permission_denied'
+  | 'media_acquisition_failed'
+  | 'turn_unavailable'
+  | 'network_offline'
+  | 'unknown'
+
+/** Classified reasons for call termination. */
+export type CallEndReason =
+  | 'user_ended'
+  | 'remote_ended'
+  | 'connection_closed'
+  | 'page_closed'
+  | 'network_lost'
+  | 'timeout'
+  | 'error'
