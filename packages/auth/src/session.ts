@@ -14,6 +14,7 @@ import { toISODateString } from "@autamedica/types";
 import type { UserRole, Portal } from "./roles";
 import { canAccessPortal, normalizeRole, ROLES } from "./roles";
 import { logger } from '@autamedica/shared';
+import { getDomainConfig } from './utils/config';
 
 const DEFAULT_PORTAL_REDIRECT: Record<UserRole, string> = {
   patient: "/patients",
@@ -27,14 +28,13 @@ const DEFAULT_PORTAL_REDIRECT: Record<UserRole, string> = {
 };
 
 
-function getCentralAuthOrigin(): string {
+/** @internal Exported for testing only. */
+export function getCentralAuthOrigin(): string {
   if (process.env.PUBLIC_APP_URL) {
     return process.env.PUBLIC_APP_URL;
   }
 
-  return process.env.NODE_ENV === 'production'
-    ? 'https://www.autamedica.com'
-    : 'http://localhost:3000';
+  return getDomainConfig().apps.auth;
 }
 
 function buildCentralLoginUrl(returnTo?: string): string {
