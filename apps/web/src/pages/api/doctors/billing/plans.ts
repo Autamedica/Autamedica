@@ -6,11 +6,11 @@ import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { jsonOk, internalError } from '@/lib/api-helpers';
 import { billingService } from '@/lib/doctors/services/billing.service';
-import { createAstroServerClientFromRequest } from '@/lib/supabase';
+import { createAstroAdminClient } from '@/lib/supabase';
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async () => {
   try {
-    const supabase = createAstroServerClientFromRequest(request);
+    const supabase = createAstroAdminClient();
     const plans = await billingService.getPlans(supabase);
     return jsonOk(plans);
   } catch (err) {
