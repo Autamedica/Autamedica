@@ -507,4 +507,37 @@ describe('Session Management', () => {
       expect(error).toBeInstanceOf(RedirectError)
     })
   })
+
+  describe('getCentralAuthOrigin', () => {
+    it('returns PUBLIC_APP_URL when set', async () => {
+      process.env.PUBLIC_APP_URL = 'https://custom.example.com'
+      vi.resetModules()
+      const { getCentralAuthOrigin } = await import('../session')
+      expect(getCentralAuthOrigin()).toBe('https://custom.example.com')
+    })
+
+    it('returns production auth URL when NODE_ENV is production', async () => {
+      delete process.env.PUBLIC_APP_URL
+      process.env.NODE_ENV = 'production'
+      vi.resetModules()
+      const { getCentralAuthOrigin } = await import('../session')
+      expect(getCentralAuthOrigin()).toBe('https://www.autamedica.com')
+    })
+
+    it('returns staging auth URL when NODE_ENV is staging', async () => {
+      delete process.env.PUBLIC_APP_URL
+      process.env.NODE_ENV = 'staging'
+      vi.resetModules()
+      const { getCentralAuthOrigin } = await import('../session')
+      expect(getCentralAuthOrigin()).toContain('pages.dev')
+    })
+
+    it('returns localhost when NODE_ENV is development', async () => {
+      delete process.env.PUBLIC_APP_URL
+      process.env.NODE_ENV = 'development'
+      vi.resetModules()
+      const { getCentralAuthOrigin } = await import('../session')
+      expect(getCentralAuthOrigin()).toBe('http://localhost:3000')
+    })
+  })
 })

@@ -19,6 +19,7 @@ import {
   type UserRole
 } from '@autamedica/shared';
 import { validateRedirectUrl, isProduction } from '../../lib/auth-utils';
+import { getEnvironment, getDomainConfig } from '@autamedica/auth';
 import { resolvePublicSupabaseEnv } from '../../lib/runtime-env';
 
 /** Roles that users can self-assign during registration/login. Admin roles require backend assignment. */
@@ -109,33 +110,36 @@ function resolveRole(
   return fromHint ?? fromMeta ?? fromPortal;
 }
 
-/** Map role to redirect path — uses subdomain in prod, query param in dev */
+/** Map role to redirect path — uses DomainConfig URLs in prod/staging, query param in dev */
 function getRolePath(role: string): string {
-  if (isProduction()) {
-    const PROD_PATHS: Record<string, string> = {
-      patient: 'https://paciente.autamedica.com',
-      doctor: 'https://doctor.autamedica.com',
-      company: 'https://empresa.autamedica.com',
-      company_admin: 'https://empresa.autamedica.com',
-      organization_admin: 'https://admin.autamedica.com',
-      platform_admin: 'https://admin.autamedica.com',
-      admin: 'https://admin.autamedica.com',
+  const env = getEnvironment();
+
+  if (env === 'development') {
+    const DEV_PORTALS: Record<string, string> = {
+      patient: 'patient',
+      doctor: 'doctor',
+      company: 'company',
+      company_admin: 'company',
+      admin: 'admin',
+      organization_admin: 'admin',
+      platform_admin: 'admin',
     };
-    return PROD_PATHS[role] ?? '/auth/select-role';
+    const portal = DEV_PORTALS[role];
+    return portal ? `/?portal=${portal}` : '/auth/select-role';
   }
 
-  // Dev: use ?portal= query param to simulate subdomain detection
-  const DEV_PORTALS: Record<string, string> = {
-    patient: 'patient',
-    doctor: 'doctor',
-    company: 'company',
-    company_admin: 'company',
-    admin: 'admin',
+  const config = getDomainConfig();
+  const ROLE_TO_APP: Record<string, keyof typeof config.apps> = {
+    patient: 'patients',
+    doctor: 'doctors',
+    company: 'companies',
+    company_admin: 'companies',
     organization_admin: 'admin',
     platform_admin: 'admin',
+    admin: 'admin',
   };
-  const portal = DEV_PORTALS[role];
-  return portal ? `/?portal=${portal}` : '/auth/select-role';
+  const appKey = ROLE_TO_APP[role];
+  return appKey ? config.apps[appKey] : '/auth/select-role';
 }
 
 export const GET: APIRoute = async ({ request, cookies, redirect, locals }) => {
