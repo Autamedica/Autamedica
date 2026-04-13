@@ -26,6 +26,7 @@ export {
 } from './calls/service'
 
 export { classifyCallError } from './calls/classify-error'
+export { messageForFailureCode, sanitizeErrorForUser } from './utils/error-messages'
 
 export {
   SignalingClient,
