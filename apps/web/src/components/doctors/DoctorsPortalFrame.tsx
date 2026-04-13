@@ -514,7 +514,8 @@ export function DoctorsPortalFrame({
                 {/* Mandatos: clarifications + clinical triage */}
                 {(() => {
                   const clarifications = stats?.pendingClarifications ?? 0
-                  const totalActive = clarifications
+                  const triageMandates = stats?.pendingTriageMandates ?? 0
+                  const totalActive = clarifications + triageMandates
                   const hasActive = totalActive > 0
 
                   return (
@@ -543,6 +544,11 @@ export function DoctorsPortalFrame({
                             {clarifications > 0 && (
                               <p className="text-[11px] leading-relaxed text-amber-700/70">
                                 {clarifications} {clarifications === 1 ? "aclaracion de farmacia" : "aclaraciones de farmacia"}
+                              </p>
+                            )}
+                            {triageMandates > 0 && (
+                              <p className="text-[11px] leading-relaxed text-amber-700/70">
+                                {triageMandates} {triageMandates === 1 ? "resolucion clinica pendiente" : "resoluciones clinicas pendientes"}
                               </p>
                             )}
                           </div>
