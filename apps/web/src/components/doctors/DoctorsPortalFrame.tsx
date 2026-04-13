@@ -545,11 +545,6 @@ export function DoctorsPortalFrame({
                                 {clarifications} {clarifications === 1 ? "aclaracion de farmacia" : "aclaraciones de farmacia"}
                               </p>
                             )}
-                            {triageMandates > 0 && (
-                              <p className="text-[11px] leading-relaxed text-amber-700/70">
-                                {triageMandates} {triageMandates === 1 ? "resolucion clinica pendiente" : "resoluciones clinicas pendientes"}
-                              </p>
-                            )}
                           </div>
                         ) : (
                           <>
