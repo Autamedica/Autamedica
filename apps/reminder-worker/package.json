@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@autamedica/scheduling": "workspace:*",
+    "@autamedica/shared": "workspace:*",
     "@autamedica/types": "workspace:*",
     "@supabase/supabase-js": "^2.98.0"
   },

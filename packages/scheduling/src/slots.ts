@@ -18,12 +18,10 @@ import type {
 import { logger } from '@autamedica/shared';
 import type { SupabaseLike } from './supabase';
 import { predictNoShowProbability } from './noshow-predictor';
+import { getDoctorSchedulingConfig } from './config';
 
 /** Argentina Standard Time offset (UTC-3). Argentina doesn't observe DST. */
 const ART_OFFSET = '-03:00';
-
-/** Probabilidad de no-show por encima de la cual se permite overbooking */
-const OVERBOOKING_THRESHOLD = 0.3;
 
 /**
  * Resolve the current UTC offset for any IANA timezone using Intl.
@@ -101,7 +99,13 @@ export async function getAvailableSlots(
   const overrideMap = buildOverrideMap(overrides ?? []);
   const rawAppointments: AppointmentRow[] = appointments ?? [];
   const bookedSlots = buildBookedSet(rawAppointments);
-  const overbookableRanges = await computeOverbookableRanges(supabase, rawAppointments, doctor_id);
+  const doctorConfig = await getDoctorSchedulingConfig(supabase, doctor_id);
+  const overbookableRanges = await computeOverbookableRanges(
+    supabase,
+    rawAppointments,
+    doctor_id,
+    doctorConfig.noshow_overbooking_threshold,
+  );
 
   const slots: ScheduleSlot[] = [];
   const startDate = new Date(date_from);
@@ -198,6 +202,7 @@ async function computeOverbookableRanges(
   supabase: SupabaseLike,
   appointments: AppointmentRow[],
   doctorId: string,
+  overbookingThreshold: number,
 ): Promise<BookedRange[]> {
   if (appointments.length === 0) return [];
 
@@ -219,14 +224,14 @@ async function computeOverbookableRanges(
 
   for (const appt of appointments) {
     const probability = predictionCache.get(appt.patient_id) ?? 0;
-    if (probability > OVERBOOKING_THRESHOLD) {
+    if (probability > overbookingThreshold) {
       const start = new Date(appt.start_time).getTime();
       const end = appt.end_time
         ? new Date(appt.end_time).getTime()
         : start + (appt.duration_minutes ?? 30) * 60 * 1000;
 
       logger.info(
-        `[scheduling] Slot overbookable: paciente=${appt.patient_id} probabilidad=${(probability * 100).toFixed(0)}% (umbral=${OVERBOOKING_THRESHOLD * 100}%)`,
+        `[scheduling] Slot overbookable: paciente=${appt.patient_id} probabilidad=${(probability * 100).toFixed(0)}% (umbral=${overbookingThreshold * 100}%)`,
       );
       ranges.push({ start, end });
     }

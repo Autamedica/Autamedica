@@ -75,16 +75,6 @@ export const appointmentsUseCase = {
 
     try {
       const appointment = await deps.appointmentsRepo.create(patientId, payload)
-
-      try {
-        await scheduleReminders(deps.dbClient, appointment.id, 'whatsapp')
-      } catch (reminderErr) {
-        logger.error('[appointmentsUseCase] scheduleReminders failed (appointment created)', {
-          appointmentId: appointment.id,
-          error: reminderErr,
-        })
-      }
-
       return appointment
     } catch (err) {
       logger.error('[appointmentsUseCase] create failed', err)

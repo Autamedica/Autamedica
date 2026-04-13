@@ -31,12 +31,17 @@ export {
   getDoctorWaitlist,
 } from './waitlist';
 
+export {
+  processUnsentWaitlistOffers,
+} from './waitlist-dispatch';
+
 // Reminder engine
 export {
   scheduleReminders,
   getPendingReminders,
   markReminderSent,
   markReminderFailed,
+  markReminderForRetry,
   cancelReminders,
   processReminderResponse,
 } from './reminders';
@@ -45,6 +50,14 @@ export {
 export {
   predictNoShowProbability,
 } from './noshow-predictor';
+
+export {
+  markOverdueAppointmentsNoShow,
+} from './no-show-reaper';
+
+export {
+  getDoctorSchedulingConfig,
+} from './config';
 
 // OpenClaw integration (node:child_process is lazy-loaded, safe for edge runtimes)
 export {

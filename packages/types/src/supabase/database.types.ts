@@ -314,13 +314,70 @@ export type Database = {
           },
         ]
       }
+      appointment_inbound_messages: {
+        Row: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          from_phone: string
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          message_text: string
+          next_attempt_at: string | null
+          parsed_response: string | null
+          processed_at: string | null
+          source_message_key: string
+          status: string
+          updated_at: string
+          webhook_result: Json
+        }
+        Insert: {
+          attempt_count?: number
+          channel: string
+          created_at?: string
+          from_phone: string
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          message_text: string
+          next_attempt_at?: string | null
+          parsed_response?: string | null
+          processed_at?: string | null
+          source_message_key: string
+          status?: string
+          updated_at?: string
+          webhook_result?: Json
+        }
+        Update: {
+          attempt_count?: number
+          channel?: string
+          created_at?: string
+          from_phone?: string
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          message_text?: string
+          next_attempt_at?: string | null
+          parsed_response?: string | null
+          processed_at?: string | null
+          source_message_key?: string
+          status?: string
+          updated_at?: string
+          webhook_result?: Json
+        }
+        Relationships: []
+      }
       appointment_reminders: {
         Row: {
           appointment_id: string
           channel: string
           created_at: string
           id: string
+          last_error: string | null
+          next_retry_at: string | null
           response: string | null
+          retry_count: number
           scheduled_for: string
           sent_at: string | null
           status: string
@@ -330,7 +387,10 @@ export type Database = {
           channel: string
           created_at?: string
           id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
           response?: string | null
+          retry_count?: number
           scheduled_for: string
           sent_at?: string | null
           status?: string
@@ -340,7 +400,10 @@ export type Database = {
           channel?: string
           created_at?: string
           id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
           response?: string | null
+          retry_count?: number
           scheduled_for?: string
           sent_at?: string | null
           status?: string
@@ -362,7 +425,10 @@ export type Database = {
           doctor_id: string
           expires_at: string | null
           id: string
+          offer_sent_at: string | null
           offered_at: string | null
+          offered_end_time: string | null
+          offered_start_time: string | null
           patient_id: string
           preferred_date_end: string | null
           preferred_date_start: string | null
@@ -378,7 +444,10 @@ export type Database = {
           doctor_id: string
           expires_at?: string | null
           id?: string
+          offer_sent_at?: string | null
           offered_at?: string | null
+          offered_end_time?: string | null
+          offered_start_time?: string | null
           patient_id: string
           preferred_date_end?: string | null
           preferred_date_start?: string | null
@@ -394,7 +463,10 @@ export type Database = {
           doctor_id?: string
           expires_at?: string | null
           id?: string
+          offer_sent_at?: string | null
           offered_at?: string | null
+          offered_end_time?: string | null
+          offered_start_time?: string | null
           patient_id?: string
           preferred_date_end?: string | null
           preferred_date_start?: string | null
@@ -417,6 +489,44 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_scheduling_config: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          noshow_grace_minutes: number
+          noshow_overbooking_threshold: number
+          reminder_hours_before: number[]
+          updated_at: string
+          waitlist_offer_expiry_hours: number
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          noshow_grace_minutes?: number
+          noshow_overbooking_threshold?: number
+          reminder_hours_before?: number[]
+          updated_at?: string
+          waitlist_offer_expiry_hours?: number
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          noshow_grace_minutes?: number
+          noshow_overbooking_threshold?: number
+          reminder_hours_before?: number[]
+          updated_at?: string
+          waitlist_offer_expiry_hours?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_scheduling_config_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: true
+            referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
         ]
