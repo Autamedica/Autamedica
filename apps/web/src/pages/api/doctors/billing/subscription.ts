@@ -21,7 +21,7 @@ export const GET: APIRoute = async ({ request }) => {
     if (!doctor) return badRequest('doctor_not_found');
 
     const subscription = await billingService.getDoctorSubscription(auth.supabase, doctor.id);
-    return jsonOk({ subscription });
+    return jsonOk(subscription);
   } catch (err) {
     logger.error('[billing/subscription] GET error', err);
     return internalError();

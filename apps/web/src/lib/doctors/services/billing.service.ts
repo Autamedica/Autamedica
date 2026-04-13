@@ -17,20 +17,22 @@ import type {
 
 type Client = SupabaseClient;
 
+import { getRuntimeEnvValue } from '@/lib/runtime-env';
+
 const MERCADOPAGO_API = 'https://api.mercadopago.com';
 
 function getMercadoPagoToken(): string {
-  const token = import.meta.env.MERCADOPAGO_ACCESS_TOKEN;
+  const token = getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN') ?? import.meta.env.MERCADOPAGO_ACCESS_TOKEN;
   if (!token) throw new Error('MERCADOPAGO_ACCESS_TOKEN not configured');
   return token;
 }
 
 function getWebhookSecret(): string {
-  return import.meta.env.MERCADOPAGO_WEBHOOK_SECRET ?? '';
+  return getRuntimeEnvValue('MERCADOPAGO_WEBHOOK_SECRET') ?? import.meta.env.MERCADOPAGO_WEBHOOK_SECRET ?? '';
 }
 
 function getAppUrl(): string {
-  return import.meta.env.PUBLIC_APP_URL ?? 'https://www.autamedica.com';
+  return getRuntimeEnvValue('PUBLIC_APP_URL') ?? import.meta.env.PUBLIC_APP_URL ?? 'https://www.autamedica.com';
 }
 
 async function mpFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
