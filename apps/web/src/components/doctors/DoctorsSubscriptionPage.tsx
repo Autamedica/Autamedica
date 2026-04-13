@@ -46,7 +46,7 @@ function formatCurrency(cents: number): string {
     currency: "ARS",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(cents);
+  }).format(cents / 100);
 }
 
 export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }) {
@@ -154,7 +154,7 @@ export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }
                     </div>
                     <p className="mt-1 text-[13px] text-neutral-400">
                       {currentPlan
-                        ? `${formatCurrency(currentPlan.priceCents / 100)}/${currentPlan.interval === "monthly" ? "mes" : "ano"}`
+                        ? `${formatCurrency(currentPlan.priceCents)}/${currentPlan.interval === "monthly" ? "mes" : "ano"}`
                         : ""}
                     </p>
                   </div>
@@ -251,7 +251,7 @@ export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }
                                 {plan.name}
                               </p>
                               <p className="text-[11px] text-neutral-400">
-                                {formatCurrency(plan.priceCents / 100)}/
+                                {formatCurrency(plan.priceCents)}/
                                 {plan.interval === "monthly" ? "mes" : "ano"}
                               </p>
                             </div>

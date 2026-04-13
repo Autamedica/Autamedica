@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchApi } from "@/lib/api-client";
+import type { SubscriptionPlan } from "@autamedica/types";
 import {
   Check,
   Crown,
@@ -11,67 +12,11 @@ import {
   Zap,
 } from "lucide-react";
 
-interface PlanConfig {
-  slug: string;
-  name: string;
-  price: number;
-  interval: string;
-  popular?: boolean;
-  icon: typeof Shield;
-  features: string[];
-}
-
-const PLANS: PlanConfig[] = [
-  {
-    slug: "basico",
-    name: "Basico",
-    price: 15_000,
-    interval: "mes",
-    icon: Shield,
-    features: [
-      "Hasta 50 pacientes",
-      "Agenda de citas",
-      "Historia clinica digital",
-      "Recetas electronicas",
-      "Soporte por email",
-    ],
-  },
-  {
-    slug: "pro",
-    name: "Pro",
-    price: 30_000,
-    interval: "mes",
-    popular: true,
-    icon: Zap,
-    features: [
-      "Pacientes ilimitados",
-      "Agenda de citas avanzada",
-      "Historia clinica digital",
-      "Recetas electronicas",
-      "Teleconsulta integrada",
-      "Analisis IA de consultas",
-      "Contabilidad fiscal",
-      "Soporte prioritario",
-    ],
-  },
-  {
-    slug: "premium",
-    name: "Premium",
-    price: 50_000,
-    interval: "mes",
-    icon: Crown,
-    features: [
-      "Todo lo de Pro",
-      "Multi-consultorio",
-      "API para integraciones",
-      "Facturacion electronica AFIP",
-      "Dashboard analytics avanzado",
-      "Onboarding personalizado",
-      "Soporte dedicado 24/7",
-      "Marca blanca",
-    ],
-  },
-];
+const PLAN_ICONS: Record<string, typeof Shield> = {
+  basico: Shield,
+  pro: Zap,
+  premium: Crown,
+};
 
 function formatPrice(cents: number): string {
   return new Intl.NumberFormat("es-AR", {
@@ -79,18 +24,27 @@ function formatPrice(cents: number): string {
     currency: "ARS",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(cents);
+  }).format(cents / 100);
 }
 
 export function PricingPage() {
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadingSlug, setLoadingSlug] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchApi<SubscriptionPlan[]>("/api/doctors/billing/plans")
+      .then(setPlans)
+      .catch((err) => setError(err instanceof Error ? err.message : "Error cargando planes"))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleSubscribe = async (slug: string) => {
     setLoadingSlug(slug);
     setError(null);
     try {
-      const result = await fetchApi<{ initPoint: string }>(
+      const result = await fetchApi<{ subscriptionId: string; initPoint: string }>(
         "/api/doctors/billing/subscription",
         { method: "POST", body: { planSlug: slug } },
       );
@@ -101,6 +55,8 @@ export function PricingPage() {
       setLoadingSlug(null);
     }
   };
+
+  const popularSlug = "pro";
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -125,69 +81,78 @@ export function PricingPage() {
           </div>
         )}
 
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {PLANS.map((plan) => {
-            const Icon = plan.icon;
-            const isLoading = loadingSlug === plan.slug;
+        {loading ? (
+          <div className="mt-16 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+          </div>
+        ) : (
+          <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+            {plans.map((plan) => {
+              const Icon = PLAN_ICONS[plan.slug] ?? Shield;
+              const isPopular = plan.slug === popularSlug;
+              const isLoading = loadingSlug === plan.slug;
 
-            return (
-              <div
-                key={plan.slug}
-                className={`relative flex flex-col rounded-2xl border bg-white p-8 shadow-sm transition-shadow hover:shadow-md ${
-                  plan.popular
-                    ? "border-neutral-900 ring-1 ring-neutral-900"
-                    : "border-neutral-200"
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="rounded-full bg-neutral-900 px-4 py-1 text-[11px] font-semibold uppercase tracking-widest text-white">
-                      Popular
-                    </span>
-                  </div>
-                )}
-
-                <div className="mb-6">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
-                    <Icon className="h-6 w-6" strokeWidth={1.5} />
-                  </div>
-                  <h2 className="text-xl font-semibold text-neutral-900">{plan.name}</h2>
-                  <div className="mt-3 flex items-baseline gap-1">
-                    <span className="text-4xl font-light tracking-tight text-neutral-900">
-                      {formatPrice(plan.price)}
-                    </span>
-                    <span className="text-[13px] text-neutral-400">/{plan.interval}</span>
-                  </div>
-                </div>
-
-                <ul className="mb-8 flex-1 space-y-3">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3 text-[13px] text-neutral-600">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" strokeWidth={1.5} />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  type="button"
-                  onClick={() => void handleSubscribe(plan.slug)}
-                  disabled={!!loadingSlug}
-                  className={`flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[13px] font-medium transition-colors disabled:opacity-50 ${
-                    plan.popular
-                      ? "bg-neutral-900 text-white hover:bg-neutral-800"
-                      : "border border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50"
+              return (
+                <div
+                  key={plan.id}
+                  className={`relative flex flex-col rounded-2xl border bg-white p-8 shadow-sm transition-shadow hover:shadow-md ${
+                    isPopular
+                      ? "border-neutral-900 ring-1 ring-neutral-900"
+                      : "border-neutral-200"
                   }`}
                 >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : null}
-                  {isLoading ? "Procesando..." : "Suscribirme"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
+                  {isPopular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="rounded-full bg-neutral-900 px-4 py-1 text-[11px] font-semibold uppercase tracking-widest text-white">
+                        Popular
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="mb-6">
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
+                      <Icon className="h-6 w-6" strokeWidth={1.5} />
+                    </div>
+                    <h2 className="text-xl font-semibold text-neutral-900">{plan.name}</h2>
+                    <div className="mt-3 flex items-baseline gap-1">
+                      <span className="text-4xl font-light tracking-tight text-neutral-900">
+                        {formatPrice(plan.priceCents)}
+                      </span>
+                      <span className="text-[13px] text-neutral-400">
+                        /{plan.interval === "monthly" ? "mes" : "ano"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <ul className="mb-8 flex-1 space-y-3">
+                    {(plan.features ?? []).map((feature) => (
+                      <li key={feature} className="flex items-start gap-3 text-[13px] text-neutral-600">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" strokeWidth={1.5} />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    type="button"
+                    onClick={() => void handleSubscribe(plan.slug)}
+                    disabled={!!loadingSlug}
+                    className={`flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[13px] font-medium transition-colors disabled:opacity-50 ${
+                      isPopular
+                        ? "bg-neutral-900 text-white hover:bg-neutral-800"
+                        : "border border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50"
+                    }`}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : null}
+                    {isLoading ? "Procesando..." : "Suscribirme"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         <div className="mt-12 text-center">
           <p className="text-[13px] text-neutral-400">

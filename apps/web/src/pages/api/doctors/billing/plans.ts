@@ -12,7 +12,7 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     const supabase = createAstroServerClientFromRequest(request);
     const plans = await billingService.getPlans(supabase);
-    return jsonOk({ plans });
+    return jsonOk(plans);
   } catch (err) {
     logger.error('[billing/plans] GET error', err);
     return internalError();
