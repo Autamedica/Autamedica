@@ -106,29 +106,20 @@ async function verifyWebRTCConnectivity(page: any) {
 async function setupTestData(_page: any) {
   console.log('📊 Configurando datos de prueba...');
   
-  try {
-    // Verificar que las credenciales de prueba están configuradas
-    const testCredentials = {
-      doctorEmail: 'doctor.demo@autamedica.com',
-      doctorPassword: 'Demo1234',
-      patientId: 'patient_001',
-      patientName: 'Juan Pérez'
-    };
-    
-    console.log('Credenciales de prueba configuradas:', {
-      doctorEmail: testCredentials.doctorEmail,
-      patientId: testCredentials.patientId,
-      patientName: testCredentials.patientName
-    });
-    
-    // En un entorno real, aquí se configurarían datos de prueba en la base de datos
-    // Por ahora, solo verificamos que las credenciales estén disponibles
-    
-    console.log('✅ Datos de prueba configurados');
-    
-  } catch (error) {
-    console.warn('⚠️ Configuración de datos de prueba falló:', error);
+  const doctorEmail = process.env.DOCTOR_DEMO_EMAIL;
+  const doctorPassword = process.env.DOCTOR_DEMO_PASSWORD;
+
+  if (!doctorEmail || !doctorPassword) {
+    console.warn('⚠️ DOCTOR_DEMO_EMAIL / DOCTOR_DEMO_PASSWORD not set — E2E tests that require auth will be skipped.');
+    return;
   }
+
+  console.log('Credenciales de prueba configuradas:', {
+    doctorEmail,
+    patientId: process.env.TEST_PATIENT_ID ?? '(not set)',
+  });
+
+  console.log('✅ Datos de prueba configurados');
 }
 
 export default globalSetup;
