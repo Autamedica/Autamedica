@@ -939,3 +939,21 @@ export type {
   IAppointmentReadRepository,
   AppointmentView,
 } from './ports';
+
+// ==========================================
+// Billing & Subscription Types
+// ==========================================
+
+export type {
+  PlanSlug,
+  PlanInterval,
+  SubscriptionStatus,
+  PaymentTransactionStatus,
+  SubscriptionPlan,
+  DoctorSubscription,
+  PaymentTransaction,
+  DoctorSubscriptionWithPlan,
+  MercadoPagoWebhookPayload,
+  MercadoPagoPreapprovalResponse,
+  MercadoPagoPaymentDetail,
+} from './billing/billing.types';
