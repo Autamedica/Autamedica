@@ -75,7 +75,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
   }
 }
 
-export const DELETE: APIRoute = async ({ locals }) => {
+export const DELETE: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
 
