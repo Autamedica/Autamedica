@@ -514,8 +514,7 @@ export function DoctorsPortalFrame({
                 {/* Mandatos: clarifications + clinical triage */}
                 {(() => {
                   const clarifications = stats?.pendingClarifications ?? 0
-                  const triageMandates = stats?.pendingTriageMandates ?? 0
-                  const totalActive = clarifications + triageMandates
+                  const totalActive = clarifications
                   const hasActive = totalActive > 0
 
                   return (
