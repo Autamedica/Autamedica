@@ -49,7 +49,6 @@ export class CloudflareCallsClient implements CallProvider {
   private localStream: MediaStream | null = null
   private connectionState: ConnectionState = 'disconnected'
   private cachedDevices: DeviceInfo[] = []
-  // stream ID → remoteUserId (para mapear tracks a usuarios)
   private streamIdToUserId = new Map<string, string>()
   private pendingRemoteUserIds: string[] = []
   private connectedPeerIds = new Set<string>()
@@ -57,6 +56,13 @@ export class CloudflareCallsClient implements CallProvider {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private listeners = new Map<keyof WebRTCEvents, ((...args: any[]) => void)[]>()
   private readonly config: Required<Omit<CloudflareCallsClientConfig, 'userName'>> & { userName?: string }
+
+  // ── Reconnect state ──
+  private intentionalClose = false
+  private signalingReconnectAttempt = 0
+  private signalingReconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private static readonly MAX_SIGNALING_RECONNECT = 5
+  private static readonly SIGNALING_BACKOFF_BASE_MS = 1_000
 
   constructor(cfg: CloudflareCallsClientConfig) {
     this.config = {
@@ -231,6 +237,8 @@ export class CloudflareCallsClient implements CallProvider {
 
     const finalRoomId = roomId ?? this.config.roomId
     this.config.roomId = finalRoomId
+    this.intentionalClose = false
+    this.signalingReconnectAttempt = 0
     this.setConnectionState('connecting')
 
     try {
@@ -245,10 +253,18 @@ export class CloudflareCallsClient implements CallProvider {
         onTrack: (event) => this.handleRemoteTrack(event),
         onConnectionStateChange: (state) => {
           if (state === 'connected') {
-            this.setConnectionState('connected')
+            if (this.connectionState === 'connecting' || this.connectionState === 'disconnected') {
+              this.setConnectionState('connected')
+            }
+            // If we were recovering from a transient state, emit reconnected
+            if (this.connectionState === 'connected') {
+              this.emit('reconnected', { peerId: 'sfu', afterAttempts: 1 })
+            }
+          } else if (state === 'disconnected') {
+            this.emit('reconnecting', { peerId: 'sfu', attempt: 1, maxAttempts: 1 })
           } else if (state === 'failed') {
             this.setConnectionState('failed')
-            this.emit('error', new Error('Cloudflare Calls connection failed'))
+            this.emit('error', new Error('Cloudflare Calls SFU connection failed'))
           }
         },
         onError: (err) => this.emit('error', err),
@@ -277,6 +293,11 @@ export class CloudflareCallsClient implements CallProvider {
   }
 
   async disconnect(): Promise<void> {
+    this.intentionalClose = true
+    if (this.signalingReconnectTimer) {
+      clearTimeout(this.signalingReconnectTimer)
+      this.signalingReconnectTimer = null
+    }
     this.setConnectionState('closed')
     this.sendSignal({ type: 'leave', from: this.config.userId })
     this.ws?.close(1000, 'user disconnect')
@@ -288,6 +309,7 @@ export class CloudflareCallsClient implements CallProvider {
     this.streamIdToUserId.clear()
     this.pendingRemoteUserIds = []
     this.connectedPeerIds.clear()
+    this.signalingReconnectAttempt = 0
   }
 
   /* ── Chat (via señalización WS) ── */
@@ -325,17 +347,21 @@ export class CloudflareCallsClient implements CallProvider {
     return new Promise<void>((resolve, reject) => {
       const wsUrl = `${this.config.signalingUrl}?roomId=${encodeURIComponent(roomId)}`
       this.ws = new WebSocket(wsUrl)
+      let settled = false
 
-      const timeout = setTimeout(() => reject(new Error('Signaling timeout')), 8000)
+      const timeout = setTimeout(() => {
+        if (!settled) { settled = true; reject(new Error('Signaling timeout')) }
+      }, 8000)
 
       this.ws.onopen = () => {
         clearTimeout(timeout)
+        this.signalingReconnectAttempt = 0
         this.sendSignal({
           type: 'join',
           from: this.config.userId,
           data: { userType: this.config.userType },
         })
-        resolve()
+        if (!settled) { settled = true; resolve() }
       }
 
       this.ws.onmessage = (event: MessageEvent) => {
@@ -347,15 +373,96 @@ export class CloudflareCallsClient implements CallProvider {
 
       this.ws.onerror = () => {
         clearTimeout(timeout)
-        reject(new Error('WebSocket connection failed'))
+        if (!settled) { settled = true; reject(new Error('WebSocket connection failed')) }
       }
 
-      this.ws.onclose = () => {
-        if (this.connectionState !== 'closed') {
-          this.setConnectionState('disconnected')
+      this.ws.onclose = (event) => {
+        clearTimeout(timeout)
+        if (this.intentionalClose || this.connectionState === 'closed') return
+
+        // Auto-reconnect mid-call signaling drops
+        if (settled && this.signalingReconnectAttempt < CloudflareCallsClient.MAX_SIGNALING_RECONNECT) {
+          this.scheduleSignalingReconnect(roomId)
+          return
+        }
+
+        if (!settled) {
+          settled = true
+          reject(new Error(`WebSocket closed unexpectedly (code ${event.code})`))
+        } else {
+          this.setConnectionState('failed')
+          this.emit('error', new Error('Signaling connection lost after max reconnect attempts'))
         }
       }
     })
+  }
+
+  private scheduleSignalingReconnect(roomId: string): void {
+    const attempt = this.signalingReconnectAttempt++
+    const delayMs = CloudflareCallsClient.SIGNALING_BACKOFF_BASE_MS * Math.pow(2, attempt)
+      + Math.random() * 500
+
+    this.emit('reconnecting', {
+      peerId: 'signaling',
+      attempt: attempt + 1,
+      maxAttempts: CloudflareCallsClient.MAX_SIGNALING_RECONNECT,
+    })
+
+    this.signalingReconnectTimer = setTimeout(() => {
+      this.signalingReconnectTimer = null
+      if (this.intentionalClose || this.connectionState === 'closed') return
+
+      const wsUrl = `${this.config.signalingUrl}?roomId=${encodeURIComponent(roomId)}`
+      this.ws = new WebSocket(wsUrl)
+
+      this.ws.onopen = () => {
+        this.signalingReconnectAttempt = 0
+        this.sendSignal({
+          type: 'join',
+          from: this.config.userId,
+          data: { userType: this.config.userType },
+        })
+        // Re-announce CF session so the peer knows we're back
+        if (this.cfSession?.getSessionId()) {
+          this.sendSignal({
+            type: 'cf-session',
+            from: this.config.userId,
+            data: {
+              sessionId: this.cfSession.getSessionId() ?? '',
+              userType: this.config.userType,
+            },
+          })
+        }
+        this.emit('reconnected', { peerId: 'signaling', afterAttempts: attempt + 1 })
+      }
+
+      this.ws.onmessage = (event: MessageEvent) => {
+        try {
+          const msg = JSON.parse(event.data as string) as ServerMessage
+          void this.handleSignalingMessage(msg)
+        } catch { /* ignore */ }
+      }
+
+      this.ws.onerror = () => {
+        // Try again if attempts remain
+        if (this.signalingReconnectAttempt < CloudflareCallsClient.MAX_SIGNALING_RECONNECT) {
+          this.scheduleSignalingReconnect(roomId)
+        } else {
+          this.setConnectionState('failed')
+          this.emit('error', new Error('Signaling reconnect exhausted'))
+        }
+      }
+
+      this.ws.onclose = () => {
+        if (this.intentionalClose || this.connectionState === 'closed') return
+        if (this.signalingReconnectAttempt < CloudflareCallsClient.MAX_SIGNALING_RECONNECT) {
+          this.scheduleSignalingReconnect(roomId)
+        } else {
+          this.setConnectionState('failed')
+          this.emit('error', new Error('Signaling reconnect exhausted'))
+        }
+      }
+    }, delayMs)
   }
 
   private async handleSignalingMessage(msg: ServerMessage): Promise<void> {
