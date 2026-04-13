@@ -11,7 +11,7 @@ import { openSupabaseSignaling, type SupabaseSignalingHandle } from './supabase-
 import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY } from './config/ice-servers'
 import { getAdaptiveConstraints, applyContentHints } from './media-optimizations'
 import { MediaManager } from './media-manager'
-import { QualityMonitor, type StreamQualitySummary, type CallQualitySummary } from './quality-monitor'
+import { QualityMonitor } from './quality-monitor'
 import { BitrateAdapter } from './bitrate-adapter'
 import { TurnManager } from './turn-manager'
 import { PeerConnectionFactory, type PeerState, type ChatMessage, type DataChannelControlMessage } from './peer-connection-factory'
