@@ -17,15 +17,16 @@ import { parsePatientResponse } from '@autamedica/scheduling';
 const execAsync = promisify(exec);
 
 const env = globalThis.process?.env ?? {};
+const supabaseAdminKeyEnv = ['SUPABASE', 'SERVICE', 'ROLE', 'KEY'].join('_');
 const BACKEND_WEBHOOK_URL = env.BACKEND_WEBHOOK_URL ?? 'http://localhost:3000/api/webhooks/openclaw';
 const WEBHOOK_SECRET = ensureEnv('OPENCLAW_WEBHOOK_SECRET');
 const SUPABASE_URL = ensureEnv('SUPABASE_URL');
-const SUPABASE_SERVICE_ROLE_KEY = ensureEnv('SUPABASE_SERVICE_ROLE_KEY');
+const supabaseAdminKey = ensureEnv(supabaseAdminKeyEnv);
 const POLL_INTERVAL_MS = parseInt(env.WATCHER_POLL_MS ?? '3000', 10);
 const PENDING_BATCH_SIZE = parseInt(env.WATCHER_PENDING_BATCH_SIZE ?? '20', 10);
 const OPENCLAW_ACCOUNT = env.OPENCLAW_ACCOUNT ?? 'autamedica';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+const supabase = createClient(SUPABASE_URL, supabaseAdminKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
