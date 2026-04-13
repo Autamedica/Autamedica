@@ -1,0 +1,12 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { DoctorsSubscriptionPage } from '@/components/doctors/DoctorsSubscriptionPage';
+
+const title = 'Suscripción | AutaMedica';
+const description = 'Gestión de tu suscripción y plan actual';
+const locale = Astro.locals.locale ?? 'es';
+---
+
+<Layout title={title} description={description}>
+  <DoctorsSubscriptionPage client:load locale={locale} />
+</Layout>
