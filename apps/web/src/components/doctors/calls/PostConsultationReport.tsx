@@ -343,10 +343,12 @@ function ReportContent({ roomId }: { roomId: string }) {
               setShowPrescriptionModal(false);
               window.location.href = '/doctors/dashboard';
             }}
-            addPrescription={async (p) => {
-              await prescriptionService.create(reportData.patientId, p);
+            addPrescription={(p) => prescriptionService.create(reportData.patientId, p)}
+            issuePrescription={async (id) => {
+              await prescriptionService.issue(id);
             }}
             updatePrescription={async () => {}}
+            submitLabel="Emitir receta"
           />
         )}
       </main>

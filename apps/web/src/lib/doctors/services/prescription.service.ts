@@ -9,6 +9,14 @@ import type {
   PrescriptionFilters,
 } from '@/types/medical'
 
+export interface PrescriptionIssuanceResult {
+  cuir: string
+  qrContent: string
+  signedPdfUrl: string | null
+  issuedAt: string
+  expiresAt: string
+}
+
 function buildPrescriptionQuery(patientId: string, filters: PrescriptionFilters): string {
   const params = new URLSearchParams({ patientId })
 
@@ -30,8 +38,8 @@ export const prescriptionService = {
   async create(
     patientId: string,
     prescription: Omit<Prescription, 'id' | 'created_at' | 'updated_at'>,
-  ): Promise<void> {
-    await fetchApi<Prescription>('/api/doctors/prescriptions', {
+  ): Promise<Prescription> {
+    return fetchApi<Prescription>('/api/doctors/prescriptions', {
       body: {
         patient_id: patientId,
         medication_name: prescription.medication_name,
@@ -47,6 +55,12 @@ export const prescriptionService = {
         notes: prescription.notes,
         side_effects_warning: prescription.side_effects_warning,
       },
+    })
+  },
+
+  async issue(id: string): Promise<PrescriptionIssuanceResult> {
+    return fetchApi<PrescriptionIssuanceResult>(`/api/doctors/prescriptions/${id}/issue`, {
+      method: 'POST',
     })
   },
 
