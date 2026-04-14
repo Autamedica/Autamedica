@@ -39,21 +39,9 @@ export function GuestLinkButton({ callId }: GuestLinkButtonProps) {
   }, [callId, guestName])
 
   const copyToClipboard = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(link)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // Fallback
-      const textarea = document.createElement('textarea')
-      textarea.value = link
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
+    await navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }, [link])
 
   if (step === 'idle') {

@@ -24,12 +24,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ? raw.checkpoint
     : null;
   const history = Array.isArray(raw.history)
-    ? raw.history.filter((entry): entry is { role: 'user' | 'assistant'; content: string } =>
-        entry &&
-        typeof entry === 'object' &&
-        (entry.role === 'user' || entry.role === 'assistant') &&
-        typeof entry.content === 'string',
-      )
+    ? raw.history.filter((entry: unknown): entry is { role: 'user' | 'assistant'; content: string } => {
+        if (!entry || typeof entry !== 'object') return false;
+        const e = entry as Record<string, unknown>;
+        return (e['role'] === 'user' || e['role'] === 'assistant') && typeof e['content'] === 'string';
+      })
     : [];
 
   if (!message) {
@@ -43,10 +42,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const result = await processAnamnesisChat(message, history, checkpoint, {
       guidanceQuestions: Array.isArray(raw.guidanceQuestions)
-        ? raw.guidanceQuestions.filter((value): value is string => typeof value === 'string')
+        ? raw.guidanceQuestions.filter((value: unknown): value is string => typeof value === 'string')
         : [],
       coverageGaps: Array.isArray(raw.coverageGaps)
-        ? raw.coverageGaps.filter((value): value is string => typeof value === 'string')
+        ? raw.coverageGaps.filter((value: unknown): value is string => typeof value === 'string')
         : [],
       coverageSummary: typeof raw.coverageSummary === 'string' ? raw.coverageSummary : undefined,
     });

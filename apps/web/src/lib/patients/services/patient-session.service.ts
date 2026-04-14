@@ -56,6 +56,173 @@ function ensureEmail(user: User): string {
   return `${user.id}@patients.autamedica.local`
 }
 
+async function fetchOrCreateProfileImpl(supabase: Db, user: User): Promise<Profile> {
+  const db = supabase as unknown as LooseDb
+  const email = ensureEmail(user)
+
+  // Attempt 1: new schema (user_id)
+  let { data, error } = await db
+    .from('profiles')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  // If column doesn't exist or no row, try legacy schema (id)
+  if ((error && error.code !== 'PGRST116') || (!data && !error)) {
+    const tryLegacy = await db
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle()
+    data = tryLegacy.data as DbRow | null
+    error = tryLegacy.error
+  }
+
+  if (error && error.code !== 'PGRST116') {
+    logger.error('[patientSessionService] fetchOrCreateProfile select failed', error)
+    throw error
+  }
+
+  let profileRow: DbRow | null = (data as DbRow | null) ?? null
+
+  // Normalize id -> user_id if legacy
+  if (profileRow && !profileRow['user_id'] && profileRow['id']) {
+    profileRow = { ...profileRow, user_id: profileRow['id'] }
+  }
+
+  if (!profileRow) {
+    // Try inserting with user_id; fallback to id schema
+    let inserted: DbRow | null = null
+    let insertError: Error | null = null
+
+    const insert = await (db
+      .from('profiles')
+      .insert({
+        user_id: user.id,
+        email,
+        role: 'patient',
+        external_id: user.id,
+      } satisfies DbRow)
+      .select('*')
+      .single())
+
+    inserted = insert.data as DbRow | null
+    insertError = insert.error
+
+    if (insertError) {
+      logger.warn('[patientSessionService] insert with user_id failed, retrying legacy schema', insertError)
+      // Retry legacy schema
+      const legacy = await (db
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email,
+          role: 'patient',
+          external_id: user.id,
+        } satisfies DbRow)
+        .select('*')
+        .single())
+
+      inserted = legacy.data as DbRow | null
+      insertError = legacy.error
+    }
+
+    if (insertError) {
+      throw insertError
+    }
+
+    profileRow = inserted
+  } else {
+    const updates: DbRow = {}
+
+    if (!profileRow.email) {
+      updates.email = email
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const updateTry = await (db
+        .from('profiles')
+        .update(updates)
+        .eq(profileRow['user_id'] ? 'user_id' : 'id', user.id)
+        .select('*')
+        .single())
+
+      const updated = updateTry.data as DbRow | null
+      const updateError = updateTry.error
+
+      if (updateError) {
+        throw updateError
+      }
+
+      profileRow = updated
+    }
+  }
+
+  if (!profileRow) {
+    throw new Error('Could not retrieve or create profile')
+  }
+
+  // Robust parse: try zod; fallback to normalized object
+  const parsed = safeParseProfile(profileRow)
+  if (parsed) return parsed
+
+  return {
+    userId: (profileRow['user_id'] ?? profileRow['id']) as string,
+    email: (profileRow['email'] ?? email) as string,
+    role: (typeof profileRow['role'] === 'string' ? profileRow['role'] : 'patient') as
+      | 'patient'
+      | 'admin',
+    firstName:
+      typeof profileRow['first_name'] === 'string' ? profileRow['first_name'] : null,
+    lastName:
+      typeof profileRow['last_name'] === 'string' ? profileRow['last_name'] : null,
+    phone: typeof profileRow['phone'] === 'string' ? profileRow['phone'] : null,
+    avatarUrl:
+      typeof profileRow['avatar_url'] === 'string' ? profileRow['avatar_url'] : null,
+    active: typeof profileRow['active'] === 'boolean' ? profileRow['active'] : null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    deletedAt: null,
+  } as unknown as Profile
+}
+
+async function fetchOrCreatePatientImpl(supabase: Db, userId: string): Promise<Patient | null> {
+  const db = supabase as unknown as LooseDb
+  const { data, error } = await db
+    .from('patients')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error && error.code !== 'PGRST116') {
+    throw error
+  }
+
+  let patientRow = data ?? null
+
+  if (!patientRow) {
+    const { data: inserted, error: insertError } = await (db
+      .from('patients')
+      .insert({
+        user_id: userId,
+        active: true,
+      } satisfies DbRow)
+      .select('*'))
+
+    if (insertError) {
+      throw insertError
+    }
+
+    if (Array.isArray(inserted) && inserted.length > 0) {
+      patientRow = inserted[0]
+    } else if (inserted && !Array.isArray(inserted)) {
+      patientRow = inserted
+    }
+  }
+
+  return patientRow ? parsePatient(patientRow) : null
+}
+
 export const patientSessionService = {
   async fetchOrCreateProfile(supabase: Db, user: User): Promise<Profile> {
     const key = user.id
@@ -65,149 +232,19 @@ export const patientSessionService = {
     const inflight = inflightProfiles.get(key)
     if (inflight) return inflight
 
-    const promise = this._fetchOrCreateProfileImpl(supabase, user)
-      .then(profile => {
+    const promise: Promise<Profile> = fetchOrCreateProfileImpl(supabase, user)
+      .then((profile: Profile) => {
         profileCache.set(key, { data: profile, ts: Date.now() })
         inflightProfiles.delete(key)
         return profile
       })
-      .catch(err => {
+      .catch((err: unknown) => {
         inflightProfiles.delete(key)
         throw err
       })
 
     inflightProfiles.set(key, promise)
     return promise
-  },
-
-  async _fetchOrCreateProfileImpl(supabase: Db, user: User): Promise<Profile> {
-    const db = supabase as unknown as LooseDb
-    const email = ensureEmail(user)
-
-    // Attempt 1: new schema (user_id)
-    let { data, error } = await db
-      .from('profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    // If column doesn't exist or no row, try legacy schema (id)
-    if ((error && error.code !== 'PGRST116') || (!data && !error)) {
-      const tryLegacy = await db
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle()
-      data = tryLegacy.data as DbRow | null
-      error = tryLegacy.error
-    }
-
-    if (error && error.code !== 'PGRST116') {
-      logger.error('[patientSessionService] fetchOrCreateProfile select failed', error)
-      throw error
-    }
-
-    let profileRow: DbRow | null = (data as DbRow | null) ?? null
-
-    // Normalize id -> user_id if legacy
-    if (profileRow && !profileRow['user_id'] && profileRow['id']) {
-      profileRow = { ...profileRow, user_id: profileRow['id'] }
-    }
-
-    if (!profileRow) {
-      // Try inserting with user_id; fallback to id schema
-      let inserted: DbRow | null = null
-      let insertError: Error | null = null
-
-      const insert = await (db
-        .from('profiles')
-        .insert({
-          user_id: user.id,
-          email,
-          role: 'patient',
-          external_id: user.id,
-        } satisfies DbRow)
-        .select('*')
-        .single())
-
-      inserted = insert.data as DbRow | null
-      insertError = insert.error
-
-      if (insertError) {
-        logger.warn('[patientSessionService] insert with user_id failed, retrying legacy schema', insertError)
-        // Retry legacy schema
-        const legacy = await (db
-          .from('profiles')
-          .insert({
-            id: user.id,
-            email,
-            role: 'patient',
-            external_id: user.id,
-          } satisfies DbRow)
-          .select('*')
-          .single())
-
-        inserted = legacy.data as DbRow | null
-        insertError = legacy.error
-      }
-
-      if (insertError) {
-        throw insertError
-      }
-
-      profileRow = inserted
-    } else {
-      const updates: DbRow = {}
-
-      if (!profileRow.email) {
-        updates.email = email
-      }
-
-      if (Object.keys(updates).length > 0) {
-        const updateTry = await (db
-          .from('profiles')
-          .update(updates)
-          .eq(profileRow['user_id'] ? 'user_id' : 'id', user.id)
-          .select('*')
-          .single())
-
-        const updated = updateTry.data as DbRow | null
-        const updateError = updateTry.error
-
-        if (updateError) {
-          throw updateError
-        }
-
-        profileRow = updated
-      }
-    }
-
-    if (!profileRow) {
-      throw new Error('Could not retrieve or create profile')
-    }
-
-    // Robust parse: try zod; fallback to normalized object
-    const parsed = safeParseProfile(profileRow)
-    if (parsed) return parsed
-
-    return {
-      userId: (profileRow['user_id'] ?? profileRow['id']) as string,
-      email: (profileRow['email'] ?? email) as string,
-      role: (typeof profileRow['role'] === 'string' ? profileRow['role'] : 'patient') as
-        | 'patient'
-        | 'admin',
-      firstName:
-        typeof profileRow['first_name'] === 'string' ? profileRow['first_name'] : null,
-      lastName:
-        typeof profileRow['last_name'] === 'string' ? profileRow['last_name'] : null,
-      phone: typeof profileRow['phone'] === 'string' ? profileRow['phone'] : null,
-      avatarUrl:
-        typeof profileRow['avatar_url'] === 'string' ? profileRow['avatar_url'] : null,
-      active: typeof profileRow['active'] === 'boolean' ? profileRow['active'] : null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      deletedAt: null,
-    } as unknown as Profile
   },
 
   async fetchOrCreatePatient(supabase: Db, userId: string): Promise<Patient | null> {
@@ -218,55 +255,18 @@ export const patientSessionService = {
     const inflight = inflightPatients.get(key)
     if (inflight) return inflight
 
-    const promise = this._fetchOrCreatePatientImpl(supabase, userId)
-      .then(patient => {
+    const promise: Promise<Patient | null> = fetchOrCreatePatientImpl(supabase, userId)
+      .then((patient: Patient | null) => {
         patientCache.set(key, { data: patient, ts: Date.now() })
         inflightPatients.delete(key)
         return patient
       })
-      .catch(err => {
+      .catch((err: unknown) => {
         inflightPatients.delete(key)
         throw err
       })
 
     inflightPatients.set(key, promise)
     return promise
-  },
-
-  async _fetchOrCreatePatientImpl(supabase: Db, userId: string): Promise<Patient | null> {
-    const db = supabase as unknown as LooseDb
-    const { data, error } = await db
-      .from('patients')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle()
-
-    if (error && error.code !== 'PGRST116') {
-      throw error
-    }
-
-    let patientRow = data ?? null
-
-    if (!patientRow) {
-      const { data: inserted, error: insertError } = await (db
-        .from('patients')
-        .insert({
-          user_id: userId,
-          active: true,
-        } satisfies DbRow)
-        .select('*'))
-
-      if (insertError) {
-        throw insertError
-      }
-
-      if (Array.isArray(inserted) && inserted.length > 0) {
-        patientRow = inserted[0]
-      } else if (inserted && !Array.isArray(inserted)) {
-        patientRow = inserted
-      }
-    }
-
-    return patientRow ? parsePatient(patientRow) : null
   },
 }
