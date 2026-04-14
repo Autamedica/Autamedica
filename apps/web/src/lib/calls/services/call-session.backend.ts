@@ -184,4 +184,79 @@ export const callSessionBackendService = {
 
     return { kind: 'forbidden' }
   },
+
+  async getGuestBootstrap(
+    supabase: Db,
+    roomId: string,
+    guest: { callId: string; roomId: string; guestName: string },
+    guestToken: string,
+  ): Promise<BootstrapResolution> {
+    const call = await callSessionRepo.findLatestByRoomId(supabase, roomId)
+
+    if (!call) {
+      return { kind: 'not_found' }
+    }
+
+    if (call.id !== guest.callId || call.room_id !== guest.roomId) {
+      return { kind: 'forbidden' }
+    }
+
+    if (TERMINAL_CALL_STATUSES.has(call.status)) {
+      const message =
+        call.status === 'ended'
+          ? 'call_ended'
+          : call.status === 'canceled'
+            ? 'call_canceled'
+            : 'call_declined'
+      return { kind: 'conflict', message }
+    }
+
+    // Guest always uses Cloudflare Calls SFU (no Supabase Realtime for signaling)
+    let runtime = resolveRuntime()
+    if (runtime === 'webrtc-p2p') {
+      const hasCf =
+        Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_ID) &&
+        Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_SECRET)
+      if (hasCf) {
+        runtime = 'cloudflare-calls'
+      } else {
+        logger.error('[callSessionBackendService] Guest call requires Cloudflare Calls but credentials missing')
+        return { kind: 'conflict', message: 'guest_calls_unavailable' }
+      }
+    }
+
+    const turnServers = await fetchCloudflareTurnServers()
+    const iceServers = turnServers.length > 0 ? turnServers : getIceServersConfig()
+
+    const data: CallSessionBootstrap = {
+      callId: call.id,
+      roomId: call.room_id,
+      appointmentId: null,
+      runtime,
+      user: {
+        id: `guest:${call.id}`,
+        role: 'guest',
+        displayName: guest.guestName,
+      },
+      permissions: {
+        canJoin: true,
+        canPublishAudio: true,
+        canPublishVideo: true,
+        canUseChat: false,
+        canRecord: false,
+      },
+      mediaPolicy: {
+        requireCamera: false,
+        requireMicrophone: true,
+        allowAudioOnlyFallback: true,
+      },
+      transport: {
+        iceServers,
+        cloudflareCallsApiUrl: `/api/calls/guest/cloudflare-calls?token=${encodeURIComponent(guestToken)}`,
+      },
+      waitingRoom: { enabled: false },
+    }
+
+    return { kind: 'ok', data }
+  },
 }
