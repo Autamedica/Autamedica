@@ -137,6 +137,18 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     return { userId: '', userName: 'Paciente' }
   }, [session, typedProfile])
 
+  // Must be before any early return — Rules of Hooks
+  const callProvider = useMemo(
+    () => callSession
+      ? createCallProvider({
+          bootstrap: callSession,
+          supabase: callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined,
+          iceServersOverride: clientTurnServers ?? undefined,
+        })
+      : null,
+    [callSession, clientTurnServers],
+  )
+
   if (callSessionError) {
     const errorInfo = translateCallError(callSessionError)
     return (
@@ -215,17 +227,6 @@ function PatientCallContent({ roomId }: { roomId: string }) {
       </div>
     )
   }
-
-  const callProvider = useMemo(
-    () => callSession
-      ? createCallProvider({
-          bootstrap: callSession,
-          supabase: callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined,
-          iceServersOverride: clientTurnServers ?? undefined,
-        })
-      : null,
-    [callSession?.callId, callSession?.runtime, clientTurnServers],
-  )
 
   if (!callProvider) return null
 
