@@ -414,6 +414,17 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     }
   }, [session, typedProfile, roomId])
 
+  const callProvider = useMemo(
+    () => callSession
+      ? createCallProvider({
+          bootstrap: callSession,
+          supabase: callSession.runtime === "webrtc-p2p" ? getBrowserSupabaseClient() : undefined,
+          iceServersOverride: clientTurnServers ?? undefined,
+        })
+      : null,
+    [callSession?.callId, callSession?.runtime, clientTurnServers],
+  )
+
   if (callSessionError) {
     const errorInfo = translateCallError(callSessionError)
     return (
@@ -507,16 +518,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     )
   }
 
-  const callProvider = useMemo(
-    () => callSession
-      ? createCallProvider({
-          bootstrap: callSession,
-          supabase: callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined,
-          iceServersOverride: clientTurnServers ?? undefined,
-        })
-      : null,
-    [callSession?.callId, callSession?.runtime, clientTurnServers],
-  )
+  // Moved up to fix React #310
 
   return (
     <div className="h-screen bg-slate-50 overflow-hidden flex">
