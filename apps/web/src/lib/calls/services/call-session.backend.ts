@@ -5,6 +5,7 @@ import type { Call, CallSessionBootstrap, CallSessionRole, CallSessionRuntime } 
 import { getIceServersConfig, hasTurnIceServer } from '@autamedica/telemedicine'
 import { handleTurnCredentials } from '@autamedica/telemedicine/server'
 import { callSessionRepo } from '@/lib/calls/repos/call-session.repo'
+import { getRuntimeEnvValue } from '@/lib/runtime-env'
 
 type Db = SupabaseClient<Database>
 
@@ -28,9 +29,13 @@ export function resolveRuntime(): CallSessionRuntime {
     return 'webrtc-p2p'
   }
 
-  const hasCloudflareCalls =
-    Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_ID) &&
-    Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_SECRET)
+  const appId =
+    import.meta.env.CLOUDFLARE_CALLS_APP_ID ||
+    getRuntimeEnvValue('CLOUDFLARE_CALLS_APP_ID')
+  const appSecret =
+    import.meta.env.CLOUDFLARE_CALLS_APP_SECRET ||
+    getRuntimeEnvValue('CLOUDFLARE_CALLS_APP_SECRET')
+  const hasCloudflareCalls = Boolean(appId) && Boolean(appSecret)
 
   if (hasCloudflareCalls) return 'cloudflare-calls'
 
@@ -214,15 +219,8 @@ export const callSessionBackendService = {
     // Guest always uses Cloudflare Calls SFU (no Supabase Realtime for signaling)
     let runtime = resolveRuntime()
     if (runtime === 'webrtc-p2p') {
-      const hasCf =
-        Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_ID) &&
-        Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_SECRET)
-      if (hasCf) {
-        runtime = 'cloudflare-calls'
-      } else {
-        logger.error('[callSessionBackendService] Guest call requires Cloudflare Calls but credentials missing')
-        return { kind: 'conflict', message: 'guest_calls_unavailable' }
-      }
+      logger.error('[callSessionBackendService] Guest call requires Cloudflare Calls but credentials missing')
+      return { kind: 'conflict', message: 'guest_calls_unavailable' }
     }
 
     const turnServers = await fetchCloudflareTurnServers()
