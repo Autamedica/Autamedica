@@ -5,6 +5,7 @@ import type { Call, CallSessionBootstrap, CallSessionRole, CallSessionRuntime } 
 import { getIceServersConfig, hasTurnIceServer } from '@autamedica/telemedicine'
 import { handleTurnCredentials } from '@autamedica/telemedicine/server'
 import { callSessionRepo } from '@/lib/calls/repos/call-session.repo'
+import { getRuntimeEnvValue } from '@/lib/runtime-env'
 
 type Db = SupabaseClient<Database>
 
@@ -28,9 +29,9 @@ export function resolveRuntime(): CallSessionRuntime {
     return 'webrtc-p2p'
   }
 
-  const hasCloudflareCalls =
-    Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_ID) &&
-    Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_SECRET)
+  const appId = import.meta.env.CLOUDFLARE_CALLS_APP_ID || getRuntimeEnvValue('CLOUDFLARE_CALLS_APP_ID')
+  const appSecret = import.meta.env.CLOUDFLARE_CALLS_APP_SECRET || getRuntimeEnvValue('CLOUDFLARE_CALLS_APP_SECRET')
+  const hasCloudflareCalls = Boolean(appId) && Boolean(appSecret)
 
   if (hasCloudflareCalls) return 'cloudflare-calls'
 
