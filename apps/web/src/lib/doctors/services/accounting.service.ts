@@ -64,6 +64,7 @@ export function compareRegimes(annualIncome: number, annualExpenses: number, ann
   // Monotributo
   const category = suggestMonotributoCategory(annualIncome);
   const monotributoFeasible = category !== null;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- category is guaranteed non-null when monotributoFeasible is true
   const monotributoAnnualCost = monotributoFeasible ? getMonotributoMonthlyFee(category!) * 12 : Infinity;
 
   // Responsable Inscripto

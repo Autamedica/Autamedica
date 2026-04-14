@@ -9,25 +9,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@autamedica/shared';
 import { generatePrescriptionPdf } from './pdf-prescription.service';
 
-interface DoctorRecord {
-  id: string;
-  license_number: string;
-  specialty: string | null;
-  refeps_id: string | null;
-  enrollment_entity: string | null;
-  enrollment_jurisdiction: string | null;
-  professional_address: string | null;
-}
-
-interface PatientRecord {
-  user_id: string;
-  dni: string | null;
-  cuil: string | null;
-  address: string | null;
-  birth_date: string | null;
-  gender: string | null;
-}
-
 interface ClinicalItem {
   generic_name?: string;
   commercial_name?: string;
@@ -41,15 +22,6 @@ interface ClinicalData {
   items?: ClinicalItem[];
   diagnosis?: string;
   notes?: string;
-}
-
-interface PrescriptionRow {
-  id: string;
-  doctor_id: string;
-  patient_id: string;
-  status: string;
-  clinical_data: ClinicalData;
-  cuir: string | null;
 }
 
 export interface IssuanceResult {

@@ -7,7 +7,9 @@
 
 /** Contract for objects that handle their own update logic */
 export interface UpdatableModel {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- duck-typed model methods accept arbitrary data
   updateFrom?: (data: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- duck-typed model methods accept arbitrary data
   set?: (data: any) => void;
 }
 
@@ -23,13 +25,17 @@ export function safeMerge<T extends object>(target: T, source: Partial<T>): T {
   if (!source) return target;
 
   // Defensive: check for updateFrom (legacy/custom model pattern)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime duck-type check on unknown model shape
   if ('updateFrom' in target && typeof (target as any).updateFrom === 'function') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same duck-type call
     (target as any).updateFrom(source);
     return target;
   }
 
   // Defensive: check for set (Backbone/Standard model pattern)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime duck-type check on unknown model shape
   if ('set' in target && typeof (target as any).set === 'function') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same duck-type call
     (target as any).set(source);
     return target;
   }
