@@ -37,7 +37,7 @@ export interface GreenRoomProps {
   connectionState: ConnectionState
   userName?: string
   roomId: string
-  userType: 'doctor' | 'patient' | 'nurse'
+  userType: 'doctor' | 'patient' | 'nurse' | 'guest'
   accentColor: 'violet' | 'sky'
   /** Network preflight result (optional — skipped if no ICE servers) */
   preflightResult?: PreflightResult | null

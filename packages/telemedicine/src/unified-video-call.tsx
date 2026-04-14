@@ -47,7 +47,7 @@ export interface UnifiedVideoCallProps {
   roomId: string
   callId?: string
   userId: string
-  userType: 'doctor' | 'patient' | 'nurse'
+  userType: 'doctor' | 'patient' | 'nurse' | 'guest'
   userName?: string
   /** ICE servers for network preflight test (GreenRoom). */
   iceServers?: RTCIceServer[]

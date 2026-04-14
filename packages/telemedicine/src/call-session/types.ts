@@ -1,6 +1,6 @@
 export type CallSessionRuntime = 'webrtc-p2p' | 'cloudflare-calls' | 'livekit'
 
-export type CallSessionRole = 'doctor' | 'patient' | 'nurse'
+export type CallSessionRole = 'doctor' | 'patient' | 'nurse' | 'guest'
 
 export interface CallSessionBootstrap {
   callId: string

@@ -1,0 +1,12 @@
+---
+import CallLayout from '@/layouts/CallLayout.astro';
+import GuestCallPage from '@/components/calls/GuestCallPage';
+
+const { roomId } = Astro.params;
+const title = 'Videollamada | AutaMedica';
+const description = 'Unirse a videollamada';
+---
+
+<CallLayout title={title} description={description}>
+  <GuestCallPage client:load roomId={roomId!} />
+</CallLayout>

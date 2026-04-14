@@ -13,6 +13,7 @@ import { useCallSession } from '@/hooks/calls/useCallSession'
 import { useConsultationContext } from '@/hooks/doctors/useConsultationContext'
 import { useDoctorWaitingRoom, formatWaitingCountdown, getWaitingCopy } from '@/hooks/doctors/useDoctorWaitingRoom'
 import { translateCallError } from '@/lib/calls/lib/call-error-messages'
+import { GuestLinkButton } from '@/components/doctors/calls/GuestLinkButton'
 import { persistCallStatusBrowserService } from '@/lib/calls/services/persist-call-status.browser'
 import {
   clearConsultationNotesDraft,
@@ -605,6 +606,10 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                   Ir al inicio medico
                 </button>
               </div>
+
+              {doctorWaitingState === 'waiting' && (
+                <GuestLinkButton callId={callSession.callId} />
+              )}
             </div>
           </div>
         ) : callProvider && (
