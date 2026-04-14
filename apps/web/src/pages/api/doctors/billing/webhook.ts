@@ -11,7 +11,7 @@ import { billingService } from '@/lib/doctors/services/billing.service';
 import { createAstroAdminClient } from '@/lib/supabase';
 import type { MercadoPagoWebhookPayload } from '@autamedica/types';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const signature = request.headers.get('x-signature');
     const rawBody = await request.text();
@@ -32,7 +32,7 @@ export const POST: APIRoute = async ({ request }) => {
       return badRequest('missing_type_or_data_id');
     }
 
-    const supabase = createAstroAdminClient();
+    const supabase = createAstroAdminClient(locals.runtime?.env);
 
     // MercadoPago espera 200 siempre — procesar y loguear errores sin devolver 500
     try {

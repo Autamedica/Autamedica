@@ -17,7 +17,7 @@ import type { PlanSlug } from '@autamedica/types';
 
 const VALID_SLUGS: PlanSlug[] = ['basico', 'pro', 'premium'];
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ request, locals }) => {
   try {
     const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
@@ -25,7 +25,7 @@ export const GET: APIRoute = async ({ request }) => {
     const { data: doctor } = await auth.supabase.from('doctors').select('id').eq('user_id', auth.user.id).single();
     if (!doctor) return badRequest('doctor_not_found');
 
-    const admin = createAstroAdminClient();
+    const admin = createAstroAdminClient(locals.runtime?.env);
     const subscription = await billingService.getDoctorSubscription(admin, doctor.id);
     return jsonOk(subscription);
   } catch (err) {
@@ -34,7 +34,7 @@ export const GET: APIRoute = async ({ request }) => {
   }
 };
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
@@ -50,7 +50,7 @@ export const POST: APIRoute = async ({ request }) => {
     const doctorEmail = auth.user.email ?? '';
     if (!doctorEmail) return badRequest('doctor_email_required');
 
-    const admin = createAstroAdminClient();
+    const admin = createAstroAdminClient(locals.runtime?.env);
     const result = await billingService.createSubscription(
       admin,
       doctor.id,
@@ -65,7 +65,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 };
 
-export const DELETE: APIRoute = async ({ request }) => {
+export const DELETE: APIRoute = async ({ request, locals }) => {
   try {
     const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
@@ -73,7 +73,7 @@ export const DELETE: APIRoute = async ({ request }) => {
     const { data: doctor } = await auth.supabase.from('doctors').select('id').eq('user_id', auth.user.id).single();
     if (!doctor) return badRequest('doctor_not_found');
 
-    const admin = createAstroAdminClient();
+    const admin = createAstroAdminClient(locals.runtime?.env);
     await billingService.cancelSubscription(admin, doctor.id);
     return jsonOk({ cancelled: true });
   } catch (err) {

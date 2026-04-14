@@ -8,9 +8,9 @@ import { jsonOk, internalError } from '@/lib/api-helpers';
 import { billingService } from '@/lib/doctors/services/billing.service';
 import { createAstroAdminClient } from '@/lib/supabase';
 
-export const GET: APIRoute = async () => {
+export const GET: APIRoute = async ({ locals }) => {
   try {
-    const supabase = createAstroAdminClient();
+    const supabase = createAstroAdminClient(locals.runtime?.env);
     const plans = await billingService.getPlans(supabase);
     return jsonOk(plans);
   } catch (err) {
