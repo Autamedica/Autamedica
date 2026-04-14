@@ -33,6 +33,21 @@ type ClinicalCaseStateRow = {
   missing_field_count: number
   conflicted_field_count: number
   locked_field_count: number
+  // Triage denormalized columns
+  clinical_vertical: string
+  case_intent: string
+  triage_priority: string
+  triage_priority_rank: number
+  triage_mandate: string | null
+  triage_status: string
+  risk_of_interruption: string
+  requires_same_day_action: boolean
+  resolution_deadline_at: string | null
+  medication_snapshot_name: string | null
+  medication_snapshot_dose: string | null
+  medication_snapshot_days_remaining: number | null
+  symptoms_snapshot_insomnia_severity: number | null
+  symptoms_snapshot_insomnia_impact: string | null
   created_at: string
   updated_at: string
 }
@@ -101,6 +116,7 @@ export function createClinicalStateAdapter(supabase: Db): IClinicalStateReposito
     },
 
     async save(state: ClinicalCaseState): Promise<void> {
+      const triage = state.triage
       const row: ClinicalCaseStateInsert = {
         case_id: state.caseId,
         patient_id: state.patientId,
@@ -113,6 +129,35 @@ export function createClinicalStateAdapter(supabase: Db): IClinicalStateReposito
         missing_field_count: state.planner?.missingFieldKeys?.length ?? 0,
         conflicted_field_count: state.planner?.conflictedFieldKeys?.length ?? 0,
         locked_field_count: state.planner?.lockedFieldKeys?.length ?? 0,
+        // Triage materialization
+        clinical_vertical: state.workflow.vertical ?? 'psychiatry_general',
+        case_intent: state.workflow.intent ?? 'evaluation',
+        triage_priority: triage?.priority ?? 'routine',
+        triage_priority_rank: triage?.priority === 'urgent' ? 1 : triage?.priority === 'priority' ? 2 : 3,
+        triage_mandate: triage?.mandate || null,
+        triage_status: triage?.status ?? 'pending',
+        risk_of_interruption: triage?.riskOfInterruption ?? 'low',
+        requires_same_day_action: triage?.requiresSameDayAction ?? false,
+        resolution_deadline_at: triage?.resolutionDeadline ?? null,
+        medication_snapshot_name: null,
+        medication_snapshot_dose: null,
+        medication_snapshot_days_remaining: null,
+        symptoms_snapshot_insomnia_severity: null,
+        symptoms_snapshot_insomnia_impact: null,
+      }
+
+      // Extract medication snapshot from triage if available (computed by triage engine)
+      const triageAny = triage as Record<string, unknown> | undefined
+      if (triageAny?.medicationSnapshot && typeof triageAny.medicationSnapshot === 'object') {
+        const snap = triageAny.medicationSnapshot as Record<string, unknown>
+        row.medication_snapshot_name = (snap.name as string) || null
+        row.medication_snapshot_dose = (snap.dose as string) || null
+        row.medication_snapshot_days_remaining = typeof snap.daysRemaining === 'number' ? snap.daysRemaining : null
+      }
+      if (triageAny?.symptomsSnapshot && typeof triageAny.symptomsSnapshot === 'object') {
+        const snap = triageAny.symptomsSnapshot as Record<string, unknown>
+        row.symptoms_snapshot_insomnia_severity = typeof snap.insomniaSeverity === 'number' ? snap.insomniaSeverity : null
+        row.symptoms_snapshot_insomnia_impact = (snap.insomniaImpact as string) || null
       }
 
       const { error } = await supabase

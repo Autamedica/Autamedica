@@ -3,6 +3,7 @@ import { validateRequiredFields } from '@/lib/patients/usecases/anamnesis-flow.u
 import { psychiatryIntakePdfService } from '@/lib/patients/services/psychiatry-intake-pdf.service'
 import type { AnamnesisField, AnamnesisFieldValue } from '@/lib/patients/types/anamnesis'
 import type { PsychiatryIntakePhase, PsychiatryIntakeSection } from '@/lib/patients/types/psychiatry-intake'
+import type { SegmentKey } from '@/lib/patients/clinical-state/types'
 
 interface CurrentStepLike {
   id: string
@@ -21,6 +22,11 @@ export interface UsePsychiatryPersistenceOptions {
     phase?: Exclude<PsychiatryIntakePhase, 'completed'>,
   ) => Promise<boolean>
   resetIntake: () => Promise<boolean>
+  commitStepData: (
+    stepId: string,
+    data: Record<string, AnamnesisFieldValue>,
+    segment?: SegmentKey,
+  ) => void
   persistClinicalState: () => Promise<void>
 }
 
@@ -42,7 +48,7 @@ export function usePsychiatryPersistence(
   const [downloadingPdf, setDownloadingPdf] = useState(false)
 
   const persistCurrentStep = useCallback(async (): Promise<boolean> => {
-    const { currentStep, currentStepData, currentPhaseId, visibleFields, updateSection, persistClinicalState } = opts
+    const { currentStep, currentStepData, currentPhaseId, visibleFields, updateSection, commitStepData, persistClinicalState } = opts
     if (!currentStep) return false
 
     if (currentStep.field) {
@@ -70,6 +76,7 @@ export function usePsychiatryPersistence(
         phase,
       )
       if (saved) {
+        commitStepData(currentStep.id, currentStepData)
         await persistClinicalState()
       }
       return saved

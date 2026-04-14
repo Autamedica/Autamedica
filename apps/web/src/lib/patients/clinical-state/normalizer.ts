@@ -382,19 +382,27 @@ export function normalizeFormData(
   currentState: ClinicalCaseState,
   formData: Record<string, unknown>,
   segment: SegmentKey,
+  options?: {
+    explicitConfirmation?: boolean;
+    source?: SourceType;
+    confidence?: 'low' | 'medium' | 'high';
+  },
 ): NormalizerResult {
   const now = new Date().toISOString();
+  const explicitConfirmation = options?.explicitConfirmation ?? false;
+  const source = options?.source ?? 'ui_form';
+  const confidence = options?.confidence ?? 'high';
 
   const data: IncomingDatum[] = Object.entries(formData)
     .filter(([, value]) => value !== null && value !== undefined && value !== '')
     .map(([key, value]) => ({
       fieldKey: key,
       value,
-      source: 'ui_form' as SourceType,
+      source,
       sourceSegment: segment,
-      confidence: 'high' as const, // explicit UI input = high confidence
+      confidence,
       timestamp: now,
-      explicitConfirmation: true, // patient typed it = confirmed
+      explicitConfirmation,
     }));
 
   return normalize(currentState, {

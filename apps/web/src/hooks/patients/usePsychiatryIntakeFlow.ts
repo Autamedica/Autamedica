@@ -80,6 +80,13 @@ export function usePsychiatryIntakeFlow() {
     get visibleFields() { return persistenceVisibleFieldsRef.current },
     updateSection,
     resetIntake,
+    commitStepData: (stepId, data) => {
+      const segment = STEP_TO_SEGMENT[stepId]
+      if (!segment) return
+      mergeIntoClinicalState(data, segment, {
+        explicitConfirmation: true,
+      })
+    },
     persistClinicalState,
   })
 
@@ -152,7 +159,9 @@ export function usePsychiatryIntakeFlow() {
 
     const segment = STEP_TO_SEGMENT[stepId]
     if (segment) {
-      mergeIntoClinicalState({ [fieldId]: value }, segment)
+      mergeIntoClinicalState({ [fieldId]: value }, segment, {
+        explicitConfirmation: false,
+      })
     }
   }, [nav.currentStep, mergeIntoClinicalState, persistence])
 

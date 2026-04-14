@@ -13,7 +13,7 @@ export interface DoctorStats {
   patientsCount: number;
   historyCount: number;
   pendingClarifications: number;
-  draftPrescriptions: number;
+  pendingTriageMandates: number;
   rankingPosition?: number | null;
   unreadCommunityCount?: number;
   nextAppointment: {
@@ -90,7 +90,7 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
     rankingResult,
     notificationsResult,
     clarificationsResult,
-    draftPrescriptionsResult,
+    triageMandatesResult,
   ] = await Promise.all([
     supabase
       .from('appointments')
@@ -142,12 +142,14 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
       .select('id', { count: 'exact', head: true })
       .eq('doctor_id', doctorId)
       .eq('status', 'clarification_requested'),
-    // Draft prescriptions: created but not yet issued/signed by the doctor
-    supabase
-      .from('prescriptions' as never)
+    // Pending clinical triage mandates: non-routine cases awaiting resolution
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from('clinical_case_states')
       .select('id', { count: 'exact', head: true })
-      .eq('doctor_id', doctorId)
-      .eq('status', 'draft'),
+      .eq('assigned_doctor_id', doctorId)
+      .neq('triage_priority', 'routine')
+      .in('triage_status', ['pending', 'acknowledged', 'in_progress']),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ]) as any[];
 
@@ -172,7 +174,7 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
     patientsCount: patientsResult.count ?? 0,
     historyCount: recordsResult.count ?? 0,
     pendingClarifications: clarificationsResult?.count ?? 0,
-    draftPrescriptions: draftPrescriptionsResult?.count ?? 0,
+    pendingTriageMandates: triageMandatesResult?.count ?? 0,
     rankingPosition: rankingResult?.data?.rank_position ?? null,
     unreadCommunityCount: notificationsResult?.count ?? 0,
     nextAppointment: nextAppt
