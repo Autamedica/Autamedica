@@ -1,3 +1,5 @@
+**REGLA CRITICA: SIEMPRE trabajar en branches con PR antes de mergear a main. NUNCA pushear directo a main.**
+
 # CLAUDE.md: AutaMedica Operating Manual
 
 > Fuente de verdad operativa para Claude en AutaMedica.
@@ -34,54 +36,55 @@
 
 ### `apps/web/src/components/doctors/` — Portal Médico
 
-| Archivo                              | Responsabilidad                                     |
-| ------------------------------------ | --------------------------------------------------- |
-| `DoctorsDashboardPage.tsx`           | Dashboard: dark hero, stat cards, próximas consultas |
-| `DoctorsPortalFrame.tsx`             | Shell maestro: header, sidebar, right panel, mobile nav |
-| `DoctorNotificationsBell.tsx`        | Bell dropdown con notificaciones reales + Realtime   |
-| `DoctorsAccountingPage.tsx`          | Módulo fiscal argentino (Monotributo + RI)           |
-| `DoctorsAppointmentsPage.tsx`        | Wrapper de agenda                                    |
-| `DoctorsConsultationsPage.tsx`       | Historiales clínicos + vista por paciente            |
-| `DoctorsPatientsPage.tsx`            | Lista de pacientes con acciones Historial/Ficha      |
-| `DoctorsCommunityPage.tsx`           | Comunidad médica                                     |
-| `DoctorsProfilePage.tsx`             | Configuración del perfil profesional                 |
-| `calls/DoctorCallPage.tsx`           | UI de videollamada del doctor                        |
-| `calls/ConsultationContextPanel.tsx` | Panel: historia, signos vitales, medicamentos        |
-| `calls/PostConsultationReport.tsx`   | Informe post-consulta SOAP                           |
-| `medical/PrescriptionCreateModal.tsx`| Crear receta con validación regulatoria              |
-| `patients/PatientsPanel.tsx`         | Grid de tarjetas de pacientes con search + actions   |
+| Archivo                               | Responsabilidad                                         |
+| ------------------------------------- | ------------------------------------------------------- |
+| `DoctorsDashboardPage.tsx`            | Dashboard: dark hero, stat cards, próximas consultas    |
+| `DoctorsPortalFrame.tsx`              | Shell maestro: header, sidebar, right panel, mobile nav |
+| `DoctorNotificationsBell.tsx`         | Bell dropdown con notificaciones reales + Realtime      |
+| `DoctorsAccountingPage.tsx`           | Módulo fiscal argentino (Monotributo + RI)              |
+| `DoctorsAppointmentsPage.tsx`         | Wrapper de agenda                                       |
+| `DoctorsConsultationsPage.tsx`        | Historiales clínicos + vista por paciente               |
+| `DoctorsPatientsPage.tsx`             | Lista de pacientes con acciones Historial/Ficha         |
+| `DoctorsCommunityPage.tsx`            | Comunidad médica                                        |
+| `DoctorsProfilePage.tsx`              | Configuración del perfil profesional                    |
+| `calls/DoctorCallPage.tsx`            | UI de videollamada del doctor                           |
+| `calls/ConsultationContextPanel.tsx`  | Panel: historia, signos vitales, medicamentos           |
+| `calls/PostConsultationReport.tsx`    | Informe post-consulta SOAP                              |
+| `medical/PrescriptionCreateModal.tsx` | Crear receta con validación regulatoria                 |
+| `patients/PatientsPanel.tsx`          | Grid de tarjetas de pacientes con search + actions      |
 
 ### `apps/web/src/components/patients/` — Portal Paciente
 
-| Archivo                         | Responsabilidad                                 |
-| ------------------------------- | ----------------------------------------------- |
-| `PatientsHomePage.tsx`           | Dashboard: parallax hero 85vh, métricas 5xl     |
-| `AnamnesisPage.tsx`             | Intake: privacy → wizard → voice → completed    |
-| `PatientNotificationsBell.tsx`  | Bell dropdown (montado en PatientAppLayout)      |
-| `PsychiatryIntakePage.tsx`      | Evaluación psiquiátrica TDAH                     |
-| `AppointmentsPage.tsx`          | Turnos del paciente                              |
-| `MedicalHistoryPage.tsx`        | Prescripciones y registros                       |
-| `MedicalReportsPage.tsx`        | Informes médicos descargables                    |
-| `CommunityPage.tsx`             | Foro de comunidad                                |
-| `ContinuityStatusPage.tsx`      | Estado de continuidad asistencial                |
-| `PatientProfilePage.tsx`        | Perfil y datos personales                        |
-| `PatientSettingsPage.tsx`       | Configuración y privacidad                       |
+| Archivo                        | Responsabilidad                              |
+| ------------------------------ | -------------------------------------------- |
+| `PatientsHomePage.tsx`         | Dashboard: parallax hero 85vh, métricas 5xl  |
+| `AnamnesisPage.tsx`            | Intake: privacy → wizard → voice → completed |
+| `PatientNotificationsBell.tsx` | Bell dropdown (montado en PatientAppLayout)  |
+| `PsychiatryIntakePage.tsx`     | Evaluación psiquiátrica TDAH                 |
+| `AppointmentsPage.tsx`         | Turnos del paciente                          |
+| `MedicalHistoryPage.tsx`       | Prescripciones y registros                   |
+| `MedicalReportsPage.tsx`       | Informes médicos descargables                |
+| `CommunityPage.tsx`            | Foro de comunidad                            |
+| `ContinuityStatusPage.tsx`     | Estado de continuidad asistencial            |
+| `PatientProfilePage.tsx`       | Perfil y datos personales                    |
+| `PatientSettingsPage.tsx`      | Configuración y privacidad                   |
 
 **Sub-componentes anamnesis (`anamnesis/`):** `ConversationalAnamnesis`, `VoiceAnamnesis` (con VoiceOrb editorial), `PdfPreviewModal`, `PrivacyAcceptanceScreen`, `VersionTimeline`, `AnalysisResultOverlay`, `AnamnesisChatModal`, `VoiceOrb`, `ClarificationStep`.
 
 ### `apps/web/src/lib/notifications/` — Sistema de Notificaciones
 
-| Capa | Paciente | Doctor |
-|------|----------|--------|
-| DB | `portal_notifications` (audience='patient') | `portal_notifications` (audience='doctor') |
-| Repo | `patients/lib/repos/notifications.adapter.ts` | `doctors/lib/repos/notifications.repo.ts` |
+| Capa    | Paciente                                                 | Doctor                                                  |
+| ------- | -------------------------------------------------------- | ------------------------------------------------------- |
+| DB      | `portal_notifications` (audience='patient')              | `portal_notifications` (audience='doctor')              |
+| Repo    | `patients/lib/repos/notifications.adapter.ts`            | `doctors/lib/repos/notifications.repo.ts`               |
 | Service | `patients/services/notifications.service.ts` (3 fuentes) | `doctors/services/notifications.service.ts` (4 fuentes) |
-| API | `/api/patients/notifications/` (3 endpoints) | `/api/doctors/notifications/` (3 endpoints) |
-| Browser | `patients/services/notifications.browser.ts` | `doctors/services/notifications.browser.ts` |
-| Hook | `usePatientNotifications` | `useDoctorNotifications` (+ Supabase Realtime) |
-| UI | `PatientNotificationsBell` | `DoctorNotificationsBell` |
+| API     | `/api/patients/notifications/` (3 endpoints)             | `/api/doctors/notifications/` (3 endpoints)             |
+| Browser | `patients/services/notifications.browser.ts`             | `doctors/services/notifications.browser.ts`             |
+| Hook    | `usePatientNotifications`                                | `useDoctorNotifications` (+ Supabase Realtime)          |
+| UI      | `PatientNotificationsBell`                               | `DoctorNotificationsBell`                               |
 
 **Domain event triggers (`notification-triggers.ts`):** 8 handlers activos que crean notificaciones automáticamente:
+
 - `appointment.scheduled` → doctor · `appointment.completed` → paciente
 - `anamnesis.completed` → doctores del care team
 - `consultation.report_generated` → paciente
@@ -91,12 +94,12 @@
 
 ### PDF Generation (jsPDF, edge-compatible)
 
-| Generador | Archivo | Formato |
-|-----------|---------|---------|
-| Anamnesis | `patients/services/pdf-report.service.ts` | Dark header, coverage IA, safety flags |
-| Consulta | `patients/services/pdf-report.service.ts` | SOAP (S/O/A/P), datos del profesional |
-| Psiquiatría | `patients/services/psychiatry-intake-pdf-report.service.ts` | TDAH, reconciliación medicamentosa |
-| Receta | `prescriptions/pdf-prescription.service.ts` | RCTA, QR/CUIR, firma digital placeholder |
+| Generador   | Archivo                                                     | Formato                                  |
+| ----------- | ----------------------------------------------------------- | ---------------------------------------- |
+| Anamnesis   | `patients/services/pdf-report.service.ts`                   | Dark header, coverage IA, safety flags   |
+| Consulta    | `patients/services/pdf-report.service.ts`                   | SOAP (S/O/A/P), datos del profesional    |
+| Psiquiatría | `patients/services/psychiatry-intake-pdf-report.service.ts` | TDAH, reconciliación medicamentosa       |
+| Receta      | `prescriptions/pdf-prescription.service.ts`                 | RCTA, QR/CUIR, firma digital placeholder |
 
 ### Hooks Doctor (`hooks/doctors/`)
 
@@ -109,6 +112,7 @@
 **Sos la ingeniera de integración de AutaMedica.** Tu trabajo es que las piezas existentes se conecten, hablen entre sí y funcionen de punta a punta. Antes de tocar código, consultá `docs/ARQUITECTURA.md`.
 
 **Doble estándar obligatorio:**
+
 1. **Arquitecturalmente correcto** — hexagonal, tipado, sin circuitos rotos.
 2. **Visualmente premium** — cada componente debe parecer diseñado por un director de arte, no por un developer que sabe CSS.
 
@@ -223,11 +227,13 @@ Cada feature toca múltiples capas (DB → RPC → API → Hook → UI). Código
 ### REGLA #6: Anti-patrón "Build-Never-Wire"
 
 **El patrón más destructivo del proyecto.** Código completo que existe pero nunca se conecta:
+
 - `PatientNotificationsBell`: 7 capas funcionales, nunca montado (meses)
 - `domainEvents` bus: tipos + singleton definidos, 0 suscriptores (meses)
 - Validación en UI sin endpoint backend que la consuma
 
 **Regla:** cada feature nueva debe verificar que el circuito está cerrado:
+
 - [ ] Tiene consumidor real (no solo export)
 - [ ] Está montado en un layout/página
 - [ ] El trigger existe y llega hasta la UI
@@ -246,6 +252,7 @@ Cada feature toca múltiples capas (DB → RPC → API → Hook → UI). Código
 - **Deployment:** Cloudflare Pages (por app)
 
 URLs de producción:
+
 - `www.autamedica.com` → `apps/web` (Astro) — landing + portales
 
 ### Segundo Cerebro (Obsidian)
@@ -583,6 +590,7 @@ git push origin main
 ```
 
 **Flujo obligatorio:**
+
 1. Commit atómico conventional commits.
 2. `git pull --rebase && git push origin main`.
 3. `gh run list --limit 2` para verificar.

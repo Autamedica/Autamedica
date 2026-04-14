@@ -220,7 +220,9 @@ export function VoiceAnamnesis({
   const [relayOpeningTurnCount, setRelayOpeningTurnCount] = useState(0)
   const [extractedFields, setExtractedFields] = useState<Record<string, string> | null>(null)
   const [summaryText, setSummaryText] = useState('')
+  const extractedFieldsRef = useRef<Record<string, string> | null>(null)
   const summaryTextRef = useRef('')
+  useEffect(() => { extractedFieldsRef.current = extractedFields }, [extractedFields])
   useEffect(() => { summaryTextRef.current = summaryText }, [summaryText])
   const [vadThreshold, setVadThreshold] = useState(0.015)
   const triggerHaptic = (pattern: number | number[]) => {
@@ -261,6 +263,7 @@ export function VoiceAnamnesis({
   const startSTTRef = useRef<() => void>(() => {})
   const startRelayModeRef = useRef<() => Promise<void>>(async () => {})
   const finishRef = useRef<() => void>(() => {})
+  const finishGuardRef = useRef(false)
   const stateRef = useRef<VoiceState>('idle')
   const ledgerSessionIdRef = useRef<string | null>(null)
 
@@ -383,6 +386,7 @@ export function VoiceAnamnesis({
   // START — Try Gemini Live first, fallback to relay
   // ══════════════════════════════════════════════
   const start = useCallback(async () => {
+    finishGuardRef.current = false
     setState('connecting')
     setError(null)
 
@@ -530,10 +534,7 @@ export function VoiceAnamnesis({
                       }).catch(() => {})
                     }
 
-                    setSummaryText(summary)
-                    stateRef.current = 'completed'
-                    cleanup()
-                    setState('completed')
+                    completeSession(summary)
                     return
                   }
                   if (part.inlineData?.data) playAudio(base64ToFloat32(part.inlineData.data))
@@ -541,10 +542,7 @@ export function VoiceAnamnesis({
                     const normalizedText = part.text.replace(LIVE_COMPLETION_TAG, '').trim()
                     if (normalizedText) addEntry('assistant', normalizedText)
                     if (part.text.includes(LIVE_COMPLETION_TAG)) {
-                      setSummaryText(normalizedText)
-                      stateRef.current = 'completed'
-                      cleanup()
-                      setState('completed')
+                      completeSession(normalizedText)
                       return
                     }
                   }
@@ -853,10 +851,7 @@ export function VoiceAnamnesis({
               if (part.functionCall?.name === 'complete_checkpoint') {
                 const args = part.functionCall.args as Record<string, string> | undefined
                 const summary = args?.summary ?? 'Aclaración registrada.'
-                setSummaryText(summary)
-                stateRef.current = 'completed'
-                cleanup()
-                setState('completed')
+                completeSession(summary)
                 return
               }
               if (part.inlineData?.data) playAudio(base64ToFloat32(part.inlineData.data))
@@ -866,10 +861,7 @@ export function VoiceAnamnesis({
                   addEntry('assistant', normalizedText)
                 }
                 if (part.text.includes(LIVE_COMPLETION_TAG)) {
-                  setSummaryText(normalizedText)
-                  stateRef.current = 'completed'
-                  cleanup()
-                  setState('completed')
+                  completeSession(normalizedText)
                   return
                 }
               }
@@ -1089,10 +1081,10 @@ export function VoiceAnamnesis({
       addEntry('assistant', result.text)
 
       if (result.isComplete) {
-        setSummaryText(result.text)
-        if (result.extractedFields) setExtractedFields(result.extractedFields)
-        speakTTS(result.text, false)
-        setState('completed')
+        if (!isGuidedCheckpoint) {
+          speakTTS(result.text, false)
+        }
+        completeSession(result.text, result.extractedFields ?? null)
         return
       }
       speakTTS(result.text, true)
@@ -1100,7 +1092,7 @@ export function VoiceAnamnesis({
       setError('No se pudo enviar. Intentá de nuevo.')
       setState('idle')
     }
-  }, [addEntry, checkpoint, coverageSummary, relayHistory, relayOpeningTurnCount, speakTTS, stopTTS])
+  }, [addEntry, checkpoint, completeSession, coverageSummary, isGuidedCheckpoint, relayHistory, relayOpeningTurnCount, speakTTS, stopTTS])
 
   // ── STT (relay mode only) — auto-sends when patient stops ──
   const startSTT = useCallback(() => {
@@ -1142,6 +1134,8 @@ export function VoiceAnamnesis({
 
   // ── Finish ──
   const finish = useCallback(() => {
+    if (finishGuardRef.current) return
+    finishGuardRef.current = true
     stateRef.current = 'completed'
     cleanup()
     const entries = transcriptRef.current
@@ -1159,13 +1153,32 @@ export function VoiceAnamnesis({
       chiefComplaint: summaryTextRef.current || validClinicalTranscript || (entries.find(e => e.role === 'user')?.text ?? ''),
       transcript: entries,
       detectedSections: [],
-      extractedFields: extractedFields ?? undefined,
+      extractedFields: extractedFieldsRef.current ?? undefined,
     })
-  }, [cleanup, onDataExtracted, extractedFields])
+  }, [cleanup, onDataExtracted])
 
   useEffect(() => {
     finishRef.current = finish
   }, [finish])
+
+  const completeSession = useCallback((summary?: string | null, fields?: Record<string, string> | null) => {
+    if (typeof summary === 'string') {
+      summaryTextRef.current = summary
+      setSummaryText(summary)
+    }
+    if (fields) {
+      extractedFieldsRef.current = fields
+      setExtractedFields(fields)
+    }
+
+    stateRef.current = 'completed'
+    if (isGuidedCheckpoint) {
+      finishRef.current()
+      return
+    }
+
+    setState('completed')
+  }, [isGuidedCheckpoint])
 
   const earlyExit = useCallback(() => { cleanup(); onSwitchToText() }, [cleanup, onSwitchToText])
 
@@ -1419,14 +1432,11 @@ export function VoiceAnamnesis({
               {isGuidedCheckpoint && transcript.length > 0 && (
                 <button
                   onClick={() => {
-                    stateRef.current = 'completed'
-                    cleanup()
-                    setSummaryText(
+                    completeSession(
                       transcript
                         .filter((entry) => entry.role === 'assistant')
                         .slice(-1)[0]?.text ?? 'Aclaración registrada.',
                     )
-                    setState('completed')
                   }}
                   className="rounded-full bg-neutral-900 px-5 py-2.5 text-xs font-medium text-white hover:bg-neutral-800"
                 >
