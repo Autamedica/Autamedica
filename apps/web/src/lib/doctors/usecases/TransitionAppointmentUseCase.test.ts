@@ -36,6 +36,20 @@ describe('TransitionAppointmentUseCase', () => {
     await expect(useCase.execute('apt-1', 'completed')).rejects.toThrow('Invalid transition from scheduled to completed');
   });
 
+  it('should successfully transition from confirmed to no_show', async () => {
+    const mockAppointment = { id: 'apt-1', status: 'confirmed' } as AppointmentView;
+    const repo = createMockRepo({
+      findById: vi.fn().mockResolvedValue(mockAppointment),
+      update: vi.fn().mockResolvedValue({ ...mockAppointment, status: 'no_show' }),
+    });
+    const useCase = new TransitionAppointmentUseCase({ appointmentRepo: repo });
+
+    const result = await useCase.execute('apt-1', 'no_show');
+
+    expect(result.status).toBe('no_show');
+    expect(repo.update).toHaveBeenCalledWith('apt-1', { status: 'no_show' });
+  });
+
   it('should throw an error if appointment not found', async () => {
     const repo = createMockRepo({
       findById: vi.fn().mockResolvedValue(null),
