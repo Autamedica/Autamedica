@@ -6,7 +6,7 @@
  */
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
-import { jsonOk, badRequest, unauthorized, internalError } from '@/lib/api-helpers';
+import { jsonOk, badRequest, unauthorized } from '@/lib/api-helpers';
 import { billingService } from '@/lib/doctors/services/billing.service';
 import { createAstroAdminClient } from '@/lib/supabase';
 import type { MercadoPagoWebhookPayload } from '@autamedica/types';
@@ -34,16 +34,21 @@ export const POST: APIRoute = async ({ request }) => {
 
     const supabase = createAstroAdminClient();
 
-    await billingService.handlePaymentWebhook(
-      supabase,
-      payload.type,
-      payload.data.id,
-    );
+    // MercadoPago espera 200 siempre — procesar y loguear errores sin devolver 500
+    try {
+      await billingService.handlePaymentWebhook(
+        supabase,
+        payload.type,
+        payload.data.id,
+      );
+    } catch (processingErr) {
+      logger.error('[billing/webhook] Processing error (acknowledged)', processingErr);
+    }
 
-    // MercadoPago espera 200 para confirmar recepción
     return jsonOk({ received: true });
   } catch (err) {
+    // Error en parsing/validación — loguear pero devolver 200 para evitar retries de MP
     logger.error('[billing/webhook] POST error', err);
-    return internalError();
+    return jsonOk({ received: true });
   }
 };
