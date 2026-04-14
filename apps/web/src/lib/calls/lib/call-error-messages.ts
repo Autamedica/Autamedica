@@ -105,8 +105,8 @@ export function translateCallError(
   if (staticMatch) return staticMatch
 
   return {
-    title: 'No pudimos iniciar la videollamada',
-    description: errorCode,
+    title: errorCode === 'appointment_not_callable' ? 'El horario de atención venció' : 'No pudimos iniciar la videollamada',
+    description: errorCode === 'appointment_not_callable' ? 'Este turno ya no se puede iniciar porque expiró el tiempo de espera. Por favor, creá un nuevo turno si necesitás atender al paciente.' : errorCode,
   }
 }
 
