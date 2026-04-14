@@ -15,7 +15,7 @@ interface PrescriptionCreateModalProps {
   onSaved: () => void;
   addPrescription: (
     p: Omit<Prescription, "id" | "created_at" | "updated_at">,
-  ) => Promise<Prescription | void>;
+  ) => Promise<Prescription>;
   updatePrescription: (id: UUID, updates: Partial<Prescription>) => Promise<void>;
   editingPrescription?: Prescription | null;
   issuePrescription?: (id: UUID) => Promise<void>;
