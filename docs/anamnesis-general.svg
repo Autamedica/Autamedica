@@ -1,0 +1,396 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2200 1500" font-family="Inter, -apple-system, sans-serif">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="108%">
+      <feDropShadow dx="2" dy="3" stdDeviation="4" flood-opacity="0.10"/>
+    </filter>
+    <linearGradient id="heroGrad" x1="0" y1="0" x2="2200" y2="0">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0ea5e9"/>
+    </marker>
+  </defs>
+
+  <!-- Fondo -->
+  <rect width="2200" height="1500" fill="#f8fafc"/>
+
+  <!-- Header -->
+  <rect width="2200" height="90" fill="url(#heroGrad)"/>
+  <text x="1100" y="40" text-anchor="middle" font-size="28" font-weight="700" fill="#ffffff">Anamnesis General — Flujo Completo del Paciente</text>
+  <text x="1100" y="68" text-anchor="middle" font-size="14" fill="#94a3b8">13 secciones | 3 modos de llenado | IA con Gemini Live | Versionado automatico</text>
+
+  <!-- ============================================ -->
+  <!-- FASE 1: ENTRADA -->
+  <!-- ============================================ -->
+  <g transform="translate(50, 120)">
+    <rect width="300" height="200" rx="16" fill="white" stroke="#0ea5e9" stroke-width="2" filter="url(#shadow)"/>
+    <text x="150" y="40" text-anchor="middle" font-size="36">🧑</text>
+    <text x="150" y="72" text-anchor="middle" font-size="16" font-weight="700" fill="#0c4a6e">1. Paciente ingresa</text>
+    <text x="150" y="92" text-anchor="middle" font-size="11" fill="#64748b">/patients/anamnesis</text>
+    <line x1="20" y1="102" x2="280" y2="102" stroke="#e2e8f0"/>
+    <text x="30" y="122" font-size="11" fill="#475569">Verificacion de autenticacion</text>
+    <text x="30" y="140" font-size="11" fill="#475569">GET /api/patients/anamnesis</text>
+    <text x="30" y="158" font-size="11" fill="#475569">Carga progreso anterior (si existe)</text>
+    <text x="30" y="176" font-size="11" fill="#475569">Auto-calcula edad desde fecha nacimiento</text>
+    <rect x="200" y="180" width="80" height="16" rx="4" fill="#dbeafe"/>
+    <text x="240" y="192" text-anchor="middle" font-size="9" fill="#1e40af" font-weight="600">UNA por paciente</text>
+  </g>
+
+  <!-- Flecha -->
+  <line x1="350" y1="220" x2="400" y2="220" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- FASE 2: PRIVACIDAD -->
+  <g transform="translate(410, 120)">
+    <rect width="260" height="200" rx="16" fill="white" stroke="#0ea5e9" stroke-width="2" filter="url(#shadow)"/>
+    <text x="130" y="40" text-anchor="middle" font-size="36">🔒</text>
+    <text x="130" y="72" text-anchor="middle" font-size="16" font-weight="700" fill="#0c4a6e">2. Privacidad</text>
+    <line x1="20" y1="82" x2="240" y2="82" stroke="#e2e8f0"/>
+    <text x="30" y="105" font-size="11" fill="#475569">3 garantias de proteccion:</text>
+    <text x="30" y="125" font-size="11" fill="#334155">🛡️ Datos cifrados (AES-256)</text>
+    <text x="30" y="143" font-size="11" fill="#334155">👁️ Control de acceso por rol</text>
+    <text x="30" y="161" font-size="11" fill="#334155">🗑️ Derecho a borrado</text>
+    <text x="30" y="185" font-size="11" fill="#0ea5e9" font-weight="600">"Aceptar y continuar" →</text>
+  </g>
+
+  <!-- Flecha -->
+  <line x1="670" y1="220" x2="720" y2="220" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- FASE 3: ELECCION DE MODO -->
+  <g transform="translate(730, 120)">
+    <rect width="320" height="200" rx="16" fill="white" stroke="#8b5cf6" stroke-width="2" filter="url(#shadow)"/>
+    <text x="160" y="40" text-anchor="middle" font-size="36">🎛️</text>
+    <text x="160" y="72" text-anchor="middle" font-size="16" font-weight="700" fill="#5b21b6">3. Modo de llenado</text>
+    <line x1="20" y1="82" x2="300" y2="82" stroke="#e2e8f0"/>
+    <!-- 3 opciones -->
+    <g transform="translate(20, 95)">
+      <rect width="85" height="55" rx="8" fill="#ede9fe" stroke="#c4b5fd"/>
+      <text x="42" y="22" text-anchor="middle" font-size="20">🎤</text>
+      <text x="42" y="42" text-anchor="middle" font-size="9" fill="#5b21b6" font-weight="600">Voz</text>
+    </g>
+    <g transform="translate(115, 95)">
+      <rect width="85" height="55" rx="8" fill="#ede9fe" stroke="#c4b5fd"/>
+      <text x="42" y="22" text-anchor="middle" font-size="20">💬</text>
+      <text x="42" y="42" text-anchor="middle" font-size="9" fill="#5b21b6" font-weight="600">Conversacional</text>
+    </g>
+    <g transform="translate(210, 95)">
+      <rect width="85" height="55" rx="8" fill="#ede9fe" stroke="#c4b5fd"/>
+      <text x="42" y="22" text-anchor="middle" font-size="20">📝</text>
+      <text x="42" y="42" text-anchor="middle" font-size="9" fill="#5b21b6" font-weight="600">Wizard</text>
+    </g>
+    <text x="20" y="175" font-size="10" fill="#64748b">Gemini Live (voz) | Gemini Chat | Formulario guiado</text>
+    <text x="20" y="190" font-size="10" fill="#64748b">Puede cambiar modo en cualquier momento</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- LAS 13 SECCIONES (centro) -->
+  <!-- ============================================ -->
+  <g transform="translate(50, 360)">
+    <rect width="1000" height="440" rx="16" fill="white" stroke="#0f172a" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="1000" height="44" rx="16" fill="#0f172a"/>
+    <rect y="32" width="1000" height="12" fill="#0f172a"/>
+    <text x="500" y="30" text-anchor="middle" font-size="16" font-weight="700" fill="#ffffff">📋 4. Wizard — 13 Secciones del Interrogatorio Clinico</text>
+
+    <!-- Filiacion -->
+    <g transform="translate(20, 60)">
+      <rect width="230" height="30" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+      <text x="10" y="20" font-size="10" fill="#1e40af" font-weight="700">FILIACION</text>
+      <text x="230" y="20" text-anchor="end" font-size="9" fill="#64748b">carry_forward</text>
+    </g>
+    <g transform="translate(20, 95)">
+      <rect width="145" height="44" rx="8" fill="#f0f9ff"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">1. Edad</text>
+      <text x="10" y="33" font-size="9" fill="#64748b">Fecha nacimiento → auto</text>
+    </g>
+    <g transform="translate(175, 95)">
+      <rect width="145" height="44" rx="8" fill="#f0f9ff"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">2. Ocupacion</text>
+      <text x="10" y="33" font-size="9" fill="#64748b">Riesgos laborales</text>
+    </g>
+
+    <!-- Motivo consulta -->
+    <g transform="translate(20, 150)">
+      <rect width="230" height="30" rx="6" fill="#fef2f2" stroke="#fecaca"/>
+      <text x="10" y="20" font-size="10" fill="#dc2626" font-weight="700">MOTIVO DE CONSULTA</text>
+      <text x="230" y="20" text-anchor="end" font-size="9" fill="#64748b">per_visit (fresco)</text>
+    </g>
+    <g transform="translate(20, 185)">
+      <rect width="300" height="44" rx="8" fill="#fef2f2"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">3. Sintoma principal</text>
+      <text x="10" y="33" font-size="9" fill="#64748b">Textarea + cuando empezo + intensidad 1-10</text>
+    </g>
+
+    <!-- Antecedentes -->
+    <g transform="translate(20, 240)">
+      <rect width="230" height="30" rx="6" fill="#f0fdf4" stroke="#bbf7d0"/>
+      <text x="10" y="20" font-size="10" fill="#16a34a" font-weight="700">ANTECEDENTES</text>
+      <text x="230" y="20" text-anchor="end" font-size="9" fill="#64748b">carry_forward_additive</text>
+    </g>
+    <g transform="translate(20, 275)">
+      <rect width="145" height="44" rx="8" fill="#f0fdf4"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">4. Enf. previas</text>
+      <text x="10" y="33" font-size="9" fill="#64748b">Cronicas (multiselect)</text>
+    </g>
+    <g transform="translate(175, 275)">
+      <rect width="145" height="44" rx="8" fill="#f0fdf4"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">5. Medicamentos</text>
+      <text x="10" y="33" font-size="9" fill="#64748b">Boolean + lista</text>
+    </g>
+    <g transform="translate(330, 275)">
+      <rect width="145" height="44" rx="8" fill="#f0fdf4"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">6. Alergias</text>
+      <text x="10" y="33" font-size="9" fill="#64748b">Multiselect/texto</text>
+    </g>
+    <g transform="translate(485, 275)">
+      <rect width="145" height="44" rx="8" fill="#f0fdf4"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">7. Antec. familiares</text>
+      <text x="10" y="33" font-size="9" fill="#64748b">Enf. familiares</text>
+    </g>
+    <g transform="translate(640, 275)">
+      <rect width="145" height="44" rx="8" fill="#f0fdf4"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">8. Habitos</text>
+      <text x="10" y="33" font-size="9" fill="#64748b">Alcohol/tabaco/ejercicio</text>
+    </g>
+
+    <!-- Checkpoint parcial -->
+    <g transform="translate(340, 98)">
+      <rect width="300" height="70" rx="10" fill="#fef9c4" stroke="#fde047" stroke-width="2"/>
+      <text x="150" y="22" text-anchor="middle" font-size="22">🎤</text>
+      <text x="150" y="42" text-anchor="middle" font-size="11" fill="#92400e" font-weight="700">CHECKPOINT PARCIAL (paso 6)</text>
+      <text x="150" y="58" text-anchor="middle" font-size="10" fill="#a16207">"Queres hablar con IA para profundizar?"</text>
+    </g>
+
+    <!-- Sistemas -->
+    <g transform="translate(20, 330)">
+      <rect width="230" height="30" rx="6" fill="#eff6ff" stroke="#93c5fd"/>
+      <text x="10" y="20" font-size="10" fill="#2563eb" font-weight="700">REVISION POR SISTEMAS</text>
+      <text x="230" y="20" text-anchor="end" font-size="9" fill="#64748b">per_visit</text>
+    </g>
+    <g transform="translate(20, 365)">
+      <rect width="145" height="44" rx="8" fill="#eff6ff"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">9. Cardiovascular</text>
+      <text x="10" y="33" font-size="9" fill="#64748b">Palpitaciones, disnea</text>
+    </g>
+    <g transform="translate(175, 365)">
+      <rect width="145" height="44" rx="8" fill="#eff6ff"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">10. Respiratorio</text>
+      <text x="10" y="33" font-size="9" fill="#64748b">Tos, sibilancias</text>
+    </g>
+    <g transform="translate(330, 365)">
+      <rect width="145" height="44" rx="8" fill="#eff6ff"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">11. Digestivo</text>
+      <text x="10" y="33" font-size="9" fill="#64748b">Dolor, nauseas</text>
+    </g>
+    <g transform="translate(485, 365)">
+      <rect width="145" height="44" rx="8" fill="#eff6ff"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">12. Genitourinario</text>
+      <text x="10" y="33" font-size="9" fill="#64748b">Frecuencia, disuria</text>
+    </g>
+    <g transform="translate(640, 365)">
+      <rect width="145" height="44" rx="8" fill="#fef9c4" stroke="#fde047"/>
+      <text x="10" y="17" font-size="10" fill="#334155" font-weight="600">13. Resumen final</text>
+      <text x="10" y="33" font-size="9" fill="#92400e">Texto libre del paciente</text>
+    </g>
+
+    <!-- Leyenda mutabilidad -->
+    <g transform="translate(800, 60)">
+      <text x="0" y="12" font-size="10" font-weight="700" fill="#334155">Mutabilidad:</text>
+      <rect x="0" y="20" width="12" height="12" rx="3" fill="#dbeafe"/>
+      <text x="18" y="30" font-size="9" fill="#475569">carry_forward (no re-preguntar)</text>
+      <rect x="0" y="38" width="12" height="12" rx="3" fill="#f0fdf4"/>
+      <text x="18" y="48" font-size="9" fill="#475569">additive (solo agrega, no borra)</text>
+      <rect x="0" y="56" width="12" height="12" rx="3" fill="#fef2f2"/>
+      <text x="18" y="66" font-size="9" fill="#475569">per_visit (fresco cada visita)</text>
+      <rect x="0" y="74" width="12" height="12" rx="3" fill="#fef9c4"/>
+      <text x="18" y="84" font-size="9" fill="#475569">confirm_on_revisit (cambio algo?)</text>
+    </g>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- EXTRACCION IA (derecha) -->
+  <!-- ============================================ -->
+  <g transform="translate(1100, 360)">
+    <rect width="500" height="210" rx="16" fill="white" stroke="#8b5cf6" stroke-width="2" filter="url(#shadow)"/>
+    <text x="250" y="35" text-anchor="middle" font-size="30">✨</text>
+    <text x="250" y="62" text-anchor="middle" font-size="16" font-weight="700" fill="#5b21b6">5. Extraccion IA (Gemini)</text>
+    <text x="250" y="80" text-anchor="middle" font-size="11" fill="#7c3aed">POST /api/patients/anamnesis/extract</text>
+    <line x1="20" y1="90" x2="480" y2="90" stroke="#e2e8f0"/>
+    <text x="30" y="112" font-size="11" fill="#475569" font-weight="600">Prompt: argente_interrogator_v7</text>
+    <text x="30" y="130" font-size="11" fill="#475569">Nivel: R4 medicina interna (Argente-Alvarez)</text>
+    <text x="30" y="148" font-size="11" fill="#475569">Framework: ALICIADO semiologico</text>
+    <line x1="20" y1="158" x2="480" y2="158" stroke="#e2e8f0"/>
+    <text x="30" y="178" font-size="11" fill="#334155" font-weight="600">Genera:</text>
+    <text x="30" y="196" font-size="10" fill="#64748b">Preguntas criticas | Alertas de calidad | Cobertura | Safety flags</text>
+  </g>
+
+  <!-- Guia/Clarificacion -->
+  <g transform="translate(1100, 590)">
+    <rect width="500" height="210" rx="16" fill="white" stroke="#06b6d4" stroke-width="2" filter="url(#shadow)"/>
+    <text x="250" y="35" text-anchor="middle" font-size="30">🩺</text>
+    <text x="250" y="62" text-anchor="middle" font-size="16" font-weight="700" fill="#164e63">6. Clarificacion (si hay criticas)</text>
+    <line x1="20" y1="75" x2="480" y2="75" stroke="#e2e8f0"/>
+
+    <g transform="translate(20, 85)">
+      <rect width="220" height="50" rx="8" fill="#cffafe"/>
+      <text x="110" y="20" text-anchor="middle" font-size="20">💬</text>
+      <text x="110" y="40" text-anchor="middle" font-size="10" fill="#164e63">Chat multi-turno con Gemini</text>
+    </g>
+    <g transform="translate(260, 85)">
+      <rect width="220" height="50" rx="8" fill="#cffafe"/>
+      <text x="110" y="20" text-anchor="middle" font-size="20">🎤</text>
+      <text x="110" y="40" text-anchor="middle" font-size="10" fill="#164e63">Voz (Gemini Live relay)</text>
+    </g>
+
+    <text x="30" y="160" font-size="11" fill="#475569">Solo se activa si hayCriticalQuestions = true</text>
+    <text x="30" y="178" font-size="11" fill="#475569">Preguntas priorizadas: critica > alta > media</text>
+    <text x="30" y="196" font-size="11" fill="#475569">Turnos guardados en DB para auditoria</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- COMPLETADO + OUTPUTS (fila inferior) -->
+  <!-- ============================================ -->
+  <g transform="translate(50, 840)">
+    <rect width="1550" height="260" rx="16" fill="white" stroke="#22c55e" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="1550" height="44" rx="16" fill="#166534"/>
+    <rect y="32" width="1550" height="12" fill="#166534"/>
+    <text x="775" y="30" text-anchor="middle" font-size="16" font-weight="700" fill="#ffffff">🎉 7. Completado — Outputs y Acciones</text>
+
+    <!-- Columna 1: Estado -->
+    <g transform="translate(30, 60)">
+      <text x="0" y="15" font-size="12" font-weight="700" fill="#166534">Estado final</text>
+      <text x="0" y="38" font-size="11" fill="#475569">PATCH /api/patients/anamnesis</text>
+      <text x="0" y="55" font-size="11" fill="#475569">status = 'completed'</text>
+      <text x="0" y="72" font-size="11" fill="#475569">completion_percentage = 100%</text>
+      <text x="0" y="89" font-size="11" fill="#475569">completed_at = now()</text>
+      <text x="0" y="112" font-size="11" fill="#334155" font-weight="600">Version automatica creada</text>
+      <text x="0" y="129" font-size="11" fill="#475569">Snapshot inmutable de todas las secciones</text>
+      <text x="0" y="152" font-size="11" fill="#334155" font-weight="600">Domain event emitido:</text>
+      <text x="0" y="169" font-size="11" fill="#0ea5e9">anamnesis.completed →</text>
+      <text x="0" y="186" font-size="11" fill="#475569">Notifica doctores del care team</text>
+    </g>
+
+    <!-- Columna 2: PDF -->
+    <g transform="translate(350, 60)">
+      <rect width="250" height="180" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+      <text x="125" y="30" text-anchor="middle" font-size="30">📄</text>
+      <text x="125" y="58" text-anchor="middle" font-size="13" font-weight="700" fill="#166534">PDF Anamnesis</text>
+      <text x="20" y="82" font-size="10" fill="#475569">GET /api/patients/anamnesis/pdf</text>
+      <text x="20" y="100" font-size="10" fill="#475569">Dark header editorial</text>
+      <text x="20" y="116" font-size="10" fill="#475569">Cobertura IA por seccion</text>
+      <text x="20" y="132" font-size="10" fill="#475569">Safety flags resaltados</text>
+      <text x="20" y="148" font-size="10" fill="#475569">Generado con jsPDF (edge)</text>
+      <text x="20" y="168" font-size="10" fill="#166534" font-weight="600">Descargable por paciente y doctor</text>
+    </g>
+
+    <!-- Columna 3: Acciones post -->
+    <g transform="translate(650, 60)">
+      <text x="0" y="15" font-size="12" font-weight="700" fill="#334155">Acciones del paciente</text>
+      <g transform="translate(0, 25)">
+        <rect width="120" height="45" rx="8" fill="#dbeafe"/>
+        <text x="60" y="18" text-anchor="middle" font-size="16">🔄</text>
+        <text x="60" y="36" text-anchor="middle" font-size="9" fill="#1e40af">Actualizar</text>
+      </g>
+      <g transform="translate(130, 25)">
+        <rect width="120" height="45" rx="8" fill="#ede9fe"/>
+        <text x="60" y="18" text-anchor="middle" font-size="16">🎤</text>
+        <text x="60" y="36" text-anchor="middle" font-size="9" fill="#5b21b6">Hablar con IA</text>
+      </g>
+      <g transform="translate(0, 80)">
+        <rect width="120" height="45" rx="8" fill="#f0fdf4"/>
+        <text x="60" y="18" text-anchor="middle" font-size="16">📊</text>
+        <text x="60" y="36" text-anchor="middle" font-size="9" fill="#166534">Mi panel</text>
+      </g>
+      <g transform="translate(130, 80)">
+        <rect width="120" height="45" rx="8" fill="#cffafe"/>
+        <text x="60" y="18" text-anchor="middle" font-size="16">📅</text>
+        <text x="60" y="36" text-anchor="middle" font-size="9" fill="#164e63">Consultar</text>
+      </g>
+      <text x="0" y="155" font-size="10" fill="#64748b">Revisita: carry_forward salta,</text>
+      <text x="0" y="170" font-size="10" fill="#64748b">confirm pregunta "cambio algo?"</text>
+      <text x="0" y="185" font-size="10" fill="#64748b">per_visit siempre fresco</text>
+    </g>
+
+    <!-- Columna 4: Vista doctor -->
+    <g transform="translate(950, 60)">
+      <rect width="280" height="180" rx="12" fill="#cffafe" stroke="#67e8f9"/>
+      <text x="140" y="30" text-anchor="middle" font-size="30">👨‍⚕️</text>
+      <text x="140" y="58" text-anchor="middle" font-size="13" font-weight="700" fill="#164e63">Vista del Doctor</text>
+      <text x="20" y="82" font-size="10" fill="#475569">GET /api/doctors/patients/[id]/anamnesis</text>
+      <text x="20" y="100" font-size="10" fill="#475569">Solo si privacy_accepted = true</text>
+      <text x="20" y="118" font-size="10" fill="#475569">Verificacion care team access</text>
+      <line x1="20" y1="128" x2="260" y2="128" stroke="#a5f3fc"/>
+      <text x="20" y="148" font-size="10" fill="#334155" font-weight="600">Durante videoconsulta:</text>
+      <text x="20" y="166" font-size="10" fill="#475569">ConsultationContextPanel muestra</text>
+      <text x="20" y="182" font-size="10" fill="#475569">anamnesis + vitales + medicamentos</text>
+    </g>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- FLECHAS de flujo -->
+  <!-- ============================================ -->
+  <!-- Wizard → Extraccion IA -->
+  <line x1="1050" y1="580" x2="1100" y2="465" stroke="#8b5cf6" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="6,3"/>
+  <text x="1060" y="510" font-size="10" fill="#7c3aed" transform="rotate(-30,1060,510)">checkpoint final</text>
+
+  <!-- Extraccion → Clarificacion -->
+  <line x1="1350" y1="570" x2="1350" y2="590" stroke="#06b6d4" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="1360" y="585" font-size="9" fill="#0891b2">si hay criticas</text>
+
+  <!-- Clarificacion → Completado -->
+  <line x1="1350" y1="800" x2="1350" y2="840" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============================================ -->
+  <!-- TABLAS DB (pie) -->
+  <!-- ============================================ -->
+  <g transform="translate(50, 1140)">
+    <rect width="1550" height="130" rx="12" fill="#f1f5f9" stroke="#e2e8f0"/>
+    <text x="30" y="25" font-size="13" font-weight="700" fill="#334155">Modelo de Datos</text>
+
+    <g transform="translate(30, 40)">
+      <rect width="220" height="75" rx="8" fill="white" stroke="#cbd5e1"/>
+      <text x="10" y="18" font-size="10" font-weight="700" fill="#334155">anamnesis</text>
+      <text x="10" y="34" font-size="9" fill="#64748b">patient_id (UNIQUE)</text>
+      <text x="10" y="48" font-size="9" fill="#64748b">status, completion_%</text>
+      <text x="10" y="62" font-size="9" fill="#64748b">privacy_accepted, locked</text>
+    </g>
+
+    <g transform="translate(270, 40)">
+      <rect width="220" height="75" rx="8" fill="white" stroke="#cbd5e1"/>
+      <text x="10" y="18" font-size="10" font-weight="700" fill="#334155">anamnesis_sections</text>
+      <text x="10" y="34" font-size="9" fill="#64748b">anamnesis_id (FK)</text>
+      <text x="10" y="48" font-size="9" fill="#64748b">section, data (JSONB)</text>
+      <text x="10" y="62" font-size="9" fill="#64748b">completed, completed_at</text>
+    </g>
+
+    <g transform="translate(510, 40)">
+      <rect width="220" height="75" rx="8" fill="white" stroke="#cbd5e1"/>
+      <text x="10" y="18" font-size="10" font-weight="700" fill="#334155">anamnesis_extractions</text>
+      <text x="10" y="34" font-size="9" fill="#64748b">checkpoint (partial/final)</text>
+      <text x="10" y="48" font-size="9" fill="#64748b">extraction_result (JSONB)</text>
+      <text x="10" y="62" font-size="9" fill="#64748b">prompt_version, model</text>
+    </g>
+
+    <g transform="translate(750, 40)">
+      <rect width="220" height="75" rx="8" fill="white" stroke="#cbd5e1"/>
+      <text x="10" y="18" font-size="10" font-weight="700" fill="#334155">anamnesis_versions</text>
+      <text x="10" y="34" font-size="9" fill="#64748b">version_number (auto-incr)</text>
+      <text x="10" y="48" font-size="9" fill="#64748b">sections_snapshot (JSONB)</text>
+      <text x="10" y="62" font-size="9" fill="#64748b">changes_summary, pdf_key</text>
+    </g>
+
+    <g transform="translate(990, 40)">
+      <text x="0" y="18" font-size="10" font-weight="700" fill="#334155">Rate limits:</text>
+      <text x="0" y="36" font-size="9" fill="#64748b">Extraccion IA: 10/paciente/dia</text>
+      <text x="0" y="52" font-size="9" fill="#64748b">Preguntas IA: 5/paciente/dia</text>
+      <text x="0" y="68" font-size="9" fill="#64748b">Timeout extraccion: 60s max</text>
+      <text x="0" y="84" font-size="9" fill="#64748b">Sesion voz: 15-20 min</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <text x="1100" y="1310" text-anchor="middle" font-size="11" fill="#94a3b8">AutaMedica — Anamnesis General — Abril 2026</text>
+  <text x="1100" y="1328" text-anchor="middle" font-size="11" fill="#94a3b8">Prompt semiologico: Argente-Alvarez nivel R4 | Modelo: Gemini 2.0 Flash | Una anamnesis por paciente con versionado</text>
+</svg>

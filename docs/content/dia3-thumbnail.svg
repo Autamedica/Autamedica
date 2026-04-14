@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="100%" stop-color="#0a0505"/>
+    </linearGradient>
+    <radialGradient id="redGlow" cx="50%" cy="45%" r="45%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.1"/>
+      <stop offset="60%" stop-color="#ef4444" stop-opacity="0.03"/>
+      <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="redLine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#ef4444" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="scanline" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#ef4444" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glitch">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#bg3)"/>
+  <rect width="1080" height="1920" fill="url(#redGlow)"/>
+
+  <!-- Hacker grid pattern -->
+  <g opacity="0.03">
+    <pattern id="hackGrid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="60" height="60" fill="none" stroke="#ef4444" stroke-width="0.5"/>
+    </pattern>
+    <rect width="1080" height="1920" fill="url(#hackGrid)"/>
+  </g>
+
+  <!-- Scanlines effect -->
+  <g opacity="0.02">
+    <pattern id="scanlines" x="0" y="0" width="1080" height="4" patternUnits="userSpaceOnUse">
+      <rect width="1080" height="2" fill="white"/>
+    </pattern>
+    <rect width="1080" height="1920" fill="url(#scanlines)"/>
+  </g>
+
+  <!-- Top accent -->
+  <rect x="0" y="80" width="1080" height="2" fill="url(#redLine)"/>
+
+  <!-- Warning badge -->
+  <text x="540" y="300" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="160" text-anchor="middle" fill="white">⚠️</text>
+
+  <!-- Shield emoji -->
+  <text x="540" y="520" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="200" text-anchor="middle" fill="white">🛡️</text>
+
+  <!-- Decorative brackets -->
+  <text x="180" y="540" font-family="'Courier New',monospace" font-size="200" fill="#ef4444" opacity="0.15">{</text>
+  <text x="820" y="540" font-family="'Courier New',monospace" font-size="200" fill="#ef4444" opacity="0.15">}</text>
+
+  <!-- Red accent line -->
+  <rect x="0" y="680" width="1080" height="3" fill="url(#redLine)"/>
+
+  <!-- Main text -->
+  <text x="540" y="850" font-family="Inter,system-ui,sans-serif" font-size="110" font-weight="400" text-anchor="middle" fill="white" letter-spacing="-3">Intentá</text>
+  <text x="540" y="980" font-family="Inter,system-ui,sans-serif" font-size="110" font-weight="400" text-anchor="middle" fill="#ef4444" letter-spacing="-3">romperlo</text>
+
+  <!-- Subtitle -->
+  <text x="540" y="1120" font-family="Inter,system-ui,sans-serif" font-size="44" font-weight="400" text-anchor="middle" fill="#a3a3a3" letter-spacing="1">Admisión clínica con marco seguro</text>
+
+  <!-- Divider -->
+  <rect x="340" y="1200" width="400" height="1" fill="#ef4444" opacity="0.3"/>
+
+  <!-- Code-like visual -->
+  <g transform="translate(200,1290)" font-family="'Courier New',monospace" font-size="28" fill="#ef4444" opacity="0.6">
+    <text x="0" y="0">input: "contradicción detectada"</text>
+    <text x="0" y="50" fill="#525252">// framework validates...</text>
+    <text x="0" y="100" fill="#22c55e">output: "marco restaurado ✓"</text>
+  </g>
+
+  <!-- Bottom explanation -->
+  <text x="540" y="1560" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="400" text-anchor="middle" fill="#525252" letter-spacing="1">Datos contradictorios</text>
+  <text x="540" y="1610" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="600" text-anchor="middle" fill="#ef4444" letter-spacing="1">→ el sistema vuelve al marco</text>
+
+  <!-- Bottom accent -->
+  <rect x="0" y="1700" width="1080" height="1" fill="url(#redLine)" opacity="0.4"/>
+
+  <!-- Logo area -->
+  <text x="540" y="1770" font-family="Inter,system-ui,sans-serif" font-size="38" font-weight="600" text-anchor="middle" fill="#ef4444" letter-spacing="6">AUTAMEDICA</text>
+  <text x="540" y="1820" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="400" text-anchor="middle" fill="#525252" letter-spacing="3">Admisión clínica inteligente</text>
+</svg>

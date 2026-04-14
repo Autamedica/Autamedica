@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#111111"/>
+      <stop offset="50%" stop-color="#0a0a0a"/>
+      <stop offset="100%" stop-color="#050505"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="50%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#0a0a0a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="accentLine1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#0ea5e9" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#bg1)"/>
+  <rect width="1080" height="1920" fill="url(#glow1)"/>
+
+  <!-- Subtle dot pattern -->
+  <g opacity="0.03">
+    <pattern id="dots1" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="20" cy="20" r="1" fill="white"/>
+    </pattern>
+    <rect width="1080" height="1920" fill="url(#dots1)"/>
+  </g>
+
+  <!-- Top accent line -->
+  <rect x="0" y="80" width="1080" height="2" fill="url(#accentLine1)"/>
+
+  <!-- Patient emoji area -->
+  <text x="540" y="420" font-family="'Segoe UI Emoji','Noto Color Emoji','Apple Color Emoji',sans-serif" font-size="180" text-anchor="middle" fill="white">🧑</text>
+
+  <!-- Clock emoji -->
+  <text x="540" y="620" font-family="'Segoe UI Emoji','Noto Color Emoji','Apple Color Emoji',sans-serif" font-size="120" text-anchor="middle" fill="white">⏰</text>
+
+  <!-- Decorative line -->
+  <rect x="340" y="700" width="400" height="2" fill="url(#accentLine1)"/>
+
+  <!-- Main text -->
+  <text x="540" y="880" font-family="Inter,system-ui,sans-serif" font-size="108" font-weight="400" text-anchor="middle" fill="white" letter-spacing="-2">Esperó 2 horas</text>
+
+  <!-- Accent text -->
+  <text x="540" y="1020" font-family="Inter,system-ui,sans-serif" font-size="62" font-weight="600" text-anchor="middle" fill="#0ea5e9" letter-spacing="0">para una consulta</text>
+  <text x="540" y="1100" font-family="Inter,system-ui,sans-serif" font-size="62" font-weight="600" text-anchor="middle" fill="#0ea5e9" letter-spacing="0">de 3 minutos</text>
+
+  <!-- Divider -->
+  <rect x="390" y="1200" width="300" height="1" fill="#ffffff" opacity="0.15"/>
+
+  <!-- Bottom text -->
+  <text x="540" y="1340" font-family="Inter,system-ui,sans-serif" font-size="44" font-weight="400" text-anchor="middle" fill="#a3a3a3" letter-spacing="1">El problema no era el médico.</text>
+
+  <!-- Bottom accent glow -->
+  <rect x="0" y="1680" width="1080" height="2" fill="url(#accentLine1)" opacity="0.5"/>
+
+  <!-- Logo area -->
+  <text x="540" y="1770" font-family="Inter,system-ui,sans-serif" font-size="38" font-weight="600" text-anchor="middle" fill="#0ea5e9" letter-spacing="6">AUTAMEDICA</text>
+  <text x="540" y="1820" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="400" text-anchor="middle" fill="#525252" letter-spacing="3">Admisión clínica inteligente</text>
+</svg>

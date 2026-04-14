@@ -40,7 +40,7 @@ const DEFAULT_OPTIONS: Required<UseTelemedicineClientOptions> = {
 export function useTelemedicineClient(
   roomId: string,
   userId: string,
-  userType: 'doctor' | 'patient' | 'nurse',
+  userType: 'doctor' | 'patient' | 'nurse' | 'guest',
   options: UseTelemedicineClientOptions = {}
 ): TelemedicineClientHook {
   const opts = { ...DEFAULT_OPTIONS, ...options }

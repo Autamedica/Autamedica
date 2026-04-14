@@ -25,7 +25,7 @@ export interface WebRTCConfig {
   iceServers: RTCIceServer[]
   roomId?: string
   userId: string
-  userType: 'doctor' | 'patient' | 'nurse'
+  userType: 'doctor' | 'patient' | 'nurse' | 'guest'
   userName?: string
   /** When provided, uses Supabase Realtime for signaling instead of plain WebSocket. */
   supabase?: SupabaseClient
@@ -80,7 +80,7 @@ export class WebRTCClient implements CallProvider {
   private isWarmedUp = false
   private warmUpPromise: Promise<WarmUpResult> | null = null
 
-  constructor(config: Partial<WebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' }) {
+  constructor(config: Partial<WebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' | 'guest' }) {
     const envServers = loadIceServers()
     const iceServers = config.iceServers || (envServers.length > 0 ? envServers : ICE_STUN_ONLY)
 

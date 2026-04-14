@@ -12,7 +12,7 @@ interface PeerState {
 interface ChatManagerContext {
   userId: string
   userName?: string
-  userType: 'doctor' | 'patient' | 'nurse'
+  userType: 'doctor' | 'patient' | 'nurse' | 'guest'
   getPeerConnections: () => Map<string, PeerState>
   emit: (event: 'chat-message' | 'chat-ready', data: unknown) => void
   log: {

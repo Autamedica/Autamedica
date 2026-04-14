@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <defs>
+    <linearGradient id="bg2top" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a0a0a"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <linearGradient id="bg2bottom" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="100%" stop-color="#050a10"/>
+    </linearGradient>
+    <linearGradient id="dividerGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#0ea5e9" stop-opacity="1"/>
+      <stop offset="70%" stop-color="#0ea5e9" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="chaosGlow" cx="50%" cy="30%" r="40%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orderGlow" cx="50%" cy="70%" r="40%">
+      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background top half (chaotic) -->
+  <rect width="1080" height="960" fill="url(#bg2top)"/>
+  <rect width="1080" height="960" fill="url(#chaosGlow)"/>
+
+  <!-- Background bottom half (ordered) -->
+  <rect y="960" width="1080" height="960" fill="url(#bg2bottom)"/>
+  <rect y="960" width="1080" height="960" fill="url(#orderGlow)"/>
+
+  <!-- Subtle grid pattern for bottom half -->
+  <g opacity="0.04">
+    <line x1="200" y1="960" x2="200" y2="1920" stroke="white" stroke-width="1"/>
+    <line x1="400" y1="960" x2="400" y2="1920" stroke="white" stroke-width="1"/>
+    <line x1="600" y1="960" x2="600" y2="1920" stroke="white" stroke-width="1"/>
+    <line x1="800" y1="960" x2="800" y2="1920" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="1100" x2="1080" y2="1100" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="1300" x2="1080" y2="1300" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="1500" x2="1080" y2="1500" stroke="white" stroke-width="1"/>
+  </g>
+
+  <!-- TOP SECTION: SIN CONTEXTO -->
+  <text x="540" y="160" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="600" text-anchor="middle" fill="#ef4444" letter-spacing="8" opacity="0.9">SIN CONTEXTO</text>
+
+  <!-- Scattered data icons (chaotic arrangement) -->
+  <text x="180" y="340" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="80" fill="white" opacity="0.7" transform="rotate(-15,180,320)">📋</text>
+  <text x="480" y="290" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="90" fill="white" opacity="0.6" transform="rotate(12,480,270)">❌</text>
+  <text x="780" y="370" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="70" fill="white" opacity="0.5" transform="rotate(-8,780,350)">📋</text>
+  <text x="320" y="520" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="60" fill="white" opacity="0.4" transform="rotate(20,320,500)">❌</text>
+  <text x="700" y="540" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="75" fill="white" opacity="0.5" transform="rotate(-22,700,520)">📋</text>
+
+  <!-- Scattered messy lines in top -->
+  <line x1="150" y1="450" x2="400" y2="430" stroke="#ef4444" stroke-width="1" opacity="0.15"/>
+  <line x1="500" y1="380" x2="750" y2="500" stroke="#ef4444" stroke-width="1" opacity="0.1"/>
+  <line x1="300" y1="600" x2="600" y2="580" stroke="#ef4444" stroke-width="1" opacity="0.12"/>
+
+  <!-- Main text (centered between sections) -->
+  <text x="540" y="750" font-family="Inter,system-ui,sans-serif" font-size="88" font-weight="400" text-anchor="middle" fill="white" letter-spacing="-2">Qué ve un médico</text>
+  <text x="540" y="860" font-family="Inter,system-ui,sans-serif" font-size="48" font-weight="400" text-anchor="middle" fill="#a3a3a3">cuando entra ciego vs preparado</text>
+
+  <!-- DIVIDER LINE -->
+  <rect x="0" y="955" width="1080" height="4" fill="url(#dividerGrad)"/>
+  <rect x="0" y="955" width="1080" height="1" fill="#0ea5e9" opacity="0.8"/>
+
+  <!-- BOTTOM SECTION: CON CONTEXTO -->
+  <text x="540" y="1060" font-family="Inter,system-ui,sans-serif" font-size="36" font-weight="600" text-anchor="middle" fill="#0ea5e9" letter-spacing="8" opacity="0.9">CON CONTEXTO</text>
+
+  <!-- Organized data icons (structured) -->
+  <g transform="translate(540,1280)">
+    <text x="-240" y="0" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="80" text-anchor="middle" fill="white" opacity="0.9">✅</text>
+    <text x="0" y="0" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="80" text-anchor="middle" fill="white" opacity="0.9">📊</text>
+    <text x="240" y="0" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="80" text-anchor="middle" fill="white" opacity="0.9">✅</text>
+  </g>
+
+  <!-- Structured lines in bottom -->
+  <rect x="200" y="1380" width="680" height="1" fill="#0ea5e9" opacity="0.15"/>
+  <rect x="200" y="1430" width="680" height="1" fill="#0ea5e9" opacity="0.1"/>
+  <rect x="200" y="1480" width="680" height="1" fill="#0ea5e9" opacity="0.08"/>
+
+  <!-- Clean data rows -->
+  <rect x="200" y="1400" width="200" height="20" rx="4" fill="#0ea5e9" opacity="0.12"/>
+  <rect x="430" y="1400" width="150" height="20" rx="4" fill="#0ea5e9" opacity="0.08"/>
+  <rect x="200" y="1450" width="280" height="20" rx="4" fill="#0ea5e9" opacity="0.1"/>
+  <rect x="510" y="1450" width="120" height="20" rx="4" fill="#0ea5e9" opacity="0.07"/>
+
+  <!-- Bottom accent -->
+  <rect x="0" y="1700" width="1080" height="1" fill="url(#dividerGrad)" opacity="0.3"/>
+
+  <!-- Logo area -->
+  <text x="540" y="1770" font-family="Inter,system-ui,sans-serif" font-size="38" font-weight="600" text-anchor="middle" fill="#0ea5e9" letter-spacing="6">AUTAMEDICA</text>
+  <text x="540" y="1820" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="400" text-anchor="middle" fill="#525252" letter-spacing="3">Admisión clínica inteligente</text>
+</svg>

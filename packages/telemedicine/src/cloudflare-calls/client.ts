@@ -35,7 +35,7 @@ type ServerMessage =
 export interface CloudflareCallsClientConfig {
   userId: string
   userName?: string
-  userType: 'doctor' | 'patient' | 'nurse'
+  userType: 'doctor' | 'patient' | 'nurse' | 'guest'
   roomId?: string
   /** URL del proxy API (default: '/api/cloudflare-calls') */
   apiProxyUrl?: string
