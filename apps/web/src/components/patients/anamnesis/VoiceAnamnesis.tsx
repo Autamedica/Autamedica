@@ -1047,6 +1047,25 @@ export function VoiceAnamnesis({
     startRelayModeRef.current = startRelayMode
   }, [startRelayMode])
 
+  const completeSession = useCallback((summary?: string | null, fields?: Record<string, string> | null) => {
+    if (typeof summary === 'string') {
+      summaryTextRef.current = summary
+      setSummaryText(summary)
+    }
+    if (fields) {
+      extractedFieldsRef.current = fields
+      setExtractedFields(fields)
+    }
+
+    stateRef.current = 'completed'
+    if (isGuidedCheckpoint) {
+      finishRef.current()
+      return
+    }
+
+    setState('completed')
+  }, [isGuidedCheckpoint])
+
   // ── Send to relay ──
   const sendRelayMessage = useCallback(async (text: string) => {
     if (!text.trim()) return
@@ -1160,25 +1179,6 @@ export function VoiceAnamnesis({
   useEffect(() => {
     finishRef.current = finish
   }, [finish])
-
-  const completeSession = useCallback((summary?: string | null, fields?: Record<string, string> | null) => {
-    if (typeof summary === 'string') {
-      summaryTextRef.current = summary
-      setSummaryText(summary)
-    }
-    if (fields) {
-      extractedFieldsRef.current = fields
-      setExtractedFields(fields)
-    }
-
-    stateRef.current = 'completed'
-    if (isGuidedCheckpoint) {
-      finishRef.current()
-      return
-    }
-
-    setState('completed')
-  }, [isGuidedCheckpoint])
 
   const earlyExit = useCallback(() => { cleanup(); onSwitchToText() }, [cleanup, onSwitchToText])
 
