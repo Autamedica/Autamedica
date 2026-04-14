@@ -8,6 +8,7 @@ export type PlanSlug = 'basico' | 'pro' | 'premium';
 export type PlanInterval = 'monthly' | 'yearly';
 export type SubscriptionStatus = 'active' | 'cancelled' | 'past_due' | 'trialing';
 export type PaymentTransactionStatus = 'pending' | 'approved' | 'rejected' | 'refunded';
+export type PaymentType = 'preapproval' | 'checkout_pro';
 
 export interface SubscriptionPlan {
   id: UUID;
@@ -31,6 +32,7 @@ export interface DoctorSubscription {
   currentPeriodStart: ISODateString | null;
   currentPeriodEnd: ISODateString | null;
   cancelledAt: ISODateString | null;
+  paymentType: PaymentType;
   createdAt: ISODateString;
   updatedAt: ISODateString;
 }
@@ -80,6 +82,13 @@ export interface MercadoPagoPreapprovalResponse {
   };
 }
 
+/** Shape returned by MercadoPago Checkout Pro preference creation */
+export interface MercadoPagoPreferenceResponse {
+  id: string;
+  init_point: string;
+  sandbox_init_point: string;
+}
+
 /** Shape returned by MercadoPago payment detail */
 export interface MercadoPagoPaymentDetail {
   id: number;
@@ -88,6 +97,7 @@ export interface MercadoPagoPaymentDetail {
   transaction_amount: number;
   currency_id: string;
   payment_method_id: string;
+  external_reference: string;
   payer: {
     id: number;
     email: string;

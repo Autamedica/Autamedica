@@ -40,13 +40,13 @@ export function PricingPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSubscribe = async (slug: string) => {
+  const handleSubscribe = async (slug: string, paymentMethod: 'preapproval' | 'checkout_pro' = 'preapproval') => {
     setLoadingSlug(slug);
     setError(null);
     try {
       const result = await fetchApi<{ subscriptionId: string; initPoint: string }>(
         "/api/doctors/billing/subscription",
-        { method: "POST", body: { planSlug: slug } },
+        { method: "POST", body: { planSlug: slug, paymentMethod } },
       );
       window.location.href = result.initPoint;
     } catch (err) {
@@ -133,21 +133,31 @@ export function PricingPage() {
                     ))}
                   </ul>
 
-                  <button
-                    type="button"
-                    onClick={() => void handleSubscribe(plan.slug)}
-                    disabled={!!loadingSlug}
-                    className={`flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[13px] font-medium transition-colors disabled:opacity-50 ${
-                      isPopular
-                        ? "bg-neutral-900 text-white hover:bg-neutral-800"
-                        : "border border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50"
-                    }`}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : null}
-                    {isLoading ? "Procesando..." : "Suscribirme"}
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleSubscribe(plan.slug, 'checkout_pro')}
+                      disabled={!!loadingSlug}
+                      className={`flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[13px] font-medium transition-colors disabled:opacity-50 ${
+                        isPopular
+                          ? "bg-neutral-900 text-white hover:bg-neutral-800"
+                          : "border border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50"
+                      }`}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : null}
+                      {isLoading ? "Procesando..." : "Suscribirme"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleSubscribe(plan.slug, 'preapproval')}
+                      disabled={!!loadingSlug}
+                      className="flex w-full items-center justify-center gap-2 rounded-full border border-neutral-200 bg-white py-2.5 text-[12px] text-neutral-500 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                    >
+                      Pago automatico con tarjeta
+                    </button>
+                  </div>
                 </div>
               );
             })}

@@ -42,21 +42,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const { data: doctor } = await auth.supabase.from('doctors').select('id').eq('user_id', auth.user.id).single();
     if (!doctor) return badRequest('doctor_not_found');
 
-    const body = await request.json() as { planSlug?: string };
+    const body = await request.json() as { planSlug?: string; paymentMethod?: string };
     if (!body.planSlug || !VALID_SLUGS.includes(body.planSlug as PlanSlug)) {
       return badRequest('invalid_plan_slug');
+    }
+
+    const paymentMethod = body.paymentMethod ?? 'preapproval';
+    if (paymentMethod !== 'preapproval' && paymentMethod !== 'checkout_pro') {
+      return badRequest('invalid_payment_method');
     }
 
     const doctorEmail = auth.user.email ?? '';
     if (!doctorEmail) return badRequest('doctor_email_required');
 
     const admin = createAstroAdminClient(locals.runtime?.env);
-    const result = await billingService.createSubscription(
-      admin,
-      doctor.id,
-      body.planSlug as PlanSlug,
-      doctorEmail,
-    );
+    const result = paymentMethod === 'checkout_pro'
+      ? await billingService.createCheckoutProSubscription(admin, doctor.id, body.planSlug as PlanSlug, doctorEmail)
+      : await billingService.createSubscription(admin, doctor.id, body.planSlug as PlanSlug, doctorEmail);
 
     return jsonOk(result);
   } catch (err) {

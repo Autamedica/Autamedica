@@ -91,6 +91,8 @@ export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }
     : null;
   const PlanIcon = currentPlan ? PLAN_ICONS[currentPlan.slug as PlanSlug] ?? CreditCard : CreditCard;
   const isActive = subscription?.status === "active" || subscription?.status === "trialing";
+  const isCheckoutPro = subscription?.paymentType === "checkout_pro";
+  const needsRenewal = subscription?.status === "past_due" && isCheckoutPro;
   const currentPlanIndex = currentPlan
     ? ["basico", "pro", "premium"].indexOf(currentPlan.slug)
     : -1;
@@ -156,19 +158,32 @@ export function DoctorsSubscriptionPage({ locale: _locale }: { locale?: string }
                       {currentPlan
                         ? `${formatCurrency(currentPlan.priceCents)}/${currentPlan.interval === "monthly" ? "mes" : "ano"}`
                         : ""}
+                      {isCheckoutPro ? " — Pago unico" : " — Renovacion automatica"}
                     </p>
                   </div>
                 </div>
 
-                {isActive && (
-                  <button
-                    type="button"
-                    onClick={() => setShowCancelConfirm(true)}
-                    className="shrink-0 rounded-lg border border-neutral-200 px-4 py-2 text-[13px] font-medium text-neutral-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                  >
-                    Cancelar plan
-                  </button>
-                )}
+                <div className="flex shrink-0 gap-2">
+                  {needsRenewal && (
+                    <button
+                      type="button"
+                      onClick={() => void handleUpgrade(currentPlan?.slug ?? "")}
+                      disabled={!!upgrading}
+                      className="rounded-lg bg-neutral-900 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+                    >
+                      {upgrading ? "Procesando..." : "Renovar ahora"}
+                    </button>
+                  )}
+                  {isActive && (
+                    <button
+                      type="button"
+                      onClick={() => setShowCancelConfirm(true)}
+                      className="rounded-lg border border-neutral-200 px-4 py-2 text-[13px] font-medium text-neutral-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                    >
+                      Cancelar plan
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="mt-6 grid grid-cols-1 gap-4 border-t border-neutral-100 pt-6 sm:grid-cols-3">

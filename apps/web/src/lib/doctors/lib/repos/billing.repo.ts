@@ -11,6 +11,7 @@ import type {
   PaymentTransaction,
   SubscriptionStatus,
   PaymentTransactionStatus,
+  PaymentType,
 } from '@autamedica/types';
 
 type Client = SupabaseClient;
@@ -68,6 +69,7 @@ export const billingRepo = {
       mercadopagoPayerId: string | null;
       currentPeriodStart: string | null;
       currentPeriodEnd: string | null;
+      paymentType?: PaymentType;
     },
   ): Promise<DoctorSubscription> {
     const { data, error } = await supabase

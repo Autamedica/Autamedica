@@ -949,11 +949,13 @@ export type {
   PlanInterval,
   SubscriptionStatus,
   PaymentTransactionStatus,
+  PaymentType,
   SubscriptionPlan,
   DoctorSubscription,
   PaymentTransaction,
   DoctorSubscriptionWithPlan,
   MercadoPagoWebhookPayload,
   MercadoPagoPreapprovalResponse,
+  MercadoPagoPreferenceResponse,
   MercadoPagoPaymentDetail,
 } from './billing/billing.types';

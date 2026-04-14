@@ -1,6 +1,7 @@
 /**
  * Layer 3: Service — Billing & Subscription Business Logic
  * Orchestrates plan management, MercadoPago subscription creation, and webhook processing.
+ * Supports two payment methods: preapproval (recurring cards) and checkout_pro (one-time).
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@autamedica/shared';
@@ -10,6 +11,7 @@ import type {
   DoctorSubscriptionWithPlan,
   PlanSlug,
   MercadoPagoPreapprovalResponse,
+  MercadoPagoPreferenceResponse,
   MercadoPagoPaymentDetail,
   SubscriptionStatus,
   PaymentTransactionStatus,
@@ -83,9 +85,24 @@ export const billingService = {
   },
 
   async getDoctorSubscription(supabase: Client, doctorId: string): Promise<DoctorSubscriptionWithPlan | null> {
-    return billingRepo.getDoctorActiveSubscription(supabase, doctorId);
+    const sub = await billingRepo.getDoctorActiveSubscription(supabase, doctorId);
+    if (!sub) return null;
+
+    // Lazy expiry check for checkout_pro subscriptions
+    if (
+      sub.paymentType === 'checkout_pro' &&
+      sub.status === 'active' &&
+      sub.currentPeriodEnd &&
+      new Date(sub.currentPeriodEnd) < new Date()
+    ) {
+      await billingRepo.updateSubscriptionStatus(supabase, sub.id as string, 'past_due');
+      return { ...sub, status: 'past_due' };
+    }
+
+    return sub;
   },
 
+  /** Create a recurring subscription via MercadoPago Preapproval (card only) */
   async createSubscription(
     supabase: Client,
     doctorId: string,
@@ -115,7 +132,7 @@ export const billingService = {
         auto_recurring: {
           frequency: 1,
           frequency_type: 'months',
-          transaction_amount: plan.priceCents / 100, // MercadoPago usa unidades, no centavos
+          transaction_amount: plan.priceCents / 100,
           currency_id: plan.currency,
         },
         payer_email: doctorEmail,
@@ -138,13 +155,86 @@ export const billingService = {
       mercadopagoPayerId: String(mpResponse.payer_id),
       currentPeriodStart: now,
       currentPeriodEnd: periodEnd.toISOString(),
+      paymentType: 'preapproval',
     });
 
-    logger.info('[billing] Subscription created', {
+    logger.info('[billing] Preapproval subscription created', {
       doctorId,
       planSlug,
       subscriptionId: subscription.id,
       mpSubscriptionId: mpResponse.id,
+    });
+
+    return {
+      subscriptionId: subscription.id,
+      initPoint: mpResponse.init_point,
+    };
+  },
+
+  /** Create a one-time payment via MercadoPago Checkout Pro (all payment methods) */
+  async createCheckoutProSubscription(
+    supabase: Client,
+    doctorId: string,
+    planSlug: PlanSlug,
+    doctorEmail: string,
+  ): Promise<{ subscriptionId: string; initPoint: string }> {
+    const plan = await billingRepo.getPlanBySlug(supabase, planSlug);
+    if (!plan) throw new Error(`Plan "${planSlug}" not found or inactive`);
+
+    // Cancelar suscripción activa previa si existe
+    const existing = await billingRepo.getDoctorActiveSubscription(supabase, doctorId);
+    if (existing) {
+      await billingRepo.cancelSubscription(supabase, doctorId);
+      logger.info('[billing] Cancelled existing subscription before creating checkout_pro', {
+        doctorId,
+        oldPlan: existing.plan.slug,
+        newPlan: planSlug,
+      });
+    }
+
+    const appUrl = getAppUrl();
+    const mpResponse = await mpFetch<MercadoPagoPreferenceResponse>('/checkout/preferences', {
+      method: 'POST',
+      body: JSON.stringify({
+        items: [{
+          title: `AutaMedica - ${plan.name}`,
+          description: `Suscripcion mensual - ${plan.name}`,
+          quantity: 1,
+          unit_price: plan.priceCents / 100,
+          currency_id: plan.currency,
+        }],
+        payer: { email: doctorEmail },
+        back_urls: {
+          success: `${appUrl}/doctors/subscription?payment=success`,
+          failure: `${appUrl}/doctors/subscription?payment=failure`,
+          pending: `${appUrl}/doctors/subscription?payment=pending`,
+        },
+        auto_return: 'approved',
+        external_reference: `${doctorId}|${plan.id}`,
+        notification_url: `${appUrl}/api/doctors/billing/webhook`,
+      }),
+    });
+
+    const now = new Date().toISOString();
+    const periodEnd = new Date();
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+    const subscription = await billingRepo.createSubscription(supabase, {
+      doctorId,
+      planId: plan.id as string,
+      status: 'trialing',
+      mercadopagoSubscriptionId: mpResponse.id,
+      mercadopagoPayerId: null,
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd.toISOString(),
+      paymentType: 'checkout_pro',
+    });
+
+    logger.info('[billing] Checkout Pro subscription created', {
+      doctorId,
+      planSlug,
+      subscriptionId: subscription.id,
+      mpPreferenceId: mpResponse.id,
     });
 
     return {
@@ -160,8 +250,8 @@ export const billingService = {
       return;
     }
 
-    // Cancelar en MercadoPago si existe ID externo
-    if (existing.mercadopagoSubscriptionId) {
+    // Solo cancelar en MercadoPago para suscripciones preapproval
+    if (existing.mercadopagoSubscriptionId && existing.paymentType !== 'checkout_pro') {
       try {
         await mpFetch(`/preapproval/${existing.mercadopagoSubscriptionId}`, {
           method: 'PUT',
@@ -192,10 +282,8 @@ export const billingService = {
 
   validateWebhookSignature(signature: string | null, _body: string): boolean {
     const secret = getWebhookSecret();
-    if (!secret) return true; // Sin secret configurado, aceptar (dev)
+    if (!secret) return true;
     if (!signature) return false;
-    // MercadoPago envía x-signature con ts y v1: ts=XXXX,v1=HASH
-    // _body reservado para validación HMAC-SHA256 cuando se configure el secret
     return signature.includes('v1=');
   },
 };
@@ -212,10 +300,18 @@ async function handlePaymentNotification(supabase: Client, paymentId: string): P
     return;
   }
 
-  // Buscar suscripción del doctor por payer metadata
-  const doctorId = payment.metadata?.doctor_id as string | undefined;
+  // Resolver doctorId: metadata (preapproval) o external_reference (checkout_pro)
+  let doctorId = payment.metadata?.doctor_id as string | undefined;
+  let planId: string | undefined;
+
+  if (!doctorId && payment.external_reference) {
+    const parts = payment.external_reference.split('|');
+    doctorId = parts[0];
+    planId = parts[1];
+  }
+
   if (!doctorId) {
-    logger.warn('[billing] Payment without doctor_id in metadata, skipping', { paymentId });
+    logger.warn('[billing] Payment without doctor identification, skipping', { paymentId });
     return;
   }
 
@@ -229,12 +325,21 @@ async function handlePaymentNotification(supabase: Client, paymentId: string): P
     status: internalStatus,
     mercadopagoPaymentId: String(payment.id),
     paymentMethod: payment.payment_method_id,
-    metadata: payment.metadata ?? {},
+    metadata: { ...payment.metadata, external_reference: payment.external_reference, planId },
   });
 
   // Si el pago fue aprobado, activar la suscripción
   if (internalStatus === 'approved' && subscription && subscription.status !== 'active') {
-    await billingRepo.updateSubscriptionStatus(supabase, subscription.id as string, 'active');
+    const extra: Record<string, unknown> = {};
+    // Para checkout_pro, resetear el período de 30 días desde la fecha de pago
+    if (subscription.paymentType === 'checkout_pro') {
+      const now = new Date();
+      const periodEnd = new Date(now);
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+      extra.currentPeriodStart = now.toISOString();
+      extra.currentPeriodEnd = periodEnd.toISOString();
+    }
+    await billingRepo.updateSubscriptionStatus(supabase, subscription.id as string, 'active', extra);
     logger.info('[billing] Subscription activated via payment', { doctorId, subscriptionId: subscription.id });
   }
 
