@@ -6,6 +6,7 @@ import type { ICallStartRepository } from '@/lib/calls/ports/call-start.port'
 import { resolveDoctorId, doctorHasPatientAccess } from '@/lib/doctors/lib/resolve-room'
 import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 import { appointmentBackendService } from '@/lib/doctors/services/appointment.backend'
+import { canDoctorStartVideoconsulta } from '@/lib/calls/lib/doctor-videoconsulta-credits'
 
 type Db = SupabaseClient<Database>
 
@@ -147,6 +148,12 @@ export async function startTeleconsultationUseCase(
       }
     }
   }
+
+    // Check videoconsulta credits (free or subscription-based)
+    const creditCheck = await canDoctorStartVideoconsulta(adminDb, doctorId)
+    if (!creditCheck.allowed) {
+      return { kind: 'forbidden', message: creditCheck.reason ?? 'no_videoconsulta_credits' }
+    }
 
     const call = await actorCallRepo.createCall(doctorId, input.patientId, input.appointmentId)
     const status = await ensureRinging(actorCallRepo, call.id, call.status)

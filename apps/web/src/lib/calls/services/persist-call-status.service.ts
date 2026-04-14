@@ -7,6 +7,7 @@ import {
   type PersistableCallStatus,
 } from '@/lib/calls/services/call-status-rules'
 import { decrementFreeConsultation } from '@/lib/calls/lib/consultation-credits'
+import { decrementDoctorVideoconsulta } from '@/lib/calls/lib/doctor-videoconsulta-credits'
 import { logger } from '@autamedica/shared'
 
 type Db = SupabaseClient<Database>
@@ -126,9 +127,19 @@ export const persistCallStatusService = {
       throw new Error(`Unable to update call status to ${input.status}`)
     }
 
-    // Decrement free consultation credits when a call ends (with retry + audit)
-    if (input.status === 'ended' && call.patient_id) {
-      retryDecrementCredits(admin, call.id, call.patient_id)
+    // Decrement credits when a call ends (with retry + audit)
+    if (input.status === 'ended') {
+      if (call.patient_id) {
+        retryDecrementCredits(admin, call.id, call.patient_id)
+      }
+      // Decrement doctor free videoconsulta credits (skips if has Pro/Premium subscription)
+      void decrementDoctorVideoconsulta(admin, call.doctor_id).catch((err) => {
+        logger.error('[persist-call-status] Doctor videoconsulta credit decrement failed', {
+          callId: call.id,
+          doctorId: call.doctor_id,
+          error: err instanceof Error ? err.message : String(err),
+        })
+      })
     }
 
     return {

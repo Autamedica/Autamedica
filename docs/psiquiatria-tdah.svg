@@ -1,0 +1,410 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2200 1500" font-family="Inter, -apple-system, sans-serif">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="108%">
+      <feDropShadow dx="2" dy="3" stdDeviation="4" flood-opacity="0.10"/>
+    </filter>
+    <linearGradient id="heroGrad" x1="0" y1="0" x2="2200" y2="0">
+      <stop offset="0%" stop-color="#4c1d95"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="2200" height="1500" fill="#f8fafc"/>
+
+  <!-- Header violeta -->
+  <rect width="2200" height="90" fill="url(#heroGrad)"/>
+  <text x="1100" y="40" text-anchor="middle" font-size="28" font-weight="700" fill="#ffffff">Evaluacion Psiquiatrica — TDAH y Salud Mental</text>
+  <text x="1100" y="68" text-anchor="middle" font-size="14" fill="#c4b5fd">5 fases | Triage automatico | Safety flags | Continuidad farmacologica</text>
+
+  <!-- ============================================ -->
+  <!-- LAS 5 FASES (horizontal) -->
+  <!-- ============================================ -->
+
+  <!-- FASE 1: wizard_intake -->
+  <g transform="translate(50, 120)">
+    <rect width="380" height="310" rx="16" fill="white" stroke="#7c3aed" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="380" height="44" rx="16" fill="#7c3aed"/>
+    <rect y="32" width="380" height="12" fill="#7c3aed"/>
+    <text x="190" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">📋 Fase 1: Entrevista Inicial</text>
+    <text x="190" y="66" text-anchor="middle" font-size="11" fill="#7c3aed">wizard_intake — Formularios estructurados</text>
+
+    <!-- Tipo atencion -->
+    <g transform="translate(15, 80)">
+      <text x="0" y="12" font-size="10" font-weight="700" fill="#5b21b6">Tipo de consulta:</text>
+      <g transform="translate(0, 18)">
+        <rect width="110" height="32" rx="6" fill="#ede9fe" stroke="#c4b5fd"/>
+        <text x="55" y="14" text-anchor="middle" font-size="14">🔄</text>
+        <text x="55" y="27" text-anchor="middle" font-size="8" fill="#5b21b6">Continuidad</text>
+      </g>
+      <g transform="translate(120, 18)">
+        <rect width="110" height="32" rx="6" fill="#ede9fe" stroke="#c4b5fd"/>
+        <text x="55" y="14" text-anchor="middle" font-size="14">🆕</text>
+        <text x="55" y="27" text-anchor="middle" font-size="8" fill="#5b21b6">Primera vez</text>
+      </g>
+      <g transform="translate(240, 18)">
+        <rect width="110" height="32" rx="6" fill="#fef2f2" stroke="#fca5a5"/>
+        <text x="55" y="14" text-anchor="middle" font-size="14">⚠️</text>
+        <text x="55" y="27" text-anchor="middle" font-size="8" fill="#dc2626">Urgente</text>
+      </g>
+    </g>
+
+    <!-- Secciones -->
+    <g transform="translate(15, 140)">
+      <rect width="350" height="40" rx="8" fill="#f5f3ff"/>
+      <text x="15" y="18" font-size="10" fill="#334155" font-weight="600">1. Consulta actual</text>
+      <text x="15" y="33" font-size="9" fill="#64748b">Medicacion, dosis, dias restantes, alarmas</text>
+    </g>
+    <g transform="translate(15, 185)">
+      <rect width="350" height="40" rx="8" fill="#f5f3ff"/>
+      <text x="15" y="18" font-size="10" fill="#334155" font-weight="600">2. Diagnostico y tratamiento</text>
+      <text x="15" y="33" font-size="9" fill="#64748b">Dx previo confirmado, tratamiento actual, prescriptor</text>
+    </g>
+    <g transform="translate(15, 230)">
+      <rect width="350" height="40" rx="8" fill="#f5f3ff"/>
+      <text x="15" y="18" font-size="10" fill="#334155" font-weight="600">3. Contexto personal</text>
+      <text x="15" y="33" font-size="9" fill="#64748b">Ocupacion, dinamica diaria, rutina</text>
+    </g>
+
+    <!-- Condicional -->
+    <rect x="15" y="278" width="350" height="22" rx="6" fill="#fef9c4" stroke="#fde047"/>
+    <text x="190" y="293" text-anchor="middle" font-size="9" fill="#92400e" font-weight="600">Si "continuidad" → muestra campos de medicacion</text>
+  </g>
+
+  <!-- Flecha -->
+  <text x="440" y="280" font-size="24" fill="#c4b5fd">→</text>
+
+  <!-- FASE 2: conversational_symptoms -->
+  <g transform="translate(470, 120)">
+    <rect width="340" height="310" rx="16" fill="white" stroke="#06b6d4" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="340" height="44" rx="16" fill="#0891b2"/>
+    <rect y="32" width="340" height="12" fill="#0891b2"/>
+    <text x="170" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">🎤 Fase 2: Sintomas (Voz/Chat)</text>
+    <text x="170" y="66" text-anchor="middle" font-size="11" fill="#0891b2">conversational_symptoms</text>
+
+    <g transform="translate(15, 80)">
+      <rect width="310" height="50" rx="8" fill="#cffafe"/>
+      <text x="155" y="20" text-anchor="middle" font-size="20">🎤</text>
+      <text x="155" y="40" text-anchor="middle" font-size="10" fill="#164e63" font-weight="600">Gemini Live — Conversacion en tiempo real</text>
+    </g>
+
+    <g transform="translate(15, 140)">
+      <rect width="310" height="40" rx="8" fill="#f0fdfa"/>
+      <text x="15" y="18" font-size="10" fill="#334155" font-weight="600">4. Historia de sintomas</text>
+      <text x="15" y="33" font-size="9" fill="#64748b">Motivo principal, narrativa clinica</text>
+    </g>
+    <g transform="translate(15, 185)">
+      <rect width="310" height="40" rx="8" fill="#f0fdfa"/>
+      <text x="15" y="18" font-size="10" fill="#334155" font-weight="600">5. Impacto funcional</text>
+      <text x="15" y="33" font-size="9" fill="#64748b">Trabajo / estudio / hogar</text>
+    </g>
+    <g transform="translate(15, 230)">
+      <rect width="310" height="40" rx="8" fill="#f0fdfa"/>
+      <text x="15" y="18" font-size="10" fill="#334155" font-weight="600">6. Respuesta previa</text>
+      <text x="15" y="33" font-size="9" fill="#64748b">Respuesta a estimulantes u otros</text>
+    </g>
+
+    <text x="170" y="298" text-anchor="middle" font-size="9" fill="#64748b">Alternativa: texto manual si no quiere voz</text>
+  </g>
+
+  <!-- Flecha -->
+  <text x="820" y="280" font-size="24" fill="#c4b5fd">→</text>
+
+  <!-- FASE 3: wizard_safety (LA CRITICA) -->
+  <g transform="translate(850, 120)">
+    <rect width="380" height="310" rx="16" fill="white" stroke="#ef4444" stroke-width="3" filter="url(#shadow)"/>
+    <rect width="380" height="44" rx="16" fill="#dc2626"/>
+    <rect y="32" width="380" height="12" fill="#dc2626"/>
+    <text x="190" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">🚨 Fase 3: Seguridad Clinica</text>
+    <text x="190" y="66" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="600">wizard_safety — PUNTO DE TRIAGE</text>
+
+    <g transform="translate(15, 80)">
+      <rect width="350" height="40" rx="8" fill="#fef2f2" stroke="#fecaca"/>
+      <text x="15" y="18" font-size="10" fill="#991b1b" font-weight="700">7. Seguridad clinica</text>
+      <text x="15" y="33" font-size="9" fill="#991b1b">Insomnio | Palpitaciones | Dolor pecho | Ideacion autolesiva | Panico</text>
+    </g>
+    <g transform="translate(15, 125)">
+      <rect width="350" height="40" rx="8" fill="#fef2f2"/>
+      <text x="15" y="18" font-size="10" fill="#334155" font-weight="600">8. Antecedentes mentales</text>
+      <text x="15" y="33" font-size="9" fill="#64748b">Ansiedad, depresion, bipolar, psicosis, sustancias</text>
+    </g>
+    <g transform="translate(15, 170)">
+      <rect width="350" height="40" rx="8" fill="#fef2f2"/>
+      <text x="15" y="18" font-size="10" fill="#334155" font-weight="600">9. Contraindicaciones medicas</text>
+      <text x="15" y="33" font-size="9" fill="#64748b">HTA, arritmia, sincope, muerte subita familiar, embarazo</text>
+    </g>
+    <g transform="translate(15, 215)">
+      <rect width="350" height="40" rx="8" fill="#fef2f2"/>
+      <text x="15" y="18" font-size="10" fill="#334155" font-weight="600">10. Monitoreo tratamiento</text>
+      <text x="15" y="33" font-size="9" fill="#64748b">Apetito, adherencia (constante/intermitente/suspendido)</text>
+    </g>
+
+    <rect x="15" y="265" width="350" height="35" rx="8" fill="#dc2626"/>
+    <text x="190" y="280" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">⚡ AQUI SE CALCULA EL TRIAGE AUTOMATICO</text>
+    <text x="190" y="293" text-anchor="middle" font-size="9" fill="#fecaca">computeTriage(clinicalCaseState)</text>
+  </g>
+
+  <!-- Flecha -->
+  <text x="1240" y="280" font-size="24" fill="#c4b5fd">→</text>
+
+  <!-- FASE 4: conversational_closure -->
+  <g transform="translate(1270, 120)">
+    <rect width="300" height="180" rx="16" fill="white" stroke="#8b5cf6" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="300" height="44" rx="16" fill="#7c3aed"/>
+    <rect y="32" width="300" height="12" fill="#7c3aed"/>
+    <text x="150" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">💜 Fase 4: Cierre</text>
+    <text x="150" y="66" text-anchor="middle" font-size="11" fill="#7c3aed">Alianza terapeutica</text>
+
+    <g transform="translate(15, 80)">
+      <rect width="270" height="35" rx="8" fill="#f5f3ff"/>
+      <text x="15" y="22" font-size="10" fill="#334155" font-weight="600">11. Objetivos terapeuticos</text>
+    </g>
+    <g transform="translate(15, 120)">
+      <rect width="270" height="35" rx="8" fill="#f5f3ff"/>
+      <text x="15" y="22" font-size="10" fill="#334155" font-weight="600">12. Aclaraciones finales</text>
+    </g>
+  </g>
+
+  <!-- FASE 5: completed -->
+  <g transform="translate(1270, 320)">
+    <rect width="300" height="110" rx="16" fill="white" stroke="#22c55e" stroke-width="2" filter="url(#shadow)"/>
+    <text x="150" y="35" text-anchor="middle" font-size="28">🎉</text>
+    <text x="150" y="60" text-anchor="middle" font-size="14" font-weight="700" fill="#166534">Fase 5: Completado</text>
+    <text x="150" y="80" text-anchor="middle" font-size="10" fill="#64748b">PDF + triage + locked si urgente</text>
+    <text x="150" y="95" text-anchor="middle" font-size="10" fill="#64748b">status = 'completed'</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- TRIAGE ENGINE (centro-abajo) -->
+  <!-- ============================================ -->
+  <g transform="translate(50, 470)">
+    <rect width="1180" height="340" rx="16" fill="white" stroke="#0f172a" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="1180" height="44" rx="16" fill="#0f172a"/>
+    <rect y="32" width="1180" height="12" fill="#0f172a"/>
+    <text x="590" y="30" text-anchor="middle" font-size="16" font-weight="700" fill="#ffffff">⚡ Motor de Triage Automatico — clinical-state/triage.ts</text>
+
+    <!-- URGENTE -->
+    <g transform="translate(20, 60)">
+      <rect width="370" height="260" rx="12" fill="#fef2f2" stroke="#fecaca" stroke-width="2"/>
+      <rect width="370" height="35" rx="12" fill="#dc2626"/>
+      <rect y="23" width="370" height="12" fill="#dc2626"/>
+      <text x="185" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">🔴 URGENTE — Prioridad 1</text>
+
+      <text x="15" y="55" font-size="11" fill="#991b1b" font-weight="600">Triggers (cualquiera activa urgencia):</text>
+      <text x="15" y="75" font-size="11" fill="#7f1d1d">🚨 ideas_autolesion = true</text>
+      <text x="15" y="93" font-size="11" fill="#7f1d1d">🚨 dolor_pecho = true</text>
+      <text x="15" y="111" font-size="11" fill="#7f1d1d">🚨 crisis_panico = true</text>
+
+      <line x1="15" y1="122" x2="355" y2="122" stroke="#fecaca"/>
+
+      <text x="15" y="142" font-size="10" fill="#991b1b" font-weight="600">Mandato:</text>
+      <text x="15" y="158" font-size="10" fill="#7f1d1d">"CONTACTO INMEDIATO: El paciente</text>
+      <text x="15" y="172" font-size="10" fill="#7f1d1d">reporta sintomas de seguridad"</text>
+
+      <text x="15" y="195" font-size="10" fill="#991b1b" font-weight="600">Accion:</text>
+      <text x="15" y="211" font-size="10" fill="#7f1d1d">requiresSameDayAction = true</text>
+      <text x="15" y="225" font-size="10" fill="#7f1d1d">resolutionDeadline = hoy 23:59 UTC</text>
+      <text x="15" y="239" font-size="10" fill="#7f1d1d">intake.locked = true (paciente no modifica)</text>
+
+      <rect x="15" y="248" width="340" height="5" rx="2" fill="#dc2626"/>
+    </g>
+
+    <!-- PRIORITARIO -->
+    <g transform="translate(410, 60)">
+      <rect width="370" height="260" rx="12" fill="#fef9c4" stroke="#fde047" stroke-width="2"/>
+      <rect width="370" height="35" rx="12" fill="#f59e0b"/>
+      <rect y="23" width="370" height="12" fill="#f59e0b"/>
+      <text x="185" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">🟡 PRIORITARIO — Prioridad 2</text>
+
+      <text x="15" y="55" font-size="11" fill="#92400e" font-weight="600">Triggers de continuidad TDAH:</text>
+      <text x="15" y="75" font-size="11" fill="#78350f">💊 Estimulante detectado (metilfenidato,</text>
+      <text x="15" y="91" font-size="11" fill="#78350f">   lisdexanfetamina, ritalin, concerta...)</text>
+      <text x="15" y="111" font-size="11" fill="#78350f">   + dias_restantes ≤ 1 → riesgo ALTO</text>
+      <text x="15" y="129" font-size="11" fill="#78350f">   + dias_restantes 2-3 → riesgo MEDIO</text>
+
+      <line x1="15" y1="140" x2="355" y2="140" stroke="#fde047"/>
+
+      <text x="15" y="160" font-size="10" fill="#92400e" font-weight="600">Triggers de insomnio:</text>
+      <text x="15" y="176" font-size="10" fill="#78350f">≥ 3 noches/semana + impacto moderado/severo</text>
+
+      <line x1="15" y1="190" x2="355" y2="190" stroke="#fde047"/>
+
+      <text x="15" y="210" font-size="10" fill="#92400e" font-weight="600">Mandato:</text>
+      <text x="15" y="226" font-size="10" fill="#78350f">"ALERTA DE CONTINUIDAD — Prohibido</text>
+      <text x="15" y="240" font-size="10" fill="#78350f">abandono terapeutico pasivo por riesgo</text>
+      <text x="15" y="254" font-size="10" fill="#78350f">de depresion reactiva" (NHS/NICE NG87)</text>
+    </g>
+
+    <!-- RUTINA -->
+    <g transform="translate(800, 60)">
+      <rect width="360" height="260" rx="12" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>
+      <rect width="360" height="35" rx="12" fill="#22c55e"/>
+      <rect y="23" width="360" height="12" fill="#22c55e"/>
+      <text x="180" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">🟢 RUTINA — Prioridad 3</text>
+
+      <text x="15" y="55" font-size="11" fill="#166534" font-weight="600">Condicion:</text>
+      <text x="15" y="75" font-size="11" fill="#14532d">Sin marcadores de seguridad activos</text>
+      <text x="15" y="93" font-size="11" fill="#14532d">Sin riesgo de interrupcion farmacologica</text>
+
+      <line x1="15" y1="108" x2="345" y2="108" stroke="#bbf7d0"/>
+
+      <text x="15" y="128" font-size="11" fill="#166534" font-weight="600">Accion:</text>
+      <text x="15" y="148" font-size="11" fill="#14532d">resolutionDeadline = +72h</text>
+      <text x="15" y="166" font-size="11" fill="#14532d">Paciente puede descargar PDF</text>
+      <text x="15" y="184" font-size="11" fill="#14532d">Opcion de solicitar continuidad</text>
+
+      <line x1="15" y1="198" x2="345" y2="198" stroke="#bbf7d0"/>
+
+      <text x="15" y="218" font-size="11" fill="#166534" font-weight="600">Pantalla completado:</text>
+      <text x="180" y="245" text-anchor="middle" font-size="30">✅</text>
+    </g>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- PANTALLAS DE RESULTADO (abajo) -->
+  <!-- ============================================ -->
+  <g transform="translate(50, 850)">
+    <rect width="1180" height="200" rx="16" fill="white" stroke="#e2e8f0" filter="url(#shadow)"/>
+    <text x="590" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="#334155">Pantallas de Resultado segun Triage</text>
+
+    <!-- Urgente -->
+    <g transform="translate(20, 50)">
+      <rect width="370" height="130" rx="12" fill="#fef2f2" stroke="#fecaca"/>
+      <text x="185" y="25" text-anchor="middle" font-size="24">🔴</text>
+      <text x="185" y="50" text-anchor="middle" font-size="12" font-weight="700" fill="#dc2626">Evaluacion Sincronica Prioritaria</text>
+      <text x="185" y="70" text-anchor="middle" font-size="10" fill="#991b1b">"Un profesional debe hablar con vos"</text>
+      <text x="185" y="85" text-anchor="middle" font-size="10" fill="#991b1b">"directamente"</text>
+      <rect x="95" y="95" width="180" height="28" rx="14" fill="#dc2626"/>
+      <text x="185" y="114" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="600">Agendar Evaluacion Prioritaria</text>
+    </g>
+
+    <!-- Prioritario -->
+    <g transform="translate(410, 50)">
+      <rect width="370" height="130" rx="12" fill="#fef9c4" stroke="#fde047"/>
+      <text x="185" y="25" text-anchor="middle" font-size="24">🟡</text>
+      <text x="185" y="50" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b">Revision Clinica Dirigida</text>
+      <text x="185" y="70" text-anchor="middle" font-size="10" fill="#92400e">"El equipo te contactara"</text>
+      <text x="185" y="85" text-anchor="middle" font-size="10" fill="#92400e">"para garantizar continuidad"</text>
+      <rect x="95" y="95" width="180" height="28" rx="14" fill="#f59e0b"/>
+      <text x="185" y="114" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="600">Ver Estado de mi Caso</text>
+    </g>
+
+    <!-- Rutina -->
+    <g transform="translate(800, 50)">
+      <rect width="360" height="130" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+      <text x="180" y="25" text-anchor="middle" font-size="24">🟢</text>
+      <text x="180" y="50" text-anchor="middle" font-size="12" font-weight="700" fill="#22c55e">Evaluacion Completa</text>
+      <text x="180" y="70" text-anchor="middle" font-size="10" fill="#166534">"Descarga tu evaluacion"</text>
+      <text x="180" y="85" text-anchor="middle" font-size="10" fill="#166534">"y agenda cuando quieras"</text>
+      <rect x="50" y="95" width="120" height="28" rx="14" fill="#22c55e"/>
+      <text x="110" y="114" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="600">Descargar PDF</text>
+      <rect x="180" y="95" width="120" height="28" rx="14" fill="#0f172a"/>
+      <text x="240" y="114" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="600">Agendar turno</text>
+    </g>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- POST-INTAKE: Continuidad + Doctor (derecha) -->
+  <!-- ============================================ -->
+  <g transform="translate(1280, 470)">
+    <rect width="380" height="300" rx="16" fill="white" stroke="#06b6d4" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="380" height="44" rx="16" fill="#0891b2"/>
+    <rect y="32" width="380" height="12" fill="#0891b2"/>
+    <text x="190" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">🔄 Post-Intake: Continuidad</text>
+
+    <text x="190" y="68" text-anchor="middle" font-size="28">👨‍⚕️</text>
+
+    <g transform="translate(15, 85)">
+      <text x="0" y="12" font-size="11" font-weight="700" fill="#164e63">Flujo del doctor:</text>
+      <text x="0" y="32" font-size="10" fill="#475569">1. Ve clinical_case_states en dashboard</text>
+      <text x="0" y="48" font-size="10" fill="#475569">2. Campos con provenance (UI/voz/inferido)</text>
+      <text x="0" y="64" font-size="10" fill="#475569">3. Confidence levels por campo</text>
+      <text x="0" y="80" font-size="10" fill="#475569">4. Puede reconciliar conflictos</text>
+
+      <line x1="0" y1="92" x2="350" y2="92" stroke="#a5f3fc"/>
+
+      <text x="0" y="112" font-size="11" font-weight="700" fill="#164e63">Transiciones de triage:</text>
+      <text x="0" y="132" font-size="10" fill="#475569">pending → acknowledged → in_progress</text>
+      <text x="0" y="148" font-size="10" fill="#475569">→ resolved (prescripcion emitida)</text>
+      <text x="0" y="164" font-size="10" fill="#475569">→ escalated (derivacion)</text>
+
+      <line x1="0" y1="176" x2="350" y2="176" stroke="#a5f3fc"/>
+
+      <text x="0" y="196" font-size="11" font-weight="700" fill="#164e63">SLA por prioridad:</text>
+      <text x="0" y="214" font-size="10" fill="#dc2626">🔴 Urgente: mismo dia</text>
+      <text x="0" y="230" font-size="10" fill="#f59e0b">🟡 Prioritario: 24h</text>
+      <text x="0" y="246" font-size="10" fill="#22c55e">🟢 Rutina: 72h</text>
+    </g>
+  </g>
+
+  <!-- ClinicalCaseState -->
+  <g transform="translate(1280, 790)">
+    <rect width="380" height="260" rx="16" fill="#f1f5f9" stroke="#cbd5e1" filter="url(#shadow)"/>
+    <text x="190" y="25" text-anchor="middle" font-size="13" font-weight="700" fill="#334155">Estado Clinico Canonico</text>
+    <text x="190" y="42" text-anchor="middle" font-size="10" fill="#64748b">clinical_case_states (JSONB)</text>
+
+    <g transform="translate(15, 55)">
+      <text x="0" y="12" font-size="10" fill="#475569" font-weight="600">Cada campo tiene:</text>
+      <text x="0" y="30" font-size="9" fill="#64748b">value: T | null</text>
+      <text x="0" y="44" font-size="9" fill="#64748b">status: missing | draft | confirmed | conflicted</text>
+      <text x="0" y="58" font-size="9" fill="#64748b">confidence: low | medium | high</text>
+      <text x="0" y="72" font-size="9" fill="#64748b">provenance: [UI form? Voice? Doctor review?]</text>
+      <text x="0" y="86" font-size="9" fill="#64748b">needsConfirmation: boolean</text>
+
+      <line x1="0" y1="96" x2="350" y2="96" stroke="#e2e8f0"/>
+
+      <text x="0" y="114" font-size="10" fill="#475569" font-weight="600">Secciones canonicas:</text>
+      <text x="0" y="132" font-size="9" fill="#64748b">Identity | IntakeContext | Medication</text>
+      <text x="0" y="146" font-size="9" fill="#64748b">Symptoms | FunctionalImpact | Safety</text>
+
+      <line x1="0" y1="158" x2="350" y2="158" stroke="#e2e8f0"/>
+
+      <text x="0" y="176" font-size="10" fill="#475569" font-weight="600">Workflow types:</text>
+      <text x="0" y="194" font-size="9" fill="#64748b">psychiatry_first_visit | psychiatry_continuity</text>
+      <text x="0" y="208" font-size="9" fill="#64748b">psychiatric_urgency | prescription_renewal</text>
+    </g>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- MEDICACION TRACKING (pie) -->
+  <!-- ============================================ -->
+  <g transform="translate(50, 1090)">
+    <rect width="1180" height="130" rx="12" fill="#f5f3ff" stroke="#ddd6fe"/>
+    <text x="30" y="25" font-size="13" font-weight="700" fill="#5b21b6">💊 Tracking de Medicacion — Estimulantes TDAH</text>
+
+    <g transform="translate(30, 40)">
+      <rect width="260" height="75" rx="8" fill="white" stroke="#c4b5fd"/>
+      <text x="10" y="18" font-size="10" font-weight="700" fill="#5b21b6">Deteccion automatica</text>
+      <text x="10" y="34" font-size="9" fill="#64748b">metilfenidato, lisdexanfetamina</text>
+      <text x="10" y="48" font-size="9" fill="#64748b">ritalin, concerta, venvanse</text>
+      <text x="10" y="62" font-size="9" fill="#64748b">→ activa reglas de continuidad</text>
+    </g>
+
+    <g transform="translate(310, 40)">
+      <rect width="260" height="75" rx="8" fill="white" stroke="#c4b5fd"/>
+      <text x="10" y="18" font-size="10" font-weight="700" fill="#5b21b6">Campos por medicamento</text>
+      <text x="10" y="34" font-size="9" fill="#64748b">nombre, formulacion, dosis mg/dia</text>
+      <text x="10" y="48" font-size="9" fill="#64748b">adherencia (constante/intermitente)</text>
+      <text x="10" y="62" font-size="9" fill="#64748b">dias_restantes, prescriptor_conocido</text>
+    </g>
+
+    <g transform="translate(590, 40)">
+      <rect width="260" height="75" rx="8" fill="#fef2f2" stroke="#fecaca"/>
+      <text x="10" y="18" font-size="10" font-weight="700" fill="#dc2626">Escalation rules</text>
+      <text x="10" y="34" font-size="9" fill="#991b1b">dias ≤ 1 → riesgo ALTO (same day)</text>
+      <text x="10" y="48" font-size="9" fill="#991b1b">dias 2-3 → riesgo MEDIO (priority)</text>
+      <text x="10" y="62" font-size="9" fill="#991b1b">dosis ≥ 100mg → incertidumbre → priority</text>
+    </g>
+
+    <g transform="translate(870, 40)">
+      <rect width="290" height="75" rx="8" fill="white" stroke="#c4b5fd"/>
+      <text x="10" y="18" font-size="10" font-weight="700" fill="#5b21b6">Referencias clinicas</text>
+      <text x="10" y="34" font-size="9" fill="#64748b">NHS: methylphenidate withdrawal risks</text>
+      <text x="10" y="48" font-size="9" fill="#64748b">NICE ADHD Guideline (NG87)</text>
+      <text x="10" y="62" font-size="9" fill="#64748b">Incluidas en TriageResult.references[]</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <text x="1100" y="1265" text-anchor="middle" font-size="11" fill="#94a3b8">AutaMedica — Evaluacion Psiquiatrica TDAH — Abril 2026</text>
+  <text x="1100" y="1283" text-anchor="middle" font-size="11" fill="#94a3b8">5 fases | 12 secciones | Triage automatico por reglas clinicas | ClinicalCaseState canonico con provenance</text>
+</svg>

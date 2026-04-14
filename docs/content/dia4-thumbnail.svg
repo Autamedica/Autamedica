@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="60%" stop-color="#0a0a0f"/>
+      <stop offset="100%" stop-color="#050508"/>
+    </linearGradient>
+    <radialGradient id="warmGlow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.07"/>
+      <stop offset="50%" stop-color="#06b6d4" stop-opacity="0.03"/>
+      <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="flowLine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.1"/>
+      <stop offset="50%" stop-color="#0ea5e9" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="accentLine4" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#0ea5e9" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#bg4)"/>
+  <rect width="1080" height="1920" fill="url(#warmGlow)"/>
+
+  <!-- Subtle dot pattern -->
+  <g opacity="0.025">
+    <pattern id="dots4" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
+      <circle cx="15" cy="15" r="1" fill="#0ea5e9"/>
+    </pattern>
+    <rect width="1080" height="1920" fill="url(#dots4)"/>
+  </g>
+
+  <!-- Top accent -->
+  <rect x="0" y="80" width="1080" height="2" fill="url(#accentLine4)"/>
+
+  <!-- FLOW: Patient -> Notes -> Doctor -->
+  <!-- Scattered notes (left side, above) -->
+  <g transform="translate(200, 280)" opacity="0.3">
+    <rect x="0" y="0" width="140" height="40" rx="6" fill="none" stroke="#525252" stroke-width="1" transform="rotate(-12)"/>
+    <rect x="160" y="-30" width="100" height="35" rx="6" fill="none" stroke="#525252" stroke-width="1" transform="rotate(8)"/>
+    <rect x="-40" y="60" width="120" height="35" rx="6" fill="none" stroke="#525252" stroke-width="1" transform="rotate(-5)"/>
+    <rect x="180" y="50" width="90" height="30" rx="6" fill="none" stroke="#525252" stroke-width="1" transform="rotate(15)"/>
+    <rect x="60" y="110" width="130" height="35" rx="6" fill="none" stroke="#525252" stroke-width="1" transform="rotate(-8)"/>
+  </g>
+
+  <!-- Emoji flow -->
+  <g transform="translate(540, 580)">
+    <!-- Patient -->
+    <text x="-300" y="0" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="120" text-anchor="middle" fill="white">🧑</text>
+    <!-- Arrow -->
+    <text x="-120" y="10" font-family="Inter,system-ui,sans-serif" font-size="60" text-anchor="middle" fill="#0ea5e9" opacity="0.6">→</text>
+    <!-- Notes -->
+    <text x="20" y="0" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="120" text-anchor="middle" fill="white">📝</text>
+    <!-- Arrow -->
+    <text x="170" y="10" font-family="Inter,system-ui,sans-serif" font-size="60" text-anchor="middle" fill="#0ea5e9" opacity="0.6">→</text>
+    <!-- Doctor -->
+    <text x="300" y="0" font-family="'Segoe UI Emoji','Noto Color Emoji',sans-serif" font-size="120" text-anchor="middle" fill="white">👨‍⚕️</text>
+  </g>
+
+  <!-- Flow line underneath -->
+  <rect x="150" y="640" width="780" height="2" fill="url(#flowLine)"/>
+
+  <!-- Small labels under emojis -->
+  <text x="240" y="690" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="400" text-anchor="middle" fill="#525252">Relata</text>
+  <text x="540" y="690" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="400" text-anchor="middle" fill="#525252">Ordena</text>
+  <text x="840" y="690" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="400" text-anchor="middle" fill="#525252">Recibe</text>
+
+  <!-- Divider -->
+  <rect x="340" y="760" width="400" height="1" fill="#ffffff" opacity="0.08"/>
+
+  <!-- Main text -->
+  <text x="540" y="920" font-family="Inter,system-ui,sans-serif" font-size="96" font-weight="400" text-anchor="middle" fill="white" letter-spacing="-2">Ya dijo</text>
+  <text x="540" y="1040" font-family="Inter,system-ui,sans-serif" font-size="96" font-weight="400" text-anchor="middle" fill="white" letter-spacing="-2">lo importante</text>
+
+  <!-- Accent text -->
+  <text x="540" y="1180" font-family="Inter,system-ui,sans-serif" font-size="52" font-weight="600" text-anchor="middle" fill="#0ea5e9" letter-spacing="1">Nadie lo había ordenado</text>
+
+  <!-- Structured notes (bottom, organized) -->
+  <g transform="translate(260, 1320)" opacity="0.5">
+    <rect x="0" y="0" width="560" height="44" rx="8" fill="none" stroke="#0ea5e9" stroke-width="1"/>
+    <rect x="16" y="12" width="200" height="20" rx="4" fill="#0ea5e9" opacity="0.12"/>
+
+    <rect x="0" y="60" width="560" height="44" rx="8" fill="none" stroke="#0ea5e9" stroke-width="1"/>
+    <rect x="16" y="72" width="320" height="20" rx="4" fill="#0ea5e9" opacity="0.1"/>
+
+    <rect x="0" y="120" width="560" height="44" rx="8" fill="none" stroke="#0ea5e9" stroke-width="1"/>
+    <rect x="16" y="132" width="260" height="20" rx="4" fill="#0ea5e9" opacity="0.08"/>
+  </g>
+
+  <!-- Small connecting dots -->
+  <circle cx="540" cy="1280" r="3" fill="#0ea5e9" opacity="0.4"/>
+  <circle cx="540" cy="1300" r="2" fill="#0ea5e9" opacity="0.3"/>
+
+  <!-- Bottom accent -->
+  <rect x="0" y="1700" width="1080" height="1" fill="url(#accentLine4)" opacity="0.4"/>
+
+  <!-- Logo area -->
+  <text x="540" y="1770" font-family="Inter,system-ui,sans-serif" font-size="38" font-weight="600" text-anchor="middle" fill="#0ea5e9" letter-spacing="6">AUTAMEDICA</text>
+  <text x="540" y="1820" font-family="Inter,system-ui,sans-serif" font-size="22" font-weight="400" text-anchor="middle" fill="#525252" letter-spacing="3">Admisión clínica inteligente</text>
+</svg>

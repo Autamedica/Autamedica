@@ -1,0 +1,397 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1400" font-family="Inter, -apple-system, sans-serif">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="108%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#22c55e"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1800" height="1400" fill="#fafafa" rx="12"/>
+
+  <!-- Title -->
+  <text x="900" y="45" text-anchor="middle" font-size="28" font-weight="700" fill="#0f172a">Sistema Anti No-Show — AutaMedica</text>
+  <text x="900" y="70" text-anchor="middle" font-size="14" fill="#64748b">Arquitectura completa: flujo, riesgos y mejoras</text>
+
+  <!-- Legend -->
+  <rect x="30" y="85" width="260" height="100" rx="8" fill="white" stroke="#e2e8f0" filter="url(#shadow)"/>
+  <text x="45" y="108" font-size="12" font-weight="600" fill="#334155">LEYENDA</text>
+  <rect x="45" y="118" width="14" height="14" rx="3" fill="#22c55e"/>
+  <text x="65" y="130" font-size="11" fill="#334155">Funciona correctamente</text>
+  <rect x="45" y="138" width="14" height="14" rx="3" fill="#f59e0b"/>
+  <text x="65" y="150" font-size="11" fill="#334155">Nuevo (recien implementado)</text>
+  <rect x="45" y="158" width="14" height="14" rx="3" fill="#ef4444"/>
+  <text x="65" y="170" font-size="11" fill="#334155">Riesgo / Problema critico</text>
+
+  <!-- ============================================ -->
+  <!-- PHASE 1: CITA CREADA -->
+  <!-- ============================================ -->
+  <g transform="translate(50, 210)">
+    <rect width="320" height="200" rx="12" fill="white" stroke="#22c55e" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="320" height="36" rx="12" fill="#22c55e"/>
+    <rect y="24" width="320" height="12" fill="#22c55e"/>
+    <text x="160" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="white">1. CITA CREADA</text>
+
+    <text x="20" y="58" font-size="12" fill="#334155" font-weight="600">Paciente agenda turno</text>
+    <text x="20" y="78" font-size="11" fill="#64748b">appointments.usecase.ts → create()</text>
+    <line x1="20" y1="88" x2="300" y2="88" stroke="#e2e8f0"/>
+
+    <text x="20" y="108" font-size="12" fill="#334155" font-weight="600">scheduleReminders()</text>
+    <text x="20" y="126" font-size="11" fill="#64748b">Inserta en appointment_reminders:</text>
+    <text x="20" y="142" font-size="11" fill="#64748b">• 24h antes → status=pending</text>
+    <text x="20" y="158" font-size="11" fill="#64748b">• 2h antes → status=pending</text>
+
+    <!-- RISK badge -->
+    <rect x="15" y="168" width="290" height="26" rx="6" fill="#fef2f2" stroke="#fecaca"/>
+    <text x="25" y="185" font-size="10" fill="#dc2626" font-weight="600">⚠ RIESGO: Si falla, cita queda SIN recordatorios</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- PHASE 2: PREDICCION -->
+  <!-- ============================================ -->
+  <g transform="translate(50, 440)">
+    <rect width="320" height="230" rx="12" fill="white" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="320" height="36" rx="12" fill="#3b82f6"/>
+    <rect y="24" width="320" height="12" fill="#3b82f6"/>
+    <text x="160" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="white">2. PREDICCION NO-SHOW</text>
+
+    <text x="20" y="58" font-size="12" fill="#334155" font-weight="600">noshow-predictor.ts (heuristica)</text>
+    <text x="20" y="78" font-size="11" fill="#64748b">3 factores ponderados:</text>
+    <text x="20" y="96" font-size="11" fill="#334155">• Historial paciente (50%)</text>
+    <text x="20" y="112" font-size="11" fill="#334155">• Tasa global doctor (20%)</text>
+    <text x="20" y="128" font-size="11" fill="#334155">• Patron dia/hora (30%)</text>
+    <line x1="20" y1="138" x2="300" y2="138" stroke="#e2e8f0"/>
+
+    <text x="20" y="158" font-size="11" fill="#64748b">Si probabilidad > 0.3:</text>
+    <text x="20" y="174" font-size="11" fill="#334155">→ Slot marcado overbook_eligible</text>
+
+    <!-- RISK badge -->
+    <rect x="15" y="188" width="290" height="36" rx="6" fill="#fef2f2" stroke="#fecaca"/>
+    <text x="25" y="203" font-size="10" fill="#dc2626" font-weight="600">⚠ CRITICO: Nadie marca no_show en BD</text>
+    <text x="25" y="217" font-size="10" fill="#dc2626">Predictor siempre ve 0 no-shows → nunca activa overbooking</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- PHASE 3: ENVIO RECORDATORIO -->
+  <!-- ============================================ -->
+  <g transform="translate(420, 210)">
+    <rect width="340" height="200" rx="12" fill="white" stroke="#22c55e" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="340" height="36" rx="12" fill="#22c55e"/>
+    <rect y="24" width="340" height="12" fill="#22c55e"/>
+    <text x="170" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="white">3. ENVIO RECORDATORIO</text>
+
+    <text x="20" y="58" font-size="12" fill="#334155" font-weight="600">reminder-worker.ts (cada 60s)</text>
+    <text x="20" y="78" font-size="11" fill="#64748b">1. getPendingReminders()</text>
+    <text x="20" y="94" font-size="11" fill="#64748b">2. buildReminder24h() / buildReminder2h()</text>
+    <text x="20" y="110" font-size="11" fill="#64748b">3. sendMessageWithFallback() → OpenClaw</text>
+    <text x="20" y="126" font-size="11" fill="#64748b">4. markReminderSent() → status=sent</text>
+    <line x1="20" y1="136" x2="320" y2="136" stroke="#e2e8f0"/>
+
+    <rect x="15" y="145" width="310" height="20" rx="6" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="25" y="159" font-size="10" fill="#16a34a" font-weight="600">✓ OK: Pipeline funcional completo</text>
+
+    <!-- RISK badge -->
+    <rect x="15" y="170" width="310" height="22" rx="6" fill="#fef2f2" stroke="#fecaca"/>
+    <text x="25" y="185" font-size="10" fill="#dc2626" font-weight="600">⚠ RIESGO: failed es terminal, no reintenta</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- PHASE 4: RESPUESTA PACIENTE -->
+  <!-- ============================================ -->
+  <g transform="translate(420, 440)">
+    <rect width="340" height="230" rx="12" fill="white" stroke="#22c55e" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="340" height="36" rx="12" fill="#22c55e"/>
+    <rect y="24" width="340" height="12" fill="#22c55e"/>
+    <text x="170" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="white">4. RESPUESTA PACIENTE</text>
+
+    <text x="20" y="58" font-size="12" fill="#334155" font-weight="600">inbound-watcher.ts (polling 3s)</text>
+    <text x="20" y="78" font-size="11" fill="#64748b">Escucha journalctl → OpenClaw logs</text>
+    <line x1="20" y1="88" x2="320" y2="88" stroke="#e2e8f0"/>
+
+    <text x="20" y="108" font-size="12" fill="#334155" font-weight="600">parsePatientResponse():</text>
+    <rect x="20" y="116" width="90" height="22" rx="4" fill="#f0fdf4" stroke="#86efac"/>
+    <text x="65" y="131" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="600">CONFIRMO</text>
+    <rect x="120" y="116" width="90" height="22" rx="4" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="165" y="131" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="600">CANCELO</text>
+    <rect x="220" y="116" width="90" height="22" rx="4" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="265" y="131" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="600">ACEPTO</text>
+
+    <text x="20" y="158" font-size="11" fill="#64748b">→ CONFIRMO: marca reminder confirmed</text>
+    <text x="20" y="174" font-size="11" fill="#64748b">→ CANCELO: cancela cita + processWaitlist</text>
+    <text x="20" y="190" font-size="11" fill="#64748b">→ ACEPTO: acceptWaitlistOffer → nueva cita</text>
+
+    <!-- RISK badge -->
+    <rect x="15" y="200" width="310" height="26" rx="6" fill="#fef2f2" stroke="#fecaca"/>
+    <text x="25" y="217" font-size="10" fill="#dc2626" font-weight="600">⚠ CRITICO: Backend caido → mensaje PERDIDO</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- PHASE 5: CANCELACION + WAITLIST -->
+  <!-- ============================================ -->
+  <g transform="translate(810, 210)">
+    <rect width="340" height="200" rx="12" fill="white" stroke="#22c55e" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="340" height="36" rx="12" fill="#22c55e"/>
+    <rect y="24" width="340" height="12" fill="#22c55e"/>
+    <text x="170" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="white">5. CANCELACION → WAITLIST</text>
+
+    <text x="20" y="58" font-size="12" fill="#334155" font-weight="600">processWaitlist()</text>
+    <text x="20" y="78" font-size="11" fill="#64748b">1. Busca candidato por preferencias</text>
+    <text x="20" y="94" font-size="11" fill="#64748b">2. Filtra fecha/hora/prioridad</text>
+    <text x="20" y="110" font-size="11" fill="#64748b">3. Marca status=offered + expires_at</text>
+    <text x="20" y="126" font-size="11" fill="#64748b">4. Optimistic lock: WHERE status=waiting</text>
+    <line x1="20" y1="136" x2="320" y2="136" stroke="#e2e8f0"/>
+
+    <rect x="15" y="145" width="310" height="20" rx="6" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="25" y="159" font-size="10" fill="#16a34a" font-weight="600">✓ OK: Matching funcional con prioridad</text>
+
+    <rect x="15" y="170" width="310" height="22" rx="6" fill="#fef9c4" stroke="#fde047"/>
+    <text x="25" y="185" font-size="10" fill="#a16207" font-weight="600">⚡ MEDIO: Race condition si multiples workers</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- PHASE 6: WAITLIST DISPATCH (NUEVO) -->
+  <!-- ============================================ -->
+  <g transform="translate(810, 440)">
+    <rect width="340" height="230" rx="12" fill="white" stroke="#f59e0b" stroke-width="3" filter="url(#shadow)"/>
+    <rect width="340" height="36" rx="12" fill="#f59e0b"/>
+    <rect y="24" width="340" height="12" fill="#f59e0b"/>
+    <text x="170" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="white">6. WAITLIST AUTO-DISPATCH ★ NUEVO</text>
+
+    <text x="20" y="58" font-size="12" fill="#334155" font-weight="600">processUnsentWaitlistOffers()</text>
+    <text x="20" y="78" font-size="11" fill="#64748b">Integrado en processReminderCycle (paso 4)</text>
+    <line x1="20" y1="88" x2="320" y2="88" stroke="#e2e8f0"/>
+
+    <text x="20" y="108" font-size="11" fill="#334155">1. getUnsentOffers() → offer_sent_at IS NULL</text>
+    <text x="20" y="124" font-size="11" fill="#334155">2. Query patient phone + doctor name</text>
+    <text x="20" y="140" font-size="11" fill="#334155">3. buildWaitlistOffer() → mensaje WhatsApp</text>
+    <text x="20" y="156" font-size="11" fill="#334155">4. sendMessageWithFallback() → OpenClaw</text>
+    <text x="20" y="172" font-size="11" fill="#334155">5. markOfferSent() → offer_sent_at=now</text>
+    <line x1="20" y1="182" x2="320" y2="182" stroke="#e2e8f0"/>
+
+    <rect x="15" y="192" width="310" height="30" rx="6" fill="#f0fdf4" stroke="#bbf7d0"/>
+    <text x="25" y="207" font-size="10" fill="#16a34a" font-weight="600">✓ CIERRA EL CIRCUITO: offered → WhatsApp → ACEPTO</text>
+    <text x="25" y="219" font-size="10" fill="#16a34a">Retry automatico en siguiente ciclo si falla</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- PHASE 7: EXPIRACION -->
+  <!-- ============================================ -->
+  <g transform="translate(1200, 210)">
+    <rect width="280" height="120" rx="12" fill="white" stroke="#22c55e" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="280" height="36" rx="12" fill="#22c55e"/>
+    <rect y="24" width="280" height="12" fill="#22c55e"/>
+    <text x="140" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="white">7. EXPIRACION</text>
+
+    <text x="20" y="58" font-size="12" fill="#334155" font-weight="600">expireStaleOffers()</text>
+    <text x="20" y="78" font-size="11" fill="#64748b">Corre cada 60s en worker + edge fn</text>
+    <text x="20" y="94" font-size="11" fill="#64748b">offered + expires_at &lt; now → expired</text>
+
+    <rect x="15" y="100" width="250" height="16" rx="4" fill="#f0fdf4"/>
+    <text x="25" y="112" font-size="10" fill="#16a34a" font-weight="600">✓ OK</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- PHASE 8: OVERBOOKING -->
+  <!-- ============================================ -->
+  <g transform="translate(1200, 360)">
+    <rect width="280" height="120" rx="12" fill="white" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="280" height="36" rx="12" fill="#3b82f6"/>
+    <rect y="24" width="280" height="12" fill="#3b82f6"/>
+    <text x="140" y="24" text-anchor="middle" font-size="14" font-weight="700" fill="white">8. OVERBOOKING</text>
+
+    <text x="20" y="58" font-size="12" fill="#334155" font-weight="600">slots.ts → overbook_eligible</text>
+    <text x="20" y="78" font-size="11" fill="#64748b">Si no-show prob > 0.3 → doble booking</text>
+    <text x="20" y="94" font-size="11" fill="#64748b">Threshold hardcodeado, no per-doctor</text>
+
+    <rect x="15" y="100" width="250" height="16" rx="4" fill="#fef9c4"/>
+    <text x="25" y="112" font-size="10" fill="#a16207" font-weight="600">⚡ Depende de P0 (marcar no_show)</text>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- ARROWS between phases -->
+  <!-- ============================================ -->
+  <!-- 1 → 3 -->
+  <line x1="370" y1="310" x2="420" y2="310" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <!-- 3 → 4 (down) -->
+  <line x1="590" y1="410" x2="590" y2="440" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <!-- 4 → 5 (CANCELO) -->
+  <line x1="760" y1="570" x2="810" y2="370" stroke="#ef4444" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrow-red)"/>
+  <text x="795" y="460" font-size="9" fill="#dc2626" font-weight="600" transform="rotate(-40,795,460)">CANCELO</text>
+  <!-- 5 → 6 (down) -->
+  <line x1="980" y1="410" x2="980" y2="440" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)"/>
+  <!-- 6 → 4 (ACEPTO loop) -->
+  <path d="M 810 600 Q 780 600 780 560 Q 780 520 760 520" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrow)"/>
+  <text x="770" y="585" font-size="9" fill="#2563eb" font-weight="600">ACEPTO</text>
+  <!-- 5 → 7 -->
+  <line x1="1150" y1="310" x2="1200" y2="290" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <!-- 2 → 8 -->
+  <path d="M 370 555 Q 400 555 400 480 Q 400 420 1200 420" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,4" marker-end="url(#arrow)"/>
+
+  <!-- ============================================ -->
+  <!-- PROBLEMAS CRITICOS SECTION -->
+  <!-- ============================================ -->
+  <g transform="translate(50, 710)">
+    <rect width="1430" height="280" rx="12" fill="white" stroke="#ef4444" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="1430" height="40" rx="12" fill="#ef4444"/>
+    <rect y="28" width="1430" height="12" fill="#ef4444"/>
+    <text x="715" y="27" text-anchor="middle" font-size="16" font-weight="700" fill="white">PROBLEMAS CRITICOS Y MEJORAS PENDIENTES</text>
+
+    <!-- P0 items -->
+    <g transform="translate(20, 55)">
+      <rect width="450" height="90" rx="8" fill="#fef2f2" stroke="#fecaca"/>
+      <text x="15" y="20" font-size="12" font-weight="700" fill="#dc2626">P0 — Nadie marca no_show</text>
+      <text x="15" y="38" font-size="11" fill="#7f1d1d">No hay endpoint ni cron que setee status=no_show.</text>
+      <text x="15" y="54" font-size="11" fill="#7f1d1d">El predictor siempre ve 0 no-shows → overbooking</text>
+      <text x="15" y="70" font-size="11" fill="#7f1d1d">inteligente nunca se activa. Esfuerzo: ~2h</text>
+      <rect x="380" y="5" width="55" height="18" rx="4" fill="#dc2626"/>
+      <text x="407" y="17" text-anchor="middle" font-size="10" fill="white" font-weight="700">~2h</text>
+    </g>
+
+    <g transform="translate(490, 55)">
+      <rect width="450" height="90" rx="8" fill="#fef2f2" stroke="#fecaca"/>
+      <text x="15" y="20" font-size="12" font-weight="700" fill="#dc2626">P0 — Mensajes inbound se pierden</text>
+      <text x="15" y="38" font-size="11" fill="#7f1d1d">Si backend caido cuando paciente responde,</text>
+      <text x="15" y="54" font-size="11" fill="#7f1d1d">forwardToBackend() falla y descarta el mensaje.</text>
+      <text x="15" y="70" font-size="11" fill="#7f1d1d">Paciente cree que cancelo pero cita sigue. ~3h</text>
+      <rect x="380" y="5" width="55" height="18" rx="4" fill="#dc2626"/>
+      <text x="407" y="17" text-anchor="middle" font-size="10" fill="white" font-weight="700">~3h</text>
+    </g>
+
+    <g transform="translate(960, 55)">
+      <rect width="450" height="90" rx="8" fill="#fef2f2" stroke="#fecaca"/>
+      <text x="15" y="20" font-size="12" font-weight="700" fill="#dc2626">P1 — Cita sin recordatorios</text>
+      <text x="15" y="38" font-size="11" fill="#7f1d1d">scheduleReminders() puede fallar silenciosamente</text>
+      <text x="15" y="54" font-size="11" fill="#7f1d1d">despues de crear la cita. No hay transaccion</text>
+      <text x="15" y="70" font-size="11" fill="#7f1d1d">atomica ni retry. Paciente no recibe aviso. ~2h</text>
+      <rect x="380" y="5" width="55" height="18" rx="4" fill="#f59e0b"/>
+      <text x="407" y="17" text-anchor="middle" font-size="10" fill="white" font-weight="700">~2h</text>
+    </g>
+
+    <!-- P1/P2 items -->
+    <g transform="translate(20, 155)">
+      <rect width="340" height="70" rx="8" fill="#fef9c4" stroke="#fde047"/>
+      <text x="15" y="20" font-size="12" font-weight="700" fill="#a16207">P1 — Reminders sin retry</text>
+      <text x="15" y="38" font-size="11" fill="#92400e">status=failed es terminal, no hay backoff</text>
+      <text x="15" y="54" font-size="11" fill="#92400e">ni reintento. Si OpenClaw falla → perdido. ~3h</text>
+    </g>
+
+    <g transform="translate(380, 155)">
+      <rect width="340" height="70" rx="8" fill="#fef9c4" stroke="#fde047"/>
+      <text x="15" y="20" font-size="12" font-weight="700" fill="#a16207">P2 — Config global, no per-doctor</text>
+      <text x="15" y="38" font-size="11" fill="#92400e">Timing de reminders (24h+2h) es hardcoded.</text>
+      <text x="15" y="54" font-size="11" fill="#92400e">No hay tabla doctor_scheduling_config. ~4h</text>
+    </g>
+
+    <g transform="translate(740, 155)">
+      <rect width="340" height="70" rx="8" fill="#fef9c4" stroke="#fde047"/>
+      <text x="15" y="20" font-size="12" font-weight="700" fill="#a16207">P2 — Webhook sin rate limiting</text>
+      <text x="15" y="38" font-size="11" fill="#92400e">POST /api/webhooks/openclaw no verifica</text>
+      <text x="15" y="54" font-size="11" fill="#92400e">firma ni limita requests. Replay posible. ~1h</text>
+    </g>
+
+    <g transform="translate(1100, 155)">
+      <rect width="340" height="70" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+      <text x="15" y="20" font-size="12" font-weight="700" fill="#1d4ed8">P3 — Blog vs realidad</text>
+      <text x="15" y="38" font-size="11" fill="#1e40af">Blog dice 24h+1h, config dice 24h+2h.</text>
+      <text x="15" y="54" font-size="11" fill="#1e40af">"El sistema aprende" es heuristica estatica. ~0.5h</text>
+    </g>
+  </g>
+
+  <!-- ============================================ -->
+  <!-- FLUJO CASO FELIZ (bottom) -->
+  <!-- ============================================ -->
+  <g transform="translate(50, 1030)">
+    <rect width="1430" height="160" rx="12" fill="white" stroke="#22c55e" stroke-width="2" filter="url(#shadow)"/>
+    <rect width="1430" height="36" rx="12" fill="#22c55e"/>
+    <rect y="24" width="1430" height="12" fill="#22c55e"/>
+    <text x="715" y="25" text-anchor="middle" font-size="15" font-weight="700" fill="white">FLUJO CASO FELIZ — End to End</text>
+
+    <!-- Flow boxes -->
+    <g transform="translate(20, 50)">
+      <rect width="160" height="50" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="#166534">Paciente</text>
+      <text x="80" y="38" text-anchor="middle" font-size="11" fill="#166534">agenda turno</text>
+    </g>
+    <line x1="200" y1="1105" x2="220" y2="1105" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)" transform="translate(-150,-30)"/>
+
+    <g transform="translate(200, 50)">
+      <rect width="160" height="50" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="#166534">Reminders</text>
+      <text x="80" y="38" text-anchor="middle" font-size="11" fill="#166534">creados (24h+2h)</text>
+    </g>
+    <line x1="380" y1="1105" x2="400" y2="1105" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)" transform="translate(-150,-30)"/>
+
+    <g transform="translate(380, 50)">
+      <rect width="160" height="50" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="#166534">WhatsApp</text>
+      <text x="80" y="38" text-anchor="middle" font-size="11" fill="#166534">24h antes</text>
+    </g>
+    <line x1="560" y1="1105" x2="580" y2="1105" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)" transform="translate(-150,-30)"/>
+
+    <g transform="translate(560, 50)">
+      <rect width="160" height="50" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="#166534">Paciente</text>
+      <text x="80" y="38" text-anchor="middle" font-size="11" fill="#166534">CONFIRMO</text>
+    </g>
+    <line x1="740" y1="1105" x2="760" y2="1105" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)" transform="translate(-150,-30)"/>
+
+    <g transform="translate(740, 50)">
+      <rect width="160" height="50" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="#166534">WhatsApp</text>
+      <text x="80" y="38" text-anchor="middle" font-size="11" fill="#166534">2h antes</text>
+    </g>
+    <line x1="920" y1="1105" x2="940" y2="1105" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)" transform="translate(-150,-30)"/>
+
+    <g transform="translate(920, 50)">
+      <rect width="160" height="50" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="#166534">Paciente</text>
+      <text x="80" y="38" text-anchor="middle" font-size="11" fill="#166534">asiste</text>
+    </g>
+    <line x1="1100" y1="1105" x2="1120" y2="1105" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow-green)" transform="translate(-150,-30)"/>
+
+    <g transform="translate(1100, 50)">
+      <rect width="160" height="50" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+      <text x="80" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="#166534">Turno</text>
+      <text x="80" y="38" text-anchor="middle" font-size="11" fill="#166534">completado ✓</text>
+    </g>
+
+    <!-- Waitlist sub-flow -->
+    <text x="20" y="120" font-size="11" font-weight="600" fill="#a16207">Flujo alternativo (CANCELO):</text>
+    <g transform="translate(200, 108)">
+      <rect width="120" height="30" rx="6" fill="#fef9c4" stroke="#fde047"/>
+      <text x="60" y="20" text-anchor="middle" font-size="10" fill="#92400e">CANCELO</text>
+    </g>
+    <line x1="340" y1="1153" x2="360" y2="1153" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrow)" transform="translate(-150,-30)"/>
+    <g transform="translate(360, 108)">
+      <rect width="120" height="30" rx="6" fill="#fef9c4" stroke="#fde047"/>
+      <text x="60" y="20" text-anchor="middle" font-size="10" fill="#92400e">Waitlist match</text>
+    </g>
+    <line x1="500" y1="1153" x2="520" y2="1153" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrow)" transform="translate(-150,-30)"/>
+    <g transform="translate(520, 108)">
+      <rect width="140" height="30" rx="6" fill="#fef9c4" stroke="#fde047"/>
+      <text x="70" y="20" text-anchor="middle" font-size="10" fill="#92400e">WhatsApp oferta ★</text>
+    </g>
+    <line x1="680" y1="1153" x2="700" y2="1153" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrow)" transform="translate(-150,-30)"/>
+    <g transform="translate(700, 108)">
+      <rect width="120" height="30" rx="6" fill="#fef9c4" stroke="#fde047"/>
+      <text x="60" y="20" text-anchor="middle" font-size="10" fill="#92400e">ACEPTO</text>
+    </g>
+    <line x1="840" y1="1153" x2="860" y2="1153" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrow)" transform="translate(-150,-30)"/>
+    <g transform="translate(860, 108)">
+      <rect width="140" height="30" rx="6" fill="#f0fdf4" stroke="#86efac"/>
+      <text x="70" y="20" text-anchor="middle" font-size="10" fill="#166534">Nueva cita creada</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <text x="900" y="1230" text-anchor="middle" font-size="11" fill="#94a3b8">AutaMedica — Arquitectura Anti No-Show — Generado 2026-04-13</text>
+  <text x="900" y="1248" text-anchor="middle" font-size="11" fill="#94a3b8">★ = Nuevo (implementado hoy) | Las flechas punteadas indican flujos condicionales</text>
+</svg>
