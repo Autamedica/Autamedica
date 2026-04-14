@@ -16,7 +16,7 @@ export interface ChatMessage {
   id: string
   text: string
   senderId: string
-  senderType: 'doctor' | 'patient' | 'nurse'
+  senderType: 'doctor' | 'patient' | 'nurse' | 'guest'
   senderName?: string
   timestamp: number
 }
@@ -90,7 +90,7 @@ export class PeerConnectionFactory {
     userId: string,
     iceServers: RTCIceServer[],
     localUserId: string,
-    localUserType: 'doctor' | 'patient' | 'nurse',
+    localUserType: 'doctor' | 'patient' | 'nurse' | 'guest',
     peerConnections: Map<string, PeerState>,
   ): PeerState {
     let peerState = peerConnections.get(userId)

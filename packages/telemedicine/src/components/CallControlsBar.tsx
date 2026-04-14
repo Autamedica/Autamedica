@@ -16,7 +16,7 @@ export interface CallControlsBarProps {
   isChatPanelOpen: boolean
   unreadMessages: number
   showControls: boolean
-  userType: 'doctor' | 'patient' | 'nurse'
+  userType: 'doctor' | 'patient' | 'nurse' | 'guest'
   accentColor: 'violet' | 'sky'
   onToggleVideo: () => void
   onToggleAudio: () => void

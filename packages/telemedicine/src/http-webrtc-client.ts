@@ -11,7 +11,7 @@ export interface HttpWebRTCConfig {
   iceServers: RTCIceServer[]
   roomId?: string
   userId: string
-  userType: 'doctor' | 'patient' | 'nurse'
+  userType: 'doctor' | 'patient' | 'nurse' | 'guest'
   pollInterval?: number // milliseconds
 }
 
@@ -42,7 +42,7 @@ export class HttpWebRTCClient {
   private lastPollTimestamp = 0
   private isPolling = false
 
-  constructor(config: Partial<HttpWebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' }) {
+  constructor(config: Partial<HttpWebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' | 'guest' }) {
     this.config = {
       signalingUrl: 'https://autamedica-signaling-server.marques-eduardo95466020.workers.dev',
       iceServers: ICE_STUN_ONLY,
