@@ -125,6 +125,7 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
 }
 
 function sanitizeEvent<T>(event: T): T {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Sentry event structure requires dynamic property access for sanitization
   const mutableEvent = event as Record<string, any>
 
   if (mutableEvent.request) {
