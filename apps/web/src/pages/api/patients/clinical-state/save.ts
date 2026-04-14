@@ -99,7 +99,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
   try {
     const admin = createAstroAdminClient(locals.runtime?.env)
     const repo = createClinicalStateAdapter(admin)
-    const state = await repo.loadByPatientId(context.patientId)
+    const url = new URL(request.url)
+    const caseId = url.searchParams.get('caseId')
+    const state = caseId
+      ? await repo.loadByCaseId(caseId)
+      : await repo.loadByPatientId(context.patientId)
 
     return json({
       success: true,
