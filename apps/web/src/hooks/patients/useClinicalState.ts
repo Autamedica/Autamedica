@@ -52,7 +52,15 @@ interface UseClinicalStateOptions {
 interface UseClinicalStateReturn {
   clinicalState: ClinicalCaseState | null
   /** Normalize form data into the canonical state */
-  mergeFormData: (formData: Record<string, unknown>, segment: SegmentKey) => NormalizerResult | null
+  mergeFormData: (
+    formData: Record<string, unknown>,
+    segment: SegmentKey,
+    options?: {
+      explicitConfirmation?: boolean
+      source?: 'ui_form' | 'persisted_db' | 'doctor_review'
+      confidence?: 'low' | 'medium' | 'high'
+    },
+  ) => NormalizerResult | null
   /** Normalize voice extraction into the canonical state */
   mergeVoiceData: (
     extractedFields: Record<string, unknown>,
@@ -70,7 +78,7 @@ interface UseClinicalStateReturn {
   /** UX mode for a step */
   getStepMode: (stepId: string, fieldIds?: string[]) => StepUiMode
   /** Confirm and lock a field value */
-  confirmField: (fieldId: string, stepId: string) => void
+  confirmField: (fieldId: string, stepId: string, overrideValue?: unknown) => void
   /** Get planned questions for a segment */
   getPlannedQuestions: (segmentFilter?: SegmentKey) => PlannerOutput | null
   /** Get the prompt text for Gemini */
@@ -209,6 +217,7 @@ export function useClinicalState({
   useEffect(() => {
     // If patient changed, reset state
     if (initialized && (stateRef.current?.patientId !== patientId || stateRef.current?.caseId !== caseId)) {
+      stateRef.current = null
       setInitialized(false)
       setClinicalState(null)
       return
@@ -223,8 +232,11 @@ export function useClinicalState({
 
       // 1. Try loading persisted state
       try {
+        const query = new URLSearchParams({ patientId })
+        if (caseId) query.set('caseId', caseId)
+
         const response = await fetchApi<{ state: ClinicalCaseState | null }>(
-          `/api/patients/clinical-state/save?patientId=${patientId}`,
+          `/api/patients/clinical-state/save?${query.toString()}`,
           { method: 'GET' },
         )
         if (response?.state) {
@@ -252,7 +264,10 @@ export function useClinicalState({
           if (!segment) continue
 
           const data = section.data as Record<string, unknown>
-          const result = normalizeFormData(state, data, segment)
+          const result = normalizeFormData(state, data, segment, {
+            explicitConfirmation: true,
+            source: 'persisted_db',
+          })
           state = result.state
         }
 
@@ -263,6 +278,7 @@ export function useClinicalState({
         })
       }
 
+      stateRef.current = state
       setClinicalState(state)
       setInitialized(true)
     }
@@ -278,11 +294,17 @@ export function useClinicalState({
   const mergeFormData = useCallback((
     formData: Record<string, unknown>,
     segment: SegmentKey,
+    options?: {
+      explicitConfirmation?: boolean
+      source?: 'ui_form' | 'persisted_db' | 'doctor_review'
+      confidence?: 'low' | 'medium' | 'high'
+    },
   ): NormalizerResult | null => {
     const current = stateRef.current
     if (!current) return null
 
-    const result = normalizeFormData(current, formData, segment)
+    const result = normalizeFormData(current, formData, segment, options)
+    stateRef.current = result.state
     setClinicalState(result.state)
     schedulePersist()
 
@@ -299,6 +321,7 @@ export function useClinicalState({
     if (!current) return null
 
     const result = normalizeVoiceExtraction(current, extractedFields, rawTranscript, segment)
+    stateRef.current = result.state
     setClinicalState(result.state)
     schedulePersist()
 
@@ -423,12 +446,13 @@ export function useClinicalState({
   }, [getStepSummary])
 
   // ── Confirm and lock a field ──
-  const confirmField = useCallback((fieldId: string, stepId: string): void => {
+  const confirmField = useCallback((fieldId: string, stepId: string, overrideValue?: unknown): void => {
     const current = stateRef.current
     if (!current) return
 
     const field = getCanonicalField(fieldId, stepId)
-    if (!field || field.value === null) return
+    const valueToConfirm = overrideValue ?? field?.value
+    if (valueToConfirm == null || valueToConfirm === '') return
 
     // Route firmly through normalization engine to update planner & integrity recursively
     const segment = SECTION_TO_SEGMENT[stepId] ?? current.workflow.currentSegment
@@ -439,8 +463,8 @@ export function useClinicalState({
       workflowType: current.workflow.type,
       segment,
       data: [{
-        fieldKey: field.key,
-        value: field.value,
+        fieldKey: field?.key ?? resolveCanonicalKey(fieldId),
+        value: valueToConfirm,
         source: 'doctor_review',
         sourceSegment: segment,
         confidence: 'high',
@@ -451,7 +475,8 @@ export function useClinicalState({
 
     // Also manually lock it 
     const lockedState = { ...result.state }
-    const [sectionName, fieldName] = field.key.split('.')
+    const canonicalKey = field?.key ?? resolveCanonicalKey(fieldId)
+    const [sectionName, fieldName] = canonicalKey.split('.')
     if (sectionName && fieldName) {
       const sectionObj = (lockedState as unknown as Record<string, Record<string, unknown>>)[sectionName]
       if (sectionObj?.[fieldName]) {
@@ -459,6 +484,7 @@ export function useClinicalState({
       }
     }
 
+    stateRef.current = lockedState
     setClinicalState(lockedState)
     schedulePersist()
   }, [getCanonicalField, schedulePersist])

@@ -332,8 +332,8 @@ function SingleFieldStep({ flow, isContinuity }: { flow: ReturnType<typeof usePs
             canonicalField={flow.getCanonicalField(currentStep.field.id, currentStep.id)}
             formValue={flow.currentStepData[currentStep.field.id] as AnamnesisFieldValue}
             label={currentStep.field.label}
-            onConfirm={(value) => { flow.updateField(currentStep.field.id, value); flow.confirmField(currentStep.field.id, currentStep.id) }}
-            onResolve={(value) => { flow.updateField(currentStep.field.id, value); flow.confirmField(currentStep.field.id, currentStep.id) }}
+            onConfirm={(value) => { flow.updateField(currentStep.field.id, value); flow.confirmField(currentStep.field.id, currentStep.id, value) }}
+            onResolve={(value) => { flow.updateField(currentStep.field.id, value); flow.confirmField(currentStep.field.id, currentStep.id, value) }}
           >
             <FieldRenderer field={currentStep.field} value={flow.currentStepData[currentStep.field.id] as AnamnesisFieldValue} onChange={(value) => flow.updateField(currentStep.field.id, value)} />
           </ClinicalFieldWrapper>
@@ -403,8 +403,8 @@ function MultiFieldStep({ flow }: { flow: ReturnType<typeof usePsychiatryIntakeF
             canonicalField={flow.getCanonicalField(field.id, currentStep.id)}
             formValue={flow.currentStepData[field.id] as AnamnesisFieldValue}
             label={field.label}
-            onConfirm={(value) => { flow.updateField(field.id, value); flow.confirmField(field.id, currentStep.id) }}
-            onResolve={(value) => { flow.updateField(field.id, value); flow.confirmField(field.id, currentStep.id) }}
+            onConfirm={(value) => { flow.updateField(field.id, value); flow.confirmField(field.id, currentStep.id, value) }}
+            onResolve={(value) => { flow.updateField(field.id, value); flow.confirmField(field.id, currentStep.id, value) }}
           >
             <FieldRenderer field={field} value={flow.currentStepData[field.id] as AnamnesisFieldValue} onChange={(value) => flow.updateField(field.id, value)} />
           </ClinicalFieldWrapper>

@@ -46,11 +46,8 @@ export function ClinicalFieldWrapper({
 }: ClinicalFieldWrapperProps) {
   const uxState = resolveFieldUXState(canonicalField)
   const [editMode, setEditMode] = useState(false)
-
-  // If no canonical data or in capture mode, just render children
-  if (uxState.mode === 'capture' || !canonicalField) {
-    return <>{children}</>
-  }
+  const latestSource = canonicalField?.provenance[canonicalField.provenance.length - 1]?.source
+  const isLocalUiDraft = canonicalField?.status === 'draft' && latestSource === 'ui_form'
 
   // Edit mode overrides everything
   if (editMode) {
@@ -69,6 +66,11 @@ export function ClinicalFieldWrapper({
         {children}
       </div>
     )
+  }
+
+  // Keep the raw field visible while the value is still only a local UI draft.
+  if (uxState.mode === 'capture' || !canonicalField || isLocalUiDraft) {
+    return <>{children}</>
   }
 
   // Confirmed / Locked → read-only display
