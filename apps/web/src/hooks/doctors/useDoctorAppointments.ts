@@ -11,6 +11,7 @@ import type {
   DoctorAppointmentFormValues,
   DoctorAppointmentRecord,
 } from '@/lib/doctors/types/appointments'
+import type { AppointmentStatus } from '@autamedica/types'
 
 interface UseDoctorAppointmentsResult {
   appointments: DoctorAppointmentRecord[]
@@ -20,6 +21,7 @@ interface UseDoctorAppointmentsResult {
   refetch: () => Promise<void>
   createAppointment: (values: DoctorAppointmentFormValues) => Promise<DoctorAppointmentRecord>
   updateAppointment: (id: string, values: DoctorAppointmentFormValues) => Promise<DoctorAppointmentRecord>
+  transitionAppointment: (id: string, status: AppointmentStatus | 're_queue') => Promise<DoctorAppointmentRecord>
 }
 
 export function useDoctorAppointments(): UseDoctorAppointmentsResult {
@@ -80,6 +82,21 @@ export function useDoctorAppointments(): UseDoctorAppointmentsResult {
     [],
   )
 
+  const transitionAppointment = useCallback(
+    async (id: string, status: AppointmentStatus | 're_queue'): Promise<DoctorAppointmentRecord> => {
+      const updated = await doctorAppointmentsService.transition(id, status)
+      setAppointments((prev) =>
+        prev
+          .map((appt) => (appt.id === id ? { ...appt, ...updated } : appt))
+          .sort(
+            (left, right) => new Date(left.start_time).getTime() - new Date(right.start_time).getTime(),
+          ),
+      )
+      return updated
+    },
+    [],
+  )
+
   return useMemo(
     () => ({
       appointments,
@@ -89,7 +106,8 @@ export function useDoctorAppointments(): UseDoctorAppointmentsResult {
       refetch,
       createAppointment,
       updateAppointment,
+      transitionAppointment,
     }),
-    [appointments, loading, error, isClientReady, refetch, createAppointment, updateAppointment],
+    [appointments, loading, error, isClientReady, refetch, createAppointment, updateAppointment, transitionAppointment],
   )
 }

@@ -7,7 +7,7 @@ import { logger } from '@autamedica/shared';
 import { resolveDoctorContext } from '@/lib/doctors/api/doctor-context';
 import { badRequest, forbidden, notFound, internalError, jsonOk, unauthorized } from '@/lib/api-helpers';
 
-const VALID_STATUSES = ['scheduled', 'confirmed', 'in_progress', 're_queue', 'completed', 'cancelled'] as const;
+const VALID_STATUSES = ['scheduled', 'confirmed', 'in_progress', 're_queue', 'completed', 'cancelled', 'no_show'] as const;
 type ValidStatus = typeof VALID_STATUSES[number];
 
 export const POST: APIRoute = async ({ params, request, locals }) => {

@@ -4,6 +4,7 @@ import type { Appointment } from '@autamedica/types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { JSX } from 'react'
 import { Calendar, Clock, Video, User, Plus, Filter } from 'lucide-react'
+import { logger } from '@autamedica/shared'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.service'
@@ -23,7 +24,8 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
   const [patientNames, setPatientNames] = useState<Record<string, string>>({})
   
   const { user, loading: userLoading } = useAuthenticatedUser()
-  const { appointments, loading, error, isClientReady, createAppointment, updateAppointment } = useDoctorAppointments()
+  const { appointments, loading, error, isClientReady, createAppointment, updateAppointment, transitionAppointment } = useDoctorAppointments()
+  const [transitioningId, setTransitioningId] = useState<string | null>(null)
 
   const resolvedDoctorId = doctorId ?? user?.doctorProfileId
 
@@ -58,13 +60,41 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
     [createAppointment, updateAppointment, editingAppointment],
   )
 
+  const handleMarkNoShow = useCallback(
+    async (appointment: Appointment) => {
+      if (transitioningId === appointment.id) return
+      const confirmed = window.confirm('¿Marcar esta cita como no asistió?')
+      if (!confirmed) return
+
+      try {
+        setTransitioningId(appointment.id)
+        await transitionAppointment(appointment.id, 'no_show')
+      } catch (error) {
+        logger.error('[AppointmentsPanel] failed to mark no_show', { appointmentId: appointment.id, error })
+        window.alert('No se pudo marcar la cita como no asistió.')
+      } finally {
+        setTransitioningId((current) => (current === appointment.id ? null : current))
+      }
+    },
+    [transitionAppointment, transitioningId],
+  )
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'scheduled': return 'bg-yellow-50 text-yellow-700'
       case 'confirmed': return 'bg-green-50 text-green-700'
       case 'cancelled': return 'bg-red-50 text-red-700'
       case 'completed': return 'bg-am-primary-50 text-am-primary-700'
+      case 'no_show': return 'bg-stone-100 text-stone-600'
       default: return 'bg-am-surface-100 text-am-surface-500'
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'no_show': return 'No asistió'
+      case 'in_progress': return 'En curso'
+      default: return status
     }
   }
 
@@ -206,7 +236,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <h3 className="font-medium text-am-surface-900">{appointment.patient_id ? (patientNames[appointment.patient_id] || 'Cargando...') : 'Sin asignar'}</h3>
-                          <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(appointment.status ?? 'scheduled')}`}>{appointment.status ?? 'scheduled'}</span>
+                          <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(appointment.status ?? 'scheduled')}`}>{getStatusLabel(appointment.status ?? 'scheduled')}</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-3 text-sm text-am-surface-500 mb-2">
                           <div className="flex items-center gap-1"><Calendar className="h-4 w-4" />{new Date(appointment.start_time).toLocaleDateString('es-ES')}</div>
@@ -239,6 +269,16 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
                       >
                         Editar
                       </button>
+                      {(appointment.status === 'scheduled' || appointment.status === 'confirmed') && (
+                        <button
+                          type="button"
+                          onClick={() => void handleMarkNoShow(appointment)}
+                          disabled={transitioningId === appointment.id}
+                          className="rounded-lg border border-stone-300 bg-stone-50 px-3 py-2 text-sm font-medium text-stone-700 shadow-am-sm transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {transitioningId === appointment.id ? 'Marcando...' : 'Marcar no show'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
