@@ -160,7 +160,7 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
       .select('id', { count: 'exact', head: true })
       .eq('doctor_id', doctorId)
       .eq('status', 'clarification_requested'),
-    // Pending clinical triage mandates assigned to this doctor.
+    // Pending clinical triage mandates: non-routine cases awaiting resolution
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from('clinical_case_states')
