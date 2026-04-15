@@ -60,7 +60,7 @@ export default function GuestCallPage({ roomId }: GuestCallPageProps) {
           // Guest never uses WebRTC P2P (no Supabase Realtime), always Cloudflare Calls SFU
         })
       : null,
-    [callSession?.callId, callSession?.runtime],
+    [callSession],
   )
 
   if (ended) return <CallEndedScreen />

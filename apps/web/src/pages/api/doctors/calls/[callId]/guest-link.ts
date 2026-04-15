@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
 import { createAstroAdminClient } from '@/lib/supabase'
-import { badRequest, forbidden, internalError, jsonOk, notFound } from '@/lib/api-helpers'
+import { badRequest, forbidden, internalError, jsonOk, notFound, serviceUnavailable } from '@/lib/api-helpers'
 import { withAuthRole, isAuthed, DOCTOR_ROLES } from '@/lib/api-auth'
 import { signGuestToken } from '@/lib/calls/lib/guest-token'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
@@ -54,7 +54,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     const secret = resolveGuestSecret(locals.runtime?.env)
     if (!secret) {
       logger.error('[guest-link] GUEST_TOKEN_SECRET not configured')
-      return internalError()
+      return serviceUnavailable('guest_invites_not_configured')
     }
 
     const roomId = (call as { room_id: string }).room_id

@@ -51,6 +51,10 @@ export function getRuntimeEnvValue(key: string): string | undefined {
   return cachedRuntimeEnv[key] || undefined;
 }
 
+export function resetRuntimeEnvCache(): void {
+  cachedRuntimeEnv = {};
+}
+
 export function primeRuntimeEnv(runtimeEnv?: RuntimeEnvRecord): void {
   if (!runtimeEnv) return;
 
@@ -119,6 +123,27 @@ export function resolveServiceRoleKey(runtimeEnv?: RuntimeEnvRecord): string | u
     import.meta.env.SUPABASE_SERVICE_ROLE_KEY ??
     readProcess(['SUPABASE_SERVICE_ROLE_KEY'])
   );
+}
+
+export function resolveCloudflareCallsEnv(runtimeEnv?: RuntimeEnvRecord): {
+  appId?: string;
+  appSecret?: string;
+} {
+  primeRuntimeEnv(runtimeEnv);
+
+  const appId =
+    readFirst(runtimeEnv, ['CLOUDFLARE_CALLS_APP_ID']) ??
+    readCached(['CLOUDFLARE_CALLS_APP_ID']) ??
+    import.meta.env.CLOUDFLARE_CALLS_APP_ID ??
+    readProcess(['CLOUDFLARE_CALLS_APP_ID']);
+
+  const appSecret =
+    readFirst(runtimeEnv, ['CLOUDFLARE_CALLS_APP_SECRET']) ??
+    readCached(['CLOUDFLARE_CALLS_APP_SECRET']) ??
+    import.meta.env.CLOUDFLARE_CALLS_APP_SECRET ??
+    readProcess(['CLOUDFLARE_CALLS_APP_SECRET']);
+
+  return { appId, appSecret };
 }
 
 export function resolvePublicClientEnv(runtimeEnv?: RuntimeEnvRecord): {
