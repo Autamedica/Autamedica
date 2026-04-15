@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import { fetchApi } from "@/lib/api-client";
@@ -136,7 +136,7 @@ export function PricingPage() {
                   <div className="flex flex-col gap-2">
                     <button
                       type="button"
-                      onClick={() => void handleSubscribe(plan.slug, 'checkout_pro')}
+                      onClick={() => void handleSubscribe(plan.slug, "preapproval")}
                       disabled={!!loadingSlug}
                       className={`flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[13px] font-medium transition-colors disabled:opacity-50 ${
                         isPopular
@@ -147,24 +147,19 @@ export function PricingPage() {
                       {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : null}
-                      {isLoading ? "Procesando..." : "Suscribirme"}
+                      {isLoading ? "Procesando..." : "Suscribirme (Pago automático)"}
                     </button>
-                    <p className="text-[10px] text-neutral-400 text-center mt-1">Ideal para uso continuo, se cobra automáticamente cada mes.</p>
+                    <p className="text-[10px] text-neutral-400 text-center mb-2">Ideal para uso continuo, se cobra automáticamente cada mes.</p>
+                    
                     <button
                       type="button"
                       onClick={() => void handleSubscribe(plan.slug, "checkout_pro")}
                       disabled={!!loadingSlug}
-                      className="flex w-full items-center justify-center gap-2 rounded-full border border-neutral-200 bg-white py-2.5 text-[12px] text-neutral-500 transition-colors hover:bg-neutral-50 disabled:opacity-50"
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleSubscribe(plan.slug, 'preapproval')}
-                      disabled={!!loadingSlug}
-                      className="flex w-full items-center justify-center gap-2 rounded-full border border-neutral-200 bg-white py-2.5 text-[12px] text-neutral-500 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                      className="flex w-full items-center justify-center gap-2 rounded-full border border-neutral-200 bg-white py-3.5 text-[13px] font-medium text-neutral-900 transition-colors hover:bg-neutral-50 disabled:opacity-50"
                     >
-                      Pago automatico con tarjeta
+                      {isLoading ? "Procesando..." : "Pago manual (transferencia/efectivo)"}
                     </button>
-                    <p className="text-[10px] text-neutral-400 text-center mt-1">Ideal si preferís pagar mes a mes manualmente.</p>
+                    <p className="text-[10px] text-neutral-400 text-center">Ideal si preferís pagar mes a mes manualmente.</p>
                   </div>
                 </div>
               );
