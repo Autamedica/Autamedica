@@ -4,7 +4,6 @@ import { psychiatryIntakePdfService } from '@/lib/patients/services/psychiatry-i
 import type { SegmentKey } from '@/lib/patients/clinical-state/types'
 import type { AnamnesisField, AnamnesisFieldValue } from '@/lib/patients/types/anamnesis'
 import type { PsychiatryIntakePhase, PsychiatryIntakeSection } from '@/lib/patients/types/psychiatry-intake'
-import type { SegmentKey } from '@/lib/patients/clinical-state/types'
 
 interface CurrentStepLike {
   id: string

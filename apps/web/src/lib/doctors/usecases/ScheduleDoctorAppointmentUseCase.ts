@@ -24,13 +24,14 @@ export class ScheduleDoctorAppointmentUseCase {
 
   async execute(
     context: ScheduleDoctorAppointmentContext,
-    payload: CreateDoctorAppointmentInput,
+    payload: CreateDoctorAppointmentInput & { guest_name?: string },
   ): Promise<Appointment> {
-    const patientId = payload.patient_id.trim()
+    const patientId = payload.patient_id?.trim()
     const startTime = payload.start_time.trim()
+    const guestName = payload.guest_name?.trim()
 
-    if (!patientId) {
-      throw Object.assign(new Error('patient_id is required'), { code: 'VALIDATION' })
+    if (!patientId && !guestName) {
+      throw Object.assign(new Error('patient_id or guest_name is required'), { code: 'VALIDATION' })
     }
 
     if (!startTime) {
@@ -46,27 +47,36 @@ export class ScheduleDoctorAppointmentUseCase {
       throw Object.assign(new Error('duration_minutes must be at least 5'), { code: 'VALIDATION' })
     }
 
-    const patient = await this.deps.patientRepo.findById(patientId as UUID)
-    if (!patient) {
-      throw Object.assign(new Error('Patient not found or inactive'), { code: 'PATIENT_NOT_FOUND' })
+    let finalNotes = payload.notes?.trim() || null
+    if (guestName) {
+      finalNotes = finalNotes ? `[INVITADO: ${guestName}] ${finalNotes}` : `[INVITADO: ${guestName}]`
+    }
+
+    if (patientId) {
+      const patient = await this.deps.patientRepo.findById(patientId as UUID)
+      if (!patient) {
+        throw Object.assign(new Error('Patient not found or inactive'), { code: 'PATIENT_NOT_FOUND' })
+      }
     }
 
     const insert: AppointmentInsert = {
       doctor_id: context.doctorId as UUID,
+      patient_id: (patientId as UUID) || null,
       start_time: startTime as ISODateString,
       duration_minutes: payload.duration_minutes,
       type: payload.type,
       status: 'scheduled',
-      notes: payload.notes?.trim() || null,
+      notes: finalNotes,
       location: payload.location?.trim() || null,
     }
 
-    const created = await this.deps.appointmentRepo.create(patientId, insert)
+    // El repoAdapter debe soportar null en patientId
+    const created = await this.deps.appointmentRepo.create(patientId || '', insert)
 
     await this.deps.eventBus.emit('appointment.scheduled', {
       appointmentId: created.id,
       doctorId: context.doctorId,
-      patientId,
+      patientId: patientId || null,
       startTime: created.start_time,
     })
 

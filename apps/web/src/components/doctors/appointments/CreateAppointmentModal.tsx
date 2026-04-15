@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useFocusTrap } from '@/hooks/shared/useFocusTrap'
 import type { Appointment } from '@autamedica/types'
-import { Calendar, Clock, MapPin, Search, Stethoscope, UserRound, Video, X, UserPlus } from 'lucide-react'
+import { Calendar, Clock, MapPin, Search, Stethoscope, UserRound, Video, X, UserPlus, ArrowLeft } from 'lucide-react'
 import { useRealPatients } from '@/hooks/doctors/useRealPatients'
 import { getDisplayName } from '@/lib/doctors/lib/utils'
 import type {
@@ -72,9 +72,11 @@ export function CreateAppointmentModal({
   const [search, setSearch] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isGuestMode, setIsGuestMode] = useState(false)
   
   const [form, setForm] = useState<DoctorAppointmentFormValues>({
     patientId: appointment?.patient_id ?? '',
+    guestName: '',
     date: getInitialDate(appointment?.start_time),
     time: getInitialTime(appointment?.start_time),
     durationMinutes: appointment?.duration_minutes ?? 30,
@@ -168,93 +170,131 @@ export function CreateAppointmentModal({
 
         <form onSubmit={handleSubmit} className="grid flex-1 gap-0 overflow-hidden md:grid-cols-[1.15fr_0.85fr]">
           <section className="flex min-h-0 flex-col border-b border-am-surface-200 md:border-b-0 md:border-r">
-            <div className="border-b border-am-surface-100 px-5 py-4 sm:px-6">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-am-surface-400" />
-                <input
-                  id="patient-search"
-                  aria-label="Buscar paciente por nombre o email"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Buscar paciente por nombre o email"
-                  className="w-full rounded-2xl border border-am-surface-200 bg-am-surface-50 py-3 pl-10 pr-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-am-primary-400 focus-visible:ring-offset-2 transition focus:border-am-primary-400 focus:bg-white"
-                />
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-auto px-3 py-3 sm:px-4">
-              <div className="grid gap-2">
-                {!isEditing && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.alert('Para invitar a un paciente externo que no está en el sistema, podés generar un enlace de invitado directamente desde el panel de videollamada.')
-                    }}
-                    className="w-full rounded-2xl border border-dashed border-sky-300 bg-sky-50 px-4 py-3 text-left transition hover:border-sky-400 hover:bg-sky-100/50"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 rounded-xl bg-white p-2 text-sky-600 shadow-sm">
-                        <UserPlus className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-sky-900">Invitar paciente externo</p>
-                        <p className="text-xs text-sky-700/70">
-                          Crear un enlace de acceso temporal sin registro previo.
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                )}
-
-                {patientsLoading ? (
-                  <div className="rounded-2xl border border-am-surface-200 bg-am-surface-50 px-4 py-5 text-sm text-am-surface-500">
-                    Cargando pacientes...
+            {!isGuestMode ? (
+              <>
+                <div className="border-b border-am-surface-100 px-5 py-4 sm:px-6">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-am-surface-400" />
+                    <input
+                      id="patient-search"
+                      aria-label="Buscar paciente por nombre o email"
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Buscar paciente por nombre o email"
+                      className="w-full rounded-2xl border border-am-surface-200 bg-am-surface-50 py-3 pl-10 pr-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-am-primary-400 focus-visible:ring-offset-2 transition focus:border-am-primary-400 focus:bg-white"
+                    />
                   </div>
-                ) : filteredPatients.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-am-surface-200 px-4 py-8 text-center text-sm text-am-surface-500">
-                    No hay pacientes para esa busqueda.
-                  </div>
-                ) : (
-                  filteredPatients.map((patient) => {
-                    const { name, isEmail } = getDisplayName(patient.profile)
-                    const isSelected = form.patientId === patient.id
+                </div>
 
-                    return (
+                <div className="min-h-0 flex-1 overflow-auto px-3 py-3 sm:px-4">
+                  <div className="grid gap-2">
+                    {!isEditing && (
                       <button
-                        key={patient.id}
                         type="button"
-                        onClick={() => handleChange('patientId', patient.id)}
-                        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-                          isSelected
-                            ? 'border-am-primary-300 bg-am-primary-50 shadow-am-sm'
-                            : 'border-am-surface-200 bg-white hover:border-am-surface-300 hover:bg-am-surface-50'
-                        }`}
+                        onClick={() => {
+                          setIsGuestMode(true)
+                          handleChange('patientId', '')
+                        }}
+                        className="w-full rounded-2xl border border-dashed border-sky-300 bg-sky-50 px-4 py-3 text-left transition hover:border-sky-400 hover:bg-sky-100/50"
                       >
                         <div className="flex items-start gap-3">
-                          <div className={`mt-0.5 rounded-xl p-2 ${isSelected ? 'bg-white text-am-primary-700' : 'bg-am-surface-100 text-am-surface-500'}`}>
-                            <UserRound className="h-4 w-4" />
+                          <div className="mt-0.5 rounded-xl bg-white p-2 text-sky-600 shadow-sm">
+                            <UserPlus className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-am-surface-900">{name}</p>
-                            <p className="truncate text-xs text-am-surface-500">
-                              {isEmail ? 'Paciente sin nombre cargado' : patient.profile?.email ?? 'Sin email'}
+                            <p className="text-sm font-semibold text-sky-900">Invitar paciente externo</p>
+                            <p className="text-xs text-sky-700/70">
+                              Crear un enlace de acceso temporal sin registro previo.
                             </p>
                           </div>
                         </div>
                       </button>
-                    )
-                  })
-                )}
+                    )}
+
+                    {patientsLoading ? (
+                      <div className="rounded-2xl border border-am-surface-200 bg-am-surface-50 px-4 py-5 text-sm text-am-surface-500">
+                        Cargando pacientes...
+                      </div>
+                    ) : filteredPatients.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-am-surface-200 px-4 py-8 text-center text-sm text-am-surface-500">
+                        No hay pacientes para esa busqueda.
+                      </div>
+                    ) : (
+                      filteredPatients.map((patient) => {
+                        const { name, isEmail } = getDisplayName(patient.profile)
+                        const isSelected = form.patientId === patient.id
+
+                        return (
+                          <button
+                            key={patient.id}
+                            type="button"
+                            onClick={() => handleChange('patientId', patient.id)}
+                            className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                              isSelected
+                                ? 'border-am-primary-300 bg-am-primary-50 shadow-am-sm'
+                                : 'border-am-surface-200 bg-white hover:border-am-surface-300 hover:bg-am-surface-50'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`mt-0.5 rounded-xl p-2 ${isSelected ? 'bg-white text-am-primary-700' : 'bg-am-surface-100 text-am-surface-500'}`}>
+                                <UserRound className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-am-surface-900">{name}</p>
+                                <p className="truncate text-xs text-am-surface-500">
+                                  {isEmail ? 'Paciente sin nombre cargado' : patient.profile?.email ?? 'Sin email'}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col h-full">
+                <div className="border-b border-am-surface-100 px-5 py-4 sm:px-6 flex items-center gap-3">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsGuestMode(false)}
+                    className="p-2 -ml-2 rounded-xl hover:bg-am-surface-100 transition-colors text-am-surface-500"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <h3 className="font-bold text-am-surface-900">Datos del Invitado</h3>
+                </div>
+                
+                <div className="p-5 sm:p-6 space-y-6">
+                  <div className="bg-sky-50 rounded-2xl border border-sky-100 p-4">
+                    <p className="text-xs text-sky-800 leading-relaxed font-medium">
+                      Estás agendando una cita para un paciente externo. Se generará un enlace de acceso que podrás compartir. No se requiere que el paciente tenga una cuenta en AutaMedica.
+                    </p>
+                  </div>
+
+                  <label className="block space-y-2">
+                    <span className="text-sm font-semibold text-am-surface-700">Nombre completo del paciente</span>
+                    <input
+                      autoFocus
+                      required
+                      placeholder="Ej: Juan Pérez"
+                      value={form.guestName}
+                      onChange={(e) => handleChange('guestName', e.target.value)}
+                      className="w-full rounded-2xl border border-am-surface-200 bg-white py-3 px-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-400 transition border-sky-200"
+                    />
+                  </label>
+                </div>
               </div>
-            </div>
+            )}
           </section>
 
           <section className="min-h-0 overflow-auto px-5 py-5 sm:px-6">
             <div className="space-y-5">
-              <div className="rounded-2xl border border-am-primary-100 bg-am-primary-50 px-4 py-3">
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-am-primary-700">Tipo seleccionado</p>
+              <div className={`rounded-2xl border px-4 py-3 ${isGuestMode ? 'bg-sky-50 border-sky-100' : 'bg-am-primary-50 border-am-primary-100'}`}>
+                <p className={`text-xs font-medium uppercase tracking-[0.16em] ${isGuestMode ? 'text-sky-700' : 'text-am-primary-700'}`}>Tipo seleccionado</p>
                 <div className="mt-2 flex items-center gap-3">
-                  <div className="rounded-xl bg-white p-2 text-am-primary-700">
+                  <div className={`rounded-xl bg-white p-2 ${isGuestMode ? 'text-sky-700 shadow-sm' : 'text-am-primary-700'}`}>
                     <selectedType.icon className="h-4 w-4" />
                   </div>
                   <div>
@@ -362,8 +402,10 @@ export function CreateAppointmentModal({
             </button>
             <button
               type="submit"
-              disabled={saving || !form.patientId || !form.date || !form.time}
-              className="rounded-2xl bg-am-primary-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-am-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={saving || (!form.patientId && !form.guestName) || !form.date || !form.time}
+              className={`rounded-2xl px-5 py-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                isGuestMode ? 'bg-sky-600 hover:bg-sky-700' : 'bg-am-primary-600 hover:bg-am-primary-700'
+              }`}
             >
               {saving ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Programar cita'}
             </button>
