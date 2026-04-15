@@ -629,16 +629,27 @@ export function DoctorsPortalFrame({
                       <span className="text-[11px] text-neutral-500">Tiempo promedio</span>
                       <div className="flex items-center gap-1.5">
                         <Clock3 className="h-3 w-3 text-neutral-400" strokeWidth={1.5} />
-                        <span className="text-[13px] font-semibold text-neutral-900">28 min</span>
+                        <span className="text-[13px] font-semibold text-neutral-900">
+                          {stats?.avgConsultationTimeMins ? `${stats.avgConsultationTimeMins} min` : '-'}
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between border-b border-neutral-100 py-2.5">
                       <span className="text-[11px] text-neutral-500">Satisfacción</span>
                       <div className="flex items-center gap-1.5 text-amber-400">
                         {Array.from({ length: 5 }).map((_, index) => (
-                          <Star key={index} className="h-3 w-3 fill-current" />
+                          <Star
+                            key={index}
+                            className={`h-3 w-3 ${
+                              stats?.avgRating && index < Math.round(stats.avgRating)
+                                ? "fill-current"
+                                : "text-neutral-200"
+                            }`}
+                          />
                         ))}
-                        <span className="ml-1 text-[13px] font-semibold text-green-600">98%</span>
+                        <span className="ml-1 text-[13px] font-semibold text-green-600">
+                          {stats?.satisfactionRate ? `${stats.satisfactionRate}%` : '-'}
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between py-2.5">
@@ -663,11 +674,13 @@ export function DoctorsPortalFrame({
                       </h3>
                     </div>
                     <div className="mb-3 flex items-end gap-2">
-                      <div className="text-5xl font-light tracking-tight">9.4</div>
+                      <div className="text-5xl font-light tracking-tight">
+                        {stats?.qualityScore ? stats.qualityScore.toFixed(1) : '-'}
+                      </div>
                       <div className="mb-1.5 text-base text-white/30">/10</div>
                     </div>
                     <p className="text-[11px] leading-relaxed text-white/40">
-                      Excelente desempeño. Mantén la calidad de atención y el tiempo de respuesta.
+                      {stats?.qualityMessage || 'Calculando tu desempeño basado en tus atenciones recientes...'}
                     </p>
                     <div className="mt-4 border-t border-white/10 pt-3">
                       <div className="flex items-center justify-between text-[11px]">
