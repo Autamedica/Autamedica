@@ -52,7 +52,7 @@ export async function loadGuestCallBootstrap(roomId: string, token: string): Pro
     throw new Error('invalid_call_session')
   }
 
-  return parsed.data as CallSessionBootstrap
+  return parsed.data as unknown as CallSessionBootstrap
 }
 
 export function useGuestCallSession(roomId: string, token: string | null): UseGuestCallSessionResult {
