@@ -123,7 +123,7 @@ insert into public.subscription_plans (name, slug, price_cents, currency, interv
   4000000,
   'ARS',
   'monthly',
-  '["Agenda inteligente", "Recordatorios automáticos", "Perfil profesional público", "Hasta 50 pacientes"]'::jsonb
+  '["Agenda inteligente (Presencial + Online)", "Recordatorios automáticos", "Perfil profesional público", "Telemedicina (30 créditos de inicio)"]'::jsonb
 ),
 (
   'Plan Pro',
@@ -131,7 +131,7 @@ insert into public.subscription_plans (name, slug, price_cents, currency, interv
   7000000,
   'ARS',
   'monthly',
-  '["Todo en Básico", "Receta electrónica", "Videoconsulta HD", "Pacientes ilimitados", "Historial clínico digital"]'::jsonb
+  '["Todo en Básico", "Receta electrónica", "Videoconsulta HD Ilimitada", "Pacientes ilimitados", "Historial clínico digital"]'::jsonb
 ),
 (
   'Plan Premium',

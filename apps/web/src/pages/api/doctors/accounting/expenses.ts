@@ -20,7 +20,8 @@ export const GET: APIRoute = async ({ request }) => {
 
     const url = new URL(request.url);
     const year = parseInt(url.searchParams.get('year') ?? String(new Date().getFullYear()), 10);
-    const month = url.searchParams.get('month') ? parseInt(url.searchParams.get('month')!, 10) : undefined;
+    const monthParam = url.searchParams.get('month');
+    const month = monthParam ? parseInt(monthParam, 10) : undefined;
 
     const expenses = await accountingRepo.listExpenses(supabase, doctor.id, year, month);
     return jsonOk({ expenses });

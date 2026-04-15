@@ -2,10 +2,31 @@
 
 import { useCallback, useState } from 'react'
 import { Link2, Check, Loader2 } from 'lucide-react'
-import { fetchApi } from '@/lib/api-client'
+import { ApiError, fetchApi } from '@/lib/api-client'
 
 interface GuestLinkButtonProps {
   callId: string
+}
+
+function normalizeGuestLinkError(error: unknown): string {
+  if (error instanceof ApiError) {
+    switch (error.message) {
+      case 'guest_invites_not_configured':
+        return 'La invitacion de pacientes externos no esta configurada en este entorno.'
+      case 'call_not_found':
+        return 'No se encontro la videollamada para generar el enlace.'
+      case 'not_call_owner':
+        return 'Solo el medico dueno de la videollamada puede generar este enlace.'
+      default:
+        return error.message || 'Error al generar enlace'
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'Error al generar enlace'
 }
 
 export function GuestLinkButton({ callId }: GuestLinkButtonProps) {
@@ -33,27 +54,15 @@ export function GuestLinkButton({ callId }: GuestLinkButtonProps) {
       setLink(res.guestLink)
       setStep('done')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al generar enlace')
+      setError(normalizeGuestLinkError(err))
       setStep('name')
     }
   }, [callId, guestName])
 
   const copyToClipboard = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(link)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // Fallback
-      const textarea = document.createElement('textarea')
-      textarea.value = link
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
+    await navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }, [link])
 
   if (step === 'idle') {
@@ -109,7 +118,7 @@ export function GuestLinkButton({ callId }: GuestLinkButtonProps) {
   return (
     <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
       <p className="text-sm font-semibold text-emerald-900">Enlace generado para {guestName}</p>
-      <p className="mt-1 text-xs text-emerald-700/70">Valido por 2 horas. Comparti este link por WhatsApp o email.</p>
+      <p className="mt-1 text-xs text-emerald-700/70">Valido por 24 horas. Comparti este link por WhatsApp o email.</p>
       <div className="mt-3 flex gap-2">
         <input
           type="text"

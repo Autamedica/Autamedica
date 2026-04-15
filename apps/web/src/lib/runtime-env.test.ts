@@ -1,15 +1,15 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   primeRuntimeEnv,
   getRuntimeEnvValue,
+  resetRuntimeEnvCache,
+  resolveCloudflareCallsEnv,
   resolvePublicClientEnv,
 } from './runtime-env'
 
 // Reset cache between tests by re-priming with empty
 function resetCache() {
-  // Prime with a known-empty object to clear previous state
-  // Then prime with empty to ensure clean state
-  primeRuntimeEnv({})
+  resetRuntimeEnvCache()
 }
 
 describe('primeRuntimeEnv', () => {
@@ -132,5 +132,51 @@ describe('resolvePublicClientEnv', () => {
       NEXT_PUBLIC_SENTRY_DSN: 'https://next-public-dsn@example.ingest.sentry.io/1',
     })
     expect(result.publicSentryDsn).toBe('https://next-public-dsn@example.ingest.sentry.io/1')
+  })
+})
+
+describe('resolveCloudflareCallsEnv', () => {
+  afterEach(() => {
+    vi.stubEnv('CLOUDFLARE_CALLS_APP_ID', '')
+    vi.stubEnv('CLOUDFLARE_CALLS_APP_SECRET', '')
+    resetCache()
+  })
+
+  it('reads Cloudflare Calls credentials from runtime env', () => {
+    const result = resolveCloudflareCallsEnv({
+      CLOUDFLARE_CALLS_APP_ID: 'runtime-app-id',
+      CLOUDFLARE_CALLS_APP_SECRET: 'runtime-app-secret',
+    })
+
+    expect(result).toEqual({
+      appId: 'runtime-app-id',
+      appSecret: 'runtime-app-secret',
+    })
+  })
+
+  it('falls back to cached runtime env values', () => {
+    primeRuntimeEnv({
+      CLOUDFLARE_CALLS_APP_ID: 'cached-app-id',
+      CLOUDFLARE_CALLS_APP_SECRET: 'cached-app-secret',
+    })
+
+    const result = resolveCloudflareCallsEnv()
+
+    expect(result).toEqual({
+      appId: 'cached-app-id',
+      appSecret: 'cached-app-secret',
+    })
+  })
+
+  it('falls back to import meta env values when runtime env is not present', () => {
+    vi.stubEnv('CLOUDFLARE_CALLS_APP_ID', 'build-app-id')
+    vi.stubEnv('CLOUDFLARE_CALLS_APP_SECRET', 'build-app-secret')
+
+    const result = resolveCloudflareCallsEnv()
+
+    expect(result).toEqual({
+      appId: 'build-app-id',
+      appSecret: 'build-app-secret',
+    })
   })
 })

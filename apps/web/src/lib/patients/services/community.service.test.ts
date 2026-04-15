@@ -41,7 +41,7 @@ describe('communityService', () => {
           groupId: '   ',
           content: 'Hello',
         })
-      ).rejects.toThrowError('El grupo es obligatorio');
+      ).rejects.toThrow('El grupo es obligatorio');
     });
 
     it('throws VALIDATION error if content is empty', async () => {
@@ -50,7 +50,7 @@ describe('communityService', () => {
           groupId: 'group-1',
           content: '   ',
         })
-      ).rejects.toThrowError('El contenido es obligatorio');
+      ).rejects.toThrow('El contenido es obligatorio');
     });
 
     it('throws GROUP_NOT_FOUND error if group does not exist', async () => {
@@ -61,7 +61,7 @@ describe('communityService', () => {
           groupId: 'group-1',
           content: 'Hello',
         })
-      ).rejects.toThrowError('Grupo no encontrado');
+      ).rejects.toThrow('Grupo no encontrado');
     });
 
     it('creates post successfully if all conditions are met', async () => {
@@ -102,7 +102,7 @@ describe('communityService', () => {
         communityService.updatePost(mockSupabase, mockContext, 'post-1', {
           content: 'updated',
         })
-      ).rejects.toThrowError('Publicacion no encontrada');
+      ).rejects.toThrow('Publicacion no encontrada');
     });
 
     it('throws FORBIDDEN if user is not the author', async () => {
@@ -112,7 +112,7 @@ describe('communityService', () => {
         communityService.updatePost(mockSupabase, mockContext, 'post-1', {
           content: 'updated',
         })
-      ).rejects.toThrowError('No podes editar esta publicacion');
+      ).rejects.toThrow('No podes editar esta publicacion');
     });
 
     it('updates post if user is the author', async () => {
@@ -138,7 +138,7 @@ describe('communityService', () => {
 
       await expect(
         communityService.deletePost(mockSupabase, mockContext, 'post-1')
-      ).rejects.toThrowError('No podes eliminar esta publicacion');
+      ).rejects.toThrow('No podes eliminar esta publicacion');
     });
 
     it('deletes post successfully', async () => {

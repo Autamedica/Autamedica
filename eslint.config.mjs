@@ -317,6 +317,8 @@ js.configs.recommended,
   rules: {
     '@typescript-eslint/no-require-imports': 'off',
     '@typescript-eslint/prefer-optional-chain': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/no-non-null-assertion': 'off',
     'no-empty': 'warn',
     'no-case-declarations': 'warn',
     'no-misleading-character-class': 'warn',

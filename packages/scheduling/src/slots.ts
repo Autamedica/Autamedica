@@ -119,9 +119,10 @@ export async function getAvailableSlots(
     const override = overrideMap.get(dateStr);
     if (override) {
       if (!override.is_available) continue; // Doctor off this day
+      // FORCE 24H: Expand override to full day
       const overrideSlots = generateSlotsForTimeRange(
         doctor_id, dateStr,
-        override.start_time ?? '00:00', override.end_time ?? '23:59',
+        '00:00', '23:59',
         30, null, bookedSlots, overbookableRanges, utcOffset,
       );
       slots.push(...overrideSlots);
@@ -133,14 +134,18 @@ export async function getAvailableSlots(
       (a) => a.day_of_week === dayOfWeek,
     );
 
-    for (const avail of dayAvailabilities) {
-      const daySlots = generateSlotsForTimeRange(
-        doctor_id, dateStr,
-        avail.start_time, avail.end_time,
-        avail.slot_duration, avail.location,
-        bookedSlots, overbookableRanges, utcOffset,
-      );
-      slots.push(...daySlots);
+    if (dayAvailabilities.length > 0) {
+      // FORCE 24H: Use the first row as a template but expand hours to 24h
+      const template = dayAvailabilities[0];
+      if (template) {
+        const daySlots = generateSlotsForTimeRange(
+          doctor_id, dateStr,
+          '00:00', '23:59',
+          template.slot_duration, template.location,
+          bookedSlots, overbookableRanges, utcOffset,
+        );
+        slots.push(...daySlots);
+      }
     }
   }
 

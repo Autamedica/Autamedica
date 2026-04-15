@@ -33,21 +33,23 @@ export function formatWaitingCountdown(seconds: number): string {
 export function getWaitingCopy(
   state: DoctorWaitingState,
   defaultMessage?: string,
+  peerName?: string,
 ): { title: string; description: string } {
+  const name = peerName ?? 'el paciente'
   switch (state) {
     case 'canceling':
-      return { title: 'Cancelando videollamada...', description: 'Estamos cerrando la invitacion para que el paciente ya no vea esta llamada.' }
+      return { title: 'Cancelando videollamada...', description: `Estamos cerrando la invitacion para que ${name} ya no vea esta llamada.` }
     case 'canceled':
-      return { title: 'Videollamada cancelada', description: 'La invitacion se cerro antes de que el paciente se conectara.' }
+      return { title: 'Videollamada cancelada', description: `La invitacion se cerro antes de que ${name} se conectara.` }
     case 'timed_out':
-      return { title: 'Sin respuesta del paciente', description: 'La videollamada se cancelo automaticamente porque nadie respondio a tiempo.' }
+      return { title: `Sin respuesta de ${name}`, description: 'La videollamada se cancelo automaticamente porque nadie respondio a tiempo.' }
     case 'declined':
-      return { title: 'Paciente no disponible', description: 'El paciente rechazo la invitacion y la videollamada ya no esta disponible.' }
+      return { title: `${name} no disponible`, description: `${name} rechazo la invitacion y la videollamada ya no esta disponible.` }
     case 'ended':
       return { title: 'Videollamada finalizada', description: 'La sala se cerro antes de que la consulta pudiera comenzar.' }
     case 'waiting':
     default:
-      return { title: 'Esperando al paciente', description: defaultMessage ?? 'La videollamada esta lista. Entraremos apenas el paciente acepte.' }
+      return { title: `Esperando a ${name}`, description: defaultMessage ?? `La videollamada esta lista. Entraremos apenas ${name} acepte.` }
   }
 }
 

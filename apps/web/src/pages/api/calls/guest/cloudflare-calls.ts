@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro'
 import { handleCloudflareCallsProxy } from '@autamedica/telemedicine/server'
 import { unauthorized, internalError } from '@/lib/api-helpers'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
-import { getRuntimeEnvValue } from '@/lib/runtime-env'
+import { getRuntimeEnvValue, resolveCloudflareCallsEnv } from '@/lib/runtime-env'
 import { logger } from '@autamedica/shared'
 
 function resolveGuestSecret(runtimeEnv?: Record<string, unknown>): string | undefined {
@@ -26,9 +26,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const guest = await verifyGuestToken(token, secret)
   if (!guest) return unauthorized()
 
+  const { appId, appSecret } = resolveCloudflareCallsEnv(locals.runtime?.env)
   const result = await handleCloudflareCallsProxy(request, {
-    appId: import.meta.env.CLOUDFLARE_CALLS_APP_ID,
-    appSecret: import.meta.env.CLOUDFLARE_CALLS_APP_SECRET,
+    appId,
+    appSecret,
   })
 
   return new Response(JSON.stringify(result.body), {

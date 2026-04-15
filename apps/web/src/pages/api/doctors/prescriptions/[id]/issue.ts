@@ -8,18 +8,6 @@ import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 import { jsonOk, badRequest, forbidden, internalError } from '@/lib/api-helpers';
 import { issuePrescription } from '@/lib/prescriptions/issue-prescription.service';
 
-const CLIENT_ERROR_CODES = new Set([
-  'missing_license_number',
-  'missing_refeps_id',
-  'missing_professional_address',
-  'prescription_not_found',
-  'already_issued',
-  'patient_not_found',
-  'missing_patient_identification',
-  'missing_patient_address',
-  'no_medication',
-]);
-
 export const POST: APIRoute = async ({ request, params }) => {
   const prescriptionId = params.id;
   if (!prescriptionId) return badRequest('missing_prescription_id');

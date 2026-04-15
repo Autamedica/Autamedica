@@ -232,8 +232,11 @@ export function useClinicalState({
 
       // 1. Try loading persisted state
       try {
+        const query = new URLSearchParams({ patientId })
+        if (caseId) query.set('caseId', caseId)
+
         const response = await fetchApi<{ state: ClinicalCaseState | null }>(
-          `/api/patients/clinical-state/save?patientId=${patientId}`,
+          `/api/patients/clinical-state/save?${query.toString()}`,
           { method: 'GET' },
         )
         if (response?.state) {

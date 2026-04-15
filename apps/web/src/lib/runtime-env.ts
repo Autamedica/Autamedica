@@ -30,7 +30,7 @@ function readProcess(keys: string[]): string | undefined {
     // PUBLIC_ variables are managed by Astro/Vite and shouldn't be accessed via the strict getServerEnvOrDefault
     // which is reserved for server-side secrets. During build/SSR, we check process.env directly if available.
     if (key.startsWith('PUBLIC_') || key.startsWith('NEXT_PUBLIC_')) {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-restricted-properties
+      // eslint-disable-next-line no-restricted-properties -- PUBLIC_ vars must be read from process.env directly; getServerEnvOrDefault is for secrets only
       const value = typeof process !== 'undefined' ? process.env[key] : undefined;
       if (typeof value === 'string' && value.length > 0) return value;
       continue;
@@ -49,6 +49,10 @@ function readProcess(keys: string[]): string | undefined {
  */
 export function getRuntimeEnvValue(key: string): string | undefined {
   return cachedRuntimeEnv[key] || undefined;
+}
+
+export function resetRuntimeEnvCache(): void {
+  cachedRuntimeEnv = {};
 }
 
 export function primeRuntimeEnv(runtimeEnv?: RuntimeEnvRecord): void {
@@ -118,6 +122,38 @@ export function resolveServiceRoleKey(runtimeEnv?: RuntimeEnvRecord): string | u
     readCached(['SUPABASE_SERVICE_ROLE_KEY']) ??
     import.meta.env.SUPABASE_SERVICE_ROLE_KEY ??
     readProcess(['SUPABASE_SERVICE_ROLE_KEY'])
+  );
+}
+
+export function resolveCloudflareCallsEnv(runtimeEnv?: RuntimeEnvRecord): {
+  appId?: string;
+  appSecret?: string;
+} {
+  primeRuntimeEnv(runtimeEnv);
+
+  const appId =
+    readFirst(runtimeEnv, ['CLOUDFLARE_CALLS_APP_ID']) ??
+    readCached(['CLOUDFLARE_CALLS_APP_ID']) ??
+    import.meta.env.CLOUDFLARE_CALLS_APP_ID ??
+    readProcess(['CLOUDFLARE_CALLS_APP_ID']);
+
+  const appSecret =
+    readFirst(runtimeEnv, ['CLOUDFLARE_CALLS_APP_SECRET']) ??
+    readCached(['CLOUDFLARE_CALLS_APP_SECRET']) ??
+    import.meta.env.CLOUDFLARE_CALLS_APP_SECRET ??
+    readProcess(['CLOUDFLARE_CALLS_APP_SECRET']);
+
+  return { appId, appSecret };
+}
+
+export function resolveGuestSecret(runtimeEnv?: RuntimeEnvRecord): string | undefined {
+  primeRuntimeEnv(runtimeEnv);
+
+  return (
+    readFirst(runtimeEnv, ['GUEST_TOKEN_SECRET']) ??
+    readCached(['GUEST_TOKEN_SECRET']) ??
+    import.meta.env.GUEST_TOKEN_SECRET ??
+    readProcess(['GUEST_TOKEN_SECRET'])
   );
 }
 

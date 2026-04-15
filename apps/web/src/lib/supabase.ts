@@ -40,22 +40,18 @@ export function createSupabaseServerClient(
     );
   }
 
-  return createServerClient(
-    publicSupabaseUrl,
-    publicSupabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return parseCookieHeader(request);
-        },
-        setAll(cookiesToSet: Parameters<NonNullable<CookieMethodsServer['setAll']>>[0]) {
-          for (const { name, value, options } of cookiesToSet) {
-            cookies.set(name, value, options as AstroCookieSetOptions);
-          }
-        }
+  const cookieMethods: CookieMethodsServer = {
+    getAll() {
+      return parseCookieHeader(request);
+    },
+    setAll(cookiesToSet) {
+      for (const { name, value, options } of cookiesToSet) {
+        cookies.set(name, value, options as AstroCookieSetOptions);
       }
-    }
-  );
+    },
+  };
+
+  return createServerClient(publicSupabaseUrl, publicSupabaseAnonKey, { cookies: cookieMethods });
 }
 
 /**
@@ -77,9 +73,8 @@ export function createAstroAdminClient(
     );
   }
 
-  return createServerClient<Database>(publicSupabaseUrl, serviceRoleKey, {
-    cookies: { getAll: () => [], setAll: () => {} },
-  }) as unknown as SupabaseClient<Database>;
+  const emptyCookies: CookieMethodsServer = { getAll: () => [], setAll: () => {} };
+  return createServerClient<Database>(publicSupabaseUrl, serviceRoleKey, { cookies: emptyCookies }) as unknown as SupabaseClient<Database>;
 }
 
 /**
@@ -99,14 +94,9 @@ export function createAstroServerClientFromRequest(
     );
   }
 
-  return createServerClient<Database>(
-    publicSupabaseUrl,
-    publicSupabaseAnonKey,
-    {
-      cookies: {
-        getAll: () => parseCookieHeader(request),
-        setAll: () => {},
-      },
-    }
-  ) as unknown as SupabaseClient<Database>;
+  const readOnlyCookies: CookieMethodsServer = {
+    getAll: () => parseCookieHeader(request),
+    setAll: () => {},
+  };
+  return createServerClient<Database>(publicSupabaseUrl, publicSupabaseAnonKey, { cookies: readOnlyCookies }) as unknown as SupabaseClient<Database>;
 }

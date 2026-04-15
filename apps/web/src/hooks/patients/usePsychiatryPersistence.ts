@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { validateRequiredFields } from '@/lib/patients/usecases/anamnesis-flow.usecase'
 import { psychiatryIntakePdfService } from '@/lib/patients/services/psychiatry-intake-pdf.service'
+import type { SegmentKey } from '@/lib/patients/clinical-state/types'
 import type { AnamnesisField, AnamnesisFieldValue } from '@/lib/patients/types/anamnesis'
 import type { PsychiatryIntakePhase, PsychiatryIntakeSection } from '@/lib/patients/types/psychiatry-intake'
 import type { SegmentKey } from '@/lib/patients/clinical-state/types'

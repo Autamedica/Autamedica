@@ -4,8 +4,8 @@ type AppointmentWindowLike = {
   duration_minutes?: number | null
 }
 
-const EARLY_JOIN_WINDOW_MS = 45 * 60 * 1000
-const LATE_JOIN_GRACE_MS = 2 * 60 * 60 * 1000
+export const EARLY_JOIN_WINDOW_MS = 45 * 60 * 1000
+export const LATE_JOIN_GRACE_MS = 24 * 60 * 60 * 1000
 
 export function getAppointmentWindowStartMs(appointment: AppointmentWindowLike): number | null {
   const iso = appointment.start_time

@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useFocusTrap } from '@/hooks/shared/useFocusTrap'
 import type { Appointment } from '@autamedica/types'
-import { Calendar, Clock, MapPin, Search, Stethoscope, UserRound, Video, X } from 'lucide-react'
+import { Calendar, Clock, MapPin, Search, Stethoscope, UserRound, Video, X, UserPlus } from 'lucide-react'
 import { useRealPatients } from '@/hooks/doctors/useRealPatients'
 import { getDisplayName } from '@/lib/doctors/lib/utils'
 import type {
@@ -184,6 +184,28 @@ export function CreateAppointmentModal({
 
             <div className="min-h-0 flex-1 overflow-auto px-3 py-3 sm:px-4">
               <div className="grid gap-2">
+                {!isEditing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.alert('Para invitar a un paciente externo que no está en el sistema, podés generar un enlace de invitado directamente desde el panel de videollamada.')
+                    }}
+                    className="w-full rounded-2xl border border-dashed border-sky-300 bg-sky-50 px-4 py-3 text-left transition hover:border-sky-400 hover:bg-sky-100/50"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 rounded-xl bg-white p-2 text-sky-600 shadow-sm">
+                        <UserPlus className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-sky-900">Invitar paciente externo</p>
+                        <p className="text-xs text-sky-700/70">
+                          Crear un enlace de acceso temporal sin registro previo.
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                )}
+
                 {patientsLoading ? (
                   <div className="rounded-2xl border border-am-surface-200 bg-am-surface-50 px-4 py-5 text-sm text-am-surface-500">
                     Cargando pacientes...

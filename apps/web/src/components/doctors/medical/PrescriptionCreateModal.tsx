@@ -13,9 +13,13 @@ interface PrescriptionCreateModalProps {
   patientId: UUID;
   onClose: () => void;
   onSaved: () => void;
-  addPrescription: (p: Omit<Prescription, "id" | "created_at" | "updated_at">) => Promise<void>;
+  addPrescription: (
+    p: Omit<Prescription, "id" | "created_at" | "updated_at">,
+  ) => Promise<Prescription>;
   updatePrescription: (id: UUID, updates: Partial<Prescription>) => Promise<void>;
   editingPrescription?: Prescription | null;
+  issuePrescription?: (id: UUID) => Promise<void>;
+  submitLabel?: string;
 }
 
 const TODAY = new Date().toISOString().split("T")[0];
@@ -27,6 +31,8 @@ export function PrescriptionCreateModal({
   addPrescription,
   updatePrescription,
   editingPrescription,
+  issuePrescription,
+  submitLabel,
 }: PrescriptionCreateModalProps) {
   const isEditing = !!editingPrescription;
 
@@ -91,7 +97,14 @@ export function PrescriptionCreateModal({
       if (isEditing && editingPrescription) {
         await updatePrescription(editingPrescription.id, payload);
       } else {
-        await addPrescription(payload);
+        const created = await addPrescription(payload);
+        if (issuePrescription) {
+          const createdId = created?.id;
+          if (!createdId) {
+            throw new Error("No se pudo emitir la receta recién creada.");
+          }
+          await issuePrescription(createdId as UUID);
+        }
       }
       onSaved();
       onClose();
@@ -314,7 +327,7 @@ export function PrescriptionCreateModal({
               className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-am-doctor-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-am-doctor-700 disabled:opacity-60 transition"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {saving ? "Guardando..." : isEditing ? "Actualizar" : "Guardar receta"}
+              {saving ? "Guardando..." : submitLabel ?? (isEditing ? "Actualizar" : "Guardar receta")}
             </button>
           </div>
         </form>

@@ -42,7 +42,14 @@ const UPDATE_PICKER_OPTIONS = [
 // ── Field Renderer ──
 
 function FieldRenderer({ field, value, onChange }: {
-  field: { id: string; label: string; type: string; placeholder?: string; options?: Array<{ value: string; label: string }> };
+  field: {
+    id: string;
+    label: string;
+    type: string;
+    placeholder?: string;
+    options?: Array<{ value: string; label: string }>;
+    validation?: { min?: number; max?: number };
+  };
   value: unknown;
   onChange: (val: unknown) => void;
 }) {
@@ -108,6 +115,44 @@ function FieldRenderer({ field, value, onChange }: {
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
+      </div>
+    )
+  }
+
+  if (field.type === 'scale') {
+    const selectedValue = typeof value === 'number' ? value : null
+    const min = field.validation?.min ?? 1
+    const max = field.validation?.max ?? 10
+
+    return (
+      <div>
+        <label className="block text-sm text-neutral-700 mb-3">{field.label}</label>
+        <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
+          {Array.from({ length: max - min + 1 }, (_, index) => {
+            const optionValue = min + index
+            const isSelected = selectedValue === optionValue
+
+            return (
+              <button
+                key={optionValue}
+                type="button"
+                onClick={() => onChange(optionValue)}
+                aria-pressed={isSelected}
+                className={`rounded-xl border-2 py-3 text-base font-semibold transition-all ${
+                  isSelected
+                    ? 'border-neutral-900 bg-neutral-900 text-white'
+                    : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-400'
+                }`}
+              >
+                {optionValue}
+              </button>
+            )
+          })}
+        </div>
+        <div className="mt-3 flex items-center justify-between text-sm text-neutral-500">
+          <span>{min} = Leve</span>
+          <span>{max} = Insoportable</span>
+        </div>
       </div>
     )
   }
@@ -674,20 +719,6 @@ export default function AnamnesisPage() {
           <div className="h-16 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <span className="text-lg font-medium text-neutral-900">AutaMedica</span>
-              <button
-                type="button"
-                onClick={() => switchMode('conversational')}
-                className="p-2 hover:bg-neutral-50 rounded-lg transition-colors hidden sm:flex items-center gap-2 text-sm text-neutral-600"
-              >
-                <MessageCircle className="size-4" /> Modo conversacional
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowVoiceChat(true)}
-                className="p-2 hover:bg-neutral-50 rounded-lg transition-colors hidden sm:flex items-center gap-2 text-sm text-neutral-600"
-              >
-                <Mic className="size-4" /> Modo voz
-              </button>
             </div>
             <button type="button" onClick={handleExitWizard} className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors">
               {editMode ? 'Volver al resumen' : 'Guardar y salir'}

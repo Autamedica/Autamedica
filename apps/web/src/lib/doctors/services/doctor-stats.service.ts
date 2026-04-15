@@ -14,8 +14,13 @@ export interface DoctorStats {
   historyCount: number;
   pendingClarifications: number;
   pendingTriageMandates: number;
+  qualityScore?: number | null;
+  qualityMessage?: string | null;
   rankingPosition?: number | null;
   unreadCommunityCount?: number;
+  satisfactionRate?: number | null;
+  avgRating?: number | null;
+  avgConsultationTimeMins?: number | null;
   nextAppointment: {
     time: string;
     patientName: string;
@@ -25,6 +30,7 @@ export interface DoctorStats {
 interface AppointmentRow {
   id: string;
   start_time: string;
+  end_time: string | null;
   status: string;
   patient_id: string;
 }
@@ -72,6 +78,18 @@ async function resolvePatientName(patientId: string): Promise<string> {
 }
 
 /**
+ * Helper to determine the quality message based on the score.
+ */
+function getQualityMessage(score: number | null | undefined): string {
+  if (score == null) return 'Aún no tienes suficientes calificaciones para calcular tu puntuación de calidad.';
+  const normalizedScore = score > 10 ? score / 10 : score;
+  if (normalizedScore >= 9.0) return 'Excelente desempeño. Mantén la calidad de atención y el tiempo de respuesta.';
+  if (normalizedScore >= 8.0) return 'Muy buen desempeño. Estás entre los mejores especialistas de la plataforma.';
+  if (normalizedScore >= 7.0) return 'Buen desempeño. Considera reducir los tiempos de espera para mejorar tu puntuación.';
+  return 'Oportunidad de mejora. Revisa los comentarios de los pacientes y tus tiempos de respuesta.';
+}
+
+/**
  * Get doctor stats: active appointments, today's appointments, unique patients, medical records count.
  * Returns next upcoming appointment with patient name resolved.
  */
@@ -94,7 +112,7 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
   ] = await Promise.all([
     supabase
       .from('appointments')
-      .select('id, start_time, status, patient_id')
+      .select('id, start_time, end_time, status, patient_id')
       .eq('doctor_id', doctorId)
       .gte('start_time', startOfDay)
       .order('start_time', { ascending: true }),
@@ -123,7 +141,7 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
       .eq('doctor_id', doctorId),
     supabase
       .from('doctor_ranking_metrics')
-      .select('rank_position')
+      .select('rank_position, overall_score, avg_rating')
       .eq('doctor_id', doctorId)
       .maybeSingle(),
     userId
@@ -168,6 +186,35 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
 
   const patientName = nextAppt?.patient_id ? await resolvePatientName(nextAppt.patient_id) : 'Paciente';
 
+  const qualityScoreRaw = rankingResult?.data?.overall_score;
+  const qualityScore = qualityScoreRaw != null ? (qualityScoreRaw > 10 ? qualityScoreRaw / 10 : qualityScoreRaw) : null;
+
+  const avgRatingRaw = rankingResult?.data?.avg_rating;
+  const avgRating = avgRatingRaw != null ? (avgRatingRaw > 5 ? avgRatingRaw / 20 : avgRatingRaw) : null;
+  const satisfactionRate = avgRating != null ? Math.round((avgRating / 5) * 100) : null;
+
+  // Calculate average consultation time based on completed appointments
+  const completedAppointments = appointments.filter(apt => apt.status === 'ended' || apt.status === 'completed');
+  let avgConsultationTimeMins: number | null = null;
+  if (completedAppointments.length > 0) {
+    let totalMinutes = 0;
+    let validCount = 0;
+    for (const apt of completedAppointments) {
+      if (apt.start_time && apt.end_time) {
+        const startMs = new Date(apt.start_time).getTime();
+        const endMs = new Date(apt.end_time).getTime();
+        const mins = (endMs - startMs) / 1000 / 60;
+        if (mins > 0 && mins < 180) { // filter out absurd outliers
+          totalMinutes += mins;
+          validCount++;
+        }
+      }
+    }
+    if (validCount > 0) {
+      avgConsultationTimeMins = Math.round(totalMinutes / validCount);
+    }
+  }
+
   return {
     activeCount: activeAppointments.length,
     todayCount: todayAppointments.length,
@@ -175,8 +222,13 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
     historyCount: recordsResult.count ?? 0,
     pendingClarifications: clarificationsResult?.count ?? 0,
     pendingTriageMandates: triageMandatesResult?.count ?? 0,
+    qualityScore,
+    qualityMessage: getQualityMessage(qualityScoreRaw),
     rankingPosition: rankingResult?.data?.rank_position ?? null,
     unreadCommunityCount: notificationsResult?.count ?? 0,
+    satisfactionRate,
+    avgRating,
+    avgConsultationTimeMins,
     nextAppointment: nextAppt
       ? {
           time: new Date(nextAppt.start_time).toLocaleTimeString('es-AR', {
