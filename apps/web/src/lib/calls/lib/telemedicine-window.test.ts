@@ -1,40 +1,37 @@
-import { describe, expect, it } from 'vitest'
-import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
+import { describe, it, expect } from 'vitest'
+import { isTelemedicineCallWindowOpen } from './telemedicine-window'
 
 describe('isTelemedicineCallWindowOpen', () => {
-  it('allows entry shortly before the appointment start', () => {
-    const appointment = {
-      start_time: '2026-03-26T14:00:00.000Z',
-      end_time: '2026-03-26T14:30:00.000Z',
-      duration_minutes: 30,
-    }
+  const appointment = {
+    start_time: '2026-03-25T14:00:00.000Z',
+    duration_minutes: 60,
+  }
 
+  it('allows entry shortly before the appointment start', () => {
+    // 44 min before
     expect(
-      isTelemedicineCallWindowOpen(appointment, Date.parse('2026-03-26T13:20:00.000Z')),
+      isTelemedicineCallWindowOpen(appointment, Date.parse('2026-03-25T13:16:00.000Z')),
     ).toBe(true)
   })
 
   it('blocks entry too early before the appointment start', () => {
-    const appointment = {
-      start_time: '2026-03-26T14:00:00.000Z',
-      end_time: '2026-03-26T14:30:00.000Z',
-      duration_minutes: 30,
-    }
-
+    // 46 min before
     expect(
-      isTelemedicineCallWindowOpen(appointment, Date.parse('2026-03-26T13:10:00.000Z')),
+      isTelemedicineCallWindowOpen(appointment, Date.parse('2026-03-25T13:14:00.000Z')),
     ).toBe(false)
   })
 
-  it('blocks entry long after the appointment grace window ends', () => {
-    const appointment = {
-      start_time: '2026-03-26T14:00:00.000Z',
-      end_time: '2026-03-26T14:30:00.000Z',
-      duration_minutes: 30,
-    }
-
+  it('allows entry during the grace window (within 24h of end)', () => {
+    // Appointment ends at 15:00. 23h 59m after end.
     expect(
-      isTelemedicineCallWindowOpen(appointment, Date.parse('2026-03-26T17:00:01.000Z')),
+      isTelemedicineCallWindowOpen(appointment, Date.parse('2026-03-26T14:59:00.000Z')),
+    ).toBe(true)
+  })
+
+  it('blocks entry long after the appointment grace window ends', () => {
+    // 24h 1min after end
+    expect(
+      isTelemedicineCallWindowOpen(appointment, Date.parse('2026-03-26T15:01:00.000Z')),
     ).toBe(false)
   })
 })
