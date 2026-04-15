@@ -7,7 +7,7 @@ import { fetchApi, ApiError } from '@/lib/api-client'
 
 const JOIN_ERROR_MESSAGES: Record<string, string> = {
   appointment_outside_call_window:
-    'La ventana de conexión para este turno ya cerró. Solo podés unirte desde 45 minutos antes hasta 2 horas después de la hora programada.',
+    'La ventana de conexión para este turno ya cerró. Solo podés unirte desde 45 minutos antes hasta 24 horas después de la hora programada.',
   appointment_not_joinable:
     'Este turno no está en un estado que permita unirse a la videollamada.',
   appointment_not_telemedicine:

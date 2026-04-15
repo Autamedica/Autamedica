@@ -520,6 +520,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
   // Moved up to fix React #310
 
+  const waitingCopy = getWaitingCopy(doctorWaitingState, callSession.waitingRoom.message, callSession.peer?.displayName)
+
   return (
     <div className="h-screen bg-slate-50 overflow-hidden flex">
       {/* Video Call */}
@@ -535,7 +537,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                     {doctorWaitingState === 'waiting' ? 'Videollamada lista' : 'Videollamada finalizada'}
                   </p>
                   <h1 className="mt-3 text-3xl font-semibold text-slate-900">
-                    {getWaitingCopy(doctorWaitingState, callSession.waitingRoom.message).title}
+                    {waitingCopy.title}
                   </h1>
                 </div>
                 <div className={`rounded-full border px-4 py-2 text-sm font-semibold ${
@@ -554,7 +556,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               </div>
 
               <p className="mt-4 text-base leading-7 text-slate-600">
-                {getWaitingCopy(doctorWaitingState, callSession.waitingRoom.message).description}
+                {waitingCopy.description}
               </p>
 
               <div className="mt-8 rounded-2xl border border-slate-100 bg-slate-50 p-5">

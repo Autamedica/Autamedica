@@ -146,6 +146,17 @@ export function resolveCloudflareCallsEnv(runtimeEnv?: RuntimeEnvRecord): {
   return { appId, appSecret };
 }
 
+export function resolveGuestSecret(runtimeEnv?: RuntimeEnvRecord): string | undefined {
+  primeRuntimeEnv(runtimeEnv);
+
+  return (
+    readFirst(runtimeEnv, ['GUEST_TOKEN_SECRET']) ??
+    readCached(['GUEST_TOKEN_SECRET']) ??
+    import.meta.env.GUEST_TOKEN_SECRET ??
+    readProcess(['GUEST_TOKEN_SECRET'])
+  );
+}
+
 export function resolvePublicClientEnv(runtimeEnv?: RuntimeEnvRecord): {
   publicSupabaseUrl: string;
   publicSupabaseAnonKey: string;
