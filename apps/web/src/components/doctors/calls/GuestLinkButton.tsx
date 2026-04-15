@@ -118,7 +118,7 @@ export function GuestLinkButton({ callId }: GuestLinkButtonProps) {
   return (
     <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
       <p className="text-sm font-semibold text-emerald-900">Enlace generado para {guestName}</p>
-      <p className="mt-1 text-xs text-emerald-700/70">Valido por 2 horas. Comparti este link por WhatsApp o email.</p>
+      <p className="mt-1 text-xs text-emerald-700/70">Valido por 24 horas. Comparti este link por WhatsApp o email.</p>
       <div className="mt-3 flex gap-2">
         <input
           type="text"

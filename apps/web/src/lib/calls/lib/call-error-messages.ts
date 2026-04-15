@@ -5,10 +5,9 @@
 import {
   getAppointmentWindowStartMs,
   getAppointmentWindowEndMs,
+  EARLY_JOIN_WINDOW_MS,
+  LATE_JOIN_GRACE_MS,
 } from './telemedicine-window'
-
-const EARLY_JOIN_WINDOW_MS = 45 * 60 * 1000
-const LATE_JOIN_GRACE_MS = 2 * 60 * 60 * 1000
 
 export interface CallErrorContext {
   appointmentStartTime?: string | null
@@ -38,7 +37,7 @@ function translateOutsideWindow(context?: CallErrorContext): CallErrorMessage {
     return {
       title: 'Fuera de la ventana de acceso',
       description:
-        'La videollamada solo está disponible desde 45 minutos antes del turno hasta 2 horas después.',
+        'La videollamada solo está disponible desde 45 minutos antes del turno hasta 24 horas después.',
     }
   }
 
@@ -47,7 +46,7 @@ function translateOutsideWindow(context?: CallErrorContext): CallErrorMessage {
     return {
       title: 'Fuera de la ventana de acceso',
       description:
-        'La videollamada solo está disponible desde 45 minutos antes del turno hasta 2 horas después.',
+        'La videollamada solo está disponible desde 45 minutos antes del turno hasta 24 horas después.',
     }
   }
 
@@ -66,7 +65,7 @@ function translateOutsideWindow(context?: CallErrorContext): CallErrorMessage {
   // Past window
   return {
     title: 'La ventana de acceso expiró',
-    description: `El turno fue a las ${formattedStart} y la ventana cerró 2 horas después.`,
+    description: `El turno fue a las ${formattedStart} y la ventana cerró 24 horas después.`,
   }
 }
 

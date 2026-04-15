@@ -4,14 +4,7 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { badRequest, forbidden, internalError, jsonOk, notFound, serviceUnavailable } from '@/lib/api-helpers'
 import { withAuthRole, isAuthed, DOCTOR_ROLES } from '@/lib/api-auth'
 import { signGuestToken } from '@/lib/calls/lib/guest-token'
-import { getRuntimeEnvValue } from '@/lib/runtime-env'
-
-function resolveGuestSecret(runtimeEnv?: Record<string, unknown>): string | undefined {
-  return getRuntimeEnvValue('GUEST_TOKEN_SECRET')
-    ?? (runtimeEnv as Record<string, string> | undefined)?.GUEST_TOKEN_SECRET
-    ?? import.meta.env.GUEST_TOKEN_SECRET
-    ?? undefined
-}
+import { resolveGuestSecret } from '@/lib/runtime-env'
 
 export const POST: APIRoute = async ({ request, params, locals }) => {
   const callId = params.callId?.trim()
@@ -63,7 +56,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     const origin = new URL(request.url).origin
     const guestLink = `${origin}/call/join/${roomId}?token=${encodeURIComponent(token)}`
 
-    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
     return jsonOk({ guestLink, expiresAt })
   } catch (err) {

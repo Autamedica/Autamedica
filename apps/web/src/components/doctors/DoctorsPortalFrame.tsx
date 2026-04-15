@@ -55,6 +55,7 @@ interface DoctorsPortalFrameProps {
   title: string;
   description: string;
   activeSection: ActiveSection;
+  hideDefaultHeader?: boolean;
   children: ReactNode;
 }
 
@@ -194,6 +195,7 @@ export function DoctorsPortalFrame({
   title,
   description,
   activeSection,
+  hideDefaultHeader = false,
   children,
 }: DoctorsPortalFrameProps): JSX.Element {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -493,14 +495,16 @@ export function DoctorsPortalFrame({
                   </div>
                 ) : null}
 
-                <div className="mb-6">
-                  <h1 className="text-2xl font-light tracking-tight text-neutral-900 md:text-3xl">
-                    {title}
-                  </h1>
-                  <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-neutral-400">
-                    {description}
-                  </p>
-                </div>
+                {!hideDefaultHeader ? (
+                  <div className="mb-6">
+                    <h1 className="text-2xl font-light tracking-tight text-neutral-900 md:text-3xl">
+                      {title}
+                    </h1>
+                    <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-neutral-400">
+                      {description}
+                    </p>
+                  </div>
+                ) : null}
 
                 <div className="rounded-2xl border border-neutral-200/60 bg-white p-6 shadow-sm">
                   {children}

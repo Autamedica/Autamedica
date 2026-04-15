@@ -12,6 +12,10 @@ export interface CallSessionBootstrap {
     role: CallSessionRole
     displayName?: string
   }
+  peer?: {
+    id: string
+    displayName?: string
+  }
   permissions: {
     canJoin: boolean
     canPublishAudio: boolean

@@ -146,6 +146,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       title={`Dashboard de ${doctorName}`}
       description="Tu agenda clínica de hoy, con accesos rápidos a agenda, pacientes y teleconsulta desde una sola vista."
       activeSection="dashboard"
+      hideDefaultHeader={true}
     >
       {/* ── Dark editorial hero ── */}
       <div className="-mx-6 -mt-6 mb-8 overflow-hidden rounded-t-[24px] bg-neutral-950 px-8 py-10 md:px-10 md:py-14">

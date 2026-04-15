@@ -21,11 +21,13 @@ type ScheduleInput = Record<
 >
 
 const DEFAULT_AVAILABILITY_PRESET = [
-  { day_of_week: 1, start_time: '09:00', end_time: '17:00' },
-  { day_of_week: 2, start_time: '09:00', end_time: '17:00' },
-  { day_of_week: 3, start_time: '09:00', end_time: '17:00' },
-  { day_of_week: 4, start_time: '09:00', end_time: '17:00' },
-  { day_of_week: 5, start_time: '09:00', end_time: '17:00' },
+  { day_of_week: 0, start_time: '00:00', end_time: '23:59' },
+  { day_of_week: 1, start_time: '00:00', end_time: '23:59' },
+  { day_of_week: 2, start_time: '00:00', end_time: '23:59' },
+  { day_of_week: 3, start_time: '00:00', end_time: '23:59' },
+  { day_of_week: 4, start_time: '00:00', end_time: '23:59' },
+  { day_of_week: 5, start_time: '00:00', end_time: '23:59' },
+  { day_of_week: 6, start_time: '00:00', end_time: '23:59' },
 ] as const
 
 function buildAvailabilityRows(doctorId: string, schedule: unknown): AvailabilityInsert[] {
@@ -136,6 +138,6 @@ export const doctorProfileService = {
       }
     }
 
-    return result
+    return result;
   },
 }

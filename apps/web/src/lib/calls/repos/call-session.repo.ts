@@ -101,6 +101,36 @@ export const callSessionRepo = {
     return (data as { id: string } | null)?.id ?? null
   },
 
+  async resolveDoctorUserId(supabase: Db, doctorId: string): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('doctors')
+      .select('user_id')
+      .eq('id', doctorId)
+      .maybeSingle()
+
+    if (error) {
+      logger.error('[callSessionRepo] resolveDoctorUserId failed', error)
+      throw error
+    }
+
+    return (data as { user_id: string | null } | null)?.user_id ?? null
+  },
+
+  async resolvePatientUserId(supabase: Db, patientId: string): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('patients')
+      .select('user_id')
+      .eq('id', patientId)
+      .maybeSingle()
+
+    if (error) {
+      logger.error('[callSessionRepo] resolvePatientUserId failed', error)
+      throw error
+    }
+
+    return (data as { user_id: string | null } | null)?.user_id ?? null
+  },
+
   async resolveDisplayNameByUserId(supabase: Db, userId: string): Promise<string | undefined> {
     const { data, error } = await supabase
       .from('profiles')
