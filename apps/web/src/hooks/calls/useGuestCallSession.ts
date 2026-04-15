@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { CallSessionBootstrap } from '@autamedica/telemedicine'
 import { logger } from '@autamedica/shared'
 import { z } from 'zod'
+import { fetchApi } from '@/lib/api-client'
 
 interface UseGuestCallSessionResult {
   session: CallSessionBootstrap | null
@@ -41,6 +42,19 @@ function normalizeError(message: string): string {
   }
 }
 
+export async function loadGuestCallBootstrap(roomId: string, token: string): Promise<CallSessionBootstrap> {
+  const data = await fetchApi<CallSessionBootstrap>(`/api/calls/${encodeURIComponent(roomId)}/bootstrap`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  const parsed = CallSessionBootstrapSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error('invalid_call_session')
+  }
+
+  return parsed.data as CallSessionBootstrap
+}
+
 export function useGuestCallSession(roomId: string, token: string | null): UseGuestCallSessionResult {
   const [session, setSession] = useState<CallSessionBootstrap | null>(null)
   const [loading, setLoading] = useState(false)
@@ -56,23 +70,8 @@ export function useGuestCallSession(roomId: string, token: string | null): UseGu
       setLoading(true)
       setError(null)
 
-      const res = await fetch(`/api/calls/${roomId}/bootstrap`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: 'unknown' })) as { error?: string }
-        throw new Error(body.error ?? `HTTP ${res.status}`)
-      }
-
-      const data = await res.json()
-      const parsed = CallSessionBootstrapSchema.safeParse(data)
-
-      if (!parsed.success) {
-        throw new Error('invalid_call_session')
-      }
-
-      setSession(data as CallSessionBootstrap)
+      const data = await loadGuestCallBootstrap(roomId, token)
+      setSession(data)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'unknown'
       logger.error('[useGuestCallSession] bootstrap failed', err)

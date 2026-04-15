@@ -52,5 +52,8 @@ export const badRequest = (msg: string) =>
 export const conflict = (msg: string) =>
   jsonFail('CONFLICT', msg, 409)
 
+export const serviceUnavailable = (msg: string) =>
+  jsonFail('SERVICE_UNAVAILABLE', msg, 503)
+
 export const internalError = (msg = 'internal_error') =>
   jsonFail('INTERNAL', msg, 500)

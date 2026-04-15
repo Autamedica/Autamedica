@@ -422,7 +422,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           iceServersOverride: clientTurnServers ?? undefined,
         })
       : null,
-    [callSession?.callId, callSession?.runtime, clientTurnServers],
+    [callSession, clientTurnServers],
   )
 
   if (callSessionError) {

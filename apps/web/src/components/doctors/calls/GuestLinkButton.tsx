@@ -2,10 +2,31 @@
 
 import { useCallback, useState } from 'react'
 import { Link2, Check, Loader2 } from 'lucide-react'
-import { fetchApi } from '@/lib/api-client'
+import { ApiError, fetchApi } from '@/lib/api-client'
 
 interface GuestLinkButtonProps {
   callId: string
+}
+
+function normalizeGuestLinkError(error: unknown): string {
+  if (error instanceof ApiError) {
+    switch (error.message) {
+      case 'guest_invites_not_configured':
+        return 'La invitacion de pacientes externos no esta configurada en este entorno.'
+      case 'call_not_found':
+        return 'No se encontro la videollamada para generar el enlace.'
+      case 'not_call_owner':
+        return 'Solo el medico dueno de la videollamada puede generar este enlace.'
+      default:
+        return error.message || 'Error al generar enlace'
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'Error al generar enlace'
 }
 
 export function GuestLinkButton({ callId }: GuestLinkButtonProps) {
@@ -33,7 +54,7 @@ export function GuestLinkButton({ callId }: GuestLinkButtonProps) {
       setLink(res.guestLink)
       setStep('done')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al generar enlace')
+      setError(normalizeGuestLinkError(err))
       setStep('name')
     }
   }, [callId, guestName])
