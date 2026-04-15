@@ -66,7 +66,6 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [doctorNotes, setDoctorNotes] = useState('')
   const [notesSaveState, setNotesSaveState] = useState<NotesSaveState>('idle')
-  const [notesLastSavedAt, setNotesLastSavedAt] = useState<number | null>(null)
   const [voiceNotesEnabled, setVoiceNotesEnabled] = useState(false)
   const [liveMicLevel, setLiveMicLevel] = useState(0)
   const [captionText, setCaptionText] = useState('')
@@ -119,7 +118,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     const draft = readConsultationNotesDraft(roomId)
     setDoctorNotes(draft?.notes ?? '')
     setNotesSaveState(draft?.notes ? 'saved' : 'idle')
-    setNotesLastSavedAt(draft ? Date.parse(draft.updatedAt) : null)
+
     setVoiceNotesEnabled(false)
     voiceNotesCursorRef.current = 0
     notesHydratedRef.current = true
@@ -130,8 +129,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
     if (!doctorNotes.trim()) {
       clearConsultationNotesDraft(roomId)
-      setNotesSaveState('idle')
-      setNotesLastSavedAt(null)
+      setNotesSaveState('saved')
       return
     }
 
@@ -144,7 +142,6 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           updatedAt,
         })
         setNotesSaveState('saved')
-        setNotesLastSavedAt(Date.parse(updatedAt))
       } catch {
         setNotesSaveState('error')
       }
@@ -518,8 +515,6 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     )
   }
 
-  // Moved up to fix React #310
-
   const waitingCopy = getWaitingCopy(doctorWaitingState, callSession.waitingRoom.message, callSession.peer?.displayName)
 
   return (
@@ -662,7 +657,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       </div>
 
       {/* Clinical Context Panel */}
-      <div className={`shrink-0 transition-all duration-300 ${panelCollapsed ? 'w-0' : 'w-80'} bg-white border-l border-slate-200`}>
+      <div className={`shrink-0 transition-all duration-300 ${panelCollapsed ? 'w-0' : 'w-96'} bg-white border-l border-slate-200`}>
         <ConsultationContextPanel
           context={context}
           loading={contextLoading}
@@ -672,7 +667,6 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           liveNotes={doctorNotes}
           onLiveNotesChange={handleNotesChange}
           notesSaveState={notesSaveState}
-          notesLastSavedAt={notesLastSavedAt}
           micLevel={liveMicLevel}
           voiceNotesEnabled={voiceNotesEnabled}
           voiceNotesAvailable={!showDoctorWaitingRoom && transcriptionState.isSupported}

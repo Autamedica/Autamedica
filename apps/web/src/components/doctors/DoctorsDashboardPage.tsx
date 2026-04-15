@@ -143,8 +143,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
 
   return (
     <DoctorsPortalFrame
-      title={`Dashboard de ${doctorName}`}
-      description="Tu agenda clínica de hoy, con accesos rápidos a agenda, pacientes y teleconsulta desde una sola vista."
+      title="Dashboard"
+      description="Tu resumen clínico y agenda diaria."
       activeSection="dashboard"
       hideDefaultHeader={true}
     >
