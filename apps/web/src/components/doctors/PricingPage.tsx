@@ -149,6 +149,13 @@ export function PricingPage() {
                       ) : null}
                       {isLoading ? "Procesando..." : "Suscribirme"}
                     </button>
+                    <p className="text-[10px] text-neutral-400 text-center mt-1">Ideal para uso continuo, se cobra automáticamente cada mes.</p>
+                    <button
+                      type="button"
+                      onClick={() => void handleSubscribe(plan.slug, "checkout_pro")}
+                      disabled={!!loadingSlug}
+                      className="flex w-full items-center justify-center gap-2 rounded-full border border-neutral-200 bg-white py-2.5 text-[12px] text-neutral-500 transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                    </button>
                     <button
                       type="button"
                       onClick={() => void handleSubscribe(plan.slug, 'preapproval')}
@@ -157,6 +164,7 @@ export function PricingPage() {
                     >
                       Pago automatico con tarjeta
                     </button>
+                    <p className="text-[10px] text-neutral-400 text-center mt-1">Ideal si preferís pagar mes a mes manualmente.</p>
                   </div>
                 </div>
               );
