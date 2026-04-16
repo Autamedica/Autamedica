@@ -3,15 +3,6 @@
  *
  * Drop-in replacement de WebRTCClient que enruta el media a través del SFU de
  * Cloudflare Calls en lugar de usar WebRTC P2P directo.
- *
- * Protocolo de señalización (via WebSocket existente):
- *   → { type: 'join', from: userId, data: { userType } }
- *   ← { type: 'room-state', data: { users: [...] } }
- *   ← { type: 'user-joined', from: userId, data: { userType } }
- *   → { type: 'cf-session', from: userId, data: { sessionId, userType } }   (anuncio de sesión CF)
- *   ← { type: 'cf-session', from: userId, data: { sessionId, userType } }   (sesión del peer)
- *   ↔ { type: 'chat',      from: userId, data: { message } }                (chat via WS)
- *   → { type: 'leave' }
  */
 
 import { loadSignalingUrl } from '../config/ice-servers'
@@ -23,6 +14,7 @@ import type {
   StreamQualitySummary,
 } from '../webrtc-client'
 import { CloudflareCallsSession } from './session'
+import { createTelemedicineLogger } from '../debug'
 
 type ServerMessage =
   | { type: 'room-state'; data: { users: Array<{ id: string; userType: string }> } }
@@ -37,7 +29,7 @@ export interface CloudflareCallsClientConfig {
   userName?: string
   userType: 'doctor' | 'patient' | 'nurse' | 'guest'
   roomId?: string
-  /** URL del proxy API (default: '/api/cloudflare-calls') */
+  /** URL del proxy API en el app (e.g., '/api/cloudflare-calls') */
   apiProxyUrl?: string
   /** URL del servidor de señalización (default: PUBLIC_SIGNALING_URL) */
   signalingUrl?: string
@@ -56,6 +48,7 @@ export class CloudflareCallsClient implements CallProvider {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private listeners = new Map<keyof WebRTCEvents, ((...args: any[]) => void)[]>()
   private readonly config: Required<Omit<CloudflareCallsClientConfig, 'userName'>> & { userName?: string }
+  private readonly debugLogger: ReturnType<typeof createTelemedicineLogger>
 
   // ── Reconnect state ──
   private intentionalClose = false
@@ -73,6 +66,13 @@ export class CloudflareCallsClient implements CallProvider {
       apiProxyUrl: cfg.apiProxyUrl ?? '/api/cloudflare-calls',
       signalingUrl: cfg.signalingUrl ?? loadSignalingUrl(),
     }
+
+    this.debugLogger = createTelemedicineLogger({
+      source: 'CloudflareCallsClient',
+      roomId: this.config.roomId,
+      userId: this.config.userId,
+      userType: this.config.userType,
+    })
   }
 
   /* ── Event emitter ── */
@@ -94,7 +94,7 @@ export class CloudflareCallsClient implements CallProvider {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(h as (...a: any[]) => void)(...args)
       } catch {
-        // no-op: listener errors must not crash the client
+        // no-op
       }
     }
   }
@@ -103,9 +103,11 @@ export class CloudflareCallsClient implements CallProvider {
 
   async warmUp(constraints?: MediaStreamConstraints): Promise<WarmUpResult> {
     const t0 = Date.now()
+    this.debugLogger.info('WarmUp started')
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints ?? getAdaptiveConstraints())
-    } catch {
+    } catch (err) {
+      this.debugLogger.warn('getUserMedia fallback triggered', { error: err })
       if (constraints) {
         try {
           this.localStream = await navigator.mediaDevices.getUserMedia(getAdaptiveConstraints())
@@ -223,7 +225,6 @@ export class CloudflareCallsClient implements CallProvider {
     const newStream = await navigator.mediaDevices.getUserMedia(constraint)
     const newTrack = kind === 'video' ? newStream.getVideoTracks()[0] : newStream.getAudioTracks()[0]
     if (!newTrack) return
-    // Stop and replace old track
     const oldTracks = kind === 'video' ? this.localStream.getVideoTracks() : this.localStream.getAudioTracks()
     oldTracks.forEach((t) => { t.stop(); this.localStream?.removeTrack(t) })
     this.localStream.addTrack(newTrack)
@@ -244,22 +245,18 @@ export class CloudflareCallsClient implements CallProvider {
     try {
       if (!this.localStream) await this.warmUp()
 
-      // 1. Conectar al servidor de señalización para coordinación entre peers
       await this.connectSignaling(finalRoomId)
 
-      // 2. Crear sesión CF Calls y publicar tracks locales
       this.cfSession = new CloudflareCallsSession({
         apiProxyUrl: this.config.apiProxyUrl,
         onTrack: (event) => this.handleRemoteTrack(event),
         onConnectionStateChange: (state) => {
+          this.debugLogger.info('SFU connection state changed', { state })
           if (state === 'connected') {
             if (this.connectionState === 'connecting' || this.connectionState === 'disconnected') {
               this.setConnectionState('connected')
             }
-            // If we were recovering from a transient state, emit reconnected
-            if (this.connectionState === 'connected') {
-              this.emit('reconnected', { peerId: 'sfu', afterAttempts: 1 })
-            }
+            this.emit('reconnected', { peerId: 'sfu', afterAttempts: 1 })
           } else if (state === 'disconnected') {
             this.emit('reconnecting', { peerId: 'sfu', attempt: 1, maxAttempts: 1 })
           } else if (state === 'failed') {
@@ -267,25 +264,30 @@ export class CloudflareCallsClient implements CallProvider {
             this.emit('error', new Error('Cloudflare Calls SFU connection failed'))
           }
         },
-        onError: (err) => this.emit('error', err),
+        onError: (err) => {
+          this.debugLogger.error('SFU connection error', err)
+          this.emit('error', err)
+        },
       })
 
       if (!this.localStream) throw new Error('No local stream available')
+      this.debugLogger.info('Connecting to CF SFU...')
       const mySessionId = await this.cfSession.connect(this.localStream)
+      this.debugLogger.info('CF Session established', { sessionId: mySessionId })
 
-      // 3. Anunciar nuestra sesión CF al room (vía señalización)
       this.sendSignal({
         type: 'cf-session',
         from: this.config.userId,
         data: { sessionId: mySessionId, userType: this.config.userType },
       })
 
-      // Si ya había un peer esperando, subscribirse ahora
       if (this.pendingSessionId) {
+        this.debugLogger.info('Subscribing to pending peer session', { pendingSessionId: this.pendingSessionId })
         await this.cfSession.subscribeToSession(this.pendingSessionId)
         this.pendingSessionId = null
       }
     } catch (err) {
+      this.debugLogger.error('Connection failed', err)
       this.setConnectionState('failed')
       this.emit('error', err instanceof Error ? err : new Error(String(err)))
       throw err
@@ -312,7 +314,7 @@ export class CloudflareCallsClient implements CallProvider {
     this.signalingReconnectAttempt = 0
   }
 
-  /* ── Chat (via señalización WS) ── */
+  /* ── Chat ── */
 
   sendChatMessage(text: string): boolean {
     if (this.ws?.readyState !== WebSocket.OPEN) return false
@@ -326,11 +328,10 @@ export class CloudflareCallsClient implements CallProvider {
       timestamp: Date.now(),
     }
     this.sendSignal({ type: 'chat', from: this.config.userId, data: { message } })
-    // Emitir propio mensaje como saliente para que la UI lo muestre
     return true
   }
 
-  /* ── Quality stub (sin stats propias en CF Calls por ahora) ── */
+  /* ── Quality stub ── */
 
   private emitQualityStub(): void {
     const stub: StreamQualitySummary = {
@@ -346,6 +347,7 @@ export class CloudflareCallsClient implements CallProvider {
   private connectSignaling(roomId: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const wsUrl = `${this.config.signalingUrl}?roomId=${encodeURIComponent(roomId)}`
+      this.debugLogger.info('Connecting to signaling server', { wsUrl })
       this.ws = new WebSocket(wsUrl)
       let settled = false
 
@@ -354,6 +356,7 @@ export class CloudflareCallsClient implements CallProvider {
       }, 8000)
 
       this.ws.onopen = () => {
+        this.debugLogger.info('Signaling WebSocket opened')
         clearTimeout(timeout)
         this.signalingReconnectAttempt = 0
         this.sendSignal({
@@ -371,16 +374,17 @@ export class CloudflareCallsClient implements CallProvider {
         } catch { /* ignore parse errors */ }
       }
 
-      this.ws.onerror = () => {
+      this.ws.onerror = (err) => {
+        this.debugLogger.error('Signaling WebSocket error', err)
         clearTimeout(timeout)
         if (!settled) { settled = true; reject(new Error('WebSocket connection failed')) }
       }
 
       this.ws.onclose = (event) => {
+        this.debugLogger.warn('Signaling WebSocket closed', { code: event.code, reason: event.reason })
         clearTimeout(timeout)
         if (this.intentionalClose || this.connectionState === 'closed') return
 
-        // Auto-reconnect mid-call signaling drops
         if (settled && this.signalingReconnectAttempt < CloudflareCallsClient.MAX_SIGNALING_RECONNECT) {
           this.scheduleSignalingReconnect(roomId)
           return
@@ -422,7 +426,6 @@ export class CloudflareCallsClient implements CallProvider {
           from: this.config.userId,
           data: { userType: this.config.userType },
         })
-        // Re-announce CF session so the peer knows we're back
         if (this.cfSession?.getSessionId()) {
           this.sendSignal({
             type: 'cf-session',
@@ -444,7 +447,6 @@ export class CloudflareCallsClient implements CallProvider {
       }
 
       this.ws.onerror = () => {
-        // Try again if attempts remain
         if (this.signalingReconnectAttempt < CloudflareCallsClient.MAX_SIGNALING_RECONNECT) {
           this.scheduleSignalingReconnect(roomId)
         } else {
@@ -466,13 +468,12 @@ export class CloudflareCallsClient implements CallProvider {
   }
 
   private async handleSignalingMessage(msg: ServerMessage): Promise<void> {
+    this.debugLogger.info('Signaling message received', { type: msg.type })
     switch (msg.type) {
       case 'room-state': {
         for (const user of msg.data.users) {
           this.emit('user-joined', user.id, user.userType)
         }
-        // Don't set 'connected' here — wait for SFU RTCPeerConnection via onConnectionStateChange.
-        // Signaling is ready but media is not yet flowing.
         this.emit('chat-ready', true)
         this.emitQualityStub()
         break
@@ -480,7 +481,6 @@ export class CloudflareCallsClient implements CallProvider {
 
       case 'user-joined': {
         this.emit('user-joined', msg.from, msg.data.userType)
-        // Re-anunciar nuestra sesión CF para que el recién llegado se subscriba
         if (this.cfSession?.getSessionId()) {
           this.sendSignal({
             type: 'cf-session',
@@ -503,16 +503,16 @@ export class CloudflareCallsClient implements CallProvider {
       case 'cf-session': {
         const { sessionId: remoteSessionId, userType: remoteUserType } = msg.data
         const remoteUserId = msg.from
+        this.debugLogger.info('Remote CF session announced', { remoteUserId, remoteSessionId })
         this.emit('user-joined', remoteUserId, remoteUserType)
         if (!this.pendingRemoteUserIds.includes(remoteUserId)) {
           this.pendingRemoteUserIds.push(remoteUserId)
         }
 
         if (this.cfSession) {
-          // Suscribirse a los tracks del peer remoto
+          this.debugLogger.info('Subscribing to remote tracks', { remoteSessionId })
           await this.cfSession.subscribeToSession(remoteSessionId)
         } else {
-          // La sesión CF todavía no está lista — guardar para usarla cuando esté
           this.pendingSessionId = remoteSessionId
         }
         break
@@ -524,6 +524,7 @@ export class CloudflareCallsClient implements CallProvider {
       }
 
       case 'error': {
+        this.debugLogger.error('Signaling server logic error', new Error(msg.data))
         this.emit('error', new Error(`Signaling error: ${msg.data}`))
         break
       }
@@ -539,6 +540,7 @@ export class CloudflareCallsClient implements CallProvider {
       this.streamIdToUserId.set(stream.id, userId)
     }
 
+    this.debugLogger.info('Remote track received', { userId, trackKind: event.track.kind })
     this.emit('remote-stream', stream, userId)
 
     if (!this.connectedPeerIds.has(userId)) {
@@ -560,6 +562,7 @@ export class CloudflareCallsClient implements CallProvider {
   private setConnectionState(state: ConnectionState): void {
     if (this.connectionState === state) return
     this.connectionState = state
+    this.debugLogger.info('Overall connection state changed', { state })
     this.emit('connection-state', state)
   }
 }

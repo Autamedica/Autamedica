@@ -189,8 +189,16 @@ export class CloudflareCallsSession {
       body: JSON.stringify({ method, path, body }),
     })
     if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`Cloudflare Calls error ${res.status} (${path}): ${text}`)
+      let detail = ''
+      try {
+        const json = await res.json()
+        detail = JSON.stringify(json)
+      } catch {
+        detail = await res.text()
+      }
+      const err = new Error(`Cloudflare Calls error ${res.status} (${path}): ${detail}`)
+      this.cfg.onError?.(err)
+      throw err
     }
     return res.json() as Promise<T>
   }

@@ -9,92 +9,98 @@ import { logger } from '@autamedica/shared'
 import { doctorAppointmentsService } from '@/lib/doctors/services/doctor-appointments.service'
 import type {
   DoctorAppointmentFormValues,
-  DoctorAppointmentRecord,
 } from '@/lib/doctors/types/appointments'
-import type { AppointmentStatus } from '@autamedica/types'
+import type { Appointment, AppointmentStatus } from '@autamedica/types'
 
 interface UseDoctorAppointmentsResult {
-  appointments: DoctorAppointmentRecord[]
+  appointments: Appointment[]
   loading: boolean
   error: string | null
   isClientReady: boolean
   refetch: () => Promise<void>
-  createAppointment: (values: DoctorAppointmentFormValues) => Promise<DoctorAppointmentRecord>
-  updateAppointment: (id: string, values: DoctorAppointmentFormValues) => Promise<DoctorAppointmentRecord>
-  transitionAppointment: (id: string, status: AppointmentStatus | 're_queue') => Promise<DoctorAppointmentRecord>
+  createAppointment: (values: DoctorAppointmentFormValues) => Promise<void>
+  updateAppointment: (id: string, values: DoctorAppointmentFormValues) => Promise<void>
+  transitionAppointment: (id: string, status: AppointmentStatus | 're_queue') => Promise<void>
 }
 
 export function useDoctorAppointments(): UseDoctorAppointmentsResult {
-  const [appointments, setAppointments] = useState<DoctorAppointmentRecord[]>([])
+  const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isClientReady, setIsClientReady] = useState(false)
 
-  useEffect(() => {
-    setIsClientReady(true)
-  }, [])
-
-  const refetch = useCallback(async (): Promise<void> => {
-    if (!isClientReady) return
-
+  const fetchAppointments = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true)
-      setError(null)
       const data = await doctorAppointmentsService.list()
       setAppointments(data)
     } catch (err) {
-      logger.error('[useDoctorAppointments] fetch error:', err)
-      setError(err instanceof Error ? err.message : 'Error al cargar citas')
+      logger.error('[useDoctorAppointments] fetch failed', err)
+      setError('No se pudo cargar la agenda médica.')
     } finally {
       setLoading(false)
     }
-  }, [isClientReady])
+  }, [])
 
   useEffect(() => {
-    void refetch()
-  }, [refetch])
+    setIsClientReady(true)
+    void fetchAppointments()
+  }, [fetchAppointments])
 
   const createAppointment = useCallback(
-    async (values: DoctorAppointmentFormValues): Promise<DoctorAppointmentRecord> => {
-      const created = await doctorAppointmentsService.create(values)
-      setAppointments((prev) =>
-        [...prev, created].sort(
-          (left, right) => new Date(left.start_time).getTime() - new Date(right.start_time).getTime(),
-        ),
-      )
-      return created
+    async (values: DoctorAppointmentFormValues) => {
+      try {
+        const payload = {
+          patient_id: values.patientId,
+          guest_name: values.guestName,
+          start_time: `${values.date}T${values.time}:00`,
+          duration_minutes: values.durationMinutes,
+          type: values.type,
+          notes: values.notes,
+          location: values.location,
+        }
+        await doctorAppointmentsService.create(payload)
+        await fetchAppointments()
+      } catch (err) {
+        logger.error('[useDoctorAppointments] create failed', err)
+        throw new Error('No se pudo agendar la cita.')
+      }
     },
-    [],
+    [fetchAppointments],
   )
 
   const updateAppointment = useCallback(
-    async (id: string, values: DoctorAppointmentFormValues): Promise<DoctorAppointmentRecord> => {
-      const updated = await doctorAppointmentsService.update(id, values)
-      setAppointments((prev) =>
-        prev
-          .map((appt) => (appt.id === id ? { ...appt, ...updated } : appt))
-          .sort(
-            (left, right) => new Date(left.start_time).getTime() - new Date(right.start_time).getTime(),
-          ),
-      )
-      return updated
+    async (id: string, values: DoctorAppointmentFormValues) => {
+      try {
+        const payload = {
+          start_time: `${values.date}T${values.time}:00`,
+          duration_minutes: values.durationMinutes,
+          type: values.type,
+          notes: values.notes,
+          location: values.location,
+        }
+        await doctorAppointmentsService.update(id, payload)
+        await fetchAppointments()
+      } catch (err) {
+        logger.error('[useDoctorAppointments] update failed', err)
+        throw new Error('No se pudo actualizar la cita.')
+      }
     },
-    [],
+    [fetchAppointments],
   )
 
   const transitionAppointment = useCallback(
-    async (id: string, status: AppointmentStatus | 're_queue'): Promise<DoctorAppointmentRecord> => {
-      const updated = await doctorAppointmentsService.transition(id, status)
-      setAppointments((prev) =>
-        prev
-          .map((appt) => (appt.id === id ? { ...appt, ...updated } : appt))
-          .sort(
-            (left, right) => new Date(left.start_time).getTime() - new Date(right.start_time).getTime(),
-          ),
-      )
-      return updated
+    async (id: string, status: AppointmentStatus | 're_queue') => {
+      try {
+        await doctorAppointmentsService.transition(id, status)
+        await fetchAppointments()
+      } catch (err) {
+        logger.error('[useDoctorAppointments] transition failed', err)
+        throw new Error('No se pudo cambiar el estado de la cita.')
+      }
     },
-    [],
+    [fetchAppointments],
   )
 
   return useMemo(
@@ -103,11 +109,11 @@ export function useDoctorAppointments(): UseDoctorAppointmentsResult {
       loading,
       error,
       isClientReady,
-      refetch,
+      refetch: fetchAppointments,
       createAppointment,
       updateAppointment,
       transitionAppointment,
     }),
-    [appointments, loading, error, isClientReady, refetch, createAppointment, updateAppointment, transitionAppointment],
+    [appointments, loading, error, isClientReady, fetchAppointments, createAppointment, updateAppointment, transitionAppointment],
   )
 }

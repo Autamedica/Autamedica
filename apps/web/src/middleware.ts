@@ -504,34 +504,34 @@ export const onRequest = defineMiddleware(async (context, next) => {
       );
     }
 
+    const cookieMethods: CookieMethodsServer = {
+      getAll() {
+        const cookieHeader = context.request.headers.get('cookie') ?? '';
+        if (!cookieHeader) return [];
+        return cookieHeader.split('; ').map(c => {
+          const eq = c.indexOf('=');
+          return {
+            name: eq >= 0 ? c.slice(0, eq) : c,
+            value: eq >= 0 ? c.slice(eq + 1) : ''
+          };
+        });
+      },
+      setAll(cookiesToSet) {
+        const domainOverride = isProduction() ? '.autamedica.com' : undefined;
+        for (const { name, value, options } of cookiesToSet) {
+          context.cookies.set(name, value, {
+            ...options,
+            domain: domainOverride,
+            path: '/',
+          } as AstroCookieSetOptions);
+        }
+      }
+    };
+
     const supabase = createServerClient(
       publicSupabaseUrl,
       publicSupabaseAnonKey,
-      {
-        cookies: {
-          getAll() {
-            const cookieHeader = context.request.headers.get('cookie') ?? '';
-            if (!cookieHeader) return [];
-            return cookieHeader.split('; ').map(c => {
-              const eq = c.indexOf('=');
-              return {
-                name: eq >= 0 ? c.slice(0, eq) : c,
-                value: eq >= 0 ? c.slice(eq + 1) : ''
-              };
-            });
-          },
-          setAll(cookiesToSet: Parameters<NonNullable<CookieMethodsServer['setAll']>>[0]) {
-            const domainOverride = isProduction() ? '.autamedica.com' : undefined;
-            for (const { name, value, options } of cookiesToSet) {
-              context.cookies.set(name, value, {
-                ...options,
-                domain: domainOverride,
-                path: '/',
-              } as AstroCookieSetOptions);
-            }
-          }
-        }
-      }
+      { cookies: cookieMethods }
     );
 
     // Server-side verification: getUser() validates JWT against Supabase server

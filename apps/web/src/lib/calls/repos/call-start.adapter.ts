@@ -12,7 +12,7 @@ const LEGACY_CALL_SELECT =
 const ACTIVE_CALL_STATUS_FILTER =
   'status.eq.requested,status.eq.ringing,status.eq.accepted,status.eq.connecting,status.eq.connected'
 
-interface LooseCallSelectQuery<T = unknown> {
+interface LooseCallSelectQuery<T = unknown> extends PromiseLike<{ data: T[] | null; error: unknown }> {
   eq(column: string, value: unknown): LooseCallSelectQuery<T>
   or(filters: string): LooseCallSelectQuery<T>
   order(column: string, options: { ascending: boolean }): LooseCallSelectQuery<T>

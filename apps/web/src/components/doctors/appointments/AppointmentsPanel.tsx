@@ -1,302 +1,268 @@
 import type { Appointment } from '@autamedica/types'
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { JSX } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Calendar, Clock, Video, User, Plus, Filter } from 'lucide-react'
-import { logger } from '@autamedica/shared'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.service'
 import { getCallWindowStatus } from '@/lib/calls/lib/call-error-messages'
-import { selectDoctorAppointmentBoardView } from '@/lib/doctors/queries/doctor-appointments.selectors'
-import { StartCallButton } from '../calls/StartCallButton'
 import { CreateAppointmentModal } from './CreateAppointmentModal'
+import { AppointmentDetailsPanel } from './AppointmentDetailsPanel'
 import type { DoctorAppointmentFormValues } from '@/lib/doctors/types/appointments'
 
-interface AppointmentsPanelProps {
-  doctorId?: string
+const STATUS_LABELS: Record<string, string> = {
+  scheduled: 'Programado',
+  confirmed: 'Confirmado',
+  in_progress: 'En curso',
+  completed: 'Completado',
+  cancelled: 'Cancelado',
+  no_show: 'Ausente',
 }
 
-export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Element {
+const STATUS_COLORS: Record<string, string> = {
+  scheduled: 'bg-am-surface-100 text-am-surface-700',
+  confirmed: 'bg-emerald-100 text-emerald-700',
+  in_progress: 'bg-sky-100 text-sky-700',
+  completed: 'bg-slate-100 text-slate-700',
+  cancelled: 'bg-red-100 text-red-700',
+  no_show: 'bg-amber-100 text-amber-700',
+}
+
+const TYPE_ICONS: Record<string, typeof Video> = {
+  telemedicine: Video,
+  consultation: User,
+  follow_up: Clock,
+  emergency: Calendar,
+}
+
+export function AppointmentsPanel() {
+  const { doctorId: _doctorId } = useAuthenticatedUser()
+  const {
+    appointments,
+    loading,
+    error,
+    createAppointment,
+    updateAppointment,
+    transitionAppointment,
+  } = useDoctorAppointments()
+
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
+  const [filter, setFilter] = useState<'all' | 'today' | 'upcoming'>('all')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
   const [patientNames, setPatientNames] = useState<Record<string, string>>({})
-  
-  const { user, loading: userLoading } = useAuthenticatedUser()
-  const { appointments, loading, error, isClientReady, createAppointment, updateAppointment, transitionAppointment } = useDoctorAppointments()
-  const [transitioningId, setTransitioningId] = useState<string | null>(null)
 
-  const resolvedDoctorId = doctorId ?? user?.doctorProfileId
-
-  const boardView = useMemo(
-    () => selectDoctorAppointmentBoardView(appointments),
-    [appointments],
-  )
-  const sortedAppointments = boardView.sortedAppointments
-
-  const resolveNames = useCallback(async () => {
-    if (appointments.length === 0) return
-    const patientIds = Array.from(new Set(appointments.map(a => a.patient_id).filter(Boolean)))
-    if (patientIds.length === 0) return
-    const nameMap = await resolvePatientNameMap(patientIds)
-    setPatientNames(nameMap)
+  // Resolve names
+  useEffect(() => {
+    if (appointments.length > 0) {
+      void resolvePatientNameMap(appointments).then(setPatientNames)
+    }
   }, [appointments])
 
-  useEffect(() => {
-    void resolveNames()
-  }, [resolveNames])
-
-  const handleSaveAppointment = useCallback(
-    async (values: DoctorAppointmentFormValues) => {
-      if (editingAppointment) {
-        await updateAppointment(editingAppointment.id, values)
-      } else {
-        await createAppointment(values)
-      }
-      setIsCreateModalOpen(false)
-      setEditingAppointment(null)
-    },
-    [createAppointment, updateAppointment, editingAppointment],
-  )
-
-  const handleMarkNoShow = useCallback(
-    async (appointment: Appointment) => {
-      if (transitioningId === appointment.id) return
-      const confirmed = window.confirm('¿Marcar esta cita como no asistió?')
-      if (!confirmed) return
-
-      try {
-        setTransitioningId(appointment.id)
-        await transitionAppointment(appointment.id, 'no_show')
-      } catch (error) {
-        logger.error('[AppointmentsPanel] failed to mark no_show', { appointmentId: appointment.id, error })
-        window.alert('No se pudo marcar la cita como no asistió.')
-      } finally {
-        setTransitioningId((current) => (current === appointment.id ? null : current))
-      }
-    },
-    [transitionAppointment, transitioningId],
-  )
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled': return 'bg-yellow-50 text-yellow-700'
-      case 'confirmed': return 'bg-green-50 text-green-700'
-      case 'cancelled': return 'bg-red-50 text-red-700'
-      case 'completed': return 'bg-am-primary-50 text-am-primary-700'
-      case 'no_show': return 'bg-stone-100 text-stone-600'
-      default: return 'bg-am-surface-100 text-am-surface-500'
-    }
-  }
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'no_show': return 'No asistió'
-      case 'in_progress': return 'En curso'
-      default: return status
-    }
-  }
-
-  const getTypeIcon = (type: string | null) => {
-    switch (type) {
-      case 'telemedicine': return <Video className="h-4 w-4" />
-      case 'consultation': return <User className="h-4 w-4" />
-      default: return <Calendar className="h-4 w-4" />
-    }
-  }
-
-  if ((!doctorId && userLoading) || !isClientReady || loading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="rounded-2xl border border-am-surface-200 bg-white p-4">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl am-skeleton" />
-              <div className="flex-1 space-y-2">
-                <div className="h-4 w-1/3 rounded-lg am-skeleton" />
-                <div className="h-3 w-1/2 rounded-lg am-skeleton" />
-              </div>
-              <div className="h-6 w-16 rounded-full am-skeleton" />
-            </div>
-          </div>
-        ))}
-      </div>
+  const filteredAppointments = useMemo(() => {
+    let list = [...appointments].sort((a, b) =>
+      new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
     )
+
+    if (filter === 'today') {
+      const todayStr = new Date().toISOString().slice(0, 10)
+      list = list.filter(a => a.start_time.startsWith(todayStr))
+    } else if (filter === 'upcoming') {
+      const now = new Date()
+      list = list.filter(a => new Date(a.start_time) >= now)
+    }
+
+    return list
+  }, [appointments, filter])
+
+  const selectedAppointment = useMemo(() =>
+    appointments.find(a => a.id === selectedAppointmentId) ?? null
+  , [appointments, selectedAppointmentId])
+
+  const handleSaveAppointment = async (values: DoctorAppointmentFormValues) => {
+    if (editingAppointment) {
+      await updateAppointment(editingAppointment.id, values)
+    } else {
+      await createAppointment(values)
+    }
+    setIsCreateModalOpen(false)
+    setEditingAppointment(null)
   }
 
-  if (error) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-600 mb-2">⚠️</div>
-          <p className="text-red-600">Error: {error}</p>
-        </div>
-      </div>
-    )
+  const getAppointmentPatientName = (appointment: Appointment): string => {
+    // Check for [INVITADO: Name] in notes
+    if (!appointment.patient_id && appointment.notes?.includes('[INVITADO:')) {
+      const match = appointment.notes.match(/\[INVITADO:\s*([^\]]+)\]/)
+      if (match?.[1]) return match[1].trim()
+    }
+    return patientNames[appointment.id] ?? (appointment.patient_id ? 'Cargando...' : 'Invitado Externo')
   }
 
   return (
-    <div className="flex h-full flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-am-primary-50 p-2">
-            <Calendar className="h-6 w-6 text-am-primary-600" />
+    <div className="flex h-full gap-0 overflow-hidden bg-white">
+      {/* List Sidebar */}
+      <section className="flex w-full flex-col border-r border-am-surface-100 sm:w-80 md:w-96 lg:w-[420px]">
+        <div className="border-b border-am-surface-100 px-5 py-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight text-am-surface-900">Agenda</h2>
+            <button
+              onClick={() => {
+                setEditingAppointment(null)
+                setIsCreateModalOpen(true)
+              }}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-am-doctor-600 text-white transition hover:bg-am-doctor-700 shadow-am-sm active:scale-95"
+              title="Nueva cita"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold text-am-surface-900">Agenda de Citas</h1>
-            <p className="text-am-surface-500">
-              {sortedAppointments.length} cita{sortedAppointments.length !== 1 ? 's' : ''} programada{sortedAppointments.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="au-interactive au-focus-ring flex items-center gap-2 rounded-lg bg-white border border-am-surface-300 px-4 py-2 text-sm font-medium text-am-surface-700 shadow-am-sm transition hover:bg-am-surface-100"
-          >
-            <Filter className="h-4 w-4" />
-            Filtrar
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="au-interactive au-focus-ring flex items-center gap-2 rounded-lg bg-am-primary-600 px-4 py-2 text-sm font-medium text-white shadow-am-sm transition hover:bg-am-primary-700"
-          >
-            <Plus className="h-4 w-4" />
-            Nueva Cita
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-am-primary-50 p-2"><Calendar className="h-5 w-5 text-am-primary-600" /></div>
-                <div>
-                  <p className="text-sm text-am-surface-500">Hoy</p>
-                  <p className="text-xl font-semibold text-am-surface-900">{boardView.todayCount}</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-green-50 p-2"><Video className="h-5 w-5 text-green-700" /></div>
-                <div>
-                  <p className="text-sm text-am-surface-500">Telemedicina</p>
-                  <p className="text-xl font-semibold text-am-surface-900">{boardView.telemedicineCount}</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-yellow-50 p-2"><Clock className="h-5 w-5 text-yellow-600" /></div>
-                <div>
-                  <p className="text-sm text-am-surface-500">Pendientes</p>
-                  <p className="text-xl font-semibold text-am-surface-900">{boardView.pendingCount}</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-emerald-50 p-2"><User className="h-5 w-5 text-emerald-700" /></div>
-                <div>
-                  <p className="text-sm text-am-surface-500">Confirmadas</p>
-                  <p className="text-xl font-semibold text-am-surface-900">{boardView.confirmedCount}</p>
-                </div>
-              </div>
-            </div>
-      </div>
-
-      <div className="flex-1 overflow-hidden">
-        {sortedAppointments.length === 0 ? (
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center">
-              <Calendar className="mx-auto h-12 w-12 text-am-surface-400 mb-4" />
-              <h3 className="text-lg font-medium text-am-surface-700 mb-2">No hay citas programadas</h3>
+          <div className="mt-4 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            <Filter className="h-4 w-4 shrink-0 text-am-surface-400" />
+            {(['all', 'today', 'upcoming'] as const).map(f => (
               <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(true)}
-                className="flex items-center gap-2 rounded-lg bg-am-primary-600 px-4 py-2 text-sm font-medium text-white shadow-am-sm transition hover:bg-am-primary-700 mx-auto"
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  filter === f
+                    ? 'bg-am-doctor-50 text-am-doctor-700 ring-1 ring-am-doctor-200'
+                    : 'text-am-surface-500 hover:bg-am-surface-50'
+                }`}
               >
-                <Plus className="h-4 w-4" />
-                Programar Cita
+                {f === 'all' ? 'Todo' : f === 'today' ? 'Hoy' : 'Próximos'}
               </button>
-            </div>
+            ))}
           </div>
-        ) : (
-          <div className="h-full overflow-auto">
-            <div className="grid gap-4">
-              {sortedAppointments.map((appointment) => (
-                <div key={appointment.id} className="au-interactive rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm transition-all duration-am-fast ease-am-ease hover:-translate-y-0.5 hover:shadow-am-card-hover hover:border-am-surface-300">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-am-primary-50 text-am-primary-600">{getTypeIcon(appointment.type)}</div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <h3 className="font-medium text-am-surface-900">{appointment.patient_id ? (patientNames[appointment.patient_id] || 'Cargando...') : 'Sin asignar'}</h3>
-                          <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(appointment.status ?? 'scheduled')}`}>{getStatusLabel(appointment.status ?? 'scheduled')}</span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-am-surface-500 mb-2">
-                          <div className="flex items-center gap-1"><Calendar className="h-4 w-4" />{new Date(appointment.start_time).toLocaleDateString('es-ES')}</div>
-                          <div className="flex items-center gap-1"><Clock className="h-4 w-4" />{new Date(appointment.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} ({appointment.duration_minutes ?? 30} min)</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 self-start shrink-0 sm:self-auto">
-                      {appointment.type === 'telemedicine' && resolvedDoctorId && appointment.patient_id && (() => {
-                        const windowStatus = getCallWindowStatus(appointment)
-                        return (
-                          <StartCallButton
-                            doctorId={resolvedDoctorId}
-                            patientId={appointment.patient_id}
-                            patientName={patientNames[appointment.patient_id] || 'Paciente'}
-                            appointmentId={appointment.id}
-                            disabled={!windowStatus.isOpen}
-                            callWindowMessage={windowStatus.isOpen ? undefined : windowStatus.message}
-                            className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-am-sm transition hover:bg-green-700"
-                          />
-                        )
-                      })()}
-                      <button 
-                        type="button" 
-                        onClick={() => {
-                          setEditingAppointment(appointment);
-                          setIsCreateModalOpen(true);
-                        }}
-                        className="rounded-lg bg-white border border-am-surface-300 px-3 py-2 text-sm font-medium text-am-surface-700 shadow-am-sm transition hover:bg-am-surface-100"
-                      >
-                        Editar
-                      </button>
-                      {(appointment.status === 'scheduled' || appointment.status === 'confirmed') && (
-                        <button
-                          type="button"
-                          onClick={() => void handleMarkNoShow(appointment)}
-                          disabled={transitioningId === appointment.id}
-                          className="rounded-lg border border-stone-300 bg-stone-50 px-3 py-2 text-sm font-medium text-stone-700 shadow-am-sm transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {transitioningId === appointment.id ? 'Marcando...' : 'Marcar no show'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 scrollbar-thin">
+          {loading && appointments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 opacity-40">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-am-doctor-500 border-t-transparent" />
+              <p className="mt-4 text-xs font-bold uppercase tracking-widest text-am-surface-500">Sincronizando...</p>
             </div>
+          ) : error ? (
+            <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
+              <p className="text-sm font-semibold text-red-700">Error al cargar la agenda</p>
+              <button onClick={() => window.location.reload()} className="mt-3 text-xs font-bold text-red-600 underline">Reintentar</button>
+            </div>
+          ) : filteredAppointments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+              <div className="h-16 w-16 rounded-3xl bg-am-surface-50 flex items-center justify-center text-am-surface-200 mb-4 border border-am-surface-100">
+                <Calendar className="h-8 w-8" />
+              </div>
+              <h3 className="text-sm font-bold text-am-surface-800 uppercase tracking-tight">Agenda vacía</h3>
+              <p className="mt-2 text-xs text-am-surface-500 leading-relaxed">No hay citas registradas para este filtro.</p>
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              {filteredAppointments.map(a => {
+                const isSelected = selectedAppointmentId === a.id
+                const Icon = TYPE_ICONS[a.type ?? 'consultation'] ?? User
+                const start = new Date(a.start_time)
+                const timeStr = start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+                const dateStr = start.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+                const windowStatus = getCallWindowStatus(a)
+
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => setSelectedAppointmentId(a.id)}
+                    className={`group relative flex flex-col rounded-2xl border p-4 text-left transition-all ${
+                      isSelected
+                        ? 'border-am-doctor-200 bg-am-doctor-50 shadow-am-sm ring-1 ring-am-doctor-100'
+                        : 'border-am-surface-100 bg-white hover:border-am-surface-200 hover:bg-am-surface-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`rounded-lg p-1.5 ${isSelected ? 'bg-white text-am-doctor-600 shadow-sm' : 'bg-am-surface-50 text-am-surface-400 group-hover:bg-white'}`}>
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <span className="text-xs font-bold text-am-surface-400">
+                          {dateStr} • {timeStr}
+                        </span>
+                      </div>
+                      <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[a.status ?? 'scheduled']}`}>
+                        {STATUS_LABELS[a.status ?? 'scheduled']}
+                      </span>
+                    </div>
+
+                    <h4 className={`mt-3 truncate text-sm font-bold tracking-tight ${isSelected ? 'text-am-doctor-900' : 'text-am-surface-900'}`}>
+                      {getAppointmentPatientName(a)}
+                    </h4>
+
+                    {a.type === 'telemedicine' && windowStatus.isOpen && (
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Videollamada disponible</span>
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Details View */}
+      <section className="hidden flex-1 overflow-hidden sm:block">
+        {selectedAppointment ? (
+          <AppointmentDetailsPanel
+            appointment={selectedAppointment}
+            patientName={getAppointmentPatientName(selectedAppointment)}
+            onEdit={() => {
+              setEditingAppointment(selectedAppointment)
+              setIsCreateModalOpen(true)
+            }}
+            onStatusChange={async (newStatus) => {
+              await transitionAppointment(selectedAppointment.id, newStatus)
+            }}
+          />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center bg-am-surface-50/30 p-12 text-center">
+            <div className="h-20 w-20 rounded-[32px] bg-white flex items-center justify-center text-am-surface-100 mb-6 border border-am-surface-100 shadow-am-sm">
+              <Clipboard className="h-10 w-10 opacity-20" />
+            </div>
+            <h3 className="text-base font-bold text-am-surface-400 uppercase tracking-[0.2em]">Seleccioná una cita</h3>
+            <p className="mt-3 text-sm text-am-surface-400 max-w-xs leading-relaxed font-medium">Tocá un turno de la lista para gestionar el contexto clínico y la videollamada.</p>
           </div>
         )}
-      </div>
-      {(isCreateModalOpen || !!editingAppointment) && (
-          <CreateAppointmentModal 
+      </section>
+
+      {/* Create/Edit Modal */}
+      {isCreateModalOpen && (
+          <CreateAppointmentModal
               onClose={() => {
                 setIsCreateModalOpen(false);
                 setEditingAppointment(null);
               }}
               onSaved={handleSaveAppointment}
-              appointment={editingAppointment}
+              appointment={editingAppointment ?? undefined}
           />
       )}
     </div>
+  )
+}
+
+function Clipboard(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+    </svg>
   )
 }

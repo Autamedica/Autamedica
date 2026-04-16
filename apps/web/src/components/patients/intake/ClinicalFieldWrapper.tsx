@@ -68,7 +68,7 @@ export function ClinicalFieldWrapper({
     )
   }
 
-  // Keep the raw field visible while the value is still only a local UI draft.
+  // If no canonical data, local draft, or capture mode, keep the raw input visible.
   if (uxState.mode === 'capture' || !canonicalField || isLocalUiDraft) {
     return <>{children}</>
   }

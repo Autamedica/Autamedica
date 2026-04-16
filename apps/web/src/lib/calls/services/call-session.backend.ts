@@ -5,6 +5,7 @@ import type { Call, CallSessionBootstrap, CallSessionRole, CallSessionRuntime } 
 import { getIceServersConfig, hasTurnIceServer } from '@autamedica/telemedicine'
 import { handleTurnCredentials } from '@autamedica/telemedicine/server'
 import { callSessionRepo } from '@/lib/calls/repos/call-session.repo'
+import { getRuntimeEnvValue } from '@/lib/runtime-env'
 
 type Db = SupabaseClient<Database>
 
@@ -15,7 +16,7 @@ type BootstrapResolution =
   | { kind: 'forbidden' }
 
 const TERMINAL_CALL_STATUSES = new Set<Call['status']>(['declined', 'canceled', 'ended'])
-const DOCTOR_NO_ANSWER_TIMEOUT_MS = 60_000
+const DOCTOR_NO_ANSWER_TIMEOUT_MS = 300_000
 
 function matchesParticipant(participantId: string | null, callParticipantId: string, userId: string): boolean {
   return callParticipantId === userId || (participantId !== null && callParticipantId === participantId)
@@ -28,9 +29,9 @@ export function resolveRuntime(): CallSessionRuntime {
     return 'webrtc-p2p'
   }
 
-  const hasCloudflareCalls =
-    Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_ID) &&
-    Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_SECRET)
+  const appId = import.meta.env.CLOUDFLARE_CALLS_APP_ID || getRuntimeEnvValue('CLOUDFLARE_CALLS_APP_ID')
+  const appSecret = import.meta.env.CLOUDFLARE_CALLS_APP_SECRET || getRuntimeEnvValue('CLOUDFLARE_CALLS_APP_SECRET')
+  const hasCloudflareCalls = Boolean(appId) && Boolean(appSecret)
 
   if (hasCloudflareCalls) return 'cloudflare-calls'
 
@@ -43,7 +44,7 @@ export function resolveRuntime(): CallSessionRuntime {
   return 'webrtc-p2p'
 }
 
-function buildWaitingRoom(call: Call, role: CallSessionRole): CallSessionBootstrap['waitingRoom'] {
+function buildWaitingRoom(call: Call, role: CallSessionRole, peerName?: string): CallSessionBootstrap['waitingRoom'] {
   const enabled =
     role === 'doctor'
       ? call.status === 'requested' || call.status === 'ringing'
@@ -57,8 +58,8 @@ function buildWaitingRoom(call: Call, role: CallSessionRole): CallSessionBootstr
     enabled: true,
     message:
       role === 'doctor'
-        ? 'Esperando que el paciente se una a la videollamada.'
-        : 'El medico esta preparando la videollamada.',
+        ? `Esperando que ${peerName ?? 'el paciente'} se una a la videollamada.`
+        : `El medico esta preparando la videollamada.`,
     deadlineAt:
       role === 'doctor'
         ? new Date(new Date(call.created_at).getTime() + DOCTOR_NO_ANSWER_TIMEOUT_MS).toISOString()
@@ -86,6 +87,7 @@ async function buildBootstrap(
   viewerUserId: string,
   viewerRole: CallSessionRole,
   displayName?: string,
+  peer?: { id: string; displayName?: string },
 ): Promise<CallSessionBootstrap> {
   const runtime = resolveRuntime()
   const cloudflareCallsApiUrl =
@@ -112,6 +114,7 @@ async function buildBootstrap(
       role: viewerRole,
       ...(displayName ? { displayName } : {}),
     },
+    peer,
     permissions: {
       canJoin: !TERMINAL_CALL_STATUSES.has(call.status),
       canPublishAudio: true,
@@ -128,7 +131,7 @@ async function buildBootstrap(
       iceServers,
       cloudflareCallsApiUrl,
     },
-    waitingRoom: buildWaitingRoom(call, viewerRole),
+    waitingRoom: buildWaitingRoom(call, viewerRole, peer?.displayName),
   }
 }
 
@@ -161,7 +164,15 @@ export const callSessionBackendService = {
     ])
 
     if (matchesParticipant(doctorProfileId, call.doctor_id, viewerUserId)) {
-      const data = await buildBootstrap(call, viewerUserId, 'doctor', displayName)
+      // Viewer is DOCTOR, resolve patient name
+      const peerUserId = await callSessionRepo.resolvePatientUserId(supabase, call.patient_id)
+      const peerDisplayName = peerUserId ? await callSessionRepo.resolveDisplayNameByUserId(supabase, peerUserId) : undefined
+      
+      const data = await buildBootstrap(call, viewerUserId, 'doctor', displayName, {
+        id: peerUserId ?? call.patient_id,
+        displayName: peerDisplayName,
+      })
+      
       if (data.runtime === 'webrtc-p2p' && !hasTurnIceServer(data.transport.iceServers ?? [])) {
         logger.warn('[callSessionBackendService] p2p bootstrap without TURN', { roomId, callId: call.id, role: 'doctor' })
       }
@@ -169,7 +180,15 @@ export const callSessionBackendService = {
     }
 
     if (matchesParticipant(patientProfileId, call.patient_id, viewerUserId)) {
-      const data = await buildBootstrap(call, viewerUserId, 'patient', displayName)
+      // Viewer is PATIENT, resolve doctor name
+      const peerUserId = await callSessionRepo.resolveDoctorUserId(supabase, call.doctor_id)
+      const peerDisplayName = peerUserId ? await callSessionRepo.resolveDisplayNameByUserId(supabase, peerUserId) : undefined
+
+      const data = await buildBootstrap(call, viewerUserId, 'patient', displayName, {
+        id: peerUserId ?? call.doctor_id,
+        displayName: peerDisplayName,
+      })
+
       if (data.runtime === 'webrtc-p2p' && !hasTurnIceServer(data.transport.iceServers ?? [])) {
         logger.warn('[callSessionBackendService] p2p bootstrap without TURN', { roomId, callId: call.id, role: 'patient' })
       }
@@ -228,6 +247,10 @@ export const callSessionBackendService = {
     const turnServers = await fetchCloudflareTurnServers()
     const iceServers = turnServers.length > 0 ? turnServers : getIceServersConfig()
 
+    // Resolve doctor name for guest
+    const peerUserId = await callSessionRepo.resolveDoctorUserId(supabase, call.doctor_id)
+    const peerDisplayName = peerUserId ? await callSessionRepo.resolveDisplayNameByUserId(supabase, peerUserId) : undefined
+
     const data: CallSessionBootstrap = {
       callId: call.id,
       roomId: call.room_id,
@@ -237,6 +260,10 @@ export const callSessionBackendService = {
         id: `guest:${call.id}`,
         role: 'guest',
         displayName: guest.guestName,
+      },
+      peer: {
+        id: peerUserId ?? call.doctor_id,
+        displayName: peerDisplayName,
       },
       permissions: {
         canJoin: true,

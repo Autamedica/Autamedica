@@ -23,11 +23,14 @@ export function createDoctorAppointmentCommandAdapter(
       const startTime = input.start_time
       const type = input.type ?? 'consultation'
       const needsTelemedicineUrl = type === 'telemedicine' && !input.meeting_url
+      
+      // Manejar patientId vacío como null (para invitados externos)
+      const finalPatientId = patientId?.trim() || null
 
       const { data, error } = await supabase
         .from('appointments')
         .insert({
-          patient_id: patientId,
+          patient_id: finalPatientId,
           doctor_id: doctorId,
           start_time: startTime,
           end_time: input.end_time ?? computeEndTime(startTime, durationMinutes),

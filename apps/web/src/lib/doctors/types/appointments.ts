@@ -15,6 +15,7 @@ export interface DoctorAppointmentRecord extends Appointment {
 
 export interface DoctorAppointmentFormValues {
   patientId: string
+  guestName?: string
   date: string
   time: string
   durationMinutes: number
@@ -25,6 +26,7 @@ export interface DoctorAppointmentFormValues {
 
 export interface CreateDoctorAppointmentInput {
   patient_id: string
+  guest_name?: string
   start_time: string
   duration_minutes: number
   type: DoctorAppointmentType

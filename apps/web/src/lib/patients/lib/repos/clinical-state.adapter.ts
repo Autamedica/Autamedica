@@ -33,6 +33,7 @@ type ClinicalCaseStateRow = {
   missing_field_count: number
   conflicted_field_count: number
   locked_field_count: number
+  // Triage denormalized columns
   clinical_vertical: string
   case_intent: string
   triage_priority: string
@@ -128,6 +129,7 @@ export function createClinicalStateAdapter(supabase: Db): IClinicalStateReposito
         missing_field_count: state.planner?.missingFieldKeys?.length ?? 0,
         conflicted_field_count: state.planner?.conflictedFieldKeys?.length ?? 0,
         locked_field_count: state.planner?.lockedFieldKeys?.length ?? 0,
+        // Triage materialization
         clinical_vertical: state.workflow.vertical ?? 'psychiatry_general',
         case_intent: state.workflow.intent ?? 'evaluation',
         triage_priority: triage?.priority ?? 'routine',
@@ -144,6 +146,7 @@ export function createClinicalStateAdapter(supabase: Db): IClinicalStateReposito
         symptoms_snapshot_insomnia_impact: null,
       }
 
+      // Extract medication snapshot from triage if available (computed by triage engine)
       const triageAny = triage as Record<string, unknown> | undefined
       if (triageAny?.medicationSnapshot && typeof triageAny.medicationSnapshot === 'object') {
         const snap = triageAny.medicationSnapshot as Record<string, unknown>
