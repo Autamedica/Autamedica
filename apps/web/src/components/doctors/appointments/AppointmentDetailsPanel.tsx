@@ -13,6 +13,7 @@ import { StartCallButton } from '../calls/StartCallButton'
 interface AppointmentDetailsPanelProps {
   appointment: Appointment
   patientName: string
+  doctorId: string
   onEdit: () => void
   onStatusChange: (status: AppointmentStatus) => Promise<void>
 }
@@ -29,6 +30,7 @@ const STATUS_CONFIG: Record<string, { label: string; icon: LucideIcon; color: st
 export function AppointmentDetailsPanel({
   appointment,
   patientName,
+  doctorId,
   onEdit,
   onStatusChange
 }: AppointmentDetailsPanelProps) {
@@ -163,7 +165,10 @@ export function AppointmentDetailsPanel({
                   </div>
 
                   <StartCallButton 
-                    roomId={appointment.room_id} 
+                    doctorId={doctorId}
+                    patientId={appointment.patient_id ?? ''}
+                    appointmentId={appointment.id}
+                    patientName={patientName}
                     disabled={!windowStatus.isOpen} 
                   />
 
