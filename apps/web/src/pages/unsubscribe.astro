@@ -1,0 +1,46 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { createClient } from '@supabase/supabase-js';
+
+const id = Astro.url.searchParams.get('id');
+let success = false;
+
+if (id) {
+    const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+    const supabaseKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ newsletter_subscribed: false })
+        .eq('user_id', id);
+    
+    if (!error) success = true;
+}
+---
+
+<Layout title="Baja de AutaMedica Vital">
+    <main class="flex flex-col items-center justify-center min-h-screen bg-[#F8FAFC] p-6 text-center">
+        <div class="max-w-md w-full bg-white p-12 rounded-[32px] shadow-sm border border-slate-100">
+            {success ? (
+                <>
+                    <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-8 h-8 text-[#00A3FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl font-bold text-slate-900 mb-4 font-serif">Baja procesada con éxito</h1>
+                    <p class="text-slate-600 mb-8">Ha sido desuscrito de nuestras comunicaciones preventivas. Puede volver a suscribirse en cualquier momento desde su perfil.</p>
+                </>
+            ) : (
+                <>
+                    <h1 class="text-2xl font-bold text-slate-900 mb-4 font-serif">Vínculo no válido</h1>
+                    <p class="text-slate-600 mb-8">No hemos podido procesar su solicitud. Por favor, intente nuevamente desde el enlace de su correo electrónico.</p>
+                </>
+            )}
+            <a href="https://autamedica.com" class="inline-block px-8 py-3 bg-black text-white rounded-full font-semibold transition-transform hover:scale-105">
+                Volver a AutaMedica
+            </a>
+        </div>
+    </main>
+</Layout>

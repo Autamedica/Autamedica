@@ -5,14 +5,9 @@ import { badRequest, conflict, forbidden, internalError, jsonOk, notFound, unaut
 import { withAuth, isAuthed } from '@/lib/api-auth'
 import { callSessionBackendService } from '@/lib/calls/services/call-session.backend'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
-import { getRuntimeEnvValue } from '@/lib/runtime-env'
+import { resolveGuestSecret } from '@/lib/runtime-env'
 
-function resolveGuestSecret(runtimeEnv?: Record<string, unknown>): string | undefined {
-  return getRuntimeEnvValue('GUEST_TOKEN_SECRET')
-    ?? (runtimeEnv as Record<string, string> | undefined)?.GUEST_TOKEN_SECRET
-    ?? import.meta.env.GUEST_TOKEN_SECRET
-    ?? undefined
-}
+
 
 function extractBearerToken(request: Request): string | null {
   const header = request.headers.get('authorization')
