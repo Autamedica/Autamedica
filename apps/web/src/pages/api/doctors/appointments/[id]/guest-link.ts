@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
 import { logger, BASE_URL_BY_ROLE } from '@autamedica/shared'
 import { createAstroAdminClient } from '@/lib/supabase'
-import { badRequest, forbidden, internalError, jsonOk, notFound, serviceUnavailable } from '@/lib/api-helpers'
+import { badRequest, forbidden, internalError, jsonOk, notFound } from '@/lib/api-helpers'
 import { withAuthRole, isAuthed, DOCTOR_ROLES } from '@/lib/api-auth'
 import { createCallStartAdapter } from '@/lib/calls/repos/call-start.adapter'
 
