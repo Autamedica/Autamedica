@@ -46,12 +46,13 @@ function LoadingScreen() {
 export default function GuestCallPage({ roomId }: GuestCallPageProps) {
   const [ended, setEnded] = useState(false)
 
-  const token = useMemo(() => {
-    if (typeof window === 'undefined') return null
-    return new URLSearchParams(window.location.search).get('token')
+  const { token, inviteId } = useMemo(() => {
+    if (typeof window === 'undefined') return { token: null, inviteId: null }
+    const params = new URLSearchParams(window.location.search)
+    return { token: params.get('token'), inviteId: params.get('invite') }
   }, [])
 
-  const { session: callSession, loading, error } = useGuestCallSession(roomId, token)
+  const { session: callSession, loading, error } = useGuestCallSession(roomId, token, inviteId)
 
   const callProvider = useMemo(
     () => callSession

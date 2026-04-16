@@ -37,6 +37,12 @@ function normalizeError(message: string): string {
       return 'No se encontro la videollamada. El enlace puede ser invalido.'
     case 'guest_calls_unavailable':
       return 'Las llamadas de invitado no estan disponibles en este momento.'
+    case 'invite_already_used':
+      return 'Esta invitación ya fue utilizada.'
+    case 'invite_expired':
+      return 'Esta invitación ha expirado.'
+    case 'invite_not_found':
+      return 'La invitación no existe o es inválida.'
     default:
       return 'No se pudo conectar a la videollamada. Verifica que el enlace sea correcto.'
   }
@@ -55,14 +61,14 @@ export async function loadGuestCallBootstrap(roomId: string, token: string): Pro
   return parsed.data as unknown as CallSessionBootstrap
 }
 
-export function useGuestCallSession(roomId: string, token: string | null): UseGuestCallSessionResult {
+export function useGuestCallSession(roomId: string, initialToken: string | null, inviteId: string | null): UseGuestCallSessionResult {
   const [session, setSession] = useState<CallSessionBootstrap | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchBootstrap = useCallback(async () => {
-    if (!roomId || !token) {
-      setError('Enlace invalido o expirado.')
+    if (!roomId || (!initialToken && !inviteId)) {
+      setError('Enlace inválido o expirado.')
       return
     }
 
@@ -70,16 +76,38 @@ export function useGuestCallSession(roomId: string, token: string | null): UseGu
       setLoading(true)
       setError(null)
 
+      let token = initialToken
+
+      // Flujo de Invitación Opaca (Redeem)
+      if (!token && inviteId) {
+        const cachedKey = `am_guest_token_${inviteId}`
+        const cachedToken = sessionStorage.getItem(cachedKey)
+        
+        if (cachedToken) {
+          token = cachedToken
+        } else {
+          // Canjear el inviteId por el Token Real WebRTC
+          const resp = await fetchApi<{ token: string }>(`/api/calls/${encodeURIComponent(roomId)}/redeem-invite`, {
+            method: 'POST',
+            body: JSON.stringify({ invite: inviteId }),
+          })
+          token = resp.token
+          sessionStorage.setItem(cachedKey, token) // Guardamos para sobrevivir a refresh
+        }
+      }
+
+      if (!token) throw new Error('invalid_call_session')
+
       const data = await loadGuestCallBootstrap(roomId, token)
       setSession(data)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'unknown'
-      logger.error('[useGuestCallSession] bootstrap failed', err)
+      const message = err instanceof Error ? err.message : (err as any)?.payload?.error?.code || 'unknown'
+      logger.error('[useGuestCallSession] bootstrap/redeem failed', err)
       setError(normalizeError(message))
     } finally {
       setLoading(false)
     }
-  }, [roomId, token])
+  }, [roomId, initialToken, inviteId])
 
   useEffect(() => {
     void fetchBootstrap()

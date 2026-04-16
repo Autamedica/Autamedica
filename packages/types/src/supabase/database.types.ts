@@ -12,6 +12,1115 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
+  auth: {
+    Tables: {
+      audit_log_entries: {
+        Row: {
+          created_at: string | null
+          id: string
+          instance_id: string | null
+          ip_address: string
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          instance_id?: string | null
+          ip_address?: string
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          instance_id?: string | null
+          ip_address?: string
+          payload?: Json | null
+        }
+        Relationships: []
+      }
+      custom_oauth_providers: {
+        Row: {
+          acceptable_client_ids: string[]
+          attribute_mapping: Json
+          authorization_params: Json
+          authorization_url: string | null
+          cached_discovery: Json | null
+          client_id: string
+          client_secret: string
+          created_at: string
+          discovery_cached_at: string | null
+          discovery_url: string | null
+          email_optional: boolean
+          enabled: boolean
+          id: string
+          identifier: string
+          issuer: string | null
+          jwks_uri: string | null
+          name: string
+          pkce_enabled: boolean
+          provider_type: string
+          scopes: string[]
+          skip_nonce_check: boolean
+          token_url: string | null
+          updated_at: string
+          userinfo_url: string | null
+        }
+        Insert: {
+          acceptable_client_ids?: string[]
+          attribute_mapping?: Json
+          authorization_params?: Json
+          authorization_url?: string | null
+          cached_discovery?: Json | null
+          client_id: string
+          client_secret: string
+          created_at?: string
+          discovery_cached_at?: string | null
+          discovery_url?: string | null
+          email_optional?: boolean
+          enabled?: boolean
+          id?: string
+          identifier: string
+          issuer?: string | null
+          jwks_uri?: string | null
+          name: string
+          pkce_enabled?: boolean
+          provider_type: string
+          scopes?: string[]
+          skip_nonce_check?: boolean
+          token_url?: string | null
+          updated_at?: string
+          userinfo_url?: string | null
+        }
+        Update: {
+          acceptable_client_ids?: string[]
+          attribute_mapping?: Json
+          authorization_params?: Json
+          authorization_url?: string | null
+          cached_discovery?: Json | null
+          client_id?: string
+          client_secret?: string
+          created_at?: string
+          discovery_cached_at?: string | null
+          discovery_url?: string | null
+          email_optional?: boolean
+          enabled?: boolean
+          id?: string
+          identifier?: string
+          issuer?: string | null
+          jwks_uri?: string | null
+          name?: string
+          pkce_enabled?: boolean
+          provider_type?: string
+          scopes?: string[]
+          skip_nonce_check?: boolean
+          token_url?: string | null
+          updated_at?: string
+          userinfo_url?: string | null
+        }
+        Relationships: []
+      }
+      flow_state: {
+        Row: {
+          auth_code: string | null
+          auth_code_issued_at: string | null
+          authentication_method: string
+          code_challenge: string | null
+          code_challenge_method:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at: string | null
+          email_optional: boolean
+          id: string
+          invite_token: string | null
+          linking_target_id: string | null
+          oauth_client_state_id: string | null
+          provider_access_token: string | null
+          provider_refresh_token: string | null
+          provider_type: string
+          referrer: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          auth_code?: string | null
+          auth_code_issued_at?: string | null
+          authentication_method: string
+          code_challenge?: string | null
+          code_challenge_method?:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at?: string | null
+          email_optional?: boolean
+          id: string
+          invite_token?: string | null
+          linking_target_id?: string | null
+          oauth_client_state_id?: string | null
+          provider_access_token?: string | null
+          provider_refresh_token?: string | null
+          provider_type: string
+          referrer?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          auth_code?: string | null
+          auth_code_issued_at?: string | null
+          authentication_method?: string
+          code_challenge?: string | null
+          code_challenge_method?:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at?: string | null
+          email_optional?: boolean
+          id?: string
+          invite_token?: string | null
+          linking_target_id?: string | null
+          oauth_client_state_id?: string | null
+          provider_access_token?: string | null
+          provider_refresh_token?: string | null
+          provider_type?: string
+          referrer?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      identities: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          identity_data: Json
+          last_sign_in_at: string | null
+          provider: string
+          provider_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          identity_data: Json
+          last_sign_in_at?: string | null
+          provider: string
+          provider_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          identity_data?: Json
+          last_sign_in_at?: string | null
+          provider?: string
+          provider_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instances: {
+        Row: {
+          created_at: string | null
+          id: string
+          raw_base_config: string | null
+          updated_at: string | null
+          uuid: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          raw_base_config?: string | null
+          updated_at?: string | null
+          uuid?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          raw_base_config?: string | null
+          updated_at?: string | null
+          uuid?: string | null
+        }
+        Relationships: []
+      }
+      mfa_amr_claims: {
+        Row: {
+          authentication_method: string
+          created_at: string
+          id: string
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          authentication_method: string
+          created_at: string
+          id: string
+          session_id: string
+          updated_at: string
+        }
+        Update: {
+          authentication_method?: string
+          created_at?: string
+          id?: string
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_amr_claims_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mfa_challenges: {
+        Row: {
+          created_at: string
+          factor_id: string
+          id: string
+          ip_address: unknown
+          otp_code: string | null
+          verified_at: string | null
+          web_authn_session_data: Json | null
+        }
+        Insert: {
+          created_at: string
+          factor_id: string
+          id: string
+          ip_address: unknown
+          otp_code?: string | null
+          verified_at?: string | null
+          web_authn_session_data?: Json | null
+        }
+        Update: {
+          created_at?: string
+          factor_id?: string
+          id?: string
+          ip_address?: unknown
+          otp_code?: string | null
+          verified_at?: string | null
+          web_authn_session_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_challenges_auth_factor_id_fkey"
+            columns: ["factor_id"]
+            isOneToOne: false
+            referencedRelation: "mfa_factors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mfa_factors: {
+        Row: {
+          created_at: string
+          factor_type: Database["auth"]["Enums"]["factor_type"]
+          friendly_name: string | null
+          id: string
+          last_challenged_at: string | null
+          last_webauthn_challenge_data: Json | null
+          phone: string | null
+          secret: string | null
+          status: Database["auth"]["Enums"]["factor_status"]
+          updated_at: string
+          user_id: string
+          web_authn_aaguid: string | null
+          web_authn_credential: Json | null
+        }
+        Insert: {
+          created_at: string
+          factor_type: Database["auth"]["Enums"]["factor_type"]
+          friendly_name?: string | null
+          id: string
+          last_challenged_at?: string | null
+          last_webauthn_challenge_data?: Json | null
+          phone?: string | null
+          secret?: string | null
+          status: Database["auth"]["Enums"]["factor_status"]
+          updated_at: string
+          user_id: string
+          web_authn_aaguid?: string | null
+          web_authn_credential?: Json | null
+        }
+        Update: {
+          created_at?: string
+          factor_type?: Database["auth"]["Enums"]["factor_type"]
+          friendly_name?: string | null
+          id?: string
+          last_challenged_at?: string | null
+          last_webauthn_challenge_data?: Json | null
+          phone?: string | null
+          secret?: string | null
+          status?: Database["auth"]["Enums"]["factor_status"]
+          updated_at?: string
+          user_id?: string
+          web_authn_aaguid?: string | null
+          web_authn_credential?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_factors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_authorizations: {
+        Row: {
+          approved_at: string | null
+          authorization_code: string | null
+          authorization_id: string
+          client_id: string
+          code_challenge: string | null
+          code_challenge_method:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at: string
+          expires_at: string
+          id: string
+          nonce: string | null
+          redirect_uri: string
+          resource: string | null
+          response_type: Database["auth"]["Enums"]["oauth_response_type"]
+          scope: string
+          state: string | null
+          status: Database["auth"]["Enums"]["oauth_authorization_status"]
+          user_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          authorization_code?: string | null
+          authorization_id: string
+          client_id: string
+          code_challenge?: string | null
+          code_challenge_method?:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at?: string
+          expires_at?: string
+          id: string
+          nonce?: string | null
+          redirect_uri: string
+          resource?: string | null
+          response_type?: Database["auth"]["Enums"]["oauth_response_type"]
+          scope: string
+          state?: string | null
+          status?: Database["auth"]["Enums"]["oauth_authorization_status"]
+          user_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          authorization_code?: string | null
+          authorization_id?: string
+          client_id?: string
+          code_challenge?: string | null
+          code_challenge_method?:
+            | Database["auth"]["Enums"]["code_challenge_method"]
+            | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          nonce?: string | null
+          redirect_uri?: string
+          resource?: string | null
+          response_type?: Database["auth"]["Enums"]["oauth_response_type"]
+          scope?: string
+          state?: string | null
+          status?: Database["auth"]["Enums"]["oauth_authorization_status"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_authorizations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_authorizations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_client_states: {
+        Row: {
+          code_verifier: string | null
+          created_at: string
+          id: string
+          provider_type: string
+        }
+        Insert: {
+          code_verifier?: string | null
+          created_at: string
+          id: string
+          provider_type: string
+        }
+        Update: {
+          code_verifier?: string | null
+          created_at?: string
+          id?: string
+          provider_type?: string
+        }
+        Relationships: []
+      }
+      oauth_clients: {
+        Row: {
+          client_name: string | null
+          client_secret_hash: string | null
+          client_type: Database["auth"]["Enums"]["oauth_client_type"]
+          client_uri: string | null
+          created_at: string
+          deleted_at: string | null
+          grant_types: string
+          id: string
+          logo_uri: string | null
+          redirect_uris: string
+          registration_type: Database["auth"]["Enums"]["oauth_registration_type"]
+          token_endpoint_auth_method: string
+          updated_at: string
+        }
+        Insert: {
+          client_name?: string | null
+          client_secret_hash?: string | null
+          client_type?: Database["auth"]["Enums"]["oauth_client_type"]
+          client_uri?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          grant_types: string
+          id: string
+          logo_uri?: string | null
+          redirect_uris: string
+          registration_type: Database["auth"]["Enums"]["oauth_registration_type"]
+          token_endpoint_auth_method: string
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string | null
+          client_secret_hash?: string | null
+          client_type?: Database["auth"]["Enums"]["oauth_client_type"]
+          client_uri?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          grant_types?: string
+          id?: string
+          logo_uri?: string | null
+          redirect_uris?: string
+          registration_type?: Database["auth"]["Enums"]["oauth_registration_type"]
+          token_endpoint_auth_method?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      oauth_consents: {
+        Row: {
+          client_id: string
+          granted_at: string
+          id: string
+          revoked_at: string | null
+          scopes: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          granted_at?: string
+          id: string
+          revoked_at?: string | null
+          scopes: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          granted_at?: string
+          id?: string
+          revoked_at?: string | null
+          scopes?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_consents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oauth_consents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      one_time_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          relates_to: string
+          token_hash: string
+          token_type: Database["auth"]["Enums"]["one_time_token_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          relates_to: string
+          token_hash: string
+          token_type: Database["auth"]["Enums"]["one_time_token_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          relates_to?: string
+          token_hash?: string
+          token_type?: Database["auth"]["Enums"]["one_time_token_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "one_time_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refresh_tokens: {
+        Row: {
+          created_at: string | null
+          id: number
+          instance_id: string | null
+          parent: string | null
+          revoked: boolean | null
+          session_id: string | null
+          token: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          instance_id?: string | null
+          parent?: string | null
+          revoked?: boolean | null
+          session_id?: string | null
+          token?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          instance_id?: string | null
+          parent?: string | null
+          revoked?: boolean | null
+          session_id?: string | null
+          token?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refresh_tokens_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saml_providers: {
+        Row: {
+          attribute_mapping: Json | null
+          created_at: string | null
+          entity_id: string
+          id: string
+          metadata_url: string | null
+          metadata_xml: string
+          name_id_format: string | null
+          sso_provider_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          attribute_mapping?: Json | null
+          created_at?: string | null
+          entity_id: string
+          id: string
+          metadata_url?: string | null
+          metadata_xml: string
+          name_id_format?: string | null
+          sso_provider_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          attribute_mapping?: Json | null
+          created_at?: string | null
+          entity_id?: string
+          id?: string
+          metadata_url?: string | null
+          metadata_xml?: string
+          name_id_format?: string | null
+          sso_provider_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saml_providers_sso_provider_id_fkey"
+            columns: ["sso_provider_id"]
+            isOneToOne: false
+            referencedRelation: "sso_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saml_relay_states: {
+        Row: {
+          created_at: string | null
+          flow_state_id: string | null
+          for_email: string | null
+          id: string
+          redirect_to: string | null
+          request_id: string
+          sso_provider_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          flow_state_id?: string | null
+          for_email?: string | null
+          id: string
+          redirect_to?: string | null
+          request_id: string
+          sso_provider_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          flow_state_id?: string | null
+          for_email?: string | null
+          id?: string
+          redirect_to?: string | null
+          request_id?: string
+          sso_provider_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saml_relay_states_flow_state_id_fkey"
+            columns: ["flow_state_id"]
+            isOneToOne: false
+            referencedRelation: "flow_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saml_relay_states_sso_provider_id_fkey"
+            columns: ["sso_provider_id"]
+            isOneToOne: false
+            referencedRelation: "sso_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schema_migrations: {
+        Row: {
+          version: string
+        }
+        Insert: {
+          version: string
+        }
+        Update: {
+          version?: string
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          aal: Database["auth"]["Enums"]["aal_level"] | null
+          created_at: string | null
+          factor_id: string | null
+          id: string
+          ip: unknown
+          not_after: string | null
+          oauth_client_id: string | null
+          refresh_token_counter: number | null
+          refresh_token_hmac_key: string | null
+          refreshed_at: string | null
+          scopes: string | null
+          tag: string | null
+          updated_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          aal?: Database["auth"]["Enums"]["aal_level"] | null
+          created_at?: string | null
+          factor_id?: string | null
+          id: string
+          ip?: unknown
+          not_after?: string | null
+          oauth_client_id?: string | null
+          refresh_token_counter?: number | null
+          refresh_token_hmac_key?: string | null
+          refreshed_at?: string | null
+          scopes?: string | null
+          tag?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          aal?: Database["auth"]["Enums"]["aal_level"] | null
+          created_at?: string | null
+          factor_id?: string | null
+          id?: string
+          ip?: unknown
+          not_after?: string | null
+          oauth_client_id?: string | null
+          refresh_token_counter?: number | null
+          refresh_token_hmac_key?: string | null
+          refreshed_at?: string | null
+          scopes?: string | null
+          tag?: string | null
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_oauth_client_id_fkey"
+            columns: ["oauth_client_id"]
+            isOneToOne: false
+            referencedRelation: "oauth_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sso_domains: {
+        Row: {
+          created_at: string | null
+          domain: string
+          id: string
+          sso_provider_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          domain: string
+          id: string
+          sso_provider_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          domain?: string
+          id?: string
+          sso_provider_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_domains_sso_provider_id_fkey"
+            columns: ["sso_provider_id"]
+            isOneToOne: false
+            referencedRelation: "sso_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sso_providers: {
+        Row: {
+          created_at: string | null
+          disabled: boolean | null
+          id: string
+          resource_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          disabled?: boolean | null
+          id: string
+          resource_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          disabled?: boolean | null
+          id?: string
+          resource_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          aud: string | null
+          banned_until: string | null
+          confirmation_sent_at: string | null
+          confirmation_token: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string | null
+          email_change: string | null
+          email_change_confirm_status: number | null
+          email_change_sent_at: string | null
+          email_change_token_current: string | null
+          email_change_token_new: string | null
+          email_confirmed_at: string | null
+          encrypted_password: string | null
+          id: string
+          instance_id: string | null
+          invited_at: string | null
+          is_anonymous: boolean
+          is_sso_user: boolean
+          is_super_admin: boolean | null
+          last_sign_in_at: string | null
+          phone: string | null
+          phone_change: string | null
+          phone_change_sent_at: string | null
+          phone_change_token: string | null
+          phone_confirmed_at: string | null
+          raw_app_meta_data: Json | null
+          raw_user_meta_data: Json | null
+          reauthentication_sent_at: string | null
+          reauthentication_token: string | null
+          recovery_sent_at: string | null
+          recovery_token: string | null
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aud?: string | null
+          banned_until?: string | null
+          confirmation_sent_at?: string | null
+          confirmation_token?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          email_change?: string | null
+          email_change_confirm_status?: number | null
+          email_change_sent_at?: string | null
+          email_change_token_current?: string | null
+          email_change_token_new?: string | null
+          email_confirmed_at?: string | null
+          encrypted_password?: string | null
+          id: string
+          instance_id?: string | null
+          invited_at?: string | null
+          is_anonymous?: boolean
+          is_sso_user?: boolean
+          is_super_admin?: boolean | null
+          last_sign_in_at?: string | null
+          phone?: string | null
+          phone_change?: string | null
+          phone_change_sent_at?: string | null
+          phone_change_token?: string | null
+          phone_confirmed_at?: string | null
+          raw_app_meta_data?: Json | null
+          raw_user_meta_data?: Json | null
+          reauthentication_sent_at?: string | null
+          reauthentication_token?: string | null
+          recovery_sent_at?: string | null
+          recovery_token?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aud?: string | null
+          banned_until?: string | null
+          confirmation_sent_at?: string | null
+          confirmation_token?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          email_change?: string | null
+          email_change_confirm_status?: number | null
+          email_change_sent_at?: string | null
+          email_change_token_current?: string | null
+          email_change_token_new?: string | null
+          email_confirmed_at?: string | null
+          encrypted_password?: string | null
+          id?: string
+          instance_id?: string | null
+          invited_at?: string | null
+          is_anonymous?: boolean
+          is_sso_user?: boolean
+          is_super_admin?: boolean | null
+          last_sign_in_at?: string | null
+          phone?: string | null
+          phone_change?: string | null
+          phone_change_sent_at?: string | null
+          phone_change_token?: string | null
+          phone_confirmed_at?: string | null
+          raw_app_meta_data?: Json | null
+          raw_user_meta_data?: Json | null
+          reauthentication_sent_at?: string | null
+          reauthentication_token?: string | null
+          recovery_sent_at?: string | null
+          recovery_token?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      webauthn_challenges: {
+        Row: {
+          challenge_type: string
+          created_at: string
+          expires_at: string
+          id: string
+          session_data: Json
+          user_id: string | null
+        }
+        Insert: {
+          challenge_type: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          session_data: Json
+          user_id?: string | null
+        }
+        Update: {
+          challenge_type?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          session_data?: Json
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webauthn_challenges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webauthn_credentials: {
+        Row: {
+          aaguid: string | null
+          attestation_type: string
+          backed_up: boolean
+          backup_eligible: boolean
+          created_at: string
+          credential_id: string
+          friendly_name: string
+          id: string
+          last_used_at: string | null
+          public_key: string
+          sign_count: number
+          transports: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aaguid?: string | null
+          attestation_type?: string
+          backed_up?: boolean
+          backup_eligible?: boolean
+          created_at?: string
+          credential_id: string
+          friendly_name?: string
+          id?: string
+          last_used_at?: string | null
+          public_key: string
+          sign_count?: number
+          transports?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aaguid?: string | null
+          attestation_type?: string
+          backed_up?: boolean
+          backup_eligible?: boolean
+          created_at?: string
+          credential_id?: string
+          friendly_name?: string
+          id?: string
+          last_used_at?: string | null
+          public_key?: string
+          sign_count?: number
+          transports?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webauthn_credentials_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      email: { Args: never; Returns: string }
+      jwt: { Args: never; Returns: Json }
+      role: { Args: never; Returns: string }
+      uid: { Args: never; Returns: string }
+    }
+    Enums: {
+      aal_level: "aal1" | "aal2" | "aal3"
+      code_challenge_method: "s256" | "plain"
+      factor_status: "unverified" | "verified"
+      factor_type: "totp" | "webauthn" | "phone"
+      oauth_authorization_status: "pending" | "approved" | "denied" | "expired"
+      oauth_client_type: "public" | "confidential"
+      oauth_registration_type: "dynamic" | "manual"
+      oauth_response_type: "code"
+      one_time_token_type:
+        | "confirmation_token"
+        | "reauthentication_token"
+        | "recovery_token"
+        | "email_change_token_new"
+        | "email_change_token_current"
+        | "phone_change_token"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       ai_user_faq: {
@@ -280,7 +1389,7 @@ export type Database = {
           metadata: Json | null
           new_status: string | null
           old_status: string | null
-          patient_id: string
+          patient_id: string | null
         }
         Insert: {
           action: string
@@ -291,7 +1400,7 @@ export type Database = {
           metadata?: Json | null
           new_status?: string | null
           old_status?: string | null
-          patient_id: string
+          patient_id?: string | null
         }
         Update: {
           action?: string
@@ -302,7 +1411,7 @@ export type Database = {
           metadata?: Json | null
           new_status?: string | null
           old_status?: string | null
-          patient_id?: string
+          patient_id?: string | null
         }
         Relationships: [
           {
@@ -493,44 +1602,6 @@ export type Database = {
           },
         ]
       }
-      doctor_scheduling_config: {
-        Row: {
-          created_at: string
-          doctor_id: string
-          noshow_grace_minutes: number
-          noshow_overbooking_threshold: number
-          reminder_hours_before: number[]
-          updated_at: string
-          waitlist_offer_expiry_hours: number
-        }
-        Insert: {
-          created_at?: string
-          doctor_id: string
-          noshow_grace_minutes?: number
-          noshow_overbooking_threshold?: number
-          reminder_hours_before?: number[]
-          updated_at?: string
-          waitlist_offer_expiry_hours?: number
-        }
-        Update: {
-          created_at?: string
-          doctor_id?: string
-          noshow_grace_minutes?: number
-          noshow_overbooking_threshold?: number
-          reminder_hours_before?: number[]
-          updated_at?: string
-          waitlist_offer_expiry_hours?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "doctor_scheduling_config_doctor_id_fkey"
-            columns: ["doctor_id"]
-            isOneToOne: true
-            referencedRelation: "doctors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       appointments: {
         Row: {
           created_at: string | null
@@ -708,6 +1779,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "call_events_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      call_guest_invites: {
+        Row: {
+          call_id: string
+          created_at: string
+          expires_at: string
+          guest_name: string
+          id: string
+          room_id: string
+          used_at: string | null
+        }
+        Insert: {
+          call_id: string
+          created_at?: string
+          expires_at: string
+          guest_name: string
+          id?: string
+          room_id: string
+          used_at?: string | null
+        }
+        Update: {
+          call_id?: string
+          created_at?: string
+          expires_at?: string
+          guest_name?: string
+          id?: string
+          room_id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_guest_invites_call_id_fkey"
             columns: ["call_id"]
             isOneToOne: false
             referencedRelation: "calls"
@@ -1810,6 +2919,313 @@ export type Database = {
           },
         ]
       }
+      doctor_expense_records: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          deductible: boolean
+          description: string
+          doctor_id: string
+          fiscal_profile_id: string
+          id: string
+          iva_amount: number
+          period_month: number
+          period_year: number
+          receipt_url: string | null
+          supplier_cuit: string | null
+          supplier_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          deductible?: boolean
+          description: string
+          doctor_id: string
+          fiscal_profile_id: string
+          id?: string
+          iva_amount?: number
+          period_month: number
+          period_year: number
+          receipt_url?: string | null
+          supplier_cuit?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          deductible?: boolean
+          description?: string
+          doctor_id?: string
+          fiscal_profile_id?: string
+          id?: string
+          iva_amount?: number
+          period_month?: number
+          period_year?: number
+          receipt_url?: string | null
+          supplier_cuit?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_expense_records_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_expense_records_fiscal_profile_id_fkey"
+            columns: ["fiscal_profile_id"]
+            isOneToOne: false
+            referencedRelation: "doctor_fiscal_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_fiscal_profiles: {
+        Row: {
+          active: boolean
+          created_at: string
+          cuit: string
+          doctor_id: string
+          fiscal_start_date: string | null
+          id: string
+          iibb_convenio_multilateral: boolean
+          iibb_jurisdiction: string | null
+          iibb_number: string | null
+          invoice_type: Database["public"]["Enums"]["invoice_type"]
+          monotributo_category:
+            | Database["public"]["Enums"]["monotributo_category"]
+            | null
+          notes: string | null
+          tax_regime: Database["public"]["Enums"]["tax_regime"]
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          cuit: string
+          doctor_id: string
+          fiscal_start_date?: string | null
+          id?: string
+          iibb_convenio_multilateral?: boolean
+          iibb_jurisdiction?: string | null
+          iibb_number?: string | null
+          invoice_type?: Database["public"]["Enums"]["invoice_type"]
+          monotributo_category?:
+            | Database["public"]["Enums"]["monotributo_category"]
+            | null
+          notes?: string | null
+          tax_regime?: Database["public"]["Enums"]["tax_regime"]
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          cuit?: string
+          doctor_id?: string
+          fiscal_start_date?: string | null
+          id?: string
+          iibb_convenio_multilateral?: boolean
+          iibb_jurisdiction?: string | null
+          iibb_number?: string | null
+          invoice_type?: Database["public"]["Enums"]["invoice_type"]
+          monotributo_category?:
+            | Database["public"]["Enums"]["monotributo_category"]
+            | null
+          notes?: string | null
+          tax_regime?: Database["public"]["Enums"]["tax_regime"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_fiscal_profiles_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: true
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_fiscal_summaries: {
+        Row: {
+          accumulated_annual_income: number
+          created_at: string
+          doctor_id: string
+          fiscal_profile_id: string
+          id: string
+          iva_balance: number
+          monotributo_category_suggested:
+            | Database["public"]["Enums"]["monotributo_category"]
+            | null
+          net_result: number
+          period_month: number
+          period_year: number
+          recategorization_needed: boolean
+          total_expenses: number
+          total_income: number
+          total_iva_credito: number
+          total_iva_debito: number
+          total_retenciones: number
+          updated_at: string
+        }
+        Insert: {
+          accumulated_annual_income?: number
+          created_at?: string
+          doctor_id: string
+          fiscal_profile_id: string
+          id?: string
+          iva_balance?: number
+          monotributo_category_suggested?:
+            | Database["public"]["Enums"]["monotributo_category"]
+            | null
+          net_result?: number
+          period_month: number
+          period_year: number
+          recategorization_needed?: boolean
+          total_expenses?: number
+          total_income?: number
+          total_iva_credito?: number
+          total_iva_debito?: number
+          total_retenciones?: number
+          updated_at?: string
+        }
+        Update: {
+          accumulated_annual_income?: number
+          created_at?: string
+          doctor_id?: string
+          fiscal_profile_id?: string
+          id?: string
+          iva_balance?: number
+          monotributo_category_suggested?:
+            | Database["public"]["Enums"]["monotributo_category"]
+            | null
+          net_result?: number
+          period_month?: number
+          period_year?: number
+          recategorization_needed?: boolean
+          total_expenses?: number
+          total_income?: number
+          total_iva_credito?: number
+          total_iva_debito?: number
+          total_retenciones?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_fiscal_summaries_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_fiscal_summaries_fiscal_profile_id_fkey"
+            columns: ["fiscal_profile_id"]
+            isOneToOne: false
+            referencedRelation: "doctor_fiscal_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_income_records: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          description: string | null
+          doctor_id: string
+          fiscal_profile_id: string
+          gross_amount: number
+          id: string
+          invoice_date: string | null
+          invoice_number: string | null
+          invoice_type: Database["public"]["Enums"]["invoice_type"] | null
+          net_amount: number
+          period_month: number
+          period_year: number
+          prescription_id: string | null
+          source: string
+          source_name: string | null
+          tax_withheld: number
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          description?: string | null
+          doctor_id: string
+          fiscal_profile_id: string
+          gross_amount: number
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          invoice_type?: Database["public"]["Enums"]["invoice_type"] | null
+          net_amount: number
+          period_month: number
+          period_year: number
+          prescription_id?: string | null
+          source: string
+          source_name?: string | null
+          tax_withheld?: number
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          description?: string | null
+          doctor_id?: string
+          fiscal_profile_id?: string
+          gross_amount?: number
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          invoice_type?: Database["public"]["Enums"]["invoice_type"] | null
+          net_amount?: number
+          period_month?: number
+          period_year?: number
+          prescription_id?: string | null
+          source?: string
+          source_name?: string | null
+          tax_withheld?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_income_records_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_income_records_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_income_records_fiscal_profile_id_fkey"
+            columns: ["fiscal_profile_id"]
+            isOneToOne: false
+            referencedRelation: "doctor_fiscal_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_income_records_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_patient: {
         Row: {
           assigned_at: string | null
@@ -1993,6 +3409,176 @@ export type Database = {
           },
         ]
       }
+      doctor_scheduling_config: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          noshow_grace_minutes: number
+          noshow_overbooking_threshold: number
+          reminder_hours_before: number[]
+          updated_at: string
+          waitlist_offer_expiry_hours: number
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          noshow_grace_minutes?: number
+          noshow_overbooking_threshold?: number
+          reminder_hours_before?: number[]
+          updated_at?: string
+          waitlist_offer_expiry_hours?: number
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          noshow_grace_minutes?: number
+          noshow_overbooking_threshold?: number
+          reminder_hours_before?: number[]
+          updated_at?: string
+          waitlist_offer_expiry_hours?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_scheduling_config_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: true
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_subscriptions: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          doctor_id: string
+          id: string
+          mercadopago_payer_id: string | null
+          mercadopago_subscription_id: string | null
+          payment_type: string
+          plan_id: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          doctor_id: string
+          id?: string
+          mercadopago_payer_id?: string | null
+          mercadopago_subscription_id?: string | null
+          payment_type?: string
+          plan_id: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          doctor_id?: string
+          id?: string
+          mercadopago_payer_id?: string | null
+          mercadopago_subscription_id?: string | null
+          payment_type?: string
+          plan_id?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_subscriptions_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_tax_obligations: {
+        Row: {
+          amount: number
+          created_at: string
+          doctor_id: string
+          due_date: string
+          fiscal_profile_id: string
+          id: string
+          notes: string | null
+          obligation_type: string
+          paid: boolean
+          paid_amount: number | null
+          paid_date: string | null
+          payment_reference: string | null
+          period_month: number
+          period_year: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          doctor_id: string
+          due_date: string
+          fiscal_profile_id: string
+          id?: string
+          notes?: string | null
+          obligation_type: string
+          paid?: boolean
+          paid_amount?: number | null
+          paid_date?: string | null
+          payment_reference?: string | null
+          period_month: number
+          period_year: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          doctor_id?: string
+          due_date?: string
+          fiscal_profile_id?: string
+          id?: string
+          notes?: string | null
+          obligation_type?: string
+          paid?: boolean
+          paid_amount?: number | null
+          paid_date?: string | null
+          payment_reference?: string | null
+          period_month?: number
+          period_year?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_tax_obligations_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_tax_obligations_fiscal_profile_id_fkey"
+            columns: ["fiscal_profile_id"]
+            isOneToOne: false
+            referencedRelation: "doctor_fiscal_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctors: {
         Row: {
           accepted_insurance: Json | null
@@ -2004,6 +3590,7 @@ export type Database = {
           education: Json | null
           enrollment_entity: string | null
           enrollment_jurisdiction: string | null
+          free_videoconsultas_remaining: number
           id: string
           languages: Json | null
           license_number: string
@@ -2027,6 +3614,7 @@ export type Database = {
           education?: Json | null
           enrollment_entity?: string | null
           enrollment_jurisdiction?: string | null
+          free_videoconsultas_remaining?: number
           id?: string
           languages?: Json | null
           license_number: string
@@ -2050,6 +3638,7 @@ export type Database = {
           education?: Json | null
           enrollment_entity?: string | null
           enrollment_jurisdiction?: string | null
+          free_videoconsultas_remaining?: number
           id?: string
           languages?: Json | null
           license_number?: string
@@ -2155,6 +3744,7 @@ export type Database = {
           offers_surgical_method: boolean
           operating_hours: Json | null
           phone: string
+          registration_number: string | null
           requires_appointment: boolean
           type: string
           updated_at: string
@@ -2177,6 +3767,7 @@ export type Database = {
           offers_surgical_method?: boolean
           operating_hours?: Json | null
           phone: string
+          registration_number?: string | null
           requires_appointment?: boolean
           type: string
           updated_at?: string
@@ -2199,6 +3790,7 @@ export type Database = {
           offers_surgical_method?: boolean
           operating_hours?: Json | null
           phone?: string
+          registration_number?: string | null
           requires_appointment?: boolean
           type?: string
           updated_at?: string
@@ -3043,6 +4635,8 @@ export type Database = {
           medical_history: Json | null
           medications: Json | null
           organization_id: string | null
+          risk_level: string | null
+          risk_reason: string | null
           timezone: string
           updated_at: string | null
           user_id: string | null
@@ -3066,6 +4660,8 @@ export type Database = {
           medical_history?: Json | null
           medications?: Json | null
           organization_id?: string | null
+          risk_level?: string | null
+          risk_reason?: string | null
           timezone?: string
           updated_at?: string | null
           user_id?: string | null
@@ -3089,6 +4685,8 @@ export type Database = {
           medical_history?: Json | null
           medications?: Json | null
           organization_id?: string | null
+          risk_level?: string | null
+          risk_reason?: string | null
           timezone?: string
           updated_at?: string | null
           user_id?: string | null
@@ -3115,6 +4713,60 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "user_identifiers"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      payment_transactions: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          doctor_id: string
+          id: string
+          mercadopago_payment_id: string | null
+          metadata: Json | null
+          payment_method: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          subscription_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          doctor_id: string
+          id?: string
+          mercadopago_payment_id?: string | null
+          metadata?: Json | null
+          payment_method?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          subscription_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          doctor_id?: string
+          id?: string
+          mercadopago_payment_id?: string | null
+          metadata?: Json | null
+          payment_method?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "doctor_subscriptions"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3400,13 +5052,16 @@ export type Database = {
         Row: {
           appointment_id: string | null
           clinical_data: Json
+          controlled_substance_list: string | null
           created_at: string
           cuir: string | null
           doctor_id: string
           id: string
+          is_controlled_substance: boolean | null
           organization_id: string | null
           patient_id: string
           qr_code_content: string | null
+          rcta_registration_id: string | null
           signed_pdf_url: string | null
           status: string
           updated_at: string
@@ -3416,13 +5071,16 @@ export type Database = {
         Insert: {
           appointment_id?: string | null
           clinical_data: Json
+          controlled_substance_list?: string | null
           created_at?: string
           cuir?: string | null
           doctor_id: string
           id?: string
+          is_controlled_substance?: boolean | null
           organization_id?: string | null
           patient_id: string
           qr_code_content?: string | null
+          rcta_registration_id?: string | null
           signed_pdf_url?: string | null
           status?: string
           updated_at?: string
@@ -3432,13 +5090,16 @@ export type Database = {
         Update: {
           appointment_id?: string | null
           clinical_data?: Json
+          controlled_substance_list?: string | null
           created_at?: string
           cuir?: string | null
           doctor_id?: string
           id?: string
+          is_controlled_substance?: boolean | null
           organization_id?: string | null
           patient_id?: string
           qr_code_content?: string | null
+          rcta_registration_id?: string | null
           signed_pdf_url?: string | null
           status?: string
           updated_at?: string
@@ -3542,6 +5203,7 @@ export type Database = {
           fcm_token: string | null
           first_name: string | null
           last_name: string | null
+          newsletter_subscribed: boolean | null
           numeric_id: number
           onboarding_completed_at: string | null
           onboarding_started_at: string | null
@@ -3561,6 +5223,7 @@ export type Database = {
           fcm_token?: string | null
           first_name?: string | null
           last_name?: string | null
+          newsletter_subscribed?: boolean | null
           numeric_id?: number
           onboarding_completed_at?: string | null
           onboarding_started_at?: string | null
@@ -3580,6 +5243,7 @@ export type Database = {
           fcm_token?: string | null
           first_name?: string | null
           last_name?: string | null
+          newsletter_subscribed?: boolean | null
           numeric_id?: number
           onboarding_completed_at?: string | null
           onboarding_started_at?: string | null
@@ -3836,6 +5500,42 @@ export type Database = {
           proj4text?: string | null
           srid?: number
           srtext?: string | null
+        }
+        Relationships: []
+      }
+      subscription_plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          currency: string
+          features: Json
+          id: string
+          interval: string
+          name: string
+          price_cents: number
+          slug: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          currency?: string
+          features?: Json
+          id?: string
+          interval?: string
+          name: string
+          price_cents: number
+          slug: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          currency?: string
+          features?: Json
+          id?: string
+          interval?: string
+          name?: string
+          price_cents?: number
+          slug?: string
         }
         Relationships: []
       }
@@ -4706,6 +6406,7 @@ export type Database = {
       is_platform_or_org_admin: { Args: { p_uid?: string }; Returns: boolean }
       is_system_admin: { Args: never; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      mark_overdue_appointments_no_show: { Args: never; Returns: number }
       mark_overdue_screenings: { Args: never; Returns: number }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -4782,6 +6483,10 @@ export type Database = {
         Args: { p_authorization_id: string }
         Returns: boolean
       }
+      schedule_appointment_reminders: {
+        Args: { reminder_channel?: string; target_appointment_id: string }
+        Returns: number
+      }
       select_primary_role_for_profile: {
         Args: { target_profile_id: string }
         Returns: string
@@ -4794,6 +6499,8 @@ export type Database = {
         Args: { p_role: Database["public"]["Enums"]["user_role"] }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown
@@ -5439,7 +7146,23 @@ export type Database = {
         | "connecting"
         | "connected"
         | "ended"
+      invoice_type: "A" | "B" | "C" | "M" | "E"
+      monotributo_category:
+        | "A"
+        | "B"
+        | "C"
+        | "D"
+        | "E"
+        | "F"
+        | "G"
+        | "H"
+        | "I"
+        | "J"
+        | "K"
+      payment_status: "pending" | "approved" | "rejected" | "refunded"
       review_status: "pending" | "approved" | "flagged" | "removed"
+      subscription_status: "active" | "cancelled" | "past_due" | "trialing"
+      tax_regime: "monotributo" | "responsable_inscripto"
       user_role:
         | "doctor"
         | "patient"
@@ -5458,6 +7181,456 @@ export type Database = {
         reason: string | null
         location: unknown
       }
+    }
+  }
+  storage: {
+    Tables: {
+      buckets: {
+        Row: {
+          allowed_mime_types: string[] | null
+          avif_autodetection: boolean | null
+          created_at: string | null
+          file_size_limit: number | null
+          id: string
+          name: string
+          owner: string | null
+          owner_id: string | null
+          public: boolean | null
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string | null
+        }
+        Insert: {
+          allowed_mime_types?: string[] | null
+          avif_autodetection?: boolean | null
+          created_at?: string | null
+          file_size_limit?: number | null
+          id: string
+          name: string
+          owner?: string | null
+          owner_id?: string | null
+          public?: boolean | null
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string | null
+        }
+        Update: {
+          allowed_mime_types?: string[] | null
+          avif_autodetection?: boolean | null
+          created_at?: string | null
+          file_size_limit?: number | null
+          id?: string
+          name?: string
+          owner?: string | null
+          owner_id?: string | null
+          public?: boolean | null
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      buckets_analytics: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          format: string
+          id: string
+          name: string
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          format?: string
+          id?: string
+          name: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          format?: string
+          id?: string
+          name?: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      buckets_vectors: {
+        Row: {
+          created_at: string
+          id: string
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      migrations: {
+        Row: {
+          executed_at: string | null
+          hash: string
+          id: number
+          name: string
+        }
+        Insert: {
+          executed_at?: string | null
+          hash: string
+          id: number
+          name: string
+        }
+        Update: {
+          executed_at?: string | null
+          hash?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      objects: {
+        Row: {
+          bucket_id: string | null
+          created_at: string | null
+          id: string
+          last_accessed_at: string | null
+          metadata: Json | null
+          name: string | null
+          owner: string | null
+          owner_id: string | null
+          path_tokens: string[] | null
+          updated_at: string | null
+          user_metadata: Json | null
+          version: string | null
+        }
+        Insert: {
+          bucket_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          metadata?: Json | null
+          name?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          path_tokens?: string[] | null
+          updated_at?: string | null
+          user_metadata?: Json | null
+          version?: string | null
+        }
+        Update: {
+          bucket_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          metadata?: Json | null
+          name?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          path_tokens?: string[] | null
+          updated_at?: string | null
+          user_metadata?: Json | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objects_bucketId_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      s3_multipart_uploads: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          id: string
+          in_progress_size: number
+          key: string
+          metadata: Json | null
+          owner_id: string | null
+          upload_signature: string
+          user_metadata: Json | null
+          version: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          id: string
+          in_progress_size?: number
+          key: string
+          metadata?: Json | null
+          owner_id?: string | null
+          upload_signature: string
+          user_metadata?: Json | null
+          version: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          id?: string
+          in_progress_size?: number
+          key?: string
+          metadata?: Json | null
+          owner_id?: string | null
+          upload_signature?: string
+          user_metadata?: Json | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "s3_multipart_uploads_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      s3_multipart_uploads_parts: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          etag: string
+          id: string
+          key: string
+          owner_id: string | null
+          part_number: number
+          size: number
+          upload_id: string
+          version: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          etag: string
+          id?: string
+          key: string
+          owner_id?: string | null
+          part_number: number
+          size?: number
+          upload_id: string
+          version: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          etag?: string
+          id?: string
+          key?: string
+          owner_id?: string | null
+          part_number?: number
+          size?: number
+          upload_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "s3_multipart_uploads_parts_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "s3_multipart_uploads_parts_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "s3_multipart_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vector_indexes: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id: string
+          metadata_configuration: Json | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id?: string
+          metadata_configuration?: Json | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          data_type?: string
+          dimension?: number
+          distance_metric?: string
+          id?: string
+          metadata_configuration?: Json | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vector_indexes_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets_vectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      allow_any_operation: {
+        Args: { expected_operations: string[] }
+        Returns: boolean
+      }
+      allow_only_operation: {
+        Args: { expected_operation: string }
+        Returns: boolean
+      }
+      can_insert_object: {
+        Args: { bucketid: string; metadata: Json; name: string; owner: string }
+        Returns: undefined
+      }
+      extension: { Args: { name: string }; Returns: string }
+      filename: { Args: { name: string }; Returns: string }
+      foldername: { Args: { name: string }; Returns: string[] }
+      get_common_prefix: {
+        Args: { p_delimiter: string; p_key: string; p_prefix: string }
+        Returns: string
+      }
+      get_size_by_bucket: {
+        Args: never
+        Returns: {
+          bucket_id: string
+          size: number
+        }[]
+      }
+      list_multipart_uploads_with_delimiter: {
+        Args: {
+          bucket_id: string
+          delimiter_param: string
+          max_keys?: number
+          next_key_token?: string
+          next_upload_token?: string
+          prefix_param: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+        }[]
+      }
+      list_objects_with_delimiter: {
+        Args: {
+          _bucket_id: string
+          delimiter_param: string
+          max_keys?: number
+          next_token?: string
+          prefix_param: string
+          sort_order?: string
+          start_after?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      operation: { Args: never; Returns: string }
+      search: {
+        Args: {
+          bucketname: string
+          levels?: number
+          limits?: number
+          offsets?: number
+          prefix: string
+          search?: string
+          sortcolumn?: string
+          sortorder?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_by_timestamp: {
+        Args: {
+          p_bucket_id: string
+          p_level: number
+          p_limit: number
+          p_prefix: string
+          p_sort_column: string
+          p_sort_column_after: string
+          p_sort_order: string
+          p_start_after: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_v2: {
+        Args: {
+          bucket_name: string
+          levels?: number
+          limits?: number
+          prefix: string
+          sort_column?: string
+          sort_column_after?: string
+          sort_order?: string
+          start_after?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+    }
+    Enums: {
+      buckettype: "STANDARD" | "ANALYTICS" | "VECTOR"
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
@@ -5580,6 +7753,26 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  auth: {
+    Enums: {
+      aal_level: ["aal1", "aal2", "aal3"],
+      code_challenge_method: ["s256", "plain"],
+      factor_status: ["unverified", "verified"],
+      factor_type: ["totp", "webauthn", "phone"],
+      oauth_authorization_status: ["pending", "approved", "denied", "expired"],
+      oauth_client_type: ["public", "confidential"],
+      oauth_registration_type: ["dynamic", "manual"],
+      oauth_response_type: ["code"],
+      one_time_token_type: [
+        "confirmation_token",
+        "reauthentication_token",
+        "recovery_token",
+        "email_change_token_new",
+        "email_change_token_current",
+        "phone_change_token",
+      ],
+    },
+  },
   public: {
     Enums: {
       badge_level: ["bronze", "silver", "gold", "platinum"],
@@ -5603,7 +7796,24 @@ export const Constants = {
         "connected",
         "ended",
       ],
+      invoice_type: ["A", "B", "C", "M", "E"],
+      monotributo_category: [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "I",
+        "J",
+        "K",
+      ],
+      payment_status: ["pending", "approved", "rejected", "refunded"],
       review_status: ["pending", "approved", "flagged", "removed"],
+      subscription_status: ["active", "cancelled", "past_due", "trialing"],
+      tax_regime: ["monotributo", "responsable_inscripto"],
       user_role: [
         "doctor",
         "patient",
@@ -5612,6 +7822,11 @@ export const Constants = {
         "platform_admin",
         "pharmacist",
       ],
+    },
+  },
+  storage: {
+    Enums: {
+      buckettype: ["STANDARD", "ANALYTICS", "VECTOR"],
     },
   },
 } as const
