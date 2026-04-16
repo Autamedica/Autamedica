@@ -37,7 +37,8 @@ const TYPE_ICONS: Record<string, typeof Video> = {
 }
 
 export function AppointmentsPanel() {
-  const { doctorId: _doctorId } = useAuthenticatedUser()
+  const { user } = useAuthenticatedUser()
+  const doctorId = user?.doctorProfileId;
   const {
     appointments,
     loading,
@@ -213,6 +214,7 @@ export function AppointmentsPanel() {
           <AppointmentDetailsPanel
             appointment={selectedAppointment}
             patientName={getAppointmentPatientName(selectedAppointment)}
+            doctorId={doctorId ?? ''}
             onEdit={() => {
               setEditingAppointment(selectedAppointment)
               setIsCreateModalOpen(true)

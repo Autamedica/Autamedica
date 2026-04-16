@@ -17,7 +17,7 @@ export async function resolvePatientNameMap(appointments: Appointment[]): Promis
 
   const patientIds = appointments
     .map(a => a.patient_id)
-    .filter((id): id is string => !!id);
+    .filter((id): id is NonNullable<typeof id> => !!id);
 
   const result: Record<string, string> = {};
 
