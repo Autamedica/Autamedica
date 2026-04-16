@@ -183,6 +183,7 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
+    "@getbrevo/brevo": "^5.0.4",
     "@google/generative-ai": "^0.24.1",
     "@openai/codex": "^0.39.0",
     "@supabase/supabase-js": "^2.98.0",
