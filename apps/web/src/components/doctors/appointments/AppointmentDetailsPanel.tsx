@@ -166,7 +166,7 @@ export function AppointmentDetailsPanel({
                   </div>
 
                   <StartCallButton 
-                    doctorId={doctorId}
+                    doctorId={appointment.doctor_id}
                     patientId={appointment.patient_id ?? ''}
                     appointmentId={appointment.id}
                     patientName={patientName}
