@@ -1,17 +1,5 @@
 
-const RiskBadge = ({ level, reason }: { level: string; reason?: string }) => {
-  const colors = {
-    red: 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]',
-    yellow: 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]',
-    green: 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]',
-  }
-  return (
-    <div 
-      title={reason || 'Paciente al día'}
-      className={`h-2.5 w-2.5 rounded-full ${colors[level as keyof typeof colors] || colors.green} animate-pulse-subtle`}
-    />
-  )
-}
+
 /**
  * Panel de gestión de pacientes para el portal de doctores.
  * Arquitectura: UI Layer.
