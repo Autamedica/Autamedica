@@ -77,7 +77,7 @@ function AudioLevelBars({ level, count = 5 }: { level: number; count?: number })
           <motion.div
             key={i}
             className={`w-1 rounded-full transition-colors ${
-              active ? 'bg-emerald-500' : 'bg-neutral-200'
+              active ? 'bg-sky-500' : 'bg-neutral-200'
             }`}
             animate={{ height: active ? height + level * 8 : height }}
             transition={{ duration: 0.1 }}
