@@ -1,3 +1,17 @@
+
+const RiskBadge = ({ level, reason }: { level: string; reason?: string }) => {
+  const colors = {
+    red: 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]',
+    yellow: 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]',
+    green: 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]',
+  }
+  return (
+    <div 
+      title={reason || 'Paciente al día'}
+      className={`h-2.5 w-2.5 rounded-full ${colors[level as keyof typeof colors] || colors.green} animate-pulse-subtle`}
+    />
+  )
+}
 /**
  * Panel de gestión de pacientes para el portal de doctores.
  * Arquitectura: UI Layer.
@@ -15,7 +29,7 @@ import { useRealPatients } from '@/hooks/doctors/useRealPatients'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { useStartCall } from '@/hooks/doctors/useStartCall'
 import { selectDoctorPatientAppointmentInsights } from '@/lib/doctors/queries/doctor-appointments.selectors'
-import { Calendar, Clock, Video, Users, FileText, RefreshCw, Search, UserCheck, UserPlus } from 'lucide-react'
+import { Calendar, Clock, Video, Phone, Users, FileText, RefreshCw, Search, UserCheck, UserPlus } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { getDisplayName, getInitials, getAvatarColor } from '@/lib/doctors/lib/utils'
 
@@ -30,12 +44,14 @@ function PatientCardActions({
   doctorId,
   patientId,
   patientName,
+  patientPhone,
   appointmentId,
   onSelectPatient,
 }: {
   doctorId: string
   patientId: string
   patientName: string
+  patientPhone?: string | null
   appointmentId?: string
   onSelectPatient?: (patientId: string, tab?: PatientWorkspaceTab) => void
 }) {
@@ -60,6 +76,21 @@ function PatientCardActions({
           <Video className="h-3.5 w-3.5" />
           {isStarting ? 'Llamando...' : 'Iniciar'}
         </button>
+        <div className="w-px bg-muted/50" />
+        <a
+          href={patientPhone ? `tel:${patientPhone}` : undefined}
+          onClick={(event) => {
+            event.stopPropagation()
+            if (!patientPhone) {
+              alert('Este paciente no tiene un teléfono registrado.')
+              event.preventDefault()
+            }
+          }}
+          className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50"
+        >
+          <Phone className="h-3.5 w-3.5" />
+          Llamar
+        </a>
         <div className="w-px bg-muted/50" />
         <button
           type="button"
@@ -340,6 +371,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                     doctorId={resolvedDoctorUserId}
                     patientId={patient.id}
                     patientName={name}
+                    patientPhone={patient.profile?.phone}
                     appointmentId={nextAppt?.id}
                     onSelectPatient={onSelectPatient}
                   />

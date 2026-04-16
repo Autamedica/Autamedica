@@ -1,0 +1,106 @@
+<svg width="1000" height="800" viewBox="0 0 1000 800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradients for a premium feel -->
+    <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:0.2" />
+      <stop offset="50%" style="stop-color:#10b981;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0.2" />
+    </linearGradient>
+    
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f1f5f9;stop-opacity:1" />
+    </linearGradient>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#000" flood-opacity="0.05"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="800" fill="#FAF9F6" rx="30"/>
+
+  <!-- The "Central Neural Path" - A smooth Bezier flow -->
+  <path d="M 150 250 Q 300 50 500 250 T 850 250 T 500 650 T 150 450" 
+        fill="none" stroke="url(#pathGradient)" stroke-width="60" stroke-linecap="round" opacity="0.4"/>
+  
+  <path d="M 150 250 Q 300 50 500 250 T 850 250 T 500 650 T 150 450" 
+        fill="none" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="10,15" opacity="0.3"/>
+
+  <!-- Title Section -->
+  <text x="500" y="80" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="32" font-weight="900" fill="#1c1917" letter-spacing="-1">ECOSISTEMA ANTI NO-SHOW</text>
+  <text x="500" y="110" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="16" font-weight="500" fill="#78716c">Arquitectura de Aprendizaje y Recuperación Dinámica</text>
+
+  <!-- STEP 1: PREVENCIÓN (The Shield) -->
+  <g transform="translate(100, 180)" filter="url(#softShadow)">
+    <rect width="220" height="140" rx="24" fill="url(#cardGrad)"/>
+    <rect width="4" height="40" x="0" y="50" rx="2" fill="#0ea5e9"/>
+    <!-- Icon: Stylized Phone/Message -->
+    <path d="M 30 30 h 30 v 40 h -30 z M 35 35 h 20 v 25 h -20 z M 40 65 h 10" fill="none" stroke="#0ea5e9" stroke-width="2.5"/>
+    <path d="M 65 35 h 15 M 65 45 h 10" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round"/>
+    
+    <text x="30" y="100" font-family="Helvetica, sans-serif" font-size="16" font-weight="800" fill="#1c1917">PREVENCIÓN</text>
+    <text x="30" y="120" font-family="Helvetica, sans-serif" font-size="11" fill="#64748b">WhatsApp 24h/2h interactivo</text>
+  </g>
+
+  <!-- STEP 2: DETECCIÓN (The Watcher) -->
+  <g transform="translate(400, 180)" filter="url(#softShadow)">
+    <rect width="220" height="140" rx="24" fill="url(#cardGrad)"/>
+    <rect width="4" height="40" x="0" y="50" rx="2" fill="#f43f5e"/>
+    <!-- Icon: Stylized Clock/Eye -->
+    <circle cx="45" cy="50" r="18" fill="none" stroke="#f43f5e" stroke-width="2.5"/>
+    <path d="M 45 50 v -10 M 45 50 l 8 8" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round"/>
+    
+    <text x="30" y="100" font-family="Helvetica, sans-serif" font-size="16" font-weight="800" fill="#1c1917">DETECCIÓN</text>
+    <text x="30" y="120" font-family="Helvetica, sans-serif" font-size="11" fill="#64748b">Reaper: Marca No-Show 30m</text>
+  </g>
+
+  <!-- STEP 3: RECUPERACIÓN (The Bridge) -->
+  <g transform="translate(700, 180)" filter="url(#softShadow)">
+    <rect width="220" height="140" rx="24" fill="url(#cardGrad)"/>
+    <rect width="4" height="40" x="0" y="50" rx="2" fill="#10b981"/>
+    <!-- Icon: Stylized Waitlist/Loop -->
+    <path d="M 30 50 q 15 -20 30 0 t 30 0" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="30" cy="50" r="4" fill="#10b981"/>
+    <circle cx="90" cy="50" r="4" fill="#10b981"/>
+    
+    <text x="30" y="100" font-family="Helvetica, sans-serif" font-size="16" font-weight="800" fill="#1c1917">RECUPERACIÓN</text>
+    <text x="30" y="120" font-family="Helvetica, sans-serif" font-size="11" fill="#64748b">Waitlist: Re-llenado de slots</text>
+  </g>
+
+  <!-- STEP 4: INTELIGENCIA (The Brain) -->
+  <g transform="translate(400, 500)" filter="url(#softShadow)">
+    <rect width="240" height="160" rx="32" fill="#1c1917"/>
+    <rect width="4" height="60" x="0" y="50" rx="2" fill="#8b5cf6"/>
+    <!-- Icon: Stylized AI/Neurons -->
+    <g transform="translate(180, 40)">
+       <circle cx="0" cy="0" r="3" fill="#8b5cf6" filter="url(#glow)"/>
+       <circle cx="20" cy="-10" r="3" fill="#8b5cf6" filter="url(#glow)"/>
+       <circle cx="20" cy="15" r="3" fill="#8b5cf6" filter="url(#glow)"/>
+       <line x1="0" y1="0" x2="20" y2="-10" stroke="#8b5cf6" stroke-width="1" opacity="0.5"/>
+       <line x1="0" y1="0" x2="20" y2="15" stroke="#8b5cf6" stroke-width="1" opacity="0.5"/>
+    </g>
+    
+    <text x="30" y="100" font-family="Helvetica, sans-serif" font-size="18" font-weight="800" fill="white">IA CLÍNICA</text>
+    <text x="30" y="125" font-family="Helvetica, sans-serif" font-size="12" fill="#94a3b8">Overbooking Predictivo</text>
+    <text x="30" y="140" font-family="Helvetica, sans-serif" font-size="12" fill="#94a3b8">Threshold de Riesgo: 30%</text>
+  </g>
+
+  <!-- Central Connection Message -->
+  <g transform="translate(400, 380)">
+    <text x="100" y="0" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="14" font-weight="700" fill="#1c1917" opacity="0.8">FLUJO DE DATOS CONTINUO</text>
+    <path d="M 0 20 h 200" stroke="#e2e8f0" stroke-width="1"/>
+  </g>
+
+  <!-- Floating Elements for Sophistication -->
+  <circle cx="850" cy="600" r="100" fill="#0ea5e9" opacity="0.03"/>
+  <circle cx="150" cy="700" r="80" fill="#10b981" opacity="0.03"/>
+  <path d="M 900 400 l 20 20 m 0 -20 l -20 20" stroke="#cbd5e1" stroke-width="2" opacity="0.5"/>
+  <rect x="50" y="400" width="15" height="15" rx="4" stroke="#cbd5e1" stroke-width="2" fill="none" transform="rotate(45, 50, 400)" opacity="0.5"/>
+
+</svg>

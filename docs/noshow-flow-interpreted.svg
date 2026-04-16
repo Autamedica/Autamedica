@@ -1,0 +1,88 @@
+<svg width="800" height="1000" viewBox="0 0 800 1000" xmlns="http://www.w3.org/2000/svg">
+  <!-- Definiciones de marcadores para flechas -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#444" />
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Fondo -->
+  <rect width="800" height="1000" fill="#f8fafc" rx="15"/>
+
+  <!-- Título -->
+  <text x="400" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#0f172a">FLUJO DINÁMICO ANTI NO-SHOW</text>
+  <text x="400" y="80" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#64748b">AutaMedica: Prevención, Detección y Recuperación</text>
+
+  <!-- 1. Inicio -->
+  <rect x="300" y="120" width="200" height="60" rx="10" fill="#3b82f6" filter="url(#shadow)"/>
+  <text x="400" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Cita Agendada</text>
+  
+  <line x1="400" y1="180" x2="400" y2="220" stroke="#444" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- 2. Recordatorios -->
+  <rect x="250" y="220" width="300" height="80" rx="10" fill="white" stroke="#e2e8f0" stroke-width="2" filter="url(#shadow)"/>
+  <text x="400" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1e293b">Recordatorios WhatsApp</text>
+  <text x="400" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">Envío automático 24h y 2h antes</text>
+  <text x="400" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#059669">Interactivos: [Confirmar] [Cancelar]</text>
+
+  <line x1="400" y1="300" x2="400" y2="340" stroke="#444" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- 3. Decisión de Asistencia -->
+  <path d="M 400 340 L 520 390 L 400 440 L 280 390 Z" fill="#f59e0b" filter="url(#shadow)"/>
+  <text x="400" y="395" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white">¿Asiste el Paciente?</text>
+
+  <!-- Camino SI -->
+  <line x1="520" y1="390" x2="600" y2="390" stroke="#059669" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="560" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#059669">SÍ</text>
+  <rect x="600" y="360" width="150" height="60" rx="10" fill="#10b981" filter="url(#shadow)"/>
+  <text x="675" y="395" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white">Cita Completada</text>
+
+  <!-- Camino NO (Detección) -->
+  <line x1="400" y1="440" x2="400" y2="480" stroke="#dc2626" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="420" y="465" text-anchor="start" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#dc2626">NO</text>
+
+  <!-- 4. Detección (Reaper) -->
+  <rect x="250" y="480" width="300" height="80" rx="10" fill="white" stroke="#fecaca" stroke-width="2" filter="url(#shadow)"/>
+  <text x="400" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#991b1b">Detección Automática (Reaper)</text>
+  <text x="400" y="525" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#7f1d1d">Tras 30 min de gracia post-turno</text>
+  <rect x="340" y="532" width="120" height="20" rx="5" fill="#fef2f2"/>
+  <text x="400" y="546" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#b91c1c">STATUS = NO_SHOW</text>
+
+  <line x1="400" y1="560" x2="400" y2="600" stroke="#444" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- 5. Aprendizaje IA -->
+  <rect x="250" y="600" width="300" height="80" rx="40" fill="#8b5cf6" filter="url(#shadow)"/>
+  <text x="400" y="635" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Motor de Inteligencia Clínica</text>
+  <text x="400" y="655" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#ede9fe">Analiza historial de inasistencias</text>
+
+  <line x1="400" y1="680" x2="400" y2="720" stroke="#444" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- 6. Predicción y Overbooking -->
+  <rect x="200" y="720" width="400" height="100" rx="10" fill="white" stroke="#ddd6fe" stroke-width="2" filter="url(#shadow)"/>
+  <text x="400" y="745" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#4c1d95">Predicción de Riesgo</text>
+  <text x="400" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6d28d9">Si prob. No-Show > 30%</text>
+  <rect x="250" y="775" width="300" height="30" rx="15" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="400" y="795" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#7c3aed">HABILITA OVERBOOKING INTELIGENTE</text>
+
+  <!-- Loop de Retorno -->
+  <path d="M 200 770 Q 50 770 50 445 Q 50 150 300 150" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="8,4" marker-end="url(#arrowhead)"/>
+  <text x="60" y="445" text-anchor="start" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#8b5cf6" transform="rotate(-90, 60, 445)">Retroalimentación Continua</text>
+
+  <!-- Camino de Cancelación (Waitlist) -->
+  <line x1="280" y1="390" x2="150" y2="390" stroke="#0ea5e9" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="215" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#0ea5e9">CANCELACIÓN</text>
+  <rect x="20" y="360" width="130" height="100" rx="10" fill="#e0f2fe" stroke="#0ea5e9" stroke-width="1" filter="url(#shadow)"/>
+  <text x="85" y="385" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#0369a1">WAITLIST</text>
+  <text x="85" y="405" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#075985">Oferta automática</text>
+  <text x="85" y="420" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#075985">vía WhatsApp al</text>
+  <text x="85" y="435" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#075985">paciente en espera</text>
+
+  <!-- Footer Info -->
+  <rect x="50" y="880" width="700" height="80" rx="10" fill="#f1f5f9"/>
+  <text x="400" y="905" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#475569">EL CÍRCULO VIRTUTOSO</text>
+  <text x="400" y="925" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">La detección de inasistencias alimenta el cerebro de la IA para que,</text>
+  <text x="400" y="940" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">en el futuro, no tengas huecos vacíos aunque un paciente falte.</text>
+</svg>
