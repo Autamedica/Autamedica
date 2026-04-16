@@ -43,8 +43,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       }
     } else {
        // Si hay patient_id, resolvemos el nombre
-       const { data: profile } = await admin.rpc('public.get_profile_by_patient_id', { p_patient_id: appt.patient_id })
-       const profileData = Array.isArray(profile) ? profile[0] : profile
+       const { data: profileData } = await admin.from('profiles').select('first_name, last_name').eq('id', appt.patient_id).maybeSingle()
        if (profileData?.first_name) {
          guestName = `${profileData.first_name} ${profileData.last_name ?? ''}`.trim()
        }
