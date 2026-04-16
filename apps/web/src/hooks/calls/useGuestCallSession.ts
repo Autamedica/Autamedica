@@ -89,7 +89,7 @@ export function useGuestCallSession(roomId: string, initialToken: string | null,
           // Canjear el inviteId por el Token Real WebRTC
           const resp = await fetchApi<{ token: string }>(`/api/calls/${encodeURIComponent(roomId)}/redeem-invite`, {
             method: 'POST',
-            body: JSON.stringify({ invite: inviteId }),
+            body: { invite: inviteId },
           })
           token = resp.token
           sessionStorage.setItem(cachedKey, token) // Guardamos para sobrevivir a refresh
@@ -101,7 +101,7 @@ export function useGuestCallSession(roomId: string, initialToken: string | null,
       const data = await loadGuestCallBootstrap(roomId, token)
       setSession(data)
     } catch (err) {
-      const message = err instanceof Error ? err.message : (err as any)?.payload?.error?.code || 'unknown'
+      const message = err instanceof Error ? err.message : (err as { payload?: { error?: { code?: string } } })?.payload?.error?.code || 'unknown'
       logger.error('[useGuestCallSession] bootstrap/redeem failed', err)
       setError(normalizeError(message))
     } finally {
