@@ -105,7 +105,7 @@ export const doctorProfileService = {
       education: input.education ?? null,
       certifications: input.certifications ?? null,
       schedule: null,
-      consultation_fee: input.consultationFee ?? null,
+      consultation_fee: input.consultationFee ?? 3000,
       accepted_insurance: input.acceptedInsurance ?? null,
       bio: input.bio ?? null,
       languages: input.languages ?? null,

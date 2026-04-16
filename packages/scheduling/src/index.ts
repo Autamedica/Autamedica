@@ -83,3 +83,5 @@ export {
 
 // Supabase client type
 export type { SupabaseLike } from './supabase';
+
+export { processViralLoopReferrals } from './referrals';
