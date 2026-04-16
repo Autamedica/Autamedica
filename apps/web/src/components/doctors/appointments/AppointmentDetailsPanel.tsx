@@ -166,7 +166,10 @@ export function AppointmentDetailsPanel({
                   </div>
 
                   <StartCallButton 
-                    roomId={appointment.room_id} 
+                    doctorId={doctorId}
+                    patientId={appointment.patient_id ?? ''}
+                    appointmentId={appointment.id}
+                    patientName={patientName}
                     disabled={!windowStatus.isOpen} 
                   />
 

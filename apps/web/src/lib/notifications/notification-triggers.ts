@@ -73,7 +73,8 @@ async function insertPortalNotification(input: NotificationInput): Promise<void>
   }
 }
 
-async function resolvePatientUser(patientId: string): Promise<string | null> {
+async function resolvePatientUser(patientId: string | null): Promise<string | null> {
+  if (!patientId) return null;
   const admin = getAdminClient();
   const { data, error } = await admin
     .from('patients')
@@ -105,7 +106,8 @@ async function resolveDoctorUser(doctorId: string): Promise<string | null> {
   return data?.user_id ?? null;
 }
 
-async function resolvePatientDisplayName(patientId: string): Promise<string> {
+async function resolvePatientDisplayName(patientId: string | null): Promise<string> {
+  if (!patientId) return 'Paciente';
   const admin = getAdminClient();
   const { data: patient, error: patientError } = await admin
     .from('patients')
@@ -135,7 +137,8 @@ async function resolvePatientDisplayName(patientId: string): Promise<string> {
   return fullName || 'Paciente';
 }
 
-async function resolveActiveDoctorUsersForPatient(patientId: string): Promise<string[]> {
+async function resolveActiveDoctorUsersForPatient(patientId: string | null): Promise<string[]> {
+  if (!patientId) return [];
   const admin = getAdminClient();
 
   const { data: careTeam, error: careTeamError } = await admin

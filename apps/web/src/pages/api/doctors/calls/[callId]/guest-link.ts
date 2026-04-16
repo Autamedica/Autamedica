@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { logger } from '@autamedica/shared'
+import { logger, BASE_URL_BY_ROLE } from '@autamedica/shared'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { badRequest, forbidden, internalError, jsonOk, notFound, serviceUnavailable } from '@/lib/api-helpers'
 import { withAuthRole, isAuthed, DOCTOR_ROLES } from '@/lib/api-auth'
@@ -53,7 +53,15 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     const roomId = (call as { room_id: string }).room_id
     const token = await signGuestToken({ callId, roomId, guestName }, secret)
 
-    const origin = new URL(request.url).origin
+    /**
+     * OBTENCIÓN DEL LINK FUNCIONAL CORRECTO
+     * 1. Prioridad: PUBLIC_SITE_URL (si está definido en el env del runtime)
+     * 2. Fallback centralizado: BASE_URL_BY_ROLE['patient'] (que maneja localhost:3002 en dev)
+     * 3. Último recurso: El origin del request actual.
+     */
+    const siteUrl = (locals.runtime?.env?.PUBLIC_SITE_URL as string) || BASE_URL_BY_ROLE['patient']
+    const origin = siteUrl ? new URL(siteUrl).origin : new URL(request.url).origin
+    
     const guestLink = `${origin}/call/join/${roomId}?token=${encodeURIComponent(token)}`
 
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()

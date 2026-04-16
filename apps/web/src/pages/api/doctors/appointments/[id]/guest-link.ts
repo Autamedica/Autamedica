@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { logger } from '@autamedica/shared'
+import { logger, BASE_URL_BY_ROLE } from '@autamedica/shared'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { badRequest, forbidden, internalError, jsonOk, notFound, serviceUnavailable } from '@/lib/api-helpers'
 import { withAuthRole, isAuthed, DOCTOR_ROLES } from '@/lib/api-auth'
@@ -65,7 +65,13 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     }
 
     const token = await signGuestToken({ callId: call.id, roomId: call.room_id, guestName }, secret)
-    const origin = new URL(request.url).origin
+    
+    /**
+     * OBTENCIÓN DEL LINK FUNCIONAL CORRECTO
+     */
+    const siteUrl = (locals.runtime?.env?.PUBLIC_SITE_URL as string) || BASE_URL_BY_ROLE['patient']
+    const origin = siteUrl ? new URL(siteUrl).origin : new URL(request.url).origin
+    
     const guestLink = `${origin}/call/join/${call.room_id}?token=${encodeURIComponent(token)}`
 
     return jsonOk({ guestLink, guestName })
