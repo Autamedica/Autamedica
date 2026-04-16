@@ -103,17 +103,82 @@ Nuevo query paralelo en `getDoctorStats()` que cuenta `prescriptions.status = 'd
 
 ---
 
+## PR #280 — `fix(psychiatry): harden demo flow and doctor triage visibility`
+
+**Merge:** 2026-04-14 20:06 UTC | **Commit:** `5ab1cba6c` | **10 archivos** | +139 -39
+
+### Problema
+
+La evaluacion psiquiatrica seguia teniendo dos problemas que la hacian fragil para demo comercial:
+
+1. El wizard trataba lo tipeado por el paciente como si ya fuera un hecho clinico confirmado. Eso podia sacar el input de pantalla despues de una sola letra y forzar el modo "Por confirmar".
+2. El portal del medico seguia mirando `draftPrescriptions` como si fueran mandatos clinicos, en vez de consultar la cola real de triage de `clinical_case_states`.
+
+Ademas, la carga del estado clinico canonico se resolvia por `patientId` sin priorizar `caseId`, lo que podia mezclar contexto entre intakes distintos del mismo paciente.
+
+### Solucion
+
+Se endurecio el flujo psiquiatrico en cuatro frentes:
+
+- separacion real entre `draft` de UI y `confirmed` del estado canonico
+- confirmacion con valor explicito para evitar estado stale
+- carga/persistencia del `clinical_state` por `caseId`
+- materializacion denormalizada del triage para que el portal medico consulte mandatos reales
+
+### Archivos modificados (10)
+
+| Archivo                                                            | Cambio principal                                                                                      |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `apps/web/src/components/patients/intake/ClinicalFieldWrapper.tsx` | Mantiene el input visible cuando el valor sigue siendo `draft` local de `ui_form`                     |
+| `apps/web/src/lib/patients/clinical-state/normalizer.ts`           | `normalizeFormData()` ahora acepta opciones (`explicitConfirmation`, `source`, `confidence`)          |
+| `apps/web/src/hooks/patients/useClinicalState.ts`                  | Separa draft vs confirmado, acepta `overrideValue` y carga estado por `caseId` cuando existe          |
+| `apps/web/src/hooks/patients/usePsychiatryPersistence.ts`          | Confirma los datos del paso recien al persistirlo                                                     |
+| `apps/web/src/hooks/patients/usePsychiatryIntakeFlow.ts`           | `updateField()` entra como draft; `commitStepData()` confirma al guardar                              |
+| `apps/web/src/components/patients/PsychiatryIntakePage.tsx`        | `confirmField()` recibe el valor explicito elegido por el usuario                                     |
+| `apps/web/src/lib/patients/lib/repos/clinical-state.adapter.ts`    | Materializa columnas denormalizadas de triage en `clinical_case_states`                               |
+| `apps/web/src/pages/api/patients/clinical-state/save.ts`           | GET soporta `caseId` para cargar el estado del intake/caso correcto                                   |
+| `apps/web/src/lib/doctors/services/doctor-stats.service.ts`        | Reemplaza `draftPrescriptions` por `pendingTriageMandates` consultando `clinical_case_states`         |
+| `apps/web/src/components/doctors/DoctorsPortalFrame.tsx`           | El card de "Mandatos" ahora muestra aclaraciones de farmacia + mandatos clinicos pendientes de triage |
+
+### Antes vs despues
+
+**Antes:**
+
+- Un campo de psiquiatria podia pasar a "Por confirmar" despues de una sola tecla
+- El dato tipeado se mezclaba demasiado pronto con el estado clinico confirmado
+- El portal medico podia mostrar "Sin mandatos activos" aunque hubiera casos psiquiatricos con triage no rutinario asignados
+- El estado clinico podia reutilizar el ultimo snapshot del paciente, aunque no correspondiera al intake actual
+
+**Despues:**
+
+- Lo tipeado por el paciente permanece como `draft` hasta confirmar o persistir el paso
+- El modo confirmacion usa el valor explicito elegido, no uno potencialmente stale
+- El estado canonico prioriza `caseId` para resume y para construccion de contexto
+- El portal medico muestra la cola real de mandatos clinicos (`pending`, `acknowledged`, `in_progress`) asignados al doctor
+
+### Validacion
+
+- `git diff --check`
+- hooks de `pre-commit` y `pre-push` pasaron
+- `seo:validate:parity`
+- `seo:validate:assets`
+- `turbo run test:unit -- --run`
+
+---
+
 ## PRs relacionados (contexto de la sesion)
 
-| PR   | Titulo                                                            | Estado | Notas                            |
-| ---- | ----------------------------------------------------------------- | ------ | -------------------------------- |
-| #265 | feat(billing): pricing page and subscription panel UI             | Merged | UI de planes y suscripciones     |
-| #266 | fix(doctors): remove non-existent pendingTriageMandates reference | Merged | Limpieza de referencia rota      |
-| #267 | fix(doctors): remove remaining triageMandates references          | Merged | Limpieza complementaria          |
-| #268 | fix(billing): E2E flow — dynamic plans, API envelope, runtime env | Merged | Fix de flujo de facturacion      |
-| #269 | fix(billing): complete E2E billing flow with MercadoPago          | Merged | Integracion MercadoPago completa |
-| #270 | feat(calls): guest video call links for external patients         | Merged | Documentado arriba               |
-| #272 | fix(doctors): show draft prescriptions in portal mandatos         | Merged | Documentado arriba               |
+| PR   | Titulo                                                                | Estado | Notas                                |
+| ---- | --------------------------------------------------------------------- | ------ | ------------------------------------ |
+| #265 | feat(billing): pricing page and subscription panel UI                 | Merged | UI de planes y suscripciones         |
+| #266 | fix(doctors): remove non-existent pendingTriageMandates reference     | Merged | Limpieza de referencia rota          |
+| #267 | fix(doctors): remove remaining triageMandates references              | Merged | Limpieza complementaria              |
+| #268 | fix(billing): E2E flow — dynamic plans, API envelope, runtime env     | Merged | Fix de flujo de facturacion          |
+| #269 | fix(billing): complete E2E billing flow with MercadoPago              | Merged | Integracion MercadoPago completa     |
+| #270 | feat(calls): guest video call links for external patients             | Merged | Documentado arriba                   |
+| #272 | fix(doctors): show draft prescriptions in portal mandatos             | Merged | Documentado arriba                   |
+| #279 | feat(prescriptions): issue prescription from post-consultation report | Merged | Create → issue real en post-consulta |
+| #280 | fix(psychiatry): harden demo flow and doctor triage visibility        | Merged | Documentado arriba                   |
 
 ---
 
