@@ -26,6 +26,7 @@ import {
   type ReminderMessageData,
 } from './openclaw';
 import { processUnsentWaitlistOffers } from './waitlist-dispatch';
+import { processViralLoopReferrals } from './referrals';
 
 interface WorkerConfig {
   openclaw: OpenClawConfig;
@@ -42,6 +43,7 @@ interface WorkerResult {
   waitlistOffersSent: number;
   waitlistExpired: number;
   noShowsMarked: number;
+  referralsSent: number;
   errors: string[];
 }
 
@@ -60,6 +62,7 @@ export async function processReminderCycle(
     waitlistOffersSent: 0,
     waitlistExpired: 0,
     noShowsMarked: 0,
+    referralsSent: 0,
     errors: [],
   };
 
@@ -90,6 +93,12 @@ export async function processReminderCycle(
     result.waitlistExpired = await expireStaleOffers(supabase);
 
     // 5. Mark overdue appointments as no_show
+    // 6. Execute Viral Loop (WhatsApp Referrals post-consultation)
+    const viralResult = await processViralLoopReferrals(supabase, config);
+    result.referralsSent = viralResult.sent;
+    result.errors.push(...viralResult.errors.map(err => `ViralLoop: ${err}`));
+
+    // FIN
     result.noShowsMarked = await markOverdueAppointmentsNoShow(supabase);
   } catch (err) {
     result.errors.push(err instanceof Error ? err.message : 'Worker cycle failed');
