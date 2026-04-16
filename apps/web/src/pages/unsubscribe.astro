@@ -4,43 +4,49 @@ import { createClient } from '@supabase/supabase-js';
 
 const id = Astro.url.searchParams.get('id');
 let success = false;
+let debugInfo = "";
 
-if (id) {
-    const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-    const supabaseKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    const { error } = await supabase
-        .from('profiles')
-        .update({ newsletter_subscribed: false })
-        .eq('user_id', id);
-    
-    if (!error) success = true;
-}
+if (!supabaseUrl || !supabaseKey) {
+    debugInfo = "Configuración del servidor incompleta (Missing ENV).";
+} else if (id) {
+    try {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const { data: user } = await supabase.from('profiles').select('user_id').eq('user_id', id).single();
+        if (user) {
+            const { error } = await supabase.from('profiles').update({ newsletter_subscribed: false }).eq('user_id', id);
+            if (!error) success = true;
+            else debugInfo = "Error al actualizar la base de datos.";
+        } else {
+            debugInfo = "El identificador del paciente no fue encontrado.";
+        }
+    } catch (e) { debugInfo = "Fallo de conexión."; }
+} else { debugInfo = "No se proporcionó un ID válido."; }
 ---
-
 <Layout title="Baja de AutaMedica Vital">
     <main class="flex flex-col items-center justify-center min-h-screen bg-[#F8FAFC] p-6 text-center">
         <div class="max-w-md w-full bg-white p-12 rounded-[32px] shadow-sm border border-slate-100">
             {success ? (
                 <>
                     <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <svg class="w-8 h-8 text-[#00A3FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
+                        <svg class="w-8 h-8 text-[#00A3FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>
                     </div>
                     <h1 class="text-2xl font-bold text-slate-900 mb-4 font-serif">Baja procesada con éxito</h1>
-                    <p class="text-slate-600 mb-8">Ha sido desuscrito de nuestras comunicaciones preventivas. Puede volver a suscribirse en cualquier momento desde su perfil.</p>
+                    <p class="text-slate-600 mb-8">Ha sido desuscrito con éxito. Puede volver a suscribirse desde su perfil.</p>
                 </>
             ) : (
                 <>
-                    <h1 class="text-2xl font-bold text-slate-900 mb-4 font-serif">Vínculo no válido</h1>
-                    <p class="text-slate-600 mb-8">No hemos podido procesar su solicitud. Por favor, intente nuevamente desde el enlace de su correo electrónico.</p>
+                    <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <h1 class="text-2xl font-bold text-slate-900 mb-4 font-serif">Atención</h1>
+                    <p class="text-slate-600 mb-2">No pudimos procesar la baja automáticamente.</p>
+                    <p class="text-xs text-slate-400 mb-8 italic">{debugInfo}</p>
                 </>
             )}
-            <a href="https://autamedica.com" class="inline-block px-8 py-3 bg-black text-white rounded-full font-semibold transition-transform hover:scale-105">
-                Volver a AutaMedica
-            </a>
+            <a href="https://autamedica.com" class="inline-block px-8 py-3 bg-black text-white rounded-full font-semibold">Volver a AutaMedica</a>
         </div>
     </main>
 </Layout>
