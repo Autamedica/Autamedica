@@ -1,47 +1,52 @@
-import type { APIRoute } from 'astro';
-import { createAstroAdminClient } from '@/lib/supabase';
-import { logger } from '@autamedica/shared';
-import { jsonOk, internalError } from '@/lib/api-helpers';
-import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
+/**
+ * POST /api/doctors/onboarding-complete
+ *
+ * Thin controller: auth + zod validation + delegation to the use case.
+ * All writes live in `completeOnboardingUseCase` and `SupabaseDoctorsRepo`.
+ */
+import type { APIRoute } from 'astro'
+import { z } from 'zod'
+import { logger } from '@autamedica/shared'
+import { createAstroAdminClient } from '@/lib/supabase'
+import { jsonOk, internalError } from '@/lib/api-helpers'
+import { validateBody } from '@/lib/validation'
+import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth'
+import { createSupabaseDoctorsRepo } from '@/lib/doctors/adapters/supabase-doctors.repo'
+import { completeOnboardingUseCase } from '@/lib/doctors/usecases/complete-onboarding.usecase'
 
+const OnboardingCompleteSchema = z.object({
+  first_name: z.string().trim().min(1).optional(),
+  last_name: z.string().trim().min(1).optional(),
+})
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES);
-    if (!isAuthed(auth)) return auth;
-    const { user } = auth;
+    const auth = await withAuthRole(request, DOCTOR_ROLES)
+    if (!isAuthed(auth)) return auth
 
-    const body = await request.json().catch(() => ({})) as Record<string, unknown>;
-    const firstName = typeof body?.first_name === 'string' ? body.first_name.trim() : null;
-    const lastName = typeof body?.last_name === 'string' ? body.last_name.trim() : null;
+    const raw = (await request.json().catch(() => ({}))) as unknown
+    const validated = validateBody(OnboardingCompleteSchema, raw)
+    if (validated.success === false) return validated.error
 
-    const admin = createAstroAdminClient(locals.runtime?.env);
+    const doctorsRepo = createSupabaseDoctorsRepo(createAstroAdminClient(locals.runtime?.env))
 
-    const { error: profileError } = await admin
-      .from('profiles')
-      .update({
-        onboarding_completed_at: new Date().toISOString(),
-        onboarding_started_at: new Date().toISOString(),
-        ...(firstName ? { first_name: firstName } : {}),
-        ...(lastName ? { last_name: lastName } : {}),
-      })
-      .eq('user_id', user.id);
+    const outcome = await completeOnboardingUseCase(
+      { doctorsRepo },
+      {
+        userId: auth.user.id,
+        firstName: validated.data.first_name ?? null,
+        lastName: validated.data.last_name ?? null,
+      },
+    )
 
-    if (profileError) {
-      logger.error('[API] doctor onboarding-complete profile update failed', profileError);
+    if (outcome.kind === 'error') {
+      logger.error('[API] doctor onboarding-complete failed', { message: outcome.message })
+      return internalError(outcome.message)
     }
 
-    const { error: metaError } = await admin.auth.admin.updateUserById(user.id, {
-      user_metadata: { onboarding_completed: true },
-    });
-
-    if (metaError) {
-      logger.error('[API] doctor onboarding-complete user_metadata update failed', metaError);
-    }
-
-    return jsonOk(null);
+    return jsonOk(null)
   } catch (err) {
-    logger.error('[API] doctor onboarding-complete error', err as Error);
-    return internalError();
+    logger.error('[API] doctor onboarding-complete error', err as Error)
+    return internalError()
   }
-};
+}

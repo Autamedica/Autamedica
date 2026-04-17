@@ -25,7 +25,10 @@ export type {
   AnamnesisEntity,
   AnamnesisSectionEntity,
 } from './anamnesis.port'
-export type { IDoctorRepository } from './doctors.port'
+export type {
+  IDoctorRepository,
+  MarkOnboardingCompleteInput,
+} from './doctors.port'
 export type {
   IMedicalRecordsRepository,
   MedicalRecordView,

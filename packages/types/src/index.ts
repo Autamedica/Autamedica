@@ -930,6 +930,7 @@ export type {
   AnamnesisEntity,
   AnamnesisSectionEntity,
   IDoctorRepository,
+  MarkOnboardingCompleteInput,
   IMedicalRecordsRepository,
   MedicalRecordView,
   MedicalRecordInsertInput,
