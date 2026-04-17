@@ -134,7 +134,7 @@ export class CloudflareCallsClient implements CallProvider {
       }
     }
     applyContentHints(this.localStream)
-    this.emit('local-stream', this.localStream)
+    this.emitLocalStream()
 
     try {
       const devs = await navigator.mediaDevices.enumerateDevices()
@@ -153,6 +153,18 @@ export class CloudflareCallsClient implements CallProvider {
 
   getLocalStream(): MediaStream | null {
     return this.localStream
+  }
+
+  /**
+   * Emits a fresh MediaStream reference whose track list mirrors
+   * this.localStream. Consumers bind srcObject against this ref, so a new
+   * reference is required whenever tracks change (e.g. toggling the camera)
+   * — otherwise React sees the same object and skips re-bind, leaving the
+   * <video> element stuck on the previous (now-ended) track.
+   */
+  private emitLocalStream(): void {
+    if (!this.localStream) return
+    this.emit('local-stream', new MediaStream(this.localStream.getTracks()))
   }
 
   private async acquireVideoTrack(): Promise<MediaStreamTrack | null> {
@@ -178,14 +190,14 @@ export class CloudflareCallsClient implements CallProvider {
       await this.cfSession?.replacePublishedVideoTrack(null)
       this.localStream.removeTrack(currentTrack)
       currentTrack.stop()
-      this.emit('local-stream', this.localStream)
+      this.emitLocalStream()
       return false
     }
 
     if (currentTrack?.readyState === 'live') {
       currentTrack.enabled = true
       await this.cfSession?.replacePublishedVideoTrack(currentTrack)
-      this.emit('local-stream', this.localStream)
+      this.emitLocalStream()
       return true
     }
 
@@ -194,7 +206,7 @@ export class CloudflareCallsClient implements CallProvider {
 
     this.localStream.addTrack(newTrack)
     await this.cfSession?.replacePublishedVideoTrack(newTrack)
-    this.emit('local-stream', this.localStream)
+    this.emitLocalStream()
     return true
   }
 
@@ -231,7 +243,7 @@ export class CloudflareCallsClient implements CallProvider {
       if (newTrack.id !== old.id) old.stop()
     }
     this.localStream.addTrack(newTrack)
-    this.emit('local-stream', this.localStream)
+    this.emitLocalStream()
   }
 
   async switchDevice(kind: 'video' | 'audio', deviceId: string): Promise<void> {
@@ -243,7 +255,7 @@ export class CloudflareCallsClient implements CallProvider {
     const oldTracks = kind === 'video' ? this.localStream.getVideoTracks() : this.localStream.getAudioTracks()
     oldTracks.forEach((t) => { t.stop(); this.localStream?.removeTrack(t) })
     this.localStream.addTrack(newTrack)
-    this.emit('local-stream', this.localStream)
+    this.emitLocalStream()
   }
 
   /* ── Connection ── */
