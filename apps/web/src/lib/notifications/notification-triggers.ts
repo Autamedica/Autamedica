@@ -239,6 +239,88 @@ function registerNotificationTriggers() {
     });
   });
 
+  domainEvents.on('appointment.cancelled', async ({ appointmentId, cancelledBy, reason }) => {
+    const admin = getAdminClient();
+    const { data: appointment, error } = await admin
+      .from('appointments')
+      .select('doctor_id, patient_id, start_time')
+      .eq('id', appointmentId)
+      .maybeSingle();
+
+    if (error) {
+      logger.error('[notificationTriggers] appointment.cancelled lookup failed', error);
+      return;
+    }
+
+    if (!appointment?.doctor_id) {
+      return;
+    }
+
+    const [doctorUserId, patientUserId, patientName] = await Promise.all([
+      resolveDoctorUser(appointment.doctor_id),
+      resolvePatientUser(appointment.patient_id ?? null),
+      resolvePatientDisplayName(appointment.patient_id ?? null),
+    ]);
+
+    const slot = appointment.start_time ? formatAppointmentDate(appointment.start_time) : 'horario previsto';
+    const motive = reason?.trim() ? ` Motivo: ${reason.trim()}.` : '';
+    const baseContext = {
+      appointmentId,
+      doctorId: appointment.doctor_id,
+      patientId: appointment.patient_id ?? null,
+      cancelledBy,
+      reason: reason ?? null,
+    };
+
+    const notifications: Promise<void>[] = [];
+
+    if (doctorUserId) {
+      const doctorBody = cancelledBy === 'patient'
+        ? `${patientName} cancelo la cita de ${slot}.${motive}`
+        : `Se cancelo la cita con ${patientName} de ${slot}.${motive}`;
+
+      notifications.push(
+        insertPortalNotification({
+          userId: doctorUserId,
+          audience: 'doctor',
+          category: 'appointment',
+          type: 'event_appointment_cancelled',
+          title: 'Cita cancelada',
+          body: doctorBody,
+          actionUrl: '/doctors/agenda',
+          actionLabel: 'Ver agenda',
+          priority: 'high',
+          dedupeKey: `event:appointment.cancelled:${appointmentId}:doctor`,
+          contextData: baseContext,
+        }),
+      );
+    }
+
+    if (patientUserId) {
+      const patientBody = cancelledBy === 'doctor'
+        ? `Tu medico cancelo la cita de ${slot}.${motive}`
+        : `Tu cita de ${slot} fue cancelada.${motive}`;
+
+      notifications.push(
+        insertPortalNotification({
+          userId: patientUserId,
+          audience: 'patient',
+          category: 'appointment',
+          type: 'event_appointment_cancelled',
+          title: 'Cita cancelada',
+          body: patientBody,
+          actionUrl: '/patients/appointments',
+          actionLabel: 'Ver turnos',
+          priority: 'high',
+          dedupeKey: `event:appointment.cancelled:${appointmentId}:patient`,
+          contextData: baseContext,
+        }),
+      );
+    }
+
+    await Promise.all(notifications);
+  });
+
   domainEvents.on('appointment.completed', async ({ appointmentId, doctorId, patientId }) => {
     const patientUserId = await resolvePatientUser(patientId);
     if (!patientUserId) {
