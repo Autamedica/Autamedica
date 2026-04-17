@@ -243,13 +243,24 @@ export function ActiveCallLayout({
       if (!el || !user.stream) return
       if (el.getAttribute('data-assigned-stream') === user.stream.id) return
 
-      const tracks = user.stream.getTracks()
       const assign = () => {
-        el.srcObject = new MediaStream(tracks)
-        el.setAttribute('data-assigned-stream', user.stream?.id ?? '')
-        patchVideoPlayback(el)
+        if (user.stream) {
+          el.srcObject = user.stream
+          el.setAttribute('data-assigned-stream', user.stream.id)
+          patchVideoPlayback(el)
+        }
+        
+        // Aggressive play fallback for black screen issues
+        const ensurePlay = () => {
+          if (el.paused && el.srcObject === user.stream) {
+            el.play().catch(e => console.warn('[Video] Play failed on retry:', e))
+            setTimeout(ensurePlay, 1000)
+          }
+        }
+        setTimeout(ensurePlay, 500)
       }
 
+      const tracks = user.stream.getTracks()
       if (tracks.some(t => t.muted)) {
         const onUnmute = () => { if (tracks.every(t => !t.muted)) assign() }
         tracks.forEach(t => t.addEventListener('unmute', onUnmute, { once: true }))

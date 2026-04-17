@@ -3,7 +3,6 @@ import {
   acquireWakeLock,
   releaseWakeLock,
   setupWakeLockVisibilityHandler,
-  setupVisibilityVideoPause,
   patchVideoPlayback,
 } from '../media-optimizations'
 import type { CallSessionRuntime } from '../call-session/types'
@@ -84,11 +83,11 @@ export function useCallLifecycleEffects({
     return () => { cleanup(); void releaseWakeLock() }
   }, [isInRoom])
 
-  // Pause video when tab hidden
-  useEffect(() => {
-    if (!isInRoom || !client) return
-    return setupVisibilityVideoPause(() => client.getLocalStream())
-  }, [isInRoom, client])
+  // Pause video when tab hidden (removed for debugging black screen)
+  // useEffect(() => {
+  //   if (!isInRoom || !client) return
+  //   return setupVisibilityVideoPause(() => client.getLocalStream())
+  // }, [isInRoom, client])
 
   // Persist call status
   useEffect(() => {
