@@ -169,7 +169,7 @@ export class CloudflareCallsSession {
         resolve()
         return
       }
-      const timeout = setTimeout(resolve, 4000)
+      const timeout = setTimeout(resolve, 10000)
       const onStateChange = () => {
         if (this.pc?.iceGatheringState === 'complete') {
           clearTimeout(timeout)

@@ -128,6 +128,8 @@ export function resolveServiceRoleKey(runtimeEnv?: RuntimeEnvRecord): string | u
 export function resolveCloudflareCallsEnv(runtimeEnv?: RuntimeEnvRecord): {
   appId?: string;
   appSecret?: string;
+  turnKeyId?: string;
+  turnToken?: string;
 } {
   primeRuntimeEnv(runtimeEnv);
 
@@ -143,7 +145,19 @@ export function resolveCloudflareCallsEnv(runtimeEnv?: RuntimeEnvRecord): {
     import.meta.env.CLOUDFLARE_CALLS_APP_SECRET ??
     readProcess(['CLOUDFLARE_CALLS_APP_SECRET']);
 
-  return { appId, appSecret };
+  const turnKeyId =
+    readFirst(runtimeEnv, ['CLOUDFLARE_CALLS_TURN_KEY_ID']) ??
+    readCached(['CLOUDFLARE_CALLS_TURN_KEY_ID']) ??
+    import.meta.env.CLOUDFLARE_CALLS_TURN_KEY_ID ??
+    readProcess(['CLOUDFLARE_CALLS_TURN_KEY_ID']);
+
+  const turnToken =
+    readFirst(runtimeEnv, ['CLOUDFLARE_CALLS_TURN_TOKEN']) ??
+    readCached(['CLOUDFLARE_CALLS_TURN_TOKEN']) ??
+    import.meta.env.CLOUDFLARE_CALLS_TURN_TOKEN ??
+    readProcess(['CLOUDFLARE_CALLS_TURN_TOKEN']);
+
+  return { appId, appSecret, turnKeyId, turnToken };
 }
 
 export function resolveGuestSecret(runtimeEnv?: RuntimeEnvRecord): string | undefined {

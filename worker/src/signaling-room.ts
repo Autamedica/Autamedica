@@ -68,6 +68,9 @@ export class SignalingRoom implements DurableObject {
       case 'offer':
       case 'answer':
       case 'ice-candidate':
+      case 'cf-session':
+      case 'chat':
+      case 'clinical-mode':
         await this.handleRelay(ws, parsed)
         break
 
@@ -149,11 +152,20 @@ export class SignalingRoom implements DurableObject {
 
   private async handleRelay(
     ws: WebSocket,
-    message: { type: 'offer' | 'answer' | 'ice-candidate'; to: string; data: unknown }
+    message: any
   ): Promise<void> {
     const senderMeta = await this.getUserMeta(ws)
     if (!senderMeta) {
       this.sendTo(ws, { type: 'error', data: 'Must join before sending signals' })
+      return
+    }
+
+    if (message.type === 'cf-session' || message.type === 'chat' || message.type === 'clinical-mode') {
+      this.broadcast({
+        type: message.type,
+        from: senderMeta.userId,
+        data: message.data,
+      } as ServerMessage, ws)
       return
     }
 

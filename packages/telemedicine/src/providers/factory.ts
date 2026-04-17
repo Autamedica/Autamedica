@@ -44,6 +44,7 @@ export function createCallProvider(opts: CreateCallProviderOptions): CallProvide
         userType: user.role,
         roomId,
         apiProxyUrl: transport.cloudflareCallsApiUrl,
+        ...(supabase ? { supabase } : {}),
         ...(transport.signalingUrl ? { signalingUrl: transport.signalingUrl } : {}),
       })
     }

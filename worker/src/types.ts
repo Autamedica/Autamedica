@@ -5,6 +5,9 @@ export type ClientMessage =
   | { type: 'offer'; to: string; data: unknown }
   | { type: 'answer'; to: string; data: unknown }
   | { type: 'ice-candidate'; to: string; data: unknown }
+  | { type: 'cf-session'; from: string; data: unknown }
+  | { type: 'chat'; from: string; data: unknown }
+  | { type: 'clinical-mode'; from: string; data: unknown }
 
 /** Messages the server sends to the client */
 export type ServerMessage =
@@ -14,6 +17,9 @@ export type ServerMessage =
   | { type: 'offer'; from: string; data: unknown }
   | { type: 'answer'; from: string; data: unknown }
   | { type: 'ice-candidate'; from: string; data: unknown }
+  | { type: 'cf-session'; from: string; data: unknown }
+  | { type: 'chat'; from: string; data: unknown }
+  | { type: 'clinical-mode'; from: string; data: unknown }
   | { type: 'error'; data: string }
 
 /** User metadata stored in Durable Object storage */

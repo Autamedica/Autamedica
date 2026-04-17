@@ -23,6 +23,7 @@ async function main() {
     console.log(`📦 Preparando envío para \${patients.length} pacientes...`);
 
     for (const patient of patients) {
+            if (patient.email.includes('test') || patient.email.includes('example') || patient.email.includes('appleid')) { console.log('⏭️ Saltando registro de prueba/Apple: ' + patient.email); continue; }
         try {
             const response = await fetch('https://api.resend.com/emails', {
                 method: 'POST',

@@ -6,6 +6,8 @@
  */
 
 import { loadSignalingUrl } from '../config/ice-servers'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { openSupabaseSignaling, type SupabaseSignalingHandle } from '../supabase-signaling'
 import { getAdaptiveConstraints, applyContentHints } from '../media-optimizations'
 import type { CallProvider, ConnectionState, DeviceInfo, WarmUpResult, WebRTCEvents } from '../providers/types'
 import type {
@@ -33,10 +35,13 @@ export interface CloudflareCallsClientConfig {
   apiProxyUrl?: string
   /** URL del servidor de señalización (default: PUBLIC_SIGNALING_URL) */
   signalingUrl?: string
+  /** Supabase client for signaling fallback/alternative */
+  supabase?: SupabaseClient
 }
 
 export class CloudflareCallsClient implements CallProvider {
   private ws: WebSocket | null = null
+  private sbHandle: SupabaseSignalingHandle | null = null
   private cfSession: CloudflareCallsSession | null = null
   private localStream: MediaStream | null = null
   private connectionState: ConnectionState = 'disconnected'
@@ -65,6 +70,7 @@ export class CloudflareCallsClient implements CallProvider {
       roomId: cfg.roomId ?? 'default-room',
       apiProxyUrl: cfg.apiProxyUrl ?? '/api/cloudflare-calls',
       signalingUrl: cfg.signalingUrl ?? loadSignalingUrl(),
+      supabase: cfg.supabase,
     }
 
     this.debugLogger = createTelemedicineLogger({
@@ -304,6 +310,8 @@ export class CloudflareCallsClient implements CallProvider {
     this.sendSignal({ type: 'leave', from: this.config.userId })
     this.ws?.close(1000, 'user disconnect')
     this.ws = null
+    this.sbHandle?.close()
+    this.sbHandle = null
     this.cfSession?.close()
     this.cfSession = null
     for (const t of this.localStream?.getTracks() ?? []) t.stop()
@@ -344,16 +352,41 @@ export class CloudflareCallsClient implements CallProvider {
 
   /* ── Señalización ── */
 
-  private connectSignaling(roomId: string): Promise<void> {
+  private async connectSignaling(roomId: string): Promise<void> {
+    if (this.config.supabase) {
+      this.debugLogger.info('Connecting to signaling via Supabase Realtime')
+      const handleWrapper = { handle: this.sbHandle }
+      await openSupabaseSignaling(
+        this.config.supabase,
+        roomId,
+        this.config.userId,
+        this.config.userType,
+        {
+          logger: {
+            logInfo: (m, ctx) => this.debugLogger.info(m, ctx),
+            logWarn: (m, ctx) => this.debugLogger.warn(m, ctx),
+            logError: (m, e, ctx) => this.debugLogger.error(m, e, ctx),
+          },
+          setConnectionState: (s) => this.setConnectionState(s as any),
+          handleMessage: (m) => this.handleSignalingMessage(m as any),
+          emit: (e, ...args) => this.emit(e as any, ...args),
+          cleanup: () => { this.sbHandle = null },
+        },
+        handleWrapper
+      )
+      this.sbHandle = handleWrapper.handle
+      return
+    }
+
     return new Promise<void>((resolve, reject) => {
       const wsUrl = `${this.config.signalingUrl}?roomId=${encodeURIComponent(roomId)}`
-      this.debugLogger.info('Connecting to signaling server', { wsUrl })
+      this.debugLogger.info('Connecting to signaling server via WebSocket', { wsUrl })
       this.ws = new WebSocket(wsUrl)
       let settled = false
 
       const timeout = setTimeout(() => {
         if (!settled) { settled = true; reject(new Error('Signaling timeout')) }
-      }, 8000)
+      }, 20000)
 
       this.ws.onopen = () => {
         this.debugLogger.info('Signaling WebSocket opened')
@@ -554,7 +587,9 @@ export class CloudflareCallsClient implements CallProvider {
   }
 
   private sendSignal(data: Record<string, unknown>): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
+    if (this.sbHandle) {
+      this.sbHandle.send(data)
+    } else if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data))
     }
   }

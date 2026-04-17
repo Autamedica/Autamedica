@@ -138,15 +138,18 @@ function PatientCallContent({ roomId }: { roomId: string }) {
   }, [session, typedProfile])
 
   // Must be before any early return — Rules of Hooks
+  // Stabilize provider: only recreate if callId or runtime changes
   const callProvider = useMemo(
-    () => callSession
-      ? createCallProvider({
-          bootstrap: callSession,
-          supabase: callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined,
-          iceServersOverride: clientTurnServers ?? undefined,
-        })
-      : null,
-    [callSession, clientTurnServers],
+    () => {
+      if (!callSession) return null;
+      return createCallProvider({
+        bootstrap: callSession,
+        supabase: getBrowserSupabaseClient(),
+        iceServersOverride: clientTurnServers ?? undefined,
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [callSession?.callId, callSession?.runtime, clientTurnServers],
   )
 
   if (callSessionError) {

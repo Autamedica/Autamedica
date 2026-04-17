@@ -5,7 +5,7 @@ import type { Call, CallSessionBootstrap, CallSessionRole, CallSessionRuntime } 
 import { getIceServersConfig, hasTurnIceServer } from '@autamedica/telemedicine'
 import { handleTurnCredentials } from '@autamedica/telemedicine/server'
 import { callSessionRepo } from '@/lib/calls/repos/call-session.repo'
-import { getRuntimeEnvValue } from '@/lib/runtime-env'
+import { resolveCloudflareCallsEnv } from '@/lib/runtime-env'
 
 type Db = SupabaseClient<Database>
 
@@ -29,8 +29,7 @@ export function resolveRuntime(): CallSessionRuntime {
     return 'webrtc-p2p'
   }
 
-  const appId = import.meta.env.CLOUDFLARE_CALLS_APP_ID || getRuntimeEnvValue('CLOUDFLARE_CALLS_APP_ID')
-  const appSecret = import.meta.env.CLOUDFLARE_CALLS_APP_SECRET || getRuntimeEnvValue('CLOUDFLARE_CALLS_APP_SECRET')
+  const { appId, appSecret } = resolveCloudflareCallsEnv()
   const hasCloudflareCalls = Boolean(appId) && Boolean(appSecret)
 
   if (hasCloudflareCalls) return 'cloudflare-calls'
@@ -68,14 +67,13 @@ function buildWaitingRoom(call: Call, role: CallSessionRole, peerName?: string):
 }
 
 async function fetchCloudflareTurnServers(): Promise<RTCIceServer[]> {
-  const keyId = import.meta.env.CLOUDFLARE_CALLS_TURN_KEY_ID
-  const token = import.meta.env.CLOUDFLARE_CALLS_TURN_TOKEN
-  if (!keyId || !token) {
+  const { turnKeyId, turnToken } = resolveCloudflareCallsEnv()
+  if (!turnKeyId || !turnToken) {
     logger.warn('[fetchCloudflareTurnServers] CLOUDFLARE_CALLS_TURN_KEY_ID or CLOUDFLARE_CALLS_TURN_TOKEN not set')
     return []
   }
 
-  const result = await handleTurnCredentials({ keyId, token })
+  const result = await handleTurnCredentials({ keyId: turnKeyId, token: turnToken })
   if (result.status !== 200) return []
 
   const body = result.body as { ok: boolean; iceServers?: RTCIceServer[] }
@@ -144,17 +142,26 @@ export const callSessionBackendService = {
     }
 
     if (TERMINAL_CALL_STATUSES.has(call.status)) {
-      const message =
-        call.status === 'ended'
-          ? 'call_ended'
-          : call.status === 'canceled'
-            ? 'call_canceled'
-            : 'call_declined'
+      // Grace period: if call ended recently (< 5 min), allow joining to recover from disconnects
+      const endedAt = call.ended_at ? new Date(call.ended_at).getTime() : 0;
+      const now = Date.now();
+      const isRecentlyEnded = call.status === 'ended' && (now - endedAt < 300_000); // 5 minutes
 
-      return {
-        kind: 'conflict',
-        message,
+      if (!isRecentlyEnded) {
+        const message =
+          call.status === 'ended'
+            ? 'call_ended'
+            : call.status === 'canceled'
+              ? 'call_canceled'
+              : 'call_declined'
+
+        return {
+          kind: 'conflict',
+          message,
+        }
       }
+      
+      logger.info(`[callSessionBackendService] Allowing join for recently ended call (${call.id}) via grace period`);
     }
 
     const [doctorProfileId, patientProfileId, displayName] = await Promise.all([

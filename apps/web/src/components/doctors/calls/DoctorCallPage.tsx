@@ -411,15 +411,18 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     }
   }, [session, typedProfile, roomId])
 
+  // Stabilize provider: only recreate if callId or runtime changes, not for every session update
   const callProvider = useMemo(
-    () => callSession
-      ? createCallProvider({
-          bootstrap: callSession,
-          supabase: callSession.runtime === "webrtc-p2p" ? getBrowserSupabaseClient() : undefined,
-          iceServersOverride: clientTurnServers ?? undefined,
-        })
-      : null,
-    [callSession, clientTurnServers],
+    () => {
+      if (!callSession) return null;
+      return createCallProvider({
+        bootstrap: callSession,
+        supabase: getBrowserSupabaseClient(),
+        iceServersOverride: clientTurnServers ?? undefined,
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [callSession?.callId, callSession?.runtime, clientTurnServers],
   )
 
   if (callSessionError) {
