@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import type { RefObject } from 'react'
 import { User, ShieldCheck } from 'lucide-react'
 
@@ -16,7 +16,7 @@ export interface ActiveCallLayoutProps {
   remoteVideosRef: RefObject<Map<string, HTMLVideoElement>>
   localVideoRef: RefObject<HTMLVideoElement | null>
   screenShareRef: RefObject<HTMLVideoElement | null>
-  client: any
+  client: unknown
   isVideoEnabled: boolean
   isAudioEnabled: boolean
   isScreenSharing: boolean
@@ -51,7 +51,7 @@ export function ActiveCallLayout({
           <div className="h-full w-full">
             {isScreenSharing && screenStream ? (
               <video
-                ref={screenShareRef as any}
+                ref={screenShareRef as RefObject<HTMLVideoElement>}
                 autoPlay
                 playsInline
                 className="h-full w-full object-contain bg-black"
@@ -103,7 +103,7 @@ export function ActiveCallLayout({
         >
           {isVideoEnabled ? (
             <video
-              ref={localVideoRef as any}
+              ref={localVideoRef as RefObject<HTMLVideoElement>}
               autoPlay
               muted
               playsInline

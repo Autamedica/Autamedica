@@ -1,13 +1,11 @@
 'use client'
 
 import type { RefObject } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   Loader2,
   AlertTriangle,
   RefreshCcw,
-  User,
-  Settings,
 } from 'lucide-react'
 import type { ConnectionState, DeviceInfo, WarmUpResult } from '../providers/types'
 import type { PreflightResult } from '../network/preflight'
@@ -21,7 +19,7 @@ import {
 
 export interface GreenRoomProps {
   localVideoRef: RefObject<HTMLVideoElement | null>
-  client: any
+  client: unknown
   warmUpResult: WarmUpResult | null
   isWarmingUp: boolean
   audioLevel: number
@@ -49,14 +47,14 @@ export interface GreenRoomProps {
 
 export function GreenRoom({
   localVideoRef,
-  warmUpResult,
+  warmUpResult: _warmUpResult,
   isWarmingUp,
   audioLevel,
   greenRoomChecks,
   onStartCall,
-  callError,
+  callError: _callError,
   userName,
-  accentColor,
+  accentColor: _accentColor,
   preflightResult,
   preflightRunning,
   onPreflightRerun,

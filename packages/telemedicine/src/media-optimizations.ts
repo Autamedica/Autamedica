@@ -143,7 +143,7 @@ export function getAdaptiveConstraints(): MediaStreamConstraints {
 export function applyContentHints(stream: MediaStream): void {
   for (const track of stream.getVideoTracks()) {
     if ('contentHint' in track) {
-       
+      track.contentHint = 'motion'
     }
   }
   for (const track of stream.getAudioTracks()) {
