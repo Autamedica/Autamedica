@@ -137,7 +137,11 @@ export function useCallLifecycleEffects({
     })
   }, [remoteUsers, remoteVideosRef])
 
-  // Re-attach local stream on layout changes
+  // Re-attach local stream on layout changes.
+  // isInRoom/isCallEstablished are deps so this re-runs right after
+  // ActiveCallLayout mounts the <video> element — otherwise a stream
+  // that arrived before mount stays unbound because localVideoRef.current
+  // is still null when the effect first runs.
   useEffect(() => {
     if (!localVideoRef.current) return
     const stream = localStream ?? client?.getLocalStream() ?? null
@@ -145,7 +149,7 @@ export function useCallLifecycleEffects({
       localVideoRef.current.srcObject = stream
       patchVideoPlayback(localVideoRef.current)
     }
-  }, [client, localVideoRef, localStream, remoteUsers])
+  }, [client, localVideoRef, localStream, remoteUsers, isInRoom, isCallEstablished])
 
   // Screen share sync
   useEffect(() => {
