@@ -31,6 +31,10 @@ export class SupabasePharmacyNotifier implements IPharmacyNotifier {
     pharmacistUserId: string,
     orderId: DispensationOrderId
   ): Promise<void> {
+    // TODO(#309): portal_notifications.audience CHECK IN ('patient','doctor','company','admin')
+    // no soporta 'pharmacist'. El destinatario semánticamente correcto es el farmacéutico que
+    // solicitó la aclaración, no el doctor. Requiere migración que extienda el CHECK y alinear
+    // policies RLS + portal de pharmacy. Mientras tanto, se persiste en pharmacy_audit_events.
     logger.warn(
       '[PharmacyNotifier] Skipping portal notification for pharmacist clarification response: unsupported audience',
       { pharmacistUserId, orderId }
