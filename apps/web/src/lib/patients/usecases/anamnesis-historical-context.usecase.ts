@@ -1,3 +1,5 @@
+// Pure scoring/profile-builder: derives historical context from already-loaded versions, no I/O.
+// Intentionally avoids the (deps, args) DI pattern — callers fetch versions and pass them in.
 import type {
   AnamnesisHistoricalContext,
   AnamnesisHistoricalEpisode,

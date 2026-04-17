@@ -1,3 +1,5 @@
+// Pure state-machine helpers for the psychiatry intake flow: resume position, workflow type,
+// step statuses, visible fields. No I/O, no side effects — intentionally skips the (deps, args) DI pattern.
 import {
   psychiatryPhaseMeta,
   psychiatryPhaseOrder,
