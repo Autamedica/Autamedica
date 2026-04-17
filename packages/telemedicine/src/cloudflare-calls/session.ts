@@ -83,6 +83,20 @@ export class CloudflareCallsSession {
       }
     }
 
+    // Ensure both audio and video senders exist even if the initial stream is
+    // missing one kind (e.g. camera/mic denied, warmUp fell back to audio-only).
+    // Without a pre-created transceiver, replaceTrack() later becomes a no-op
+    // because there is no sender to replace on, so turning the camera ON
+    // mid-call would never publish the new track to the SFU.
+    if (!this.localVideoSender) {
+      const videoTransceiver = this.pc.addTransceiver('video', { direction: 'sendonly' })
+      this.localVideoSender = videoTransceiver.sender
+    }
+    if (!this.localAudioSender) {
+      const audioTransceiver = this.pc.addTransceiver('audio', { direction: 'sendonly' })
+      this.localAudioSender = audioTransceiver.sender
+    }
+
     // Crear oferta SDP con todos los transceivers locales
     const offer = await this.pc.createOffer()
     await this.pc.setLocalDescription(offer)
@@ -102,15 +116,21 @@ export class CloudflareCallsSession {
       await this.pc.setRemoteDescription(sessionDescription)
     }
 
-    // 2. Publicar los tracks locales con nombres canónicos (audio0, video0)
+    // 2. Publicar los tracks locales con nombres canónicos (audio0, video0).
+    // Include every sendonly transceiver — even the ones without a track yet —
+    // so the SFU binds the canonical slot now; later replaceTrack() calls will
+    // start flowing media without needing a fresh tracks/new registration.
     const transceivers = this.pc.getTransceivers()
     const localTracks: TrackEntry[] = transceivers
-      .filter((t) => t.sender.track !== null && t.direction === 'sendonly')
-      .map((t) => ({
-        location: 'local' as const,
-        mid: t.mid ?? undefined,
-        trackName: `${t.sender.track?.kind ?? 'audio'}0`,
-      }))
+      .filter((t) => t.direction === 'sendonly')
+      .map((t) => {
+        const kind = t.sender.track?.kind ?? t.receiver.track?.kind ?? 'audio'
+        return {
+          location: 'local' as const,
+          mid: t.mid ?? undefined,
+          trackName: `${kind}0`,
+        }
+      })
 
     if (localTracks.length > 0) {
       await this.enqueueNegotiation(async () => {
