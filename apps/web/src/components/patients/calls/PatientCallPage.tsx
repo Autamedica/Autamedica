@@ -172,7 +172,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-am-surface-900 px-4">
         <motion.div
-          className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur"
+          className="w-full max-w-md rounded-3xl border border-am-surface-700/50 bg-am-surface-900/[0.04] p-8 text-center shadow-2xl backdrop-blur"
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 14 }}
@@ -208,7 +208,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
             <motion.button
               type="button"
               onClick={() => { window.location.href = '/patients' }}
-              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-white/5"
+              className="rounded-2xl border border-am-surface-700/50 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-am-surface-900/5"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -224,7 +224,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-am-surface-900 px-4">
         <motion.div
-          className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur"
+          className="w-full max-w-md rounded-3xl border border-am-surface-700/50 bg-am-surface-900/[0.04] p-8 text-center shadow-2xl backdrop-blur"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 120, damping: 14 }}

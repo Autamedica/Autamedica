@@ -429,8 +429,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   if (callSessionError) {
     const errorInfo = translateCallError(callSessionError)
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="flex min-h-screen items-center justify-center bg-am-surface-900 px-4">
+        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-am-surface-900 p-8 text-center shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600/80">
             Telemedicina profesional
           </p>
@@ -439,7 +439,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-1.333-2.694-1.333-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-slate-900">{errorInfo.title}</h1>
+          <h1 className="text-xl font-semibold text-am-surface-50">{errorInfo.title}</h1>
           <p className="mt-3 text-sm text-slate-500">{errorInfo.description}</p>
           {errorInfo.retryHint && (
             <p className="mt-2 text-sm text-amber-600">{errorInfo.retryHint}</p>
@@ -455,7 +455,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             <button
               type="button"
               onClick={() => { window.location.href = '/doctors' }}
-              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-am-surface-900"
             >
               Volver al portal
             </button>
@@ -467,13 +467,13 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
   if (loading || !isReady || callSessionLoading || !callSession) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="flex min-h-screen items-center justify-center bg-am-surface-900 px-4">
+        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-am-surface-900 p-8 text-center shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600/80">
             Telemedicina profesional
           </p>
           <div className="mx-auto mb-4 mt-5 h-12 w-12 animate-spin rounded-full border-b-2 border-emerald-500"></div>
-          <h1 className="text-xl font-semibold text-slate-900">Preparando videollamada...</h1>
+          <h1 className="text-xl font-semibold text-am-surface-50">Preparando videollamada...</h1>
           <p className="mt-3 text-sm text-slate-500">
             Estamos validando la sala, el contexto clínico y la conexión segura antes de ingresar.
           </p>
@@ -484,8 +484,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
   if (!renderableCallSession) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="min-h-screen bg-am-surface-900 flex items-center justify-center px-4">
+        <div className="max-w-md w-full rounded-3xl border border-slate-200 bg-am-surface-900 p-8 text-center shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600/80">
             Telemedicina profesional
           </p>
@@ -494,7 +494,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-1.333-2.694-1.333-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-slate-900">La videollamada quedó inconsistente</h1>
+          <h1 className="text-xl font-semibold text-am-surface-50">La videollamada quedó inconsistente</h1>
           <p className="mt-3 text-sm text-slate-500">
             Recibimos una sesión parcial. Reintentá para reconstruir la llamada antes de volver a entrar.
           </p>
@@ -509,7 +509,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             <button
               type="button"
               onClick={() => { window.location.href = '/doctors' }}
-              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-am-surface-900"
             >
               Volver al portal
             </button>
@@ -522,12 +522,12 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const waitingCopy = getWaitingCopy(doctorWaitingState, callSession.waitingRoom.message, callSession.peer?.displayName)
 
   return (
-    <div className="h-screen bg-slate-50 overflow-hidden flex">
+    <div className="h-screen bg-am-surface-900 overflow-hidden flex">
       {/* Video Call */}
       <div className={`flex-1 min-w-0 transition-all duration-300 relative ${panelCollapsed ? '' : 'mr-0'}`}>
         {showDoctorWaitingRoom ? (
           <div className="h-screen flex items-center justify-center px-6">
-            <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-am-surface-900 p-8 shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${
@@ -535,7 +535,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                   }`}>
                     {doctorWaitingState === 'waiting' ? 'Videollamada lista' : 'Videollamada finalizada'}
                   </p>
-                  <h1 className="mt-3 text-3xl font-semibold text-slate-900">
+                  <h1 className="mt-3 text-3xl font-semibold text-am-surface-50">
                     {waitingCopy.title}
                   </h1>
                 </div>
@@ -544,7 +544,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                     : doctorWaitingState === 'canceling'
                       ? 'border-amber-200 bg-amber-50 text-amber-700'
-                      : 'border-slate-200 bg-slate-50 text-slate-700'
+                      : 'border-slate-200 bg-am-surface-900 text-slate-700'
                 }`}>
                   {doctorWaitingState === 'waiting'
                     ? formatWaitingCountdown(waitSecondsRemaining)
@@ -554,14 +554,14 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                 </div>
               </div>
 
-              <p className="mt-4 text-base leading-7 text-slate-600">
+              <p className="mt-4 text-base leading-7 text-am-surface-300">
                 {waitingCopy.description}
               </p>
 
-              <div className="mt-8 rounded-2xl border border-slate-100 bg-slate-50 p-5">
+              <div className="mt-8 rounded-2xl border border-slate-100 bg-am-surface-900 p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">Estado de invitacion</p>
+                    <p className="text-sm font-semibold text-am-surface-50">Estado de invitacion</p>
                     <p className="mt-1 text-sm text-slate-500">
                       {doctorWaitingState === 'waiting'
                         ? 'El paciente verá la llamada entrante y podrá aceptar desde su portal.'
@@ -587,7 +587,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                     type="button"
                     onClick={() => void cancelWaitingCall('doctor_canceled')}
                     disabled={doctorWaitingState === 'canceling'}
-                    className="inline-flex items-center justify-center rounded-2xl bg-white border border-red-200 px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center justify-center rounded-2xl bg-am-surface-900 border border-red-200 px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {doctorWaitingState === 'canceling' ? 'Cancelando...' : 'Cancelar llamada'}
                   </button>
@@ -604,7 +604,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                 <button
                   type="button"
                   onClick={() => { window.location.href = '/doctors' }}
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-am-surface-900 transition-colors"
                 >
                   Ir al inicio medico
                 </button>
@@ -640,7 +640,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
         {/* Transcription active indicator — minimal, non-intrusive */}
         {!showDoctorWaitingRoom && transcriptionState.isTranscribing && (
-          <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-white border border-red-100 rounded-full px-3 py-1.5 shadow-sm" title="Transcripción activa">
+          <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-am-surface-900 border border-red-100 rounded-full px-3 py-1.5 shadow-sm" title="Transcripción activa">
             <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
             <span className="text-[10px] font-bold text-red-600 select-none">REC</span>
           </div>
@@ -648,7 +648,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
         {!showDoctorWaitingRoom && captionText && (
           <div className="pointer-events-none absolute inset-x-0 bottom-28 z-20 flex justify-center px-4 sm:bottom-32">
-            <div className="max-w-2xl rounded-2xl border border-white/10 bg-slate-950/66 px-4 py-2.5 text-center shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+            <div className="max-w-2xl rounded-2xl border border-am-surface-700/50 bg-slate-950/66 px-4 py-2.5 text-center shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-xl">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
                 subtítulo local
               </p>
@@ -661,7 +661,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       </div>
 
       {/* Clinical Context Panel */}
-      <div className={`shrink-0 transition-all duration-300 ${panelCollapsed ? 'w-0' : 'w-96'} bg-white border-l border-slate-200`}>
+      <div className={`shrink-0 transition-all duration-300 ${panelCollapsed ? 'w-0' : 'w-96'} bg-am-surface-900 border-l border-slate-200`}>
         <ConsultationContextPanel
           context={context}
           loading={contextLoading}
