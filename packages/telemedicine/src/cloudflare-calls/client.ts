@@ -52,6 +52,8 @@ export class CloudflareCallsClient implements CallProvider {
   private connectedPeerIds = new Set<string>()
   /** Session IDs queued because our local CF session isn't fully connected yet */
   private pendingRemoteSessionIds: string[] = []
+  /** Peer user IDs who joined while we were still connecting — re-announce our session to them once ready */
+  private pendingPeerAnnouncements: string[] = []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private listeners = new Map<keyof WebRTCEvents, ((...args: any[]) => void)[]>()
   private readonly config: Required<Omit<CloudflareCallsClientConfig, 'userName'>> & { userName?: string }
@@ -298,6 +300,19 @@ export class CloudflareCallsClient implements CallProvider {
         this.debugLogger.info('Subscribing to pending peer session', { remoteSessionId })
         await this.cfSession.subscribeToSession(remoteSessionId)
       }
+
+      // Re-announce our cf-session to peers who joined while we were still connecting
+      // (user-joined arrived before getSessionId() was non-null, so we deferred)
+      const deferredPeers = [...this.pendingPeerAnnouncements]
+      this.pendingPeerAnnouncements = []
+      if (deferredPeers.length > 0) {
+        this.debugLogger.info('Re-announcing cf-session to deferred peers', { count: deferredPeers.length })
+        this.sendSignal({
+          type: 'cf-session',
+          from: this.config.userId,
+          data: { sessionId: mySessionId, userType: this.config.userType },
+        })
+      }
     } catch (err) {
       this.debugLogger.error('Connection failed', err)
       this.setConnectionState('failed')
@@ -325,6 +340,7 @@ export class CloudflareCallsClient implements CallProvider {
     this.streamIdToUserId.clear()
     this.pendingRemoteUserIds = []
     this.pendingRemoteSessionIds = []
+    this.pendingPeerAnnouncements = []
     this.connectedPeerIds.clear()
     this.signalingReconnectAttempt = 0
   }
@@ -527,6 +543,7 @@ export class CloudflareCallsClient implements CallProvider {
       case 'user-joined': {
         this.emit('user-joined', msg.from, msg.data.userType)
         if (this.cfSession?.getSessionId()) {
+          // We're ready — announce our session immediately
           this.sendSignal({
             type: 'cf-session',
             from: this.config.userId,
@@ -535,6 +552,12 @@ export class CloudflareCallsClient implements CallProvider {
               userType: this.config.userType,
             },
           })
+        } else if (this.cfSession) {
+          // We're still connecting — defer announcement until connect() resolves
+          this.debugLogger.info('Deferring cf-session announce to peer (still connecting)', { peerId: msg.from })
+          if (!this.pendingPeerAnnouncements.includes(msg.from)) {
+            this.pendingPeerAnnouncements.push(msg.from)
+          }
         }
         break
       }

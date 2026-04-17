@@ -12,6 +12,7 @@ import { useCallSession } from '@/hooks/calls/useCallSession'
 import { translateCallError } from '@/lib/calls/lib/call-error-messages'
 import { persistCallStatusBrowserService } from '@/lib/calls/services/persist-call-status.browser'
 import { respondCallBrowserService } from '@/lib/calls/services/respond-call.browser'
+import { ApiError } from '@/lib/api-client'
 
 interface PatientCallPageProps {
   roomId: string
@@ -94,6 +95,12 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     respondCallBrowserService
       .respond({ callId, action: 'accept' })
       .catch((err: unknown) => {
+        if (err instanceof ApiError && err.status === 409) {
+          // Call already terminated (canceled/ended by doctor) – send patient back
+          logger.warn('[PatientCallPage] Call no longer accepting patients, redirecting', { code: err.message })
+          window.location.href = '/dashboard?callEnded=1'
+          return
+        }
         logger.warn('[PatientCallPage] Auto-accept failed (may already be accepted)', err)
       })
   }, [callSession?.callId])
@@ -119,10 +126,17 @@ function PatientCallContent({ roomId }: { roomId: string }) {
           ...(reason ? { reason } : {}),
         })
       } catch (err) {
-        logger.warn('[PatientCallPage] Failed to persist call status', { status, error: err })
+        if (err instanceof ApiError && err.status === 409) {
+          // Call was terminated remotely (canceled/ended) – stop the video session
+          logger.warn('[PatientCallPage] Call no longer joinable, ending session', { status, code: err.message })
+          handleCallEnd()
+          return
+        }
+        // Network errors (ERR_NETWORK_CHANGED, etc.) are transient — log and continue
+        logger.warn('[PatientCallPage] Failed to persist call status (transient?)', { status, error: err })
       }
     },
-    [callSession]
+    [callSession, handleCallEnd]
   )
 
   const { userId, userName } = useMemo(() => {
