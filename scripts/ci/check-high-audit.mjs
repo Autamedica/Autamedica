@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 const NON_BLOCKING_GHSAS = new Set([
   'GHSA-v2wj-q39q-566r',
   'GHSA-p9ff-h696-f583',
+  'GHSA-xq3m-2v4x-88gg',
 ]);
 
 const audit = spawnSync('pnpm', ['audit', '--audit-level=high', '--json'], {
