@@ -47,6 +47,7 @@ export class CloudflareCallsSession {
   private sessionId: string | null = null
   private localVideoSender: RTCRtpSender | null = null
   private localAudioSender: RTCRtpSender | null = null
+  private negotiationQueue: Promise<void> = Promise.resolve()
   private readonly cfg: CFSessionConfig
 
   constructor(config: CFSessionConfig) {
@@ -112,14 +113,16 @@ export class CloudflareCallsSession {
       }))
 
     if (localTracks.length > 0) {
-      const result = await this.cfApi<NewTracksResponse>(
-        'POST',
-        `sessions/${sessionId}/tracks/new`,
-        { tracks: localTracks }
-      )
-      if (result.requiresImmediateRenegotiation && result.sessionDescription) {
-        await this.renegotiate(result.sessionDescription)
-      }
+      await this.enqueueNegotiation(async () => {
+        const result = await this.cfApi<NewTracksResponse>(
+          'POST',
+          `sessions/${sessionId}/tracks/new`,
+          { tracks: localTracks }
+        )
+        if (result.requiresImmediateRenegotiation && result.sessionDescription) {
+          await this.renegotiate(result.sessionDescription)
+        }
+      })
     }
 
     return sessionId
@@ -139,15 +142,30 @@ export class CloudflareCallsSession {
       { location: 'remote', trackName: 'video0', sessionId: remoteSessionId },
     ]
 
-    const result = await this.cfApi<NewTracksResponse>(
-      'POST',
-      `sessions/${this.sessionId}/tracks/new`,
-      { tracks: remoteTracks }
-    )
+    await this.enqueueNegotiation(async () => {
+      const result = await this.cfApi<NewTracksResponse>(
+        'POST',
+        `sessions/${this.sessionId}/tracks/new`,
+        { tracks: remoteTracks }
+      )
 
-    if (result.requiresImmediateRenegotiation && result.sessionDescription) {
-      await this.renegotiate(result.sessionDescription)
-    }
+      if (result.requiresImmediateRenegotiation && result.sessionDescription) {
+        await this.renegotiate(result.sessionDescription)
+      }
+    })
+  }
+
+  /** Ensures API track modifications and renegotiations happen sequentially */
+  private enqueueNegotiation<T>(operation: () => Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      this.negotiationQueue = this.negotiationQueue.then(async () => {
+        try {
+          resolve(await operation())
+        } catch (err) {
+          reject(err)
+        }
+      })
+    })
   }
 
   /** Procesa una re-negociación iniciada por Cloudflare (nuevo offer → answer) */
