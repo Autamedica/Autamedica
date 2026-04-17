@@ -36,6 +36,7 @@ interface NewTracksResponse {
 export interface CFSessionConfig {
   /** URL del proxy API en el app (e.g., /api/cloudflare-calls) */
   apiProxyUrl: string
+  iceServers?: RTCIceServer[]
   onTrack: (event: RTCTrackEvent) => void
   onConnectionStateChange: (state: RTCPeerConnectionState) => void
   onError?: (err: Error) => void
@@ -59,7 +60,7 @@ export class CloudflareCallsSession {
   async connect(localStream: MediaStream): Promise<string> {
     // Cloudflare Calls provee sus propios candidatos ICE dentro del SDP.
     // No hace falta configurar ICE servers externos para la conexión al SFU.
-    this.pc = new RTCPeerConnection()
+    this.pc = new RTCPeerConnection(this.cfg.iceServers ? { iceServers: this.cfg.iceServers } : undefined)
 
     this.pc.addEventListener('track', this.cfg.onTrack)
     this.pc.addEventListener('connectionstatechange', () => {
