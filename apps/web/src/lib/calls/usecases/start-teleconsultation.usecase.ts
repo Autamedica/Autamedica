@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
-import { logger } from '@autamedica/shared'
+import { logger, domainEvents } from '@autamedica/shared'
 import type { CallStatus } from '@autamedica/telemedicine'
 import type { ICallStartRepository } from '@/lib/calls/ports/call-start.port'
 import { resolveDoctorId, doctorHasPatientAccess } from '@/lib/doctors/lib/resolve-room'
@@ -168,6 +168,22 @@ export async function startTeleconsultationUseCase(
           error: err,
         });
       }
+    }
+
+    // Emit domain event once, as close to the fact as possible.
+    // Wrapped so a handler failure never breaks the call start flow.
+    try {
+      await domainEvents.emit('call.started', {
+        callId: call.id,
+        roomId: call.room_id,
+        doctorId,
+        patientId: input.patientId,
+      })
+    } catch (err) {
+      logger.warn('[startTeleconsultation] call.started emit failed', {
+        callId: call.id,
+        error: err instanceof Error ? err.message : err,
+      })
     }
 
     return {

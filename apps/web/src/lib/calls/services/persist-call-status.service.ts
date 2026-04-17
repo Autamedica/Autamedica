@@ -8,7 +8,7 @@ import {
 } from '@/lib/calls/services/call-status-rules'
 import { decrementFreeConsultation } from '@/lib/calls/lib/consultation-credits'
 import { decrementDoctorVideoconsulta } from '@/lib/calls/lib/doctor-videoconsulta-credits'
-import { logger } from '@autamedica/shared'
+import { logger, domainEvents } from '@autamedica/shared'
 
 type Db = SupabaseClient<Database>
 
@@ -140,6 +140,27 @@ export const persistCallStatusService = {
           error: err instanceof Error ? err.message : String(err),
         })
       })
+
+      // Emit domain event once, at the canonical transition point.
+      // Duration is measured from accepted_at (first join) with created_at as fallback.
+      try {
+        const startTs = call.accepted_at ?? call.created_at
+        const startMs = startTs ? Date.parse(startTs) : NaN
+        const durationSeconds = Number.isFinite(startMs)
+          ? Math.max(0, Math.round((Date.now() - startMs) / 1000))
+          : 0
+
+        await domainEvents.emit('call.ended', {
+          callId: call.id,
+          roomId: call.room_id,
+          durationSeconds,
+        })
+      } catch (err) {
+        logger.warn('[persist-call-status] call.ended emit failed', {
+          callId: call.id,
+          error: err instanceof Error ? err.message : err,
+        })
+      }
     }
 
     return {
