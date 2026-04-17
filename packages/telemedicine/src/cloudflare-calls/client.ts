@@ -37,11 +37,13 @@ export interface CloudflareCallsClientConfig {
   signalingUrl?: string
   /** Supabase client for signaling fallback/alternative */
   supabase?: SupabaseClient
+  iceServers?: RTCIceServer[]
 }
 
 export class CloudflareCallsClient implements CallProvider {
   private ws: WebSocket | null = null
   private sbHandle: SupabaseSignalingHandle | null = null
+  private pendingRemoteSessions = new Set<string>()
   private cfSession: CloudflareCallsSession | null = null
   private localStream: MediaStream | null = null
   private connectionState: ConnectionState = 'disconnected'
@@ -71,6 +73,7 @@ export class CloudflareCallsClient implements CallProvider {
       apiProxyUrl: cfg.apiProxyUrl ?? '/api/cloudflare-calls',
       signalingUrl: cfg.signalingUrl ?? loadSignalingUrl(),
       supabase: cfg.supabase,
+      iceServers: cfg.iceServers,
     }
 
     this.debugLogger = createTelemedicineLogger({
@@ -255,6 +258,7 @@ export class CloudflareCallsClient implements CallProvider {
 
       this.cfSession = new CloudflareCallsSession({
         apiProxyUrl: this.config.apiProxyUrl,
+        iceServers: this.config.iceServers,
         onTrack: (event) => this.handleRemoteTrack(event),
         onConnectionStateChange: (state) => {
           this.debugLogger.info('SFU connection state changed', { state })

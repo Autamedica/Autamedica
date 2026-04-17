@@ -588,7 +588,7 @@ export function UnifiedVideoCall({
   // retryKey causa re-mount del cliente cuando se incrementa (intento de reconexión)
   // Callbacks (onCallStart, onError, onStatusChange) viven en refs para evitar
   // que re-renders del parent destruyan la conexión WebRTC en vuelo.
-  }, [addRemoteMessage, autoStart, cleanupSound, emitDebug, hasTurn, iceServers?.length, logCallEvent, playParticipantJoinedSound, provider, retryKey, roomId, sessionPhase, userId, userName, userType, runtime])
+  }, [addRemoteMessage, autoStart, cleanupSound, emitDebug, hasTurn, iceServers?.length, logCallEvent, playParticipantJoinedSound, provider, retryKey, roomId, userId, userName, userType, runtime])
 
   /* ── Duration timer ── */
   useEffect(() => {
