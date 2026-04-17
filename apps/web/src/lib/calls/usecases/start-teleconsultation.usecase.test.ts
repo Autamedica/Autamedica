@@ -1,0 +1,146 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+const { mockEmit } = vi.hoisted(() => ({
+  mockEmit: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('@autamedica/shared', () => ({
+  logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
+  domainEvents: { emit: mockEmit },
+}))
+
+vi.mock('@/lib/doctors/lib/resolve-room', () => ({
+  resolveDoctorId: vi.fn().mockResolvedValue('doctor-1'),
+  doctorHasPatientAccess: vi.fn().mockResolvedValue(true),
+}))
+
+vi.mock('@/lib/calls/lib/telemedicine-window', () => ({
+  isTelemedicineCallWindowOpen: vi.fn().mockReturnValue(true),
+}))
+
+vi.mock('@/lib/doctors/services/appointment.backend', () => ({
+  appointmentBackendService: {
+    transitionStatus: vi.fn().mockResolvedValue(undefined),
+  },
+}))
+
+vi.mock('@/lib/calls/lib/doctor-videoconsulta-credits', () => ({
+  canDoctorStartVideoconsulta: vi.fn().mockResolvedValue({ allowed: true }),
+}))
+
+import { startTeleconsultationUseCase } from './start-teleconsultation.usecase'
+import type { ICallStartRepository } from '@/lib/calls/ports/call-start.port'
+import type { Call } from '@autamedica/telemedicine'
+
+function makeRepo(overrides: Partial<ICallStartRepository> = {}): ICallStartRepository {
+  const createdCall: Call = {
+    id: 'call-1',
+    room_id: 'room-1',
+    doctor_id: 'doctor-1',
+    patient_id: 'patient-1',
+    status: 'requested',
+    created_at: '2026-04-17T10:00:00.000Z',
+    appointment_id: null,
+  }
+
+  return {
+    findAppointmentById: vi.fn().mockResolvedValue(null),
+    findPatientById: vi.fn().mockResolvedValue({ id: 'patient-1' }),
+    findActiveByAppointmentId: vi.fn().mockResolvedValue(null),
+    findActiveByParticipants: vi.fn().mockResolvedValue(null),
+    listPendingByParticipants: vi.fn().mockResolvedValue([]),
+    createCall: vi.fn().mockResolvedValue(createdCall),
+    updateCallStatus: vi.fn().mockResolvedValue(true),
+    cancelCallsBatch: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  }
+}
+
+describe('startTeleconsultationUseCase — call.started emit', () => {
+  beforeEach(() => {
+    mockEmit.mockClear()
+  })
+
+  it('emits call.started with the expected payload when a new call is created', async () => {
+    const adminCallRepo = makeRepo()
+    const actorCallRepo = makeRepo()
+
+    const result = await startTeleconsultationUseCase(
+      {
+        adminCallRepo,
+        actorCallRepo,
+        adminDb: {} as any,
+      },
+      {
+        doctorUserId: 'user-doctor-1',
+        patientId: 'patient-1',
+      },
+    )
+
+    expect(result.kind).toBe('ok')
+    expect(mockEmit).toHaveBeenCalledTimes(1)
+    expect(mockEmit).toHaveBeenCalledWith('call.started', {
+      callId: 'call-1',
+      roomId: 'room-1',
+      doctorId: 'doctor-1',
+      patientId: 'patient-1',
+    })
+  })
+
+  it('does NOT emit call.started when the call is reused (already exists)', async () => {
+    const existingCall: Call = {
+      id: 'call-existing',
+      room_id: 'room-existing',
+      doctor_id: 'doctor-1',
+      patient_id: 'patient-1',
+      status: 'ringing',
+      created_at: '2026-04-17T09:00:00.000Z',
+      appointment_id: null,
+    }
+
+    const adminCallRepo = makeRepo({
+      findActiveByParticipants: vi.fn().mockResolvedValue(existingCall),
+    })
+    const actorCallRepo = makeRepo()
+
+    const result = await startTeleconsultationUseCase(
+      {
+        adminCallRepo,
+        actorCallRepo,
+        adminDb: {} as any,
+      },
+      {
+        doctorUserId: 'user-doctor-1',
+        patientId: 'patient-1',
+      },
+    )
+
+    expect(result.kind).toBe('ok')
+    if (result.kind === 'ok') {
+      expect(result.data.reused).toBe(true)
+    }
+    expect(mockEmit).not.toHaveBeenCalled()
+  })
+
+  it('does not throw when the emit handler fails — call start flow stays green', async () => {
+    mockEmit.mockRejectedValueOnce(new Error('handler blew up'))
+
+    const adminCallRepo = makeRepo()
+    const actorCallRepo = makeRepo()
+
+    const result = await startTeleconsultationUseCase(
+      {
+        adminCallRepo,
+        actorCallRepo,
+        adminDb: {} as any,
+      },
+      {
+        doctorUserId: 'user-doctor-1',
+        patientId: 'patient-1',
+      },
+    )
+
+    expect(result.kind).toBe('ok')
+    expect(mockEmit).toHaveBeenCalledTimes(1)
+  })
+})
