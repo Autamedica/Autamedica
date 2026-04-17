@@ -303,7 +303,7 @@ js.configs.recommended,
 },
 // Script files (shell scripts, supabase, tests, worker)
 {
-  files: ['tests/**', 'worker/**', 'scripts/**', 'supabase/**'],
+  files: ['tests/**', 'worker/**', 'scripts/**', 'supabase/**', 'tools/**'],
   languageOptions: {
     parser: tsparser,
     parserOptions: {

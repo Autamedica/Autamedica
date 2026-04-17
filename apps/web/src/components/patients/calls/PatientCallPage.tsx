@@ -163,7 +163,6 @@ function PatientCallContent({ roomId }: { roomId: string }) {
         iceServersOverride: clientTurnServers ?? undefined,
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [callSession?.callId, callSession?.runtime, turnLoading, clientTurnServers],
   )
 
