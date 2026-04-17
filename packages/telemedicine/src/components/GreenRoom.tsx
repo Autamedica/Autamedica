@@ -26,9 +26,10 @@ export interface GreenRoomProps {
   isWarmingUp: boolean
   audioLevel: number
   greenRoomChecks: {
-    camera: boolean
-    mic: boolean
-    network: boolean
+    hasVideo: boolean
+    hasAudio: boolean
+    hasSignaling: boolean
+    allReady?: boolean
   }
   availableDevices: DeviceInfo[]
   selectedVideoDevice: string
@@ -147,19 +148,19 @@ export function GreenRoom({
               <CheckItem 
                 icon={<IconCamera size={20} />} 
                 label="Cámara" 
-                ok={greenRoomChecks.camera} 
+                ok={greenRoomChecks.hasVideo} 
                 loading={isWarmingUp} 
               />
               <CheckItem 
                 icon={<IconMic size={20} />} 
                 label="Micrófono" 
-                ok={greenRoomChecks.mic} 
+                ok={greenRoomChecks.hasAudio} 
                 loading={isWarmingUp} 
               />
               <CheckItem 
                 icon={<IconConnectivity size={20} level={preflightResult?.latencyMs && preflightResult.latencyMs < 300 ? 4 : 2} />} 
                 label="Calidad de Red" 
-                ok={greenRoomChecks.network && !isUnreachable} 
+                ok={greenRoomChecks.hasSignaling && !isUnreachable} 
                 loading={preflightRunning}
                 detail={preflightResult?.latencyMs ? `${Math.round(preflightResult.latencyMs)}ms` : undefined}
                 onRerun={onPreflightRerun}
