@@ -3,21 +3,18 @@ import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { resolveDoctorId, resolveRoomParticipants } from '@/lib/doctors/lib/resolve-room';
+import {
+  consultationTranscriptsRepo,
+  type TranscriptSegment,
+} from '@/lib/doctors/lib/repos/consultation-transcripts.repo';
 import { jsonOk, badRequest, forbidden, notFound, internalError } from '@/lib/api-helpers';
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 
 
 type AdminClient = SupabaseClient;
 
-interface TranscriptSegmentInput {
-  speaker: 'local' | 'remote';
-  text: string;
-  timestamp: number;
-  isFinal: boolean;
-}
-
 interface TranscriptionBody {
-  segments: TranscriptSegmentInput[];
+  segments: TranscriptSegment[];
   fullText: string;
   durationSeconds?: number;
   consentDoctor: boolean;
@@ -58,23 +55,19 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     const fullText = body.fullText || finalSegments.map(s => s.text).join(' ');
     const wordCount = fullText.split(/\s+/).filter(Boolean).length;
 
-    const { error: insertError } = await admin
-      .from('consultation_transcripts')
-      .insert({
-        room_id: roomId,
-        doctor_id: doctorId,
-        patient_id: participants.patientId,
-        appointment_id: participants.appointmentId,
-        segments: finalSegments as unknown as Record<string, unknown>[],
-        full_text: fullText,
-        duration_seconds: body.durationSeconds ?? null,
-        word_count: wordCount,
-        consent_doctor: body.consentDoctor,
-        consent_patient: body.consentPatient ?? false,
-        lang: body.lang ?? 'es-AR',
-      });
-
-    if (insertError) throw insertError;
+    await consultationTranscriptsRepo.insert(admin, {
+      roomId,
+      doctorId,
+      patientId: participants.patientId,
+      appointmentId: participants.appointmentId,
+      segments: finalSegments,
+      fullText,
+      durationSeconds: body.durationSeconds ?? null,
+      wordCount,
+      consentDoctor: body.consentDoctor,
+      consentPatient: body.consentPatient ?? false,
+      lang: body.lang ?? 'es-AR',
+    });
 
     logger.info('[transcription] Saved', { roomId, segmentCount: finalSegments.length, wordCount });
 
