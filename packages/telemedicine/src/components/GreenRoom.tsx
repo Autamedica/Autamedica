@@ -60,7 +60,7 @@ function DeviceSelect({
   if (devices.length <= 1) return null
   return (
     <div className="relative">
-      <Icon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      <Icon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-am-surface-400 pointer-events-none" />
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -70,7 +70,7 @@ function DeviceSelect({
           <option key={d.deviceId} value={d.deviceId}>{d.label || `Dispositivo ${d.deviceId.slice(0, 5)}`}</option>
         ))}
       </select>
-      <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-am-surface-400 pointer-events-none" />
     </div>
   )
 }
@@ -79,14 +79,14 @@ function DeviceSelect({
 function AudioMeter({ level }: { level: number }) {
   return (
     <div className="flex items-center gap-2">
-      <Volume2 className="h-4 w-4 text-slate-400 shrink-0" />
+      <Volume2 className="h-4 w-4 text-am-surface-400 shrink-0" />
       <div className="flex flex-1 items-end gap-[3px] h-4">
         {Array.from({ length: 20 }).map((_, i) => (
           <div
             key={i}
             className={`flex-1 rounded-sm transition-all duration-75 ${
               level * 20 > i
-                ? i < 13 ? 'bg-emerald-400' : i < 17 ? 'bg-amber-400' : 'bg-red-400'
+                ? i < 13 ? 'bg-am-success' : i < 17 ? 'bg-amber-400' : 'bg-red-400'
                 : 'bg-white/10'
             }`}
             style={{ height: `${Math.max(25, (i / 20) * 100)}%` }}
@@ -101,7 +101,7 @@ function AudioMeter({ level }: { level: number }) {
 function CheckItem({ ok, loading, label }: { ok: boolean; loading?: boolean; label: string }) {
   return (
     <motion.div
-      className={`flex items-center gap-2 text-sm ${ok ? 'text-emerald-400' : loading ? 'text-amber-400' : 'text-red-400'}`}
+      className={`flex items-center gap-2 text-sm ${ok ? 'text-am-success' : loading ? 'text-amber-400' : 'text-red-400'}`}
       variants={staggerChild}
     >
       {loading ? (
@@ -145,7 +145,7 @@ function NetworkQualityDisplay({
 
   const config: Record<string, { color: string; Icon: typeof CheckCircle2; text: string }> = {
     hd: {
-      color: 'text-emerald-400',
+      color: 'text-am-success',
       Icon: CheckCircle2,
       text: 'Conexion excelente — video en alta definicion',
     },
@@ -185,7 +185,7 @@ function NetworkQualityDisplay({
       {onRerun && (
         <button
           onClick={onRerun}
-          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-300 transition-colors"
+          className="flex items-center gap-1.5 text-xs text-am-surface-400 hover:text-am-surface-300 transition-colors"
         >
           <RefreshCw className="h-3 w-3" />
           Reintentar
@@ -222,11 +222,11 @@ export function GreenRoom({
   const isUnreachable = preflightResult?.recommendation === 'unreachable'
 
   return (
-    <div className="flex h-full items-center justify-center bg-slate-950 px-4 py-6 sm:px-6">
+    <div className="flex h-full items-center justify-center bg-am-surface-900 px-4 py-6 sm:px-6">
       {/* Background ambient */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={`absolute left-1/4 top-1/4 h-[500px] w-[500px] rounded-full blur-[150px] opacity-[0.08] ${
-          accentColor === 'violet' ? 'bg-am-primary-500' : 'bg-am-patient-500'
+          accentColor === 'violet' ? 'bg-am-primary-600' : 'bg-am-primary-500'
         }`} />
       </div>
 
@@ -253,7 +253,7 @@ export function GreenRoom({
               <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
                 {isWarmingUp ? (
                   <div className="text-center">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400" />
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-am-surface-400" />
                     <p className="mt-2 text-sm text-slate-500">Preparando cámara...</p>
                   </div>
                 ) : (
@@ -267,7 +267,7 @@ export function GreenRoom({
 
             {/* Name overlay */}
             {warmUpResult && (
-              <div className="absolute bottom-3 left-3 rounded-md bg-slate-900/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+              <div className="absolute bottom-3 left-3 rounded-md bg-am-surface-800/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
                 {userName || 'Tú'}
               </div>
             )}
@@ -286,7 +286,7 @@ export function GreenRoom({
           {/* Title */}
           <div>
             <h1 className="text-2xl font-bold text-white">Consulta médica</h1>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-am-surface-400">
               {userName && <span>{userName} · </span>}
               Sala {roomId.replace(/^room_/, '').slice(0, 8)}
             </p>
@@ -353,9 +353,7 @@ export function GreenRoom({
               onClick={onStartCall}
               disabled={isWarmingUp || isUnreachable}
               className={`w-full rounded-xl px-6 py-4 text-base font-semibold text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
-                accentColor === 'violet'
-                  ? 'bg-gradient-to-r from-am-primary-600 to-am-primary-500 hover:from-violet-500 hover:to-am-primary-400 shadow-am-primary-600/20'
-                  : 'bg-gradient-to-r from-am-patient-600 to-am-patient-500 hover:from-sky-500 hover:to-am-patient-400 shadow-am-patient-600/20'
+                'bg-am-primary-600 hover:bg-am-primary-500 shadow-am-primary/20 text-white transition-all'
               }`}
               whileHover={buttonGentleHover}
               whileTap={buttonGentleTap}
@@ -369,7 +367,7 @@ export function GreenRoom({
 
             {greenRoomChecks.allReady && (
               <motion.p
-                className="mt-2 text-center text-xs text-emerald-400/70"
+                className="mt-2 text-center text-xs text-am-success/70"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
