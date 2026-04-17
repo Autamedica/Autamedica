@@ -310,6 +310,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Enforce subdomain redirection for portal routes in production
   const host = context.request.headers.get('host') || '';
   const isMainDomain = host.includes('www.autamedica.com') || host === 'autamedica.com';
+  
+  // Anti-NXDOMAIN: If someone (or a Cloudflare rule) adds www. to a subdomain, strip it!
+  if (host.startsWith('www.paciente.') || host.startsWith('www.doctor.') || host.startsWith('www.empresa.')) {
+    const cleanHost = host.replace('www.', '');
+    return context.redirect(`https://${cleanHost}${pathname}${requestUrl.search}`, 308);
+  }
 
   if (isMainDomain && isProduction()) {
     if (pathname.startsWith('/patients')) {
