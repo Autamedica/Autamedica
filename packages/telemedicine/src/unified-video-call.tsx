@@ -841,7 +841,7 @@ export function UnifiedVideoCall({
   /* ── Render ── */
   return (
     <div
-      className={`relative h-full w-full overflow-hidden bg-neutral-900 text-white ${className}`}
+      className={`relative h-full w-full overflow-hidden bg-am-surface-900 text-white ${className}`}
       onMouseMove={isInRoom ? resetControlsTimer : undefined}
     >
       {/* Accessibility: screen reader announcements */}

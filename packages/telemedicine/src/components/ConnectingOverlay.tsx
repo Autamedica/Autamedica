@@ -17,12 +17,12 @@ export function ConnectingOverlay({
   maxRetries,
   accentColor,
 }: ConnectingOverlayProps) {
-  const dotColor = accentColor === 'violet' ? 'bg-violet-500' : 'bg-sky-500'
-  const spinColor = accentColor === 'violet' ? 'text-violet-400' : 'text-sky-400'
+  const dotColor = 'bg-am-primary-500'
+  const spinColor = 'text-am-primary-400'
 
   return (
     <motion.div
-      className="flex h-full flex-col items-center justify-center bg-[#0a0a0a]"
+      className="flex h-full flex-col items-center justify-center bg-am-surface-900"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -84,7 +84,7 @@ export function ConnectingOverlay({
       </AnimatePresence>
 
       <motion.p
-        className="mt-3 text-sm text-slate-500"
+        className="mt-3 text-sm text-am-surface-500"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}

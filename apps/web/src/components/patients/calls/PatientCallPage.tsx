@@ -170,14 +170,14 @@ function PatientCallContent({ roomId }: { roomId: string }) {
   if (callSessionError) {
     const errorInfo = translateCallError(callSessionError)
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-am-surface-900 px-4">
         <motion.div
           className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur"
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 14 }}
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300/80">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-am-surface-300">
             Telemedicina paciente
           </p>
           <motion.div
@@ -199,7 +199,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
             <motion.button
               type="button"
               onClick={() => void refreshCallSession()}
-              className="rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-400"
+              className="rounded-2xl bg-am-primary-600 px-4 py-3 text-sm font-semibold text-white hover:bg-am-primary-500"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -222,18 +222,18 @@ function PatientCallContent({ roomId }: { roomId: string }) {
 
   if (loading || !isReady || callSessionLoading || !callSession) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-am-surface-900 px-4">
         <motion.div
           className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 120, damping: 14 }}
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300/80">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-am-surface-300">
             Telemedicina paciente
           </p>
           <motion.div
-            className="mx-auto mb-4 mt-5 h-12 w-12 rounded-full border-b-2 border-emerald-400"
+            className="mx-auto mb-4 mt-5 h-12 w-12 rounded-full border-b-2 border-am-primary-500"
             animate={{ rotate: 360 }}
             transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
           />
