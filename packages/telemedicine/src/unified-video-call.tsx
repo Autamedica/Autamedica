@@ -105,6 +105,7 @@ export function UnifiedVideoCall({
   const [isVideoEnabled, setIsVideoEnabled] = useState(true)
   const [isAudioEnabled, setIsAudioEnabled] = useState(true)
   const [remoteUsers, setRemoteUsers] = useState<Map<string, RemoteUser>>(new Map())
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null)
   const [callError, setCallError] = useState<string | null>(null)
   const [isChatReady, setIsChatReady] = useState(false)
   const [hasPeerConnection, setHasPeerConnection] = useState(false)
@@ -339,8 +340,8 @@ export function UnifiedVideoCall({
     )
 
     unsubs.push(
-      webrtcClient.on('local-stream', () => {
-        // ActiveCallLayout will handle the srcObject assignment
+      webrtcClient.on('local-stream', (stream: MediaStream) => {
+        setLocalStream(stream)
       })
     )
 
@@ -590,6 +591,7 @@ export function UnifiedVideoCall({
     remoteUsers,
     remoteVideosRef,
     localVideoRef,
+    localStream,
     screenShareRef,
     screenStream,
     chatMessagesRef,
