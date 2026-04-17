@@ -50,6 +50,7 @@ export class CloudflareCallsClient implements CallProvider {
   private streamIdToUserId = new Map<string, string>()
   private pendingRemoteUserIds: string[] = []
   private connectedPeerIds = new Set<string>()
+  private userToStream = new Map<string, MediaStream>()
   /** Session IDs queued because our local CF session isn't fully connected yet */
   private pendingRemoteSessionIds: string[] = []
   /** Peer user IDs who joined while we were still connecting — re-announce our session to them once ready */
@@ -338,6 +339,7 @@ export class CloudflareCallsClient implements CallProvider {
     for (const t of this.localStream?.getTracks() ?? []) t.stop()
     this.localStream = null
     this.streamIdToUserId.clear()
+    this.userToStream.clear()
     this.pendingRemoteUserIds = []
     this.pendingRemoteSessionIds = []
     this.pendingPeerAnnouncements = []
@@ -605,16 +607,33 @@ export class CloudflareCallsClient implements CallProvider {
   }
 
   private handleRemoteTrack(event: RTCTrackEvent): void {
-    const stream = event.streams[0] ?? new MediaStream([event.track])
-    let userId = this.streamIdToUserId.get(stream.id)
+    const rawStream = event.streams[0]
+    let userId = rawStream ? this.streamIdToUserId.get(rawStream.id) : undefined
 
     if (!userId) {
-      userId = this.pendingRemoteUserIds.shift() ?? stream.id
-      this.streamIdToUserId.set(stream.id, userId)
+      userId = this.pendingRemoteUserIds[0] ?? (rawStream ? rawStream.id : event.track.id)
+      if (rawStream) {
+        this.streamIdToUserId.set(rawStream.id, userId)
+      }
     }
 
-    this.debugLogger.info('Remote track received', { userId, trackKind: event.track.kind })
-    this.emit('remote-stream', stream, userId)
+    let userStream = this.userToStream.get(userId)
+    if (!userStream) {
+      userStream = new MediaStream()
+      this.userToStream.set(userId, userStream)
+      // Consumimos el ID de la fila solo al crear el nuevo stream para este usuario
+      if (userId === this.pendingRemoteUserIds[0]) {
+        this.pendingRemoteUserIds.shift()
+      }
+    }
+
+    // Añadir el track al stream unificado del usuario
+    if (!userStream.getTracks().find(t => t.id === event.track.id)) {
+      userStream.addTrack(event.track)
+    }
+
+    this.debugLogger.info('Remote track received', { userId, trackKind: event.track.kind, tracksCount: userStream.getTracks().length })
+    this.emit('remote-stream', userStream, userId)
 
     if (!this.connectedPeerIds.has(userId)) {
       this.connectedPeerIds.add(userId)
