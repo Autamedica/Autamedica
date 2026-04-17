@@ -423,7 +423,11 @@ export function UnifiedVideoCall({
 
               // Mobile autoplay: explicit play() after srcObject assignment.
               // Some mobile browsers ignore autoplay attr on programmatic srcObject changes.
-              el.play().catch(() => { /* handled by patchVideoPlayback retry */ })
+              el.play().catch((err) => { 
+                logger.warn('[UnifiedVideoCall] Auto-play blocked, retrying on interaction', err);
+                // Force a second attempt after a short delay
+                setTimeout(() => el.play().catch(() => {}), 1000);
+              })
             }
           } else if (attempt < 10) {
             setTimeout(() => attachStream(attempt + 1), 100)
@@ -588,7 +592,7 @@ export function UnifiedVideoCall({
   // retryKey causa re-mount del cliente cuando se incrementa (intento de reconexión)
   // Callbacks (onCallStart, onError, onStatusChange) viven en refs para evitar
   // que re-renders del parent destruyan la conexión WebRTC en vuelo.
-  }, [addRemoteMessage, autoStart, cleanupSound, emitDebug, hasTurn, iceServers?.length, logCallEvent, playParticipantJoinedSound, provider, retryKey, roomId, userId, userName, userType, runtime])
+  }, [autoStart, provider, retryKey, roomId, userId, runtime]) // Stable: only restart on hard identity/provider/retry changes
 
   /* ── Duration timer ── */
   useEffect(() => {
