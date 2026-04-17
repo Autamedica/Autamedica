@@ -30,6 +30,7 @@ interface UseCallLifecycleEffectsOptions {
   remoteUsers: Map<string, RemoteUser>
   remoteVideosRef: MutableRefObject<Map<string, HTMLVideoElement>>
   localVideoRef: RefObject<HTMLVideoElement | null>
+  localStream: MediaStream | null
   screenShareRef: RefObject<HTMLVideoElement | null>
   screenStream: MediaStream | null
   chatMessagesRef: RefObject<HTMLDivElement | null>
@@ -52,6 +53,7 @@ export function useCallLifecycleEffects({
   remoteUsers,
   remoteVideosRef,
   localVideoRef,
+  localStream,
   screenShareRef,
   screenStream,
   chatMessagesRef,
@@ -137,13 +139,13 @@ export function useCallLifecycleEffects({
 
   // Re-attach local stream on layout changes
   useEffect(() => {
-    if (!client || !localVideoRef.current) return
-    const stream = client.getLocalStream()
+    if (!localVideoRef.current) return
+    const stream = localStream ?? client?.getLocalStream() ?? null
     if (stream && localVideoRef.current.srcObject !== stream) {
       localVideoRef.current.srcObject = stream
       patchVideoPlayback(localVideoRef.current)
     }
-  }, [client, localVideoRef, remoteUsers])
+  }, [client, localVideoRef, localStream, remoteUsers])
 
   // Screen share sync
   useEffect(() => {
