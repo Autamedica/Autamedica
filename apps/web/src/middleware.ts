@@ -63,10 +63,10 @@ const STATIC_BUILD_BYPASS_ROUTES = new Set([
 const AUTH_RATE_LIMIT_MAX = 20;           // auth requests per window
 const AUTH_RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 
-const GENERAL_RATE_LIMIT_MAX = 120;       // general requests per window (per IP)
+const GENERAL_RATE_LIMIT_MAX = 300;       // general requests per window (per IP)
 const GENERAL_RATE_LIMIT_WINDOW_MS = 60_000;
 
-const API_RATE_LIMIT_MAX = 60;            // API requests per window (per IP)
+const API_RATE_LIMIT_MAX = 200;            // API requests per window (per IP)
 const API_RATE_LIMIT_WINDOW_MS = 60_000;
 
 // ── BOT DETECTION ────────────────────────────────────────────────────────────
@@ -336,7 +336,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // 3. INTERNAL REWRITE for subdomains (Transparent to user)
   // Maps paciente.autamedica.com/appointments -> /patients/appointments internally
   // CRITICAL: We check if the pathname ALREADY starts with the prefix to avoid infinite loops.
-  if (portal && !isMainDomain && !pathname.startsWith('/_astro/') && !pathname.includes('.')) {
+  if (portal && !isMainDomain && !pathname.startsWith('/_astro/') && !pathname.startsWith('/api/') && !pathname.startsWith('/auth/') && !pathname.includes('.')) {
     const prefixes: Record<string, string> = {
       patient: '/patients',
       doctor: '/doctors',
