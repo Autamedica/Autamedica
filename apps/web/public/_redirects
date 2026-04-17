@@ -1,0 +1,3 @@
+/patients/* https://paciente.autamedica.com/:splat 308
+/doctors/* https://doctor.autamedica.com/:splat 308
+/companies/* https://empresa.autamedica.com/:splat 308

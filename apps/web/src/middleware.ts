@@ -307,6 +307,24 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const requestUrl = new URL(context.request.url);
   const { pathname } = requestUrl;
+  // Enforce subdomain redirection for portal routes in production
+  const host = context.request.headers.get('host') || '';
+  const isMainDomain = host.includes('www.autamedica.com') || host === 'autamedica.com';
+
+  if (isMainDomain && isProduction()) {
+    if (pathname.startsWith('/patients')) {
+      const target = pathname === '/patients' ? '/' : pathname.replace('/patients', '');
+      return context.redirect(`https://paciente.autamedica.com${target}${requestUrl.search}`, 308);
+    }
+    if (pathname.startsWith('/doctors')) {
+      const target = pathname === '/doctors' ? '/' : pathname.replace('/doctors', '');
+      return context.redirect(`https://doctor.autamedica.com${target}${requestUrl.search}`, 308);
+    }
+    if (pathname.startsWith('/companies')) {
+      const target = pathname === '/companies' ? '/' : pathname.replace('/companies', '');
+      return context.redirect(`https://empresa.autamedica.com${target}${requestUrl.search}`, 308);
+    }
+  }
 
   // Wrap next() so every response gets security headers applied
   const secureNext = async (): Promise<Response> => {
