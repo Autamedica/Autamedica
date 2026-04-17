@@ -611,7 +611,7 @@ export class CloudflareCallsClient implements CallProvider {
     let userId = rawStream ? this.streamIdToUserId.get(rawStream.id) : undefined
 
     if (!userId) {
-      userId = this.pendingRemoteUserIds[0] ?? (rawStream ? rawStream.id : event.track.id)
+      userId = Array.from(this.cfToUserIdMap.values())[0] ?? this.pendingRemoteUserIds[0] ?? (rawStream ? rawStream.id : event.track.id)
       if (rawStream) {
         this.streamIdToUserId.set(rawStream.id, userId)
       }

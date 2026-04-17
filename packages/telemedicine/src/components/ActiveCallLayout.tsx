@@ -80,7 +80,9 @@ export function ActiveCallLayout({
             <div className="absolute top-4 sm:top-8 left-4 sm:left-8 flex items-center gap-3 rounded-full bg-am-surface-900/60 px-4 sm:px-5 py-2 sm:py-2.5 backdrop-blur-xl border border-white/10">
               <div className="h-2 w-2 rounded-full bg-am-success shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
               <span className="text-xs sm:text-sm font-semibold tracking-tight text-am-surface-50">
-                {remote.userName || 'Paciente'}
+                {remote.userName && remote.userName !== remote.userId 
+                  ? remote.userName 
+                  : (remote.userType === 'doctor' ? 'Médico' : 'Paciente')}
               </span>
             </div>
           )}
