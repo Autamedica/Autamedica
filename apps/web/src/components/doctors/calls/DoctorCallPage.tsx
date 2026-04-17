@@ -78,7 +78,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   } = useCallSession(roomId, isReady)
 
   // Client-side TURN fallback — if bootstrap didn't include TURN, fetch from API
-  const { iceServers: clientTurnServers } = useTurnCredentials('/api/doctors/turn-credentials')
+  const { iceServers: clientTurnServers, loading: turnLoading } = useTurnCredentials('/api/doctors/turn-credentials')
 
   // Transcription — mandatory, automatic, silent
   const [transcriptionState, transcriptionActions] = useAudioTranscription('es-AR')
@@ -411,10 +411,11 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     }
   }, [session, typedProfile, roomId])
 
-  // Stabilize provider: only recreate if callId or runtime changes, not for every session update
+  // Stabilize provider: only recreate if callId or runtime changes
+  // IMPORTANT: Wait for turnLoading to be false to avoid destroying connection immediately after start
   const callProvider = useMemo(
     () => {
-      if (!callSession) return null;
+      if (!callSession || turnLoading) return null;
       return createCallProvider({
         bootstrap: callSession,
         supabase: getBrowserSupabaseClient(),
@@ -422,7 +423,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [callSession?.callId, callSession?.runtime, clientTurnServers],
+    [callSession?.callId, callSession?.runtime, turnLoading, clientTurnServers],
   )
 
   if (callSessionError) {

@@ -37,7 +37,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
   } = useCallSession(roomId, isReady)
 
   // Client-side TURN fallback — if bootstrap didn't include TURN, fetch from API
-  const { iceServers: clientTurnServers } = useTurnCredentials('/api/patients/turn-credentials')
+  const { iceServers: clientTurnServers, loading: turnLoading } = useTurnCredentials('/api/patients/turn-credentials')
 
   const callServiceRef = useRef<ReturnType<typeof createCallService> | null>(null)
 
@@ -153,9 +153,10 @@ function PatientCallContent({ roomId }: { roomId: string }) {
 
   // Must be before any early return — Rules of Hooks
   // Stabilize provider: only recreate if callId or runtime changes
+  // IMPORTANT: Wait for turnLoading to be false to avoid destroying connection immediately after start
   const callProvider = useMemo(
     () => {
-      if (!callSession) return null;
+      if (!callSession || turnLoading) return null;
       return createCallProvider({
         bootstrap: callSession,
         supabase: getBrowserSupabaseClient(),
@@ -163,7 +164,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [callSession?.callId, callSession?.runtime, clientTurnServers],
+    [callSession?.callId, callSession?.runtime, turnLoading, clientTurnServers],
   )
 
   if (callSessionError) {
