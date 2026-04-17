@@ -63,10 +63,10 @@ const STATIC_BUILD_BYPASS_ROUTES = new Set([
 const AUTH_RATE_LIMIT_MAX = 20;           // auth requests per window
 const AUTH_RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 
-const GENERAL_RATE_LIMIT_MAX = 300;       // general requests per window (per IP)
+const GENERAL_RATE_LIMIT_MAX = 120;       // general requests per window (per IP)
 const GENERAL_RATE_LIMIT_WINDOW_MS = 60_000;
 
-const API_RATE_LIMIT_MAX = 200;            // API requests per window (per IP)
+const API_RATE_LIMIT_MAX = 60;            // API requests per window (per IP)
 const API_RATE_LIMIT_WINDOW_MS = 60_000;
 
 // ── BOT DETECTION ────────────────────────────────────────────────────────────
@@ -305,57 +305,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   primeRuntimeEnv(context.locals.runtime?.env);
   initServerSentry(context.locals.runtime?.env);
 
-    const requestUrl = new URL(context.request.url);
+  const requestUrl = new URL(context.request.url);
   const { pathname } = requestUrl;
-  const portal = detectPortal(requestUrl);
-  const host = context.request.headers.get('host') || '';
-  const isMainDomain = host.includes('www.autamedica.com') || host === 'autamedica.com' || host.includes('localhost');
-
-  // 1. Anti-NXDOMAIN: Strip 'www.' from portal subdomains
-  if (host.startsWith('www.paciente.') || host.startsWith('www.doctor.') || host.startsWith('www.empresa.') || host.startsWith('www.farmacia.')) {
-    const cleanHost = host.replace('www.', '');
-    return context.redirect(`https://${cleanHost}${pathname}${requestUrl.search}`, 308);
-  }
-
-  // 2. Redirect main domain /portal paths to their subdomains (Production only)
-  if (isMainDomain && isProduction() && !host.includes('localhost')) {
-    if (pathname.startsWith('/patients')) {
-      const target = pathname === '/patients' ? '/' : pathname.replace('/patients', '');
-      return context.redirect(`https://paciente.autamedica.com${target}${requestUrl.search}`, 308);
-    }
-    if (pathname.startsWith('/doctors')) {
-      const target = pathname === '/doctors' ? '/' : pathname.replace('/doctors', '');
-      return context.redirect(`https://doctor.autamedica.com${target}${requestUrl.search}`, 308);
-    }
-    if (pathname.startsWith('/companies')) {
-      const target = pathname === '/companies' ? '/' : pathname.replace('/companies', '');
-      return context.redirect(`https://empresa.autamedica.com${target}${requestUrl.search}`, 308);
-    }
-  }
-
-  // 3. INTERNAL REWRITE for subdomains (Transparent to user)
-  // Maps paciente.autamedica.com/appointments -> /patients/appointments internally
-  // CRITICAL: We check if the pathname ALREADY starts with the prefix to avoid infinite loops.
-  if (portal && !isMainDomain && !pathname.startsWith('/_astro/') && !pathname.startsWith('/api/') && !pathname.startsWith('/auth/') && !pathname.includes('.')) {
-    const prefixes: Record<string, string> = {
-      patient: '/patients',
-      doctor: '/doctors',
-      pharmacist: '/pharmacy',
-      company: '/companies'
-    };
-    const prefix = prefixes[portal];
-    
-    if (prefix && !pathname.startsWith(prefix)) {
-      // Normalize target path: / -> /patients, /appointments -> /patients/appointments
-      const targetPath = pathname === '/' ? prefix : `${prefix}${pathname}`;
-      
-      // Safety check: if targetPath is same as pathname, don't rewrite
-      if (targetPath !== pathname) {
-        return context.rewrite(targetPath);
-      }
-    }
-  }
-  // ── END SUBDOMAIN & ROUTING ENFORCEMENT ──────────────────────────────────────────────────────────────────────
 
   // Wrap next() so every response gets security headers applied
   const secureNext = async (): Promise<Response> => {
@@ -432,7 +383,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
-// reused portal from above
+  const portal = detectPortal(requestUrl);
   const authCookieDebug = getAuthCookieDebug(context.request);
   const isDoctorHost = portal === 'doctor';
   const isPatientHost = portal === 'patient';
