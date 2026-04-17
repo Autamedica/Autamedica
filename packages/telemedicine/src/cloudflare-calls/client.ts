@@ -43,7 +43,6 @@ export interface CloudflareCallsClientConfig {
 export class CloudflareCallsClient implements CallProvider {
   private ws: WebSocket | null = null
   private sbHandle: SupabaseSignalingHandle | null = null
-  private pendingRemoteSessions = new Set<string>()
   private cfSession: CloudflareCallsSession | null = null
   private localStream: MediaStream | null = null
   private connectionState: ConnectionState = 'disconnected'
@@ -51,7 +50,8 @@ export class CloudflareCallsClient implements CallProvider {
   private streamIdToUserId = new Map<string, string>()
   private pendingRemoteUserIds: string[] = []
   private connectedPeerIds = new Set<string>()
-  private pendingSessionId: string | null = null
+  /** Session IDs queued because our local CF session isn't fully connected yet */
+  private pendingRemoteSessionIds: string[] = []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private listeners = new Map<keyof WebRTCEvents, ((...args: any[]) => void)[]>()
   private readonly config: Required<Omit<CloudflareCallsClientConfig, 'userName'>> & { userName?: string }
@@ -291,10 +291,12 @@ export class CloudflareCallsClient implements CallProvider {
         data: { sessionId: mySessionId, userType: this.config.userType },
       })
 
-      if (this.pendingSessionId) {
-        this.debugLogger.info('Subscribing to pending peer session', { pendingSessionId: this.pendingSessionId })
-        await this.cfSession.subscribeToSession(this.pendingSessionId)
-        this.pendingSessionId = null
+      // Drain any remote sessions that arrived before our local session was ready
+      const pending = [...this.pendingRemoteSessionIds]
+      this.pendingRemoteSessionIds = []
+      for (const remoteSessionId of pending) {
+        this.debugLogger.info('Subscribing to pending peer session', { remoteSessionId })
+        await this.cfSession.subscribeToSession(remoteSessionId)
       }
     } catch (err) {
       this.debugLogger.error('Connection failed', err)
@@ -322,6 +324,7 @@ export class CloudflareCallsClient implements CallProvider {
     this.localStream = null
     this.streamIdToUserId.clear()
     this.pendingRemoteUserIds = []
+    this.pendingRemoteSessionIds = []
     this.connectedPeerIds.clear()
     this.signalingReconnectAttempt = 0
   }
@@ -371,8 +374,13 @@ export class CloudflareCallsClient implements CallProvider {
             logWarn: (m, ctx) => this.debugLogger.warn(m, ctx),
             logError: (m, e, ctx) => this.debugLogger.error(m, e, ctx),
           },
-          setConnectionState: (s) => this.setConnectionState(s as any),
-          handleMessage: (m) => this.handleSignalingMessage(m as any),
+          setConnectionState: (s) =>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            this.setConnectionState(s as any),
+          handleMessage: (m) =>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            this.handleSignalingMessage(m as any),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           emit: (e, ...args) => this.emit(e as any, ...args),
           cleanup: () => { this.sbHandle = null },
         },
@@ -546,11 +554,16 @@ export class CloudflareCallsClient implements CallProvider {
           this.pendingRemoteUserIds.push(remoteUserId)
         }
 
-        if (this.cfSession) {
+        // Guard: cfSession must exist AND be fully connected (sessionId confirmed)
+        // before we can call subscribeToSession. If not ready yet, queue it.
+        if (this.cfSession?.getSessionId()) {
           this.debugLogger.info('Subscribing to remote tracks', { remoteSessionId })
           await this.cfSession.subscribeToSession(remoteSessionId)
         } else {
-          this.pendingSessionId = remoteSessionId
+          this.debugLogger.info('CF session not ready yet, queueing remote session', { remoteSessionId })
+          if (!this.pendingRemoteSessionIds.includes(remoteSessionId)) {
+            this.pendingRemoteSessionIds.push(remoteSessionId)
+          }
         }
         break
       }
