@@ -395,6 +395,14 @@ export class CallService {
       return
     }
 
+    // Guard: call_events RLS requires auth.uid() — skip insert entirely if no active session
+    // to avoid CORS preflight (OPTIONS) noise from unauthenticated cross-origin requests.
+    const { data: { session } } = await this.supabase.auth.getSession()
+    if (!session?.access_token) {
+      this.writeLocalDebug('warn', 'logEvent omitido: sin sesión activa (evitando preflight CORS)', { callId, type })
+      return
+    }
+
     this.writeLocalDebug('info', 'Persistiendo call_event', { callId, type, payload })
     const { error } = await this.supabase
       .from('call_events')
