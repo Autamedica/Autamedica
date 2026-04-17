@@ -48,6 +48,9 @@ export class CloudflareCallsClient implements CallProvider {
   private connectionState: ConnectionState = 'disconnected'
   private cachedDevices: DeviceInfo[] = []
   private streamIdToUserId = new Map<string, string>()
+  private pendingRemoteSessions = new Set<string>()
+  private cfToUserIdMap = new Map<string, string>()
+  private orphanedStream: MediaStream | null = null
   private pendingRemoteUserIds: string[] = []
   private connectedPeerIds = new Set<string>()
   private userToStream = new Map<string, MediaStream>()
@@ -611,7 +614,7 @@ export class CloudflareCallsClient implements CallProvider {
     let userId = rawStream ? this.streamIdToUserId.get(rawStream.id) : undefined
 
     if (!userId) {
-      userId = Array.from(this.cfToUserIdMap.values())[0] ?? this.pendingRemoteUserIds[0] ?? (rawStream ? rawStream.id : event.track.id)
+      userId = (Array.from(this.cfToUserIdMap.values())[0] as string | undefined) ?? this.pendingRemoteUserIds[0] ?? (rawStream ? rawStream.id : event.track.id)
       if (rawStream) {
         this.streamIdToUserId.set(rawStream.id, userId)
       }
