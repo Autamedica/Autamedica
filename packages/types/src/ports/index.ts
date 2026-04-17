@@ -40,3 +40,7 @@ export type {
   IAppointmentReadRepository,
   AppointmentView,
 } from './appointment-read.port'
+export type {
+  ICallGuestInviteRepository,
+  CallGuestInviteRecord,
+} from './call-guest-invites.port'
