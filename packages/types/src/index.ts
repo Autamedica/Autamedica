@@ -938,6 +938,8 @@ export type {
   AlertEntity,
   IAppointmentReadRepository,
   AppointmentView,
+  ICallGuestInviteRepository,
+  CallGuestInviteRecord,
 } from './ports';
 
 // ==========================================
