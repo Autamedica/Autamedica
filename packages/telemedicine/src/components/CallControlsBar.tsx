@@ -3,8 +3,8 @@
 import { motion } from 'framer-motion'
 import { 
   Video, VideoOff, Mic, MicOff, 
-  Monitor, StopCircle, MessageSquare, 
-  Settings, Maximize, PhoneOff,
+  Monitor, MessageSquare, 
+  Maximize, PhoneOff,
   CircleDot
 } from 'lucide-react'
 
@@ -47,12 +47,12 @@ export function CallControlsBar({
     <motion.div
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: showControls ? 0 : 100, opacity: showControls ? 1 : 0 }}
-      className="absolute bottom-10 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 px-6 py-4 rounded-[28px] bg-am-surface-900/60 border border-white/10 backdrop-blur-3xl shadow-am-xl"
+      className="absolute bottom-6 md:bottom-10 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 md:gap-3 px-4 md:px-6 py-3 md:py-4 rounded-[24px] md:rounded-[28px] bg-am-surface-900/80 border border-white/10 backdrop-blur-3xl shadow-am-xl w-[92%] sm:w-auto justify-center"
     >
       <ControlButton
         active={isAudioEnabled}
         onClick={onToggleAudio}
-        icon={isAudioEnabled ? <Mic size={22} /> : <MicOff size={22} />}
+        icon={isAudioEnabled ? <Mic className="w-5 h-5 md:w-5.5 md:h-5.5" /> : <MicOff className="w-5 h-5 md:w-5.5 md:h-5.5" />}
         label={isAudioEnabled ? 'Silenciar' : 'Activar'}
         variant={isAudioEnabled ? 'glass' : 'danger'}
       />
@@ -60,25 +60,28 @@ export function CallControlsBar({
       <ControlButton
         active={isVideoEnabled}
         onClick={onToggleVideo}
-        icon={isVideoEnabled ? <Video size={22} /> : <VideoOff size={22} />}
+        icon={isVideoEnabled ? <Video className="w-5 h-5 md:w-5.5 md:h-5.5" /> : <VideoOff className="w-5 h-5 md:w-5.5 md:h-5.5" />}
         label={isVideoEnabled ? 'Apagar' : 'Iniciar'}
         variant={isVideoEnabled ? 'glass' : 'danger'}
       />
 
-      <div className="w-px h-8 bg-white/10 mx-2" />
+      <div className="w-px h-6 md:h-8 bg-white/10 mx-1 md:mx-2" />
 
-      <ControlButton
-        active={isScreenSharing}
-        onClick={onToggleScreenShare}
-        icon={<Monitor size={22} />}
-        label="Compartir"
-        variant={isScreenSharing ? 'brand' : 'glass'}
-      />
+      {/* Screen share usually hidden on small mobiles as it's not supported well */}
+      <div className="hidden sm:flex">
+        <ControlButton
+          active={isScreenSharing}
+          onClick={onToggleScreenShare}
+          icon={<Monitor className="w-5 h-5 md:w-5.5 md:h-5.5" />}
+          label="Presentar"
+          variant={isScreenSharing ? 'brand' : 'glass'}
+        />
+      </div>
 
       <ControlButton
         active={isRecording}
         onClick={onToggleRecording}
-        icon={isRecording ? <CircleDot size={22} className="text-red-500 animate-pulse" /> : <CircleDot size={22} />}
+        icon={isRecording ? <CircleDot className="w-5 h-5 md:w-5.5 md:h-5.5 text-red-500 animate-pulse" /> : <CircleDot className="w-5 h-5 md:w-5.5 md:h-5.5" />}
         label="Grabar"
         variant={isRecording ? 'brand' : 'glass'}
       />
@@ -86,29 +89,31 @@ export function CallControlsBar({
       <ControlButton
         active={isChatPanelOpen}
         onClick={onToggleChat}
-        icon={<MessageSquare size={22} />}
+        icon={<MessageSquare className="w-5 h-5 md:w-5.5 md:h-5.5" />}
         label="Chat"
         variant={isChatPanelOpen ? 'brand' : 'glass'}
         badge={unreadMessages > 0 ? unreadMessages : undefined}
       />
 
-      <ControlButton
-        active={false}
-        onClick={onTogglePiP}
-        icon={<Maximize size={22} />}
-        label="PiP"
-        variant="glass"
-      />
+      <div className="hidden md:flex">
+        <ControlButton
+          active={false}
+          onClick={onTogglePiP}
+          icon={<Maximize className="w-5 h-5 md:w-5.5 md:h-5.5" />}
+          label="PiP"
+          variant="glass"
+        />
+      </div>
 
-      <div className="w-px h-8 bg-white/10 mx-2" />
+      <div className="w-px h-6 md:h-8 bg-white/10 mx-1 md:mx-2" />
 
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onEndCall}
-        className="flex h-14 w-20 items-center justify-center rounded-2xl bg-red-600/90 text-white shadow-lg shadow-red-600/20 hover:bg-red-500 transition-colors"
+        className="flex h-12 w-16 md:h-14 md:w-20 items-center justify-center rounded-xl md:rounded-2xl bg-red-600/90 text-white shadow-lg shadow-red-600/20 hover:bg-red-500 transition-colors"
       >
-        <PhoneOff size={26} />
+        <PhoneOff className="w-6 h-6 md:w-7 md:h-7" />
       </motion.button>
     </motion.div>
   )
@@ -136,21 +141,21 @@ function ControlButton({
   }
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-1">
       <motion.button
         whileHover={{ y: -2 }}
         whileTap={{ scale: 0.92 }}
         onClick={onClick}
-        className={`relative flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-300 ${styles[variant]}`}
+        className={`relative flex h-11 w-11 md:h-14 md:w-14 items-center justify-center rounded-xl md:rounded-2xl transition-all duration-300 ${styles[variant]}`}
       >
         {icon}
         {badge !== undefined && (
-          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-am-primary-500 text-[10px] font-bold text-white border-2 border-am-surface-900">
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 md:h-5 md:w-5 items-center justify-center rounded-full bg-am-primary-500 text-[9px] md:text-[10px] font-bold text-white border-2 border-am-surface-900">
             {badge}
           </span>
         )}
       </motion.button>
-      <span className="text-[10px] font-bold uppercase tracking-widest text-am-surface-400/80">{label}</span>
+      <span className="hidden sm:block text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-am-surface-400/80">{label}</span>
     </div>
   )
 }
