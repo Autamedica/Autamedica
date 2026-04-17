@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@autamedica/shared', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+  getServerEnvOrDefault: (name: string, defaultValue?: string) =>
+    process.env[name] ?? defaultValue,
 }))
 
 vi.mock('@autamedica/telemedicine', () => ({
