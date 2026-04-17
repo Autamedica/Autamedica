@@ -7,6 +7,12 @@ function createCallEventsClient(
   insertImpl: ReturnType<typeof vi.fn>,
 ): SupabaseClient<Database> {
   return {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({
+        data: { session: { access_token: 'mock-token' } },
+        error: null,
+      }),
+    },
     from: vi.fn(() => ({
       insert: insertImpl,
     })),
