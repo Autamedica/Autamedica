@@ -202,7 +202,10 @@ export function UnifiedVideoCall({
   const totalParticipants = remoteUsers.size + 1
   const isCallEstablished = hasRemoteMedia
   const sessionPhase = deriveCallSessionPhase({ connectionState, hasPeerConnection, hasRemoteMedia })
-  const isInRoom = sessionPhase === 'room-ready' || sessionPhase === 'peer-ready'
+  const isInRoom =
+    sessionPhase === 'room-ready' ||
+    sessionPhase === 'peer-ready' ||
+    sessionPhase === 'media-live'
   const isIdle = sessionPhase === 'prejoin'
   const isTestRoom = /^test(?:[-_]|$)/i.test(roomId)
   const hasTurn = useMemo(() => hasTurnIceServer(iceServers ?? []), [iceServers])
