@@ -7,6 +7,7 @@ import { logger } from '@autamedica/shared';
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 import { jsonOk, badRequest, internalError } from '@/lib/api-helpers';
 import { accountingService } from '@/lib/doctors/services/accounting.service';
+import { doctorsRepo } from '@/lib/doctors/lib/repos/doctors';
 
 export const GET: APIRoute = async ({ request }) => {
   try {
@@ -14,13 +15,13 @@ export const GET: APIRoute = async ({ request }) => {
     if (!isAuthed(auth)) return auth;
     const { supabase } = auth;
 
-    const { data: doctor } = await supabase.from('doctors').select('id').eq('user_id', auth.user.id).single();
-    if (!doctor) return badRequest('doctor_not_found');
+    const doctorId = await doctorsRepo.resolveIdByUserId(auth.user.id, supabase);
+    if (!doctorId) return badRequest('doctor_not_found');
 
     const url = new URL(request.url);
     const year = parseInt(url.searchParams.get('year') ?? String(new Date().getFullYear()), 10);
 
-    const overview = await accountingService.getAnnualOverview(supabase, doctor.id, year);
+    const overview = await accountingService.getAnnualOverview(supabase, doctorId, year);
     return jsonOk(overview);
   } catch (err) {
     logger.error('[accounting/overview] GET error', err);

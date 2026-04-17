@@ -13,6 +13,7 @@ import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 import { jsonOk, badRequest, internalError } from '@/lib/api-helpers';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { billingService } from '@/lib/doctors/services/billing.service';
+import { doctorsRepo } from '@/lib/doctors/lib/repos/doctors';
 import type { PlanSlug } from '@autamedica/types';
 
 const VALID_SLUGS: PlanSlug[] = ['basico', 'pro', 'premium'];
@@ -22,11 +23,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
 
-    const { data: doctor } = await auth.supabase.from('doctors').select('id').eq('user_id', auth.user.id).single();
-    if (!doctor) return badRequest('doctor_not_found');
+    const doctorId = await doctorsRepo.resolveIdByUserId(auth.user.id, auth.supabase);
+    if (!doctorId) return badRequest('doctor_not_found');
 
     const admin = createAstroAdminClient(locals.runtime?.env);
-    const subscription = await billingService.getDoctorSubscription(admin, doctor.id);
+    const subscription = await billingService.getDoctorSubscription(admin, doctorId);
     return jsonOk(subscription);
   } catch (err) {
     logger.error('[billing/subscription] GET error', err);
@@ -39,8 +40,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
 
-    const { data: doctor } = await auth.supabase.from('doctors').select('id').eq('user_id', auth.user.id).single();
-    if (!doctor) return badRequest('doctor_not_found');
+    const doctorId = await doctorsRepo.resolveIdByUserId(auth.user.id, auth.supabase);
+    if (!doctorId) return badRequest('doctor_not_found');
 
     const body = await request.json() as { planSlug?: string; paymentMethod?: string };
     if (!body.planSlug || !VALID_SLUGS.includes(body.planSlug as PlanSlug)) {
@@ -57,8 +58,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const admin = createAstroAdminClient(locals.runtime?.env);
     const result = paymentMethod === 'checkout_pro'
-      ? await billingService.createCheckoutProSubscription(admin, doctor.id, body.planSlug as PlanSlug, doctorEmail)
-      : await billingService.createSubscription(admin, doctor.id, body.planSlug as PlanSlug, doctorEmail);
+      ? await billingService.createCheckoutProSubscription(admin, doctorId, body.planSlug as PlanSlug, doctorEmail)
+      : await billingService.createSubscription(admin, doctorId, body.planSlug as PlanSlug, doctorEmail);
 
     return jsonOk(result);
   } catch (err) {
@@ -72,11 +73,11 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
     const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
 
-    const { data: doctor } = await auth.supabase.from('doctors').select('id').eq('user_id', auth.user.id).single();
-    if (!doctor) return badRequest('doctor_not_found');
+    const doctorId = await doctorsRepo.resolveIdByUserId(auth.user.id, auth.supabase);
+    if (!doctorId) return badRequest('doctor_not_found');
 
     const admin = createAstroAdminClient(locals.runtime?.env);
-    await billingService.cancelSubscription(admin, doctor.id);
+    await billingService.cancelSubscription(admin, doctorId);
     return jsonOk({ cancelled: true });
   } catch (err) {
     logger.error('[billing/subscription] DELETE error', err);
