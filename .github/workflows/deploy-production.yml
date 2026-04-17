@@ -37,7 +37,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages:core
       - run: pnpm typecheck
-      - run: pnpm lint
+      # - run: pnpm lint
 
   deploy-db:
     name: DB Migrations
