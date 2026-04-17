@@ -3,7 +3,11 @@
  * Single source of truth for all DB queries related to doctor profiles.
  */
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
-import type { Database, IDoctorRepository } from '@autamedica/types'
+import type {
+  Database,
+  IDoctorRepository,
+  MarkOnboardingCompleteInput,
+} from '@autamedica/types'
 import { toCamel, logger } from '@autamedica/shared'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DoctorWithProfile } from '@autamedica/types'
@@ -124,6 +128,34 @@ export const doctorsRepo = {
 
     return data?.id ?? null
   },
+
+  async markOnboardingComplete(
+    input: MarkOnboardingCompleteInput,
+    client: DoctorsClient = getBrowserSupabaseClient(),
+  ): Promise<void> {
+    const patch: Record<string, unknown> = {
+      onboarding_completed_at: input.completedAt,
+      onboarding_started_at: input.completedAt,
+    }
+    if (input.firstName) patch.first_name = input.firstName
+    if (input.lastName) patch.last_name = input.lastName
+
+    const { error } = await client
+      .from('profiles')
+      .update(patch)
+      .eq('user_id', input.userId)
+
+    if (error) {
+      logger.error('[doctorsRepo] markOnboardingComplete failed', error)
+      throw error
+    }
+  },
+
+  async markUserMetadataOnboardingComplete(_userId: string): Promise<void> {
+    // Browser adapter cannot call admin.updateUserById; use the server-side
+    // Supabase admin adapter (see apps/web/src/lib/doctors/adapters/supabase-doctors.repo.ts).
+    throw new Error('[doctorsRepo] markUserMetadataOnboardingComplete requires admin client')
+  },
 }
 
 /**
@@ -140,5 +172,8 @@ export function createDoctorRepositoryAdapter(
     findById: (id) => doctorsRepo.findById(id, client),
     findBySpecialty: (specialty) => doctorsRepo.findBySpecialty(specialty, client),
     resolveIdByUserId: (userId) => doctorsRepo.resolveIdByUserId(userId, client),
+    markOnboardingComplete: (input) => doctorsRepo.markOnboardingComplete(input, client),
+    markUserMetadataOnboardingComplete: (userId) =>
+      doctorsRepo.markUserMetadataOnboardingComplete(userId),
   }
 }

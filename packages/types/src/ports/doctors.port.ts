@@ -8,10 +8,19 @@
 
 import type { DoctorWithProfile } from '../entities/profiles'
 
+export interface MarkOnboardingCompleteInput {
+  userId: string
+  firstName?: string | null
+  lastName?: string | null
+  completedAt: string
+}
+
 export interface IDoctorRepository {
   findAll(): Promise<DoctorWithProfile[]>
   findByUserId(userId: string): Promise<DoctorWithProfile | null>
   findById(id: string): Promise<DoctorWithProfile | null>
   findBySpecialty(specialty: string): Promise<DoctorWithProfile[]>
   resolveIdByUserId(userId: string): Promise<string | null>
+  markOnboardingComplete(input: MarkOnboardingCompleteInput): Promise<void>
+  markUserMetadataOnboardingComplete(userId: string): Promise<void>
 }
