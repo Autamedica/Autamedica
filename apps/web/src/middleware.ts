@@ -336,6 +336,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   // 3. INTERNAL REWRITE for subdomains (Transparent to user)
   // Maps paciente.autamedica.com/appointments -> /patients/appointments internally
+  // CRITICAL: We check if the pathname ALREADY starts with the prefix to avoid infinite loops.
   if (portal && !isMainDomain && !pathname.startsWith('/_astro/') && !pathname.includes('.')) {
     const prefixes: Record<string, string> = {
       patient: '/patients',
@@ -346,12 +347,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const prefix = prefixes[portal];
     
     if (prefix && !pathname.startsWith(prefix)) {
+      // Normalize target path: / -> /patients, /appointments -> /patients/appointments
       const targetPath = pathname === '/' ? prefix : `${prefix}${pathname}`;
-      // logger.info(`[routing] Rewriting subdomain path: ${pathname} -> ${targetPath}`);
-      return context.rewrite(targetPath);
+      
+      // Safety check: if targetPath is same as pathname, don't rewrite
+      if (targetPath !== pathname) {
+        return context.rewrite(targetPath);
+      }
     }
   }
-  // ── END SUBDOMAIN & ROUTING ENFORCEMENT ────────────────────────────────────
+  // ── END SUBDOMAIN & ROUTING ENFORCEMENT ──────────────────────────────────────────────────────────────────────
 
   // Wrap next() so every response gets security headers applied
   const secureNext = async (): Promise<Response> => {
