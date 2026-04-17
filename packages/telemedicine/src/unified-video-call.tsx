@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { JSX } from 'react'
 import { logger } from '@autamedica/shared'
-import { patchVideoPlayback } from './media-optimizations'
 import type { CallService } from './calls/service'
 import type { CallStatus } from './calls/types'
 import { classifyCallError } from './calls/classify-error'
@@ -340,20 +339,8 @@ export function UnifiedVideoCall({
     )
 
     unsubs.push(
-      webrtcClient.on('local-stream', (stream) => {
-        // Immediate assignment
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream
-          patchVideoPlayback(localVideoRef.current)
-        }
-        // Deferred retry: during layout transitions the ref may be null momentarily
-        // (e.g. switching from waiting-room full-size video to PiP)
-        setTimeout(() => {
-          if (localVideoRef.current && localVideoRef.current.srcObject !== stream) {
-            localVideoRef.current.srcObject = stream
-            patchVideoPlayback(localVideoRef.current)
-          }
-        }, 300)
+      webrtcClient.on('local-stream', () => {
+        // ActiveCallLayout will handle the srcObject assignment
       })
     )
 
@@ -400,40 +387,6 @@ export function UnifiedVideoCall({
           updated.set(remoteUserId, { ...existing, stream })
           return updated
         })
-        // Retry stream attachment — the video element may not be mounted yet
-        const attachStream = (attempt = 0) => {
-          const el = remoteVideosRef.current.get(remoteUserId)
-          if (el) {
-            if (el.srcObject !== stream) {
-              el.srcObject = stream
-              patchVideoPlayback(el)
-
-              // Chrome/mobile quirk: if stream was assigned while tracks were muted,
-              // the video element stays at readyState=0. Re-assign on unmute and
-              // call play() to ensure autoplay works on mobile browsers.
-              stream.getTracks().forEach(track => {
-                track.addEventListener('unmute', () => {
-                  if (el.srcObject === stream && el.readyState === 0) {
-                    el.srcObject = null
-                    el.srcObject = stream
-                    patchVideoPlayback(el)
-                  }
-                }, { once: true })
-              })
-
-              // Mobile autoplay: explicit play() after srcObject assignment.
-              // Some mobile browsers ignore autoplay attr on programmatic srcObject changes.
-              el.play().catch((err) => { 
-                logger.warn('[UnifiedVideoCall] Auto-play blocked, retrying on interaction', err);
-                // Force a second attempt after a short delay
-                setTimeout(() => el.play().catch(() => {}), 1000);
-              })
-            }
-          } else if (attempt < 10) {
-            setTimeout(() => attachStream(attempt + 1), 100)
-          }
-        }
-        attachStream()
       })
     )
 
