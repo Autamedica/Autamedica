@@ -43,6 +43,7 @@ jobs:
     name: DB Migrations
     runs-on: ubuntu-latest
     needs: validate
+    if: false
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -74,9 +75,9 @@ jobs:
   build-and-deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
-    needs: [validate, deploy-db]
+    needs: [validate]
     timeout-minutes: 20
-    if: always() && needs.validate.result == 'success' && needs.deploy-db.result != 'failure'
+    if: always() && needs.validate.result == "success"
     outputs:
       prev_deployment: ${{ steps.snapshot.outputs.id }}
     steps:
