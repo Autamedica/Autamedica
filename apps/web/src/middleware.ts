@@ -307,10 +307,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const requestUrl = new URL(context.request.url);
   const { pathname } = requestUrl;
-  // ── SUBDOMAIN & ROUTING ENFORCEMENT ────────────────────────────────────────
+  
+  // ── SUBDOMAIN & ROUTING ENFORCEMENT ──
   const host = context.request.headers.get('host') || '';
   const isMainDomain = host.includes('www.autamedica.com') || host === 'autamedica.com' || host.includes('localhost');
-  const portal = detectPortal(requestUrl);
+// portal already detected above
 
   // 1. Anti-NXDOMAIN: Strip 'www.' from portal subdomains
   if (host.startsWith('www.paciente.') || host.startsWith('www.doctor.') || host.startsWith('www.empresa.') || host.startsWith('www.farmacia.')) {
@@ -433,7 +434,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
-  const portal = detectPortal(requestUrl);
+// portal already detected above
   const authCookieDebug = getAuthCookieDebug(context.request);
   const isDoctorHost = portal === 'doctor';
   const isPatientHost = portal === 'patient';
