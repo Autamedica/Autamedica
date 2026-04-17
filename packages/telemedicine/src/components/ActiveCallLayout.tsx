@@ -87,8 +87,11 @@ function LocalVideoPiP({
     const sync = () => {
       const el = pipVideoRef.current
       const s = client.getLocalStream()
-      if (el && s && el.srcObject !== s) {
+      const trackCount = s?.getTracks().length ?? 0
+      const streamKey = `${s?.id ?? 'none'}-${trackCount}`
+      if (el && s && el.getAttribute('data-assigned-stream') !== streamKey) {
         el.srcObject = s
+        el.setAttribute('data-assigned-stream', streamKey)
         patchVideoPlayback(el)
       }
       setHasVideo(!!(s?.getVideoTracks().some(t => t.readyState === 'live' && t.enabled)))
@@ -241,12 +244,14 @@ export function ActiveCallLayout({
     remoteUsers.forEach((user, uid) => {
       const el = remoteVideosRef.current.get(uid)
       if (!el || !user.stream) return
-      if (el.getAttribute('data-assigned-stream') === user.stream.id) return
+      const tracks = user.stream.getTracks()
+      const streamKey = `${user.stream.id}-${tracks.length}`
+      if (el.getAttribute('data-assigned-stream') === streamKey) return
 
       const assign = () => {
         if (user.stream) {
           el.srcObject = user.stream
-          el.setAttribute('data-assigned-stream', user.stream.id)
+          el.setAttribute('data-assigned-stream', streamKey)
           patchVideoPlayback(el)
         }
         
@@ -391,9 +396,14 @@ export function ActiveCallLayout({
               <video
                 ref={(el) => {
                   (localVideoRef as MutableRefObject<HTMLVideoElement | null>).current = el
-                  if (el && localStream && el.srcObject !== localStream) {
-                    el.srcObject = localStream
-                    patchVideoPlayback(el)
+                  if (el && localStream) {
+                    const trackCount = localStream.getTracks().length
+                    const streamKey = `${localStream.id}-${trackCount}`
+                    if (el.getAttribute('data-assigned-stream') !== streamKey) {
+                      el.srcObject = localStream
+                      el.setAttribute('data-assigned-stream', streamKey)
+                      patchVideoPlayback(el)
+                    }
                   }
                 }}
                 autoPlay
