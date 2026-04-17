@@ -636,7 +636,12 @@ export class CloudflareCallsClient implements CallProvider {
     }
 
     this.debugLogger.info('Remote track received', { userId, trackKind: event.track.kind, tracksCount: userStream.getTracks().length })
-    this.emit('remote-stream', userStream, userId)
+    
+    // Breaking referential equality so React triggers the useCallLifecycleEffects hook and updates srcObject
+    const clonedStreamForReact = new MediaStream(userStream.getTracks())
+    this.userToStream.set(userId, clonedStreamForReact)
+    
+    this.emit('remote-stream', clonedStreamForReact, userId)
 
     if (!this.connectedPeerIds.has(userId)) {
       this.connectedPeerIds.add(userId)
