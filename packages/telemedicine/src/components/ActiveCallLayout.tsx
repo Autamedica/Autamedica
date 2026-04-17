@@ -59,7 +59,11 @@ export function ActiveCallLayout({
             ) : hasRemote && remote?.stream ? (
               <video
                 ref={(el) => {
-                  if (el) remoteVideosRef.current?.set(remote.userId, el)
+                  if (!el) return
+                  remoteVideosRef.current?.set(remote.userId, el)
+                  if (remote.stream && el.srcObject !== remote.stream) {
+                    el.srcObject = remote.stream
+                  }
                 }}
                 autoPlay
                 playsInline
