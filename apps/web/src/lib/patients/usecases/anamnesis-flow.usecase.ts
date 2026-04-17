@@ -1,3 +1,5 @@
+// Pure functions module: input-to-output transforms for the anamnesis wizard flow.
+// Intentionally avoids the (deps, args) DI pattern — no I/O, no Supabase, no side effects.
 import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps';
 import type {
   ExtractionGuidance,
