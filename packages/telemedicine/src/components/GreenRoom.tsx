@@ -1,33 +1,35 @@
 'use client'
 
 import type { RefObject } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Video,
-  Mic,
   Loader2,
-  Phone,
-  UserCircle,
-  CheckCircle2,
   AlertTriangle,
-  XCircle,
-  ChevronDown,
-  Volume2,
+  RefreshCcw,
+  User,
   Settings,
-  RefreshCw,
-  Wifi,
 } from 'lucide-react'
-import { springGentle, staggerContainer, staggerChild, buttonGentleHover, buttonGentleTap } from './animation-presets'
-import type { CallProvider, ConnectionState, DeviceInfo, WarmUpResult } from '../providers/types'
+import type { ConnectionState, DeviceInfo, WarmUpResult } from '../providers/types'
 import type { PreflightResult } from '../network/preflight'
+import { 
+  IconCamera, 
+  IconMic, 
+  IconShieldCheck, 
+  IconConnectivity,
+  IconPulse 
+} from './TelemedicineIcons'
 
 export interface GreenRoomProps {
   localVideoRef: RefObject<HTMLVideoElement | null>
-  client: CallProvider | null
+  client: any
   warmUpResult: WarmUpResult | null
   isWarmingUp: boolean
   audioLevel: number
-  greenRoomChecks: { hasVideo: boolean; hasAudio: boolean; hasSignaling: boolean; allReady: boolean }
+  greenRoomChecks: {
+    camera: boolean
+    mic: boolean
+    network: boolean
+  }
   availableDevices: DeviceInfo[]
   selectedVideoDevice: string
   selectedAudioDevice: string
@@ -37,352 +39,204 @@ export interface GreenRoomProps {
   connectionState: ConnectionState
   userName?: string
   roomId: string
-  userType: 'doctor' | 'patient' | 'nurse' | 'guest'
+  userType: string
   accentColor: 'violet' | 'sky'
-  /** Network preflight result (optional — skipped if no ICE servers) */
-  preflightResult?: PreflightResult | null
-  preflightRunning?: boolean
-  onPreflightRerun?: () => void
-}
-
-/* ── Device selector ── */
-function DeviceSelect({
-  icon: Icon,
-  devices,
-  value,
-  onChange,
-}: {
-  icon: typeof Video
-  devices: DeviceInfo[]
-  value: string
-  onChange: (id: string) => void
-}) {
-  if (devices.length <= 1) return null
-  return (
-    <div className="relative">
-      <Icon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-am-surface-400 pointer-events-none" />
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-8 text-sm text-white focus:outline-none focus:ring-1 focus:ring-white/20 hover:bg-white/8 transition-colors"
-      >
-        {devices.map(d => (
-          <option key={d.deviceId} value={d.deviceId}>{d.label || `Dispositivo ${d.deviceId.slice(0, 5)}`}</option>
-        ))}
-      </select>
-      <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-am-surface-400 pointer-events-none" />
-    </div>
-  )
-}
-
-/* ── Audio level meter ── */
-function AudioMeter({ level }: { level: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <Volume2 className="h-4 w-4 text-am-surface-400 shrink-0" />
-      <div className="flex flex-1 items-end gap-[3px] h-4">
-        {Array.from({ length: 20 }).map((_, i) => (
-          <div
-            key={i}
-            className={`flex-1 rounded-sm transition-all duration-75 ${
-              level * 20 > i
-                ? i < 13 ? 'bg-am-success' : i < 17 ? 'bg-amber-400' : 'bg-red-400'
-                : 'bg-white/10'
-            }`}
-            style={{ height: `${Math.max(25, (i / 20) * 100)}%` }}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ── Readiness check item ── */
-function CheckItem({ ok, loading, label }: { ok: boolean; loading?: boolean; label: string }) {
-  return (
-    <motion.div
-      className={`flex items-center gap-2 text-sm ${ok ? 'text-am-success' : loading ? 'text-amber-400' : 'text-red-400'}`}
-      variants={staggerChild}
-    >
-      {loading ? (
-        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
-          <Loader2 className="h-4 w-4" />
-        </motion.div>
-      ) : ok ? (
-        <motion.div initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={springGentle}>
-          <CheckCircle2 className="h-4 w-4" />
-        </motion.div>
-      ) : (
-        <AlertTriangle className="h-4 w-4" />
-      )}
-      <span>{label}</span>
-    </motion.div>
-  )
-}
-
-/* ── Network preflight result display ── */
-function NetworkQualityDisplay({
-  result,
-  isRunning,
-  onRerun,
-}: {
-  result: PreflightResult | null
-  isRunning: boolean
-  onRerun?: () => void
-}) {
-  if (isRunning) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-amber-400">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>Analizando tu conexion...</span>
-      </div>
-    )
-  }
-
-  if (!result) return null
-
-  const { recommendation } = result
-
-  const config: Record<string, { color: string; Icon: typeof CheckCircle2; text: string }> = {
-    hd: {
-      color: 'text-am-success',
-      Icon: CheckCircle2,
-      text: 'Conexion excelente — video en alta definicion',
-    },
-    sd: {
-      color: 'text-amber-400',
-      Icon: AlertTriangle,
-      text: 'Conexion moderada — video en definicion estandar',
-    },
-    'audio-only': {
-      color: 'text-orange-400',
-      Icon: AlertTriangle,
-      text: 'Conexion limitada — recomendamos audio sin video',
-    },
-    unreachable: {
-      color: 'text-red-400',
-      Icon: XCircle,
-      text: 'No pudimos conectar — verifica tu red',
-    },
-  }
-
-  const { color, Icon, text } = config[recommendation] ?? config.unreachable
-
-  return (
-    <div className="space-y-2">
-      <div className={`flex items-center gap-2 text-sm ${color}`}>
-        <Icon className="h-4 w-4 shrink-0" />
-        <span>{text}</span>
-      </div>
-      {result.estimatedBandwidthKbps > 0 && (
-        <div className="flex items-center gap-4 text-[11px] text-slate-500">
-          <span>{Math.round(result.estimatedBandwidthKbps)} kbps</span>
-          <span>{Math.round(result.latencyMs)} ms</span>
-          {result.stunReachable && <span>STUN OK</span>}
-          {result.turnReachable && <span>TURN OK</span>}
-        </div>
-      )}
-      {onRerun && (
-        <button
-          onClick={onRerun}
-          className="flex items-center gap-1.5 text-xs text-am-surface-400 hover:text-am-surface-300 transition-colors"
-        >
-          <RefreshCw className="h-3 w-3" />
-          Reintentar
-        </button>
-      )}
-    </div>
-  )
+  preflightResult: PreflightResult | null
+  preflightRunning: boolean
+  onPreflightRerun: () => void
 }
 
 export function GreenRoom({
   localVideoRef,
-  client,
   warmUpResult,
   isWarmingUp,
   audioLevel,
   greenRoomChecks,
-  availableDevices,
-  selectedVideoDevice,
-  selectedAudioDevice,
-  onDeviceChange,
   onStartCall,
   callError,
-  connectionState,
   userName,
-  roomId,
-  userType,
   accentColor,
   preflightResult,
   preflightRunning,
   onPreflightRerun,
 }: GreenRoomProps) {
-  const videoDevices = availableDevices.filter(d => d.kind === 'videoinput')
-  const audioDevices = availableDevices.filter(d => d.kind === 'audioinput')
   const isUnreachable = preflightResult?.recommendation === 'unreachable'
-
+  
   return (
-    <div className="flex h-full items-center justify-center bg-am-surface-900 px-4 py-6 sm:px-6">
-      {/* Background ambient */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute left-1/4 top-1/4 h-[500px] w-[500px] rounded-full blur-[150px] opacity-[0.08] ${
-          accentColor === 'violet' ? 'bg-am-primary-600' : 'bg-am-primary-500'
-        }`} />
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-am-surface-900 font-sans selection:bg-am-primary-500/30">
+      {/* ── Background Decoration (Pulse Animation) ── */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+        <motion.div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full border border-am-surface-700/30"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full border border-am-surface-700/50"
+          animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        />
       </div>
 
-      <div className="relative z-10 grid w-full max-w-4xl gap-8 lg:grid-cols-[1fr_340px]">
-        {/* ── Left: Video preview ── */}
-        <div className="flex flex-col">
-          <div className="relative overflow-hidden rounded-2xl bg-slate-800 shadow-[0_16px_64px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
+      <div className="relative z-10 grid w-full max-w-6xl grid-cols-1 gap-8 px-6 lg:grid-cols-12">
+        
+        {/* ── Left Column: Preview ── */}
+        <div className="lg:col-span-7">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="group relative aspect-video overflow-hidden rounded-[32px] border border-am-surface-700/50 bg-am-surface-800 shadow-am-2xl"
+          >
+            {/* Local Video */}
             <video
-              ref={(el) => {
-                (localVideoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el
-                if (el && client) {
-                  const s = client.getLocalStream()
-                  if (s && el.srcObject !== s) el.srcObject = s
-                }
-              }}
+              ref={localVideoRef}
               autoPlay
               muted
               playsInline
-              className="aspect-video w-full object-cover -scale-x-100"
+              className="h-full w-full object-cover grayscale-[20%] transition-all duration-700 group-hover:grayscale-0"
             />
 
-            {/* Loading/no camera overlay */}
-            {!warmUpResult && (
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
-                {isWarmingUp ? (
-                  <div className="text-center">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-am-surface-400" />
-                    <p className="mt-2 text-sm text-slate-500">Preparando cámara...</p>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <UserCircle className="mx-auto h-16 w-16 text-neutral-700" />
-                    <p className="mt-2 text-sm text-slate-500">Vista previa no disponible</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Name overlay */}
-            {warmUpResult && (
-              <div className="absolute bottom-3 left-3 rounded-md bg-am-surface-800/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                {userName || 'Tú'}
-              </div>
-            )}
-          </div>
-
-          {/* Audio meter below preview */}
-          {warmUpResult && (
-            <div className="mt-3 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <AudioMeter level={audioLevel} />
+            {/* Video Overlays */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            
+            {/* Top Badge: Encrypted */}
+            <div className="absolute top-6 left-6 flex items-center gap-2 rounded-full bg-am-surface-900/40 px-4 py-2 backdrop-blur-md border border-white/10">
+              <IconShieldCheck size={16} className="text-am-success" />
+              <span className="text-xs font-medium tracking-wide text-am-surface-50 uppercase">Conexión Encriptada</span>
             </div>
-          )}
+
+            {/* Audio Visualizer (Pulse) */}
+            <div className="absolute bottom-8 left-8 flex items-end gap-1 h-8">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="w-1 rounded-full bg-am-primary-400"
+                  animate={{ height: Math.max(4, audioLevel * (15 + Math.random() * 25)) }}
+                  transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                />
+              ))}
+            </div>
+
+            {/* Warming Up State */}
+            {isWarmingUp && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-am-surface-900/80 backdrop-blur-sm">
+                <Loader2 className="h-10 w-10 animate-spin text-am-primary-500" />
+                <p className="mt-4 text-sm font-medium text-am-surface-100">Configurando dispositivos...</p>
+              </div>
+            )}
+          </motion.div>
         </div>
 
-        {/* ── Right: Settings & Join ── */}
-        <div className="flex flex-col justify-between">
-          {/* Title */}
-          <div>
-            <h1 className="text-2xl font-bold text-white">Consulta médica</h1>
-            <p className="mt-1 text-sm text-am-surface-400">
-              {userName && <span>{userName} · </span>}
-              Sala {roomId.replace(/^room_/, '').slice(0, 8)}
+        {/* ── Right Column: Info & Actions ── */}
+        <div className="flex flex-col justify-center lg:col-span-5">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-am-primary-400">Consulta Médica</h2>
+            <h1 className="mt-2 text-4xl font-semibold tracking-tight text-am-surface-50 font-heading">
+              {userName || 'Preparando todo'}
+            </h1>
+            <p className="mt-4 text-lg text-am-surface-300 leading-relaxed">
+              Verifica tu cámara y micrófono antes de ingresar a la sala privada.
             </p>
 
-            {/* Readiness checks */}
-            {warmUpResult && (
-              <motion.div
-                className="mt-6 space-y-3 rounded-xl border border-white/8 bg-white/[0.03] p-4"
-                variants={staggerContainer(0.15)}
-                initial="hidden"
-                animate="visible"
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                  Verificacion
-                </p>
-                <CheckItem ok={greenRoomChecks.hasVideo} label="Camara" />
-                <CheckItem ok={greenRoomChecks.hasAudio} label="Microfono" />
-                <CheckItem
-                  ok={greenRoomChecks.hasSignaling}
-                  loading={!greenRoomChecks.hasSignaling && connectionState !== 'failed'}
-                  label={warmUpResult.latencyMs != null ? `Red (${warmUpResult.latencyMs}ms)` : 'Red'}
-                />
-              </motion.div>
-            )}
-
-            {/* Network preflight */}
-            {(preflightRunning || preflightResult) && (
-              <div className="mt-4 space-y-2 rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                  <Wifi className="h-3 w-3" />
-                  Calidad de red
-                </p>
-                <NetworkQualityDisplay
-                  result={preflightResult ?? null}
-                  isRunning={!!preflightRunning}
-                  onRerun={onPreflightRerun}
-                />
-              </div>
-            )}
-
-            {/* Device selectors */}
-            {availableDevices.length > 0 && (videoDevices.length > 1 || audioDevices.length > 1) && (
-              <div className="mt-4 space-y-2">
-                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                  <Settings className="h-3 w-3" />
-                  Dispositivos
-                </p>
-                <DeviceSelect icon={Video} devices={videoDevices} value={selectedVideoDevice} onChange={(id) => onDeviceChange('video', id)} />
-                <DeviceSelect icon={Mic} devices={audioDevices} value={selectedAudioDevice} onChange={(id) => onDeviceChange('audio', id)} />
-              </div>
-            )}
-          </div>
-
-          {/* Error */}
-          {callError && (
-            <div className="mt-4 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {callError}
+            {/* ── Quality Checks ── */}
+            <div className="mt-10 space-y-5">
+              <CheckItem 
+                icon={<IconCamera size={20} />} 
+                label="Cámara" 
+                ok={greenRoomChecks.camera} 
+                loading={isWarmingUp} 
+              />
+              <CheckItem 
+                icon={<IconMic size={20} />} 
+                label="Micrófono" 
+                ok={greenRoomChecks.mic} 
+                loading={isWarmingUp} 
+              />
+              <CheckItem 
+                icon={<IconConnectivity size={20} level={preflightResult?.latencyMs && preflightResult.latencyMs < 300 ? 4 : 2} />} 
+                label="Calidad de Red" 
+                ok={greenRoomChecks.network && !isUnreachable} 
+                loading={preflightRunning}
+                detail={preflightResult?.latencyMs ? `${Math.round(preflightResult.latencyMs)}ms` : undefined}
+                onRerun={onPreflightRerun}
+              />
             </div>
-          )}
 
-          {/* Join button */}
-          <div className="mt-6">
-            <motion.button
-              onClick={onStartCall}
-              disabled={isWarmingUp || isUnreachable}
-              className={`w-full rounded-xl px-6 py-4 text-base font-semibold text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
-                'bg-am-primary-600 hover:bg-am-primary-500 shadow-am-primary/20 text-white transition-all'
-              }`}
-              whileHover={buttonGentleHover}
-              whileTap={buttonGentleTap}
-              transition={springGentle}
-            >
-              <span className="flex items-center justify-center gap-2">
-                <Phone className="h-5 w-5" />
-                {userType === 'doctor' ? 'Iniciar consulta' : 'Unirse a consulta'}
-              </span>
-            </motion.button>
-
-            {greenRoomChecks.allReady && (
-              <motion.p
-                className="mt-2 text-center text-xs text-am-success/70"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
+            {/* ── Action Button ── */}
+            <div className="mt-12">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onStartCall}
+                disabled={isWarmingUp || isUnreachable}
+                className={`relative group flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl py-5 text-lg font-semibold transition-all shadow-am-primary/20
+                  ${isUnreachable 
+                    ? 'bg-am-surface-800 text-am-surface-500 cursor-not-allowed' 
+                    : 'bg-am-primary-600 text-white hover:bg-am-primary-500'}`}
               >
-                Todo listo — conexión instantánea
-              </motion.p>
-            )}
-
-            {connectionState === 'failed' && !callError && (
-              <p className="mt-2 text-center text-sm text-red-400">
-                Error de conexión. Intenta nuevamente.
-              </p>
-            )}
-          </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-[am-shimmer_2s_infinite]" />
+                <IconPulse size={22} className={isWarmingUp ? 'animate-pulse' : ''} />
+                <span>Ingresar a la consulta</span>
+              </motion.button>
+              
+              {isUnreachable && (
+                <p className="mt-4 flex items-center justify-center gap-2 text-sm text-red-400">
+                  <AlertTriangle size={14} />
+                  No pudimos establecer una conexión segura. Verifica tu red.
+                </p>
+              )}
+            </div>
+          </motion.div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function CheckItem({ 
+  icon, 
+  label, 
+  ok, 
+  loading, 
+  detail,
+  onRerun 
+}: { 
+  icon: React.ReactNode, 
+  label: string, 
+  ok: boolean, 
+  loading: boolean,
+  detail?: string,
+  onRerun?: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl bg-am-surface-800/40 p-4 border border-am-surface-700/30 backdrop-blur-sm transition-all hover:border-am-surface-600">
+      <div className="flex items-center gap-4">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${ok ? 'bg-am-success/10 text-am-success' : 'bg-am-surface-700 text-am-surface-400'}`}>
+          {icon}
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold text-am-surface-100">{label}</span>
+          {detail && <span className="text-xs text-am-surface-400 tracking-wider font-mono">{detail}</span>}
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-3">
+        {onRerun && !loading && (
+          <button onClick={onRerun} className="p-2 text-am-surface-400 hover:text-am-primary-400 transition-colors">
+            <RefreshCcw size={14} />
+          </button>
+        )}
+        {loading ? (
+          <Loader2 className="h-4 w-4 animate-spin text-am-primary-400" />
+        ) : ok ? (
+          <div className="h-2 w-2 rounded-full bg-am-success shadow-[0_0_12px_rgba(16,185,129,0.5)]" />
+        ) : (
+          <div className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]" />
+        )}
       </div>
     </div>
   )
