@@ -307,17 +307,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const requestUrl = new URL(context.request.url);
   const { pathname } = requestUrl;
-  // Enforce subdomain redirection for portal routes in production
+  // ── SUBDOMAIN & ROUTING ENFORCEMENT ────────────────────────────────────────
   const host = context.request.headers.get('host') || '';
-  const isMainDomain = host.includes('www.autamedica.com') || host === 'autamedica.com';
-  
-  // Anti-NXDOMAIN: If someone (or a Cloudflare rule) adds www. to a subdomain, strip it!
-  if (host.startsWith('www.paciente.') || host.startsWith('www.doctor.') || host.startsWith('www.empresa.')) {
+  const isMainDomain = host.includes('www.autamedica.com') || host === 'autamedica.com' || host.includes('localhost');
+  const portal = detectPortal(requestUrl);
+
+  // 1. Anti-NXDOMAIN: Strip 'www.' from portal subdomains
+  if (host.startsWith('www.paciente.') || host.startsWith('www.doctor.') || host.startsWith('www.empresa.') || host.startsWith('www.farmacia.')) {
     const cleanHost = host.replace('www.', '');
     return context.redirect(`https://${cleanHost}${pathname}${requestUrl.search}`, 308);
   }
 
-  if (isMainDomain && isProduction()) {
+  // 2. Redirect main domain /portal paths to their subdomains (Production only)
+  if (isMainDomain && isProduction() && !host.includes('localhost')) {
     if (pathname.startsWith('/patients')) {
       const target = pathname === '/patients' ? '/' : pathname.replace('/patients', '');
       return context.redirect(`https://paciente.autamedica.com${target}${requestUrl.search}`, 308);
@@ -331,6 +333,25 @@ export const onRequest = defineMiddleware(async (context, next) => {
       return context.redirect(`https://empresa.autamedica.com${target}${requestUrl.search}`, 308);
     }
   }
+
+  // 3. INTERNAL REWRITE for subdomains (Transparent to user)
+  // Maps paciente.autamedica.com/appointments -> /patients/appointments internally
+  if (portal && !isMainDomain && !pathname.startsWith('/_astro/') && !pathname.includes('.')) {
+    const prefixes: Record<string, string> = {
+      patient: '/patients',
+      doctor: '/doctors',
+      pharmacist: '/pharmacy',
+      company: '/companies'
+    };
+    const prefix = prefixes[portal];
+    
+    if (prefix && !pathname.startsWith(prefix)) {
+      const targetPath = pathname === '/' ? prefix : `${prefix}${pathname}`;
+      // logger.info(`[routing] Rewriting subdomain path: ${pathname} -> ${targetPath}`);
+      return context.rewrite(targetPath);
+    }
+  }
+  // ── END SUBDOMAIN & ROUTING ENFORCEMENT ────────────────────────────────────
 
   // Wrap next() so every response gets security headers applied
   const secureNext = async (): Promise<Response> => {
