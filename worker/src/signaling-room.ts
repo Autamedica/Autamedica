@@ -130,6 +130,22 @@ export class SignalingRoom implements DurableObject {
     // Send room-state to the joining user
     this.sendTo(ws, { type: 'room-state', data: { users: existingUsers } })
 
+    // Replay any cf-session announcements from existing users so the late joiner
+    // can subscribe to their SFU tracks. Without this, a peer that announced its
+    // cf-session to an empty room never gets that announcement re-delivered when
+    // someone new arrives.
+    for (const otherWs of this.state.getWebSockets()) {
+      if (otherWs === ws) continue
+      const otherMeta = await this.getUserMeta(otherWs)
+      if (otherMeta?.cfSessionId) {
+        this.sendTo(ws, {
+          type: 'cf-session',
+          from: otherMeta.userId,
+          data: { sessionId: otherMeta.cfSessionId, userType: otherMeta.userType },
+        })
+      }
+    }
+
     // Broadcast user-joined to everyone else
     this.broadcast({ type: 'user-joined', from: userId, data: { userType } }, ws)
   }
@@ -161,6 +177,20 @@ export class SignalingRoom implements DurableObject {
     }
 
     if (message.type === 'cf-session' || message.type === 'chat' || message.type === 'clinical-mode') {
+      // Persist the sender's cfSessionId so future joiners can be told about it
+      // via the replay path in handleJoin.
+      if (message.type === 'cf-session') {
+        const sessionId = (message.data as { sessionId?: string })?.sessionId
+        if (sessionId) {
+          const connId = this.getConnId(ws)
+          if (connId) {
+            const updated: UserMeta = { ...senderMeta, cfSessionId: sessionId }
+            this.userCache.set(connId, updated)
+            await this.state.storage.put('conn:' + connId, updated)
+          }
+        }
+      }
+
       this.broadcast({
         type: message.type,
         from: senderMeta.userId,
