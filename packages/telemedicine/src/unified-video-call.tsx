@@ -110,6 +110,8 @@ export function UnifiedVideoCall({
   const [isChatReady, setIsChatReady] = useState(false)
   const [hasPeerConnection, setHasPeerConnection] = useState(false)
   const [hasRemoteMedia, setHasRemoteMedia] = useState(false)
+  /** Peers whose WS/session just dropped but are still within the auto-heal window (10s). */
+  const [reconnectingPeers, setReconnectingPeers] = useState<Set<string>>(() => new Set())
 
   /* ── Retry state ── */
   const [retryKey, setRetryKey] = useState(0)
@@ -137,6 +139,7 @@ export function UnifiedVideoCall({
   const connectingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const connectionStateRef = useRef<ConnectionState>('disconnected')
   const knownPeerIdsRef = useRef<Set<string>>(new Set())
+  const reconnectTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   /* ── Callback refs (prevent useEffect re-runs when parent re-renders) ── */
   const onCallStartRef = useRef(onCallStart)
@@ -397,6 +400,18 @@ export function UnifiedVideoCall({
     unsubs.push(
       webrtcClient.on('user-joined', (remoteUserId, remoteUserType) => {
         knownPeerIdsRef.current.add(remoteUserId)
+        // Peer is back — cancel the reconnect grace window.
+        const pendingTimer = reconnectTimersRef.current.get(remoteUserId)
+        if (pendingTimer) {
+          clearTimeout(pendingTimer)
+          reconnectTimersRef.current.delete(remoteUserId)
+        }
+        setReconnectingPeers((prev) => {
+          if (!prev.has(remoteUserId)) return prev
+          const next = new Set(prev)
+          next.delete(remoteUserId)
+          return next
+        })
         setRemoteUsers((prev) => {
           const updated = new Map(prev)
           const existing = updated.get(remoteUserId)
@@ -417,6 +432,28 @@ export function UnifiedVideoCall({
     unsubs.push(
       webrtcClient.on('user-left', (remoteUserId) => {
         knownPeerIdsRef.current.delete(remoteUserId)
+        // Flag this peer as reconnecting for 10s. If a user-joined arrives
+        // during that window (auto-heal from PR #326), the UI shows a
+        // "Reconectando..." state instead of "Esperando al participante..." —
+        // the peer didn't truly leave, they just refreshed the SFU session.
+        setReconnectingPeers((prev) => {
+          const next = new Set(prev)
+          next.add(remoteUserId)
+          return next
+        })
+        const existingTimer = reconnectTimersRef.current.get(remoteUserId)
+        if (existingTimer) clearTimeout(existingTimer)
+        const timer = setTimeout(() => {
+          setReconnectingPeers((prev) => {
+            if (!prev.has(remoteUserId)) return prev
+            const next = new Set(prev)
+            next.delete(remoteUserId)
+            return next
+          })
+          reconnectTimersRef.current.delete(remoteUserId)
+        }, 10_000)
+        reconnectTimersRef.current.set(remoteUserId, timer)
+
         setRemoteUsers((prev) => {
           const updated = new Map(prev)
           updated.delete(remoteUserId)
@@ -872,6 +909,7 @@ export function UnifiedVideoCall({
             userName={userName}
             accentColor={accentColor}
             callError={callError}
+            reconnectingPeers={reconnectingPeers}
           />
         )}
       </div>
