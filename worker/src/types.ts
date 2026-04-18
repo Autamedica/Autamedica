@@ -26,6 +26,8 @@ export type ServerMessage =
 export interface UserMeta {
   userId: string
   userType: string
+  /** Last announced Cloudflare Calls session id. Replayed to late joiners so they can subscribeToSession without the announcer re-broadcasting. */
+  cfSessionId?: string
 }
 
 export type GeminiLiveCheckpoint = 'partial' | 'final'
