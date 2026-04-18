@@ -56,6 +56,8 @@ export class CloudflareCallsClient implements CallProvider {
   private userToStream = new Map<string, MediaStream>()
   /** Maps the local transceiver mid (assigned by Cloudflare per pulled track) to the remote user that owns it */
   private midToUserId = new Map<string, string>()
+  /** Last cf-sessionId we subscribed to per remote user. A change means the peer reconnected with a new SFU session and we need to forget the old state. */
+  private userIdToSessionId = new Map<string, string>()
   /** Session IDs queued because our local CF session isn't fully connected yet */
   private pendingRemoteSessionIds: Array<{ sessionId: string; userId: string }> = []
   /** Peer user IDs who joined while we were still connecting — re-announce our session to them once ready */
@@ -354,13 +356,14 @@ export class CloudflareCallsClient implements CallProvider {
     this.ws = null
     this.sbHandle?.close()
     this.sbHandle = null
-    this.cfSession?.close()
+    await this.cfSession?.close()
     this.cfSession = null
     for (const t of this.localStream?.getTracks() ?? []) t.stop()
     this.localStream = null
     this.streamIdToUserId.clear()
     this.userToStream.clear()
     this.midToUserId.clear()
+    this.userIdToSessionId.clear()
     this.pendingRemoteUserIds = []
     this.pendingRemoteSessionIds = []
     this.pendingPeerAnnouncements = []
@@ -586,14 +589,33 @@ export class CloudflareCallsClient implements CallProvider {
       }
 
       case 'user-left': {
-        this.connectedPeerIds.delete(msg.from)
-        this.emit('user-left', msg.from)
+        this.userIdToSessionId.delete(msg.from)
+        this.forgetRemotePeer(msg.from)
         break
       }
 
       case 'cf-session': {
         const { sessionId: remoteSessionId, userType: remoteUserType } = msg.data
         const remoteUserId = msg.from
+        const previousSessionId = this.userIdToSessionId.get(remoteUserId)
+
+        if (previousSessionId && previousSessionId === remoteSessionId) {
+          // Idempotent replay (signaling replay or re-announce) — nothing to do.
+          this.debugLogger.info('Ignoring duplicate cf-session for peer', { remoteUserId, remoteSessionId })
+          break
+        }
+
+        if (previousSessionId && previousSessionId !== remoteSessionId) {
+          // Peer reconnected with a fresh SFU session (e.g. tab reload, network
+          // drop). The old mids point to dead tracks in Cloudflare and the
+          // stale MediaStream in userToStream is useless. Wipe and re-subscribe.
+          this.debugLogger.info('Peer re-announced with new cf-session, forgetting old state', {
+            remoteUserId, previousSessionId, remoteSessionId,
+          })
+          this.forgetRemotePeer(remoteUserId)
+        }
+
+        this.userIdToSessionId.set(remoteUserId, remoteSessionId)
         this.debugLogger.info('Remote CF session announced', { remoteUserId, remoteSessionId })
         this.emit('user-joined', remoteUserId, remoteUserType)
         if (!this.pendingRemoteUserIds.includes(remoteUserId)) {
@@ -636,6 +658,54 @@ export class CloudflareCallsClient implements CallProvider {
         this.midToUserId.set(t.mid, remoteUserId)
       }
     }
+  }
+
+  /**
+   * Drop all client-side state associated with a remote user. Used when a peer
+   * reconnects (cf-session changes for the same userId) or leaves. Emits
+   * user-left so React cleans up remoteUsers; the next cf-session will trigger
+   * a fresh subscribeToSession that brings the peer back with new mids.
+   *
+   * Does NOT close the remote recvonly transceivers on the PeerConnection.
+   * Cloudflare ends those tracks when the original publisher's session goes
+   * away, so they become inert; Chrome will not render them and the new
+   * subscription adds a fresh pair of transceivers for the returning peer.
+   */
+  private forgetRemotePeer(remoteUserId: string): void {
+    this.debugLogger.info('Forgetting remote peer state', { remoteUserId })
+
+    // Drop mid → userId mappings owned by this peer so no stray ontrack
+    // accidentally resolves to them.
+    for (const [mid, uid] of this.midToUserId) {
+      if (uid === remoteUserId) this.midToUserId.delete(mid)
+    }
+
+    // Stop tracks in the stale MediaStream so <video> elements bound via ref
+    // release them; React will then see a new stream on the next subscribe.
+    const staleStream = this.userToStream.get(remoteUserId)
+    if (staleStream) {
+      for (const t of staleStream.getTracks()) {
+        try { t.stop() } catch { /* ignore */ }
+      }
+      this.userToStream.delete(remoteUserId)
+    }
+
+    // Drop stream-id reverse mapping entries pointing at this user so
+    // handleRemoteTrack does not reuse them if a new stream happens to
+    // recycle a previous id.
+    for (const [sid, uid] of this.streamIdToUserId) {
+      if (uid === remoteUserId) this.streamIdToUserId.delete(sid)
+    }
+
+    // Remove any pending announcement for this user so we don't re-consume it
+    // from the heuristic fallback in handleRemoteTrack.
+    this.pendingRemoteUserIds = this.pendingRemoteUserIds.filter((u) => u !== remoteUserId)
+
+    this.connectedPeerIds.delete(remoteUserId)
+
+    // Let UnifiedVideoCall drop the row in remoteUsers. user-joined will
+    // rebuild it when the new cf-session arrives — seamless to the user.
+    this.emit('user-left', remoteUserId)
   }
 
   private handleRemoteTrack(event: RTCTrackEvent): void {
