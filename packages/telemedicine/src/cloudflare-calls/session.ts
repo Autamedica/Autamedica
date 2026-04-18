@@ -162,6 +162,16 @@ export class CloudflareCallsSession {
       { location: 'remote', trackName: 'video0', sessionId: remoteSessionId },
     ]
 
+    // Snapshot of mids that already exist so we can diff after renegotiation.
+    // Cloudflare's response occasionally returns tracks with mid=undefined
+    // (mid is only assigned once the transceiver is fully wired locally), so
+    // relying on result.tracks[].mid is unreliable. Reading mids from the PC
+    // after setLocalDescription is deterministic.
+    const pc = this.pc
+    const priorMids = new Set(
+      pc.getTransceivers().map((t) => t.mid).filter((m): m is string => m !== null)
+    )
+
     let pulledTracks: TrackEntry[] = []
     await this.enqueueNegotiation(async () => {
       const result = await this.cfApi<NewTracksResponse>(
@@ -169,11 +179,23 @@ export class CloudflareCallsSession {
         `sessions/${this.sessionId}/tracks/new`,
         { tracks: remoteTracks }
       )
-      pulledTracks = result.tracks ?? []
 
       if (result.requiresImmediateRenegotiation && result.sessionDescription) {
         await this.renegotiate(result.sessionDescription)
       }
+
+      // Map the recvonly transceivers created by this pull to their audio/video kind.
+      // Any transceiver whose mid wasn't present before is part of this subscription.
+      const newTransceivers = pc
+        .getTransceivers()
+        .filter((t) => t.mid && !priorMids.has(t.mid) && t.direction === 'recvonly')
+
+      pulledTracks = newTransceivers.map((t) => ({
+        location: 'remote' as const,
+        trackName: `${t.receiver.track?.kind ?? 'audio'}0`,
+        mid: t.mid ?? undefined,
+        sessionId: remoteSessionId,
+      }))
     })
 
     return pulledTracks
