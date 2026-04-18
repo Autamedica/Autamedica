@@ -20,7 +20,7 @@ interface NewSessionResponse {
   sessionDescription: CFSessionDescription | null
 }
 
-interface TrackEntry {
+export interface TrackEntry {
   location: 'local' | 'remote'
   trackName: string
   mid?: string
@@ -152,7 +152,7 @@ export class CloudflareCallsSession {
    * Suscribe a los tracks de una sesión remota (audio0 + video0).
    * Llamar una vez por peer remoto que se desee ver/oír.
    */
-  async subscribeToSession(remoteSessionId: string): Promise<void> {
+  async subscribeToSession(remoteSessionId: string): Promise<TrackEntry[]> {
     if (!this.pc || !this.sessionId) {
       throw new Error('CloudflareCallsSession: no conectado aún')
     }
@@ -162,17 +162,21 @@ export class CloudflareCallsSession {
       { location: 'remote', trackName: 'video0', sessionId: remoteSessionId },
     ]
 
+    let pulledTracks: TrackEntry[] = []
     await this.enqueueNegotiation(async () => {
       const result = await this.cfApi<NewTracksResponse>(
         'POST',
         `sessions/${this.sessionId}/tracks/new`,
         { tracks: remoteTracks }
       )
+      pulledTracks = result.tracks ?? []
 
       if (result.requiresImmediateRenegotiation && result.sessionDescription) {
         await this.renegotiate(result.sessionDescription)
       }
     })
+
+    return pulledTracks
   }
 
   /** Ensures API track modifications and renegotiations happen sequentially */
