@@ -38,7 +38,11 @@ export function ActiveCallLayout({
 }: ActiveCallLayoutProps) {
   const participants = Array.from(remoteUsers.values())
   const hasRemote = participants.length > 0
-  const remote = participants[0] // 1-on-1 focus
+  // Prefer a participant that already has a live stream; falls back to the first
+  // entry while the stream is still on its way so the "Esperando..." placeholder
+  // keeps working. Fixes the case where a stale/zombie presence occupies index 0
+  // without ever publishing to the SFU.
+  const remote = participants.find((p) => p.stream) ?? participants[0]
 
   return (
     <div className="relative h-full w-full bg-am-surface-900 overflow-hidden">
