@@ -49,6 +49,14 @@ export class CloudflareCallsSession {
   private localAudioSender: RTCRtpSender | null = null
   private negotiationQueue: Promise<void> = Promise.resolve()
   private readonly cfg: CFSessionConfig
+  /**
+   * Called synchronously for every `track` event BEFORE the app-level onTrack
+   * handler. Set by subscribeToSession so midToUserId in the client gets
+   * populated before handleRemoteTrack runs (ontrack fires during
+   * setRemoteDescription inside renegotiate — if we only populated the map
+   * after subscribeToSession returned, the race would be unwinnable).
+   */
+  private preTrackHandler: ((mid: string, kind: string) => void) | null = null
 
   constructor(config: CFSessionConfig) {
     this.cfg = config
@@ -63,6 +71,14 @@ export class CloudflareCallsSession {
     // No hace falta configurar ICE servers externos para la conexión al SFU.
     this.pc = new RTCPeerConnection(this.cfg.iceServers ? { iceServers: this.cfg.iceServers } : undefined)
 
+    // Pre-handler MUST be registered before cfg.onTrack so it runs first
+    // (Chrome dispatches listeners in addEventListener order).
+    this.pc.addEventListener('track', (event) => {
+      const mid = event.transceiver?.mid
+      if (mid && this.preTrackHandler) {
+        this.preTrackHandler(mid, event.track.kind)
+      }
+    })
     this.pc.addEventListener('track', this.cfg.onTrack)
     this.pc.addEventListener('connectionstatechange', () => {
       if (this.pc) this.cfg.onConnectionStateChange(this.pc.connectionState)
@@ -152,7 +168,10 @@ export class CloudflareCallsSession {
    * Suscribe a los tracks de una sesión remota (audio0 + video0).
    * Llamar una vez por peer remoto que se desee ver/oír.
    */
-  async subscribeToSession(remoteSessionId: string): Promise<TrackEntry[]> {
+  async subscribeToSession(
+    remoteSessionId: string,
+    onTrackMid?: (mid: string, kind: string) => void,
+  ): Promise<TrackEntry[]> {
     if (!this.pc || !this.sessionId) {
       throw new Error('CloudflareCallsSession: no conectado aún')
     }
@@ -162,41 +181,53 @@ export class CloudflareCallsSession {
       { location: 'remote', trackName: 'video0', sessionId: remoteSessionId },
     ]
 
-    // Snapshot of mids that already exist so we can diff after renegotiation.
-    // Cloudflare's response occasionally returns tracks with mid=undefined
-    // (mid is only assigned once the transceiver is fully wired locally), so
-    // relying on result.tracks[].mid is unreliable. Reading mids from the PC
-    // after setLocalDescription is deterministic.
     const pc = this.pc
     const priorMids = new Set(
       pc.getTransceivers().map((t) => t.mid).filter((m): m is string => m !== null)
     )
 
+    // Install pre-handler so midToUserId is populated BEFORE the app's onTrack
+    // runs (ontrack fires during setRemoteDescription inside renegotiate).
+    if (onTrackMid) {
+      this.preTrackHandler = onTrackMid
+    }
+
     let pulledTracks: TrackEntry[] = []
-    await this.enqueueNegotiation(async () => {
-      const result = await this.cfApi<NewTracksResponse>(
-        'POST',
-        `sessions/${this.sessionId}/tracks/new`,
-        { tracks: remoteTracks }
-      )
+    try {
+      await this.enqueueNegotiation(async () => {
+        const result = await this.cfApi<NewTracksResponse>(
+          'POST',
+          `sessions/${this.sessionId}/tracks/new`,
+          { tracks: remoteTracks }
+        )
 
-      if (result.requiresImmediateRenegotiation && result.sessionDescription) {
-        await this.renegotiate(result.sessionDescription)
-      }
+        if (result.requiresImmediateRenegotiation && result.sessionDescription) {
+          await this.renegotiate(result.sessionDescription)
+        }
 
-      // Map the recvonly transceivers created by this pull to their audio/video kind.
-      // Any transceiver whose mid wasn't present before is part of this subscription.
-      const newTransceivers = pc
-        .getTransceivers()
-        .filter((t) => t.mid && !priorMids.has(t.mid) && t.direction === 'recvonly')
+        const newTransceivers = pc
+          .getTransceivers()
+          .filter((t) => t.mid && !priorMids.has(t.mid) && t.direction === 'recvonly')
 
-      pulledTracks = newTransceivers.map((t) => ({
-        location: 'remote' as const,
-        trackName: `${t.receiver.track?.kind ?? 'audio'}0`,
-        mid: t.mid ?? undefined,
-        sessionId: remoteSessionId,
-      }))
-    })
+        // Backstop: if any transceiver fired ontrack before its mid was stable,
+        // the pre-handler still covers the common path, but we re-emit here too
+        // so the caller can reconcile.
+        if (onTrackMid) {
+          for (const t of newTransceivers) {
+            if (t.mid) onTrackMid(t.mid, t.receiver.track?.kind ?? 'audio')
+          }
+        }
+
+        pulledTracks = newTransceivers.map((t) => ({
+          location: 'remote' as const,
+          trackName: `${t.receiver.track?.kind ?? 'audio'}0`,
+          mid: t.mid ?? undefined,
+          sessionId: remoteSessionId,
+        }))
+      })
+    } finally {
+      this.preTrackHandler = null
+    }
 
     return pulledTracks
   }

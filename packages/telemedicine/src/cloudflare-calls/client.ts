@@ -316,7 +316,9 @@ export class CloudflareCallsClient implements CallProvider {
       this.pendingRemoteSessionIds = []
       for (const { sessionId: remoteSessionId, userId: remoteUserId } of pending) {
         this.debugLogger.info('Subscribing to pending peer session', { remoteSessionId })
-        const pulled = await this.cfSession.subscribeToSession(remoteSessionId)
+        const pulled = await this.cfSession.subscribeToSession(remoteSessionId, (mid) => {
+          this.midToUserId.set(mid, remoteUserId)
+        })
         this.recordPulledMids(pulled, remoteUserId)
       }
 
@@ -602,7 +604,9 @@ export class CloudflareCallsClient implements CallProvider {
         // before we can call subscribeToSession. If not ready yet, queue it.
         if (this.cfSession?.getSessionId()) {
           this.debugLogger.info('Subscribing to remote tracks', { remoteSessionId })
-          const pulled = await this.cfSession.subscribeToSession(remoteSessionId)
+          const pulled = await this.cfSession.subscribeToSession(remoteSessionId, (mid) => {
+            this.midToUserId.set(mid, remoteUserId)
+          })
           this.recordPulledMids(pulled, remoteUserId)
         } else {
           this.debugLogger.info('CF session not ready yet, queueing remote session', { remoteSessionId })
