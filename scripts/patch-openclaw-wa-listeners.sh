@@ -1,28 +1,49 @@
 #!/bin/bash
-# Patch OpenClaw WhatsApp listener Map duplication bug
-# Issues: #14406, #34741, #52781
-# Re-run after every `npm update openclaw`
-set -e
+# Patch OpenClaw WhatsApp listener Map duplication bug.
+# Replaces module-scoped `new Map()` with `globalThis.__oc_wa_listeners ??= new Map()`
+# so every chunk of the duplicated bundle shares one listener registry.
+# Re-run after every `npm update openclaw`.
+set -euo pipefail
 
-DIST="/mnt/data/.npm-global/lib/node_modules/openclaw/dist"
+NPM_GLOBAL_ROOT="$(npm root -g 2>/dev/null || true)"
+DIST="${OPENCLAW_DIST_OVERRIDE:-${NPM_GLOBAL_ROOT}/openclaw/dist}"
 
 if [ ! -d "$DIST" ]; then
-  echo "OpenClaw dist not found at $DIST"
+  echo "OpenClaw dist not found at $DIST" >&2
+  echo "Set OPENCLAW_DIST_OVERRIDE or reinstall openclaw globally." >&2
   exit 1
 fi
 
-COUNT=$(grep -rl 'const listeners = /\* @__PURE__ \*/ new Map()' "$DIST" 2>/dev/null | wc -l)
-echo "Found $COUNT files with module-scoped listener Map"
+PATTERN='const listeners = /\* @__PURE__ \*/ new Map()'
+REPLACEMENT='const listeners = globalThis.__oc_wa_listeners ??= new Map()'
 
-if [ "$COUNT" -eq 0 ]; then
-  echo "Already patched or pattern changed. Checking globalThis..."
-  grep -rl 'globalThis.__oc_wa_listeners' "$DIST" 2>/dev/null | wc -l
+mapfile -t TARGETS < <(grep -rl --fixed-strings "$PATTERN" "$DIST" 2>/dev/null || true)
+
+if [ "${#TARGETS[@]}" -eq 0 ]; then
+  ALREADY=$(grep -rl --fixed-strings 'globalThis.__oc_wa_listeners' "$DIST" 2>/dev/null | wc -l)
+  echo "No unpatched files. Already-patched chunks: $ALREADY"
   exit 0
 fi
 
-for f in $(grep -rl 'const listeners = /\* @__PURE__ \*/ new Map()' "$DIST" 2>/dev/null); do
-  sed -i 's|const listeners = /\* @__PURE__ \*/ new Map()|const listeners = globalThis.__oc_wa_listeners ??= new Map()|g' "$f"
-  echo "Patched: $(basename $f)"
+echo "Patching ${#TARGETS[@]} file(s) under $DIST"
+
+FAILED=0
+for f in "${TARGETS[@]}"; do
+  cp -p "$f" "${f}.bak"
+  sed -i "s|${PATTERN}|${REPLACEMENT}|g" "$f"
+  if grep -q --fixed-strings 'globalThis.__oc_wa_listeners' "$f"; then
+    echo "  patched: $(basename "$f")"
+    rm -f "${f}.bak"
+  else
+    echo "  FAILED: $(basename "$f") — restoring backup" >&2
+    mv "${f}.bak" "$f"
+    FAILED=$((FAILED + 1))
+  fi
 done
+
+if [ "$FAILED" -gt 0 ]; then
+  echo "$FAILED file(s) failed to patch" >&2
+  exit 1
+fi
 
 echo "Done. Restart gateway: openclaw gateway restart"
