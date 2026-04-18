@@ -119,11 +119,16 @@ export function useCallLifecycleEffects({
         },
         body: payload,
       }).catch(() => { /* best-effort on page close */ })
+
+      // Fire a clean disconnect so the SFU frees the tracks and the other
+      // peer gets user-left in <200ms instead of waiting for ICE timeout.
+      // Fire-and-forget — we have no time to await before the tab dies.
+      try { void client?.disconnect() } catch { /* ignore */ }
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [callId, hasStartedCallRef, manualHangupRef, runtime, supabaseUrl, supabaseAnonKey])
+  }, [callId, hasStartedCallRef, manualHangupRef, runtime, supabaseUrl, supabaseAnonKey, client])
 
   // Remote stream sync
   useEffect(() => {

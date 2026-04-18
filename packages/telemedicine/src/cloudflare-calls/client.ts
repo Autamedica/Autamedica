@@ -356,7 +356,7 @@ export class CloudflareCallsClient implements CallProvider {
     this.ws = null
     this.sbHandle?.close()
     this.sbHandle = null
-    this.cfSession?.close()
+    await this.cfSession?.close()
     this.cfSession = null
     for (const t of this.localStream?.getTracks() ?? []) t.stop()
     this.localStream = null

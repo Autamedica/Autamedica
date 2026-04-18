@@ -311,7 +311,29 @@ export class CloudflareCallsSession {
     await this.localAudioSender?.replaceTrack(track)
   }
 
-  close(): void {
+  async close(): Promise<void> {
+    // Explicitly close tracks on the Cloudflare Calls side so the SFU releases
+    // the slot immediately instead of waiting for the ICE teardown timeout.
+    // Without this, other peers observe the track as "alive but silent" for a
+    // few seconds after we leave (the "Dead Tracks" pattern reported in
+    // https://community.cloudflare.com/t/dead-tracks-high-priority/859160).
+    if (this.pc && this.sessionId) {
+      const tracks = this.pc
+        .getTransceivers()
+        .filter((t) => t.mid)
+        .map((t) => ({ mid: t.mid as string }))
+      if (tracks.length > 0) {
+        try {
+          await this.cfApi('PUT', `sessions/${this.sessionId}/tracks/close`, {
+            tracks,
+            force: true,
+          })
+        } catch {
+          // Best-effort: Cloudflare will garbage-collect the session when ICE
+          // disconnects anyway; we just wanted to accelerate it.
+        }
+      }
+    }
     this.pc?.close()
     this.pc = null
     this.sessionId = null
