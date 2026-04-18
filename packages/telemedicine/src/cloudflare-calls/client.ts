@@ -15,7 +15,7 @@ import type {
   StreamQualityLevel,
   StreamQualitySummary,
 } from '../webrtc-client'
-import { CloudflareCallsSession } from './session'
+import { CloudflareCallsSession, type TrackEntry } from './session'
 import { createTelemedicineLogger } from '../debug'
 
 type ServerMessage =
@@ -54,8 +54,10 @@ export class CloudflareCallsClient implements CallProvider {
   private pendingRemoteUserIds: string[] = []
   private connectedPeerIds = new Set<string>()
   private userToStream = new Map<string, MediaStream>()
+  /** Maps the local transceiver mid (assigned by Cloudflare per pulled track) to the remote user that owns it */
+  private midToUserId = new Map<string, string>()
   /** Session IDs queued because our local CF session isn't fully connected yet */
-  private pendingRemoteSessionIds: string[] = []
+  private pendingRemoteSessionIds: Array<{ sessionId: string; userId: string }> = []
   /** Peer user IDs who joined while we were still connecting — re-announce our session to them once ready */
   private pendingPeerAnnouncements: string[] = []
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -312,9 +314,10 @@ export class CloudflareCallsClient implements CallProvider {
       // Drain any remote sessions that arrived before our local session was ready
       const pending = [...this.pendingRemoteSessionIds]
       this.pendingRemoteSessionIds = []
-      for (const remoteSessionId of pending) {
+      for (const { sessionId: remoteSessionId, userId: remoteUserId } of pending) {
         this.debugLogger.info('Subscribing to pending peer session', { remoteSessionId })
-        await this.cfSession.subscribeToSession(remoteSessionId)
+        const pulled = await this.cfSession.subscribeToSession(remoteSessionId)
+        this.recordPulledMids(pulled, remoteUserId)
       }
 
       // Re-announce our cf-session to peers who joined while we were still connecting
@@ -355,6 +358,7 @@ export class CloudflareCallsClient implements CallProvider {
     this.localStream = null
     this.streamIdToUserId.clear()
     this.userToStream.clear()
+    this.midToUserId.clear()
     this.pendingRemoteUserIds = []
     this.pendingRemoteSessionIds = []
     this.pendingPeerAnnouncements = []
@@ -598,11 +602,12 @@ export class CloudflareCallsClient implements CallProvider {
         // before we can call subscribeToSession. If not ready yet, queue it.
         if (this.cfSession?.getSessionId()) {
           this.debugLogger.info('Subscribing to remote tracks', { remoteSessionId })
-          await this.cfSession.subscribeToSession(remoteSessionId)
+          const pulled = await this.cfSession.subscribeToSession(remoteSessionId)
+          this.recordPulledMids(pulled, remoteUserId)
         } else {
           this.debugLogger.info('CF session not ready yet, queueing remote session', { remoteSessionId })
-          if (!this.pendingRemoteSessionIds.includes(remoteSessionId)) {
-            this.pendingRemoteSessionIds.push(remoteSessionId)
+          if (!this.pendingRemoteSessionIds.some((p) => p.sessionId === remoteSessionId)) {
+            this.pendingRemoteSessionIds.push({ sessionId: remoteSessionId, userId: remoteUserId })
           }
         }
         break
@@ -621,23 +626,48 @@ export class CloudflareCallsClient implements CallProvider {
     }
   }
 
+  private recordPulledMids(tracks: TrackEntry[], remoteUserId: string): void {
+    for (const t of tracks) {
+      if (t.mid) {
+        this.midToUserId.set(t.mid, remoteUserId)
+      }
+    }
+  }
+
   private handleRemoteTrack(event: RTCTrackEvent): void {
     const rawStream = event.streams[0]
-    let userId = rawStream ? this.streamIdToUserId.get(rawStream.id) : undefined
+    const mid = event.transceiver?.mid ?? undefined
 
+    // 1) Deterministic: map by transceiver mid (Cloudflare returns one mid per pulled track).
+    // 2) Fallback: stream id (in case Cloudflare groups both tracks under the same MediaStream).
+    // 3) Last resort: heuristic on pendingRemoteUserIds (single-peer calls only).
+    let userId = mid ? this.midToUserId.get(mid) : undefined
+    if (!userId && rawStream) {
+      userId = this.streamIdToUserId.get(rawStream.id)
+    }
+
+    let userIdFromPending = false
     if (!userId) {
-      userId = (Array.from(this.cfToUserIdMap.values())[0] as string | undefined) ?? this.pendingRemoteUserIds[0] ?? (rawStream ? rawStream.id : event.track.id)
-      if (rawStream) {
-        this.streamIdToUserId.set(rawStream.id, userId)
+      const fromCfMap = Array.from(this.cfToUserIdMap.values())[0] as string | undefined
+      if (fromCfMap) {
+        userId = fromCfMap
+      } else if (this.pendingRemoteUserIds[0]) {
+        userId = this.pendingRemoteUserIds[0]
+        userIdFromPending = true
+      } else {
+        userId = rawStream ? rawStream.id : event.track.id
       }
+    }
+
+    if (rawStream) {
+      this.streamIdToUserId.set(rawStream.id, userId)
     }
 
     let userStream = this.userToStream.get(userId)
     if (!userStream) {
       userStream = new MediaStream()
       this.userToStream.set(userId, userStream)
-      // Consumimos el ID de la fila solo al crear el nuevo stream para este usuario
-      if (userId === this.pendingRemoteUserIds[0]) {
+      if (userIdFromPending) {
         this.pendingRemoteUserIds.shift()
       }
     }
