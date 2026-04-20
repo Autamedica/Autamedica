@@ -205,9 +205,20 @@ const SERVER_ONLY_VARS = new Set([
 
 // Utilidad genérica para variables de entorno obligatorias (compatibilidad hacia atrás)
 export function ensureEnv(name: string): string {
+  if (typeof name !== 'string' || name.length === 0) {
+    const err = new Error(
+      `[env] ensureEnv called with invalid name (${String(name)}). ` +
+        `The caller must pass a string literal, e.g. ensureEnv('MY_VAR').`,
+    );
+    // Preserve the caller frame so Sentry can attribute the bug to the real offender.
+    Error.captureStackTrace?.(err, ensureEnv);
+    throw err;
+  }
   const value = processRef?.env?.[name];
   if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+    const err = new Error(`Missing required environment variable: ${name}`);
+    Error.captureStackTrace?.(err, ensureEnv);
+    throw err;
   }
   return value;
 }
