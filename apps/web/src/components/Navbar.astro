@@ -1,17 +1,66 @@
 ---
-import AccountMenu from './ui/AccountMenu';
-import { LanguageSwitcher } from './LanguageSwitcher';
-import { getI18n } from '../i18n/index';
+import AccountMenu from "./ui/AccountMenu";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { getI18n } from "../i18n/index";
 
-const locale = Astro.locals.locale ?? 'es';
+const locale = Astro.locals.locale ?? "es";
 const { t } = getI18n(locale);
 
-const navLinks = [
-  { href: '/consulta-medica-online', label: 'Consulta online' },
-  { href: '/telemedicina-argentina', label: 'Telemedicina' },
-  { href: '/especialidades', label: t('navbar.specialties') },
-  { href: '/blog', label: 'Blog' },
-  { href: '/doctors', label: t('navbar.professionals') },
+const megaNav = [
+  {
+    label: "Especialidades",
+    columns: [
+      {
+        title: "Salud Mental",
+        links: [
+          { href: "/tdah", label: "Evaluación de TDAH" },
+          { href: "/insomnio", label: "Tratamiento de Insomnio" },
+          { href: "/psicologo-online", label: "Psicólogo Online" },
+        ]
+      },
+      {
+        title: "Atención Inmediata",
+        links: [
+          { href: "/medico-online", label: "Médico Clínico" },
+          { href: "/fiebre-en-adultos", label: "Fiebre en Adultos" },
+          { href: "/dolor-de-pecho", label: "Dolor de Pecho" },
+        ]
+      },
+      {
+        title: "Especialistas",
+        links: [
+          { href: "/cardiologo-online", label: "Cardiología" },
+          { href: "/dermatologo-online", label: "Dermatología" },
+        ]
+      }
+    ]
+  },
+  {
+    label: "Servicios",
+    columns: [
+      {
+        title: "Para Pacientes",
+        links: [
+          { href: "/consulta-medica-online", label: "Consulta Médica Online" },
+          { href: "/receta-electronica", label: "Receta Electrónica" },
+        ]
+      },
+      {
+        title: "Para Profesionales",
+        links: [
+          { href: "/doctors", label: t("navbar.professionals") },
+        ]
+      },
+      {
+        title: "Para Empresas",
+        links: [
+          { href: "/companies", label: "Soluciones Corporativas" },
+        ]
+      }
+    ]
+  },
+  { href: "/telemedicina-argentina", label: "Telemedicina" },
+  { href: "/blog", label: "Blog" }
 ];
 ---
 
@@ -23,8 +72,28 @@ const navLinks = [
     </a>
 
     <ul class="navbar-links" role="list">
-      {navLinks.map((link) => (
-        <li><a href={link.href}>{link.label}</a></li>
+      {megaNav.map((item) => (
+        item.columns ? (
+          <li class="has-mega-menu">
+            <button class="mega-menu-trigger" aria-expanded="false">{item.label}</button>
+            <div class="mega-menu-panel">
+              <div class="mega-menu-inner">
+                {item.columns.map(col => (
+                  <div class="mega-menu-column">
+                    <h3 class="mega-menu-title">{col.title}</h3>
+                    <ul role="list">
+                      {col.links.map(link => (
+                        <li><a href={link.href}>{link.label}</a></li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </li>
+        ) : (
+          <li><a href={item.href} class="mega-menu-trigger single-link">{item.label}</a></li>
+        )
       ))}
     </ul>
 
@@ -49,13 +118,29 @@ const navLinks = [
   </div>
 
   <div class="mobile-menu" id="mobile-menu" aria-hidden="true">
-    <ul class="mobile-menu-links" role="list">
-      {navLinks.map((link) => (
-        <li><a href={link.href}>{link.label}</a></li>
+    <div class="mobile-menu-scroll-area">
+      {megaNav.map((item) => (
+        item.columns ? (
+          <div class="mobile-nav-group">
+            <h2 class="mobile-nav-group-title">{item.label}</h2>
+            {item.columns.map(col => (
+              <div class="mobile-nav-subgroup">
+                <h3 class="mobile-nav-subtitle">{col.title}</h3>
+                <ul role="list" class="mobile-nav-links">
+                  {col.links.map(link => (
+                    <li><a href={link.href}>{link.label}</a></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <a href={item.href} class="mobile-nav-single">{item.label}</a>
+        )
       ))}
-    </ul>
-    <div class="mobile-menu-cta">
-      <a href="/auth/login" class="mobile-cta-btn">Iniciar sesión</a>
+      <div class="mobile-menu-cta">
+        <a href="/auth/login" class="mobile-cta-btn">Iniciar sesión</a>
+      </div>
     </div>
   </div>
 </nav>
@@ -112,21 +197,111 @@ const navLinks = [
     list-style: none;
     margin: 0;
     padding: 0;
-    gap: 2rem;
+    gap: 2.5rem;
     align-items: center;
   }
 
-  .navbar-links a {
+  .has-mega-menu {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+
+  .mega-menu-trigger {
+    background: none;
+    border: none;
     font-size: 0.875rem;
     font-weight: 500;
     color: #525252;
+    cursor: pointer;
+    padding: 1.5rem 0; /* Expanded padding to keep hover active */
     transition: color 0.2s ease;
     letter-spacing: 0.01em;
     text-decoration: none;
   }
 
-  .navbar-links a:hover {
+  .mega-menu-trigger.single-link {
+    display: inline-block;
+  }
+
+  .mega-menu-trigger:hover,
+  .has-mega-menu:hover .mega-menu-trigger {
     color: #0a0a0a;
+  }
+
+  .mega-menu-panel {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px) scale(0.98);
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* invisible bridge to keep hover active when moving mouse down */
+  .mega-menu-panel::before {
+    content: "";
+    position: absolute;
+    top: -20px;
+    left: 0;
+    width: 100%;
+    height: 20px;
+  }
+
+  .has-mega-menu:hover .mega-menu-panel {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .mega-menu-inner {
+    display: flex;
+    gap: 3.5rem;
+    padding: 2.5rem;
+  }
+
+  .mega-menu-column {
+    min-width: max-content;
+  }
+
+  .mega-menu-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #a3a3a3;
+    margin: 0 0 1.25rem 0;
+    font-weight: 600;
+  }
+
+  .mega-menu-column ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .mega-menu-column a {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: #262626;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .mega-menu-column a:hover {
+    color: #0ea5e9; /* Sky blue brand accent */
   }
 
   .navbar-actions {
@@ -180,69 +355,97 @@ const navLinks = [
     max-height: 0;
     opacity: 0;
     transform: translateY(-8px);
-    transition:
-      max-height 0.35s ease,
-      opacity 0.3s ease,
-      transform 0.3s ease;
+    transition: max-height 0.4s ease, opacity 0.3s ease, transform 0.3s ease;
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(20px);
     border-top: 1px solid rgba(0, 0, 0, 0.06);
-    padding: 0 1.5rem;
   }
 
   .mobile-menu.is-open {
-    max-height: 420px;
+    max-height: calc(100vh - 4rem);
     opacity: 1;
     transform: translateY(0);
-    padding: 1rem 1.5rem 1.5rem;
   }
 
-  .mobile-menu-links {
+  .mobile-menu-scroll-area {
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(100vh - 4rem);
+  }
+
+  .mobile-nav-group {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .mobile-nav-group-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0a0a0a;
+    margin: 0 0 1rem 0;
+  }
+
+  .mobile-nav-subgroup {
+    margin-bottom: 1.25rem;
+  }
+  
+  .mobile-nav-subgroup:last-child {
+    margin-bottom: 0;
+  }
+
+  .mobile-nav-subtitle {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #737373;
+    margin: 0 0 0.75rem 0;
+    font-weight: 600;
+  }
+
+  .mobile-nav-links {
     list-style: none;
-    margin: 0;
     padding: 0;
+    margin: 0;
     display: flex;
     flex-direction: column;
+    gap: 0.75rem;
   }
 
-  .mobile-menu-links a {
+  .mobile-nav-links a {
     display: block;
-    padding: 0.875rem 0;
     font-size: 1rem;
-    font-weight: 500;
-    color: #0a0a0a;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    transition: color 0.2s ease;
+    color: #262626;
     text-decoration: none;
   }
 
-  .mobile-menu-links a:hover {
-    color: #525252;
-  }
-
-  .mobile-menu-links li:last-child a {
-    border-bottom: none;
+  .mobile-nav-single {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0a0a0a;
+    text-decoration: none;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   }
 
   .mobile-menu-cta {
     padding-top: 1rem;
+    margin-bottom: 2rem;
   }
 
   .mobile-cta-btn {
     display: block;
     text-align: center;
-    padding: 0.875rem 1.5rem;
+    padding: 1rem 1.5rem;
     background: #0a0a0a;
     color: #ffffff;
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: 1rem;
     border-radius: 9999px;
     transition: background 0.2s ease;
     text-decoration: none;
-  }
-
-  .mobile-cta-btn:hover {
-    background: #262626;
   }
 
   @media (min-width: 768px) {
@@ -266,43 +469,51 @@ const navLinks = [
 </style>
 
 <script>
-  const btn = document.getElementById('hamburger-btn');
-  const menu = document.getElementById('mobile-menu');
-  const navbar = document.querySelector('.navbar');
+  const btn = document.getElementById("hamburger-btn");
+  const menu = document.getElementById("mobile-menu");
+  const navbar = document.querySelector(".navbar");
 
   // Scroll effect
   if (navbar) {
     const onScroll = () => {
-      navbar.classList.toggle('is-scrolled', window.scrollY > 10);
+      navbar.classList.toggle("is-scrolled", window.scrollY > 10);
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
   }
 
   if (btn && menu) {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const isOpen = menu.classList.toggle('is-open');
-      btn.setAttribute('aria-expanded', String(isOpen));
-      menu.setAttribute('aria-hidden', String(!isOpen));
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!menu.classList.contains('is-open')) return;
-      const target = e.target;
-      if (target instanceof Node && !menu.contains(target) && !btn.contains(target)) {
-        menu.classList.remove('is-open');
-        btn.setAttribute('aria-expanded', 'false');
-        menu.setAttribute('aria-hidden', 'true');
+      const isOpen = menu.classList.toggle("is-open");
+      btn.setAttribute("aria-expanded", String(isOpen));
+      menu.setAttribute("aria-hidden", String(!isOpen));
+      
+      if (isOpen) {
+        document.body.style.overflow = "hidden";
+      } else {
+        document.body.style.overflow = "";
       }
     });
 
-    menu.addEventListener('click', (e) => {
+    document.addEventListener("click", (e) => {
+      if (!menu.classList.contains("is-open")) return;
+      const target = e.target;
+      if (target instanceof Node && !menu.contains(target) && !btn.contains(target)) {
+        menu.classList.remove("is-open");
+        btn.setAttribute("aria-expanded", "false");
+        menu.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+      }
+    });
+
+    menu.addEventListener("click", (e) => {
       const target = e.target;
       if (target instanceof HTMLAnchorElement) {
-        menu.classList.remove('is-open');
-        btn.setAttribute('aria-expanded', 'false');
-        menu.setAttribute('aria-hidden', 'true');
+        menu.classList.remove("is-open");
+        btn.setAttribute("aria-expanded", "false");
+        menu.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
       }
     });
   }
