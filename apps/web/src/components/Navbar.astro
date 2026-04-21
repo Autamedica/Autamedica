@@ -6,7 +6,16 @@ import { getI18n } from "../i18n/index";
 const locale = Astro.locals.locale ?? "es";
 const { t } = getI18n(locale);
 
-const megaNav = [
+type MegaNavItem = {
+  label: string;
+  href?: string;
+  columns?: {
+    title: string;
+    links: { href: string; label: string; }[];
+  }[];
+};
+
+const megaNav: MegaNavItem[] = [
   {
     label: "Especialidades",
     columns: [
