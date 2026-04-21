@@ -1,0 +1,217 @@
+---
+import PatientAppLayout from '../../../layouts/PatientAppLayout.astro';
+---
+
+<PatientAppLayout title="Reportar evento adverso — AutaMedica">
+  <main class="adr-page">
+    <header>
+      <span class="pill">Farmacovigilancia</span>
+      <h1>Reportar un efecto adverso de tu medicación</h1>
+      <p class="lead">
+        Los efectos adversos son reacciones no deseadas al tomar un fármaco. Si notaste algo
+        inesperado desde que iniciaste el tratamiento, contanoslo. Tu psiquiatra lo va a
+        evaluar y ajustar el plan si hace falta.
+      </p>
+    </header>
+
+    <form id="adr-form" class="adr-form">
+      <label>
+        <span>Medicamento sospechoso</span>
+        <input name="suspectedDrug" type="text" required placeholder="ej. Ritalina 10 mg" />
+      </label>
+
+      <label>
+        <span>Fecha en que empezaron los síntomas</span>
+        <input name="onsetDate" type="date" required />
+      </label>
+
+      <fieldset>
+        <legend>Síntomas (uno por línea)</legend>
+        <textarea name="symptomsRaw" rows="4" required
+          placeholder="Por ejemplo:&#10;Dolor de cabeza intenso&#10;Palpitaciones&#10;Mareos al pararme"></textarea>
+      </fieldset>
+
+      <label>
+        <span>¿Qué tan intensos son los síntomas?</span>
+        <select name="severity" required>
+          <option value="">Elegir…</option>
+          <option value="mild">Leves — me molestan pero sigo con mi día</option>
+          <option value="moderate">Moderados — interfieren con mis actividades</option>
+          <option value="severe">Graves — no puedo hacer cosas habituales</option>
+          <option value="life_threatening">Muy graves — me asustan / pensé en ir a guardia</option>
+        </select>
+      </label>
+
+      <label>
+        <span>¿Qué estás haciendo al respecto?</span>
+        <select name="actionTaken">
+          <option value="">Elegir…</option>
+          <option value="continuing">Sigo tomando la medicación normal</option>
+          <option value="reduced_dose">Reduje la dosis por mi cuenta</option>
+          <option value="stopped">Dejé de tomarla</option>
+          <option value="er_visit">Fui a guardia</option>
+        </select>
+      </label>
+
+      <label>
+        <span>¿Cómo te sentís ahora?</span>
+        <select name="outcome">
+          <option value="">Elegir…</option>
+          <option value="recovered">Ya pasó, estoy bien</option>
+          <option value="recovering">Estoy mejorando</option>
+          <option value="not_recovered">Sigo igual</option>
+          <option value="sequelae">Quedó algo que antes no tenía</option>
+          <option value="unknown">No estoy seguro/a</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Contanos más (opcional)</span>
+        <textarea name="narrative" rows="4"
+          placeholder="Cualquier detalle que le pueda servir al psiquiatra: cuándo empezó, cuánto dura, si hay algo que lo empeora…"></textarea>
+      </label>
+
+      <button type="submit" class="adr-submit">Enviar reporte</button>
+
+      <p class="adr-urgent">
+        <strong>¿Estás en una emergencia real?</strong>
+        No esperes una respuesta de la plataforma. Llamá al 107 (emergencia) o andá a la
+        guardia más cercana. Este formulario es para reportes no urgentes al psiquiatra
+        tratante.
+      </p>
+
+      <div id="adr-status" role="status" aria-live="polite"></div>
+    </form>
+  </main>
+</PatientAppLayout>
+
+<script>
+  const form = document.getElementById('adr-form') as HTMLFormElement | null;
+  const status = document.getElementById('adr-status');
+  if (form && status) {
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const data = new FormData(form);
+      const symptoms = String(data.get('symptomsRaw') ?? '')
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((label) => ({ label }));
+
+      const body: Record<string, unknown> = {
+        suspectedDrug: String(data.get('suspectedDrug') ?? ''),
+        onsetDate: String(data.get('onsetDate') ?? ''),
+        symptoms,
+        severity: String(data.get('severity') ?? ''),
+      };
+      const actionTaken = String(data.get('actionTaken') ?? '');
+      const outcome = String(data.get('outcome') ?? '');
+      const narrative = String(data.get('narrative') ?? '');
+      if (actionTaken) body.actionTaken = actionTaken;
+      if (outcome) body.outcome = outcome;
+      if (narrative) body.narrative = narrative;
+
+      status.textContent = 'Enviando…';
+      try {
+        const res = await fetch('/api/patients/adverse-events/report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          status.textContent = `Error (${res.status}): ${text}`;
+          status.className = 'adr-status-error';
+          return;
+        }
+        status.textContent = 'Reporte enviado. Tu psiquiatra lo va a ver en el próximo control.';
+        status.className = 'adr-status-ok';
+        form.reset();
+      } catch (err) {
+        status.textContent = `Error de red: ${err instanceof Error ? err.message : String(err)}`;
+        status.className = 'adr-status-error';
+      }
+    });
+  }
+</script>
+
+<style>
+  .adr-page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #0f172a;
+    line-height: 1.6;
+  }
+  .pill {
+    display: inline-block;
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .adr-page h1 { font-size: 2rem; margin: 0.5rem 0; color: #0c4a6e; }
+  .adr-page .lead { color: #475569; }
+  .adr-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 2rem;
+  }
+  .adr-form label, .adr-form fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+  .adr-form span, .adr-form legend {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #0f172a;
+  }
+  .adr-form input, .adr-form textarea, .adr-form select {
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    background: #fff;
+  }
+  .adr-form input:focus, .adr-form textarea:focus, .adr-form select:focus {
+    outline: none;
+    border-color: #0369a1;
+    box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.15);
+  }
+  .adr-submit {
+    background: #0369a1;
+    color: #fff;
+    border: 0;
+    padding: 0.85rem 2rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .adr-submit:hover { background: #075985; }
+  .adr-urgent {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.85rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+  }
+  #adr-status {
+    margin-top: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    background: #f1f5f9;
+    min-height: 1.5em;
+  }
+  #adr-status.adr-status-ok { background: #ecfdf5; color: #065f46; }
+  #adr-status.adr-status-error { background: #fef2f2; color: #991b1b; }
+</style>
