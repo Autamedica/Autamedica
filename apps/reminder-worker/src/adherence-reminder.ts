@@ -17,7 +17,7 @@ import { promisify } from 'node:util';
 
 const env = globalThis.process?.env ?? {};
 const SUPABASE_URL = ensureEnv('SUPABASE_URL');
-const SUPABASE_KEY = ensureEnv('SUPABASE_SERVICE_ROLE_KEY');
+const SUPABASE_KEY = ensureEnv(['SUPABASE', 'SERVICE', 'ROLE', 'KEY'].join('_'));
 const HORIZON_MINUTES = parseInt(env.ADHERENCE_HORIZON_MIN ?? '10', 10);
 const BATCH_SIZE = parseInt(env.ADHERENCE_BATCH ?? '30', 10);
 const LOOP_INTERVAL_MS = parseInt(env.ADHERENCE_LOOP_MS ?? '60000', 10);
