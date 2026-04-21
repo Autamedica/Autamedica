@@ -24,7 +24,7 @@
 
 .seo-hero {
   padding: clamp(6rem, 12vh, 8rem) var(--section-px) var(--space-8);
-  background: linear-gradient(135deg, var(--au-surface) 0%, rgba(14, 165, 233, 0.04) 50%, var(--au-bg) 100%);
+  background: linear-gradient(135deg, var(--au-surface) 0%, #0ea5e90a 50%, var(--au-bg) 100%);
   border-bottom: 1px solid var(--au-border);
   display: grid;
   grid-template-columns: 1fr;
@@ -81,7 +81,7 @@
   height: auto;
   border-radius: var(--radius-xl);
   /* shadow-2xl equivalent */
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 25px 50px -12px #00000040;
   transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -132,12 +132,12 @@
 .seo-btn-primary {
   background: var(--au-accent);
   color: white;
-  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.25);
+  box-shadow: 0 4px 14px #0ea5e940;
 }
 
 .seo-btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.35);
+  box-shadow: 0 8px 24px #0ea5e959;
 }
 
 .seo-btn-secondary {
