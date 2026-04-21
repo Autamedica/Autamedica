@@ -278,6 +278,9 @@ importers:
 
   apps/reminder-worker:
     dependencies:
+      '@autamedica/prescriptions':
+        specifier: workspace:*
+        version: link:../../packages/prescriptions
       '@autamedica/scheduling':
         specifier: workspace:*
         version: link:../../packages/scheduling

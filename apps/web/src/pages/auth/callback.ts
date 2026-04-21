@@ -11,7 +11,6 @@
  */
 
 import type { APIRoute } from 'astro';
-import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import {
   isValidRole,
   resolveRoleFromPortal,
@@ -21,6 +20,7 @@ import {
 import { validateRedirectUrl, isProduction } from '../../lib/auth-utils';
 import { getEnvironment, getDomainConfig } from '@autamedica/auth';
 import { resolvePublicSupabaseEnv } from '../../lib/runtime-env';
+import { createSupabaseCookieClient, type CookieMethodsServer } from '../../lib/supabase';
 
 /** Roles that users can self-assign during registration/login. Admin roles require backend assignment. */
 const SELF_ASSIGNABLE_ROLES = new Set<string>(['patient', 'doctor', 'company_admin', 'company']);
@@ -64,11 +64,7 @@ function buildSupabaseClient(
     },
   };
 
-  return createServerClient(
-    publicSupabaseUrl,
-    publicSupabaseAnonKey,
-    { cookies: cookieMethods }
-  );
+  return createSupabaseCookieClient(publicSupabaseUrl, publicSupabaseAnonKey, cookieMethods);
 }
 
 function parseReturnToParam(

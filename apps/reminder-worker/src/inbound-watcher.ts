@@ -15,6 +15,7 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { ensureEnv } from '@autamedica/shared';
 import { parsePatientResponse } from '@autamedica/scheduling';
+import { sdReady, sdWatchdog, sdStopping, sdStatus, underSystemd } from './sd-notify';
 
 const env = globalThis.process?.env ?? {};
 
@@ -379,6 +380,7 @@ async function handleJournalInbound(senderPhone: string, logTs: string, rawLine:
 }
 
 let ticking = false;
+let lastTickAt = Date.now();
 async function tick(): Promise<void> {
   if (ticking) return;
   ticking = true;
@@ -386,6 +388,7 @@ async function tick(): Promise<void> {
     if (JOURNAL_FALLBACK) await ingestJournalWindow();
     await promoteDeferredMessages();
     await flushPendingMessages();
+    lastTickAt = Date.now();
   } catch (err) {
     console.error('[INBOUND] tick error:', err instanceof Error ? err.message : err);
   } finally {
@@ -417,6 +420,15 @@ const server = Bun.serve({
 
     if (url.pathname === '/health') {
       return Response.json({ ok: true, ticking, cursor: lastJournalCursor });
+    }
+
+    if (url.pathname === '/healthz') {
+      const { error } = await supabase
+        .from('appointment_inbound_messages')
+        .select('id', { head: true, count: 'exact' })
+        .limit(1);
+      if (error) return Response.json({ ok: false, supabase: error.message }, { status: 503 });
+      return Response.json({ ok: true, ticking, lastTickAgoMs: Date.now() - lastTickAt });
     }
 
     if (url.pathname === '/hooks/whatsapp-inbound' && req.method === 'POST') {
@@ -473,11 +485,37 @@ const server = Bun.serve({
 
 console.log(`[INBOUND] hook server listening on http://127.0.0.1:${server.port}`);
 
+await (async () => {
+  const { error } = await supabase
+    .from('appointment_inbound_messages')
+    .select('id', { head: true, count: 'exact' })
+    .limit(1);
+  if (error) {
+    console.error(`[INBOUND] supabase readiness probe failed: ${error.message}`);
+    if (underSystemd) process.exit(1);
+  } else {
+    sdReady('hook listening, supabase OK');
+    console.log(`[INBOUND] ready (systemd=${underSystemd})`);
+  }
+})();
+
 tick();
 setInterval(tick, POLL_INTERVAL_MS);
 
+const WATCHDOG_MS = parseInt(env.WATCHDOG_PING_MS ?? '15000', 10);
+const STUCK_THRESHOLD_MS = Math.max(POLL_INTERVAL_MS * 10, 60_000);
+setInterval(() => {
+  const stuckMs = Date.now() - lastTickAt;
+  if (stuckMs > STUCK_THRESHOLD_MS) {
+    sdStatus(`UNHEALTHY lastTick=${stuckMs}ms ago`);
+    return;
+  }
+  sdWatchdog();
+}, WATCHDOG_MS);
+
 function shutdown(signal: string): void {
   console.log(`[INBOUND] ${signal} received, stopping`);
+  sdStopping(`stopping on ${signal}`);
   server.stop();
   process.exit(0);
 }
