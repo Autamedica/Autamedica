@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import { resolvePublicSupabaseEnv } from '../../lib/runtime-env';
 import { isProduction } from '../../lib/auth-utils';
+import { createSupabaseCookieClient, type CookieMethodsServer } from '../../lib/supabase';
 
 export const GET: APIRoute = async ({ request, cookies, redirect, locals }) => {
   const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicSupabaseEnv(locals.runtime?.env);
@@ -35,9 +35,7 @@ export const GET: APIRoute = async ({ request, cookies, redirect, locals }) => {
     },
   };
 
-  const supabase = createServerClient(publicSupabaseUrl, publicSupabaseAnonKey, {
-    cookies: cookieMethods,
-  });
+  const supabase = createSupabaseCookieClient(publicSupabaseUrl, publicSupabaseAnonKey, cookieMethods);
 
   await supabase.auth.signOut();
 

@@ -8,10 +8,10 @@
  */
 
 import type { APIRoute } from 'astro';
-import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import { logger } from '@autamedica/shared';
 import { isProduction } from '../../lib/auth-utils';
 import { resolvePublicSupabaseEnv } from '../../lib/runtime-env';
+import { createSupabaseCookieClient, type CookieMethodsServer } from '../../lib/supabase';
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const allowed =
@@ -75,11 +75,7 @@ export const GET: APIRoute = async ({ request, cookies, locals }) => {
       },
     };
 
-    const supabase = createServerClient(
-      publicSupabaseUrl,
-      publicSupabaseAnonKey,
-      { cookies: cookieMethods }
-    );
+    const supabase = createSupabaseCookieClient(publicSupabaseUrl, publicSupabaseAnonKey, cookieMethods);
 
     const { data: { user }, error } = await supabase.auth.getUser();
 

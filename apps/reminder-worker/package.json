@@ -6,12 +6,15 @@
   "scripts": {
     "start": "bun src/index.ts",
     "start:inbound": "bun src/inbound-watcher.ts",
-    "start:all": "bun src/index.ts & bun src/inbound-watcher.ts",
+    "start:adherence": "bun src/adherence-reminder.ts",
+    "start:all": "bun src/index.ts & bun src/inbound-watcher.ts & bun src/adherence-reminder.ts",
     "dev": "bun --watch src/index.ts",
     "dev:inbound": "bun --watch src/inbound-watcher.ts",
+    "dev:adherence": "bun --watch src/adherence-reminder.ts",
     "build": "tsc"
   },
   "dependencies": {
+    "@autamedica/prescriptions": "workspace:*",
     "@autamedica/scheduling": "workspace:*",
     "@autamedica/shared": "workspace:*",
     "@autamedica/types": "workspace:*",

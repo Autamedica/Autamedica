@@ -30,6 +30,7 @@ export default defineConfig({
     }),
   ],
   vite: {
+    css: { lightningcss: { errorRecovery: true } },
     resolve: {
       tsconfigPaths: true
     },

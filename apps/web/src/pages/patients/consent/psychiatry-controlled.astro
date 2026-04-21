@@ -1,0 +1,263 @@
+---
+import PatientAppLayout from '../../../layouts/PatientAppLayout.astro';
+
+const TEMPLATE_VERSION = '2026-04-v1';
+---
+
+<PatientAppLayout
+  title="Consentimiento informado — Tratamiento psiquiátrico con medicación controlada"
+>
+  <main class="consent-page">
+    <header>
+      <span class="pill">Consentimiento informado</span>
+      <h1>Tratamiento psiquiátrico con medicación controlada</h1>
+      <p class="lead">
+        Este documento explica los riesgos, beneficios y responsabilidades del tratamiento con
+        psicofármacos controlados (benzodiacepinas, metilfenidato, lisdexanfetamina y otros).
+        Leelo completo antes de firmar.
+      </p>
+    </header>
+
+    <form id="consent-form">
+      <input type="hidden" name="templateVersion" value={TEMPLATE_VERSION} />
+      <input type="hidden" name="consentType" value="psychiatry_controlled" />
+
+      <section class="consent-section">
+        <h2>1. Tratamiento propuesto</h2>
+        <p>
+          El profesional tratante podrá indicarte medicación psicofarmacológica como parte del plan
+          terapéutico. Esto puede incluir estimulantes (metilfenidato, lisdexanfetamina),
+          ansiolíticos (benzodiacepinas), antidepresivos, antipsicóticos u otras drogas según la
+          evaluación clínica.
+        </p>
+        <label class="consent-checkbox">
+          <input type="checkbox" name="accepted" value="treatment_proposed" required />
+          <span>Entiendo en qué consiste el tratamiento propuesto.</span>
+        </label>
+      </section>
+
+      <section class="consent-section">
+        <h2>2. Riesgos y efectos adversos</h2>
+        <p>
+          Todos los psicofármacos pueden causar efectos adversos. Los más comunes incluyen:
+          somnolencia, náuseas, cefaleas, insomnio paradójico, cambios en el apetito, sequedad
+          bucal, taquicardia, irritabilidad y alteraciones del sueño. Algunos pueden generar
+          dependencia física o psicológica, especialmente las benzodiacepinas y los estimulantes.
+        </p>
+        <label class="consent-checkbox">
+          <input type="checkbox" name="accepted" value="adverse_effects" required />
+          <span>Comprendo los posibles efectos adversos y riesgos.</span>
+        </label>
+      </section>
+
+      <section class="consent-section">
+        <h2>3. Obligación de controles</h2>
+        <p>
+          Me comprometo a asistir a las videoconsultas de seguimiento indicadas por el psiquiatra.
+          Entiendo que la continuidad del tratamiento requiere evaluación clínica periódica y que
+          el profesional puede suspender la prescripción si no asisto a los controles pactados.
+        </p>
+        <label class="consent-checkbox">
+          <input type="checkbox" name="accepted" value="follow_up_commitment" required />
+          <span>Me comprometo a asistir a los controles periódicos.</span>
+        </label>
+      </section>
+
+      <section class="consent-section">
+        <h2>4. Uso adecuado de la medicación</h2>
+        <p>
+          Me comprometo a tomar la medicación exclusivamente en las dosis y horarios indicados,
+          a no compartirla con terceros, a no aumentar la dosis sin consultar al profesional y a
+          reportar inmediatamente cualquier efecto adverso significativo.
+        </p>
+        <label class="consent-checkbox">
+          <input type="checkbox" name="accepted" value="proper_use" required />
+          <span>Usaré la medicación solo como fue prescrita.</span>
+        </label>
+      </section>
+
+      <section class="consent-section">
+        <h2>5. Trazabilidad ANMAT</h2>
+        <p>
+          La medicación controlada dispensada está sujeta a trazabilidad obligatoria por el Sistema
+          Nacional de Trazabilidad de ANMAT (Disposición 3683/2011). Esto implica que datos
+          mínimos (fecha, farmacia, código del producto, profesional prescriptor) se reportan a
+          ANMAT como lo exige la normativa.
+        </p>
+        <label class="consent-checkbox">
+          <input type="checkbox" name="accepted" value="anmat_reporting" required />
+          <span>Acepto el reporte a ANMAT conforme normativa vigente.</span>
+        </label>
+      </section>
+
+      <section class="consent-section">
+        <h2>6. Alternativas</h2>
+        <p>
+          Conozco que existen alternativas no farmacológicas (psicoterapia, TCC-I, higiene del
+          sueño, cambios conductuales) y que puedo optar por no tomar medicación. El profesional
+          me expondrá el balance beneficio-riesgo en cada caso.
+        </p>
+        <label class="consent-checkbox">
+          <input type="checkbox" name="accepted" value="alternatives_disclosed" required />
+          <span>Me explicaron las alternativas al tratamiento farmacológico.</span>
+        </label>
+      </section>
+
+      <section class="consent-section">
+        <h2>7. Derecho a revocar</h2>
+        <p>
+          Puedo revocar este consentimiento en cualquier momento, con lo cual el profesional
+          suspenderá la prescripción de fármacos controlados. Revocar este consentimiento no
+          interrumpe mi derecho a continuar en atención con la plataforma para otros aspectos del
+          tratamiento.
+        </p>
+        <label class="consent-checkbox">
+          <input type="checkbox" name="accepted" value="revocation_right" required />
+          <span>Conozco mi derecho a revocar el consentimiento.</span>
+        </label>
+      </section>
+
+      <div class="consent-actions">
+        <button type="submit" class="consent-submit">Firmar consentimiento</button>
+        <p class="consent-note">
+          Al firmar, tu identidad quedará registrada con dirección IP, timestamp y hash
+          criptográfico del contenido aceptado (Ley 25.506, art. 6).
+        </p>
+      </div>
+
+      <div id="consent-status" role="status" aria-live="polite"></div>
+    </form>
+  </main>
+</PatientAppLayout>
+
+<script>
+  const form = document.getElementById('consent-form') as HTMLFormElement | null;
+  const status = document.getElementById('consent-status');
+  if (form && status) {
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const data = new FormData(form);
+      const accepted = Array.from(data.getAll('accepted')).map(String);
+      const consentType = String(data.get('consentType') ?? 'psychiatry_controlled');
+      const templateVersion = String(data.get('templateVersion') ?? '');
+
+      status.textContent = 'Firmando...';
+
+      try {
+        const res = await fetch('/api/patients/consent/sign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            consentType,
+            templateVersion,
+            acceptedSections: accepted,
+          }),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          status.textContent = `Error (${res.status}): ${text}`;
+          status.className = 'consent-status-error';
+          return;
+        }
+        const payload = await res.json();
+        status.textContent = 'Consentimiento firmado correctamente. Podés cerrar esta página.';
+        status.className = 'consent-status-ok';
+        console.log('consent ok', payload);
+      } catch (err) {
+        status.textContent = `Error de red: ${err instanceof Error ? err.message : String(err)}`;
+        status.className = 'consent-status-error';
+      }
+    });
+  }
+</script>
+
+<style>
+  .consent-page {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #0f172a;
+    line-height: 1.6;
+  }
+  .pill {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #075985;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .consent-page h1 {
+    font-size: 2rem;
+    margin: 0.5rem 0;
+    color: #0c4a6e;
+  }
+  .consent-page .lead {
+    color: #475569;
+  }
+  .consent-section {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin-top: 1rem;
+    background: #fff;
+  }
+  .consent-section h2 {
+    font-size: 1.1rem;
+    margin: 0 0 0.5rem;
+    color: #0f172a;
+  }
+  .consent-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    background: #f8fafc;
+    border-radius: 0.5rem;
+    cursor: pointer;
+  }
+  .consent-checkbox input {
+    margin-top: 0.25rem;
+  }
+  .consent-actions {
+    margin-top: 2rem;
+    text-align: center;
+  }
+  .consent-submit {
+    background: #0369a1;
+    color: #fff;
+    padding: 0.85rem 2rem;
+    border: 0;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .consent-submit:hover { background: #075985; }
+  .consent-note {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 0.75rem;
+  }
+  #consent-status {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    background: #f1f5f9;
+    min-height: 1.5em;
+  }
+  #consent-status.consent-status-ok {
+    background: #ecfdf5;
+    color: #065f46;
+  }
+  #consent-status.consent-status-error {
+    background: #fef2f2;
+    color: #991b1b;
+  }
+</style>
