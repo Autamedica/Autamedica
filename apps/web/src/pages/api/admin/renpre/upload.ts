@@ -23,7 +23,7 @@ async function assertAdmin(request: Request, admin: ReturnType<typeof createAstr
     .eq('id', data.user.id)
     .maybeSingle();
 
-  if (!profile || profile.role !== 'admin') return { ok: false };
+  if (profile?.role !== 'admin') return { ok: false };
   return { ok: true, userId: data.user.id };
 }
 

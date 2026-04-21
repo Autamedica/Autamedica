@@ -12,7 +12,7 @@ import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import type { Database } from '@autamedica/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AstroCookies, AstroCookieSetOptions } from 'astro';
-import { resolvePublicSupabaseEnv, resolveServiceRoleKey } from './runtime-env';
+import { resolvePublicSupabaseEnv } from './runtime-env';
 
 export type { CookieMethodsServer };
 

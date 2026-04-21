@@ -13,7 +13,7 @@ import { createClient } from '@supabase/supabase-js';
 import { SupabaseAdherenceRepository } from '@autamedica/prescriptions';
 import { ensureEnv } from '@autamedica/shared';
 import { spawn } from 'node:child_process';
-import { promisify } from 'node:util';
+
 
 const env = globalThis.process?.env ?? {};
 const SUPABASE_URL = ensureEnv('SUPABASE_URL');
@@ -94,7 +94,7 @@ async function tick(): Promise<void> {
     for (const event of pending) {
       try {
         const ctx = await lookupSchedule(event.scheduleId);
-        if (!ctx || !ctx.patient_phone) {
+        if (!ctx?.patient_phone) {
           console.warn(`[ADHERENCE] skip event=${event.id}: no schedule/phone`);
           continue;
         }
