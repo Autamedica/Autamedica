@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { fetchApi } from '@/lib/api-client'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
+import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
 import { MEDICAL_SPECIALTIES } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import { CheckCircle2, Loader2, ArrowLeft } from 'lucide-react'
@@ -26,18 +27,59 @@ type Country = 'argentina' | 'other'
 
 export function ProfileForm() {
   const { user } = useAuthenticatedUser()
+  const { doctor, loading: doctorLoading } = useCurrentDoctor(user?.id)
 
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
   const [specialty, setSpecialty] = useState('')
   const [country, setCountry] = useState<Country>('argentina')
   const [province, setProvince] = useState('')
   const [otherRegion, setOtherRegion] = useState('')
   const [licenseNumber, setLicenseNumber] = useState('')
+  const [refepsId, setRefepsId] = useState('')
+  const [enrollmentEntity, setEnrollmentEntity] = useState('')
+  const [professionalAddress, setProfessionalAddress] = useState('')
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
+  useEffect(() => {
+    if (user?.profile) {
+      if (user.profile.firstName) setFirstName(user.profile.firstName)
+      if (user.profile.lastName) setLastName(user.profile.lastName)
+      if (user.profile.phone) setPhone(user.profile.phone)
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (doctor) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const d = doctor as any
+      if (d.licenseNumber) setLicenseNumber(d.licenseNumber)
+      if (d.specialty) setSpecialty(d.specialty)
+      if (d.refepsId) setRefepsId(d.refepsId)
+      if (d.enrollmentEntity) setEnrollmentEntity(d.enrollmentEntity)
+      if (d.professionalAddress) setProfessionalAddress(d.professionalAddress)
+      
+      const jur = d.enrollmentJurisdiction
+      if (jur) {
+        if ((ARGENTINE_PROVINCES as readonly string[]).includes(jur)) {
+          setCountry('argentina')
+          setProvince(jur)
+        } else {
+          setCountry('other')
+          setOtherRegion(jur)
+        }
+      }
+    }
+  }, [doctor])
+
   const region = country === 'argentina' ? province : otherRegion.trim()
   const canSubmit =
+    firstName.trim() !== '' &&
+    lastName.trim() !== '' &&
     specialty !== '' &&
     licenseNumber.trim().length >= 3 &&
     region !== ''
@@ -52,8 +94,15 @@ export function ProfileForm() {
     try {
       await fetchApi('/api/profiles/doctors', {
         body: {
+          first_name: firstName.trim() || undefined,
+          last_name: lastName.trim() || undefined,
+          phone: phone.trim() || undefined,
           license_number: licenseNumber.trim(),
           specialty,
+          refeps_id: refepsId.trim() || undefined,
+          enrollment_entity: enrollmentEntity.trim() || undefined,
+          enrollment_jurisdiction: region.trim() || undefined,
+          professional_address: professionalAddress.trim() || undefined,
           active: true,
         },
       })
@@ -102,10 +151,62 @@ export function ProfileForm() {
         <div className="rounded-2xl border border-am-surface-200 bg-white p-6 shadow-am-sm">
           <h1 className="text-xl font-semibold text-am-surface-900">Completa tu perfil profesional</h1>
           <p className="mt-1 text-sm text-am-surface-500">
-            Necesitamos estos datos para verificar tu identidad profesional.
+            Revisá y completá tus datos de identidad profesional.
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          {(doctorLoading && !doctor) ? (
+            <div className="mt-8 flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-am-doctor-500" />
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                    Nombre
+                  </label>
+                  <input
+                    type="text"
+                    id="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Tu nombre"
+                    className={inputClass}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                    Apellido
+                  </label>
+                  <input
+                    type="text"
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Tu apellido"
+                    className={inputClass}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  Teléfono (opcional)
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Ej: +54 9 11 1234-5678"
+                  className={inputClass}
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="h-px w-full bg-am-surface-200 my-6" />
             {/* Especialidad */}
             <div>
               <label htmlFor="specialty" className="block text-sm font-medium text-am-surface-700 mb-1.5">
@@ -182,23 +283,68 @@ export function ProfileForm() {
               </div>
             )}
 
-            {/* Número de matrícula */}
-            <div>
-              <label htmlFor="license" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-                Número de Matrícula
-              </label>
-              <input
-                type="text"
-                id="license"
-                value={licenseNumber}
-                onChange={(e) => setLicenseNumber(e.target.value)}
-                placeholder="Ej: MP12345, 123456"
-                className={inputClass}
-                disabled={isSubmitting}
-              />
-              <p className="mt-1.5 text-xs text-am-surface-400">
-                Ingresa tu número de matrícula profesional tal como aparece en tu credencial
-              </p>
+            {/* Número de matrícula y Entidad */}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label htmlFor="license" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  Número de Matrícula
+                </label>
+                <input
+                  type="text"
+                  id="license"
+                  value={licenseNumber}
+                  onChange={(e) => setLicenseNumber(e.target.value)}
+                  placeholder="Ej: MP12345"
+                  className={inputClass}
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <label htmlFor="enrollmentEntity" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  Entidad de Matrícula (opcional)
+                </label>
+                <input
+                  type="text"
+                  id="enrollmentEntity"
+                  value={enrollmentEntity}
+                  onChange={(e) => setEnrollmentEntity(e.target.value)}
+                  placeholder="Ej: Min. de Salud"
+                  className={inputClass}
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            {/* REFEPS e Institución */}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label htmlFor="refepsId" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  Nº de REFEPS (opcional)
+                </label>
+                <input
+                  type="text"
+                  id="refepsId"
+                  value={refepsId}
+                  onChange={(e) => setRefepsId(e.target.value)}
+                  placeholder="Registro de Establecimientos"
+                  className={inputClass}
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <label htmlFor="professionalAddress" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  Domicilio Profesional (opcional)
+                </label>
+                <input
+                  type="text"
+                  id="professionalAddress"
+                  value={professionalAddress}
+                  onChange={(e) => setProfessionalAddress(e.target.value)}
+                  placeholder="Dirección del consultorio"
+                  className={inputClass}
+                  disabled={isSubmitting}
+                />
+              </div>
             </div>
 
             {error && (
@@ -222,6 +368,7 @@ export function ProfileForm() {
               )}
             </button>
           </form>
+          )}
         </div>
       </div>
     </div>

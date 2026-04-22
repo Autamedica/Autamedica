@@ -17,6 +17,7 @@ export interface AuthenticatedUserProfile {
     fullName?: string
     firstName?: string
     lastName?: string
+    phone?: string
     specialties?: string[]
     medicalLicense?: string
   }

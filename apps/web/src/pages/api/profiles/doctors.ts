@@ -2,9 +2,38 @@ import type { APIRoute } from 'astro'
 import type { Json } from '@autamedica/types'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
-import { jsonOk, badRequest, internalError } from '@/lib/api-helpers'
+import { jsonOk, badRequest, internalError, conflict } from '@/lib/api-helpers'
 import { withAuth, isAuthed } from '@/lib/api-auth'
 import { doctorProfileService } from '@/lib/doctors/services/doctor-profile.service'
+
+function optionalString(body: Record<string, unknown>, key: string): string | null | undefined {
+  if (!(key in body)) return undefined
+  const value = body[key]
+  if (value === null) return null
+  if (typeof value !== 'string') return undefined
+  return value.trim() || null
+}
+
+function optionalNumber(body: Record<string, unknown>, key: string): number | null | undefined {
+  if (!(key in body)) return undefined
+  const value = body[key]
+  if (value === null || value === '') return null
+  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+  return undefined
+}
+
+function isConflictError(err: unknown): boolean {
+  return Boolean(
+    err &&
+    typeof err === 'object' &&
+    'code' in err &&
+    (err as { code?: unknown }).code === '23505',
+  )
+}
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
@@ -32,21 +61,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
       userId: user.id,
       licenseNumber: license_number.trim(),
       specialty: specialty.trim(),
-      subspecialty: typeof body.subspecialty === 'string' ? body.subspecialty.trim() || null : null,
-      yearsExperience: typeof body.years_experience === 'number' ? body.years_experience : null,
-      education: (body.education as Json) ?? null,
-      certifications: (body.certifications as Json) ?? null,
+      firstName: optionalString(body, 'first_name'),
+      lastName: optionalString(body, 'last_name'),
+      phone: optionalString(body, 'phone'),
+      subspecialty: optionalString(body, 'subspecialty'),
+      yearsExperience: optionalNumber(body, 'years_experience'),
+      education: 'education' in body ? (body.education as Json) ?? null : undefined,
+      certifications: 'certifications' in body ? (body.certifications as Json) ?? null : undefined,
       schedule: body.schedule,
-      consultationFee: typeof body.consultation_fee === 'number' ? body.consultation_fee : null,
-      acceptedInsurance: (body.accepted_insurance as Json) ?? null,
-      bio: typeof body.bio === 'string' ? body.bio.trim() || null : null,
-      languages: (body.languages as Json) ?? null,
+      consultationFee: optionalNumber(body, 'consultation_fee'),
+      acceptedInsurance: 'accepted_insurance' in body ? (body.accepted_insurance as Json) ?? null : undefined,
+      bio: optionalString(body, 'bio'),
+      languages: 'languages' in body ? (body.languages as Json) ?? null : undefined,
+      refepsId: optionalString(body, 'refeps_id'),
+      enrollmentEntity: optionalString(body, 'enrollment_entity'),
+      enrollmentJurisdiction: optionalString(body, 'enrollment_jurisdiction'),
+      professionalAddress: optionalString(body, 'professional_address'),
       active: typeof body.active === 'boolean' ? body.active : undefined,
       fullName,
     })
 
     return jsonOk(result)
   } catch (err) {
+    if (isConflictError(err)) {
+      return conflict('license_number_already_exists')
+    }
     logger.error('[API] doctor profile creation error', err as Error)
     return internalError()
   }

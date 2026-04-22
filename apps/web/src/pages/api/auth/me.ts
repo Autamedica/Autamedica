@@ -38,6 +38,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
           fullName: `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() || undefined,
           firstName: profile.first_name ?? undefined,
           lastName: profile.last_name ?? undefined,
+          phone: profile.phone ?? undefined,
           specialties: user.user_metadata?.specialties,
           medicalLicense: user.user_metadata?.medical_license,
         }
@@ -45,6 +46,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
           fullName: user.user_metadata?.full_name,
           firstName: user.user_metadata?.first_name,
           lastName: user.user_metadata?.last_name,
+          phone: user.user_metadata?.phone,
           specialties: user.user_metadata?.specialties,
           medicalLicense: user.user_metadata?.medical_license,
         }

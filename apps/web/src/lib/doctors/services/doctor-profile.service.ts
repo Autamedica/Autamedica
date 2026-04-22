@@ -76,6 +76,9 @@ export interface DoctorProfileInput {
   userId: string
   licenseNumber: string
   specialty: string
+  firstName?: string | null
+  lastName?: string | null
+  phone?: string | null
   subspecialty?: string | null
   yearsExperience?: number | null
   education?: Json
@@ -85,8 +88,20 @@ export interface DoctorProfileInput {
   acceptedInsurance?: Json
   bio?: string | null
   languages?: Json
+  refepsId?: string | null
+  enrollmentEntity?: string | null
+  enrollmentJurisdiction?: string | null
+  professionalAddress?: string | null
   active?: boolean
   fullName?: string | null
+}
+
+function setIfDefined<T extends Record<string, unknown>, K extends keyof T>(
+  target: T,
+  key: K,
+  value: T[K] | undefined,
+): void {
+  if (value !== undefined) target[key] = value
 }
 
 export const doctorProfileService = {
@@ -100,28 +115,43 @@ export const doctorProfileService = {
       user_id: input.userId,
       license_number: input.licenseNumber,
       specialty: input.specialty,
-      subspecialty: input.subspecialty ?? null,
-      years_experience: input.yearsExperience ?? null,
-      education: input.education ?? null,
-      certifications: input.certifications ?? null,
       schedule: null,
-      consultation_fee: input.consultationFee ?? 3000,
-      accepted_insurance: input.acceptedInsurance ?? null,
-      bio: input.bio ?? null,
-      languages: input.languages ?? null,
       active: isActive,
     }
 
+    setIfDefined(doctorData, 'subspecialty', input.subspecialty)
+    setIfDefined(doctorData, 'years_experience', input.yearsExperience)
+    setIfDefined(doctorData, 'education', input.education)
+    setIfDefined(doctorData, 'certifications', input.certifications)
+    setIfDefined(doctorData, 'consultation_fee', input.consultationFee)
+    setIfDefined(doctorData, 'accepted_insurance', input.acceptedInsurance)
+    setIfDefined(doctorData, 'bio', input.bio)
+    setIfDefined(doctorData, 'languages', input.languages)
+    setIfDefined(doctorData, 'refeps_id', input.refepsId)
+    setIfDefined(doctorData, 'enrollment_entity', input.enrollmentEntity)
+    setIfDefined(doctorData, 'enrollment_jurisdiction', input.enrollmentJurisdiction)
+    setIfDefined(doctorData, 'professional_address', input.professionalAddress)
+
     const result = await doctorProfileRepo.upsertDoctor(admin, doctorData)
 
-    if (input.fullName) {
+    const profilePatch: {
+      first_name?: string | null
+      last_name?: string | null
+      phone?: string | null
+    } = {}
+
+    if (input.firstName !== undefined) profilePatch.first_name = input.firstName
+    if (input.lastName !== undefined) profilePatch.last_name = input.lastName
+    if (input.phone !== undefined) profilePatch.phone = input.phone
+
+    if (input.fullName && input.firstName === undefined && input.lastName === undefined) {
       const parts = input.fullName.trim().split(/\s+/)
-      await doctorProfileRepo.updateProfileName(
-        admin,
-        input.userId,
-        parts[0] ?? null,
-        parts.length > 1 ? parts.slice(1).join(' ') : null,
-      )
+      profilePatch.first_name = parts[0] ?? null
+      profilePatch.last_name = parts.length > 1 ? parts.slice(1).join(' ') : null
+    }
+
+    if (Object.keys(profilePatch).length > 0) {
+      await doctorProfileRepo.updateProfileIdentity(admin, input.userId, profilePatch)
     }
 
     const doctorId = result.id

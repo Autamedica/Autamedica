@@ -9,6 +9,14 @@ import { logger } from '@autamedica/shared'
 type AdminClient = SupabaseClient<Database>
 type AvailabilityInsert = Database['public']['Tables']['doctor_availability']['Insert']
 type DoctorInsert = Database['public']['Tables']['doctors']['Insert']
+type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
+type ProfileIdentityUpdate = Pick<ProfileUpdate, 'first_name' | 'last_name' | 'phone'>
+
+function compactPatch<T extends Record<string, unknown>>(patch: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(patch).filter(([, value]) => value !== undefined),
+  ) as Partial<T>
+}
 
 export const doctorProfileRepo = {
   async upsertDoctor(admin: AdminClient, data: DoctorInsert): Promise<{ id: string }> {
@@ -26,13 +34,23 @@ export const doctorProfileRepo = {
     return result as { id: string }
   },
 
-  async updateProfileName(
+  async updateProfileIdentity(
     admin: AdminClient,
     userId: string,
-    firstName: string | null,
-    lastName: string | null,
+    patch: ProfileIdentityUpdate,
   ): Promise<void> {
-    await admin.from('profiles').update({ first_name: firstName, last_name: lastName }).eq('user_id', userId)
+    const profilePatch = compactPatch(patch)
+    if (Object.keys(profilePatch).length === 0) return
+
+    const { error } = await admin
+      .from('profiles')
+      .update(profilePatch)
+      .eq('user_id', userId)
+
+    if (error) {
+      logger.error('[doctorProfileRepo] profile identity update failed', error)
+      throw error
+    }
   },
 
   async replaceAvailability(
