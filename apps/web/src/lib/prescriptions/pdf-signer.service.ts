@@ -7,10 +7,10 @@
  *
  * Phase 2: Self-signed certificates (yellow warning in Adobe).
  * Phase 3: AC-issued certificates (green checkmark in Adobe).
+ *
+ * NOTE: All @signpdf dependencies are dynamically imported to avoid
+ * bundling Node.js-only code into the Cloudflare Workers runtime.
  */
-import { SignPdf } from '@signpdf/signpdf';
-import { P12Signer } from '@signpdf/signer-p12';
-import { plainAddPlaceholder } from '@signpdf/placeholder-plain';
 import { logger } from '@autamedica/shared';
 
 export interface SignPdfInput {
@@ -46,6 +46,11 @@ export async function signPdfWithP12(input: SignPdfInput): Promise<SignPdfResult
   } = input;
 
   try {
+    // Dynamic imports to avoid Cloudflare Workers bundling issues
+    const { plainAddPlaceholder } = await import('@signpdf/placeholder-plain');
+    const { P12Signer } = await import('@signpdf/signer-p12');
+    const { SignPdf } = await import('@signpdf/signpdf');
+
     // 1. Add signature placeholder to the PDF
     const pdfWithPlaceholder = plainAddPlaceholder({
       pdfBuffer: Buffer.from(pdfBuffer),
