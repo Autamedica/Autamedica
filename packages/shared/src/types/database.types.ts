@@ -1481,7 +1481,7 @@ export type Database = {
           doctor_id: string
           ended_at: string | null
           id: string
-          patient_id: string
+          patient_id: string | null
           reason: string | null
           room_id: string
           status: Database["public"]["Enums"]["call_status"]
@@ -1493,7 +1493,7 @@ export type Database = {
           doctor_id: string
           ended_at?: string | null
           id?: string
-          patient_id: string
+          patient_id?: string | null
           reason?: string | null
           room_id: string
           status?: Database["public"]["Enums"]["call_status"]
@@ -1505,7 +1505,7 @@ export type Database = {
           doctor_id?: string
           ended_at?: string | null
           id?: string
-          patient_id?: string
+          patient_id?: string | null
           reason?: string | null
           room_id?: string
           status?: Database["public"]["Enums"]["call_status"]
@@ -6330,12 +6330,13 @@ export type Database = {
         Returns: boolean
       }
       create_call: {
-        Args: { p_doctor_id: string; p_patient_id: string }
+        Args: { p_doctor_id: string; p_patient_id: string | null; p_appointment_id?: string | null }
         Returns: {
+          appointment_id: string | null
           created_at: string
           doctor_id: string
           id: string
-          patient_id: string
+          patient_id: string | null
           room_id: string
           status: Database["public"]["Enums"]["call_status"]
         }[]
