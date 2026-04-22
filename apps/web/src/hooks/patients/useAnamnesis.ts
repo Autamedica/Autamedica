@@ -85,9 +85,9 @@ export function useAnamnesis(): UseAnamnesisReturn {
     return message;
   }, []);
 
-  const fetchAnamnesis = useCallback(async (): Promise<ApiResponse | null> => {
+  const fetchAnamnesis = useCallback(async (background = false): Promise<ApiResponse | null> => {
     try {
-      setLoading(true);
+      if (!background) setLoading(true);
       setError(null);
       setAuthRequired(false);
       const data = await fetchApi<ApiResponse>('/api/patients/anamnesis');
@@ -98,10 +98,10 @@ export function useAnamnesis(): UseAnamnesisReturn {
       return data;
     } catch (err) {
       logger.error('Error fetching anamnesis:', err);
-      handleApiError(err, 'Error desconocido');
+      if (!background) handleApiError(err, 'Error desconocido');
       return null;
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   }, [handleApiError]);
 
@@ -124,7 +124,7 @@ export function useAnamnesis(): UseAnamnesisReturn {
   const updateAnamnesis = useCallback(async (update: Partial<ApiAnamnesis>): Promise<boolean> => {
     try {
       await fetchApi('/api/patients/anamnesis', { method: 'PATCH', body: update });
-      await fetchAnamnesis();
+      await fetchAnamnesis(true);
       return true;
     } catch (err) {
       logger.error('Error updating anamnesis:', err);
@@ -145,7 +145,7 @@ export function useAnamnesis(): UseAnamnesisReturn {
       if (result?.progress) {
         setProgress(result.progress);
       }
-      await fetchAnamnesis();
+      await fetchAnamnesis(true);
       return true;
     } catch (err) {
       logger.error('Error updating section:', err);
