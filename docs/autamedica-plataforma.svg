@@ -128,8 +128,8 @@
       <rect width="220" height="100" rx="12" fill="#1e293b" stroke="#334155"/>
       <text x="110" y="25" text-anchor="middle" font-size="22">📋</text>
       <text x="110" y="48" text-anchor="middle" font-size="13" font-weight="600" fill="#e2e8f0">Receta Electronica</text>
-      <text x="110" y="66" text-anchor="middle" font-size="10" fill="#94a3b8">Ley 27.553 compliant</text>
-      <text x="110" y="80" text-anchor="middle" font-size="10" fill="#94a3b8">QR + CUIR (placeholder)</text>
+      <text x="110" y="66" text-anchor="middle" font-size="10" fill="#94a3b8">Ley 27.553 + firma</text>
+      <text x="110" y="80" text-anchor="middle" font-size="10" fill="#94a3b8">FHIR MedicationRequest</text>
       <text x="110" y="94" text-anchor="middle" font-size="10" fill="#22c55e">Funcional</text>
     </g>
 
@@ -268,6 +268,16 @@
     <text x="100" y="122" text-anchor="middle" font-size="10" fill="#64748b">Audit logs medicos</text>
   </g>
 
+  <g transform="translate(1520, 860)">
+    <rect width="220" height="130" rx="14" fill="white" stroke="#0ea5e9" stroke-width="2" filter="url(#shadow)"/>
+    <text x="110" y="35" text-anchor="middle" font-size="26">🔗</text>
+    <text x="110" y="60" text-anchor="middle" font-size="13" font-weight="600" fill="#0c4a6e">HL7 / FHIR</text>
+    <text x="110" y="80" text-anchor="middle" font-size="10" fill="#64748b">Patient + Practitioner</text>
+    <text x="110" y="94" text-anchor="middle" font-size="10" fill="#64748b">MedicationRequest</text>
+    <text x="110" y="108" text-anchor="middle" font-size="10" fill="#64748b">MedicationDispense</text>
+    <text x="110" y="122" text-anchor="middle" font-size="10" fill="#64748b">Provenance + AuditEvent</text>
+  </g>
+
   <!-- ============================================ -->
   <!-- FLECHAS actores → nucleo -->
   <!-- ============================================ -->
@@ -284,6 +294,7 @@
   <line x1="950" y1="800" x2="900" y2="860" stroke="#64748b" stroke-width="1.5" opacity="0.4"/>
   <line x1="1100" y1="800" x2="1140" y2="860" stroke="#64748b" stroke-width="1.5" opacity="0.4"/>
   <line x1="1250" y1="800" x2="1380" y2="860" stroke="#64748b" stroke-width="1.5" opacity="0.4"/>
+  <line x1="950" y1="800" x2="1630" y2="860" stroke="#0ea5e9" stroke-width="1.5" opacity="0.45"/>
 
   <!-- ============================================ -->
   <!-- FLUJOS PRINCIPALES (parte inferior) -->
@@ -298,33 +309,51 @@
     <g transform="translate(30, 60)">
       <text x="0" y="15" font-size="12" font-weight="700" fill="#0ea5e9">Consulta Medica</text>
       <g transform="translate(0, 25)">
-        <rect width="120" height="40" rx="8" fill="#dbeafe"/>
-        <text x="60" y="17" text-anchor="middle" font-size="18">🧑</text>
-        <text x="60" y="33" text-anchor="middle" font-size="9" fill="#1e40af">Anamnesis IA</text>
+        <rect width="105" height="40" rx="8" fill="#dbeafe"/>
+        <text x="52" y="17" text-anchor="middle" font-size="18">🧑</text>
+        <text x="52" y="33" text-anchor="middle" font-size="9" fill="#1e40af">Anamnesis IA</text>
       </g>
-      <text x="132" y="50" font-size="14" fill="#94a3b8">→</text>
-      <g transform="translate(150, 25)">
-        <rect width="120" height="40" rx="8" fill="#dbeafe"/>
-        <text x="60" y="17" text-anchor="middle" font-size="18">📅</text>
-        <text x="60" y="33" text-anchor="middle" font-size="9" fill="#1e40af">Agendar turno</text>
+      <text x="116" y="50" font-size="14" fill="#94a3b8">→</text>
+      <g transform="translate(130, 25)">
+        <rect width="105" height="40" rx="8" fill="#dbeafe"/>
+        <text x="52" y="17" text-anchor="middle" font-size="18">📅</text>
+        <text x="52" y="33" text-anchor="middle" font-size="9" fill="#1e40af">Agendar turno</text>
       </g>
-      <text x="282" y="50" font-size="14" fill="#94a3b8">→</text>
-      <g transform="translate(300, 25)">
-        <rect width="120" height="40" rx="8" fill="#cffafe"/>
-        <text x="60" y="17" text-anchor="middle" font-size="18">📹</text>
-        <text x="60" y="33" text-anchor="middle" font-size="9" fill="#164e63">Videoconsulta</text>
+      <text x="246" y="50" font-size="14" fill="#94a3b8">→</text>
+      <g transform="translate(260, 25)">
+        <rect width="105" height="40" rx="8" fill="#cffafe"/>
+        <text x="52" y="17" text-anchor="middle" font-size="18">📹</text>
+        <text x="52" y="33" text-anchor="middle" font-size="9" fill="#164e63">Videoconsulta</text>
       </g>
-      <text x="432" y="50" font-size="14" fill="#94a3b8">→</text>
-      <g transform="translate(450, 25)">
-        <rect width="120" height="40" rx="8" fill="#cffafe"/>
-        <text x="60" y="17" text-anchor="middle" font-size="18">📋</text>
-        <text x="60" y="33" text-anchor="middle" font-size="9" fill="#164e63">Receta digital</text>
+      <text x="376" y="50" font-size="14" fill="#94a3b8">→</text>
+      <g transform="translate(390, 25)">
+        <rect width="105" height="40" rx="8" fill="#cffafe"/>
+        <text x="52" y="17" text-anchor="middle" font-size="18">📋</text>
+        <text x="52" y="33" text-anchor="middle" font-size="9" fill="#164e63">MedicationReq</text>
       </g>
-      <text x="582" y="50" font-size="14" fill="#94a3b8">→</text>
-      <g transform="translate(600, 25)">
-        <rect width="120" height="40" rx="8" fill="#d1fae5"/>
-        <text x="60" y="17" text-anchor="middle" font-size="18">💊</text>
-        <text x="60" y="33" text-anchor="middle" font-size="9" fill="#065f46">Dispensacion</text>
+      <text x="506" y="50" font-size="14" fill="#94a3b8">→</text>
+      <g transform="translate(520, 25)">
+        <rect width="105" height="40" rx="8" fill="#e0f2fe"/>
+        <text x="52" y="17" text-anchor="middle" font-size="18">✍️</text>
+        <text x="52" y="33" text-anchor="middle" font-size="9" fill="#075985">Firma + QR</text>
+      </g>
+      <text x="636" y="50" font-size="14" fill="#94a3b8">→</text>
+      <g transform="translate(650, 25)">
+        <rect width="105" height="40" rx="8" fill="#d1fae5"/>
+        <text x="52" y="17" text-anchor="middle" font-size="18">💊</text>
+        <text x="52" y="33" text-anchor="middle" font-size="9" fill="#065f46">Farmacia</text>
+      </g>
+      <text x="766" y="50" font-size="14" fill="#94a3b8">→</text>
+      <g transform="translate(780, 25)">
+        <rect width="105" height="40" rx="8" fill="#d1fae5"/>
+        <text x="52" y="17" text-anchor="middle" font-size="18">✅</text>
+        <text x="52" y="33" text-anchor="middle" font-size="9" fill="#065f46">Dispensacion</text>
+      </g>
+      <text x="896" y="50" font-size="14" fill="#94a3b8">→</text>
+      <g transform="translate(910, 25)">
+        <rect width="105" height="40" rx="8" fill="#f0f9ff"/>
+        <text x="52" y="17" text-anchor="middle" font-size="18">📚</text>
+        <text x="52" y="33" text-anchor="middle" font-size="9" fill="#0c4a6e">HCE trazable</text>
       </g>
     </g>
 
