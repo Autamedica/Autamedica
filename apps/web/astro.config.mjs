@@ -37,6 +37,14 @@ export default defineConfig({
     server: {
       forwardConsole: true
     },
+    ssr: {
+      external: [
+        'node-forge',
+        '@signpdf/signpdf',
+        '@signpdf/signer-p12',
+        '@signpdf/placeholder-plain',
+      ],
+    },
     optimizeDeps: {
       include: ['gsap', 'gsap/ScrollTrigger', 'gsap/ScrollToPlugin']
     }
