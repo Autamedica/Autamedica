@@ -32,6 +32,8 @@ export interface PrescriptionPdfInput {
     refeps?: string;
     specialty?: string;
     professionalAddress?: string;
+    signatureImageUrl?: string;
+    stampImageUrl?: string;
   };
   issuedAt: string;
   // expiresAt is now derived but can be overridden
@@ -240,21 +242,57 @@ export async function generatePrescriptionPdf(
     doc.text(`Domicilio profesional: ${input.prescriber.professionalAddress}`, marginLeft, y);
   }
 
-  // Firma Digital (Placeholder for PAdES/Visual)
+  // Firma Digital (Visual + Cryptographic reference)
   const signatureY = 245;
+
+  if (input.prescriber.signatureImageUrl) {
+    // Stamp visual signature image
+    try {
+      const sigResponse = await fetch(input.prescriber.signatureImageUrl);
+      const sigArrayBuf = await sigResponse.arrayBuffer();
+      const sigBase64 = Buffer.from(sigArrayBuf).toString('base64');
+      const sigFormat = input.prescriber.signatureImageUrl.includes('.webp') ? 'WEBP' : 'PNG';
+      const sigDataUrl = `data:image/${sigFormat.toLowerCase()};base64,${sigBase64}`;
+      doc.addImage(sigDataUrl, sigFormat, marginLeft, signatureY, 35, 20);
+    } catch {
+      // Fallback: draw placeholder if image fetch fails
+      doc.setFillColor(248, 250, 252);
+      doc.rect(marginLeft, signatureY, 35, 20, 'F');
+    }
+  }
+
+  if (input.prescriber.stampImageUrl) {
+    // Stamp professional seal image
+    try {
+      const stampResponse = await fetch(input.prescriber.stampImageUrl);
+      const stampArrayBuf = await stampResponse.arrayBuffer();
+      const stampBase64 = Buffer.from(stampArrayBuf).toString('base64');
+      const stampFormat = input.prescriber.stampImageUrl.includes('.webp') ? 'WEBP' : 'PNG';
+      const stampDataUrl = `data:image/${stampFormat.toLowerCase()};base64,${stampBase64}`;
+      doc.addImage(stampDataUrl, stampFormat, marginLeft + 40, signatureY, 35, 20);
+    } catch {
+      // Silently skip stamp if fetch fails
+    }
+  }
+
+  // Digital signature info box (next to visual signature)
+  const infoBoxX = input.prescriber.stampImageUrl ? marginLeft + 80 : marginLeft + 40;
+  const infoBoxWidth = pageWidth - 20 - infoBoxX;
   doc.setFillColor(248, 250, 252);
-  doc.rect(marginLeft, signatureY, 80, 25, 'F');
+  doc.rect(infoBoxX, signatureY, infoBoxWidth, 25, 'F');
   doc.setDrawColor(15, 23, 42);
-  doc.rect(marginLeft, signatureY, 80, 25);
-  
-  doc.setFontSize(8);
+  doc.rect(infoBoxX, signatureY, infoBoxWidth, 25);
+
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  doc.text('FIRMA DIGITAL CERTIFICADA', marginLeft + 5, signatureY + 7);
-  doc.setFontSize(6);
+  doc.setTextColor(15, 23, 42);
+  doc.text('FIRMA ELECTRÓNICA', infoBoxX + 3, signatureY + 5);
+  doc.setFontSize(5.5);
   doc.setFont('helvetica', 'normal');
-  doc.text('Documento firmado mediante certificado X.509', marginLeft + 5, signatureY + 12);
-  doc.text(`Validador RCTA: ${cuir}`, marginLeft + 5, signatureY + 16);
-  doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, marginLeft + 5, signatureY + 20);
+  doc.text('Documento firmado digitalmente (Ley 27.553)', infoBoxX + 3, signatureY + 10);
+  doc.text(`Validador RCTA: ${cuir}`, infoBoxX + 3, signatureY + 14);
+  doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, infoBoxX + 3, signatureY + 18);
+  doc.text(`Hash: verificable vía QR`, infoBoxX + 3, signatureY + 22);
 
   // Footer (Compliance & Privacy)
   const footerY = 285;
