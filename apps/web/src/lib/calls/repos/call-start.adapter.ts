@@ -121,7 +121,8 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
     return withNullAppointmentId(data as LegacyCallRow | null)
   },
 
-  async findActiveByParticipants(doctorId: string, patientId: string): Promise<Call | null> {
+  async findActiveByParticipants(doctorId: string, patientId: string | null): Promise<Call | null> {
+    if (!patientId) return null;
     const primary = await selectCalls(supabase, CALL_SELECT)
       .eq('doctor_id', doctorId)
       .eq('patient_id', patientId)
@@ -156,7 +157,8 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
     throw primary.error
   },
 
-  async listPendingByParticipants(doctorId: string, patientId: string): Promise<Call[]> {
+  async listPendingByParticipants(doctorId: string, patientId: string | null): Promise<Call[]> {
+    if (!patientId) return [];
     const pendingFilter = 'status.eq.requested,status.eq.ringing,status.eq.accepted'
     const primary = await selectCalls(supabase, CALL_SELECT)
       .eq('doctor_id', doctorId)
@@ -192,7 +194,7 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
 
   async createCall(
     doctorId: string,
-    patientId: string,
+    patientId: string | null,
     appointmentId?: string,
   ): Promise<Call> {
     const baseArgs = {
