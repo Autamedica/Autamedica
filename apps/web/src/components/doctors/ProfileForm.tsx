@@ -6,7 +6,7 @@ import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
 import { MEDICAL_SPECIALTIES } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
-import { CheckCircle2, Loader2, ArrowLeft } from 'lucide-react'
+import { CheckCircle2, Loader2, ArrowLeft, Landmark, DollarSign } from 'lucide-react'
 import { SignaturePad } from './SignaturePad'
 
 const ARGENTINE_PROVINCES = [
@@ -44,6 +44,13 @@ export function ProfileForm() {
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null)
   const [stampUrl, setStampUrl] = useState<string | null>(null)
 
+  // Bank account fields
+  const [bankName, setBankName] = useState('')
+  const [bankCbuCvu, setBankCbuCvu] = useState('')
+  const [bankAlias, setBankAlias] = useState('')
+  // Consultation fee (stored in ARS, displayed as user input)
+  const [consultationFee, setConsultationFee] = useState('')
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -67,6 +74,15 @@ export function ProfileForm() {
       if (d.professionalAddress) setProfessionalAddress(d.professionalAddress)
       if (d.signatureImageUrl) setSignatureUrl(d.signatureImageUrl)
       if (d.stampImageUrl) setStampUrl(d.stampImageUrl)
+
+      // Bank & fee fields
+      if (d.bankName || d.bank_name) setBankName(d.bankName ?? d.bank_name ?? '')
+      if (d.bankCbuCvu || d.bank_cbu_cvu) setBankCbuCvu(d.bankCbuCvu ?? d.bank_cbu_cvu ?? '')
+      if (d.bankAlias || d.bank_alias) setBankAlias(d.bankAlias ?? d.bank_alias ?? '')
+      if (d.consultationFee || d.consultation_fee) {
+        const fee = d.consultationFee ?? d.consultation_fee
+        if (fee != null) setConsultationFee(String(fee))
+      }
       
       const jur = d.enrollmentJurisdiction
       if (jur) {
@@ -108,6 +124,10 @@ export function ProfileForm() {
           enrollment_entity: enrollmentEntity.trim() || undefined,
           enrollment_jurisdiction: region.trim() || undefined,
           professional_address: professionalAddress.trim() || undefined,
+          consultation_fee: consultationFee ? parseFloat(consultationFee) : null,
+          bank_name: bankName.trim() || null,
+          bank_cbu_cvu: bankCbuCvu.trim() || null,
+          bank_alias: bankAlias.trim() || null,
           active: true,
         },
       })
@@ -346,6 +366,93 @@ export function ProfileForm() {
                   value={professionalAddress}
                   onChange={(e) => setProfessionalAddress(e.target.value)}
                   placeholder="Dirección del consultorio"
+                  className={inputClass}
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            {/* Valor de consulta */}
+            <div className="h-px w-full bg-am-surface-200 my-6" />
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="h-4 w-4 text-am-doctor-500" />
+              <h2 className="text-base font-semibold text-am-surface-800">Valor de consulta</h2>
+            </div>
+            <p className="text-xs text-am-surface-500 mb-4">
+              Definí el precio de tu consulta. Los pacientes lo verán antes de agendar.
+            </p>
+            <div>
+              <label htmlFor="consultationFee" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                Precio por consulta (ARS)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-am-surface-400 text-sm">$</span>
+                <input
+                  type="number"
+                  id="consultationFee"
+                  value={consultationFee}
+                  onChange={(e) => setConsultationFee(e.target.value)}
+                  placeholder="Ej: 25000"
+                  min="0"
+                  step="0.01"
+                  className={`${inputClass} pl-8`}
+                  disabled={isSubmitting}
+                />
+              </div>
+              <p className="mt-1.5 text-[11px] text-am-surface-400">
+                Dejá vacío si no querés mostrar precio.
+              </p>
+            </div>
+
+            {/* Cuenta bancaria */}
+            <div className="h-px w-full bg-am-surface-200 my-6" />
+            <div className="flex items-center gap-2 mb-1">
+              <Landmark className="h-4 w-4 text-am-doctor-500" />
+              <h2 className="text-base font-semibold text-am-surface-800">Cuenta bancaria</h2>
+            </div>
+            <p className="text-xs text-am-surface-500 mb-4">
+              Datos para recibir el pago de tus consultas. Solo vos y la plataforma pueden ver estos datos.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="bankName" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  Banco / Fintech
+                </label>
+                <input
+                  type="text"
+                  id="bankName"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  placeholder="Ej: Mercado Pago, Brubank, Banco Nación"
+                  className={inputClass}
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <label htmlFor="bankCbuCvu" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  CBU / CVU
+                </label>
+                <input
+                  type="text"
+                  id="bankCbuCvu"
+                  value={bankCbuCvu}
+                  onChange={(e) => setBankCbuCvu(e.target.value)}
+                  placeholder="22 dígitos"
+                  maxLength={22}
+                  className={inputClass}
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <label htmlFor="bankAlias" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  Alias (opcional)
+                </label>
+                <input
+                  type="text"
+                  id="bankAlias"
+                  value={bankAlias}
+                  onChange={(e) => setBankAlias(e.target.value)}
+                  placeholder="Ej: mi.alias.mp"
                   className={inputClass}
                   disabled={isSubmitting}
                 />
