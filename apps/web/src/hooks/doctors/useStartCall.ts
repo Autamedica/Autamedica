@@ -23,7 +23,7 @@ export function useStartCall({ doctorId, patientId, appointmentId }: UseStartCal
       return
     }
 
-    if (!patientId.trim()) {
+    if (!patientId.trim() && !appointmentId) {
       setError('Selecciona un paciente antes de iniciar la llamada')
       return
     }

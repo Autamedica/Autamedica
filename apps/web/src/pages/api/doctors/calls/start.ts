@@ -16,10 +16,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     appointmentId?: string
   }
 
-  const patientId = body.patientId?.trim()
+  const patientId = body.patientId?.trim() || null
   const appointmentId = body.appointmentId?.trim()
 
-  if (!patientId) {
+  if (!patientId && !appointmentId) {
     return badRequest('patient_id_required')
   }
 
