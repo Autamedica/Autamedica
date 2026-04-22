@@ -8,6 +8,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@autamedica/shared';
 import { generatePrescriptionPdf } from './pdf-prescription.service';
+import { signPdfWithP12 } from './pdf-signer.service';
+import { getActiveCertificate, loadSigningCredentials } from '../doctors/services/certificate.service';
 
 interface ClinicalItem {
   generic_name?: string;
@@ -72,7 +74,7 @@ export async function issuePrescription(
   // 1. Resolve and validate doctor
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address')
+    .select('id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url')
     .eq('user_id', userId)
     .single();
 
@@ -146,16 +148,48 @@ export async function issuePrescription(
       refeps: doctor.refeps_id ?? undefined,
       specialty: doctor.specialty ?? undefined,
       professionalAddress: doctor.professional_address ?? undefined,
+      signatureImageUrl: doctor.signature_image_url ?? undefined,
+      stampImageUrl: doctor.stamp_image_url ?? undefined,
     },
     issuedAt: now,
     expiresAt,
   });
 
-  // 7. Store PDF
+  // 6b. Attempt PAdES digital signing if doctor has a certificate
+  let finalPdfBuffer = artifacts.pdfBuffer;
+  let signatureMethod = 'electronic_simple';
+  let certFingerprint: string | null = null;
+
+  try {
+    const activeCert = await getActiveCertificate(supabase, doctor.id);
+    if (activeCert) {
+      const { p12Buffer, password } = await loadSigningCredentials(
+        supabase,
+        doctor.id,
+        activeCert.certFingerprint,
+      );
+      const signResult = await signPdfWithP12({
+        pdfBuffer: artifacts.pdfBuffer,
+        p12Buffer,
+        password,
+        signerName: doctorName,
+        reason: `Receta ${artifacts.cuir} - ${doctorName}`,
+        location: doctor.enrollment_jurisdiction ?? 'Argentina',
+      });
+      finalPdfBuffer = signResult.signedPdfBuffer;
+      signatureMethod = 'ac_external';
+      certFingerprint = activeCert.certFingerprint;
+      logger.info('[issuePrescription] PDF signed with PAdES', { cuir: artifacts.cuir });
+    }
+  } catch (signError) {
+    logger.warn('[issuePrescription] PAdES signing failed, using electronic_simple', signError);
+  }
+
+  // 7. Store PDF (signed if PAdES succeeded, unsigned otherwise)
   const pdfPath = `prescriptions/${artifacts.cuir}/${artifacts.pdfFilename}`;
   const { error: uploadError } = await supabase.storage
     .from('medical-documents')
-    .upload(pdfPath, artifacts.pdfBuffer, {
+    .upload(pdfPath, finalPdfBuffer, {
       contentType: 'application/pdf',
       upsert: true,
     });
@@ -180,6 +214,7 @@ export async function issuePrescription(
       vendor_id: `am-${Date.now()}`,
       qr_code_content: artifacts.qrContent,
       signed_pdf_url: signedPdfUrl,
+      signature_method: signatureMethod,
     })
     .eq('id', prescriptionId);
 
@@ -190,7 +225,7 @@ export async function issuePrescription(
 
   // 9. Audit events (batched)
   const { createHash } = await import('crypto');
-  const signatureHash = createHash('sha256').update(artifacts.pdfBuffer).digest('hex');
+  const signatureHash = createHash('sha256').update(finalPdfBuffer).digest('hex');
 
   await supabase.from('prescription_audit_events').insert([
     {
@@ -198,7 +233,12 @@ export async function issuePrescription(
       event_type: 'ACT_DIGITAL_SIGNATURE',
       user_id: userId,
       signature_hash: signatureHash,
-      metadata: { method: 'PAdES_SIMULATED', document_hash: signatureHash, version: '1.0' },
+      metadata: {
+        method: signatureMethod === 'ac_external' ? 'PAdES_SELF_SIGNED' : 'ELECTRONIC_SIMPLE',
+        document_hash: signatureHash,
+        cert_fingerprint: certFingerprint,
+        version: '2.0',
+      },
     },
     {
       prescription_id: prescriptionId,

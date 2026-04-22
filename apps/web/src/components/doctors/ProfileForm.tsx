@@ -7,6 +7,7 @@ import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
 import { MEDICAL_SPECIALTIES } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import { CheckCircle2, Loader2, ArrowLeft } from 'lucide-react'
+import { SignaturePad } from './SignaturePad'
 
 const ARGENTINE_PROVINCES = [
   'Buenos Aires', 'CABA', 'Catamarca', 'Chaco', 'Chubut', 'Córdoba',
@@ -40,6 +41,8 @@ export function ProfileForm() {
   const [refepsId, setRefepsId] = useState('')
   const [enrollmentEntity, setEnrollmentEntity] = useState('')
   const [professionalAddress, setProfessionalAddress] = useState('')
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(null)
+  const [stampUrl, setStampUrl] = useState<string | null>(null)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -62,6 +65,8 @@ export function ProfileForm() {
       if (d.refepsId) setRefepsId(d.refepsId)
       if (d.enrollmentEntity) setEnrollmentEntity(d.enrollmentEntity)
       if (d.professionalAddress) setProfessionalAddress(d.professionalAddress)
+      if (d.signatureImageUrl) setSignatureUrl(d.signatureImageUrl)
+      if (d.stampImageUrl) setStampUrl(d.stampImageUrl)
       
       const jur = d.enrollmentJurisdiction
       if (jur) {
@@ -345,6 +350,25 @@ export function ProfileForm() {
                   disabled={isSubmitting}
                 />
               </div>
+            </div>
+
+            {/* Firma y Sello */}
+            <div className="h-px w-full bg-am-surface-200 my-6" />
+            <h2 className="text-base font-semibold text-am-surface-800 mb-1">Firma y Sello</h2>
+            <p className="text-xs text-am-surface-500 mb-4">
+              Tu firma aparecerá en las recetas electrónicas que emitas.
+            </p>
+            <div className="space-y-4">
+              <SignaturePad
+                type="signature"
+                currentUrl={signatureUrl}
+                onSaved={setSignatureUrl}
+              />
+              <SignaturePad
+                type="stamp"
+                currentUrl={stampUrl}
+                onSaved={setStampUrl}
+              />
             </div>
 
             {error && (
