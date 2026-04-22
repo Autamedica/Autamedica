@@ -51,7 +51,7 @@ export function createDoctorAppointmentCommandAdapter(
       }
 
       if (!needsTelemedicineUrl) {
-        return data as Appointment
+        return data as unknown as Appointment
       }
 
       const telemedicineUrl = buildPatientTelemedicineEntryUrl(data.id)
@@ -70,7 +70,7 @@ export function createDoctorAppointmentCommandAdapter(
         throw updateError
       }
 
-      return updated as Appointment
+      return updated as unknown as Appointment
     },
 
     async update(id: string, patch: AppointmentUpdate): Promise<Appointment> {
@@ -90,7 +90,7 @@ export function createDoctorAppointmentCommandAdapter(
         throw error
       }
 
-      return data as Appointment
+      return data as unknown as Appointment
     },
 
     async cancel(id: string): Promise<Appointment | null> {
@@ -110,7 +110,7 @@ export function createDoctorAppointmentCommandAdapter(
         throw error
       }
 
-      return (data as Appointment | null) ?? null
+      return (data as unknown as Appointment | null) ?? null
     },
   }
 }

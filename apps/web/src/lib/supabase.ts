@@ -12,7 +12,7 @@ import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import type { Database } from '@autamedica/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AstroCookies, AstroCookieSetOptions } from 'astro';
-import { resolvePublicSupabaseEnv } from './runtime-env';
+import { resolvePublicSupabaseEnv, resolveServiceRoleKey } from './runtime-env';
 
 export type { CookieMethodsServer };
 
@@ -80,9 +80,7 @@ export function createAstroAdminClient(
   runtimeEnv?: Record<string, unknown> | null,
 ): SupabaseClient<Database> {
   const { publicSupabaseUrl } = resolvePublicSupabaseEnv(runtimeEnv);
-  // Obfuscated string to prevent CI pattern scanner from triggering on 'service_role'
-  const SR_KEY = ['SUPABASE', 'SERVICE', 'ROLE', 'KEY'].join('_');
-  const serviceRoleKey = (runtimeEnv?.[SR_KEY] as string) || import.meta.env[SR_KEY];
+  const serviceRoleKey = resolveServiceRoleKey(runtimeEnv);
 
   if (!publicSupabaseUrl || !serviceRoleKey) {
     throw new Error(

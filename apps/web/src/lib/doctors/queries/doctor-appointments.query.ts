@@ -20,5 +20,5 @@ export async function listDoctorAppointmentsView(
     throw error
   }
 
-  return (data ?? []) as Appointment[]
+  return (data ?? []) as unknown as Appointment[]
 }

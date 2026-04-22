@@ -10,14 +10,16 @@ import type { PatientWithProfile, UUID } from '@autamedica/types'
 import { GetRelevantPatientsUseCase } from '../usecases/GetRelevantPatientsUseCase'
 import { GetAllRelevantPatientsUseCase } from '../usecases/GetAllRelevantPatientsUseCase'
 
+type RuntimeEnv = Record<string, unknown> | null | undefined
+
 export const patientBackendService = {
   /**
    * Resolve all active patients in the platform using relevance use case.
    * Uses admin client -- auth is validated at the API route level.
    */
-  async getActivePatients(): Promise<PatientWithProfile[]> {
+  async getActivePatients(runtimeEnv?: RuntimeEnv): Promise<PatientWithProfile[]> {
     try {
-      const admin = createAstroAdminClient()
+      const admin = createAstroAdminClient(runtimeEnv)
       const useCase = new GetAllRelevantPatientsUseCase({
         patientRepo: createPatientRepositoryAdapter(admin),
         alertsRepo: createAlertsRepositoryAdapter(admin),
@@ -33,9 +35,12 @@ export const patientBackendService = {
    * Resolve patients assigned to a doctor using the relevance use case.
    * Uses admin client -- auth is validated at the API route level.
    */
-  async getAssignedPatients(doctorUserId: string): Promise<PatientWithProfile[]> {
+  async getAssignedPatients(
+    doctorUserId: string,
+    runtimeEnv?: RuntimeEnv,
+  ): Promise<PatientWithProfile[]> {
     try {
-      const admin = createAstroAdminClient()
+      const admin = createAstroAdminClient(runtimeEnv)
       const useCase = new GetRelevantPatientsUseCase({
         patientRepo: createPatientRepositoryAdapter(admin),
         alertsRepo: createAlertsRepositoryAdapter(admin),
@@ -47,9 +52,12 @@ export const patientBackendService = {
     }
   },
 
-  async getPatientsByCompany(companyId: string): Promise<PatientWithProfile[]> {
+  async getPatientsByCompany(
+    companyId: string,
+    runtimeEnv?: RuntimeEnv,
+  ): Promise<PatientWithProfile[]> {
     try {
-      const admin = createAstroAdminClient()
+      const admin = createAstroAdminClient(runtimeEnv)
       return await patientsRepo.findByCompany(companyId, admin)
     } catch (error) {
       logger.error('[patientBackendService] getPatientsByCompany failed', { companyId, error })
@@ -57,9 +65,12 @@ export const patientBackendService = {
     }
   },
 
-  async getPatientById(id: UUID): Promise<PatientWithProfile | null> {
+  async getPatientById(
+    id: UUID,
+    runtimeEnv?: RuntimeEnv,
+  ): Promise<PatientWithProfile | null> {
     try {
-      const admin = createAstroAdminClient()
+      const admin = createAstroAdminClient(runtimeEnv)
       const patient = await patientsRepo.findById(id, admin)
       return patient ? { ...patient, ...(patient.profile || {}) } : null
     } catch (error) {
