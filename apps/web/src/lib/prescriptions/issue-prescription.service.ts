@@ -8,8 +8,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@autamedica/shared';
 import { generatePrescriptionPdf } from './pdf-prescription.service';
-// Note: pdf-signer and certificate services are dynamically imported
-// to avoid bundling node-forge into the Cloudflare Workers runtime.
+// Certificate queries are Supabase-only (no node-forge dependency)
+import { getActiveCertificate, loadSigningCredentials } from '../doctors/services/certificate-query.service';
 
 interface ClinicalItem {
   generic_name?: string;
@@ -161,8 +161,6 @@ export async function issuePrescription(
   let certFingerprint: string | null = null;
 
   try {
-    // Dynamic imports to avoid bundling node-forge into Cloudflare Workers
-    const { getActiveCertificate, loadSigningCredentials } = await import('../doctors/services/certificate.service');
     const activeCert = await getActiveCertificate(supabase, doctor.id);
     if (activeCert) {
       const { p12Buffer, password } = await loadSigningCredentials(
@@ -170,6 +168,7 @@ export async function issuePrescription(
         doctor.id,
         activeCert.certFingerprint,
       );
+      // Dynamic import: @signpdf depends on Node.js APIs not available in Cloudflare Workers
       const { signPdfWithP12 } = await import('./pdf-signer.service');
       const signResult = await signPdfWithP12({
         pdfBuffer: artifacts.pdfBuffer,
