@@ -211,7 +211,7 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
         p_appointment_id: appointmentId,
       } as {
         p_doctor_id: string
-        p_patient_id: string
+        p_patient_id: string | null
         p_appointment_id: string
       })
 

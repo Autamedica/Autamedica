@@ -3,7 +3,7 @@ import type { Call, CallStatus } from '@autamedica/telemedicine'
 export interface StartCallAppointmentRecord {
   id: string
   doctor_id: string
-  patient_id: string
+  patient_id: string | null
   type: string | null
   status: string
   start_time: string | null

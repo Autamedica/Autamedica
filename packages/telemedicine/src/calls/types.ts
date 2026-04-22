@@ -13,7 +13,7 @@ export interface Call {
   id: string
   room_id: string
   doctor_id: string
-  patient_id: string
+  patient_id: string | null
   status: CallStatus
   created_at: string
   accepted_at?: string
