@@ -3,7 +3,7 @@ import type { Json } from '@autamedica/types'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import { jsonOk, badRequest, internalError, conflict } from '@/lib/api-helpers'
-import { withAuth, isAuthed } from '@/lib/api-auth'
+import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth'
 import { doctorProfileService } from '@/lib/doctors/services/doctor-profile.service'
 
 function optionalString(body: Record<string, unknown>, key: string): string | null | undefined {
@@ -37,7 +37,7 @@ function isConflictError(err: unknown): boolean {
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    const auth = await withAuth(request)
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals)
     if (!isAuthed(auth)) return auth
     const { user } = auth
 
