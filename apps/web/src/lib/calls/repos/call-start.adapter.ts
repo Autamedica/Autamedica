@@ -244,6 +244,12 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
       if (!call) {
         throw new Error('create_call returned empty call payload')
       }
+
+      // Defensive backfill
+      if (appointmentId && !call.appointment_id) {
+        call.appointment_id = appointmentId
+      }
+
       return call
     }
 
@@ -254,6 +260,11 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
     const call = withNullAppointmentId(data as LegacyCallRow)
     if (!call) {
       throw new Error('create_call returned empty call payload')
+    }
+
+    // Defensive backfill
+    if (appointmentId && !call.appointment_id) {
+      call.appointment_id = appointmentId
     }
 
     return call
