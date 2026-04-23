@@ -28,7 +28,7 @@ const LABELS = {
 export function SignaturePad({ type, currentUrl, onSaved }: SignaturePadProps) {
   const sigCanvasRef = useRef<SignatureCanvas | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const [mode, setMode] = useState<'draw' | 'upload'>('draw')
+  const [mode, setMode] = useState<'draw' | 'upload'>(type === 'stamp' ? 'upload' : 'draw')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl ?? null)
   const [error, setError] = useState<string | null>(null)
@@ -67,7 +67,7 @@ export function SignaturePad({ type, currentUrl, onSaved }: SignaturePadProps) {
   }, [])
 
   const getImageDataUrl = useCallback((): string | null => {
-    if (mode === 'upload' && previewUrl) {
+    if ((mode === 'upload' || type === 'stamp') && previewUrl) {
       return previewUrl
     }
 
@@ -76,7 +76,7 @@ export function SignaturePad({ type, currentUrl, onSaved }: SignaturePadProps) {
     }
 
     return null
-  }, [mode, previewUrl])
+  }, [mode, previewUrl, type])
 
   const handleSave = useCallback(async () => {
     const dataUrl = getImageDataUrl()
