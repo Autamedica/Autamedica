@@ -2,10 +2,10 @@ import type { Appointment } from '@autamedica/types'
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
-import { Calendar, Clock, Video, User, Plus, Filter, ChevronRight, Stethoscope, FileText, Pill, AlertTriangle } from 'lucide-react'
+import { Calendar, Clock, Video, User, Plus, Filter, ChevronRight, Stethoscope, Pill, AlertTriangle } from 'lucide-react'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
-import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
+
 import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.service'
 import { getCallWindowStatus } from '@/lib/calls/lib/call-error-messages'
 import { CreateAppointmentModal } from './CreateAppointmentModal'
@@ -32,33 +32,15 @@ const STATUS_COLORS: Record<string, string> = {
   no_show: 'bg-amber-100 text-amber-700',
 }
 
-function getGreeting(): string {
-  const h = new Date().getHours()
-  if (h < 12) return 'Buenos días'
-  if (h < 19) return 'Buenas tardes'
-  return 'Buenas noches'
-}
 
-function formatDateHeader(): string {
-  return new Date().toLocaleDateString('es-AR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  })
-}
 
-function getDoctorFirstName(
-  doctor: ReturnType<typeof useCurrentDoctor>['doctor'],
-  user: ReturnType<typeof useAuthenticatedUser>['user'],
-): string {
-  const profile = doctor?.profile as { first_name?: string | null; full_name?: string | null } | undefined
-  const name = profile?.first_name || profile?.full_name?.split(' ')[0] || user?.profile?.firstName || 'Doctor/a'
-  return name
-}
+
+
+
 
 export function AppointmentsPanel() {
   const { user } = useAuthenticatedUser()
-  const { doctor } = useCurrentDoctor(user?.id)
+  
   const doctorId = user?.doctorProfileId
   const {
     appointments,
@@ -120,32 +102,10 @@ export function AppointmentsPanel() {
   }, [appointments])
 
   // Next appointment after the current one
-  const nextTurno = useMemo(() => {
-    if (!currentTurno) return null
-    const now = new Date()
-    const todayStr = now.toISOString().slice(0, 10)
-    return appointments
-      .filter(a =>
-        a.start_time.startsWith(todayStr) &&
-        a.id !== currentTurno.id &&
-        a.status !== 'cancelled' &&
-        a.status !== 'completed' &&
-        new Date(a.start_time) > new Date(currentTurno.start_time)
-      )
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0] ?? null
-  }, [appointments, currentTurno])
+  
 
   // Today stats
-  const todayStats = useMemo(() => {
-    const todayStr = new Date().toISOString().slice(0, 10)
-    const today = appointments.filter(a => a.start_time.startsWith(todayStr))
-    return {
-      scheduled: today.filter(a => a.status === 'scheduled' || a.status === 'confirmed').length,
-      completed: today.filter(a => a.status === 'completed').length,
-      pending: today.filter(a => a.status !== 'completed' && a.status !== 'cancelled').length,
-      total: today.length,
-    }
-  }, [appointments])
+  
 
   const handleSaveAppointment = async (values: DoctorAppointmentFormValues) => {
     if (editingAppointment) {
@@ -165,88 +125,148 @@ export function AppointmentsPanel() {
     return patientNames[appointment.id] ?? (appointment.patient_id ? 'Cargando...' : 'Invitado Externo')
   }
 
-  const doctorFirstName = getDoctorFirstName(doctor, user)
+  
   const windowStatus = currentTurno ? getCallWindowStatus(currentTurno) : null
 
   return (
     <div className="flex h-full flex-col lg:flex-row gap-0 overflow-hidden bg-white -m-6 -mt-0">
       {/* ── Main Content ── */}
       <div className="flex-1 min-w-0 overflow-y-auto">
-        {/* Greeting */}
-        <div className="px-6 pt-6 pb-2">
-          <h1 className="text-2xl font-light tracking-tight text-neutral-900 md:text-3xl">
-            {getGreeting()}, Dr. {doctorFirstName} 👋
-          </h1>
-          <p className="mt-1 text-sm text-neutral-400 capitalize">{formatDateHeader()}</p>
-        </div>
 
-        {/* Hero: TURNO ACTUAL */}
+        {/* Hero: TURNO ACTUAL (Redesign Premium) */}
         {currentTurno && (
           <div className="px-6 pt-4">
-            <div className="rounded-2xl border border-neutral-200/60 bg-white p-5 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">Turno actual</p>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                {/* Time */}
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-neutral-500">
-                    <Clock className="h-5 w-5" strokeWidth={1.5} />
+            <div className="rounded-[28px] border border-neutral-100 bg-white p-8 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-neutral-400">Turno actual</h2>
+                <button className="text-neutral-300 hover:text-neutral-500 transition-colors">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="18" r="1.5"/></svg>
+                </button>
+              </div>
+              
+              <div className="flex flex-col lg:flex-row lg:items-center gap-10">
+                {/* Left: Time Section */}
+                <div className="flex items-center gap-6 shrink-0">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-sky-50 text-sky-600">
+                    <Clock className="h-10 w-10" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="text-xl font-bold tracking-tight text-neutral-900">
+                    <p className="text-3xl font-bold tracking-tight text-neutral-900">
                       {new Date(currentTurno.start_time).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
-                    <p className="text-xs text-neutral-400">
+                    <p className="text-sm font-medium text-neutral-400 mt-1">
                       Hoy, {new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
                     </p>
                   </div>
                 </div>
 
-                {/* Divider */}
-                <div className="hidden sm:block h-14 w-px bg-neutral-100" />
+                {/* Vertical Divider (Desktop) */}
+                <div className="hidden lg:block h-20 w-px bg-neutral-100" />
 
-                {/* Patient info */}
+                {/* Center: Patient Section */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-[10px] font-bold uppercase text-neutral-400">Paciente</p>
-                    <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[currentTurno.status ?? 'scheduled']}`}>
-                      {STATUS_LABELS[currentTurno.status ?? 'scheduled']}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-bold tracking-tight text-neutral-900 truncate capitalize">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-2">Paciente</p>
+                  <h3 className="text-2xl font-bold tracking-tight text-neutral-900 capitalize mb-1.5">
                     {getAppointmentPatientName(currentTurno)}
                   </h3>
-                  {currentTurno.notes && !currentTurno.notes.includes('[INVITADO:') && (
-                    <p className="mt-1 text-xs text-neutral-500 truncate">
-                      <span className="inline-block rounded bg-am-doctor-50 px-1.5 py-0.5 text-am-doctor-700 font-medium text-[10px]">
-                        Motivo: {currentTurno.notes.slice(0, 60)}
-                      </span>
-                    </p>
-                  )}
+                  <p className="text-sm text-neutral-400 font-medium mb-4">
+                    {patientNames[currentTurno.id] ? 'Paciente registrado' : 'Cargando detalles...'}
+                  </p>
+                  <div className="flex">
+                    <span className="inline-flex items-center rounded-lg bg-sky-50/70 px-3 py-1.5 text-sky-800 font-bold text-[11px] border border-sky-100">
+                      Motivo: {currentTurno.notes?.replace(/\[INVITADO:[^\]]+\]/, '').trim() || 'Consulta programada'}
+                    </span>
+                  </div>
                 </div>
 
-                {/* CTA */}
-                <div className="shrink-0">
-                  {currentTurno.type === 'telemedicine' && windowStatus?.isOpen ? (
-                    <StartCallButton
-                      doctorId={currentTurno.doctor_id ?? ''}
-                      patientId={currentTurno.patient_id ?? ''}
-                      appointmentId={currentTurno.id}
-                      patientName={getAppointmentPatientName(currentTurno)}
-                      disabled={false}
-                    />
-                  ) : (
-                    <button
-                      onClick={() => setSelectedAppointmentId(currentTurno.id)}
-                      className="flex items-center gap-2 rounded-xl bg-am-doctor-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-am-doctor-700 active:scale-[0.98]"
-                    >
-                      <Stethoscope className="h-4 w-4" />
-                      Ver consulta
-                    </button>
-                  )}
-                  <p className="mt-1.5 text-center text-[10px] text-neutral-400">
-                    {currentTurno.type === 'telemedicine' ? 'Videoconsulta' : 'Presencial'}
-                  </p>
+                {/* Right: Status & Actions */}
+                <div className="shrink-0 flex flex-col items-center lg:items-end gap-5">
+                  <span className={`rounded-lg px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest ${STATUS_COLORS[currentTurno.status ?? 'scheduled'].replace('100', '50')}`}>
+                    {STATUS_LABELS[currentTurno.status ?? 'scheduled']}
+                  </span>
+                  
+                  <div className="flex flex-col items-center">
+                    {currentTurno.type === 'telemedicine' && windowStatus?.isOpen ? (
+                      <StartCallButton
+                        doctorId={currentTurno.doctor_id ?? ''}
+                        patientId={currentTurno.patient_id ?? ''}
+                        appointmentId={currentTurno.id}
+                        patientName={getAppointmentPatientName(currentTurno)}
+                        disabled={false}
+                      />
+                    ) : (
+                      <button
+                        onClick={() => setSelectedAppointmentId(currentTurno.id)}
+                        className="flex items-center gap-3 rounded-2xl bg-[#137a8c] px-8 py-4 text-sm font-bold text-white shadow-lg shadow-teal-900/10 transition hover:bg-[#0e6378] active:scale-[0.98] uppercase tracking-wider"
+                      >
+                        <Video className="h-5 w-5" />
+                        Iniciar consulta
+                      </button>
+                    )}
+                    <p className="mt-3 text-[11px] font-bold uppercase tracking-widest text-neutral-300">
+                      {currentTurno.type === 'telemedicine' ? 'Videoconsulta' : 'Consulta Presencial'}
+                    </p>
+                  </div>
                 </div>
+              </div>
+
+              {/* Clinical Context Integrated */}
+              <div className="mt-10 pt-8 border-t border-neutral-50">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-neutral-400 mb-6">Contexto del paciente</p>
+                {contextLoading ? (
+                  <div className="flex items-center gap-3 py-4 justify-center bg-neutral-50/50 rounded-2xl">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-am-doctor-500 border-t-transparent" />
+                    <span className="text-xs font-medium text-neutral-400">Cargando contexto clínico...</span>
+                  </div>
+                ) : (
+                  <div className="grid gap-8 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-am-doctor-600 flex items-center gap-2">
+                        <Stethoscope className="h-3 w-3" /> Motivo de consulta
+                      </p>
+                      <p className="text-sm font-semibold text-neutral-700 leading-relaxed">
+                        {patientContext?.chiefComplaint
+                          ?? currentTurno.notes?.replace(/\\[INVITADO:[^\\]]+\\]/, '').trim()
+                          || 'No especificado'}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-am-doctor-600 flex items-center gap-2">
+                        <AlertTriangle className="h-3 w-3" /> Antecedentes relevantes
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {patientContext?.chronicDiseases && patientContext.chronicDiseases.length > 0 ? (
+                          patientContext.chronicDiseases.map((d, i) => (
+                            <span key={i} className="rounded-lg bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 capitalize border border-amber-100">{d}</span>
+                          ))
+                        ) : (
+                          <span className="text-sm font-semibold text-neutral-400 italic">
+                            {patientContext?.hasAnamnesis === false ? 'Sin anamnesis' : 'Sin datos precargados'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-am-doctor-600 flex items-center gap-2">
+                        <Pill className="h-3 w-3" /> Medicación actual
+                      </p>
+                      <p className={`text-sm font-semibold leading-relaxed ${patientContext?.medications ? 'text-neutral-700' : 'text-neutral-400 italic'}`}>
+                        {patientContext?.medications ?? (patientContext?.hasAnamnesis === false ? 'Sin anamnesis' : 'Sin datos precargados')}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {currentTurno.patient_id && (
+                  <div className="mt-8 flex justify-end">
+                    <a
+                      href={`/doctors/patients/${currentTurno.patient_id}?tab=anamnesis`}
+                      className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-neutral-400 hover:text-am-doctor-600 transition-colors"
+                    >
+                      Ver anamnesis completa <ChevronRight className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           </div>
