@@ -11,6 +11,7 @@ type Db = SupabaseClient<Database>
 export interface DoctorSummary {
   id: string
   specialty: string | null
+  consultation_fee: number | null
   first_name: string | null
   last_name: string | null
   label: string
@@ -19,6 +20,7 @@ export interface DoctorSummary {
 interface DoctorRow {
   id: string
   specialty: string | null
+  consultation_fee: number | null
   profile: {
     first_name: string | null
     last_name: string | null
@@ -30,7 +32,7 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
     async listActive(): Promise<DoctorSummary[]> {
       const { data, error } = await supabase
         .from('doctors')
-        .select('id, specialty, profile:profiles!doctors_user_id_fkey(first_name, last_name)')
+        .select('id, specialty, consultation_fee, profile:profiles!doctors_user_id_fkey(first_name, last_name)')
         .eq('active', true)
 
       if (error) {
@@ -46,6 +48,7 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
         return {
           id: row.id,
           specialty: row.specialty,
+          consultation_fee: row.consultation_fee ?? null,
           first_name: row.profile?.first_name ?? null,
           last_name: row.profile?.last_name ?? null,
           label: fullName ? `Dr. ${fullName}` : 'Profesional disponible',

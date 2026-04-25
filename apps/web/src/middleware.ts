@@ -7,7 +7,6 @@
  */
 
 import { logger } from '@autamedica/shared';
-import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import type { AstroCookieSetOptions } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
 import { detectLocale, LOCALE_COOKIE } from './i18n/index';
@@ -15,8 +14,10 @@ import { isProduction, validateRedirectUrl } from './lib/auth-utils';
 import { initServerSentry } from './lib/observability/sentry';
 import { checkRateLimit } from './lib/rate-limit';
 import { primeRuntimeEnv, resolvePublicSupabaseEnv } from './lib/runtime-env';
+import { createSupabaseCookieClient, type CookieMethodsServer } from './lib/supabase';
 import './lib/patients/services/clinical-orchestrator.service';
 import './lib/notifications/notification-triggers';
+import './lib/payments/triggers';
 
 // Rutas que requieren autenticación
 const PROTECTED_ROUTES = [
@@ -536,11 +537,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
     };
 
-    const supabase = createServerClient(
-      publicSupabaseUrl,
-      publicSupabaseAnonKey,
-      { cookies: cookieMethods }
-    );
+    const supabase = createSupabaseCookieClient(publicSupabaseUrl, publicSupabaseAnonKey, cookieMethods);
 
     // Server-side verification: getUser() validates JWT against Supabase server
     // (unlike getSession() which only reads local cookie data without verification)

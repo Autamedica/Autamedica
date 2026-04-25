@@ -13,6 +13,7 @@ node_modules
 .env.production.local
 .env.production
 .env.cloudflare
+**/.env.bak-pre-hook
 
 # Testing
 coverage
@@ -175,3 +176,8 @@ ecucondor-supervisor.sh
 ECUCONDORULTIMATE/
 storybook-static/
 dev-server.log
+
+# Env backups (should never be committed)
+*.env.bak*
+.env.*.bak
+

@@ -35,26 +35,27 @@ export const GET: APIRoute = async ({ request, locals }) => {
   }
 
   try {
+    const runtimeEnv = locals.runtime?.env
     const url = new URL(request.url)
     const patientId = url.searchParams.get('id')
     const companyId = url.searchParams.get('companyId')?.trim()
 
     if (patientId) {
-      const data = await patientBackendService.getPatientById(patientId as UUID)
+      const data = await patientBackendService.getPatientById(patientId as UUID, runtimeEnv)
       return jsonOk(data)
     }
 
     if (role === 'doctor') {
-      const data = await patientBackendService.getAssignedPatients(auth.user.id)
+      const data = await patientBackendService.getAssignedPatients(auth.user.id, runtimeEnv)
       return jsonOk(data)
     }
 
     if (companyId) {
-      const data = await patientBackendService.getPatientsByCompany(companyId)
+      const data = await patientBackendService.getPatientsByCompany(companyId, runtimeEnv)
       return jsonOk(data)
     }
 
-    const data = await patientBackendService.getActivePatients()
+    const data = await patientBackendService.getActivePatients(runtimeEnv)
     return jsonOk(data)
   } catch (err) {
     logger.error('[api/doctors/patients] GET error:', err)

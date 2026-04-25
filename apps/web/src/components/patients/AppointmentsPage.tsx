@@ -46,6 +46,15 @@ function StatCard({
   )
 }
 
+function formatPrice(amount: number | null | undefined): string {
+  if (!amount || amount <= 0) return 'Valor a confirmar'
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
 export default function AppointmentsPage({
   mode = 'all',
   focusAppointmentId = null,
@@ -56,11 +65,14 @@ export default function AppointmentsPage({
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [reviewTarget, setReviewTarget] = useState<AppointmentWithDoctor | null>(null)
   const [_patientProfileId, setPatientProfileId] = useState<string | null>(null)
+  const [paymentMessage, setPaymentMessage] = useState<string | null>(null)
+  const [payingAppointmentId, setPayingAppointmentId] = useState<string | null>(null)
   const {
     appointments,
     loading,
     error,
     createAppointment,
+    createAppointmentPayment,
     refreshAppointments,
   } = useAppointments()
   const {
@@ -99,6 +111,31 @@ export default function AppointmentsPage({
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const params = new URLSearchParams(window.location.search)
+    const paymentStatus = params.get('payment')
+
+    if (!paymentStatus) return
+
+    if (paymentStatus === 'success') {
+      setPaymentMessage('Pago aprobado. Tu consulta quedó confirmada.')
+      void refreshAppointments()
+    } else if (paymentStatus === 'pending') {
+      setPaymentMessage('Tu pago quedó pendiente. Apenas se acredite, la consulta se confirma.')
+      void refreshAppointments()
+    } else if (paymentStatus === 'failure') {
+      setPaymentMessage('No se pudo completar el pago. Podés reintentarlo desde tu turno.')
+    }
+
+    params.delete('payment')
+    const nextUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname
+    window.history.replaceState({}, '', nextUrl)
+  }, [refreshAppointments])
 
   const isTelemedicineView = mode === 'telemedicine'
 
@@ -154,9 +191,36 @@ export default function AppointmentsPage({
     )[0] ?? null
   }, [focusAppointmentId, isTelemedicineView, visibleAppointments])
 
+  const pendingPaymentTelemedicineAppointment = useMemo(() => {
+    if (!isTelemedicineView) {
+      return null
+    }
+
+    const pendingAppointments = visibleAppointments.filter(
+      (appointment) => appointment.status === 'payment_pending',
+    )
+
+    if (pendingAppointments.length === 0) {
+      return null
+    }
+
+    if (focusAppointmentId) {
+      const focused = pendingAppointments.find((appointment) => appointment.id === focusAppointmentId)
+      if (focused) {
+        return focused
+      }
+    }
+
+    return [...pendingAppointments].sort(
+      (left, right) =>
+        new Date(getAppointmentStartIso(left)).getTime() -
+        new Date(getAppointmentStartIso(right)).getTime(),
+    )[0] ?? null
+  }, [focusAppointmentId, isTelemedicineView, visibleAppointments])
+
   const stats = useMemo(() => {
     const upcoming = visibleAppointments.filter(
-      (apt) => apt.status === 'scheduled' || apt.status === 'confirmed'
+      (apt) => apt.status === 'payment_pending' || apt.status === 'scheduled' || apt.status === 'confirmed'
     ).length
     const completed = visibleAppointments.filter((apt) => apt.status === 'completed').length
     const cancelled = visibleAppointments.filter((apt) => apt.status === 'cancelled').length
@@ -181,6 +245,27 @@ export default function AppointmentsPage({
     if (newAppointment) {
       setIsModalOpen(false)
       await refreshAppointments()
+      const payment = await createAppointmentPayment(newAppointment.id)
+      if (payment?.checkoutUrl) {
+        window.location.href = payment.checkoutUrl
+        return
+      }
+      setPaymentMessage('El turno fue creado, pero no se pudo abrir el checkout. Reintentá desde "Pagar ahora".')
+    }
+  }
+
+  const handlePayAppointment = async (appointment: AppointmentWithDoctor) => {
+    setPayingAppointmentId(appointment.id)
+    setPaymentMessage(null)
+    try {
+      const payment = await createAppointmentPayment(appointment.id)
+      if (payment?.checkoutUrl) {
+        window.location.href = payment.checkoutUrl
+        return
+      }
+      setPaymentMessage('No se pudo iniciar el pago de la consulta.')
+    } finally {
+      setPayingAppointmentId(null)
     }
   }
 
@@ -215,6 +300,11 @@ export default function AppointmentsPage({
       </section>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-12 -mt-8 pb-32">
+        {paymentMessage && (
+          <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+            {paymentMessage}
+          </section>
+        )}
 
         {isTelemedicineView && (
           <section className="mb-8 overflow-hidden rounded-[28px] border border-sky-100 bg-white p-6 text-stone-950 shadow-xl shadow-sky-500/5">
@@ -247,6 +337,22 @@ export default function AppointmentsPage({
                   {joiningAppointmentId === featuredTelemedicineAppointment.id
                     ? 'Abriendo sala...'
                     : 'Entrar a la videollamada'}
+                </button>
+              ) : pendingPaymentTelemedicineAppointment ? (
+                <button
+                  type="button"
+                  onClick={() => void handlePayAppointment(pendingPaymentTelemedicineAppointment)}
+                  disabled={payingAppointmentId === pendingPaymentTelemedicineAppointment.id}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-wait disabled:opacity-70"
+                >
+                  {payingAppointmentId === pendingPaymentTelemedicineAppointment.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Calendar className="h-4 w-4" />
+                  )}
+                  {payingAppointmentId === pendingPaymentTelemedicineAppointment.id
+                    ? 'Abriendo pago...'
+                    : 'Pagar y confirmar'}
                 </button>
               ) : (
                 <button
@@ -287,6 +393,41 @@ export default function AppointmentsPage({
                       hour: '2-digit',
                       minute: '2-digit',
                     }).format(new Date(getAppointmentStartIso(featuredTelemedicineAppointment)))}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Valor</p>
+                  <p className="mt-1 text-sm font-semibold text-stone-950">
+                    {formatPrice(featuredTelemedicineAppointment.doctor?.consultation_fee)}
+                  </p>
+                </div>
+              </div>
+            ) : pendingPaymentTelemedicineAppointment ? (
+              <div className="mt-6 grid gap-4 rounded-2xl border border-amber-200 bg-amber-50/70 p-5 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Profesional</p>
+                  <p className="mt-1 text-sm font-semibold text-stone-950">
+                    {pendingPaymentTelemedicineAppointment.doctor
+                      ? `Dr. ${pendingPaymentTelemedicineAppointment.doctor.first_name ?? ''} ${pendingPaymentTelemedicineAppointment.doctor.last_name ?? ''}`.trim()
+                      : 'Profesional asignado'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Estado</p>
+                  <p className="mt-1 text-sm font-semibold text-amber-800">
+                    Pago pendiente
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Próximo paso</p>
+                  <p className="mt-1 text-sm font-semibold text-stone-950">
+                    Completá el pago para habilitar la sala
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Valor</p>
+                  <p className="mt-1 text-sm font-semibold text-stone-950">
+                    {formatPrice(pendingPaymentTelemedicineAppointment.doctor?.consultation_fee)}
                   </p>
                 </div>
               </div>
@@ -364,6 +505,8 @@ export default function AppointmentsPage({
             reviewedAppointmentIds={reviewedAppointmentIds}
             onReviewClick={(apt) => setReviewTarget(apt)}
             onJoinTelemedicine={(appointment) => void handleJoinTelemedicine(appointment)}
+            onPayAppointment={(appointment) => void handlePayAppointment(appointment)}
+            payingAppointmentId={payingAppointmentId}
             joiningAppointmentId={joiningAppointmentId}
           />
         )}

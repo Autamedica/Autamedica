@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1900" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333"/>
+    </marker>
+    <marker id="arrow-bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c00"/>
+    </marker>
+    <marker id="arrow-good" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0a7"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="40" text-anchor="middle" font-size="26" font-weight="700" fill="#111">Modelo correcto Cloudflare Calls SFU</text>
+  <text x="700" y="68" text-anchor="middle" font-size="14" fill="#555">Architecture + Join Flow + Pull-Track Race (AutaMedica)</text>
+
+  <!-- ============================== SECTION 1: ARCHITECTURE ============================== -->
+  <text x="40" y="110" font-size="18" font-weight="700" fill="#111">1. Arquitectura (3 planos)</text>
+
+  <!-- Data plane -->
+  <rect x="40" y="130" width="1320" height="320" fill="#fafafa" stroke="#ccc" rx="6"/>
+
+  <!-- Client A -->
+  <rect x="80" y="180" width="220" height="220" fill="#e3f2fd" stroke="#1565c0" stroke-width="2" rx="8"/>
+  <text x="190" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="#0d47a1">Client A (doctor)</text>
+  <text x="190" y="232" text-anchor="middle" font-size="11" fill="#333">RTCPeerConnection</text>
+  <text x="190" y="252" text-anchor="middle" font-size="11" fill="#333">Transceivers:</text>
+  <text x="190" y="272" text-anchor="middle" font-size="11" fill="#0a7"> • mid 0 sendonly audio</text>
+  <text x="190" y="290" text-anchor="middle" font-size="11" fill="#0a7"> • mid 1 sendonly video</text>
+  <text x="190" y="308" text-anchor="middle" font-size="11" fill="#0a7"> • mid 2 recvonly audio (pulled)</text>
+  <text x="190" y="326" text-anchor="middle" font-size="11" fill="#0a7"> • mid 3 recvonly video (pulled)</text>
+  <text x="190" y="358" text-anchor="middle" font-size="11" fill="#555">sessionId: CFsess_A</text>
+  <text x="190" y="378" text-anchor="middle" font-size="11" fill="#555">userId: doctor-uuid</text>
+
+  <!-- SFU Cloudflare -->
+  <rect x="580" y="180" width="240" height="220" fill="#fff3e0" stroke="#e65100" stroke-width="2" rx="8"/>
+  <text x="700" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="#bf360c">Cloudflare SFU (data)</text>
+  <text x="700" y="232" text-anchor="middle" font-size="11" fill="#333">Anycast edge</text>
+  <text x="700" y="252" text-anchor="middle" font-size="11" fill="#333">Sessions + Tracks (pub/sub)</text>
+  <text x="700" y="276" text-anchor="middle" font-size="11" fill="#333">NO "room" concept</text>
+  <text x="700" y="298" text-anchor="middle" font-size="11" fill="#555">tracks/new (push): responde ANSWER</text>
+  <text x="700" y="316" text-anchor="middle" font-size="11" fill="#555">tracks/new (pull): responde OFFER</text>
+  <text x="700" y="334" text-anchor="middle" font-size="11" fill="#555">renegotiate: cliente envía ANSWER</text>
+  <text x="700" y="370" text-anchor="middle" font-size="11" fill="#bf360c">Forwarding entre datacenters</text>
+  <text x="700" y="386" text-anchor="middle" font-size="11" fill="#bf360c">automático (no centralizado)</text>
+
+  <!-- Client B -->
+  <rect x="1100" y="180" width="220" height="220" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2" rx="8"/>
+  <text x="1210" y="208" text-anchor="middle" font-size="14" font-weight="700" fill="#1b5e20">Client B (paciente)</text>
+  <text x="1210" y="232" text-anchor="middle" font-size="11" fill="#333">RTCPeerConnection</text>
+  <text x="1210" y="252" text-anchor="middle" font-size="11" fill="#333">Transceivers (simétrico):</text>
+  <text x="1210" y="272" text-anchor="middle" font-size="11" fill="#0a7"> • mid 0 sendonly audio</text>
+  <text x="1210" y="290" text-anchor="middle" font-size="11" fill="#0a7"> • mid 1 sendonly video</text>
+  <text x="1210" y="308" text-anchor="middle" font-size="11" fill="#0a7"> • mid 2 recvonly audio (pulled)</text>
+  <text x="1210" y="326" text-anchor="middle" font-size="11" fill="#0a7"> • mid 3 recvonly video (pulled)</text>
+  <text x="1210" y="358" text-anchor="middle" font-size="11" fill="#555">sessionId: CFsess_B</text>
+  <text x="1210" y="378" text-anchor="middle" font-size="11" fill="#555">userId: patient-uuid</text>
+
+  <!-- Media flow arrows -->
+  <line x1="300" y1="290" x2="580" y2="290" stroke="#0a7" stroke-width="2" marker-end="url(#arrow-good)"/>
+  <text x="440" y="282" text-anchor="middle" font-size="10" fill="#0a7">A publica tracks (RTP)</text>
+  <line x1="580" y1="320" x2="300" y2="320" stroke="#0a7" stroke-width="2" marker-end="url(#arrow-good)"/>
+  <text x="440" y="338" text-anchor="middle" font-size="10" fill="#0a7">SFU forwardea tracks de B</text>
+
+  <line x1="1100" y1="290" x2="820" y2="290" stroke="#0a7" stroke-width="2" marker-end="url(#arrow-good)"/>
+  <text x="960" y="282" text-anchor="middle" font-size="10" fill="#0a7">B publica tracks (RTP)</text>
+  <line x1="820" y1="320" x2="1100" y2="320" stroke="#0a7" stroke-width="2" marker-end="url(#arrow-good)"/>
+  <text x="960" y="338" text-anchor="middle" font-size="10" fill="#0a7">SFU forwardea tracks de A</text>
+
+  <!-- Signaling plane (separate) -->
+  <text x="40" y="490" font-size="18" font-weight="700" fill="#111">2. Plano de control — Worker de signaling (lo implementás VOS, no Cloudflare)</text>
+
+  <rect x="40" y="510" width="1320" height="160" fill="#fffde7" stroke="#f9a825" stroke-width="2" rx="6"/>
+  <rect x="540" y="540" width="320" height="110" fill="#fff" stroke="#f9a825" stroke-width="2" rx="6"/>
+  <text x="700" y="568" text-anchor="middle" font-size="14" font-weight="700" fill="#f57f17">Signaling Worker (Durable Object)</text>
+  <text x="700" y="590" text-anchor="middle" font-size="11" fill="#333">room_id → [participants]</text>
+  <text x="700" y="608" text-anchor="middle" font-size="11" fill="#333">Relay: user-joined / user-left</text>
+  <text x="700" y="624" text-anchor="middle" font-size="11" fill="#333">Persistencia cf-session por user</text>
+  <text x="700" y="642" text-anchor="middle" font-size="11" fill="#c00">Replay al late joiner ← fix PR #323</text>
+
+  <line x1="300" y1="310" x2="540" y2="595" stroke="#f57f17" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="1100" y1="310" x2="860" y2="595" stroke="#f57f17" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="380" y="510" font-size="10" fill="#f57f17">WebSocket (cf-session announce)</text>
+  <text x="960" y="510" font-size="10" fill="#f57f17">WebSocket (cf-session announce)</text>
+
+  <!-- ============================== SECTION 3: SEQUENCE DIAGRAM JOIN FLOW ============================== -->
+  <text x="40" y="720" font-size="18" font-weight="700" fill="#111">3. Secuencia correcta — B entra a room donde A ya está publicando</text>
+
+  <!-- Lanes -->
+  <line x1="120" y1="760" x2="120" y2="1520" stroke="#bbb" stroke-width="1" stroke-dasharray="3 3"/>
+  <line x1="420" y1="760" x2="420" y2="1520" stroke="#bbb" stroke-width="1" stroke-dasharray="3 3"/>
+  <line x1="700" y1="760" x2="700" y2="1520" stroke="#bbb" stroke-width="1" stroke-dasharray="3 3"/>
+  <line x1="980" y1="760" x2="980" y2="1520" stroke="#bbb" stroke-width="1" stroke-dasharray="3 3"/>
+  <line x1="1280" y1="760" x2="1280" y2="1520" stroke="#bbb" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <rect x="60" y="745" width="120" height="34" fill="#e3f2fd" stroke="#1565c0" rx="4"/>
+  <text x="120" y="768" text-anchor="middle" font-size="12" font-weight="700">Client A</text>
+  <rect x="360" y="745" width="120" height="34" fill="#fffde7" stroke="#f9a825" rx="4"/>
+  <text x="420" y="768" text-anchor="middle" font-size="12" font-weight="700">Signaling Worker</text>
+  <rect x="640" y="745" width="120" height="34" fill="#fff3e0" stroke="#e65100" rx="4"/>
+  <text x="700" y="768" text-anchor="middle" font-size="12" font-weight="700">Cloudflare SFU</text>
+  <rect x="920" y="745" width="120" height="34" fill="#fffde7" stroke="#f9a825" rx="4"/>
+  <text x="980" y="768" text-anchor="middle" font-size="12" font-weight="700">Signaling Worker</text>
+  <rect x="1220" y="745" width="120" height="34" fill="#e8f5e9" stroke="#2e7d32" rx="4"/>
+  <text x="1280" y="768" text-anchor="middle" font-size="12" font-weight="700">Client B</text>
+
+  <!-- Step 1: A ya estaba adentro -->
+  <text x="120" y="810" text-anchor="middle" font-size="11" fill="#555">(A ya joineó antes)</text>
+  <text x="120" y="826" text-anchor="middle" font-size="11" fill="#555">cf-session enviado</text>
+
+  <!-- Step 2: B connect to SFU -->
+  <line x1="1280" y1="860" x2="700" y2="860" stroke="#0a7" stroke-width="1.5" marker-end="url(#arrow-good)"/>
+  <text x="990" y="854" text-anchor="middle" font-size="10" fill="#0a7">1. POST /sessions/new (Offer local con sendonly a0+v0)</text>
+  <line x1="700" y1="880" x2="1280" y2="880" stroke="#0a7" stroke-width="1.5" marker-end="url(#arrow-good)"/>
+  <text x="990" y="896" text-anchor="middle" font-size="10" fill="#0a7">2. sessionId=CFsess_B + Answer</text>
+
+  <!-- Step 3: B joins signaling room -->
+  <line x1="1280" y1="930" x2="980" y2="930" stroke="#f57f17" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="1130" y="924" text-anchor="middle" font-size="10" fill="#f57f17">3. WS join {userId:B}</text>
+
+  <!-- Step 4: Worker replies room-state + REPLAY cf-session -->
+  <line x1="980" y1="955" x2="1280" y2="955" stroke="#f57f17" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="1130" y="949" text-anchor="middle" font-size="10" fill="#f57f17">4. room-state {users:[A]}</text>
+  <line x1="980" y1="980" x2="1280" y2="980" stroke="#c00" stroke-width="2" marker-end="url(#arrow-bad)"/>
+  <text x="1130" y="974" text-anchor="middle" font-size="10" font-weight="700" fill="#c00">5. cf-session (A) ← REPLAY (fix #323)</text>
+
+  <!-- Step 5: Worker informs A -->
+  <line x1="980" y1="1010" x2="420" y2="1010" stroke="#f57f17" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="700" y="1004" text-anchor="middle" font-size="10" fill="#f57f17">6. relay user-joined(B)</text>
+  <line x1="420" y1="1030" x2="120" y2="1030" stroke="#f57f17" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="270" y="1024" text-anchor="middle" font-size="10" fill="#f57f17">7. user-joined(B)</text>
+
+  <!-- B calls subscribeToSession -->
+  <text x="1280" y="1065" text-anchor="middle" font-size="10" font-weight="700" fill="#c00">B ejecuta subscribeToSession(CFsess_A)</text>
+
+  <!-- CRITICAL: pre-handler INSTALL -->
+  <rect x="1200" y="1075" width="160" height="28" fill="#ffebee" stroke="#c00" rx="4"/>
+  <text x="1280" y="1094" text-anchor="middle" font-size="10" fill="#c00">preTrackHandler = (mid) =&gt; map[mid]=A</text>
+
+  <!-- Step 8: POST tracks/new pull -->
+  <line x1="1280" y1="1130" x2="700" y2="1130" stroke="#0a7" stroke-width="1.5" marker-end="url(#arrow-good)"/>
+  <text x="990" y="1124" text-anchor="middle" font-size="10" fill="#0a7">8. POST /sessions/CFsess_B/tracks/new</text>
+  <text x="990" y="1138" text-anchor="middle" font-size="10" fill="#0a7">body: [{location:remote, trackName:a0, sessionId:CFsess_A}, {...v0}]</text>
+  <line x1="700" y1="1165" x2="1280" y2="1165" stroke="#0a7" stroke-width="1.5" marker-end="url(#arrow-good)"/>
+  <text x="990" y="1159" text-anchor="middle" font-size="10" fill="#0a7">9. SDP OFFER (con m-lines nuevas — mids local TBD)</text>
+
+  <!-- Step 10: setRemoteDescription FIRES ontrack -->
+  <rect x="1200" y="1200" width="160" height="50" fill="#ffebee" stroke="#c00" rx="4"/>
+  <text x="1280" y="1218" text-anchor="middle" font-size="10" font-weight="700" fill="#c00">10. setRemoteDescription</text>
+  <text x="1280" y="1234" text-anchor="middle" font-size="10" fill="#c00">↓ dispara ontrack synchronously</text>
+  <text x="1280" y="1247" text-anchor="middle" font-size="10" fill="#c00">pre-handler corre PRIMERO</text>
+
+  <!-- Step 11: pre-handler maps mid->userId BEFORE app handler -->
+  <rect x="1200" y="1265" width="160" height="30" fill="#e8f5e9" stroke="#0a7" rx="4"/>
+  <text x="1280" y="1285" text-anchor="middle" font-size="10" font-weight="700" fill="#0a7">11. midToUserId[mid]=A ✓</text>
+
+  <!-- Step 12: app handler runs -->
+  <rect x="1200" y="1300" width="160" height="30" fill="#e8f5e9" stroke="#0a7" rx="4"/>
+  <text x="1280" y="1320" text-anchor="middle" font-size="10" font-weight="700" fill="#0a7">12. handleRemoteTrack → map[mid]=A ✓</text>
+
+  <!-- Step 13: createAnswer + setLocalDescription -->
+  <text x="1280" y="1356" text-anchor="middle" font-size="10" fill="#333">13. createAnswer + setLocalDescription</text>
+  <line x1="1280" y1="1370" x2="700" y2="1370" stroke="#0a7" stroke-width="1.5" marker-end="url(#arrow-good)"/>
+  <text x="990" y="1364" text-anchor="middle" font-size="10" fill="#0a7">14. PUT /sessions/CFsess_B/renegotiate (Answer)</text>
+
+  <!-- Step 14: Media flows -->
+  <line x1="700" y1="1410" x2="1280" y2="1410" stroke="#0a7" stroke-width="2.5" marker-end="url(#arrow-good)"/>
+  <text x="990" y="1404" text-anchor="middle" font-size="11" font-weight="700" fill="#0a7">15. RTP media flow: audio+video de A → B</text>
+  <line x1="700" y1="1440" x2="120" y2="1440" stroke="#0a7" stroke-width="2.5" marker-end="url(#arrow-good)"/>
+  <text x="410" y="1434" text-anchor="middle" font-size="11" font-weight="700" fill="#0a7">Simétrico: A hace subscribeToSession(CFsess_B) cuando recibe cf-session de B</text>
+
+  <!-- Step 15: remoteUsers updated -->
+  <rect x="1200" y="1475" width="160" height="30" fill="#e8f5e9" stroke="#0a7" rx="4"/>
+  <text x="1280" y="1495" text-anchor="middle" font-size="10" font-weight="700" fill="#0a7">&lt;video&gt; A: 2 tracks ✓ 640x360 ✓</text>
+
+  <!-- ============================== SECTION 4: BUGS FIXED ============================== -->
+  <text x="40" y="1560" font-size="18" font-weight="700" fill="#111">4. Los 5 bugs en cascada (resueltos en PRs #321 → #325)</text>
+
+  <g font-size="11" fill="#333">
+    <rect x="40" y="1580" width="1320" height="28" fill="#f5f5f5" stroke="#ddd"/>
+    <text x="50" y="1598" font-weight="700">PR</text>
+    <text x="120" y="1598" font-weight="700">Layer</text>
+    <text x="320" y="1598" font-weight="700">Bug</text>
+    <text x="780" y="1598" font-weight="700">Fix</text>
+
+    <rect x="40" y="1608" width="1320" height="28" fill="#fff" stroke="#eee"/>
+    <text x="50" y="1626" fill="#c00">#321</text>
+    <text x="120" y="1626">Client mapping</text>
+    <text x="320" y="1626">pendingRemoteUserIds[0] consumido en 1er track → 2do cae a fantasma</text>
+    <text x="780" y="1626">midToUserId map (pero response mid undefined)</text>
+
+    <rect x="40" y="1636" width="1320" height="28" fill="#fff" stroke="#eee"/>
+    <text x="50" y="1654" fill="#c00">#322</text>
+    <text x="120" y="1654">UI render</text>
+    <text x="320" y="1654">ActiveCallLayout[0] era zombie sin stream</text>
+    <text x="780" y="1654">participants.find(p=&gt;p.stream) prefer live</text>
+
+    <rect x="40" y="1664" width="1320" height="28" fill="#fff" stroke="#eee"/>
+    <text x="50" y="1682" fill="#c00">#323</text>
+    <text x="120" y="1682">Signaling</text>
+    <text x="320" y="1682">cf-session broadcast al vacío perdido; late joiner nunca sabe</text>
+    <text x="780" y="1682">DO storage persiste cfSessionId + replay en handleJoin</text>
+
+    <rect x="40" y="1692" width="1320" height="28" fill="#fff" stroke="#eee"/>
+    <text x="50" y="1710" fill="#c00">#324</text>
+    <text x="120" y="1710">Client mapping</text>
+    <text x="320" y="1710">Cloudflare response mid=undefined (push vs pull asymmetry)</text>
+    <text x="780" y="1710">Leer mids del PC post-renegotiate (diff priorMids)</text>
+
+    <rect x="40" y="1720" width="1320" height="28" fill="#ffebee" stroke="#c00"/>
+    <text x="50" y="1738" fill="#c00" font-weight="700">#325</text>
+    <text x="120" y="1738" font-weight="700">Timing</text>
+    <text x="320" y="1738" font-weight="700">ontrack dispara durante setRemoteDescription — map vacío → fallback → fantasma</text>
+    <text x="780" y="1738" font-weight="700">preTrackHandler en primer listener (runs ANTES de app onTrack)</text>
+  </g>
+
+  <!-- Footer -->
+  <text x="40" y="1795" font-size="11" fill="#666">Fuentes:</text>
+  <text x="40" y="1812" font-size="10" fill="#1565c0">developers.cloudflare.com/realtime/sfu/https-api/</text>
+  <text x="40" y="1828" font-size="10" fill="#1565c0">developers.cloudflare.com/realtime/sfu/sessions-tracks/</text>
+  <text x="40" y="1844" font-size="10" fill="#1565c0">github.com/cloudflare/orange (reference app)</text>
+  <text x="40" y="1860" font-size="10" fill="#1565c0">github.com/react-native-webrtc/react-native-webrtc/issues/1536 (race documentada)</text>
+  <text x="40" y="1876" font-size="10" fill="#1565c0">github.com/twilio/twilio-video.js/issues/931 (black track pattern)</text>
+</svg>

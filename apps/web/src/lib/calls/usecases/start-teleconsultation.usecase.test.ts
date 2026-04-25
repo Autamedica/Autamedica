@@ -28,6 +28,12 @@ vi.mock('@/lib/calls/lib/doctor-videoconsulta-credits', () => ({
   canDoctorStartVideoconsulta: vi.fn().mockResolvedValue({ allowed: true }),
 }))
 
+vi.mock('@/lib/payments/services/appointment-payments.service', () => ({
+  appointmentPaymentsService: {
+    hasApprovedPayment: vi.fn().mockResolvedValue(true),
+  },
+}))
+
 import { startTeleconsultationUseCase } from './start-teleconsultation.usecase'
 import type { ICallStartRepository } from '@/lib/calls/ports/call-start.port'
 import type { Call } from '@autamedica/telemedicine'
@@ -84,6 +90,58 @@ describe('startTeleconsultationUseCase — call.started emit', () => {
       roomId: 'room-1',
       doctorId: 'doctor-1',
       patientId: 'patient-1',
+    })
+  })
+
+  it('starts a guest appointment call without requiring an internal patient id', async () => {
+    const guestAppointment = {
+      id: 'appointment-guest-1',
+      doctor_id: 'doctor-1',
+      patient_id: null,
+      type: 'telemedicine',
+      status: 'confirmed',
+      start_time: '2026-04-17T10:00:00.000Z',
+      end_time: '2026-04-17T10:30:00.000Z',
+      duration_minutes: 30,
+    }
+    const guestCall: Call = {
+      id: 'call-guest-1',
+      room_id: 'room-guest-1',
+      doctor_id: 'doctor-1',
+      patient_id: null,
+      status: 'requested',
+      created_at: '2026-04-17T10:00:00.000Z',
+      appointment_id: 'appointment-guest-1',
+    }
+    const findPatientById = vi.fn()
+    const createCall = vi.fn().mockResolvedValue(guestCall)
+    const adminCallRepo = makeRepo({
+      findAppointmentById: vi.fn().mockResolvedValue(guestAppointment),
+      findPatientById,
+    })
+    const actorCallRepo = makeRepo({ createCall })
+
+    const result = await startTeleconsultationUseCase(
+      {
+        adminCallRepo,
+        actorCallRepo,
+        adminDb: {} as any,
+      },
+      {
+        doctorUserId: 'user-doctor-1',
+        patientId: null,
+        appointmentId: 'appointment-guest-1',
+      },
+    )
+
+    expect(result.kind).toBe('ok')
+    expect(findPatientById).not.toHaveBeenCalled()
+    expect(createCall).toHaveBeenCalledWith('doctor-1', null, 'appointment-guest-1')
+    expect(mockEmit).toHaveBeenCalledWith('call.started', {
+      callId: 'call-guest-1',
+      roomId: 'room-guest-1',
+      doctorId: 'doctor-1',
+      patientId: null,
     })
   })
 

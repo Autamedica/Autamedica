@@ -14,6 +14,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AstroCookies, AstroCookieSetOptions } from 'astro';
 import { resolvePublicSupabaseEnv, resolveServiceRoleKey } from './runtime-env';
 
+export type { CookieMethodsServer };
+
 function parseCookieHeader(request: Request): Array<{ name: string; value: string }> {
   const cookieHeader = request.headers.get('cookie') ?? '';
   if (!cookieHeader) return [];
@@ -24,6 +26,20 @@ function parseCookieHeader(request: Request): Array<{ name: string; value: strin
       value: eq >= 0 ? c.slice(eq + 1) : ''
     };
   });
+}
+
+const createServerClientWithCookieMethods = createServerClient as unknown as (
+  supabaseUrl: string,
+  supabaseKey: string,
+  options: { cookies: CookieMethodsServer; cookieEncoding?: 'raw' | 'base64url' },
+) => SupabaseClient<Database>;
+
+export function createSupabaseCookieClient(
+  supabaseUrl: string,
+  supabaseKey: string,
+  cookieMethods: CookieMethodsServer,
+): SupabaseClient<Database> {
+  return createServerClientWithCookieMethods(supabaseUrl, supabaseKey, { cookies: cookieMethods });
 }
 
 export function createSupabaseServerClient(
@@ -51,7 +67,7 @@ export function createSupabaseServerClient(
     },
   };
 
-  return createServerClient(publicSupabaseUrl, publicSupabaseAnonKey, { cookies: cookieMethods });
+  return createSupabaseCookieClient(publicSupabaseUrl, publicSupabaseAnonKey, cookieMethods);
 }
 
 /**
@@ -74,7 +90,7 @@ export function createAstroAdminClient(
   }
 
   const emptyCookies: CookieMethodsServer = { getAll: () => [], setAll: () => {} };
-  return createServerClient<Database>(publicSupabaseUrl, serviceRoleKey, { cookies: emptyCookies }) as unknown as SupabaseClient<Database>;
+  return createSupabaseCookieClient(publicSupabaseUrl, serviceRoleKey, emptyCookies);
 }
 
 /**
@@ -98,5 +114,5 @@ export function createAstroServerClientFromRequest(
     getAll: () => parseCookieHeader(request),
     setAll: () => {},
   };
-  return createServerClient<Database>(publicSupabaseUrl, publicSupabaseAnonKey, { cookies: readOnlyCookies }) as unknown as SupabaseClient<Database>;
+  return createSupabaseCookieClient(publicSupabaseUrl, publicSupabaseAnonKey, readOnlyCookies);
 }

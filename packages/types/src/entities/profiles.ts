@@ -163,6 +163,8 @@ export interface DoctorProfile {
   enrollment_entity: string | null;
   enrollment_jurisdiction: string | null;
   professional_address: string | null;
+  payout_cbu: string | null;
+  payout_alias: string | null;
   active: boolean;
   created_at: ISODateString;
   updated_at: ISODateString;
@@ -185,6 +187,8 @@ export interface DoctorInsert {
   accepted_insurance?: string[] | null;
   bio?: string | null;
   languages?: string[];
+  payout_cbu?: string | null;
+  payout_alias?: string | null;
   active?: boolean;
 }
 

@@ -129,6 +129,18 @@ export const consultationContextService = {
     const { patientId } = participants
     const patientProfile = await resolvePatientProfile(admin, patientId)
 
+    if (!patientId) {
+      return {
+        hasAnamnesis: false,
+        patient: patientProfile,
+        summary: null,
+        extraction: null,
+        redFlags: [],
+        suggestedQuestions: [],
+        reason: 'guest_call',
+      }
+    }
+
     const { data: anamnesisRow, error: anamnesisError } = await admin
       .from('anamnesis')
       .select('id, status, privacy_accepted, completion_percentage')

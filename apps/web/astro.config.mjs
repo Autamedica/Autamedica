@@ -30,11 +30,20 @@ export default defineConfig({
     }),
   ],
   vite: {
+    css: { lightningcss: { errorRecovery: true } },
     resolve: {
       tsconfigPaths: true
     },
     server: {
       forwardConsole: true
+    },
+    ssr: {
+      external: [
+        'node-forge',
+        '@signpdf/signpdf',
+        '@signpdf/signer-p12',
+        '@signpdf/placeholder-plain',
+      ],
     },
     optimizeDeps: {
       include: ['gsap', 'gsap/ScrollTrigger', 'gsap/ScrollToPlugin']

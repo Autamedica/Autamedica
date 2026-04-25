@@ -20,6 +20,8 @@
 - `apps/web` is the main app. If shared packages change, build them before app checks.
 - In `apps/web`, use `import.meta.env.PUBLIC_*`. Never use `NEXT_PUBLIC_*` or `process.env`.
 - No cross-app imports. Shared logic lives in `packages/*`.
+- Email: all AutaMedica emails must use `apps/web/src/lib/email/autamedica-template.ts` or a direct extension of it. Preserve the brand GIF as table `background`, not `<img>`, and send canonically as `Eduardo Marques <contacto@autamedica.com>`.
+- Email observability: Resend events are received at `/api/webhooks/resend` and stored in `growth_os.email_events`; do not bypass this for campaigns, reminders, welcome emails or newsletters.
 - For DB-affecting bugs, validate both planes:
   - UI/client gating
   - DB enforcement

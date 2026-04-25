@@ -14,6 +14,13 @@ interface UseAppointmentsResult {
   loading: boolean;
   error: string | null;
   createAppointment: (data: CreateAppointmentInput) => Promise<AppointmentWithDoctor | null>;
+  createAppointmentPayment: (id: string) => Promise<{
+    appointmentPaymentId: string;
+    checkoutUrl: string;
+    preferenceId: string;
+    amount: number;
+    currency: string;
+  } | null>;
   updateAppointment: (id: string, data: UpdateAppointmentInput) => Promise<AppointmentWithDoctor | null>;
   cancelAppointment: (id: string) => Promise<boolean>;
   refreshAppointments: () => Promise<void>;
@@ -50,6 +57,26 @@ export function useAppointments(): UseAppointmentsResult {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear la cita');
       logger.error('[useAppointments] Create error:', err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createAppointmentPayment = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      return await fetchApi<{
+        appointmentPaymentId: string;
+        checkoutUrl: string;
+        preferenceId: string;
+        amount: number;
+        currency: string;
+      }>(`/api/patients/appointments/${id}/payment`, { method: 'POST' });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al iniciar el pago');
+      logger.error('[useAppointments] Payment error:', err);
       return null;
     } finally {
       setLoading(false);
@@ -105,6 +132,7 @@ export function useAppointments(): UseAppointmentsResult {
     loading,
     error,
     createAppointment,
+    createAppointmentPayment,
     updateAppointment,
     cancelAppointment,
     refreshAppointments,

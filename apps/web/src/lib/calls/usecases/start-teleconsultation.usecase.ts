@@ -7,14 +7,15 @@ import { resolveDoctorId, doctorHasPatientAccess } from '@/lib/doctors/lib/resol
 import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 import { appointmentBackendService } from '@/lib/doctors/services/appointment.backend'
 import { canDoctorStartVideoconsulta } from '@/lib/calls/lib/doctor-videoconsulta-credits'
+import { appointmentPaymentsService } from '@/lib/payments/services/appointment-payments.service'
 
 type Db = SupabaseClient<Database>
 
-const CALLABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
+const CALLABLE_APPOINTMENT_STATUSES = new Set(['confirmed', 'in_progress'])
 
 export interface StartCallRequest {
   doctorUserId: string
-  patientId: string
+  patientId: string | null
   appointmentId?: string
 }
 
@@ -54,9 +55,11 @@ async function ensureRinging(repo: ICallStartRepository, callId: string, current
 async function cancelSupersededPendingCalls(
   repo: ICallStartRepository,
   doctorId: string,
-  patientId: string,
+  patientId: string | null,
   appointmentId?: string,
 ): Promise<void> {
+  if (!patientId) return
+  
   const pendingCalls = await repo.listPendingByParticipants(doctorId, patientId)
 
   const toCancel = pendingCalls.filter(
@@ -80,9 +83,11 @@ export async function startTeleconsultationUseCase(
     return { kind: 'forbidden', message: 'doctor_not_found' }
   }
 
-  const patient = await adminCallRepo.findPatientById(input.patientId)
-  if (!patient) {
-    return { kind: 'not_found', message: 'patient_not_found' }
+  if (input.patientId) {
+    const patient = await adminCallRepo.findPatientById(input.patientId)
+    if (!patient) {
+      return { kind: 'not_found', message: 'patient_not_found' }
+    }
   }
 
   if (input.appointmentId) {
@@ -95,7 +100,7 @@ export async function startTeleconsultationUseCase(
       return { kind: 'forbidden', message: 'appointment_access_denied' }
     }
 
-    if (appointment.patient_id !== input.patientId) {
+    if (appointment.patient_id !== (input.patientId || null)) {
       return { kind: 'conflict', message: 'appointment_patient_mismatch' }
     }
 
@@ -105,6 +110,11 @@ export async function startTeleconsultationUseCase(
 
     if (!CALLABLE_APPOINTMENT_STATUSES.has(appointment.status)) {
       return { kind: 'conflict', message: 'appointment_not_callable' }
+    }
+
+    const hasApprovedPayment = await appointmentPaymentsService.hasApprovedPayment(adminDb, input.appointmentId)
+    if (!hasApprovedPayment) {
+      return { kind: 'conflict', message: 'appointment_payment_required' }
     }
 
     if (!isTelemedicineCallWindowOpen(appointment)) {
@@ -128,6 +138,10 @@ export async function startTeleconsultationUseCase(
 
     await cancelSupersededPendingCalls(actorCallRepo, doctorId, input.patientId, input.appointmentId)
   } else {
+    if (!input.patientId) {
+      return { kind: 'conflict', message: 'patient_id_required' }
+    }
+
     const hasAccess = await doctorHasPatientAccess(adminDb, doctorId, input.patientId)
     if (!hasAccess) {
       return { kind: 'forbidden', message: 'patient_access_denied' }
@@ -155,7 +169,7 @@ export async function startTeleconsultationUseCase(
       return { kind: 'forbidden', message: creditCheck.reason ?? 'no_videoconsulta_credits' }
     }
 
-    const call = await actorCallRepo.createCall(doctorId, input.patientId, input.appointmentId)
+    const call = await actorCallRepo.createCall(doctorId, input.patientId || null, input.appointmentId)
     const status = await ensureRinging(actorCallRepo, call.id, call.status)
 
     // Transition appointment to in_progress if applicable
@@ -177,7 +191,7 @@ export async function startTeleconsultationUseCase(
         callId: call.id,
         roomId: call.room_id,
         doctorId,
-        patientId: input.patientId,
+        patientId: input.patientId || null,
       })
     } catch (err) {
       logger.warn('[startTeleconsultation] call.started emit failed', {

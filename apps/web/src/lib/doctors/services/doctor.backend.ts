@@ -7,10 +7,12 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import type { DoctorWithProfile } from '@autamedica/types'
 
+type RuntimeEnv = Record<string, unknown> | null | undefined
+
 export const doctorBackendService = {
-  async getDoctors(): Promise<DoctorWithProfile[]> {
+  async getDoctors(runtimeEnv?: RuntimeEnv): Promise<DoctorWithProfile[]> {
     try {
-      const repo = createDoctorRepositoryAdapter(createAstroAdminClient())
+      const repo = createDoctorRepositoryAdapter(createAstroAdminClient(runtimeEnv))
       return await repo.findAll()
     } catch (error) {
       logger.error('[doctorBackendService] getDoctors failed', error)
@@ -18,9 +20,12 @@ export const doctorBackendService = {
     }
   },
 
-  async getDoctorByUserId(userId: string): Promise<DoctorWithProfile | null> {
+  async getDoctorByUserId(
+    userId: string,
+    runtimeEnv?: RuntimeEnv,
+  ): Promise<DoctorWithProfile | null> {
     try {
-      const repo = createDoctorRepositoryAdapter(createAstroAdminClient())
+      const repo = createDoctorRepositoryAdapter(createAstroAdminClient(runtimeEnv))
       return await repo.findByUserId(userId)
     } catch (error) {
       logger.error('[doctorBackendService] getDoctorByUserId failed', { userId, error })
@@ -28,9 +33,12 @@ export const doctorBackendService = {
     }
   },
 
-  async getDoctorById(id: string): Promise<DoctorWithProfile | null> {
+  async getDoctorById(
+    id: string,
+    runtimeEnv?: RuntimeEnv,
+  ): Promise<DoctorWithProfile | null> {
     try {
-      const repo = createDoctorRepositoryAdapter(createAstroAdminClient())
+      const repo = createDoctorRepositoryAdapter(createAstroAdminClient(runtimeEnv))
       return await repo.findById(id)
     } catch (error) {
       logger.error('[doctorBackendService] getDoctorById failed', { id, error })
@@ -38,9 +46,12 @@ export const doctorBackendService = {
     }
   },
 
-  async getDoctorsBySpecialty(specialty: string): Promise<DoctorWithProfile[]> {
+  async getDoctorsBySpecialty(
+    specialty: string,
+    runtimeEnv?: RuntimeEnv,
+  ): Promise<DoctorWithProfile[]> {
     try {
-      const repo = createDoctorRepositoryAdapter(createAstroAdminClient())
+      const repo = createDoctorRepositoryAdapter(createAstroAdminClient(runtimeEnv))
       return await repo.findBySpecialty(specialty)
     } catch (error) {
       logger.error('[doctorBackendService] getDoctorsBySpecialty failed', { specialty, error })

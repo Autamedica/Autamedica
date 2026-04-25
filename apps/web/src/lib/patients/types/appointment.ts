@@ -2,12 +2,12 @@
  * Tipos para el sistema de citas médicas
  *
  * Alineado con CHECK constraints de la tabla appointments en BD:
- * - status: scheduled, confirmed, in_progress, completed, cancelled, no_show
+ * - status: payment_pending, scheduled, confirmed, in_progress, completed, cancelled, no_show
  * - type: consultation, follow_up, emergency, telemedicine, lab_test
  * - Campo primario de tiempo: start_time (no scheduled_at)
  */
 
-export type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+export type AppointmentStatus = 'payment_pending' | 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
 
 export type AppointmentType = 'consultation' | 'follow_up' | 'emergency' | 'telemedicine' | 'lab_test';
 
@@ -56,6 +56,7 @@ export interface AppointmentWithDoctor extends Appointment {
     first_name: string | null;
     last_name: string | null;
     specialty: string | null;
+    consultation_fee?: number | null;
     profile_picture_url: string | null;
   } | null;
 }

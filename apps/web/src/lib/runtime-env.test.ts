@@ -5,6 +5,7 @@ import {
   resetRuntimeEnvCache,
   resolveCloudflareCallsEnv,
   resolvePublicClientEnv,
+  resolveServiceRoleKey,
 } from './runtime-env'
 
 // Reset cache between tests by re-priming with empty
@@ -132,6 +133,35 @@ describe('resolvePublicClientEnv', () => {
       NEXT_PUBLIC_SENTRY_DSN: 'https://next-public-dsn@example.ingest.sentry.io/1',
     })
     expect(result.publicSentryDsn).toBe('https://next-public-dsn@example.ingest.sentry.io/1')
+  })
+})
+
+describe('resolveServiceRoleKey', () => {
+  afterEach(() => {
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '')
+    resetCache()
+  })
+
+  it('reads service role key from runtime env', () => {
+    const result = resolveServiceRoleKey({
+      SUPABASE_SERVICE_ROLE_KEY: 'runtime-service-role',
+    })
+
+    expect(result).toBe('runtime-service-role')
+  })
+
+  it('falls back to cached runtime env values', () => {
+    primeRuntimeEnv({
+      SUPABASE_SERVICE_ROLE_KEY: 'cached-service-role',
+    })
+
+    expect(resolveServiceRoleKey()).toBe('cached-service-role')
+  })
+
+  it('falls back to process env values when runtime env is not present', () => {
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'process-service-role')
+
+    expect(resolveServiceRoleKey()).toBe('process-service-role')
   })
 })
 

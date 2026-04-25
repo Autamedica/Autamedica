@@ -85,3 +85,108 @@ export { LocalRefepsValidator } from './infrastructure/adapters/LocalRefepsValid
 export { RefepsApiValidator } from './infrastructure/adapters/RefepsApiValidator';
 export { LocalPharmacyConvention } from './infrastructure/adapters/LocalPharmacyConvention';
 export { LocalInsuranceCoverage } from './infrastructure/adapters/LocalInsuranceCoverage';
+
+// ── Sprint 1 Compliance: RENPRE + Consent + Guards ──
+export type {
+  IRenpreValidator,
+  RenpreRegistration,
+  RenpreStatus,
+  RenpreUploadInput,
+} from './domain/renpre.ports';
+
+export type {
+  IConsentRepository,
+  InformedConsent,
+  ConsentType,
+  ConsentSignInput,
+} from './domain/consent.ports';
+
+export {
+  PrescriptionGuards,
+  PrescriptionBlockedError,
+  PRESCRIPTION_BLOCK_CODES,
+  classifyDrug,
+} from './domain/guards';
+export type { DrugCategory, PrescriptionBlockCode, GuardContext } from './domain/guards';
+
+export { SupabaseRenpreValidator } from './infrastructure/adapters/SupabaseRenpreValidator';
+export { SupabaseConsentRepository } from './infrastructure/adapters/SupabaseConsentRepository';
+
+export {
+  renderPhysicalRecipeHtml,
+  requiresPhysicalRecipe,
+} from './infrastructure/adapters/PhysicalRecipeGenerator';
+export type { PhysicalRecipeCopies, PhysicalRecipeOutput } from './infrastructure/adapters/PhysicalRecipeGenerator';
+
+// ── Sprint 2: Lakaut signature + Andreani shipping + Adherence ──
+export { LakautSignatureAdapter } from './infrastructure/adapters/LakautSignatureAdapter';
+export type { LakautConfig } from './infrastructure/adapters/LakautSignatureAdapter';
+
+export type {
+  IShippingService,
+  IShipmentRepository,
+  ShipmentCourier,
+  ShipmentStatus,
+  ServiceLevel,
+  ShippingAddress,
+  ShipmentDraft,
+  CreatedShipment,
+  ShipmentEventInput,
+} from './domain/shipping.ports';
+
+export { AndreaniFarmaAdapter } from './infrastructure/adapters/AndreaniFarmaAdapter';
+export type { AndreaniConfig } from './infrastructure/adapters/AndreaniFarmaAdapter';
+
+export { SupabaseShipmentRepository } from './infrastructure/adapters/SupabaseShipmentRepository';
+
+export type {
+  IAdherenceRepository,
+  MedicationSchedule,
+  MedicationScheduleDraft,
+  IntakeEvent,
+  AdherenceReport,
+  DaysPattern,
+  TimeOfDay,
+} from './domain/adherence.ports';
+
+export { SupabaseAdherenceRepository } from './infrastructure/adapters/SupabaseAdherenceRepository';
+
+// ── Sprint 3: ANMAT SNT + Insurance authorization + Pharmacovigilance ──
+export type {
+  IAnmatSntReporter,
+  IAnmatTraceRepository,
+  AnmatInformPayload,
+  AnmatInformResult,
+  AnmatTraceEvent,
+  AnmatTraceStatus,
+  AnmatEventType,
+} from './domain/anmat.ports';
+export { AnmatSntAdapter } from './infrastructure/adapters/AnmatSntAdapter';
+export type { AnmatConfig } from './infrastructure/adapters/AnmatSntAdapter';
+export { SupabaseAnmatTraceRepository } from './infrastructure/adapters/SupabaseAnmatTraceRepository';
+
+export type {
+  IInsuranceAuthorizationService,
+  IInsuranceAuthorizationRouter,
+  InsuranceProvider,
+  AuthorizationStatus,
+  AuthorizationRequest,
+  AuthorizationResult,
+} from './domain/insurance-authorization.ports';
+export { OsdeAuthorizationAdapter } from './infrastructure/adapters/OsdeAuthorizationAdapter';
+export type { OsdeConfig } from './infrastructure/adapters/OsdeAuthorizationAdapter';
+export { InsuranceAuthorizationRouter } from './infrastructure/adapters/InsuranceAuthorizationRouter';
+
+export type {
+  IAdverseReactionRepository,
+  AdverseReactionReport,
+  AdverseReactionDraft,
+  AdverseReactionEvaluation,
+  AdverseReactionSymptom,
+  AdverseReactionSeverity,
+  Causality,
+  Outcome,
+  ReportedBy,
+  AdrStatus,
+} from './domain/pharmacovigilance.ports';
+export { SupabaseAdverseReactionRepository } from './infrastructure/adapters/SupabaseAdverseReactionRepository';
