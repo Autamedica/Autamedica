@@ -401,8 +401,8 @@ export function AppointmentsPanel() {
                       <Stethoscope className="h-3.5 w-3.5" /> Motivo de consulta
                     </p>
                     <p className="text-sm text-neutral-700 leading-relaxed">
-                      {patientContext?.chiefComplaint
-                        ?? selectedAppointment.notes?.replace(/\[INVITADO:[^\]]+\]/, '').trim()
+                      {(patientContext?.chiefComplaint
+                        ?? selectedAppointment.notes?.replace(/\[INVITADO:[^\]]+\]/, '').trim())
                         || 'No especificado'}
                     </p>
                   </div>
