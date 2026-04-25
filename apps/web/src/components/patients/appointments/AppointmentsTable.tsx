@@ -17,16 +17,28 @@ import {
   Loader2,
 } from 'lucide-react';
 
+function formatPrice(amount: number | null | undefined): string {
+  if (!amount || amount <= 0) return 'Valor a confirmar';
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 interface AppointmentsTableProps {
   appointments: AppointmentWithDoctor[];
   locale?: string;
   reviewedAppointmentIds?: Set<string>;
   onReviewClick?: (appointment: AppointmentWithDoctor) => void;
   onJoinTelemedicine?: (appointment: AppointmentWithDoctor) => void;
+  onPayAppointment?: (appointment: AppointmentWithDoctor) => void;
+  payingAppointmentId?: string | null;
   joiningAppointmentId?: string | null;
 }
 
 const statusConfig: Record<string, { label: string; dot: string; bg: string }> = {
+  payment_pending: { label: 'Pago pendiente', dot: 'bg-amber-500', bg: 'bg-amber-50 text-amber-700' },
   scheduled: { label: 'Programada', dot: 'bg-sky-500', bg: 'bg-sky-50 text-sky-700' },
   confirmed: { label: 'Confirmada', dot: 'bg-emerald-500', bg: 'bg-emerald-50 text-emerald-700' },
   in_progress: { label: 'En curso', dot: 'bg-amber-500', bg: 'bg-amber-50 text-amber-700' },
@@ -64,6 +76,8 @@ export function AppointmentsTable({
   reviewedAppointmentIds,
   onReviewClick,
   onJoinTelemedicine,
+  onPayAppointment,
+  payingAppointmentId,
   joiningAppointmentId,
 }: AppointmentsTableProps) {
   const intlLocale = locale === 'pt' ? 'pt-BR' : 'es-AR';
@@ -101,6 +115,7 @@ export function AppointmentsTable({
         const isTelemedicine = isTelemedicineAppointment(appointment);
         const entryUrl = buildPatientTelemedicineEntryUrl(appointment.id);
         const isJoining = joiningAppointmentId === appointment.id;
+        const isPaying = payingAppointmentId === appointment.id;
 
         return (
           <div
@@ -156,6 +171,11 @@ export function AppointmentsTable({
                     Videoconsulta
                   </span>
                 )}
+                {appointment.doctor?.consultation_fee != null && (
+                  <span className="inline-flex items-center gap-1.5 font-medium text-stone-800">
+                    {formatPrice(appointment.doctor.consultation_fee)}
+                  </span>
+                )}
               </div>
 
               {/* Notes */}
@@ -169,6 +189,17 @@ export function AppointmentsTable({
 
               {/* Actions */}
               <div className="flex flex-wrap items-center gap-2">
+                {appointment.status === 'payment_pending' && onPayAppointment && (
+                  <button
+                    type="button"
+                    onClick={() => onPayAppointment(appointment)}
+                    disabled={isPaying}
+                    className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-amber-600 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98]"
+                  >
+                    {isPaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
+                    {isPaying ? 'Abriendo pago...' : 'Pagar ahora'}
+                  </button>
+                )}
                 {isTelemedicine && isActive && onJoinTelemedicine && (
                   <button
                     type="button"

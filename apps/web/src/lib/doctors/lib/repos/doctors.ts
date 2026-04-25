@@ -26,6 +26,8 @@ const DOCTOR_WITH_PROFILE_SELECT = `
   enrollment_entity,
   enrollment_jurisdiction,
   professional_address,
+  payout_cbu,
+  payout_alias,
   signature_image_url,
   stamp_image_url,
   bio,

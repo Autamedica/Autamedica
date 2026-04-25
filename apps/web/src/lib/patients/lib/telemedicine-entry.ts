@@ -1,7 +1,7 @@
 import type { AppointmentWithDoctor } from '@/lib/patients/types/appointment'
 import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 
-const JOINABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
+const JOINABLE_APPOINTMENT_STATUSES = new Set(['confirmed', 'in_progress'])
 
 type TelemedicineLikeAppointment = Pick<
   AppointmentWithDoctor,

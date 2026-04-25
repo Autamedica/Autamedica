@@ -32,6 +32,8 @@ export const CreateDoctorProfileSchema = z.object({
   accepted_insurance: JsonValue.nullable().optional(),
   bio: z.string().trim().max(5000).nullable().optional(),
   languages: JsonValue.nullable().optional(),
+  payout_cbu: z.string().trim().regex(/^\d{22}$/).nullable().optional(),
+  payout_alias: z.string().trim().min(3).max(100).nullable().optional(),
   active: z.boolean().optional().default(true),
   fullName: z.string().trim().min(1).optional(),
   full_name: z.string().trim().min(1).optional(),

@@ -7,10 +7,11 @@ import { resolveDoctorId, doctorHasPatientAccess } from '@/lib/doctors/lib/resol
 import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 import { appointmentBackendService } from '@/lib/doctors/services/appointment.backend'
 import { canDoctorStartVideoconsulta } from '@/lib/calls/lib/doctor-videoconsulta-credits'
+import { appointmentPaymentsService } from '@/lib/payments/services/appointment-payments.service'
 
 type Db = SupabaseClient<Database>
 
-const CALLABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
+const CALLABLE_APPOINTMENT_STATUSES = new Set(['confirmed', 'in_progress'])
 
 export interface StartCallRequest {
   doctorUserId: string
@@ -109,6 +110,11 @@ export async function startTeleconsultationUseCase(
 
     if (!CALLABLE_APPOINTMENT_STATUSES.has(appointment.status)) {
       return { kind: 'conflict', message: 'appointment_not_callable' }
+    }
+
+    const hasApprovedPayment = await appointmentPaymentsService.hasApprovedPayment(adminDb, input.appointmentId)
+    if (!hasApprovedPayment) {
+      return { kind: 'conflict', message: 'appointment_payment_required' }
     }
 
     if (!isTelemedicineCallWindowOpen(appointment)) {

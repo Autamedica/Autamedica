@@ -77,6 +77,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       enrollmentEntity: optionalString(body, 'enrollment_entity'),
       enrollmentJurisdiction: optionalString(body, 'enrollment_jurisdiction'),
       professionalAddress: optionalString(body, 'professional_address'),
+      payoutCbu: optionalString(body, 'payout_cbu'),
+      payoutAlias: optionalString(body, 'payout_alias'),
       active: typeof body.active === 'boolean' ? body.active : undefined,
       fullName,
     })

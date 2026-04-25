@@ -41,6 +41,9 @@ export function ProfileForm() {
   const [refepsId, setRefepsId] = useState('')
   const [enrollmentEntity, setEnrollmentEntity] = useState('')
   const [professionalAddress, setProfessionalAddress] = useState('')
+  const [consultationFee, setConsultationFee] = useState('')
+  const [payoutCbu, setPayoutCbu] = useState('')
+  const [payoutAlias, setPayoutAlias] = useState('')
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null)
   const [stampUrl, setStampUrl] = useState<string | null>(null)
 
@@ -65,6 +68,9 @@ export function ProfileForm() {
       if (d.refepsId) setRefepsId(d.refepsId)
       if (d.enrollmentEntity) setEnrollmentEntity(d.enrollmentEntity)
       if (d.professionalAddress) setProfessionalAddress(d.professionalAddress)
+      if (typeof d.consultationFee === 'number') setConsultationFee(String(d.consultationFee))
+      if (d.payoutCbu) setPayoutCbu(d.payoutCbu)
+      if (d.payoutAlias) setPayoutAlias(d.payoutAlias)
       if (d.signatureImageUrl) setSignatureUrl(d.signatureImageUrl)
       if (d.stampImageUrl) setStampUrl(d.stampImageUrl)
       
@@ -82,12 +88,20 @@ export function ProfileForm() {
   }, [doctor])
 
   const region = country === 'argentina' ? province : otherRegion.trim()
+  const normalizedCbu = payoutCbu.replace(/\D/g, '')
+  const normalizedFee = consultationFee.trim()
+  const consultationFeeValue = normalizedFee === '' ? undefined : Number(consultationFee)
+  const consultationFeeIsValid =
+    normalizedFee === '' || (Number.isFinite(consultationFeeValue) && consultationFeeValue >= 0)
+  const payoutCbuIsValid = normalizedCbu === '' || normalizedCbu.length === 22
   const canSubmit =
     firstName.trim() !== '' &&
     lastName.trim() !== '' &&
     specialty !== '' &&
     licenseNumber.trim().length >= 3 &&
-    region !== ''
+    region !== '' &&
+    consultationFeeIsValid &&
+    payoutCbuIsValid
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -108,6 +122,9 @@ export function ProfileForm() {
           enrollment_entity: enrollmentEntity.trim() || undefined,
           enrollment_jurisdiction: region.trim() || undefined,
           professional_address: professionalAddress.trim() || undefined,
+          consultation_fee: normalizedFee === '' ? undefined : consultationFeeValue,
+          payout_cbu: normalizedCbu || undefined,
+          payout_alias: payoutAlias.trim() || undefined,
           active: true,
         },
       })
@@ -351,6 +368,76 @@ export function ProfileForm() {
                 />
               </div>
             </div>
+
+            <div className="h-px w-full bg-am-surface-200 my-6" />
+            <h2 className="text-base font-semibold text-am-surface-800 mb-1">Cobros</h2>
+            <p className="text-xs text-am-surface-500 mb-4">
+              Configurá cuánto cobrás por consulta y a qué cuenta querés recibir transferencias.
+            </p>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label htmlFor="consultationFee" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  Valor de consulta (ARS)
+                </label>
+                <input
+                  type="number"
+                  id="consultationFee"
+                  value={consultationFee}
+                  onChange={(e) => setConsultationFee(e.target.value)}
+                  placeholder="Ej: 25000"
+                  min="0"
+                  step="0.01"
+                  className={inputClass}
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div>
+                <label htmlFor="payoutAlias" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  Alias de cobro (opcional)
+                </label>
+                <input
+                  type="text"
+                  id="payoutAlias"
+                  value={payoutAlias}
+                  onChange={(e) => setPayoutAlias(e.target.value)}
+                  placeholder="Ej: dr.garcia.consultas"
+                  className={inputClass}
+                  disabled={isSubmitting}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="payoutCbu" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                CBU/CVU para cobros
+              </label>
+              <input
+                type="text"
+                id="payoutCbu"
+                value={payoutCbu}
+                onChange={(e) => setPayoutCbu(e.target.value.replace(/[^\d]/g, '').slice(0, 22))}
+                placeholder="22 dígitos"
+                inputMode="numeric"
+                className={inputClass}
+                disabled={isSubmitting}
+              />
+              <p className="mt-1 text-xs text-am-surface-500">
+                Guardamos sólo números. Si cargás CBU/CVU, tienen que ser 22 dígitos.
+              </p>
+            </div>
+
+            {!consultationFeeIsValid && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                El valor de consulta tiene que ser un número válido mayor o igual a 0.
+              </div>
+            )}
+
+            {!payoutCbuIsValid && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                El CBU/CVU tiene que tener exactamente 22 dígitos.
+              </div>
+            )}
 
             {/* Firma y Sello */}
             <div className="h-px w-full bg-am-surface-200 my-6" />

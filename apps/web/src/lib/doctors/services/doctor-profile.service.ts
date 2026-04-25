@@ -92,6 +92,8 @@ export interface DoctorProfileInput {
   enrollmentEntity?: string | null
   enrollmentJurisdiction?: string | null
   professionalAddress?: string | null
+  payoutCbu?: string | null
+  payoutAlias?: string | null
   active?: boolean
   fullName?: string | null
 }
@@ -131,6 +133,8 @@ export const doctorProfileService = {
     setIfDefined(doctorData, 'enrollment_entity', input.enrollmentEntity)
     setIfDefined(doctorData, 'enrollment_jurisdiction', input.enrollmentJurisdiction)
     setIfDefined(doctorData, 'professional_address', input.professionalAddress)
+    setIfDefined(doctorData, 'payout_cbu', input.payoutCbu)
+    setIfDefined(doctorData, 'payout_alias', input.payoutAlias)
 
     const result = await doctorProfileRepo.upsertDoctor(admin, doctorData)
 
