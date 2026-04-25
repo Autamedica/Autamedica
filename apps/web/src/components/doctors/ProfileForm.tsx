@@ -57,6 +57,9 @@ export function ProfileForm() {
       const d = doctor as any
       
       // Robust loading: Support both DB snake_case and Hook camelCase
+      const first = d.profile?.firstName ?? d.profile?.first_name ?? d.first_name ?? d.firstName
+      const last = d.profile?.lastName ?? d.profile?.last_name ?? d.last_name ?? d.lastName
+      const ph = d.profile?.phone ?? d.phone ?? d.phoneNumber
       const license = d.license_number ?? d.licenseNumber
       const refeps = d.refeps_id ?? d.refepsId
       const entity = d.enrollment_entity ?? d.enrollmentEntity
@@ -68,6 +71,9 @@ export function ProfileForm() {
       const sta = d.stamp_url ?? d.stampImageUrl
       const jur = d.enrollment_jurisdiction ?? d.enrollmentJurisdiction
 
+      if (first) setFirstName(first)
+      if (last) setLastName(last)
+      if (ph) setPhone(ph)
       if (license) setLicenseNumber(license)
       if (d.specialty) setSpecialty(d.specialty)
       if (refeps) setRefepsId(refeps)
@@ -126,7 +132,7 @@ export function ProfileForm() {
           enrollment_entity: enrollmentEntity.trim() || undefined,
           enrollment_jurisdiction: region.trim() || undefined,
           professional_address: professionalAddress.trim() || undefined,
-          consultation_fee: normalizedFee === '' ? undefined : consultationFeeValue,
+          consultation_fee: normalizedFee === '' ? undefined : Math.round((consultationFeeValue || 0) * 100),
           payout_cbu: normalizedCbu || undefined,
           payout_alias: payoutAlias.trim() || undefined,
           signature_url: signatureUrl || undefined,
