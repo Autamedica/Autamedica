@@ -287,7 +287,7 @@ async function sendViaResend(
 }
 
 async function enqueueDueReminders(admin: AdminClient, limit: number): Promise<number> {
-  const { data, error } = await admin
+  const { data, error } = await (admin as any)
     .schema('growth_os')
     .rpc('enqueue_anamnesis_reminders', { batch_limit: limit, min_profile_age: '2 hours' });
 
@@ -300,7 +300,7 @@ async function enqueueDueReminders(admin: AdminClient, limit: number): Promise<n
 }
 
 async function loadPendingJobs(admin: AdminClient, limit: number): Promise<EmailJob[]> {
-  const { data, error } = await admin
+  const { data, error } = await (admin as any)
     .schema('growth_os')
     .from('email_jobs')
     .select('id, job_type, recipient_email, recipient_name, template_data, attempts, max_attempts')
@@ -314,7 +314,7 @@ async function loadPendingJobs(admin: AdminClient, limit: number): Promise<Email
 }
 
 async function claimJob(admin: AdminClient, job: EmailJob): Promise<boolean> {
-  const { data, error } = await admin
+  const { data, error } = await (admin as any)
     .schema('growth_os')
     .from('email_jobs')
     .update({
@@ -333,7 +333,7 @@ async function claimJob(admin: AdminClient, job: EmailJob): Promise<boolean> {
 }
 
 async function markSent(admin: AdminClient, jobId: string, providerMessageId: string): Promise<void> {
-  const { error } = await admin
+  const { error } = await (admin as any)
     .schema('growth_os')
     .from('email_jobs')
     .update({
@@ -350,7 +350,7 @@ async function markSent(admin: AdminClient, jobId: string, providerMessageId: st
 
 async function markFailed(admin: AdminClient, job: EmailJob, errorMessage: string): Promise<void> {
   const nextStatus = job.attempts + 1 >= job.max_attempts ? 'failed' : 'pending';
-  const { error } = await admin
+  const { error } = await (admin as any)
     .schema('growth_os')
     .from('email_jobs')
     .update({
