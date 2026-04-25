@@ -318,10 +318,14 @@ export class CloudflareCallsClient implements CallProvider {
       this.pendingRemoteSessionIds = []
       for (const { sessionId: remoteSessionId, userId: remoteUserId } of pending) {
         this.debugLogger.info('Subscribing to pending peer session', { remoteSessionId })
-        const pulled = await this.cfSession.subscribeToSession(remoteSessionId, (mid) => {
-          this.midToUserId.set(mid, remoteUserId)
-        })
-        this.recordPulledMids(pulled, remoteUserId)
+        try {
+          const pulled = await this.cfSession.subscribeToSession(remoteSessionId, (mid) => {
+            this.midToUserId.set(mid, remoteUserId)
+          })
+          this.recordPulledMids(pulled, remoteUserId)
+        } catch (err) {
+          this.debugLogger.error('Draining pending subscribe failed', err, { remoteSessionId })
+        }
       }
 
       // Re-announce our cf-session to peers who joined while we were still connecting
@@ -622,14 +626,24 @@ export class CloudflareCallsClient implements CallProvider {
           this.pendingRemoteUserIds.push(remoteUserId)
         }
 
-        // Guard: cfSession must exist AND be fully connected (sessionId confirmed)
-        // before we can call subscribeToSession. If not ready yet, queue it.
-        if (this.cfSession?.getSessionId()) {
-          this.debugLogger.info('Subscribing to remote tracks', { remoteSessionId })
-          const pulled = await this.cfSession.subscribeToSession(remoteSessionId, (mid) => {
-            this.midToUserId.set(mid, remoteUserId)
-          })
-          this.recordPulledMids(pulled, remoteUserId)
+        // Guard: cfSession must exist AND be fully ready (connect() resolved,
+        // remote SDP applied, initial tracks/new done) before we can call
+        // subscribeToSession. Using isReady() — not just getSessionId() — closes
+        // the race where sessionId is set after `sessions/new` but before the
+        // initial tracks/new completes, which used to trigger the
+        // "no conectado aún" throw (ASTRO-B/C).
+        if (this.cfSession?.isReady()) {
+          try {
+            this.debugLogger.info('Subscribing to remote tracks', { remoteSessionId })
+            const pulled = await this.cfSession.subscribeToSession(remoteSessionId, (mid) => {
+              this.midToUserId.set(mid, remoteUserId)
+            })
+            this.recordPulledMids(pulled, remoteUserId)
+          } catch (err) {
+            // Don't let a failed subscribe for one peer tear down the whole
+            // signaling loop — log and move on; the peer will re-announce.
+            this.debugLogger.error('subscribeToSession failed', err, { remoteSessionId })
+          }
         } else {
           this.debugLogger.info('CF session not ready yet, queueing remote session', { remoteSessionId })
           if (!this.pendingRemoteSessionIds.some((p) => p.sessionId === remoteSessionId)) {

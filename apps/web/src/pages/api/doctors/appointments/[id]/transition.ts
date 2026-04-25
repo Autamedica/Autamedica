@@ -26,9 +26,10 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     return forbidden('not_your_appointment');
   }
 
+  let status: string | undefined;
   try {
     const body = await request.json();
-    const { status } = body as { status?: string };
+    status = (body as { status?: string }).status;
 
     if (!status) return badRequest('missing_status');
 
@@ -40,10 +41,24 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     return jsonOk(updatedAppointment);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    // Postgres error code (PGRST or 23xxx) hints at CHECK / RLS / FK violations.
+    // We surface a recognisable message so the caller (and Sentry, via `cause`)
+    // can distinguish a domain validation failure from a true 500.
+    const pgCode = (error as { code?: string } | null)?.code;
+
     if (message.includes('not found')) return notFound(message);
     if (message.includes('Invalid transition')) return badRequest(message);
 
-    logger.error('[API transition] failed', { id, error });
-    return internalError();
+    // 23514 = check_violation (e.g. status not in CHECK constraint, like 're_queue').
+    if (pgCode === '23514' || /violates check constraint/i.test(message)) {
+      return badRequest(`invalid_status_for_db: ${message}`);
+    }
+    // 42501 = insufficient_privilege (RLS denial when not using service role).
+    if (pgCode === '42501' || /row-level security|new row violates row-level/i.test(message)) {
+      return forbidden(`rls_denied: ${message}`);
+    }
+
+    logger.error('[API transition] failed', { id, status, pgCode, error });
+    return internalError(message || 'transition_failed');
   }
 };

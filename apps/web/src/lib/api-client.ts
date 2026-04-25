@@ -55,7 +55,11 @@ export async function fetchApi<T>(
     const rawError = json?.error?.message ?? json?.error ?? `HTTP ${res.status}`
     const errorMsg = typeof rawError === 'string' ? rawError : JSON.stringify(rawError)
     const errorCode = json?.error?.code ?? undefined
-    logger.error(`[fetchApi] ${method} ${url} → ${res.status}:`, errorMsg)
+    // 401/403/404 are expected client-side conditions (invalid/expired token, missing
+    // resource, role mismatch). Log as warn to avoid flooding Sentry with noise —
+    // callers still receive the thrown ApiError and can decide how to surface it.
+    const logLevel: 'warn' | 'error' = res.status === 401 || res.status === 403 || res.status === 404 ? 'warn' : 'error'
+    logger[logLevel](`[fetchApi] ${method} ${url} → ${res.status}:`, errorMsg)
     throw new ApiError(errorMsg, res.status, errorCode)
   }
 

@@ -64,7 +64,7 @@ export function useDoctorAppointments(): UseDoctorAppointmentsResult {
         await fetchAppointments()
       } catch (err) {
         logger.error('[useDoctorAppointments] create failed', err)
-        throw new Error('No se pudo agendar la cita.')
+        throw new Error('No se pudo agendar la cita.', { cause: err })
       }
     },
     [fetchAppointments],
@@ -84,7 +84,7 @@ export function useDoctorAppointments(): UseDoctorAppointmentsResult {
         await fetchAppointments()
       } catch (err) {
         logger.error('[useDoctorAppointments] update failed', err)
-        throw new Error('No se pudo actualizar la cita.')
+        throw new Error('No se pudo actualizar la cita.', { cause: err })
       }
     },
     [fetchAppointments],
@@ -96,8 +96,11 @@ export function useDoctorAppointments(): UseDoctorAppointmentsResult {
         await doctorAppointmentsService.transition(id, status)
         await fetchAppointments()
       } catch (err) {
-        logger.error('[useDoctorAppointments] transition failed', err)
-        throw new Error('No se pudo cambiar el estado de la cita.')
+        // Preserve the original error as `cause` so Sentry shows the real root
+        // cause (HTTP status, Postgres message, RLS denial, CHECK violation,
+        // invalid transition, etc.) instead of the generic surface message.
+        logger.error('[useDoctorAppointments] transition failed', { id, status, err })
+        throw new Error('No se pudo cambiar el estado de la cita.', { cause: err })
       }
     },
     [fetchAppointments],
