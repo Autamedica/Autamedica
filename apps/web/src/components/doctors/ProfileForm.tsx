@@ -52,29 +52,33 @@ export function ProfileForm() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    if (user?.profile) {
-      if (user.profile.firstName) setFirstName(user.profile.firstName)
-      if (user.profile.lastName) setLastName(user.profile.lastName)
-      if (user.profile.phone) setPhone(user.profile.phone)
-    }
-  }, [user])
-
-  useEffect(() => {
     if (doctor) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const d = doctor as any
-      if (d.licenseNumber) setLicenseNumber(d.licenseNumber)
-      if (d.specialty) setSpecialty(d.specialty)
-      if (d.refepsId) setRefepsId(d.refepsId)
-      if (d.enrollmentEntity) setEnrollmentEntity(d.enrollmentEntity)
-      if (d.professionalAddress) setProfessionalAddress(d.professionalAddress)
-      if (typeof d.consultationFee === 'number') setConsultationFee(String(d.consultationFee))
-      if (d.payoutCbu) setPayoutCbu(d.payoutCbu)
-      if (d.payoutAlias) setPayoutAlias(d.payoutAlias)
-      if (d.signature_url) setSignatureUrl(d.signature_url)
-      if (d.stamp_url) setStampUrl(d.stamp_url)
       
-      const jur = d.enrollmentJurisdiction
+      // Robust loading: Support both DB snake_case and Hook camelCase
+      const license = d.license_number ?? d.licenseNumber
+      const refeps = d.refeps_id ?? d.refepsId
+      const entity = d.enrollment_entity ?? d.enrollmentEntity
+      const address = d.professional_address ?? d.professionalAddress
+      const fee = d.consultation_fee ?? d.consultationFee
+      const cbu = d.payout_cbu ?? d.payoutCbu
+      const alias = d.payout_alias ?? d.payoutAlias
+      const sig = d.signature_url ?? d.signatureImageUrl
+      const sta = d.stamp_url ?? d.stampImageUrl
+      const jur = d.enrollment_jurisdiction ?? d.enrollmentJurisdiction
+
+      if (license) setLicenseNumber(license)
+      if (d.specialty) setSpecialty(d.specialty)
+      if (refeps) setRefepsId(refeps)
+      if (entity) setEnrollmentEntity(entity)
+      if (address) setProfessionalAddress(address)
+      if (typeof fee === 'number') setConsultationFee(String(fee / 100))
+      if (cbu) setPayoutCbu(cbu)
+      if (alias) setPayoutAlias(alias)
+      if (sig) setSignatureUrl(sig)
+      if (sta) setStampUrl(sta)
+      
       if (jur) {
         if ((ARGENTINE_PROVINCES as readonly string[]).includes(jur)) {
           setCountry('argentina')
