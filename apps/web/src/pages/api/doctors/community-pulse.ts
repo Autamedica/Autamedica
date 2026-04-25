@@ -16,6 +16,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .from('profiles')
       .select('email, created_at, first_name, last_name')
       .eq('role', 'patient')
+      .not('email', 'ilike', '%.invalid')
       .order('created_at', { ascending: false })
       .limit(10)
 
