@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { logger } from '@autamedica/shared'
 import { fetchApi, ApiError } from '@/lib/api-client'
-import type { AnamnesisSummary, AnamnesisSummarySection } from '@autamedica/shared'
+import type { AnamnesisSummary } from '@autamedica/shared'
 
 export interface PatientContextData {
   hasAnamnesis: boolean

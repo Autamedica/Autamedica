@@ -2,7 +2,7 @@ import type { Appointment } from '@autamedica/types'
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
-import { Calendar, Clock, Video, User, Plus, Filter, ChevronRight, Stethoscope, Pill, AlertTriangle } from 'lucide-react'
+import { Calendar, Clock, Video, User, Plus, Filter, ChevronRight, Stethoscope, FileText, Pill, AlertTriangle } from 'lucide-react'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 
