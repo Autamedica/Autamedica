@@ -384,7 +384,69 @@ export function AppointmentsPanel() {
           </div>
         </div>
 
-        
+        {/* CONTEXTO DEL PACIENTE - when appointment selected */}
+        {selectedAppointment && (
+          <div className="px-6 pt-6 pb-6">
+            <div className="rounded-2xl border border-neutral-200/60 bg-white p-5 shadow-sm">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">Contexto del paciente</p>
+              {contextLoading ? (
+                <div className="flex items-center gap-2 py-4 justify-center">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-am-doctor-500 border-t-transparent" />
+                  <span className="text-xs text-neutral-400">Cargando contexto clínico...</span>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs font-semibold text-am-doctor-700 mb-1 flex items-center gap-1.5">
+                      <Stethoscope className="h-3.5 w-3.5" /> Motivo de consulta
+                    </p>
+                    <p className="text-sm text-neutral-700 leading-relaxed">
+                      {patientContext?.chiefComplaint
+                        ?? selectedAppointment.notes?.replace(/\[INVITADO:[^\]]+\]/, '').trim()
+                        || 'No especificado'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-am-doctor-700 mb-1 flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5" /> Antecedentes relevantes
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {patientContext?.chronicDiseases && patientContext.chronicDiseases.length > 0 ? (
+                        patientContext.chronicDiseases.map((d, i) => (
+                          <span key={i} className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-medium text-amber-700 capitalize">{d}</span>
+                        ))
+                      ) : patientContext?.allergies && patientContext.allergies.length > 0 ? (
+                        patientContext.allergies.map((a, i) => (
+                          <span key={i} className="rounded-full bg-red-50 border border-red-200 px-2.5 py-1 text-[11px] font-medium text-red-700">{a}</span>
+                        ))
+                      ) : (
+                        <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-500">
+                          {patientContext?.hasAnamnesis === false ? 'Sin anamnesis' : 'Sin antecedentes registrados'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-am-doctor-700 mb-1 flex items-center gap-1.5">
+                      <Pill className="h-3.5 w-3.5" /> Medicación actual
+                    </p>
+                    <p className={`text-sm leading-relaxed ${patientContext?.medications ? 'text-neutral-700' : 'text-neutral-400 italic'}`}>
+                      {patientContext?.medications ?? (patientContext?.hasAnamnesis === false ? 'Sin anamnesis' : 'Sin medicación registrada')}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {selectedAppointment.patient_id && (
+                <a
+                  href={`/doctors/patients/${selectedAppointment.patient_id}?tab=anamnesis`}
+                  className="mt-4 flex w-full items-center justify-center gap-2 border-t border-neutral-100 pt-3 text-xs font-semibold text-neutral-400 hover:text-am-doctor-600 transition"
+                >
+                  <FileText className="h-3.5 w-3.5" /> Ver anamnesis completa <ChevronRight className="h-3.5 w-3.5" />
+                </a>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Details View (right panel on desktop) ── */}
