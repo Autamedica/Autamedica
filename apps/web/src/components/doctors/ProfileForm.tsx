@@ -81,7 +81,7 @@ export function ProfileForm() {
       if (d.bankAlias || d.bank_alias) setBankAlias(d.bankAlias ?? d.bank_alias ?? '')
       if (d.consultationFee || d.consultation_fee) {
         const fee = d.consultationFee ?? d.consultation_fee
-        if (fee != null) setConsultationFee(String(fee))
+        if (fee != null) setConsultationFee(String(fee / 100))
       }
       
       const jur = d.enrollmentJurisdiction
@@ -124,7 +124,7 @@ export function ProfileForm() {
           enrollment_entity: enrollmentEntity.trim() || undefined,
           enrollment_jurisdiction: region.trim() || undefined,
           professional_address: professionalAddress.trim() || undefined,
-          consultation_fee: consultationFee ? parseFloat(consultationFee) : null,
+          consultation_fee: consultationFee ? Math.round(parseFloat(consultationFee) * 100) : null,
           bank_name: bankName.trim() || null,
           bank_cbu_cvu: bankCbuCvu.trim() || null,
           bank_alias: bankAlias.trim() || null,
