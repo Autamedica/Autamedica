@@ -1866,6 +1866,82 @@ export type Database = {
           },
         ]
       }
+      appointment_payments: {
+        Row: {
+          appointment_id: string
+          checkout_url: string | null
+          created_at: string
+          currency: string
+          doctor_id: string
+          gross_amount: number
+          id: string
+          metadata: Json
+          paid_at: string | null
+          patient_id: string
+          provider: string
+          provider_payment_id: string | null
+          provider_preference_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id: string
+          checkout_url?: string | null
+          created_at?: string
+          currency?: string
+          doctor_id: string
+          gross_amount: number
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          patient_id: string
+          provider?: string
+          provider_payment_id?: string | null
+          provider_preference_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string
+          checkout_url?: string | null
+          created_at?: string
+          currency?: string
+          doctor_id?: string
+          gross_amount?: number
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          patient_id?: string
+          provider?: string
+          provider_payment_id?: string | null
+          provider_preference_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_payments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_payments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_payments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -3763,6 +3839,85 @@ export type Database = {
           },
         ]
       }
+      doctor_earnings: {
+        Row: {
+          appointment_id: string
+          appointment_payment_id: string
+          created_at: string
+          currency: string
+          doctor_id: string
+          gross_amount: number
+          id: string
+          metadata: Json
+          net_amount: number
+          paid_at: string | null
+          payout_alias_snapshot: string | null
+          payout_cbu_snapshot: string | null
+          platform_fee_amount: number
+          processor_fee_amount: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id: string
+          appointment_payment_id: string
+          created_at?: string
+          currency?: string
+          doctor_id: string
+          gross_amount: number
+          id?: string
+          metadata?: Json
+          net_amount: number
+          paid_at?: string | null
+          payout_alias_snapshot?: string | null
+          payout_cbu_snapshot?: string | null
+          platform_fee_amount?: number
+          processor_fee_amount?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string
+          appointment_payment_id?: string
+          created_at?: string
+          currency?: string
+          doctor_id?: string
+          gross_amount?: number
+          id?: string
+          metadata?: Json
+          net_amount?: number
+          paid_at?: string | null
+          payout_alias_snapshot?: string | null
+          payout_cbu_snapshot?: string | null
+          platform_fee_amount?: number
+          processor_fee_amount?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_earnings_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_earnings_appointment_payment_id_fkey"
+            columns: ["appointment_payment_id"]
+            isOneToOne: false
+            referencedRelation: "appointment_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_earnings_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctors: {
         Row: {
           accepted_insurance: Json | null
@@ -3781,6 +3936,8 @@ export type Database = {
           id: string
           languages: Json | null
           license_number: string
+          payout_alias: string | null
+          payout_cbu: string | null
           professional_address: string | null
           refeps_id: string | null
           schedule: Json | null
@@ -3810,6 +3967,8 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number: string
+          payout_alias?: string | null
+          payout_cbu?: string | null
           professional_address?: string | null
           refeps_id?: string | null
           schedule?: Json | null
@@ -3839,6 +3998,8 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number?: string
+          payout_alias?: string | null
+          payout_cbu?: string | null
           professional_address?: string | null
           refeps_id?: string | null
           schedule?: Json | null

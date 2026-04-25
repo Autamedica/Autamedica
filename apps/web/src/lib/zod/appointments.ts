@@ -2,8 +2,8 @@ import { z } from 'zod'
 
 /** Matches DB CHECK constraint: consultation, follow_up, emergency, telemedicine, lab_test */
 const AppointmentTypeEnum = z.enum(['consultation', 'follow_up', 'emergency', 'telemedicine', 'lab_test'])
-/** Matches DB CHECK constraint: scheduled, confirmed, in_progress, completed, cancelled, no_show */
-const AppointmentStatusEnum = z.enum(['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show'])
+/** Matches DB CHECK constraint: payment_pending, scheduled, confirmed, in_progress, completed, cancelled, no_show */
+const AppointmentStatusEnum = z.enum(['payment_pending', 'scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show'])
 
 export const CreatePatientAppointmentSchema = z.object({
   start_time: z.string().min(1, 'start_time is required'),
@@ -39,7 +39,7 @@ export const CreateDoctorAppointmentSchema = z.object({
 })
 
 export const TransitionAppointmentSchema = z.object({
-  status: z.enum(['scheduled', 'confirmed', 'in_progress', 're_queue', 'completed', 'cancelled', 'no_show'], {
+  status: z.enum(['payment_pending', 'scheduled', 'confirmed', 'in_progress', 're_queue', 'completed', 'cancelled', 'no_show'], {
     required_error: 'Missing status',
     invalid_type_error: 'Missing status',
   }),

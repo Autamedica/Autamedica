@@ -23,6 +23,7 @@ export type DbAppointmentRow = {
   doctor?: {
     id: string
     specialty: string | null
+    consultation_fee?: number | null
     user_id?: string | null
     profile?: {
       first_name: string | null
@@ -65,6 +66,7 @@ export function computeEndTime(startIso: string, durationMinutes: number): strin
 
 function mapStatus(status?: string | null): AppointmentStatus {
   switch (status) {
+    case 'payment_pending':
     case 'scheduled':
     case 'confirmed':
     case 'in_progress':
@@ -97,11 +99,12 @@ export function mapAppointment(row: DbAppointmentRow): AppointmentWithDoctor {
     created_at: row.created_at,
     updated_at: row.updated_at,
     doctor: row.doctor
-      ? {
+        ? {
           id: row.doctor.id,
           first_name: row.doctor.profile?.first_name ?? null,
           last_name: row.doctor.profile?.last_name ?? null,
           specialty: row.doctor.specialty,
+          consultation_fee: row.doctor.consultation_fee ?? null,
           profile_picture_url: null,
         }
       : null,

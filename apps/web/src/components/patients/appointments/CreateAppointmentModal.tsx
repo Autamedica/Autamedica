@@ -24,6 +24,7 @@ import { useModalAccessibility } from '@/hooks/patients/useModalAccessibility';
 interface DoctorOption {
   id: string;
   specialty: string | null;
+  consultation_fee: number | null;
   first_name: string | null;
   last_name: string | null;
   label: string;
@@ -73,6 +74,15 @@ function formatTime(isoString: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function formatPrice(amount: number | null | undefined): string {
+  if (!amount || amount <= 0) return 'Valor a confirmar';
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 function getDaysInRange(from: string, to: string): string[] {
@@ -333,12 +343,17 @@ export function CreateAppointmentModal({
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-stone-900 truncate">{doc.label}</p>
-                          {doc.specialty && (
-                            <p className="flex items-center gap-1 text-xs text-stone-500">
-                              <Stethoscope className="h-3 w-3" />
-                              {doc.specialty}
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
+                            {doc.specialty && (
+                              <p className="flex items-center gap-1">
+                                <Stethoscope className="h-3 w-3" />
+                                {doc.specialty}
+                              </p>
+                            )}
+                            <p className="font-medium text-stone-700">
+                              {formatPrice(doc.consultation_fee)}
                             </p>
-                          )}
+                          </div>
                         </div>
                         {isSelected && (
                           <div className="flex h-5 w-5 items-center justify-center rounded-full bg-stone-900 text-white">
@@ -489,6 +504,20 @@ export function CreateAppointmentModal({
                     </div>
                   </div>
                 )}
+
+                {selectedSlot && selectedDoctor && (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-sm font-semibold text-amber-900">
+                      Total a pagar antes de confirmar
+                    </p>
+                    <p className="mt-1 text-lg font-bold text-amber-950">
+                      {formatPrice(selectedDoctor.consultation_fee)}
+                    </p>
+                    <p className="mt-1 text-xs text-amber-800">
+                      Te vamos a redirigir a MercadoPago para completar el pago de la consulta.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -570,7 +599,7 @@ export function CreateAppointmentModal({
               disabled={loading || !selectedSlot || !selectedDoctorId}
               className="flex-1 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-stone-800 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {loading ? 'Agendando...' : 'Confirmar cita'}
+              {loading ? 'Abriendo checkout...' : 'Continuar al pago'}
             </button>
           </div>
         </form>

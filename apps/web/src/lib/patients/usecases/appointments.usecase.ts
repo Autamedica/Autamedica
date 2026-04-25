@@ -38,6 +38,7 @@ export interface UpdateAppointmentPayload {
  * Patients can only cancel their own scheduled appointments.
  */
 const PATIENT_ALLOWED_TRANSITIONS: Record<string, AppointmentStatus[]> = {
+  payment_pending: ['cancelled'],
   scheduled: ['cancelled'],
   confirmed: ['cancelled'],
 }

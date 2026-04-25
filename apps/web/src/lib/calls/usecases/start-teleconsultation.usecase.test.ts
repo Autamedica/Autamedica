@@ -28,6 +28,12 @@ vi.mock('@/lib/calls/lib/doctor-videoconsulta-credits', () => ({
   canDoctorStartVideoconsulta: vi.fn().mockResolvedValue({ allowed: true }),
 }))
 
+vi.mock('@/lib/payments/services/appointment-payments.service', () => ({
+  appointmentPaymentsService: {
+    hasApprovedPayment: vi.fn().mockResolvedValue(true),
+  },
+}))
+
 import { startTeleconsultationUseCase } from './start-teleconsultation.usecase'
 import type { ICallStartRepository } from '@/lib/calls/ports/call-start.port'
 import type { Call } from '@autamedica/telemedicine'
@@ -93,7 +99,7 @@ describe('startTeleconsultationUseCase — call.started emit', () => {
       doctor_id: 'doctor-1',
       patient_id: null,
       type: 'telemedicine',
-      status: 'scheduled',
+      status: 'confirmed',
       start_time: '2026-04-17T10:00:00.000Z',
       end_time: '2026-04-17T10:30:00.000Z',
       duration_minutes: 30,

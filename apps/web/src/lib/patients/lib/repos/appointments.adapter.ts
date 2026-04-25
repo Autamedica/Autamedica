@@ -23,7 +23,7 @@ import type {
 type Db = SupabaseClient<Database>
 
 const DOCTOR_SELECT =
-  '*, doctor:doctors(id, specialty, user_id, profile:profiles!doctors_user_id_fkey(first_name, last_name))' as const
+  '*, doctor:doctors(id, specialty, consultation_fee, user_id, profile:profiles!doctors_user_id_fkey(first_name, last_name))' as const
 
 export function createAppointmentAdapter(supabase: Db): IAppointmentsRepository {
   return {
@@ -105,7 +105,7 @@ export function createAppointmentAdapter(supabase: Db): IAppointmentsRepository 
         end_time,
         duration_minutes,
         type: effectiveType,
-        status: 'scheduled',
+        status: 'payment_pending',
         notes: combinedNotes,
         meeting_url: needsCanonicalTelemedicineUrl ? null : effectiveMeetingUrl,
         location: location ?? null,

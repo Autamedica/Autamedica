@@ -8,7 +8,7 @@
  *   id, user_id, license_number, specialty (text), subspecialty,
  *   years_experience, education (jsonb), certifications (jsonb),
  *   schedule (jsonb), consultation_fee, accepted_insurance (jsonb),
- *   bio, languages (jsonb), active, created_at, updated_at
+ *   bio, languages (jsonb), payout_cbu, payout_alias, active, created_at, updated_at
  *
  * Personal fields (first_name, last_name, email, phone) live in the
  * `profiles` table, linked via user_id. See DoctorWithProfile in
@@ -41,6 +41,8 @@ export interface DoctorRow {
   acceptedInsurance?: string[] | null;
   bio?: string | null;
   languages?: string[] | null;
+  payoutCbu?: string | null;
+  payoutAlias?: string | null;
   active: boolean;
   createdAt: ISODateString;
   updatedAt: ISODateString;
