@@ -17,6 +17,7 @@ import { primeRuntimeEnv, resolvePublicSupabaseEnv } from './lib/runtime-env';
 import { createSupabaseCookieClient, type CookieMethodsServer } from './lib/supabase';
 import './lib/patients/services/clinical-orchestrator.service';
 import './lib/notifications/notification-triggers';
+import './lib/payments/triggers';
 
 // Rutas que requieren autenticación
 const PROTECTED_ROUTES = [

@@ -6,9 +6,10 @@ import { appointmentsUseCase } from '@/lib/patients/usecases/appointments.usecas
 import { createAppointmentAdapter } from '@/lib/patients/lib/repos/appointments.adapter'
 import { createCallStartAdapter } from '@/lib/calls/repos/call-start.adapter'
 import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
+import { appointmentPaymentsService } from '@/lib/payments/services/appointment-payments.service'
 import { badRequest, conflict, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
 
-const JOINABLE_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
+const JOINABLE_STATUSES = new Set(['confirmed', 'in_progress'])
 
 async function ensurePatientJoined(
   actorSupabase: ReturnType<typeof createAstroServerClientFromRequest>,
@@ -69,6 +70,11 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
 
     if (!JOINABLE_STATUSES.has(appointment.status)) {
       return conflict('appointment_not_joinable')
+    }
+
+    const hasApprovedPayment = await appointmentPaymentsService.hasApprovedPayment(admin, appointment.id)
+    if (!hasApprovedPayment) {
+      return conflict('appointment_payment_required')
     }
 
     if (!isTelemedicineCallWindowOpen(appointment)) {

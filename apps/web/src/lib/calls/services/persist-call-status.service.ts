@@ -8,6 +8,7 @@ import {
 } from '@/lib/calls/services/call-status-rules'
 import { decrementFreeConsultation } from '@/lib/calls/lib/consultation-credits'
 import { decrementDoctorVideoconsulta } from '@/lib/calls/lib/doctor-videoconsulta-credits'
+import { appointmentPaymentsService } from '@/lib/payments/services/appointment-payments.service'
 import { logger, domainEvents } from '@autamedica/shared'
 
 type Db = SupabaseClient<Database>
@@ -140,6 +141,16 @@ export const persistCallStatusService = {
           error: err instanceof Error ? err.message : String(err),
         })
       })
+
+      if (call.appointment_id) {
+        void appointmentPaymentsService.createDoctorEarningForAppointment(admin, call.appointment_id).catch((err) => {
+          logger.error('[persist-call-status] Doctor earning creation failed', {
+            callId: call.id,
+            appointmentId: call.appointment_id,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        })
+      }
 
       // Emit domain event once, at the canonical transition point.
       // Duration is measured from accepted_at (first join) with created_at as fallback.

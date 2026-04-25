@@ -38,9 +38,10 @@ export const APPOINTMENT_TYPES: readonly AppointmentType[] = [
 
 /**
  * Estados de cita médica (refleja CHECK constraint en BD)
- * DB: scheduled, confirmed, in_progress, completed, cancelled, no_show
+ * DB: payment_pending, scheduled, confirmed, in_progress, completed, cancelled, no_show
  */
 export type AppointmentStatus =
+  | "payment_pending"
   | "scheduled"
   | "confirmed"
   | "in_progress"
@@ -49,6 +50,7 @@ export type AppointmentStatus =
   | "no_show";
 
 export const APPOINTMENT_STATUSES: readonly AppointmentStatus[] = [
+  "payment_pending",
   "scheduled",
   "confirmed",
   "in_progress",

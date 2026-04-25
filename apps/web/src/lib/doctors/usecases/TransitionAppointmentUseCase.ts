@@ -74,6 +74,7 @@ export class TransitionAppointmentUseCase {
 
   private isValidTransition(current: InternalStatus, next: InternalStatus): boolean {
     const transitions: Record<InternalStatus, ReadonlyArray<InternalStatus>> = {
+      payment_pending: ['confirmed', 'cancelled'],
       scheduled: ['confirmed', 'cancelled', 'in_progress', 'no_show'],
       confirmed: ['in_progress', 'cancelled', 'no_show'],
       in_progress: ['completed', 're_queue'],
