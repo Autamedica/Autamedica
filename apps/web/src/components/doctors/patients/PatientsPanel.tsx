@@ -17,8 +17,8 @@ import { useRealPatients } from '@/hooks/doctors/useRealPatients'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { useStartCall } from '@/hooks/doctors/useStartCall'
 import { selectDoctorPatientAppointmentInsights } from '@/lib/doctors/queries/doctor-appointments.selectors'
-import { Calendar, Clock, Video, Phone, Users, FileText, RefreshCw, Search, UserCheck, UserPlus } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { Calendar, Clock, Video, Phone, Users, FileText, RefreshCw, Search, Activity, UserCheck, UserPlus } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
 import { getDisplayName, getInitials, getAvatarColor } from '@/lib/doctors/lib/utils'
 
 interface PatientsPanelProps {
@@ -115,9 +115,28 @@ function PatientCardActions({
 
 export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelProps) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [pulseItems, setPulseItems] = useState<{email: string, joinedAt: string}[]>([])
+  const [pulseLoading, setPulseLoading] = useState(false)
   const { user } = useAuthenticatedUser()
 
+
   const { patients, loading, error, refetch } = useRealPatients()
+
+  useEffect(() => {
+    if (patients.length === 0) {
+      setPulseLoading(true)
+      fetch('/api/doctors/community-pulse')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setPulseItems(data)
+          setPulseLoading(false)
+        })
+        .catch(err => {
+          console.error('Failed to fetch pulse', err)
+          setPulseLoading(false)
+        })
+    }
+  }, [patients.length])
   
   const { appointments } = useDoctorAppointments()
   const resolvedDoctorUserId = doctorUserId ?? user?.doctorProfileId ?? user?.id ?? ''
@@ -283,8 +302,8 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
         ) : (
           <div className="rounded-[24px] border border-sky-100 bg-gradient-to-b from-sky-50/50 to-white overflow-hidden shadow-sm mt-4">
             <div className="flex flex-col xl:flex-row">
-              {/* Honest Pitch */}
-              <div className="flex-1 p-8 md:p-16 flex flex-col items-center text-center justify-center">
+              {/* Honest Pitch + Real Pulse */}
+              <div className="flex-1 p-8 md:p-12 flex flex-col justify-center">
                 <div className="inline-flex items-center gap-2 rounded-full bg-sky-100/50 px-3 py-1.5 text-xs font-bold text-sky-700 mb-6 w-fit border border-sky-200/50">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
@@ -292,24 +311,65 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                   </span>
                   Red Autamedica Activa
                 </div>
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sky-50 text-sky-600 mb-6">
-                  <Users className="h-8 w-8" />
-                </div>
                 <h3 className="text-2xl md:text-3xl font-extrabold text-neutral-900 tracking-tight mb-4">
                   Tu consultorio digital, conectado a una red viva.
                 </h3>
-                <p className="text-neutral-500 leading-relaxed mb-8 text-base md:text-lg max-w-2xl mx-auto">
-                  Más de <strong className="text-sky-700 text-xl">1.017 pacientes</strong> ya confían en Autamedica para gestionar su salud en toda Argentina. 
+                <p className="text-neutral-500 leading-relaxed mb-8 text-base md:text-lg max-w-2xl">
+                  Más de <strong className="text-sky-700">1.017 pacientes</strong> ya confían en Autamedica para gestionar su salud. 
                   Configurá tu disponibilidad para empezar a recibir derivaciones o compartí tu enlace personal para atender a tus propios pacientes de forma gratuita.
                 </p>
-                <div className="flex flex-wrap justify-center gap-4">
-                  <a href="/doctors/agenda" className="inline-flex items-center justify-center rounded-2xl bg-[#137a8c] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-teal-900/10 transition hover:bg-[#0e6378] active:scale-95">
+                <div className="flex flex-wrap gap-4">
+                  <a href="/doctors/agenda" className="inline-flex items-center justify-center rounded-2xl bg-[#137a8c] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-teal-900/10 transition hover:bg-[#0e6378] active:scale-95">
                     Abrir mi agenda
                   </a>
-                  <a href="/doctors/perfil" className="inline-flex items-center justify-center rounded-2xl bg-white border border-neutral-200 px-8 py-3.5 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50 active:scale-95">
+                  <a href="/doctors/perfil" className="inline-flex items-center justify-center rounded-2xl bg-white border border-neutral-200 px-6 py-3.5 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50 active:scale-95">
                     Completar mi perfil
                   </a>
                 </div>
+              </div>
+              
+              {/* Right side: Real Live feed from DB */}
+              <div className="hidden xl:flex w-[400px] bg-neutral-50/50 border-l border-neutral-100 flex-col p-8 shrink-0 relative overflow-hidden">
+                <div className="flex items-center gap-2 mb-6">
+                  <Activity className="h-4 w-4 text-sky-600" />
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400">Pulso en tiempo real</p>
+                </div>
+                
+                {pulseLoading ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-3 opacity-50">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-sky-500 border-t-transparent" />
+                    <p className="text-xs font-medium text-neutral-400">Conectando con la red...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 relative flex-1">
+                    {/* Fade out mask for scrolling effect */}
+                    <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-neutral-50/50 to-transparent z-10 pointer-events-none"></div>
+                    
+                    <div className="flex flex-col gap-3">
+                      {pulseItems.slice(0, 4).map((item, i) => (
+                        <div 
+                          key={i} 
+                          className="flex gap-4 items-center bg-white p-3.5 rounded-2xl border border-neutral-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both"
+                          style={{ animationDelay: `${i * 150}ms` }}
+                        >
+                          <div className="h-10 w-10 rounded-full bg-sky-50 flex items-center justify-center text-sky-600 shrink-0 font-bold text-xs uppercase border border-sky-100">
+                            {item.email.substring(0, 2)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-neutral-900 truncate">Paciente Nuevo</p>
+                            <p className="text-xs text-neutral-500 mt-0.5 truncate">{item.email}</p>
+                            <p className="text-[10px] text-sky-600 font-bold mt-1.5">
+                              Se unió el {new Date(item.joinedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {pulseItems.length === 0 && (
+                        <p className="text-xs text-neutral-400 text-center mt-10">Esperando nuevos registros...</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
