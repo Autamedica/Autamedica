@@ -211,13 +211,13 @@
   "pnpm": {
     "overrides": {
       "@supabase/supabase-js": "^2.98.0",
-      "vite": "^8.0.1",
+      "vite": ">=8.0.5",
       "@vitejs/plugin-react": "^6.0.1",
       "baseline-browser-mapping": "^2.10.13",
       "browserslist": "^4.28.2",
       "caniuse-lite": "^1.0.30001784",
       "esbuild": "^0.25.4",
-      "undici": "^7.10.0",
+      "undici": ">=7.24.0",
       "cookie": "^0.7.0",
       "@types/react": "19.1.0",
       "@types/react-dom": "19.1.0",
@@ -243,7 +243,10 @@
       "lodash": "4.18.1",
       "@testing-library/jest-dom": "6.9.1",
       "yaml-language-server": "1.21.0",
-      "@astrojs/check": "^0.9.8"
+      "@astrojs/check": "^0.9.8",
+      "crypto-js": ">=4.2.0",
+      "protobufjs": ">=7.5.5",
+      "@xmldom/xmldom": ">=0.8.13"
     },
     "patchedDependencies": {
       "astro": "patches/astro.patch"

@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return forbidden('patient_not_found')
     }
 
-    const result = await respondCallService.respond(admin, auth.supabase, {
+    const result = await respondCallService.respond(admin, admin, {
       patientId,
       callId,
       action,
