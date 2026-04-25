@@ -218,10 +218,27 @@ export const unwrapApiResponse = <T>(response: ApiResponse<T>): T => {
   }
 
   const error = new Error(response.error.message);
-  (error as unknown as ErrorWithMetadata).code = response.error.code;
-  (error as unknown as ErrorWithMetadata).details = response.error.details as Record<string, unknown> | undefined;
-  (error as unknown as ErrorWithMetadata).requestId = response.requestId;
-  throw error;
+  Object.defineProperties(error, {
+    code: {
+      value: response.error.code,
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    },
+    details: {
+      value: response.error.details as Record<string, unknown> | undefined,
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    },
+    requestId: {
+      value: response.requestId,
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    },
+  });
+  throw error as ErrorWithMetadata;
 };
 
 /**

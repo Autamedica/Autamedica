@@ -51,6 +51,14 @@ const PUBLIC_ROUTES = [
   '/api/health',
   '/doctors/pricing',
   '/call/join',
+  // External webhooks: validated via their own secret (HMAC/Bearer) inside the handler.
+  // They do NOT carry Supabase session cookies, so passing them through the Supabase
+  // auth pipeline produces noisy "auth error, clearing session" logs (ASTRO-3).
+  '/api/webhooks',
+  // Calls API: guest bootstrap uses Bearer guest tokens, authenticated bootstrap uses
+  // withAuth() inside the handler. The middleware-level Supabase check adds latency
+  // and can produce false 401s for guests with valid guest tokens (ASTRO-A/9).
+  '/api/calls',
 ];
 
 // Static showcase pages are prerendered at build time and should bypass

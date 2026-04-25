@@ -102,7 +102,16 @@ export function useGuestCallSession(roomId: string, initialToken: string | null,
       setSession(data)
     } catch (err) {
       const message = err instanceof Error ? err.message : (err as { payload?: { error?: { code?: string } } })?.payload?.error?.code || 'unknown'
-      logger.error('[useGuestCallSession] bootstrap/redeem failed', err)
+      // Guest bootstrap failures for 401/403/404 are expected user-facing conditions
+      // (invalid link, expired token, already used invite). The fetchApi layer logs
+      // them at warn level; here we avoid a second error-level log for the same cause.
+      const status = (err as { status?: number } | null)?.status
+      const isExpectedClientError = status === 401 || status === 403 || status === 404
+      if (isExpectedClientError) {
+        logger.warn('[useGuestCallSession] bootstrap/redeem failed', { status, message })
+      } else {
+        logger.error('[useGuestCallSession] bootstrap/redeem failed', err)
+      }
       setError(normalizeError(message))
     } finally {
       setLoading(false)

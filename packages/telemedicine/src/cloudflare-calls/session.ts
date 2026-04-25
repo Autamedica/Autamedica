@@ -50,6 +50,16 @@ export class CloudflareCallsSession {
   private negotiationQueue: Promise<void> = Promise.resolve()
   private readonly cfg: CFSessionConfig
   /**
+   * True once `connect()` has fully resolved (sessions/new answered, remote SDP
+   * applied and initial tracks/new completed). Gates external track operations
+   * that would otherwise race with the initial negotiation and hit either the
+   * "no conectado aún" guard (ASTRO-B/C) or Cloudflare's
+   * invalid_session_description 406 (ASTRO-D) because the PC is still in
+   * `have-local-offer`.
+   */
+  private ready = false
+  private closed = false
+  /**
    * Called synchronously for every `track` event BEFORE the app-level onTrack
    * handler. Set by subscribeToSession so midToUserId in the client gets
    * populated before handleRemoteTrack runs (ontrack fires during
@@ -130,6 +140,14 @@ export class CloudflareCallsSession {
 
     if (sessionDescription && this.pc) {
       await this.pc.setRemoteDescription(sessionDescription)
+    } else {
+      // Without a remote answer the PC stays in `have-local-offer`. Any
+      // subsequent tracks/new call would be rejected by Cloudflare with
+      // `invalid_session_description` (ASTRO-D). Bail early so the caller
+      // surfaces a clean error instead of a confusing 406.
+      throw new Error(
+        'CloudflareCallsSession: sessions/new did not return a remote sessionDescription'
+      )
     }
 
     // 2. Publicar los tracks locales con nombres canónicos (audio0, video0).
@@ -150,6 +168,7 @@ export class CloudflareCallsSession {
 
     if (localTracks.length > 0) {
       await this.enqueueNegotiation(async () => {
+        await this.waitForStableSignaling()
         const result = await this.cfApi<NewTracksResponse>(
           'POST',
           `sessions/${sessionId}/tracks/new`,
@@ -161,7 +180,13 @@ export class CloudflareCallsSession {
       })
     }
 
+    this.ready = true
     return sessionId
+  }
+
+  /** True once connect() finished and the SFU session is usable. */
+  isReady(): boolean {
+    return this.ready && !this.closed && this.pc !== null && this.sessionId !== null
   }
 
   /**
@@ -172,8 +197,25 @@ export class CloudflareCallsSession {
     remoteSessionId: string,
     onTrackMid?: (mid: string, kind: string) => void,
   ): Promise<TrackEntry[]> {
-    if (!this.pc || !this.sessionId) {
-      throw new Error('CloudflareCallsSession: no conectado aún')
+    if (this.closed) {
+      // Session was torn down (user navigated away, disconnect() already ran)
+      // while a signaling message was still in flight. Returning an empty
+      // result is the only sane thing here — throwing would surface as an
+      // unhandled promise rejection on a call the caller can no longer use.
+      this.cfg.onError?.(
+        new Error('CloudflareCallsSession: subscribe after close (ignored)')
+      )
+      return []
+    }
+    if (!this.pc || !this.sessionId || !this.ready) {
+      // The initial negotiation hasn't finished yet. The client layer is
+      // supposed to queue remote sessions via pendingRemoteSessionIds and
+      // drain them after connect() resolves, so reaching this branch means a
+      // caller didn't guard with isReady(). Throw so the bug is visible in
+      // dev, but include enough state for the Sentry breadcrumb to be useful.
+      throw new Error(
+        `CloudflareCallsSession: no conectado aún (ready=${this.ready}, hasPc=${!!this.pc}, hasSession=${!!this.sessionId})`
+      )
     }
 
     const remoteTracks: TrackEntry[] = [
@@ -195,6 +237,12 @@ export class CloudflareCallsSession {
     let pulledTracks: TrackEntry[] = []
     try {
       await this.enqueueNegotiation(async () => {
+        // Guard against calling tracks/new while the PC is still mid-renegotiation
+        // from a previous enqueued op. Cloudflare rejects with 406
+        // invalid_session_description when the signaling state is not `stable`
+        // (ASTRO-D).
+        await this.waitForStableSignaling()
+        if (this.closed || !this.pc || !this.sessionId) return
         const result = await this.cfApi<NewTracksResponse>(
           'POST',
           `sessions/${this.sessionId}/tracks/new`,
@@ -258,6 +306,37 @@ export class CloudflareCallsSession {
     })
   }
 
+  /**
+   * Resolves once the RTCPeerConnection is back in `stable` (no pending
+   * offer/answer in either direction). Called before every tracks/new so we
+   * never hit Cloudflare's `invalid_session_description` 406 — the SFU rejects
+   * the call whenever the client is still expecting a remote answer for a
+   * previous renegotiation (ASTRO-D).
+   */
+  private waitForStableSignaling(timeoutMs = 5000): Promise<void> {
+    return new Promise<void>((resolve) => {
+      if (!this.pc || this.pc.signalingState === 'stable') {
+        resolve()
+        return
+      }
+      const pc = this.pc
+      const timeout = setTimeout(() => {
+        pc.removeEventListener('signalingstatechange', onChange)
+        // Best-effort: resolve even on timeout so we don't deadlock the queue.
+        // If the state never becomes stable, cfApi will surface the real error.
+        resolve()
+      }, timeoutMs)
+      const onChange = () => {
+        if (pc.signalingState === 'stable') {
+          clearTimeout(timeout)
+          pc.removeEventListener('signalingstatechange', onChange)
+          resolve()
+        }
+      }
+      pc.addEventListener('signalingstatechange', onChange)
+    })
+  }
+
   /** Espera que el ICE gathering termine o expire el timeout (4s) */
   private waitForIceGathering(): Promise<void> {
     return new Promise<void>((resolve) => {
@@ -312,6 +391,13 @@ export class CloudflareCallsSession {
   }
 
   async close(): Promise<void> {
+    // Mark closed FIRST so any in-flight subscribeToSession still resolving
+    // in the negotiation queue sees the flag and short-circuits instead of
+    // hitting the "no conectado aún" throw (ASTRO-B/C reproduced when a
+    // cf-session signaling message was processed just as the user left the
+    // /doctors/call page and disconnect() wiped sessionId).
+    this.closed = true
+    this.ready = false
     // Explicitly close tracks on the Cloudflare Calls side so the SFU releases
     // the slot immediately instead of waiting for the ICE teardown timeout.
     // Without this, other peers observe the track as "alive but silent" for a
