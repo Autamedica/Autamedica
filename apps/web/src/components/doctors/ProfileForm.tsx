@@ -71,8 +71,8 @@ export function ProfileForm() {
       if (typeof d.consultationFee === 'number') setConsultationFee(String(d.consultationFee))
       if (d.payoutCbu) setPayoutCbu(d.payoutCbu)
       if (d.payoutAlias) setPayoutAlias(d.payoutAlias)
-      if (d.signatureImageUrl) setSignatureUrl(d.signatureImageUrl)
-      if (d.stampImageUrl) setStampUrl(d.stampImageUrl)
+      if (d.signature_url) setSignatureUrl(d.signature_url)
+      if (d.stamp_url) setStampUrl(d.stamp_url)
       
       const jur = d.enrollmentJurisdiction
       if (jur) {
@@ -125,6 +125,8 @@ export function ProfileForm() {
           consultation_fee: normalizedFee === '' ? undefined : consultationFeeValue,
           payout_cbu: normalizedCbu || undefined,
           payout_alias: payoutAlias.trim() || undefined,
+          signature_url: signatureUrl || undefined,
+          stamp_url: stampUrl || undefined,
           active: true,
         },
       })

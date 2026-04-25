@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
 import { fetchApi } from '@/lib/api-client'
 import { logger } from '@autamedica/shared'
@@ -33,6 +33,13 @@ export function SignaturePad({ type, currentUrl, onSaved }: SignaturePadProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl ?? null)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (currentUrl && !previewUrl) {
+      setPreviewUrl(currentUrl)
+      setSaved(true)
+    }
+  }, [currentUrl, previewUrl])
 
   const label = LABELS[type]
 
