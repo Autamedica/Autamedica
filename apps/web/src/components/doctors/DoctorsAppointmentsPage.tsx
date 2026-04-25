@@ -9,6 +9,7 @@ export function DoctorsAppointmentsPage() {
       title="Agenda médica"
       description="Gestiona citas, teleconsultas y disponibilidad desde un entorno unificado para doctores."
       activeSection="appointments"
+      hideDefaultHeader
     >
       <AppointmentsPanel />
     </DoctorsPortalFrame>
