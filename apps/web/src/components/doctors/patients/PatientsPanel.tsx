@@ -275,12 +275,85 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
 
       {/* Patient Cards */}
       {filteredPatients.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-muted py-16">
-          <Users className="h-10 w-10 text-muted-foreground/30 mb-3" />
-          <p className="text-muted-foreground">
-            {searchTerm ? 'No hay coincidencias.' : 'Sin pacientes asignados.'}
-          </p>
-        </div>
+        searchTerm ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-muted py-16">
+            <Search className="h-10 w-10 text-muted-foreground/30 mb-3" />
+            <p className="text-muted-foreground">No hay coincidencias para "{searchTerm}".</p>
+          </div>
+        ) : (
+          <div className="rounded-[24px] border border-sky-100 bg-gradient-to-b from-sky-50/50 to-white overflow-hidden shadow-sm mt-4">
+            <div className="flex flex-col xl:flex-row">
+              {/* Left side: The pitch */}
+              <div className="flex-1 p-8 md:p-12 flex flex-col justify-center">
+                <div className="inline-flex items-center gap-2 rounded-full bg-sky-100/50 px-3 py-1.5 text-xs font-bold text-sky-700 mb-6 w-fit border border-sky-200/50">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+                  </span>
+                  Red Autamedica Activa
+                </div>
+                <h3 className="text-2xl md:text-3xl font-extrabold text-neutral-900 tracking-tight mb-4">
+                  Tu consultorio digital, conectado a una red viva.
+                </h3>
+                <p className="text-neutral-500 leading-relaxed mb-8 text-base md:text-lg max-w-2xl">
+                  Más de <strong className="text-sky-700">1.017 pacientes</strong> ya confían en Autamedica para gestionar su salud. 
+                  Configura tu disponibilidad para empezar a recibir derivaciones o comparte tu enlace personal para atender a tus propios pacientes de forma gratuita.
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <a href="/doctors/agenda" className="inline-flex items-center justify-center rounded-2xl bg-[#137a8c] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-teal-900/10 transition hover:bg-[#0e6378] active:scale-95">
+                    Abrir mi agenda
+                  </a>
+                  <a href="/doctors/perfil" className="inline-flex items-center justify-center rounded-2xl bg-white border border-neutral-200 px-6 py-3.5 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50 active:scale-95">
+                    Completar mi perfil
+                  </a>
+                </div>
+              </div>
+              
+              {/* Right side: Live feed simulation */}
+              <div className="hidden xl:flex w-[400px] bg-neutral-50/50 border-l border-neutral-100 flex-col p-8 shrink-0 relative">
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 mb-6">Pulso de la comunidad</p>
+                <div className="space-y-4 relative">
+                  {/* Fade out mask for scrolling effect */}
+                  <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-neutral-50/50 to-transparent z-10"></div>
+                  
+                  {/* Feed Items */}
+                  <div className="flex gap-4 items-start bg-white p-4 rounded-2xl border border-neutral-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-neutral-900">Renovación de receta</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">Paciente (68) • Córdoba</p>
+                      <p className="text-[10px] text-emerald-600 font-bold mt-2">Hace 2 min</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-4 items-start bg-white p-4 rounded-2xl border border-neutral-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150 fill-mode-both">
+                    <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                      <Video className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-neutral-900">Videoconsulta pediátrica</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">Paciente (3) • Buenos Aires</p>
+                      <p className="text-[10px] text-blue-600 font-bold mt-2">Hace 15 min</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-4 items-start bg-white p-4 rounded-2xl border border-neutral-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
+                    <div className="h-10 w-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
+                      <Calendar className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-neutral-900">Nuevo turno agendado</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">Paciente (42) • Mendoza</p>
+                      <p className="text-[10px] text-purple-600 font-bold mt-2">Hace 41 min</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredPatients.map((patient) => {
