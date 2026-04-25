@@ -20,7 +20,7 @@ function isMissingAppointmentIdColumn(error: unknown): boolean {
     (error as { code?: string }).code === '42703' &&
     'message' in error &&
     typeof (error as { message?: string }).message === 'string' &&
-    (error as { message: string }).message.includes('calls.appointment_id')
+    (error as { message: string }).message.includes('appointment_id')
   )
 }
 
@@ -116,7 +116,9 @@ export const callSessionRepo = {
     return (data as { user_id: string | null } | null)?.user_id ?? null
   },
 
-  async resolvePatientUserId(supabase: Db, patientId: string): Promise<string | null> {
+  async resolvePatientUserId(supabase: Db, patientId: string | null): Promise<string | null> {
+    if (!patientId) return null;
+    
     const { data, error } = await supabase
       .from('patients')
       .select('user_id')

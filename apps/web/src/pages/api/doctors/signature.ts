@@ -8,126 +8,127 @@
  * Body: { type: 'signature' | 'stamp', image: string (base64 data URL) }
  */
 import type { APIRoute } from 'astro';
-import { requireSession } from '@autamedica/auth';
-import { createServerClientFromRequest } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
+import { badRequest, internalError, jsonOk, notFound } from '@/lib/api-helpers';
+import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
+import { createAstroAdminClient } from '@/lib/supabase';
 
 const MAX_IMAGE_SIZE = 500 * 1024; // 500KB
+type SignatureAssetType = 'signature' | 'stamp';
 
-export const POST: APIRoute = async ({ request }) => {
+function jsonError(message: string, status: number): Response {
+  if (status === 400) return badRequest(message);
+  if (status === 404) return notFound(message);
+  return internalError(message);
+}
+
+function decodeBase64Image(image: string): {
+  bytes: Uint8Array;
+  format: 'png' | 'webp' | 'jpeg';
+  contentType: string;
+} | null {
+  const match = image.match(/^data:image\/(png|webp|jpeg);base64,(.+)$/);
+  if (!match) return null;
+
+  const [, format, base64Data] = match as [string, 'png' | 'webp' | 'jpeg', string];
+  const binary = atob(base64Data);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return {
+    bytes,
+    format,
+    contentType: `image/${format}`,
+  };
+}
+
+export const POST: APIRoute = async ({ request, locals }) => {
+  const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
+  if (!isAuthed(auth)) return auth;
+
   try {
-    const session = await requireSession(request);
-    const supabase = createServerClientFromRequest(request);
-    const userId = session.user.id;
+    const admin = createAstroAdminClient(locals.runtime?.env);
+    const userId = auth.user.id;
 
     const body = await request.json();
     const { type, image } = body as { type?: string; image?: string };
 
     if (!type || !['signature', 'stamp'].includes(type)) {
-      return new Response(JSON.stringify({ error: 'Invalid type. Must be "signature" or "stamp"' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('invalid_signature_type', 400);
     }
 
     if (!image || typeof image !== 'string') {
-      return new Response(JSON.stringify({ error: 'Missing image data' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('missing_image_data', 400);
     }
 
-    // Parse base64 data URL
-    const match = image.match(/^data:image\/(png|webp|jpeg);base64,(.+)$/);
-    if (!match) {
-      return new Response(JSON.stringify({ error: 'Invalid image format. Must be PNG, WebP, or JPEG base64 data URL' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const decodedImage = decodeBase64Image(image);
+    if (!decodedImage) {
+      return jsonError('invalid_image_format', 400);
     }
 
-    const [, format, base64Data] = match;
-    const buffer = Buffer.from(base64Data, 'base64');
-
-    if (buffer.length > MAX_IMAGE_SIZE) {
-      return new Response(JSON.stringify({ error: `Image too large. Max ${MAX_IMAGE_SIZE / 1024}KB` }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (decodedImage.bytes.byteLength > MAX_IMAGE_SIZE) {
+      return jsonError('image_too_large', 400);
     }
 
     // Get doctor record
-    const { data: doctor, error: doctorErr } = await supabase
+    const { data: doctor, error: doctorErr } = await admin
       .from('doctors')
       .select('id')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (doctorErr || !doctor) {
-      return new Response(JSON.stringify({ error: 'Doctor profile not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      logger.warn('[signature-upload] Doctor profile not found', { userId, error: doctorErr });
+      return jsonError('doctor_profile_not_found', 404);
     }
 
     // Upload to Supabase Storage
-    const ext = format === 'jpeg' ? 'jpg' : format;
-    const filePath = `signatures/${doctor.id}/${type}.${ext}`;
-    const contentType = `image/${format}`;
+    const assetType = type as SignatureAssetType;
+    const ext = decodedImage.format === 'jpeg' ? 'jpg' : decodedImage.format;
+    const filePath = `${userId}/signatures/${doctor.id}/${assetType}.${ext}`;
 
-    const { error: uploadErr } = await supabase.storage
+    const { error: uploadErr } = await admin.storage
       .from('medical-documents')
-      .upload(filePath, buffer, {
-        contentType,
+      .upload(filePath, decodedImage.bytes, {
+        contentType: decodedImage.contentType,
         upsert: true,
       });
 
     if (uploadErr) {
       logger.error('[signature-upload] Storage error', uploadErr);
-      return new Response(JSON.stringify({ error: 'Upload failed' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('signature_upload_failed', 500);
     }
 
     // Get public/signed URL
-    const { data: urlData } = await supabase.storage
+    const { data: urlData, error: urlErr } = await admin.storage
       .from('medical-documents')
       .createSignedUrl(filePath, 10 * 365 * 24 * 60 * 60); // 10 years
 
     const imageUrl = urlData?.signedUrl ?? null;
+    if (urlErr || !imageUrl) {
+      logger.error('[signature-upload] Signed URL error', urlErr);
+      return jsonError('signature_url_failed', 500);
+    }
 
     // Update doctor record
-    const column = type === 'signature' ? 'signature_image_url' : 'stamp_image_url';
-    const { error: updateErr } = await supabase
+    const column = assetType === 'signature' ? 'signature_image_url' : 'stamp_image_url';
+    const { error: updateErr } = await admin
       .from('doctors')
-      .update({ [column]: imageUrl })
+      .update({ [column]: imageUrl } as never)
       .eq('id', doctor.id);
 
     if (updateErr) {
       logger.error('[signature-upload] DB update error', updateErr);
-      return new Response(JSON.stringify({ error: 'Failed to update profile' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError('signature_profile_update_failed', 500);
     }
 
-    logger.info('[signature-upload] Success', { doctorId: doctor.id, type });
+    logger.info('[signature-upload] Success', { doctorId: doctor.id, type: assetType });
 
-    return new Response(JSON.stringify({ url: imageUrl, type }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonOk({ url: imageUrl, type: assetType });
   } catch (error) {
-    if ((error as { name?: string }).name === 'RedirectError') {
-      const redirectUrl = (error as { url: string }).url;
-      return new Response(null, { status: 302, headers: { Location: redirectUrl } });
-    }
-
     logger.error('[signature-upload] Unexpected error', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError('signature_internal_error', 500);
   }
 };

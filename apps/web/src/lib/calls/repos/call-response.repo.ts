@@ -29,7 +29,7 @@ function isMissingAppointmentIdColumn(error: unknown): boolean {
     (error as { code?: string }).code === '42703' &&
     'message' in error &&
     typeof (error as { message?: string }).message === 'string' &&
-    (error as { message: string }).message.includes('calls.appointment_id')
+    (error as { message: string }).message.includes('appointment_id')
   )
 }
 

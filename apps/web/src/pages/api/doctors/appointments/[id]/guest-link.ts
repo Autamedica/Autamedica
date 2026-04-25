@@ -50,8 +50,19 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     // 4. Buscar llamada activa o crear una
     let call = await callStartRepo.findActiveByAppointmentId(appt.id)
     if (!call) {
-      // Usamos doctor.id como placeholder temporal en patient_id si es invitado
-      call = await callStartRepo.createCall(doctor.id, appt.patient_id ?? doctor.id, appt.id)
+      // FIX: No usar doctor.id como placeholder. Usar null si no hay paciente registrado.
+      call = await callStartRepo.createCall(doctor.id, appt.patient_id ?? null, appt.id)
+
+      // Verificación de seguridad: asegurar que la llamada quedó vinculada a la cita
+      if (call.appointment_id !== appt.id) {
+        logger.error('[appointment-guest-link] call was not linked to appointment', {
+          callId: call.id,
+          roomId: call.room_id,
+          appointmentId: appt.id,
+          callAppointmentId: call.appointment_id,
+        })
+        return internalError('call_appointment_link_failed')
+      }
     }
 
     // 5. Crear Invitación Opaca en DB

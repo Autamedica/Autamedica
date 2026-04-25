@@ -1,4 +1,6 @@
 import type { APIRoute } from 'astro';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@autamedica/types';
 import { logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
 import {
@@ -16,10 +18,22 @@ const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 100;
 
 type RuntimeEnv = Record<string, unknown> | null | undefined;
+type AdminClient = SupabaseClient<Database>;
+
+type EmailJobType =
+  | 'welcome'
+  | 'anamnesis_reminder'
+  | 'appointment_reminder'
+  | 'newsletter'
+  | 'doctor_new_appointment'
+  | 'doctor_appointment_cancelled'
+  | 'doctor_anamnesis_ready'
+  | 'patient_appointment_cancelled'
+  | 'patient_prescription_ready';
 
 type EmailJob = {
   id: string;
-  job_type: 'welcome' | 'anamnesis_reminder' | 'appointment_reminder' | 'newsletter';
+  job_type: EmailJobType;
   recipient_email: string;
   recipient_name: string | null;
   template_data: Record<string, unknown> | null;
@@ -60,6 +74,10 @@ function stringFromData(data: Record<string, unknown> | null, key: string): stri
   return typeof value === 'string' ? value : '';
 }
 
+function firstName(job: EmailJob): string {
+  return job.recipient_name || 'como estas';
+}
+
 function renderAppointmentReminder(job: EmailJob): RenderedEmail {
   const data = job.template_data ?? {};
   const appointmentTime = stringFromData(data, 'appointment_time');
@@ -82,22 +100,145 @@ function renderAppointmentReminder(job: EmailJob): RenderedEmail {
   });
 }
 
+function renderDoctorNewAppointment(job: EmailJob): RenderedEmail {
+  const data = job.template_data ?? {};
+  const appointmentTime = stringFromData(data, 'appointment_time');
+  const patientName = stringFromData(data, 'patient_name') || 'Un paciente';
+  const actionUrl = stringFromData(data, 'action_url') || 'https://www.autamedica.com/doctors/agenda';
+  const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
+
+  return renderAutamedicaEmail('AutaMedica · nueva cita agendada', {
+    variant: 'transactional',
+    title: `Hola, ${firstName(job)}`,
+    preheader: 'Tenes una nueva cita agendada en AutaMedica.',
+    paragraphs: [
+      appointmentTime
+        ? `${patientName} agendo una consulta para el ${appointmentTime} hs.`
+        : `${patientName} agendo una nueva consulta.`,
+      'Ya podes verla desde tu agenda medica.',
+    ],
+    action: { label: 'Ver agenda', url: actionUrl },
+    unsubscribeUrl,
+  });
+}
+
+function renderDoctorAppointmentCancelled(job: EmailJob): RenderedEmail {
+  const data = job.template_data ?? {};
+  const appointmentTime = stringFromData(data, 'appointment_time');
+  const patientName = stringFromData(data, 'patient_name') || 'Un paciente';
+  const actionUrl = stringFromData(data, 'action_url') || 'https://www.autamedica.com/doctors/agenda';
+  const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
+
+  return renderAutamedicaEmail('AutaMedica · cita cancelada', {
+    variant: 'transactional',
+    title: `Hola, ${firstName(job)}`,
+    preheader: 'Una cita fue cancelada en AutaMedica.',
+    paragraphs: [
+      appointmentTime
+        ? `${patientName} cancelo la consulta del ${appointmentTime} hs.`
+        : `${patientName} cancelo una consulta.`,
+      'Tu agenda ya refleja el cambio.',
+    ],
+    action: { label: 'Ver agenda', url: actionUrl },
+    unsubscribeUrl,
+  });
+}
+
+function renderPatientAppointmentCancelled(job: EmailJob): RenderedEmail {
+  const data = job.template_data ?? {};
+  const appointmentTime = stringFromData(data, 'appointment_time');
+  const doctorName = stringFromData(data, 'doctor_name') || 'Tu medico';
+  const actionUrl = stringFromData(data, 'action_url') || 'https://www.autamedica.com/patients/appointments';
+  const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
+
+  return renderAutamedicaEmail('AutaMedica · cita cancelada', {
+    variant: 'transactional',
+    title: `Hola, ${firstName(job)}`,
+    preheader: 'Tu cita fue cancelada en AutaMedica.',
+    paragraphs: [
+      appointmentTime
+        ? `${doctorName} cancelo la consulta del ${appointmentTime} hs.`
+        : `${doctorName} cancelo una consulta.`,
+      'Podes revisar tus turnos y agendar uno nuevo desde tu portal.',
+    ],
+    action: { label: 'Ver turnos', url: actionUrl },
+    unsubscribeUrl,
+  });
+}
+
+function renderDoctorAnamnesisReady(job: EmailJob): RenderedEmail {
+  const data = job.template_data ?? {};
+  const patientName = stringFromData(data, 'patient_name') || 'Un paciente';
+  const actionUrl = stringFromData(data, 'action_url') || 'https://www.autamedica.com/doctors/patients';
+  const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
+
+  return renderAutamedicaEmail('AutaMedica · anamnesis disponible', {
+    variant: 'transactional',
+    title: `Hola, ${firstName(job)}`,
+    preheader: 'Hay una anamnesis lista para revisar.',
+    paragraphs: [
+      `${patientName} completo su anamnesis preconsulta.`,
+      'Ya podes revisarla desde el panel medico.',
+    ],
+    action: { label: 'Ver paciente', url: actionUrl },
+    unsubscribeUrl,
+  });
+}
+
+function renderPatientPrescriptionReady(job: EmailJob): RenderedEmail {
+  const data = job.template_data ?? {};
+  const doctorName = stringFromData(data, 'doctor_name') || 'Tu medico';
+  const actionUrl = stringFromData(data, 'action_url') || 'https://www.autamedica.com/patients/prescriptions';
+  const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
+
+  return renderAutamedicaEmail('AutaMedica · receta disponible', {
+    variant: 'transactional',
+    title: `Hola, ${firstName(job)}`,
+    preheader: 'Tenes una receta disponible en AutaMedica.',
+    paragraphs: [
+      `${doctorName} dejo una receta disponible para vos.`,
+      'Podes verla y descargarla desde tu portal.',
+    ],
+    action: { label: 'Ver receta', url: actionUrl },
+    unsubscribeUrl,
+  });
+}
+
 function renderJob(job: EmailJob): RenderedEmail {
   const data = job.template_data ?? {};
   const actionUrl = stringFromData(data, 'action_url') || 'https://www.autamedica.com';
   const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
-  const firstName = job.recipient_name || 'como estas';
 
   if (job.job_type === 'welcome') {
-    return buildWelcomeEmail(firstName, actionUrl, unsubscribeUrl);
+    return buildWelcomeEmail(firstName(job), actionUrl, unsubscribeUrl);
   }
 
   if (job.job_type === 'anamnesis_reminder') {
-    return buildReminderEmail(firstName, actionUrl, unsubscribeUrl);
+    return buildReminderEmail(firstName(job), actionUrl, unsubscribeUrl);
   }
 
   if (job.job_type === 'appointment_reminder') {
     return renderAppointmentReminder(job);
+  }
+
+  if (job.job_type === 'doctor_new_appointment') {
+    return renderDoctorNewAppointment(job);
+  }
+
+  if (job.job_type === 'doctor_appointment_cancelled') {
+    return renderDoctorAppointmentCancelled(job);
+  }
+
+  if (job.job_type === 'patient_appointment_cancelled') {
+    return renderPatientAppointmentCancelled(job);
+  }
+
+  if (job.job_type === 'doctor_anamnesis_ready') {
+    return renderDoctorAnamnesisReady(job);
+  }
+
+  if (job.job_type === 'patient_prescription_ready') {
+    return renderPatientPrescriptionReady(job);
   }
 
   return renderAutamedicaEmail('AutaMedica', {
@@ -145,7 +286,7 @@ async function sendViaResend(
   return parsed.id ?? '';
 }
 
-async function enqueueDueReminders(admin: any, limit: number): Promise<number> {
+async function enqueueDueReminders(admin: AdminClient, limit: number): Promise<number> {
   const { data, error } = await admin
     .schema('growth_os')
     .rpc('enqueue_anamnesis_reminders', { batch_limit: limit, min_profile_age: '2 hours' });
@@ -158,7 +299,7 @@ async function enqueueDueReminders(admin: any, limit: number): Promise<number> {
   return typeof data === 'number' ? data : 0;
 }
 
-async function loadPendingJobs(admin: any, limit: number): Promise<EmailJob[]> {
+async function loadPendingJobs(admin: AdminClient, limit: number): Promise<EmailJob[]> {
   const { data, error } = await admin
     .schema('growth_os')
     .from('email_jobs')
@@ -172,7 +313,7 @@ async function loadPendingJobs(admin: any, limit: number): Promise<EmailJob[]> {
   return (data ?? []) as EmailJob[];
 }
 
-async function claimJob(admin: any, job: EmailJob): Promise<boolean> {
+async function claimJob(admin: AdminClient, job: EmailJob): Promise<boolean> {
   const { data, error } = await admin
     .schema('growth_os')
     .from('email_jobs')
@@ -191,7 +332,7 @@ async function claimJob(admin: any, job: EmailJob): Promise<boolean> {
   return Boolean(data?.id);
 }
 
-async function markSent(admin: any, jobId: string, providerMessageId: string): Promise<void> {
+async function markSent(admin: AdminClient, jobId: string, providerMessageId: string): Promise<void> {
   const { error } = await admin
     .schema('growth_os')
     .from('email_jobs')
@@ -207,7 +348,7 @@ async function markSent(admin: any, jobId: string, providerMessageId: string): P
   if (error) throw new Error(error.message);
 }
 
-async function markFailed(admin: any, job: EmailJob, errorMessage: string): Promise<void> {
+async function markFailed(admin: AdminClient, job: EmailJob, errorMessage: string): Promise<void> {
   const nextStatus = job.attempts + 1 >= job.max_attempts ? 'failed' : 'pending';
   const { error } = await admin
     .schema('growth_os')
@@ -232,7 +373,7 @@ async function handle(request: Request, runtimeEnv: RuntimeEnv, dryRunOverride?:
   const admin = createAstroAdminClient(runtimeEnv);
 
   if (dryRun) {
-    const jobs = await loadPendingJobs(admin as any, limit);
+    const jobs = await loadPendingJobs(admin, limit);
     return json({
       dry_run: true,
       pending: jobs.length,
@@ -245,23 +386,23 @@ async function handle(request: Request, runtimeEnv: RuntimeEnv, dryRunOverride?:
     });
   }
 
-  const enqueued = await enqueueDueReminders(admin as any, limit);
-  const jobs = await loadPendingJobs(admin as any, limit);
+  const enqueued = await enqueueDueReminders(admin, limit);
+  const jobs = await loadPendingJobs(admin, limit);
   const results: Array<Record<string, unknown>> = [];
 
   for (const job of jobs) {
     try {
-      const claimed = await claimJob(admin as any, job);
+      const claimed = await claimJob(admin, job);
       if (!claimed) continue;
 
       const rendered = renderJob(job);
       const providerMessageId = await sendViaResend(runtimeEnv, job, rendered);
-      await markSent(admin as any, job.id, providerMessageId);
+      await markSent(admin, job.id, providerMessageId);
       results.push({ id: job.id, job_type: job.job_type, status: 'sent' });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       logger.error('[email-jobs] Failed job', { jobId: job.id, jobType: job.job_type, message });
-      await markFailed(admin as any, job, message);
+      await markFailed(admin, job, message);
       results.push({ id: job.id, job_type: job.job_type, status: 'error', error: message });
     }
   }

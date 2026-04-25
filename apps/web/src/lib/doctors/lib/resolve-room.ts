@@ -57,13 +57,20 @@ export async function resolveRoomParticipants(
  */
 export async function resolvePatientProfile(
   admin: AdminClient,
-  patientId: string,
+  patientId: string | null,
 ): Promise<{ name: string; dateOfBirth: string | null; gender: string | null }> {
-  const { data: patientRow } = await admin
+  if (!patientId) {
+    return { name: 'Paciente', dateOfBirth: null, gender: null };
+  }
+
+  const { data: patientRow, error } = await admin
     .from('patients')
     .select('user_id')
     .eq('id', patientId)
     .maybeSingle();
+
+  if (error) throw error;
+
 
   const userId = (patientRow as { user_id: string | null } | null)?.user_id;
   if (!userId) {
