@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
-import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
+import { createAstroAdminClient } from '@/lib/supabase'
 import { appointmentsUseCase } from '@/lib/patients/usecases/appointments.usecase'
 import { createAppointmentAdapter } from '@/lib/patients/lib/repos/appointments.adapter'
 import { createCallStartAdapter } from '@/lib/calls/repos/call-start.adapter'
@@ -11,7 +11,7 @@ import { badRequest, conflict, internalError, jsonOk, notFound, unauthorized } f
 const JOINABLE_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
 
 async function ensurePatientJoined(
-  actorSupabase: ReturnType<typeof createAstroServerClientFromRequest>,
+  adminClient: ReturnType<typeof createAstroAdminClient>,
   callId: string,
   currentStatus: string,
 ): Promise<string> {
@@ -20,7 +20,7 @@ async function ensurePatientJoined(
   }
 
   try {
-    const updated = await createCallStartAdapter(actorSupabase).updateCallStatus(callId, 'accepted')
+    const updated = await createCallStartAdapter(adminClient).updateCallStatus(callId, 'accepted')
     return updated ? 'accepted' : currentStatus
   } catch (error) {
     logger.warn('[patients/appointments/[id]/join] Failed to move call to accepted', error)
@@ -51,7 +51,6 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
 
   try {
     const admin = createAstroAdminClient(locals.runtime?.env)
-    const actorSupabase = createAstroServerClientFromRequest(request)
     const appointment = await appointmentsUseCase.getById({ appointmentsRepo: createAppointmentAdapter(admin), dbClient: admin }, params.id, context.patientId)
 
     if (!appointment) {
@@ -89,7 +88,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
         : null)
 
     if (existingCall) {
-      const status = await ensurePatientJoined(actorSupabase, existingCall.id, existingCall.status)
+      const status = await ensurePatientJoined(admin, existingCall.id, existingCall.status)
       return jsonOk({
         callId: existingCall.id,
         roomId: existingCall.room_id,
@@ -103,7 +102,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       context.patientId,
       appointment.id,
     )
-    const status = await ensurePatientJoined(actorSupabase, createdCall.id, createdCall.status)
+    const status = await ensurePatientJoined(admin, createdCall.id, createdCall.status)
 
     return jsonOk({
       callId: createdCall.id,

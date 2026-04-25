@@ -202,10 +202,15 @@ export const callSessionBackendService = {
       return { kind: 'ok', data }
     }
 
-    logger.warn('[callSessionBackendService] access denied to room', {
+    logger.warn('[callSessionBackendService] access denied to room — participant match failed', {
       roomId,
       viewerUserId,
+      callDoctorId: call.doctor_id,
+      callPatientId: call.patient_id,
+      resolvedDoctorProfileId: doctorProfileId,
+      resolvedPatientProfileId: patientProfileId,
       callId: call.id,
+      callStatus: call.status,
     })
 
     return { kind: 'forbidden' }
