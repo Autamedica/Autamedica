@@ -8,7 +8,7 @@ const { t } = getI18n(locale);
   <div class="newsletter-inner">
     <h2 class="newsletter-title">{t('landing.newsletter.title')}</h2>
     <p class="newsletter-subtitle">{t('landing.newsletter.subtitle')}</p>
-    <form class="newsletter-form" action="#" method="post">
+    <form id="newsletter-form" class="newsletter-form" action="/api/growth-leads" method="post">
       <input
         type="email"
         name="email"
@@ -17,10 +17,15 @@ const { t } = getI18n(locale);
         placeholder={t('landing.newsletter.placeholder')}
         class="newsletter-input"
       />
+      <label class="newsletter-honeypot" aria-hidden="true">
+        Empresa
+        <input type="text" name="company" tabindex="-1" autocomplete="off" />
+      </label>
       <button type="submit" class="newsletter-button">
         {t('landing.newsletter.button')}
       </button>
     </form>
+    <p id="newsletter-status" class="newsletter-status" aria-live="polite"></p>
     <p class="newsletter-note">{t('landing.newsletter.note')}</p>
   </div>
 </section>
@@ -96,6 +101,34 @@ const { t } = getI18n(locale);
     opacity: 0.85;
   }
 
+  .newsletter-button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+
+  .newsletter-honeypot {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .newsletter-status {
+    min-height: 1.25rem;
+    font-size: var(--text-xs);
+    color: var(--au-text-secondary);
+    margin: 0 0 var(--space-2);
+  }
+
+  .newsletter-status[data-state='success'] {
+    color: #047857;
+  }
+
+  .newsletter-status[data-state='error'] {
+    color: #b91c1c;
+  }
+
   .newsletter-note {
     font-size: var(--text-xs);
     color: var(--au-text-tertiary);
@@ -108,3 +141,77 @@ const { t } = getI18n(locale);
     }
   }
 </style>
+
+<script>
+  const SUCCESS_MESSAGE = 'Listo. Te sumamos a AutaMedica.';
+  const ERROR_MESSAGE = 'No pudimos guardar tu email. Probá de nuevo.';
+  const LOADING_MESSAGE = 'Guardando...';
+
+  function initNewsletterCapture() {
+    const form = document.getElementById('newsletter-form');
+    if (!(form instanceof HTMLFormElement) || form.dataset.bound === 'true') return;
+
+    const status = document.getElementById('newsletter-status');
+    const button = form.querySelector('button[type="submit"]');
+    form.dataset.bound = 'true';
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const formData = new FormData(form);
+      const email = String(formData.get('email') || '').trim();
+      const company = String(formData.get('company') || '').trim();
+
+      if (!email) return;
+
+      if (button instanceof HTMLButtonElement) button.disabled = true;
+      if (status) {
+        status.dataset.state = 'loading';
+        status.textContent = LOADING_MESSAGE;
+      }
+
+      try {
+        const growth = window.AutaGrowth;
+        const response = await fetch('/api/growth-leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            company,
+            form_id: 'newsletter',
+            intent: 'newsletter',
+            vertical: 'general',
+            consent_marketing: true,
+            consent_source: 'newsletter_capture',
+            page_url: window.location.href,
+            referrer: document.referrer || null,
+            attribution: growth?.getAttribution?.() ?? {},
+            anonymous_id: growth?.getAnonymousId?.() ?? null,
+            session_id: growth?.getSessionId?.() ?? null,
+            metadata: {
+              component: 'NewsletterCapture',
+              locale: document.documentElement.lang,
+            },
+          }),
+        });
+
+        if (!response.ok) throw new Error(`lead_capture_${response.status}`);
+
+        form.reset();
+        if (status) {
+          status.dataset.state = 'success';
+          status.textContent = SUCCESS_MESSAGE;
+        }
+      } catch {
+        if (status) {
+          status.dataset.state = 'error';
+          status.textContent = ERROR_MESSAGE;
+        }
+      } finally {
+        if (button instanceof HTMLButtonElement) button.disabled = false;
+      }
+    });
+  }
+
+  initNewsletterCapture();
+  document.addEventListener('astro:after-swap', initNewsletterCapture);
+</script>

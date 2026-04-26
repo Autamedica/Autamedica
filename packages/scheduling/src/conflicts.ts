@@ -11,6 +11,7 @@
 import { logger } from '@autamedica/shared';
 import type { SupabaseLike } from './supabase';
 import { predictNoShowProbability } from './noshow-predictor';
+import { getOpenSlots } from './slots';
 
 const OVERBOOKING_THRESHOLD = 0.3;
 
@@ -89,8 +90,7 @@ export async function findNextAvailable(
   afterDate: string,
   searchDays: number = 14,
 ): Promise<{ date: string; start_time: string; end_time: string } | null> {
-  // Import dynamically to avoid circular dependency
-  const { getOpenSlots } = await import('./slots');
+
 
   const dateFrom = new Date(afterDate);
   const dateTo = new Date(afterDate);

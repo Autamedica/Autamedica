@@ -6,6 +6,7 @@ import ScrollProgress from '../components/ui/ScrollProgress.astro';
 import CookieBanner from '../components/CookieBanner.astro';
 import OfflineBanner from '../components/OfflineBanner.astro';
 import FadeInObserver from '../components/FadeInObserver.astro';
+import GrowthAttribution from '../components/GrowthAttribution.astro';
 import DoctorBottomNav from '../components/doctors/layout/DoctorBottomNav.astro';
 import { SentryInit } from '../components/SentryInit';
 import { getI18n } from '../i18n/index';
@@ -116,6 +117,7 @@ const activeTabDoctor =
   </head>
   <body class="antialiased">
     <SentryInit client:load />
+    <GrowthAttribution />
     <ScrollProgress />
     <slot />
     <OfflineBanner />

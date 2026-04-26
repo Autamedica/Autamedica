@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">AutaMedica Growth Roadmap</title>
+  <desc id="desc">Resumen visual de lo implementado, lo pendiente y el objetivo final del circuito de captacion y growth.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="0.52" stop-color="#eef7f4"/>
+      <stop offset="1" stop-color="#fff8ee"/>
+    </linearGradient>
+    <linearGradient id="done" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#033c35"/>
+      <stop offset="1" stop-color="#0a8f7a"/>
+    </linearGradient>
+    <linearGradient id="next" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#172554"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="goal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b2207"/>
+      <stop offset="1" stop-color="#d97706"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#0f172a" flood-opacity="0.16"/>
+    </filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 1 1 L 11 6 L 1 11 Z" fill="#0f172a"/>
+    </marker>
+    <style>
+      .title { font: 800 58px Georgia, serif; fill: #0f172a; }
+      .subtitle { font: 500 22px Arial, sans-serif; fill: #475569; }
+      .section-title { font: 800 28px Arial, sans-serif; fill: #ffffff; letter-spacing: .2px; }
+      .section-kicker { font: 700 13px Arial, sans-serif; fill: rgba(255,255,255,.7); letter-spacing: 2.5px; }
+      .item-title { font: 800 19px Arial, sans-serif; fill: #0f172a; }
+      .item-copy { font: 500 16px Arial, sans-serif; fill: #475569; }
+      .chip { font: 800 13px Arial, sans-serif; fill: #0f172a; letter-spacing: .8px; }
+      .small { font: 700 14px Arial, sans-serif; fill: #64748b; }
+      .metric { font: 900 36px Arial, sans-serif; fill: #ffffff; }
+      .metric-label { font: 700 14px Arial, sans-serif; fill: rgba(255,255,255,.75); }
+      .goal-title { font: 900 34px Arial, sans-serif; fill: #ffffff; }
+      .goal-copy { font: 600 18px Arial, sans-serif; fill: rgba(255,255,255,.82); }
+      .mono { font: 700 15px "Courier New", monospace; fill: #0f172a; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <circle cx="1360" cy="135" r="210" fill="#bae6fd" opacity=".35" filter="url(#soft)"/>
+  <circle cx="155" cy="840" r="230" fill="#bbf7d0" opacity=".32" filter="url(#soft)"/>
+
+  <g transform="translate(80 68)">
+    <rect x="0" y="0" width="1440" height="128" rx="28" fill="#ffffff" opacity=".78" filter="url(#shadow)"/>
+    <text x="42" y="58" class="title">AutaMedica Growth OS</text>
+    <text x="44" y="98" class="subtitle">Primer circuito comercial medible: demanda, atribucion, lead, evento y camino a rentabilidad.</text>
+    <g transform="translate(1160 35)">
+      <rect x="0" y="0" width="218" height="58" rx="29" fill="#0f172a"/>
+      <text x="28" y="36" class="metric-label">estado actual</text>
+      <circle cx="176" cy="29" r="10" fill="#22c55e"/>
+    </g>
+  </g>
+
+  <g transform="translate(80 240)" filter="url(#shadow)">
+    <rect width="435" height="520" rx="30" fill="#ffffff"/>
+    <rect width="435" height="112" rx="30" fill="url(#done)"/>
+    <path d="M0 82 H435 V112 H0 Z" fill="url(#done)"/>
+    <text x="34" y="42" class="section-kicker">HECHO</text>
+    <text x="34" y="78" class="section-title">Circuito base vivo</text>
+
+    <g transform="translate(34 145)">
+      <circle cx="14" cy="12" r="12" fill="#dcfce7"/>
+      <path d="M8 12 l4 4 l8 -10" fill="none" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="42" y="18" class="item-title">UTM y referrer capturados</text>
+      <text x="42" y="45" class="item-copy">Landing inicial, ultima visita, anon id y session id.</text>
+    </g>
+    <g transform="translate(34 230)">
+      <circle cx="14" cy="12" r="12" fill="#dcfce7"/>
+      <path d="M8 12 l4 4 l8 -10" fill="none" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="42" y="18" class="item-title">Newsletter crea leads reales</text>
+      <text x="42" y="45" class="item-copy">El form ya pega a POST /api/growth-leads.</text>
+    </g>
+    <g transform="translate(34 315)">
+      <circle cx="14" cy="12" r="12" fill="#dcfce7"/>
+      <path d="M8 12 l4 4 l8 -10" fill="none" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="42" y="18" class="item-title">Supabase remoto aplicado</text>
+      <text x="42" y="45" class="item-copy">growth_os.leads + growth_os.growth_events.</text>
+    </g>
+    <g transform="translate(34 400)">
+      <circle cx="14" cy="12" r="12" fill="#dcfce7"/>
+      <path d="M8 12 l4 4 l8 -10" fill="none" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="42" y="18" class="item-title">Smoke test end-to-end</text>
+      <text x="42" y="45" class="item-copy">201 Created + lead_created verificado en DB.</text>
+    </g>
+  </g>
+
+  <g transform="translate(582 240)" filter="url(#shadow)">
+    <rect width="435" height="520" rx="30" fill="#ffffff"/>
+    <rect width="435" height="112" rx="30" fill="url(#next)"/>
+    <path d="M0 82 H435 V112 H0 Z" fill="url(#next)"/>
+    <text x="34" y="42" class="section-kicker">FALTA</text>
+    <text x="34" y="78" class="section-title">Convertir leads en pipeline</text>
+
+    <g transform="translate(34 145)">
+      <circle cx="14" cy="12" r="12" fill="#dbeafe"/>
+      <path d="M7 12 h14" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+      <text x="42" y="18" class="item-title">Email lifecycle</text>
+      <text x="42" y="45" class="item-copy">lead_created -> email_jobs -> bienvenida/nurturing.</text>
+    </g>
+    <g transform="translate(34 230)">
+      <circle cx="14" cy="12" r="12" fill="#dbeafe"/>
+      <path d="M7 12 h14" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+      <text x="42" y="18" class="item-title">Dashboard de growth</text>
+      <text x="42" y="45" class="item-copy">Leads por canal, vertical, campania y estado.</text>
+    </g>
+    <g transform="translate(34 315)">
+      <circle cx="14" cy="12" r="12" fill="#dbeafe"/>
+      <path d="M7 12 h14" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+      <text x="42" y="18" class="item-title">Landings de conversion</text>
+      <text x="42" y="45" class="item-copy">Insomnio, TDAH, empresas y medicos con eventos propios.</text>
+    </g>
+    <g transform="translate(34 400)">
+      <circle cx="14" cy="12" r="12" fill="#dbeafe"/>
+      <path d="M7 12 h14" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+      <text x="42" y="18" class="item-title">Atribucion a revenue</text>
+      <text x="42" y="45" class="item-copy">lead -> turno -> pago -> consulta -> margen.</text>
+    </g>
+  </g>
+
+  <g transform="translate(1085 240)" filter="url(#shadow)">
+    <rect width="435" height="520" rx="30" fill="#ffffff"/>
+    <rect width="435" height="112" rx="30" fill="url(#goal)"/>
+    <path d="M0 82 H435 V112 H0 Z" fill="url(#goal)"/>
+    <text x="34" y="42" class="section-kicker">OBJETIVO FINAL</text>
+    <text x="34" y="78" class="section-title">Maquina rentable</text>
+
+    <g transform="translate(34 145)">
+      <rect width="367" height="78" rx="20" fill="#fff7ed"/>
+      <text x="24" y="32" class="item-title">Cada visita tiene destino</text>
+      <text x="24" y="58" class="item-copy">Capturar, nutrir, calificar, vender o aprender.</text>
+    </g>
+    <g transform="translate(34 250)">
+      <rect width="367" height="78" rx="20" fill="#fffbeb"/>
+      <text x="24" y="32" class="item-title">Cada canal tiene ROI</text>
+      <text x="24" y="58" class="item-copy">No mas trafico ciego: CAC, LTV y margen por vertical.</text>
+    </g>
+    <g transform="translate(34 355)">
+      <rect width="367" height="92" rx="20" fill="#ecfeff"/>
+      <text x="24" y="32" class="item-title">Growth review semanal</text>
+      <text x="24" y="58" class="item-copy">Duplicar, pausar, reescribir o matar experimentos.</text>
+    </g>
+  </g>
+
+  <path d="M518 500 C548 500 552 500 578 500" fill="none" stroke="#0f172a" stroke-width="3" marker-end="url(#arrow)" opacity=".55"/>
+  <path d="M1020 500 C1050 500 1055 500 1080 500" fill="none" stroke="#0f172a" stroke-width="3" marker-end="url(#arrow)" opacity=".55"/>
+
+  <g transform="translate(145 820)">
+    <rect x="0" y="0" width="1310" height="98" rx="28" fill="#0f172a" filter="url(#shadow)"/>
+    <text x="36" y="39" class="goal-title">Norte: crecimiento medible con margen</text>
+    <text x="36" y="70" class="goal-copy">Sistema final: CAC menor que LTV, conversion por etapa y margen por vertical.</text>
+    <g transform="translate(990 22)">
+      <rect x="0" y="0" width="260" height="54" rx="18" fill="#ffffff"/>
+      <text x="25" y="34" class="mono">lead -> pago -> margen</text>
+    </g>
+  </g>
+</svg>

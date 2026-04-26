@@ -13,6 +13,7 @@ export default defineConfig({
   }),
   integrations: [
     sentry({
+    telemetry: false,
       org: process.env.SENTRY_ORG || 'autamedica',
       project: process.env.SENTRY_PROJECT || 'javascript-astro',
       authToken: process.env.SENTRY_AUTH_TOKEN,

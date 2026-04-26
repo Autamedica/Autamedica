@@ -1,0 +1,81 @@
+---
+---
+
+<script>
+  const ATTRIBUTION_KEY = 'au-growth-attribution';
+  const ANONYMOUS_ID_KEY = 'au-anonymous-id';
+  const SESSION_ID_KEY = 'au-session-id';
+  const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+
+  const safeUuid = () => {
+    if (crypto?.randomUUID) return crypto.randomUUID();
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  };
+
+  const readJson = (key) => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const ensureAnonymousId = () => {
+    const existing = localStorage.getItem(ANONYMOUS_ID_KEY);
+    if (existing) return existing;
+    const created = safeUuid();
+    localStorage.setItem(ANONYMOUS_ID_KEY, created);
+    return created;
+  };
+
+  const ensureSessionId = () => {
+    const existing = sessionStorage.getItem(SESSION_ID_KEY);
+    if (existing) return existing;
+    const created = safeUuid();
+    sessionStorage.setItem(SESSION_ID_KEY, created);
+    return created;
+  };
+
+  const captureAttribution = () => {
+    const params = new URLSearchParams(window.location.search);
+    const current = {};
+    UTM_KEYS.forEach((key) => {
+      const value = params.get(key);
+      if (value) current[key] = value.slice(0, 160);
+    });
+
+    const existing = readJson(ATTRIBUTION_KEY);
+    const hasCurrentUtm = Object.keys(current).length > 0;
+    const now = new Date().toISOString();
+
+    const next = {
+      ...existing,
+      ...(hasCurrentUtm ? current : {}),
+      first_landing_page: existing.first_landing_page || window.location.href,
+      first_referrer: existing.first_referrer || document.referrer || null,
+      first_captured_at: existing.first_captured_at || now,
+      last_landing_page: window.location.href,
+      last_referrer: document.referrer || null,
+      last_captured_at: now,
+      ...(hasCurrentUtm
+        ? Object.fromEntries(Object.entries(current).map(([key, value]) => [`last_${key}`, value]))
+        : {}),
+    };
+
+    localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(next));
+    return next;
+  };
+
+  const getAttribution = () => readJson(ATTRIBUTION_KEY);
+
+  captureAttribution();
+  ensureAnonymousId();
+  ensureSessionId();
+
+  window.AutaGrowth = {
+    getAttribution,
+    getAnonymousId: ensureAnonymousId,
+    getSessionId: ensureSessionId,
+  };
+</script>

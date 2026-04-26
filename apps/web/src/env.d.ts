@@ -83,6 +83,11 @@ interface Window {
     PUBLIC_SUPABASE_ANON_KEY?: string;
     PUBLIC_SENTRY_DSN?: string;
   };
+  AutaGrowth?: {
+    getAttribution?: () => Record<string, unknown>;
+    getAnonymousId?: () => string;
+    getSessionId?: () => string;
+  };
   SpeechRecognition?: SpeechRecognitionConstructor;
   webkitSpeechRecognition?: SpeechRecognitionConstructor;
 }
