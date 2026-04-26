@@ -135,6 +135,10 @@
     "android:mobile": "pnpm -C apps/mobile android",
     "ios:mobile": "pnpm -C apps/mobile ios",
     "dev:web": "pnpm -C apps/web dev",
+    "dev:newsletter-worker": "pnpm -C apps/newsletter-worker dev",
+    "deploy:newsletter-worker": "pnpm -C apps/newsletter-worker deploy",
+    "newsletter:sync-audience": "pnpm -C apps/newsletter-worker sync-audience",
+    "newsletter:sync-audience:apply": "pnpm -C apps/newsletter-worker sync-audience:apply",
     "e2e:patients": "node scripts/e2e/patients-login.mjs"
   },
   "devDependencies": {

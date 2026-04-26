@@ -1,0 +1,21 @@
+name = "autamedica-newsletter"
+main = "src/index.ts"
+compatibility_date = "2025-07-18"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["* * * * *", "10 11 * * *"]
+
+[vars]
+FROM_EMAIL = "contacto@autamedica.com"
+FROM_NAME = "AutaMedica"
+SUBJECT_PREFIX = "Salud Digital"
+RSS_FEEDS = "https://rss.nytimes.com/services/xml/rss/nyt/Well.xml,https://www.theguardian.com/society/health/rss,https://www.theguardian.com/lifeandstyle/health-and-wellbeing/rss,https://www.sciencedaily.com/rss/health_medicine.xml,https://www.health.harvard.edu/blog/feed,https://neurosciencenews.com/feed/,https://www.nature.com/nature/articles.rss,https://www.bmj.com/rss/recent.xml"
+TIMEZONE_LABEL = "Argentina"
+HEADER_IMAGE_URL = "https://qxjjrpksmwwrmubhvjew.supabase.co/storage/v1/object/public/public_assets/autamedica-reference-style.gif"
+AUTAMEDICA_EMAIL_JOBS_URL = "https://2b81e6df.autamedica-web.pages.dev/api/admin/process-email-jobs"
+WORKER_PUBLIC_URL = "https://autamedica-newsletter.marques-eduardo95466020.workers.dev"
+# Para fallback real por Brevo:
+# - configurar BREVO_LIST_IDS como secret/var con IDs separados por coma para enviar campaña a listas
+# - o BREVO_NEWSLETTER_RECIPIENTS con emails separados por coma para envío SMTP controlado
+# Para aviso diario de draft, configurar TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID como secrets
