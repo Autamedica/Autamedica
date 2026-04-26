@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 8; }
+      .box-highlight { fill: #eff6ff; stroke: #3b82f6; stroke-width: 2; rx: 8; }
+      .box-success { fill: #f0fdf4; stroke: #22c55e; stroke-width: 2; rx: 8; }
+      .box-warning { fill: #fffbeb; stroke: #f59e0b; stroke-width: 2; rx: 8; }
+      .text-title { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: bold; fill: #0f172a; }
+      .text-desc { font-family: 'Inter', sans-serif; font-size: 13px; fill: #475569; }
+      .text-white { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: bold; fill: #ffffff; }
+      .line { stroke: #94a3b8; stroke-width: 2; fill: none; }
+      .arrow { fill: #94a3b8; }
+      .badge { fill: #3b82f6; rx: 12; }
+      .badge-success { fill: #22c55e; rx: 12; }
+      .badge-warning { fill: #f59e0b; rx: 12; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrow" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="600" class="bg" />
+
+  <!-- Title -->
+  <text x="50" y="50" font-family="Inter" font-size="24" font-weight="bold" fill="#0f172a">Workflow: AutaMedica Newsletter Automation</text>
+  <text x="50" y="75" class="text-desc">Generación, Aprobación y Distribución Inteligente de Contenido</text>
+
+  <!-- 1. Fuentes RSS -->
+  <rect x="50" y="150" width="200" height="80" class="box" />
+  <text x="65" y="180" class="text-title">1. Extracción (RSS)</text>
+  <text x="65" y="200" class="text-desc">Scraping de 5 feeds médicos</text>
+  <text x="65" y="215" class="text-desc">Filtrado inicial</text>
+
+  <!-- Arrow -->
+  <path d="M 250 190 L 300 190" class="line" marker-end="url(#arrowhead)" />
+
+  <!-- 2. AI Worker (Llama 3) -->
+  <rect x="310" y="130" width="220" height="120" class="box-highlight" />
+  <rect x="310" y="115" width="80" height="24" class="badge" />
+  <text x="325" y="132" class="text-white">CRON</text>
+  <text x="325" y="170" class="text-title">2. Cloudflare Worker</text>
+  <text x="325" y="190" class="text-desc">Llama 3.3 resume noticias</text>
+  <text x="325" y="210" class="text-desc">Genera HTML estructurado</text>
+  <text x="325" y="230" class="text-desc">Dispara a las 11:10 AM</text>
+
+  <!-- Arrow to DB -->
+  <path d="M 530 190 L 580 190" class="line" marker-end="url(#arrowhead)" />
+
+  <!-- 3. Supabase DB -->
+  <rect x="590" y="150" width="220" height="80" class="box" />
+  <text x="605" y="180" class="text-title">3. Supabase DB</text>
+  <text x="605" y="200" class="text-desc">growth_os.newsletter_editions</text>
+  <text x="605" y="215" class="text-desc">Estado: DRAFT</text>
+
+  <!-- Arrow down to Human -->
+  <path d="M 700 230 L 700 310" class="line" marker-end="url(#arrowhead)" />
+
+  <!-- Arrow down to Telegram from Worker -->
+  <path d="M 420 250 L 420 330" class="line" marker-end="url(#arrowhead)" />
+  
+  <!-- 4. Notificación Telegram -->
+  <rect x="310" y="340" width="220" height="80" class="box-warning" />
+  <rect x="310" y="325" width="80" height="24" class="badge-warning" />
+  <text x="325" y="342" class="text-white">PING</text>
+  <text x="325" y="375" class="text-title">4. Aviso Telegram</text>
+  <text x="325" y="395" class="text-desc">Bot envía link de /preview</text>
+  <text x="325" y="410" class="text-desc">Muestra titulares generados</text>
+
+  <!-- 5. Aprobación Humana -->
+  <rect x="590" y="320" width="220" height="120" class="box-highlight" />
+  <text x="605" y="355" class="text-title">5. Revisión (Eduardo)</text>
+  <text x="605" y="375" class="text-desc">Abre /preview en browser</text>
+  <text x="605" y="395" class="text-desc">Verifica calidad Llama 3</text>
+  <text x="605" y="420" class="text-desc" font-weight="bold">POST /newsletter/send</text>
+
+  <!-- Arrow Telegram -> Revisión -->
+  <path d="M 530 380 L 580 380" class="line" marker-end="url(#arrowhead)" />
+
+  <!-- Arrow to Send -->
+  <path d="M 700 440 L 700 480" class="line" marker-end="url(#arrowhead)" />
+
+  <!-- 6. Brevo Send -->
+  <rect x="590" y="490" width="220" height="80" class="box-success" />
+  <rect x="590" y="475" width="80" height="24" class="badge-success" />
+  <text x="605" y="492" class="text-white">SEND</text>
+  <text x="605" y="525" class="text-title">6. Brevo Campaigns</text>
+  <text x="605" y="545" class="text-desc">Envío masivo a la lista</text>
+  <text x="605" y="560" class="text-desc">Estado DB: SENT</text>
+
+</svg>

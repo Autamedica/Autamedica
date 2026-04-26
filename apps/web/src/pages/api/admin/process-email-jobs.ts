@@ -7,6 +7,7 @@ import { logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
 import {
   AUTAMEDICA_FROM,
+  buildNurturingEmail,
   buildReminderEmail,
   buildWelcomeEmail,
   renderAutamedicaEmail,
@@ -31,7 +32,8 @@ type EmailJobType =
   | 'doctor_appointment_cancelled'
   | 'doctor_anamnesis_ready'
   | 'patient_appointment_cancelled'
-  | 'patient_prescription_ready';
+  | 'patient_prescription_ready'
+  | 'nurturing';
 
 type EmailJob = {
   id: string;
@@ -243,6 +245,14 @@ function renderJob(job: EmailJob): RenderedEmail {
     return renderPatientPrescriptionReady(job);
   }
 
+  if (job.job_type === 'nurturing') {
+    const data = job.template_data ?? {};
+    const templateKey = stringFromData(data, 'template_key');
+    const actionUrl = stringFromData(data, 'action_url') || 'https://www.autamedica.com/patients/anamnesis';
+    const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
+    return buildNurturingEmail(templateKey, firstName(job), actionUrl, unsubscribeUrl);
+  }
+
   return renderAutamedicaEmail('AutaMedica', {
     variant: 'transactional',
     title: 'AutaMedica',
@@ -389,6 +399,17 @@ async function handle(request: Request, runtimeEnv: RuntimeEnv, dryRunOverride?:
   }
 
   const enqueued = await enqueueDueReminders(admin, limit);
+
+  // Enqueue nurturing sequence emails
+  let nurturingEnqueued = 0;
+  try {
+    const { data: nData } = await (admin as any)
+      .schema('growth_os')
+      .rpc('enqueue_nurturing_emails', { batch_limit: limit });
+    nurturingEnqueued = typeof nData === 'number' ? nData : 0;
+  } catch (nErr) {
+    logger.error('[email-jobs] Failed to enqueue nurturing emails', { error: nErr });
+  }
   const jobs = await loadPendingJobs(admin, limit);
   const results: Array<Record<string, unknown>> = [];
 
@@ -411,6 +432,7 @@ async function handle(request: Request, runtimeEnv: RuntimeEnv, dryRunOverride?:
 
   return json({
     enqueued,
+    nurturing_enqueued: nurturingEnqueued,
     processed: results.length,
     sent: results.filter((result) => result.status === 'sent').length,
     errors: results.filter((result) => result.status === 'error').length,

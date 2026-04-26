@@ -206,3 +206,123 @@ export function buildNewsletterEmail(
   });
 }
 
+// ─── Nurturing Templates ──────────────────────────────────────
+
+type NurturingContent = {
+  subject: string;
+  title: string;
+  paragraphs: string[];
+  actionLabel: string;
+};
+
+const NURTURING_TEMPLATES: Record<string, NurturingContent> = {
+  nurturing_value_1: {
+    subject: 'Tu historia clinica empieza antes de la consulta',
+    title: 'La consulta empieza antes de sentarte frente al medico',
+    paragraphs: [
+      'La mayoria de los pacientes llegan a la consulta sin informacion previa: ni antecedentes, ni habitos de sueno, ni medicacion actual.',
+      'AutaMedica te permite completar tu historia clinica antes, para que el profesional entre con contexto real y no empiece de cero.',
+      'Cuanta mas informacion trae el paciente, mejor es la consulta. No es una opinion: es evidencia.',
+    ],
+    actionLabel: 'Completar mi historia clinica',
+  },
+  nurturing_value_2: {
+    subject: 'Que registra AutaMedica que otros sistemas no capturan',
+    title: 'Lo que se pierde cuando no hay datos previos',
+    paragraphs: [
+      'Un turno de 15 minutos no alcanza para explorar sueno, entorno, alimentacion y antecedentes. Pero esa informacion importa.',
+      'AutaMedica captura esos datos antes de la consulta, en tu tiempo, y los organiza para que el profesional los tenga listos.',
+      'No reemplaza al medico. Complementa la consulta con lo que no se alcanza a preguntar.',
+    ],
+    actionLabel: 'Ver como funciona',
+  },
+  nurturing_cta: {
+    subject: 'Tu proximo paso: agendar tu primera consulta',
+    title: 'Cuando estes listo, el turno esta aca',
+    paragraphs: [
+      'Ya tenes tu cuenta. El siguiente paso es agendar tu primera consulta medica.',
+      'Si completaste tu anamnesis, el profesional va a entrar a la consulta con tu informacion. Si no, todavia estas a tiempo.',
+    ],
+    actionLabel: 'Agendar consulta',
+  },
+  nurturing_tdah_1: {
+    subject: 'TDAH en adultos: lo que la evaluacion online puede detectar',
+    title: 'TDAH en adultos: no siempre es lo que parece',
+    paragraphs: [
+      'Muchos adultos con TDAH no fueron diagnosticados en la infancia. Los sintomas se confunden con estres, ansiedad o falta de organizacion.',
+      'Una evaluacion estructurada puede identificar patrones que en una consulta general se pasan por alto.',
+      'En AutaMedica, la evaluacion empieza antes de la consulta: un cuestionario clinico validado que el profesional revisa con anticipacion.',
+    ],
+    actionLabel: 'Empezar evaluacion TDAH',
+  },
+  nurturing_tdah_2: {
+    subject: 'Como funciona la evaluacion clinica en AutaMedica',
+    title: 'Como funciona una evaluacion TDAH en AutaMedica',
+    paragraphs: [
+      'Completas un cuestionario clinico estructurado desde tu casa, sin apuro.',
+      'Un profesional especializado revisa tus respuestas antes de la consulta.',
+      'La videoconsulta arranca con contexto: no perdes tiempo repitiendo lo basico.',
+    ],
+    actionLabel: 'Agendar evaluacion',
+  },
+  nurturing_cta_tdah: {
+    subject: 'Agenda tu evaluacion TDAH',
+    title: 'Tu evaluacion esta lista para agendarse',
+    paragraphs: [
+      'Si sentis que la desatencion, la impulsividad o la dificultad para sostener tareas te afectan en el dia a dia, una evaluacion profesional puede darte claridad.',
+      'No es un test online generico. Es una consulta clinica con un profesional que ya reviso tu caso.',
+    ],
+    actionLabel: 'Agendar ahora',
+  },
+  nurturing_insomnio_1: {
+    subject: 'Insomnio cronico: por que la historia clinica importa',
+    title: 'Insomnio cronico: el problema no es solo dormir mal',
+    paragraphs: [
+      'El insomnio cronico afecta concentracion, humor, metabolismo y salud cardiovascular. Pero rara vez se evalua con la profundidad necesaria.',
+      'La mayoria de las consultas por insomnio duran 10 minutos. No alcanza para explorar habitos de sueno, medicacion, estres y entorno.',
+      'AutaMedica registra esos datos antes de que entres a la consulta. El profesional ve tu patron de sueno, no solo tu queja.',
+    ],
+    actionLabel: 'Registrar mi patron de sueno',
+  },
+  nurturing_insomnio_2: {
+    subject: 'Que esperar de tu consulta de sueno en AutaMedica',
+    title: 'Tu consulta de sueno, con contexto',
+    paragraphs: [
+      'Antes de la consulta, completas un registro de sueno y habitos. No es un formulario generico: esta disenado para que el profesional identifique patrones.',
+      'En la videoconsulta, el medico ya sabe cuantas horas dormis, que te despierta y que probaste antes.',
+      'Ese contexto previo cambia la calidad de la consulta.',
+    ],
+    actionLabel: 'Agendar consulta de sueno',
+  },
+  nurturing_cta_insomnio: {
+    subject: 'Agenda tu consulta de sueno',
+    title: 'Dormir mejor empieza con una consulta informada',
+    paragraphs: [
+      'Si llevas semanas o meses durmiendo mal, una consulta con contexto clinico real puede hacer la diferencia.',
+      'En AutaMedica la consulta no empieza con "¿que le pasa?". Empieza con datos.',
+    ],
+    actionLabel: 'Agendar consulta',
+  },
+};
+
+export function buildNurturingEmail(
+  templateKey: string,
+  recipientName: string,
+  actionUrl: string,
+  unsubscribeUrl?: string,
+): RenderedEmail {
+  const content = NURTURING_TEMPLATES[templateKey];
+  if (!content) {
+    return buildReminderEmail(recipientName, actionUrl, unsubscribeUrl);
+  }
+
+  const name = recipientName || 'como estas';
+  return renderAutamedicaEmail(content.subject, {
+    variant: 'transactional',
+    title: content.title,
+    preheader: content.paragraphs[0] ?? content.title,
+    paragraphs: content.paragraphs,
+    action: { label: content.actionLabel, url: actionUrl },
+    unsubscribeUrl,
+  });
+}
