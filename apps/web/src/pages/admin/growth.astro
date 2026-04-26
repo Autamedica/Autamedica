@@ -1,0 +1,40 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { GrowthDashboardUI } from '@/components/admin/GrowthDashboardUI';
+
+const title = 'Growth Dashboard | AutaMedica Admin';
+const description = 'Monitoreo de métricas de crecimiento, leads y conversión.';
+
+const session = Astro.locals.session;
+if (!session) {
+  return Astro.redirect('/auth/login?returnTo=/admin/growth&portal=admin');
+}
+
+const role = (session.user.user_metadata as Record<string, unknown>)?.role;
+if (typeof role !== 'string' || !['admin', 'organization_admin', 'platform_admin'].includes(role)) {
+  return Astro.redirect('/admin/unauthorized');
+}
+---
+
+<Layout title={title} description={description}>
+  <div class="min-h-screen bg-gray-50">
+    <header class="bg-white shadow">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16 items-center">
+          <div class="flex items-center gap-4">
+            <a href="/admin" class="text-gray-400 hover:text-gray-600 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </a>
+            <h1 class="text-xl font-semibold text-gray-900">
+              Admin / Growth
+            </h1>
+          </div>
+        </div>
+      </div>
+    </header>
+    
+    <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <GrowthDashboardUI client:load />
+    </main>
+  </div>
+</Layout>

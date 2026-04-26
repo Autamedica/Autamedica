@@ -17,7 +17,17 @@ function readEnv(runtimeEnv: RuntimeEnv, key: string): string {
   return typeof importValue === 'string' ? importValue : '';
 }
 
-function isAuthorized(request: Request, runtimeEnv: RuntimeEnv): boolean {
+function isAuthorized(locals: any, request: Request, runtimeEnv: RuntimeEnv): boolean {
+  // Check session first (for admin UI)
+  const session = locals.session;
+  if (session) {
+    const role = (session.user.user_metadata as Record<string, unknown>)?.role;
+    if (typeof role === 'string' && ['admin', 'organization_admin', 'platform_admin'].includes(role)) {
+      return true;
+    }
+  }
+
+  // Check secret (for cron/internal)
   const secret = readEnv(runtimeEnv, 'CRON_SECRET') || readEnv(runtimeEnv, 'TRIGGER_KEY');
   if (!secret) return false;
   const bearer = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
@@ -31,7 +41,7 @@ function json(data: Record<string, unknown>, status = 200): Response {
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const runtimeEnv = locals.runtime?.env;
-  if (!isAuthorized(request, runtimeEnv)) {
+  if (!isAuthorized(locals, request, runtimeEnv)) {
     return json({ error: 'unauthorized' }, 401);
   }
 
@@ -72,13 +82,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
     }
 
     // Fetch nurturing sequence status
-    const { data: sequences, error: seqError } = await (admin as any)
+    const { data: sequences, error: _seqError } = await (admin as any)
       .schema('growth_os')
       .from('nurturing_sequences')
       .select('id, name, vertical, enabled');
 
     // Fetch attribution data
-    const { data: attribution, error: attrError } = await (admin as any)
+    const { data: attribution, error: _attrError } = await (admin as any)
       .schema('growth_os')
       .from('lead_attribution')
       .select('lead_id, lead_email, vertical, first_utm_source, converted_to_appointment, converted_to_revenue, payment_amount, hours_to_appointment')

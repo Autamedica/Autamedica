@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
+import NewsletterCapture from '../components/NewsletterCapture.astro';
 
 const canonicalUrl = 'https://www.autamedica.com/tdah';
 ---
@@ -240,6 +241,12 @@ const canonicalUrl = 'https://www.autamedica.com/tdah';
         </div>
       </aside>
     </div>
+    <NewsletterCapture 
+      vertical="tdah" 
+      intent="evaluation" 
+      title="¿Querés recibir info sobre TDAH en adultos?"
+      subtitle="Te enviamos guías clínicas, avances en tratamiento y consejos para el día a día."
+    />
   </main>
   <Footer />
 </Layout>

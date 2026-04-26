@@ -2,13 +2,34 @@
 import { getI18n } from '../i18n';
 const locale = Astro.locals.locale ?? 'es';
 const { t } = getI18n(locale);
+
+interface Props {
+  vertical?: string;
+  intent?: string;
+  title?: string;
+  subtitle?: string;
+}
+
+const { 
+  vertical = 'general', 
+  intent = 'newsletter',
+  title = t('landing.newsletter.title'),
+  subtitle = t('landing.newsletter.subtitle')
+} = Astro.props;
 ---
 
 <section class="newsletter-capture" aria-label="Newsletter">
   <div class="newsletter-inner">
-    <h2 class="newsletter-title">{t('landing.newsletter.title')}</h2>
-    <p class="newsletter-subtitle">{t('landing.newsletter.subtitle')}</p>
-    <form id="newsletter-form" class="newsletter-form" action="/api/growth-leads" method="post">
+    <h2 class="newsletter-title">{title}</h2>
+    <p class="newsletter-subtitle">{subtitle}</p>
+    <form 
+      id="newsletter-form" 
+      class="newsletter-form" 
+      action="/api/growth-leads" 
+      method="post"
+      data-vertical={vertical}
+      data-intent={intent}
+    >
       <input
         type="email"
         name="email"
@@ -171,6 +192,9 @@ const { t } = getI18n(locale);
 
       try {
         const growth = window.AutaGrowth;
+        const vertical = form.dataset.vertical || 'general';
+        const intent = form.dataset.intent || 'newsletter';
+
         const response = await fetch('/api/growth-leads', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -178,8 +202,8 @@ const { t } = getI18n(locale);
             email,
             company,
             form_id: 'newsletter',
-            intent: 'newsletter',
-            vertical: 'general',
+            intent,
+            vertical,
             consent_marketing: true,
             consent_source: 'newsletter_capture',
             page_url: window.location.href,
