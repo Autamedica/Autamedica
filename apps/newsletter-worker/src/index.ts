@@ -123,6 +123,17 @@ export default {
   },
 
   async fetch(req: Request, env: Env) {
+    try {
+      return await handleFetch(req, env);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("worker fetch error", message);
+      return jsonResponse({ status: "error", error: message }, 500);
+    }
+  },
+} satisfies ExportedHandler<Env>;
+
+async function handleFetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     if (url.pathname === "/run") {
       const unauthorized = requireAuth(req, env);
@@ -169,8 +180,7 @@ export default {
       return jsonResponse({ status: "sent", edition });
     }
     return new Response("autamedica-newsletter worker", { status: 200 });
-  },
-} satisfies ExportedHandler<Env>;
+}
 
 export async function processEmailJobs(env: Env) {
   // 1. Centralized Growth OS Logic: Trigger Astro App if URL is defined
