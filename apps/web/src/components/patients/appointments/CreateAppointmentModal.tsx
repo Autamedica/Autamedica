@@ -15,9 +15,12 @@ import {
   MessageSquare,
   ArrowRight,
   Check,
+  CreditCard,
+  ShieldCheck,
 } from 'lucide-react';
 import type { CreateAppointmentInput, AppointmentType } from '@/lib/patients/types/appointment';
 import { useModalAccessibility } from '@/hooks/patients/useModalAccessibility';
+import { formatArsFromCents } from '@/lib/payments/money';
 
 /* ── Types ───────────────────────────────────────────────── */
 
@@ -74,15 +77,6 @@ function formatTime(isoString: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function formatPrice(amount: number | null | undefined): string {
-  if (!amount || amount <= 0) return 'Valor a confirmar';
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    maximumFractionDigits: 0,
-  }).format(amount);
 }
 
 function getDaysInRange(from: string, to: string): string[] {
@@ -351,7 +345,7 @@ export function CreateAppointmentModal({
                               </p>
                             )}
                             <p className="font-medium text-stone-700">
-                              {formatPrice(doc.consultation_fee)}
+                              {formatArsFromCents(doc.consultation_fee)}
                             </p>
                           </div>
                         </div>
@@ -506,16 +500,39 @@ export function CreateAppointmentModal({
                 )}
 
                 {selectedSlot && selectedDoctor && (
-                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
-                    <p className="text-sm font-semibold text-amber-900">
-                      Total a pagar antes de confirmar
-                    </p>
-                    <p className="mt-1 text-lg font-bold text-amber-950">
-                      {formatPrice(selectedDoctor.consultation_fee)}
-                    </p>
-                    <p className="mt-1 text-xs text-amber-800">
-                      Te vamos a redirigir a MercadoPago para completar el pago de la consulta.
-                    </p>
+                  <div className="mt-3 overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-emerald-50 shadow-sm shadow-sky-500/5">
+                    <div className="flex items-start gap-3 p-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-sky-700 shadow-sm ring-1 ring-sky-100">
+                        <CreditCard className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+                              Pago seguro
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-stone-950">
+                              Confirmá tu consulta con MercadoPago
+                            </p>
+                          </div>
+                          <p className="rounded-full bg-stone-950 px-3 py-1 text-sm font-bold text-white">
+                            {formatArsFromCents(selectedDoctor.consultation_fee)}
+                          </p>
+                        </div>
+                        <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                          La reserva queda pendiente hasta que MercadoPago acredite el pago. Después habilitamos la sala y el turno queda confirmado.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-medium text-slate-600">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 ring-1 ring-sky-100">
+                            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                            Checkout protegido
+                          </span>
+                          <span className="rounded-full bg-white px-2.5 py-1 ring-1 ring-sky-100">
+                            Tarjeta, dinero en cuenta o medios disponibles
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

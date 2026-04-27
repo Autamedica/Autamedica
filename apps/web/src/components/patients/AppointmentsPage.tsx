@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { fetchApi } from '@/lib/api-client'
+import { formatArsFromCents } from '@/lib/payments/money'
 import { AppointmentsTable } from '@/components/patients/appointments/AppointmentsTable'
 import { CreateAppointmentModal } from '@/components/patients/appointments/CreateAppointmentModal'
 import { ReviewModal } from '@/components/patients/appointments/ReviewModal'
@@ -9,7 +10,7 @@ import { useAppointments } from '@/hooks/patients/useAppointments'
 import { useJoinTelemedicineAppointment } from '@/hooks/patients/useJoinTelemedicineAppointment'
 import { useReviews } from '@/hooks/patients/useReviews'
 import { ErrorBoundary } from '@/components/patients/ErrorBoundary'
-import { Calendar, Plus, CheckCircle, XCircle, CalendarPlus, Video, Loader2 } from 'lucide-react'
+import { Calendar, Plus, CheckCircle, XCircle, CalendarPlus, Video, Loader2, CreditCard, ShieldCheck } from 'lucide-react'
 import {
   getAppointmentStartIso,
   isJoinableTelemedicineAppointment,
@@ -44,15 +45,6 @@ function StatCard({
       </div>
     </div>
   )
-}
-
-function formatPrice(amount: number | null | undefined): string {
-  if (!amount || amount <= 0) return 'Valor a confirmar'
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    maximumFractionDigits: 0,
-  }).format(amount)
 }
 
 export default function AppointmentsPage({
@@ -121,7 +113,7 @@ export default function AppointmentsPage({
     if (!paymentStatus) return
 
     if (paymentStatus === 'success') {
-      setPaymentMessage('Pago aprobado. Tu consulta quedó confirmada.')
+      setPaymentMessage('Volvimos de MercadoPago. Estamos verificando la acreditación; la consulta queda confirmada cuando impacta el webhook.')
       void refreshAppointments()
     } else if (paymentStatus === 'pending') {
       setPaymentMessage('Tu pago quedó pendiente. Apenas se acredite, la consulta se confirma.')
@@ -301,8 +293,16 @@ export default function AppointmentsPage({
 
       <div className="max-w-7xl mx-auto px-6 lg:px-12 -mt-8 pb-32">
         {paymentMessage && (
-          <section className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-            {paymentMessage}
+          <section className="mb-6 rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-emerald-50 px-5 py-4 text-sm text-slate-700 shadow-sm shadow-sky-500/5">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-sky-700 ring-1 ring-sky-100">
+                <ShieldCheck className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="font-semibold text-stone-950">Estado del pago</p>
+                <p className="mt-1 leading-relaxed">{paymentMessage}</p>
+              </div>
+            </div>
           </section>
         )}
 
@@ -398,37 +398,40 @@ export default function AppointmentsPage({
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-500">Valor</p>
                   <p className="mt-1 text-sm font-semibold text-stone-950">
-                    {formatPrice(featuredTelemedicineAppointment.doctor?.consultation_fee)}
+                    {formatArsFromCents(featuredTelemedicineAppointment.doctor?.consultation_fee)}
                   </p>
                 </div>
               </div>
             ) : pendingPaymentTelemedicineAppointment ? (
-              <div className="mt-6 grid gap-4 rounded-2xl border border-amber-200 bg-amber-50/70 p-5 sm:grid-cols-3">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Profesional</p>
-                  <p className="mt-1 text-sm font-semibold text-stone-950">
-                    {pendingPaymentTelemedicineAppointment.doctor
-                      ? `Dr. ${pendingPaymentTelemedicineAppointment.doctor.first_name ?? ''} ${pendingPaymentTelemedicineAppointment.doctor.last_name ?? ''}`.trim()
-                      : 'Profesional asignado'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Estado</p>
-                  <p className="mt-1 text-sm font-semibold text-amber-800">
-                    Pago pendiente
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Próximo paso</p>
-                  <p className="mt-1 text-sm font-semibold text-stone-950">
-                    Completá el pago para habilitar la sala
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Valor</p>
-                  <p className="mt-1 text-sm font-semibold text-stone-950">
-                    {formatPrice(pendingPaymentTelemedicineAppointment.doctor?.consultation_fee)}
-                  </p>
+              <div className="mt-6 overflow-hidden rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-sky-50 shadow-sm shadow-amber-500/5">
+                <div className="grid gap-5 p-5 sm:grid-cols-[1.2fr_0.8fr] sm:items-center">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-amber-700 shadow-sm ring-1 ring-amber-100">
+                      <CreditCard className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">
+                        Pago pendiente
+                      </p>
+                      <h3 className="mt-1 text-lg font-bold text-stone-950">
+                        Confirmá el pago para habilitar la sala
+                      </h3>
+                      <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
+                        MercadoPago procesa el cobro y AutaMedica confirma el turno cuando recibimos la acreditación segura.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-white p-4 ring-1 ring-amber-100">
+                    <p className="text-xs uppercase tracking-wide text-slate-500">Total</p>
+                    <p className="mt-1 text-2xl font-bold text-stone-950">
+                      {formatArsFromCents(pendingPaymentTelemedicineAppointment.doctor?.consultation_fee)}
+                    </p>
+                    <p className="mt-2 text-xs text-slate-500">
+                      Profesional: {pendingPaymentTelemedicineAppointment.doctor
+                        ? `Dr. ${pendingPaymentTelemedicineAppointment.doctor.first_name ?? ''} ${pendingPaymentTelemedicineAppointment.doctor.last_name ?? ''}`.trim()
+                        : 'Profesional asignado'}
+                    </p>
+                  </div>
                 </div>
               </div>
             ) : (
