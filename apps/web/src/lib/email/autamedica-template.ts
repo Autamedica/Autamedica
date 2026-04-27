@@ -316,7 +316,6 @@ export function buildNurturingEmail(
     return buildReminderEmail(recipientName, actionUrl, unsubscribeUrl);
   }
 
-  const name = recipientName || 'como estas';
   return renderAutamedicaEmail(content.subject, {
     variant: 'transactional',
     title: content.title,
