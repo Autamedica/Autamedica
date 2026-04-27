@@ -44,7 +44,11 @@ const DOCTOR_WITH_PROFILE_SELECT = `
     email,
     phone,
     avatar_url,
-    role
+    role,
+    sss_validation_status,
+    sss_last_checked_at,
+    especialidad_registrada,
+    matricula_nacional
   )
 `
 

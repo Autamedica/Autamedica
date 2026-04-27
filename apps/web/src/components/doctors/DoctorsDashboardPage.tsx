@@ -2,6 +2,7 @@
 
 import { OnboardingReminder } from "@/components/doctors/OnboardingReminder";
 import { DoctorsPortalFrame } from "@/components/doctors/DoctorsPortalFrame";
+import { LicenseStatusBanner } from "@/components/doctors/LicenseStatusBanner";
 import { useAuthenticatedUser } from "@/hooks/doctors/useAuthenticatedUser";
 import { useCheckDoctorExists } from "@/hooks/doctors/useCheckDoctorExists";
 import { useDoctorStats } from "@/hooks/doctors/useDoctorStats";
@@ -293,6 +294,8 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
           </div>
         </motion.div>
       </div>
+
+      <LicenseStatusBanner />
 
       {/* ── Stat cards ── */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

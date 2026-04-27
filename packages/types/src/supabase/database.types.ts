@@ -6755,16 +6755,20 @@ export type Database = {
           deleted_at: string | null
           device_platform: string | null
           email: string | null
+          especialidad_registrada: string | null
           external_id: string | null
           fcm_token: string | null
           first_name: string | null
           last_name: string | null
+          matricula_nacional: string | null
           newsletter_subscribed: boolean
           numeric_id: number
           onboarding_completed_at: string | null
           onboarding_started_at: string | null
           phone: string | null
           role: string | null
+          sss_last_checked_at: string | null
+          sss_validation_status: string
           updated_at: string | null
           user_id: string
         }
@@ -6775,16 +6779,20 @@ export type Database = {
           deleted_at?: string | null
           device_platform?: string | null
           email?: string | null
+          especialidad_registrada?: string | null
           external_id?: string | null
           fcm_token?: string | null
           first_name?: string | null
           last_name?: string | null
+          matricula_nacional?: string | null
           newsletter_subscribed?: boolean
           numeric_id?: number
           onboarding_completed_at?: string | null
           onboarding_started_at?: string | null
           phone?: string | null
           role?: string | null
+          sss_last_checked_at?: string | null
+          sss_validation_status?: string
           updated_at?: string | null
           user_id: string
         }
@@ -6795,16 +6803,20 @@ export type Database = {
           deleted_at?: string | null
           device_platform?: string | null
           email?: string | null
+          especialidad_registrada?: string | null
           external_id?: string | null
           fcm_token?: string | null
           first_name?: string | null
           last_name?: string | null
+          matricula_nacional?: string | null
           newsletter_subscribed?: boolean
           numeric_id?: number
           onboarding_completed_at?: string | null
           onboarding_started_at?: string | null
           phone?: string | null
           role?: string | null
+          sss_last_checked_at?: string | null
+          sss_validation_status?: string
           updated_at?: string | null
           user_id?: string
         }
