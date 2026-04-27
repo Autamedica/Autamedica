@@ -52,10 +52,10 @@
   <g transform="translate(80 68)">
     <rect x="0" y="0" width="1440" height="128" rx="28" fill="#ffffff" opacity=".78" filter="url(#shadow)"/>
     <text x="42" y="58" class="title">AutaMedica Growth OS</text>
-    <text x="44" y="98" class="subtitle">Primer circuito comercial medible: demanda, atribucion, lead, evento y camino a rentabilidad.</text>
+    <text x="44" y="98" class="subtitle">Estado actualizado: CAC sin mock, insomnio conectado y brechas concentradas en eventos, costos y campanias.</text>
     <g transform="translate(1160 35)">
       <rect x="0" y="0" width="218" height="58" rx="29" fill="#0f172a"/>
-      <text x="28" y="36" class="metric-label">estado actual</text>
+      <text x="25" y="36" class="metric-label">avance real</text>
       <circle cx="176" cy="29" r="10" fill="#22c55e"/>
     </g>
   </g>
@@ -65,31 +65,37 @@
     <rect width="435" height="112" rx="30" fill="url(#done)"/>
     <path d="M0 82 H435 V112 H0 Z" fill="url(#done)"/>
     <text x="34" y="42" class="section-kicker">HECHO</text>
-    <text x="34" y="78" class="section-title">Circuito base vivo</text>
+    <text x="34" y="78" class="section-title">Realizado / comprobado</text>
 
-    <g transform="translate(34 145)">
+    <g transform="translate(34 130)">
       <circle cx="14" cy="12" r="12" fill="#dcfce7"/>
       <path d="M8 12 l4 4 l8 -10" fill="none" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="42" y="18" class="item-title">UTM y referrer capturados</text>
-      <text x="42" y="45" class="item-copy">Landing inicial, ultima visita, anon id y session id.</text>
+      <text x="42" y="18" class="item-title">Captura y CRM funcionando</text>
+      <text x="42" y="45" class="item-copy">UTM, lead, consentimiento, evento y Supabase.</text>
     </g>
-    <g transform="translate(34 230)">
+    <g transform="translate(34 200)">
       <circle cx="14" cy="12" r="12" fill="#dcfce7"/>
       <path d="M8 12 l4 4 l8 -10" fill="none" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="42" y="18" class="item-title">Newsletter crea leads reales</text>
-      <text x="42" y="45" class="item-copy">El form ya pega a POST /api/growth-leads.</text>
+      <text x="42" y="18" class="item-title">Nurturing conectado</text>
+      <text x="42" y="45" class="item-copy">lead_created encola emails welcome y secuencias.</text>
     </g>
-    <g transform="translate(34 315)">
+    <g transform="translate(34 270)">
       <circle cx="14" cy="12" r="12" fill="#dcfce7"/>
       <path d="M8 12 l4 4 l8 -10" fill="none" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="42" y="18" class="item-title">Supabase remoto aplicado</text>
-      <text x="42" y="45" class="item-copy">growth_os.leads + growth_os.growth_events.</text>
+      <text x="42" y="18" class="item-title">Dashboard + CAC real-ready</text>
+      <text x="42" y="45" class="item-copy">Lee growth_os.ad_spend; sin gasto mock.</text>
     </g>
-    <g transform="translate(34 400)">
+    <g transform="translate(34 340)">
       <circle cx="14" cy="12" r="12" fill="#dcfce7"/>
       <path d="M8 12 l4 4 l8 -10" fill="none" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="42" y="18" class="item-title">Smoke test end-to-end</text>
-      <text x="42" y="45" class="item-copy">201 Created + lead_created verificado en DB.</text>
+      <text x="42" y="18" class="item-title">Landings con captura</text>
+      <text x="42" y="45" class="item-copy">TDAH, insomnio, consulta online, empresas, medicos.</text>
+    </g>
+    <g transform="translate(34 410)">
+      <circle cx="14" cy="12" r="12" fill="#dcfce7"/>
+      <path d="M8 12 l4 4 l8 -10" fill="none" stroke="#047857" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="42" y="18" class="item-title">Canales iniciales creados</text>
+      <text x="42" y="45" class="item-copy">LinkedIn y WhatsApp ya tienen landing propia.</text>
     </g>
   </g>
 
@@ -97,32 +103,38 @@
     <rect width="435" height="520" rx="30" fill="#ffffff"/>
     <rect width="435" height="112" rx="30" fill="url(#next)"/>
     <path d="M0 82 H435 V112 H0 Z" fill="url(#next)"/>
-    <text x="34" y="42" class="section-kicker">FALTA</text>
-    <text x="34" y="78" class="section-title">Convertir leads en pipeline</text>
+    <text x="34" y="42" class="section-kicker">BRECHAS</text>
+    <text x="34" y="78" class="section-title">Que falta exactamente</text>
 
-    <g transform="translate(34 145)">
+    <g transform="translate(34 130)">
       <circle cx="14" cy="12" r="12" fill="#dbeafe"/>
       <path d="M7 12 h14" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
-      <text x="42" y="18" class="item-title">Email lifecycle</text>
-      <text x="42" y="45" class="item-copy">lead_created -> email_jobs -> bienvenida/nurturing.</text>
+      <text x="42" y="18" class="item-title">PARCIAL: conversion</text>
+      <text x="42" y="45" class="item-copy">Hecho: landings capturan. Falta: testear CTAs.</text>
     </g>
-    <g transform="translate(34 230)">
+    <g transform="translate(34 200)">
       <circle cx="14" cy="12" r="12" fill="#dbeafe"/>
       <path d="M7 12 h14" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
-      <text x="42" y="18" class="item-title">Dashboard de growth</text>
-      <text x="42" y="45" class="item-copy">Leads por canal, vertical, campania y estado.</text>
+      <text x="42" y="18" class="item-title">FALTA: eventos clinicos</text>
+      <text x="42" y="45" class="item-copy">Medir anamnesis, turno, pago, consulta y receta.</text>
     </g>
-    <g transform="translate(34 315)">
+    <g transform="translate(34 270)">
       <circle cx="14" cy="12" r="12" fill="#dbeafe"/>
       <path d="M7 12 h14" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
-      <text x="42" y="18" class="item-title">Landings de conversion</text>
-      <text x="42" y="45" class="item-copy">Insomnio, TDAH, empresas y medicos con eventos propios.</text>
+      <text x="42" y="18" class="item-title">FALTA: cargar spend</text>
+      <text x="42" y="45" class="item-copy">La tabla existe; falta importar costos reales.</text>
     </g>
-    <g transform="translate(34 400)">
+    <g transform="translate(34 340)">
       <circle cx="14" cy="12" r="12" fill="#dbeafe"/>
       <path d="M7 12 h14" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
-      <text x="42" y="18" class="item-title">Atribucion a revenue</text>
-      <text x="42" y="45" class="item-copy">lead -> turno -> pago -> consulta -> margen.</text>
+      <text x="42" y="18" class="item-title">FALTA: margen real</text>
+      <text x="42" y="45" class="item-copy">Sumar medico, cobro, operacion y CAC real.</text>
+    </g>
+    <g transform="translate(34 410)">
+      <circle cx="14" cy="12" r="12" fill="#dbeafe"/>
+      <path d="M7 12 h14" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+      <text x="42" y="18" class="item-title">FALTA: campanias</text>
+      <text x="42" y="45" class="item-copy">Lanzar Google, retargeting, email y partners.</text>
     </g>
   </g>
 
@@ -131,22 +143,26 @@
     <rect width="435" height="112" rx="30" fill="url(#goal)"/>
     <path d="M0 82 H435 V112 H0 Z" fill="url(#goal)"/>
     <text x="34" y="42" class="section-kicker">OBJETIVO FINAL</text>
-    <text x="34" y="78" class="section-title">Maquina rentable</text>
+    <text x="34" y="78" class="section-title">Empresa rentable</text>
 
     <g transform="translate(34 145)">
       <rect width="367" height="78" rx="20" fill="#fff7ed"/>
-      <text x="24" y="32" class="item-title">Cada visita tiene destino</text>
-      <text x="24" y="58" class="item-copy">Capturar, nutrir, calificar, vender o aprender.</text>
+      <text x="24" y="32" class="item-title">Cada lead tiene camino</text>
+      <text x="24" y="58" class="item-copy">Capturar, nutrir, calificar, agendar o aprender.</text>
     </g>
     <g transform="translate(34 250)">
       <rect width="367" height="78" rx="20" fill="#fffbeb"/>
       <text x="24" y="32" class="item-title">Cada canal tiene ROI</text>
-      <text x="24" y="58" class="item-copy">No mas trafico ciego: CAC, LTV y margen por vertical.</text>
+      <text x="24" y="58" class="item-copy">CAC, conversion, LTV y payback por vertical.</text>
     </g>
     <g transform="translate(34 355)">
       <rect width="367" height="92" rx="20" fill="#ecfeff"/>
-      <text x="24" y="32" class="item-title">Growth review semanal</text>
+      <text x="24" y="32" class="item-title">Decision semanal con datos</text>
       <text x="24" y="58" class="item-copy">Duplicar, pausar, reescribir o matar experimentos.</text>
+    </g>
+    <g transform="translate(34 468)">
+      <rect width="367" height="30" rx="15" fill="#0f172a" opacity=".08"/>
+      <text x="24" y="21" class="chip">NORTE: margen positivo antes de escalar ads</text>
     </g>
   </g>
 
@@ -155,8 +171,8 @@
 
   <g transform="translate(145 820)">
     <rect x="0" y="0" width="1310" height="98" rx="28" fill="#0f172a" filter="url(#shadow)"/>
-    <text x="36" y="39" class="goal-title">Norte: crecimiento medible con margen</text>
-    <text x="36" y="70" class="goal-copy">Sistema final: CAC menor que LTV, conversion por etapa y margen por vertical.</text>
+    <text x="36" y="39" class="goal-title">Norte: crecimiento medible antes de gastar fuerte</text>
+    <text x="36" y="70" class="goal-copy">Sistema final: CAC menor que LTV, conversion por etapa, margen por vertical y decision semanal.</text>
     <g transform="translate(990 22)">
       <rect x="0" y="0" width="260" height="54" rx="18" fill="#ffffff"/>
       <text x="25" y="34" class="mono">lead -> pago -> margen</text>

@@ -2,6 +2,8 @@
 import Layout from '../../layouts/Layout.astro';
 import PortalLanding from '../../components/portal/PortalLanding.astro';
 import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
+import NewsletterCapture from '../../components/NewsletterCapture.astro';
+import Footer from '../../components/Footer.astro';
 import { buildRoleAuthPath } from '../../lib/auth-flow';
 import { getI18n } from '../../i18n/index';
 const locale = Astro.locals.locale ?? 'es';
@@ -49,83 +51,24 @@ const pageDescription = t('portals.doctors.description');
       },
     ]}
     primaryCta={{
-      href: buildRoleAuthPath('login', 'doctor'),
-      label: t('roles.doctor.buttonLabel'),
-    }}
-    secondaryCta={{
       href: buildRoleAuthPath('register', 'doctor'),
       label: t('auth.createAccount'),
     }}
+    secondaryCta={{
+      href: buildRoleAuthPath('login', 'doctor'),
+      label: t('auth.signIn'),
+    }}
   />
 
-  <section class="quick-links" aria-label="Accesos rapidos doctors">
-    <div class="quick-links-inner">
-      <h2>{t('portals.doctors.quickLinksTitle')}</h2>
-      <div class="quick-links-grid">
-        <a href="/doctors/agenda">{t('portals.doctors.links.agenda')}</a>
-        <a href="/doctors/consultations">{t('portals.doctors.links.consultations')}</a>
-        <a href="/doctors/patients">{t('portals.doctors.links.patients')}</a>
-      </div>
-    </div>
-  </section>
+  <NewsletterCapture 
+    vertical="doctors" 
+    intent="doctor_onboarding" 
+    formId="doctor_interest"
+    title="¿Sos profesional de la salud?"
+    subtitle="Dejanos tu email para recibir información sobre cómo integrar AutaMedica en tu práctica privada y acceder a las herramientas de IA clínica."
+    buttonLabel="Quiero saber más"
+    placeholder="tu@email.com"
+  />
+
+  <Footer />
 </Layout>
-
-<style>
-  .quick-links {
-    padding: 0 var(--section-px) var(--space-16);
-    background: var(--au-bg);
-  }
-
-  .quick-links-inner {
-    margin: 0 auto;
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-lg);
-    background: #fff;
-    padding: var(--space-8) var(--space-6);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-
-    max-width: 1120px;
-    margin: 0 auto;
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-md);
-    background: var(--au-surface);
-    padding: var(--space-6);
-  }
-
-  .quick-links h2 {
-    margin: 0 0 var(--space-4);
-    font-size: var(--text-lg);
-  }
-
-  .quick-links-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    @media (min-width: 768px) {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: var(--space-3);
-  }
-
-  .quick-links-grid a {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 3.5rem;
-    font-weight: 600;
-
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-sm);
-    padding: var(--space-3);
-    color: var(--au-text-secondary);
-    transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
-  }
-
-  .quick-links-grid a:hover {
-    border-color: var(--portal-doctors);
-    color: var(--au-text-primary);
-    background: var(--au-accent-soft);
-  }
-</style>

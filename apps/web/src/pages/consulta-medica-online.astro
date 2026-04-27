@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
+import NewsletterCapture from '../components/NewsletterCapture.astro';
 import CTAFinal from '../components/CTAFinal.astro';
 import Footer from '../components/Footer.astro';
 
@@ -149,6 +150,15 @@ const faqs = [
         </div>
       </div>
     </section>
+
+    <NewsletterCapture 
+      vertical="telemedicina" 
+      intent="evaluation" 
+      formId="online_consultation_interest"
+      title="¿Todavía tenés dudas?"
+      subtitle="Recibí información sobre cómo funcionan nuestras videoconsultas, el marco legal de la receta digital y cómo preparamos tu historial clínico."
+      buttonLabel="Recibir información"
+    />
 
     <CTAFinal
       title="Su salud es nuestra prioridad principal."

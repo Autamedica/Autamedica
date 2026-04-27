@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
+import NewsletterCapture from '../components/NewsletterCapture.astro';
 
 const canonicalUrl = 'https://www.autamedica.com/psicologo-online';
 ---
@@ -49,6 +50,13 @@ const canonicalUrl = 'https://www.autamedica.com/psicologo-online';
             No hace falta esperar a "estar muy mal" para consultar. Ese umbral suele llegar demasiado tarde.
           </p>
         </section>
+
+        <NewsletterCapture 
+          vertical="psicologia" 
+          intent="therapy" 
+          title="Recibí nuestra guía de salud mental"
+          subtitle="Herramientas prácticas para manejar la ansiedad y el estrés, y cómo elegir el enfoque terapéutico adecuado para vos."
+        />
       </article>
       <aside class="seo-sidebar">
         <div class="seo-sidebar-card">

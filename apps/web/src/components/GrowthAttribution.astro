@@ -6,13 +6,14 @@
   const ANONYMOUS_ID_KEY = 'au-anonymous-id';
   const SESSION_ID_KEY = 'au-session-id';
   const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+  type AttributionRecord = Record<string, string | null>;
 
   const safeUuid = () => {
     if (crypto?.randomUUID) return crypto.randomUUID();
     return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   };
 
-  const readJson = (key) => {
+  const readJson = (key: string): AttributionRecord => {
     try {
       const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : {};
@@ -39,7 +40,7 @@
 
   const captureAttribution = () => {
     const params = new URLSearchParams(window.location.search);
-    const current = {};
+    const current: Record<string, string> = {};
     UTM_KEYS.forEach((key) => {
       const value = params.get(key);
       if (value) current[key] = value.slice(0, 160);

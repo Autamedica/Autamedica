@@ -1123,6 +1123,60 @@ export type Database = {
   }
   growth_os: {
     Tables: {
+      ad_spend: {
+        Row: {
+          amount: number
+          campaign: string | null
+          content: string | null
+          created_at: string
+          currency: string
+          external_id: string | null
+          id: string
+          medium: string | null
+          metadata: Json
+          notes: string | null
+          provider: string | null
+          source: string
+          spend_date: string
+          updated_at: string
+          vertical: string | null
+        }
+        Insert: {
+          amount: number
+          campaign?: string | null
+          content?: string | null
+          created_at?: string
+          currency?: string
+          external_id?: string | null
+          id?: string
+          medium?: string | null
+          metadata?: Json
+          notes?: string | null
+          provider?: string | null
+          source: string
+          spend_date: string
+          updated_at?: string
+          vertical?: string | null
+        }
+        Update: {
+          amount?: number
+          campaign?: string | null
+          content?: string | null
+          created_at?: string
+          currency?: string
+          external_id?: string | null
+          id?: string
+          medium?: string | null
+          metadata?: Json
+          notes?: string | null
+          provider?: string | null
+          source?: string
+          spend_date?: string
+          updated_at?: string
+          vertical?: string | null
+        }
+        Relationships: []
+      }
       brand_voice_examples: {
         Row: {
           channel: string
@@ -1318,6 +1372,7 @@ export type Database = {
           job_type: string
           last_error: string | null
           max_attempts: number
+          nurturing_step_id: number | null
           patient_id: string | null
           provider: string | null
           provider_message_id: string | null
@@ -1339,6 +1394,7 @@ export type Database = {
           job_type: string
           last_error?: string | null
           max_attempts?: number
+          nurturing_step_id?: number | null
           patient_id?: string | null
           provider?: string | null
           provider_message_id?: string | null
@@ -1360,6 +1416,7 @@ export type Database = {
           job_type?: string
           last_error?: string | null
           max_attempts?: number
+          nurturing_step_id?: number | null
           patient_id?: string | null
           provider?: string | null
           provider_message_id?: string | null
@@ -1372,7 +1429,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "email_jobs_nurturing_step_id_fkey"
+            columns: ["nurturing_step_id"]
+            isOneToOne: false
+            referencedRelation: "nurturing_steps"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       engagement_metrics: {
         Row: {
@@ -1501,6 +1566,13 @@ export type Database = {
           vertical?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "growth_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_attribution"
+            referencedColumns: ["lead_id"]
+          },
           {
             foreignKeyName: "growth_events_lead_id_fkey"
             columns: ["lead_id"]
@@ -1687,6 +1759,68 @@ export type Database = {
         }
         Relationships: []
       }
+      nurturing_sequences: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          name: string
+          vertical: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id: string
+          name: string
+          vertical: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name?: string
+          vertical?: string
+        }
+        Relationships: []
+      }
+      nurturing_steps: {
+        Row: {
+          delay_hours: number
+          enabled: boolean
+          id: number
+          sequence_id: string
+          step_order: number
+          subject: string
+          template_key: string
+        }
+        Insert: {
+          delay_hours: number
+          enabled?: boolean
+          id?: number
+          sequence_id: string
+          step_order: number
+          subject: string
+          template_key: string
+        }
+        Update: {
+          delay_hours?: number
+          enabled?: boolean
+          id?: number
+          sequence_id?: string
+          step_order?: number
+          subject?: string
+          template_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nurturing_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "nurturing_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       publish_log: {
         Row: {
           channel: string
@@ -1813,7 +1947,34 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      lead_attribution: {
+        Row: {
+          appointment_id: string | null
+          appointment_status: string | null
+          appointment_time: string | null
+          converted_to_appointment: boolean | null
+          converted_to_revenue: boolean | null
+          first_utm_campaign: string | null
+          first_utm_medium: string | null
+          first_utm_source: string | null
+          form_id: string | null
+          hours_to_appointment: number | null
+          hours_to_payment: number | null
+          intent: string | null
+          lead_created_at: string | null
+          lead_email: string | null
+          lead_id: string | null
+          lead_status: string | null
+          patient_id: string | null
+          payment_amount: number | null
+          payment_date: string | null
+          payment_id: string | null
+          payment_status: string | null
+          user_id: string | null
+          vertical: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       claim_next_topic: {
@@ -1842,8 +2003,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      dashboard_summary: { Args: { days_back?: number }; Returns: Json }
       enqueue_anamnesis_reminders: {
         Args: { batch_limit?: number; min_profile_age?: string }
+        Returns: number
+      }
+      enqueue_nurturing_emails: {
+        Args: { batch_limit?: number }
         Returns: number
       }
       is_channel_enabled: { Args: { ch: string }; Returns: boolean }
@@ -6593,7 +6759,7 @@ export type Database = {
           fcm_token: string | null
           first_name: string | null
           last_name: string | null
-          newsletter_subscribed: boolean | null
+          newsletter_subscribed: boolean
           numeric_id: number
           onboarding_completed_at: string | null
           onboarding_started_at: string | null
@@ -6613,7 +6779,7 @@ export type Database = {
           fcm_token?: string | null
           first_name?: string | null
           last_name?: string | null
-          newsletter_subscribed?: boolean | null
+          newsletter_subscribed?: boolean
           numeric_id?: number
           onboarding_completed_at?: string | null
           onboarding_started_at?: string | null
@@ -6633,7 +6799,7 @@ export type Database = {
           fcm_token?: string | null
           first_name?: string | null
           last_name?: string | null
-          newsletter_subscribed?: boolean | null
+          newsletter_subscribed?: boolean
           numeric_id?: number
           onboarding_completed_at?: string | null
           onboarding_started_at?: string | null

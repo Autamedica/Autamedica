@@ -50,6 +50,7 @@ type GrowthEventsTable = {
 interface GrowthSchemaClient {
   from(table: 'leads'): LeadsTable
   from(table: 'growth_events'): GrowthEventsTable
+  rpc(name: 'enqueue_nurturing_emails', args: { batch_limit: number }): Promise<{ data: number | null; error: unknown }>
 }
 type GrowthAdminClient = {
   schema: (schemaName: 'growth_os') => GrowthSchemaClient
@@ -89,6 +90,15 @@ function utm(attribution: Record<string, unknown>, key: string): string | null {
 
 function isSpamTrapFilled(body: LeadRequest): boolean {
   return Boolean(text(body.company).length || text(body.website).length || text(body.hp).length)
+}
+
+async function enqueueNurturing(admin: GrowthAdminClient): Promise<number> {
+  const { data, error } = await admin
+    .schema('growth_os')
+    .rpc('enqueue_nurturing_emails', { batch_limit: 25 })
+
+  if (error) throw error
+  return typeof data === 'number' ? data : 0
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -173,7 +183,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (eventError) throw eventError
 
-    return jsonOk({ id: lead.id, status: lead.status }, 201)
+    let emailJobsEnqueued = 0
+    try {
+      emailJobsEnqueued = await enqueueNurturing(admin)
+    } catch (enqueueError) {
+      logger.error('[growth/leads] Failed to enqueue nurturing email jobs', enqueueError)
+    }
+
+    return jsonOk({ id: lead.id, status: lead.status, email_jobs_enqueued: emailJobsEnqueued }, 201)
   } catch (err) {
     logger.error('[growth/leads] Failed to capture lead', err)
     return internalError('lead_capture_failed')

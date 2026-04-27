@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
+import NewsletterCapture from '../components/NewsletterCapture.astro';
 
 const canonicalUrl = 'https://www.autamedica.com/insomnio';
 ---
@@ -156,6 +157,15 @@ const canonicalUrl = 'https://www.autamedica.com/insomnio';
             <li>Seguimiento clínico incluido según protocolo del tratamiento iniciado.</li>
           </ul>
         </section>
+
+        <NewsletterCapture
+          vertical="insomnio"
+          intent="sleep_evaluation"
+          formId="insomnia_landing"
+          title="Recibí la guía clínica de insomnio"
+          subtitle="Te enviamos una guía breve para entender causas frecuentes, señales de alarma y cómo prepararte para una evaluación online."
+          buttonLabel="Recibir guía"
+        />
 
         <section>
           <h2>Preguntas frecuentes</h2>
