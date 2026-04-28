@@ -35,27 +35,78 @@ interface SssResponse {
   };
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+function jsonResponse(body: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders },
+  });
+}
+
+function normalizeNumeric(value: unknown): string {
+  return String(value ?? '').replace(/\D/g, '');
+}
+
+function normalizeText(value: unknown): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function textTokens(value: unknown): string[] {
+  return normalizeText(value)
+    .split(' ')
+    .filter((token) => token.length > 1);
+}
+
+function hasTokenOverlap(left: unknown, right: unknown): boolean {
+  const leftTokens = textTokens(left);
+  const rightTokens = new Set(textTokens(right));
+  return leftTokens.length > 0 && leftTokens.some((token) => rightTokens.has(token));
+}
+
+function profileMatchesSssRecord(
+  profile: { first_name?: string | null; last_name?: string | null },
+  record: SssLicenseRecord,
+): boolean {
+  return hasTokenOverlap(profile.first_name, record.nombre) && hasTokenOverlap(profile.last_name, record.apellido);
+}
+
+async function markValidationStatus(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  userId: string,
+  status: 'valid' | 'invalid',
+  extra: Record<string, unknown> = {},
+): Promise<void> {
+  const { error } = await supabaseAdmin.from('profiles').update({
+    sss_validation_status: status,
+    sss_last_checked_at: new Date().toISOString(),
+    ...extra,
+  }).eq('user_id', userId);
+
+  if (error) throw error;
+}
+
 initEdgeSentry('verify-doctor-license');
 
 Deno.serve(async (req) => {
-  // Manejo de CORS
   if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
-    });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
+      return jsonResponse({ error: 'Missing authorization header' }, 401);
     }
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
@@ -64,24 +115,51 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
+      return jsonResponse({ error: 'Unauthorized' }, 401);
     }
 
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     const { dni, matricula }: VerifyRequest = await req.json();
-    if (!dni || !matricula) {
-      return new Response(JSON.stringify({ error: 'DNI and matrícula are required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
+    const normalizedDni = normalizeNumeric(dni);
+    const normalizedInputLicense = normalizeNumeric(matricula);
+
+    if (normalizedDni.length < 7 || normalizedDni.length > 9 || !normalizedInputLicense) {
+      return jsonResponse({ error: 'DNI and matrícula are required' }, 400);
     }
 
-    console.log(`[verify-doctor-license] Checking DNI: ${dni}, Matricula: ${matricula} for user: ${user.id}`);
+    const { data: doctor, error: doctorError } = await supabaseAdmin
+      .from('doctors')
+      .select(`
+        id,
+        user_id,
+        license_number,
+        active,
+        profile:profiles!doctors_user_id_fkey(user_id, role, active, first_name, last_name)
+      `)
+      .eq('user_id', user.id)
+      .eq('active', true)
+      .maybeSingle();
 
-    // Consulta a la API de la SSS
-    const queryUrl = `${SSS_API_URL}?resource_id=${SSS_RESOURCE_ID}&q=${dni}`;
+    if (doctorError) throw doctorError;
+
+    const profile = Array.isArray(doctor?.profile) ? doctor?.profile[0] : doctor?.profile;
+    if (!doctor || profile?.role !== 'doctor' || profile?.active === false) {
+      return jsonResponse({ error: 'doctor_profile_required' }, 403);
+    }
+
+    const normalizedStoredLicense = normalizeNumeric(doctor.license_number);
+    if (!normalizedStoredLicense || normalizedStoredLicense !== normalizedInputLicense) {
+      await markValidationStatus(supabaseAdmin, user.id, 'invalid');
+      return jsonResponse({ success: false, message: 'La matrícula ingresada no coincide con tu perfil profesional.' }, 403);
+    }
+
+    if (!profile?.first_name || !profile?.last_name) {
+      return jsonResponse({ success: false, message: 'Completá nombre y apellido en tu perfil antes de validar la matrícula.' }, 409);
+    }
+
+    console.log('[verify-doctor-license] Checking SSS registry for authenticated doctor', { userId: user.id });
+
+    const queryUrl = `${SSS_API_URL}?resource_id=${SSS_RESOURCE_ID}&q=${encodeURIComponent(normalizedDni)}`;
     const response = await fetch(queryUrl);
     
     if (!response.ok) {
@@ -91,49 +169,42 @@ Deno.serve(async (req) => {
     const sssData = await response.json() as SssResponse;
     const records = sssData.result?.records ?? [];
 
-    // Buscar coincidencia exacta por DNI y Matrícula
     const match = records.find((r) =>
-      String(r.numero_documento).trim() === String(dni).trim() && 
-      String(r.certificado_numero).trim() === String(matricula).trim()
+      normalizeNumeric(r.numero_documento) === normalizedDni &&
+      normalizeNumeric(r.certificado_numero) === normalizedInputLicense
     );
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
     if (!match) {
-      console.warn(`[verify-doctor-license] No match found in SSS for DNI ${dni} and Matricula ${matricula}`);
-      
-      // Actualizar estado a fallido o pendiente
-      await supabaseAdmin.from('profiles').update({
-        sss_validation_status: 'invalid',
-        sss_last_checked_at: new Date().toISOString()
-      }).eq('user_id', user.id);
+      console.warn('[verify-doctor-license] No SSS match for authenticated doctor', { userId: user.id, records: records.length });
+      await markValidationStatus(supabaseAdmin, user.id, 'invalid');
 
-      return new Response(JSON.stringify({ 
+      return jsonResponse({ 
         success: false, 
         message: 'No se encontró una matrícula activa para los datos proporcionados en el registro nacional.' 
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
 
-    // Validar Especialidad (Psiquiatría)
+    if (!profileMatchesSssRecord(profile, match)) {
+      console.warn('[verify-doctor-license] SSS identity mismatch for authenticated doctor', { userId: user.id });
+      await markValidationStatus(supabaseAdmin, user.id, 'invalid');
+
+      return jsonResponse({
+        success: false,
+        message: 'La identidad del registro nacional no coincide con el perfil profesional cargado.',
+      }, 403);
+    }
+
     const profesion = String(match.profesion).toLowerCase();
     const isPsychiatrist = profesion.includes('psiquiatria') || profesion.includes('psiquiatría');
 
-    console.log(`[verify-doctor-license] Match found. Profesion: ${match.profesion}`);
+    console.log('[verify-doctor-license] SSS match validated for authenticated doctor', { userId: user.id });
 
-    // Actualizar el perfil del médico
-    const { error: updateError } = await supabaseAdmin.from('profiles').update({
-      sss_validation_status: 'valid',
+    await markValidationStatus(supabaseAdmin, user.id, 'valid', {
       especialidad_registrada: match.profesion,
-      sss_last_checked_at: new Date().toISOString(),
-      matricula_nacional: match.certificado_numero
-    }).eq('user_id', user.id);
+      matricula_nacional: match.certificado_numero,
+    });
 
-    if (updateError) throw updateError;
-
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       data: {
         nombre: match.nombre,
@@ -142,9 +213,6 @@ Deno.serve(async (req) => {
         is_psychiatrist: isPsychiatrist,
         vencimiento: match.fecha_vencimiento
       }
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     });
 
   } catch (error) {
@@ -154,9 +222,6 @@ Deno.serve(async (req) => {
       owner: 'Medical Board',
     });
     console.error('[verify-doctor-license] Error:', error);
-    return new Response(JSON.stringify({ error: 'Error interno al verificar la matrícula.' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    return jsonResponse({ error: 'Error interno al verificar la matrícula.' }, 500);
   }
 });

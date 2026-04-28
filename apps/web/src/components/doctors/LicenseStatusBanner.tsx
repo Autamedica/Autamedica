@@ -29,7 +29,7 @@ export function LicenseStatusBanner() {
           </div>
           <div>
             <h3 className="text-sm font-medium uppercase tracking-tight text-emerald-900">Matricula validada</h3>
-            <p className="text-xs text-emerald-700/80">Registro Nacional SSS / REFEPS. Credenciales habilitadas para emision de recetas electronicas.</p>
+            <p className="text-xs text-emerald-700/80">Registro Nacional SSS / REFEPS. Credenciales profesionales verificadas.</p>
           </div>
         </div>
         <div className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-600">
@@ -54,7 +54,7 @@ export function LicenseStatusBanner() {
             Validacion de matricula pendiente
           </h3>
           <p className="mb-4 text-sm leading-relaxed text-amber-800/80">
-            Tu matricula debe cruzarse con registros nacionales para habilitar credenciales clinicas y emision segura de recetas electronicas.
+            Tu matricula debe cruzarse con registros nacionales para habilitar credenciales clinicas verificadas.
           </p>
           <div className="flex gap-3">
             <a href="/doctors/onboarding/license" className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700">
