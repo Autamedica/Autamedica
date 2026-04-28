@@ -16,6 +16,7 @@ import {
   isTelemedicineAppointment,
 } from '@/lib/patients/lib/telemedicine-entry'
 import type { Locale } from '@/i18n/index'
+import { PatientDoctorChat } from '@/components/patients/chat/PatientDoctorChat'
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -639,6 +640,9 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
           ))}
         </div>
       </nav>
+
+      {/* Floating P2P Chat */}
+      <PatientDoctorChat />
     </div>
   )
 }
