@@ -32,9 +32,21 @@ const STATUS_COLORS: Record<string, string> = {
   no_show: 'bg-amber-100 text-amber-700',
 }
 
+const DEFAULT_STATUS = 'scheduled'
 
+function getStatusLabel(status: string | null | undefined): string {
+  if (!status) return STATUS_LABELS[DEFAULT_STATUS]
+  return STATUS_LABELS[status] ?? status.replace(/_/g, ' ')
+}
 
+function getStatusColor(status: string | null | undefined): string {
+  if (!status) return STATUS_COLORS[DEFAULT_STATUS]
+  return STATUS_COLORS[status] ?? STATUS_COLORS[DEFAULT_STATUS]
+}
 
+function getSoftStatusColor(status: string | null | undefined): string {
+  return getStatusColor(status).replace('100', '50')
+}
 
 
 
@@ -181,8 +193,8 @@ export function AppointmentsPanel() {
 
                 {/* Right: Status & Actions */}
                 <div className="shrink-0 flex flex-col items-center lg:items-end gap-5">
-                  <span className={`rounded-lg px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest ${STATUS_COLORS[currentTurno.status ?? 'scheduled'].replace('100', '50')}`}>
-                    {STATUS_LABELS[currentTurno.status ?? 'scheduled']}
+                  <span className={`rounded-lg px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest ${getSoftStatusColor(currentTurno.status)}`}>
+                    {getStatusLabel(currentTurno.status)}
                   </span>
                   
                   <div className="flex flex-col items-center">
@@ -368,8 +380,8 @@ export function AppointmentsPanel() {
                         </div>
 
                         {/* Status */}
-                        <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[a.status ?? 'scheduled']}`}>
-                          {STATUS_LABELS[a.status ?? 'scheduled']}
+                        <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getStatusColor(a.status)}`}>
+                          {getStatusLabel(a.status)}
                         </span>
                       </button>
                     )
