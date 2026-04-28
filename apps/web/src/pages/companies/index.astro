@@ -2,6 +2,8 @@
 import Layout from '../../layouts/Layout.astro';
 import PortalLanding from '../../components/portal/PortalLanding.astro';
 import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
+import NewsletterCapture from '../../components/NewsletterCapture.astro';
+import Footer from '../../components/Footer.astro';
 import { buildRoleAuthPath } from '../../lib/auth-flow';
 import { getI18n } from '../../i18n/index';
 const locale = Astro.locals.locale ?? 'es';
@@ -49,64 +51,24 @@ const pageDescription = t('portals.companies.description');
       },
     ]}
     primaryCta={{
-      href: buildRoleAuthPath('login', 'company_admin'),
-      label: t('roles.company_admin.buttonLabel'),
-    }}
-    secondaryCta={{
       href: buildRoleAuthPath('register', 'company_admin'),
       label: t('auth.createAccount'),
     }}
+    secondaryCta={{
+      href: buildRoleAuthPath('login', 'company_admin'),
+      label: t('auth.signIn'),
+    }}
   />
 
-  <section class="quick-links" aria-label="Accesos rapidos companies">
-    <div class="quick-links-inner">
-      <h2>Accesos rápidos del portal</h2>
-      <div class="quick-links-grid">
-        <a href="/companies/crisis">Centro de Control de Crisis</a>
-        <a href="/companies/marketplace">Marketplace Médico</a>
-        <a href="/companies/reports">Métricas y Reportes</a>
-      </div>
-    </div>
-  </section>
+  <NewsletterCapture 
+    vertical="companies" 
+    intent="company_demo" 
+    formId="company_interest"
+    title="AutaMedica para Empresas"
+    subtitle="Solicitá una demo personalizada para ver cómo podemos ayudar a optimizar la salud laboral y el marketplace médico de tu organización."
+    buttonLabel="Solicitar Demo"
+    placeholder="email@empresa.com"
+  />
+
+  <Footer />
 </Layout>
-
-<style>
-  .quick-links {
-    padding: 0 var(--section-px) var(--space-16);
-    background: var(--au-bg);
-  }
-
-  .quick-links-inner {
-    max-width: 1120px;
-    margin: 0 auto;
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-md);
-    background: var(--au-surface);
-    padding: var(--space-6);
-  }
-
-  .quick-links h2 {
-    margin: 0 0 var(--space-4);
-    font-size: var(--text-lg);
-  }
-
-  .quick-links-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: var(--space-3);
-  }
-
-  .quick-links-grid a {
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-sm);
-    padding: var(--space-3);
-    color: var(--au-text-secondary);
-    transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
-  }
-
-  .quick-links-grid a:hover {
-    border-color: var(--portal-companies);
-    color: var(--au-text-primary);
-    background: var(--au-accent-soft);
-  }
-</style>

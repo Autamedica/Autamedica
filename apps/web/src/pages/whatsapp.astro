@@ -1,0 +1,76 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import NewsletterCapture from '../components/NewsletterCapture.astro';
+import Footer from '../components/Footer.astro';
+
+const title = "AutaMedica | Atención Médica por WhatsApp";
+const description = "Recibí tu consulta médica online y receta digital de forma rápida y segura.";
+const supportHref = import.meta.env.PUBLIC_WHATSAPP_SUPPORT_URL || 'mailto:soporte@autamedica.com';
+const supportLabel = supportHref.startsWith('https://wa.me/') ? 'Chatear con Soporte' : 'Contactar soporte';
+---
+
+<Layout title={title} description={description}>
+  <Navbar />
+  
+  <main class="pt-24 pb-12">
+    <section class="max-w-4xl mx-auto px-6 text-center mb-16">
+      <span class="inline-block px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full mb-4 uppercase tracking-widest">
+        Comunidad WhatsApp
+      </span>
+      <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
+        Tu médico, a un <span class="text-green-600">mensaje</span> de distancia.
+      </h1>
+      <p class="text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
+        Simplificamos el acceso a la salud. Registrate en segundos y hablá con un profesional hoy mismo. Sin esperas innecesarias.
+      </p>
+      <div class="mt-8">
+        <a href="/auth/register" class="inline-block bg-green-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-green-700 transition-all transform hover:-translate-y-1">
+          Empezar Registro Ahora
+        </a>
+      </div>
+    </section>
+
+    <div class="max-w-2xl mx-auto px-6">
+      <NewsletterCapture 
+        vertical="whatsapp" 
+        intent="quick_access" 
+        formId="whatsapp_landing"
+        title="Mantenete informado por WhatsApp"
+        subtitle="Dejanos tu email para enviarte guías rápidas de salud, recordatorios de turnos e información importante de nuestra comunidad."
+        buttonLabel="Quiero sumarme"
+      />
+    </div>
+
+    <section class="max-w-4xl mx-auto px-6 mt-20 border-t border-gray-100 pt-16">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div>
+                <h3 class="text-2xl font-bold mb-4">¿Por qué AutaMedica?</h3>
+                <ul class="space-y-4">
+                    <li class="flex items-start gap-3">
+                        <span class="text-green-600 font-bold">✓</span>
+                        <p class="text-gray-600"><span class="font-bold text-gray-900">Atención 24/7:</span> Médicos disponibles cuando los necesitás.</p>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-green-600 font-bold">✓</span>
+                        <p class="text-gray-600"><span class="font-bold text-gray-900">Receta Digital:</span> Validez nacional en todas las farmacias.</p>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-green-600 font-bold">✓</span>
+                        <p class="text-gray-600"><span class="font-bold text-gray-900">Privacidad:</span> Datos protegidos bajo estándares médicos.</p>
+                    </li>
+                </ul>
+            </div>
+            <div class="bg-gray-50 p-8 rounded-3xl">
+                <h4 class="font-bold mb-4">¿Necesitás ayuda urgente?</h4>
+                <p class="text-sm text-gray-600 mb-6">Si tenés una duda puntual sobre el servicio, nuestro equipo de soporte está listo para ayudarte.</p>
+                <a href={supportHref} class="flex items-center justify-center gap-2 bg-white border border-gray-200 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors">
+                    {supportLabel}
+                </a>
+            </div>
+        </div>
+    </section>
+  </main>
+
+  <Footer />
+</Layout>

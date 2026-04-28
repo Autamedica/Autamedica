@@ -60,7 +60,7 @@
     "db:generate": "node scripts/generate-db-types.mjs",
     "db:sync": "node scripts/generate-db-types.mjs && node scripts/validate-database-schema.mjs",
     "db:test": "node scripts/test-db-generation.mjs",
-    "types:db:gen": "supabase gen types typescript --project-id qxjjrpksmwwrmubhvjew > packages/types/src/supabase/database.types.ts && cp packages/types/src/supabase/database.types.ts packages/shared/src/types/database.types.ts && tsx scripts/postprocess-db-types.ts",
+    "types:db:gen": "supabase gen types typescript --project-id qxjjrpksmwwrmubhvjew --schema auth --schema growth_os --schema public > packages/types/src/supabase/database.types.ts && cp packages/types/src/supabase/database.types.ts packages/shared/src/types/database.types.ts && tsx scripts/postprocess-db-types.ts",
     "types:db:postprocess": "tsx scripts/postprocess-db-types.ts",
     "docs:sync": "node scripts/docs-sync.mjs",
     "docs:sync:watch": "node scripts/docs-watch.mjs",
