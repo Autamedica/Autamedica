@@ -1,0 +1,104 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { Clock, ShieldCheck, Zap, Activity } from 'lucide-react';
+
+const title = "Estamos en mantenimiento | AutaMedica";
+const startTime = "02:00 a. m.";
+const endTime = "06:00 a. m.";
+---
+
+<Layout title={title}>
+  <main class="min-h-screen bg-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <!-- Decorative background elements -->
+    <div class="absolute top-0 left-0 w-full h-full opacity-[0.03] pointer-events-none">
+      <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-sky-500 rounded-full blur-[120px]"></div>
+      <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500 rounded-full blur-[120px]"></div>
+    </div>
+
+    <div class="max-w-5xl w-full text-center z-10">
+      <!-- Top Badge -->
+      <div class="inline-flex items-center gap-2 px-4 py-2 bg-sky-50 text-sky-600 rounded-full text-xs font-bold uppercase tracking-widest mb-10 border border-sky-100">
+        <span class="w-2 h-2 bg-sky-500 rounded-full animate-pulse"></span>
+        Mantenimiento programado previamente
+      </div>
+
+      <!-- Hero Content -->
+      <h1 class="text-6xl md:text-8xl font-black text-[#0f172a] mb-6 tracking-tight leading-none">
+        Estamos en <span class="text-sky-500">mantenimiento.</span>
+      </h1>
+      <p class="text-3xl md:text-4xl text-gray-400 font-medium mb-12">Volvemos en breve.</p>
+
+      <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-16 leading-relaxed">
+        Estamos realizando mejoras en AutaMedica para brindarte una experiencia más rápida, estable y segura. <br class="hidden md:block" /> Gracias por tu paciencia.
+      </p>
+
+      <!-- Main Visual -->
+      <div class="relative mb-16 px-4 group">
+        <div class="absolute inset-0 bg-sky-500/5 blur-[100px] rounded-full scale-150 group-hover:scale-175 transition-transform duration-1000"></div>
+        <img 
+          src="/images/maintenance-splash.png" 
+          alt="Mantenimiento AutaMedica" 
+          class="relative z-10 w-full max-w-3xl mx-auto rounded-3xl shadow-2xl shadow-sky-900/10"
+        />
+      </div>
+
+      <!-- Schedule Info -->
+      <div class="max-w-xl mx-auto bg-sky-50/50 backdrop-blur-md border border-sky-100 rounded-2xl p-6 mb-16 flex items-center gap-6 text-left shadow-sm">
+        <div class="w-14 h-14 bg-white rounded-xl shadow-sm flex items-center justify-center shrink-0">
+          <Clock className="text-sky-600 w-8 h-8" />
+        </div>
+        <div>
+          <p class="text-gray-500 text-sm font-medium mb-1">Esta ventana de mantenimiento fue programada previamente.</p>
+          <p class="text-gray-900 text-lg">
+            <span class="font-bold">Horario:</span> inicio <span class="text-sky-600 font-bold">{startTime}</span> • finalización <span class="text-sky-600 font-bold">{endTime}</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+        <div class="bg-white border border-gray-100 p-8 rounded-[2.5rem] shadow-sm flex flex-col items-center gap-4 group hover:border-sky-200 hover:shadow-xl hover:shadow-sky-900/5 transition-all">
+          <div class="w-14 h-14 bg-sky-50 text-sky-500 rounded-2xl flex items-center justify-center group-hover:rotate-6 transition-transform">
+            <Zap size={28} />
+          </div>
+          <h3 class="font-bold text-gray-900 text-lg">Plataforma médica</h3>
+          <p class="text-sm text-gray-500 leading-relaxed">Tecnología diseñada para profesionales y pacientes.</p>
+        </div>
+        <div class="bg-white border border-gray-100 p-8 rounded-[2.5rem] shadow-sm flex flex-col items-center gap-4 group hover:border-sky-200 hover:shadow-xl hover:shadow-sky-900/5 transition-all">
+          <div class="w-14 h-14 bg-sky-50 text-sky-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+            <Activity size={28} />
+          </div>
+          <h3 class="font-bold text-gray-900 text-lg">Mejoras de rendimiento</h3>
+          <p class="text-sm text-gray-500 leading-relaxed">Optimización de velocidad y confiabilidad.</p>
+        </div>
+        <div class="bg-white border border-gray-100 p-8 rounded-[2.5rem] shadow-sm flex flex-col items-center gap-4 group hover:border-sky-200 hover:shadow-xl hover:shadow-sky-900/5 transition-all">
+          <div class="w-14 h-14 bg-sky-50 text-sky-500 rounded-2xl flex items-center justify-center group-hover:-rotate-6 transition-transform">
+            <ShieldCheck size={28} />
+          </div>
+          <h3 class="font-bold text-gray-900 text-lg">Seguridad y estabilidad</h3>
+          <p class="text-sm text-gray-500 leading-relaxed">Protegemos tu información con los más altos estándares.</p>
+        </div>
+      </div>
+
+      <!-- Footer Signature -->
+      <div class="space-y-6 pt-12 border-t border-gray-100">
+        <div class="flex items-center justify-center gap-4 text-gray-200">
+           <div class="h-px w-16 bg-current"></div>
+           <ShieldCheck size={20} className="text-sky-300" />
+           <div class="h-px w-16 bg-current"></div>
+        </div>
+        <p class="text-gray-400 text-sm max-w-md mx-auto">Trabajamos cada día para ofrecerte una plataforma más eficiente, segura y centrada en tu bienestar.</p>
+        <p class="text-3xl md:text-4xl italic text-[#1e293b] signature-font">Equipo técnico de desarrollo AutaMedica</p>
+        <p class="text-[10px] text-gray-300 uppercase tracking-[0.3em] pt-8 font-bold">© 2026 AutaMedica. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style is:global>
+  @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+  
+  .signature-font { 
+    font-family: 'Dancing Script', cursive; 
+  }
+</style>
