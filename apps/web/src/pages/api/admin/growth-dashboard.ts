@@ -101,6 +101,30 @@ function json(data: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
 }
 
+function centsToMajorUnit(value: number | string | null | undefined): number {
+  const amount = Number(value || 0);
+  return Number.isFinite(amount) ? amount / 100 : 0;
+}
+
+function normalizeSummary(summary: DashboardSummary | null): DashboardSummary | null {
+  if (!summary) return summary;
+
+  return {
+    ...summary,
+    conversions: {
+      ...summary.conversions,
+      total_revenue: centsToMajorUnit(summary.conversions.total_revenue),
+    },
+  };
+}
+
+function normalizeAttribution(rows: LeadAttributionRow[] | null): LeadAttributionRow[] {
+  return (rows ?? []).map((row) => ({
+    ...row,
+    payment_amount: row.payment_amount === null ? null : centsToMajorUnit(row.payment_amount),
+  }));
+}
+
 export const GET: APIRoute = async ({ request, locals }) => {
   const runtimeEnv = locals.runtime?.env;
   if (!isAuthorized(locals, request, runtimeEnv)) {
@@ -160,11 +184,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
     }
 
     return json({
-      summary: data,
+      summary: normalizeSummary(data),
       recent_leads: recentLeads ?? [],
       email_jobs: emailStats ?? [],
       nurturing_sequences: sequences ?? [],
-      attribution: attribution ?? [],
+      attribution: normalizeAttribution(attribution),
     });
   } catch (err) {
     logger.error('[growth/dashboard] Failed to generate dashboard', err);

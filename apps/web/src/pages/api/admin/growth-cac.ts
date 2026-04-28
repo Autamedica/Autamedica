@@ -71,6 +71,11 @@ function json(data: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
 }
 
+function centsToMajorUnit(value: number | string | null): number {
+  const amount = Number(value || 0);
+  return Number.isFinite(amount) ? amount / 100 : 0;
+}
+
 export const GET: APIRoute = async ({ request, locals }) => {
   const runtimeEnv = locals.runtime?.env;
   if (!isAuthorized(locals, request, runtimeEnv)) {
@@ -117,7 +122,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       
       statsBySource[source].leads++;
       if (lead.converted_to_appointment) statsBySource[source].appointments++;
-      if (lead.converted_to_revenue) statsBySource[source].revenue += Number(lead.payment_amount || 0);
+      if (lead.converted_to_revenue) statsBySource[source].revenue += centsToMajorUnit(lead.payment_amount);
     });
 
     spendRows?.forEach((row) => {

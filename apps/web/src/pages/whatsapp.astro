@@ -6,6 +6,8 @@ import Footer from '../components/Footer.astro';
 
 const title = "AutaMedica | Atención Médica por WhatsApp";
 const description = "Recibí tu consulta médica online y receta digital de forma rápida y segura.";
+const supportHref = import.meta.env.PUBLIC_WHATSAPP_SUPPORT_URL || 'mailto:soporte@autamedica.com';
+const supportLabel = supportHref.startsWith('https://wa.me/') ? 'Chatear con Soporte' : 'Contactar soporte';
 ---
 
 <Layout title={title} description={description}>
@@ -62,8 +64,8 @@ const description = "Recibí tu consulta médica online y receta digital de form
             <div class="bg-gray-50 p-8 rounded-3xl">
                 <h4 class="font-bold mb-4">¿Necesitás ayuda urgente?</h4>
                 <p class="text-sm text-gray-600 mb-6">Si tenés una duda puntual sobre el servicio, nuestro equipo de soporte está listo para ayudarte.</p>
-                <a href="https://wa.me/5491112345678" class="flex items-center justify-center gap-2 bg-white border border-gray-200 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors">
-                    Chatear con Soporte
+                <a href={supportHref} class="flex items-center justify-center gap-2 bg-white border border-gray-200 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors">
+                    {supportLabel}
                 </a>
             </div>
         </div>
