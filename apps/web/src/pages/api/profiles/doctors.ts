@@ -81,6 +81,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       payoutAlias: optionalString(body, 'payout_alias'),
       signatureUrl: optionalString(body, 'signature_url'),
       stampUrl: optionalString(body, 'stamp_url'),
+      avatarUrl: optionalString(body, 'avatar_url'),
       active: typeof body.active === 'boolean' ? body.active : undefined,
       fullName,
     })

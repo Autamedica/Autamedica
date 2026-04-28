@@ -96,6 +96,7 @@ export interface DoctorProfileInput {
   payoutAlias?: string | null
   signatureUrl?: string | null
   stampUrl?: string | null
+  avatarUrl?: string | null
   active?: boolean
   fullName?: string | null
 }
@@ -146,11 +147,13 @@ export const doctorProfileService = {
       first_name?: string | null
       last_name?: string | null
       phone?: string | null
+      avatar_url?: string | null
     } = {}
 
     if (input.firstName !== undefined) profilePatch.first_name = input.firstName
     if (input.lastName !== undefined) profilePatch.last_name = input.lastName
     if (input.phone !== undefined) profilePatch.phone = input.phone
+    if (input.avatarUrl !== undefined) profilePatch.avatar_url = input.avatarUrl
 
     if (input.fullName && input.firstName === undefined && input.lastName === undefined) {
       const parts = input.fullName.trim().split(/\s+/)

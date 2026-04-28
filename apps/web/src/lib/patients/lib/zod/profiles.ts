@@ -54,6 +54,7 @@ export const ProfileUpdateSchema = z.object({
     .min(6, 'El teléfono debe tener al menos 6 caracteres')
     .nullable()
     .optional(),
+  avatarUrl: z.string().url().nullable().optional(),
 });
 
 export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;

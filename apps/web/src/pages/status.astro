@@ -1,0 +1,125 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const services = [
+  { name: 'Plataforma Web', status: 'operational', desc: 'Acceso principal y landing pages' },
+  { name: 'Portal Médicos', status: 'operational', desc: 'Panel de control para profesionales' },
+  { name: 'Portal Pacientes', status: 'operational', desc: 'Acceso a historias clínicas y turnos' },
+  { name: 'Base de Datos (Supabase)', status: 'operational', desc: 'Infraestructura de datos y autenticación' },
+  { name: 'Servidor de Videoconsulta', status: 'operational', desc: 'Conexiones WebRTC en tiempo real' },
+  { name: 'API Gateway', status: 'operational', desc: 'Procesamiento de peticiones backend' }
+];
+
+const statusPageUrl = "https://status.autamedica.com"; // Placeholder o URL real si se conoce
+---
+
+<Layout title="Estado del Sistema | AutaMedica">
+  <Navbar />
+  
+  <main class="status-page pt-32 pb-24">
+    <div class="container-premium">
+      
+      <!-- Header Section -->
+      <div class="status-header text-center mb-16">
+        <div class="status-badge inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 text-green-600 mb-6">
+          <span class="pulse-dot"></span>
+          <span class="text-sm font-semibold tracking-wide uppercase">Todos los sistemas operativos</span>
+        </div>
+        <h1 class="text-5xl md:text-6xl font-bold tracking-tight mb-6">Estado del Sistema</h1>
+        <p class="text-[var(--au-text-secondary)] text-xl max-w-2xl mx-auto">
+          Monitoreo en tiempo real de la infraestructura de AutaMedica para garantizar la mejor experiencia médica.
+        </p>
+      </div>
+
+      <!-- Main Status Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+        {services.map(service => (
+          <div class="service-card p-8 rounded-2xl border border-[var(--au-border)] bg-[var(--au-surface)] hover:border-[var(--au-border-hover)] transition-all">
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="text-xl font-bold">{service.name}</h3>
+              <span class="text-xs font-bold uppercase tracking-widest text-green-500">Operativo</span>
+            </div>
+            <p class="text-[var(--au-text-secondary)] mb-6">{service.desc}</p>
+            <div class="uptime-bar flex gap-1">
+              {Array.from({ length: 40 }).map((_, i) => (
+                <div class={`h-8 flex-1 rounded-sm ${i === 35 ? 'bg-orange-400' : 'bg-green-500'} opacity-80 hover:opacity-100 transition-opacity`} title="99.9% uptime"></div>
+              ))}
+            </div>
+            <div class="flex justify-between mt-3 text-[10px] text-[var(--au-text-secondary)] uppercase tracking-widest">
+              <span>Hace 90 días</span>
+              <span>Hoy</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Incidents Section -->
+      <div class="incidents-box p-10 rounded-3xl border border-[var(--au-border)] bg-white/50 backdrop-blur-sm mb-16">
+        <h2 class="text-2xl font-bold mb-8 flex items-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Incidentes Recientes
+        </h2>
+        <div class="space-y-6">
+          <div class="incident-item border-l-2 border-[var(--au-border)] pl-6">
+            <p class="text-sm font-bold text-[var(--au-text-secondary)] mb-1">28 de Abril, 2026</p>
+            <p class="text-lg">No se han reportado incidentes en las últimas 24 horas.</p>
+          </div>
+          <div class="incident-item border-l-2 border-[var(--au-border)] pl-6 opacity-60">
+            <p class="text-sm font-bold text-[var(--au-text-secondary)] mb-1">27 de Abril, 2026</p>
+            <p class="text-lg">Mantenimiento programado: Optimización del servidor de video (Completado).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- External Links -->
+      <div class="text-center">
+        <a href={statusPageUrl} target="_blank" class="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[var(--au-text-primary)] text-white font-bold hover:opacity-90 transition-opacity">
+          Ver Dashboard Detallado en Uptime Kuma
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>
+
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  .status-page {
+    background: var(--au-bg-alt, #fafaf9);
+    min-height: 100vh;
+  }
+  
+  .container-premium {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+
+  .service-card {
+    background: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  }
+
+  .service-card:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+    transform: translateY(-2px);
+  }
+</style>

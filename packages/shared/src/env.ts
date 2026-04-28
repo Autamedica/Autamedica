@@ -161,6 +161,7 @@ const ALLOWED_CLIENT_VARS = new Set([
   "PUBLIC_REQUIRE_AUTH",
   "PUBLIC_DATABASE_ADMIN_ENABLED",
   "PUBLIC_AUDIT_LOGS_ENABLED",
+  "PUBLIC_UPTIME_KUMA_URL",
 ]);
 
 // Lista de variables server-only prohibidas en cliente (variables que NO deben ser expuestas como PUBLIC_)

@@ -25,6 +25,7 @@ import {
   UserCircle2,
 } from 'lucide-react';
 import { Field, SelectField } from '@/components/shared/FormFields';
+import { AvatarUpload } from '../shared/AvatarUpload';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { CrossModuleCard } from '@/components/shared/CrossModuleCard';
 import {
@@ -81,8 +82,17 @@ function AuthenticatedPatientProfilePage({
             <Sparkles className="h-3.5 w-3.5" />
             Perfil unificado
           </div>
-          <h1 className="text-4xl lg:text-5xl text-white mb-4 leading-tight">{displayName}</h1>
-          <p className="text-lg text-white/60">Última actualización: {formatTimestamp(lastUpdatedAt)}</p>
+          <div className="flex flex-col lg:flex-row lg:items-center gap-8">
+            <AvatarUpload 
+              currentUrl={form.avatarUrl} 
+              onSaved={(url) => setField('avatarUrl', url)} 
+              size="lg" 
+            />
+            <div>
+              <h1 className="text-4xl lg:text-5xl text-white mb-4 leading-tight">{displayName}</h1>
+              <p className="text-lg text-white/60">Última actualización: {formatTimestamp(lastUpdatedAt)}</p>
+            </div>
+          </div>
         </div>
       </section>
 

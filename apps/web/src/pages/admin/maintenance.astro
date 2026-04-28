@@ -1,0 +1,58 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { MaintenanceScheduler } from '@/components/admin/MaintenanceScheduler';
+
+const title = 'Programar Mantenimiento | AutaMedica Admin';
+const description = 'Configuración de ventanas de mantenimiento para servicios de AutaMedica';
+
+const session = Astro.locals.session;
+if (!session) {
+  return Astro.redirect('/auth/login?returnTo=/admin/maintenance&portal=admin');
+}
+
+const role = (session.user.user_metadata as Record<string, unknown>)?.role;
+if (typeof role !== 'string' || !['admin', 'organization_admin', 'platform_admin'].includes(role)) {
+  return Astro.redirect('/admin/unauthorized');
+}
+---
+
+<Layout title={title} description={description}>
+  <div class="min-h-screen bg-[#fafaf9] pt-12 pb-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Breadcrumbs -->
+      <nav class="flex mb-8 text-sm font-medium" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+          <li class="inline-flex items-center">
+            <a href="/admin" class="text-gray-500 hover:text-sky-600 transition-colors">Admin</a>
+          </li>
+          <li>
+            <div class="flex items-center">
+              <svg class="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+              </svg>
+              <span class="ml-1 text-gray-400 md:ml-2">Mantenimiento</span>
+            </div>
+          </li>
+        </ol>
+      </nav>
+
+      <div class="mb-12">
+        <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight mb-4">
+          Centro de Control de Uptime
+        </h1>
+        <p class="text-lg text-gray-500 max-w-2xl">
+          Gestiona la disponibilidad del sistema y comunica interrupciones programadas a través de la infraestructura de monitoreo.
+        </p>
+      </div>
+
+      <MaintenanceScheduler client:load />
+    </div>
+  </div>
+</Layout>
+
+<style is:global>
+  /* Fix for some layout issues if needed */
+  body {
+    background-color: #fafaf9;
+  }
+</style>

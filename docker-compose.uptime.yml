@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: autamedica-uptime-kuma
+    volumes:
+      - uptime-kuma-data:/app/data
+    ports:
+      - "3010:3001"
+    restart: always
+    environment:
+      - UPTIME_KUMA_PORT=3001
+    healthcheck:
+      test: ["CMD-SHELL", "node test-healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  uptime-kuma-data:
+    driver: local

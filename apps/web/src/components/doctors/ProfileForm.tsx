@@ -8,6 +8,7 @@ import { MEDICAL_SPECIALTIES } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import { CheckCircle2, Loader2, ArrowLeft } from 'lucide-react'
 import { SignaturePad } from './SignaturePad'
+import { AvatarUpload } from '../shared/AvatarUpload'
 
 const ARGENTINE_PROVINCES = [
   'Buenos Aires', 'CABA', 'Catamarca', 'Chaco', 'Chubut', 'Córdoba',
@@ -46,6 +47,7 @@ export function ProfileForm() {
   const [payoutAlias, setPayoutAlias] = useState('')
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null)
   const [stampUrl, setStampUrl] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -70,6 +72,7 @@ export function ProfileForm() {
       const sig = d.signature_url ?? d.signatureImageUrl
       const sta = d.stamp_url ?? d.stampImageUrl
       const jur = d.enrollment_jurisdiction ?? d.enrollmentJurisdiction
+      const av = d.profile?.avatar_url ?? d.avatar_url
 
       if (first) setFirstName(first)
       if (last) setLastName(last)
@@ -84,6 +87,7 @@ export function ProfileForm() {
       if (alias) setPayoutAlias(alias)
       if (sig) setSignatureUrl(sig)
       if (sta) setStampUrl(sta)
+      if (av) setAvatarUrl(av)
       
       if (jur) {
         if ((ARGENTINE_PROVINCES as readonly string[]).includes(jur)) {
@@ -137,6 +141,7 @@ export function ProfileForm() {
           payout_alias: payoutAlias.trim() || undefined,
           signature_url: signatureUrl || undefined,
           stamp_url: stampUrl || undefined,
+          avatar_url: avatarUrl || undefined,
           active: true,
         },
       })
@@ -194,6 +199,10 @@ export function ProfileForm() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+              <div className="flex justify-center mb-6">
+                <AvatarUpload currentUrl={avatarUrl} onSaved={setAvatarUrl} />
+              </div>
+
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium text-am-surface-700 mb-1.5">

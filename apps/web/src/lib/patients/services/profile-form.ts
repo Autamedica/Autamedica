@@ -20,6 +20,7 @@ export interface PatientProfileFormState {
   emergencyContactRelationship: string;
   emergencyContactPhone: string;
   emergencyContactEmail: string;
+  avatarUrl: string;
 }
 
 export interface MissingProfileField {
@@ -44,6 +45,7 @@ export const EMPTY_FORM: PatientProfileFormState = {
   emergencyContactRelationship: '',
   emergencyContactPhone: '',
   emergencyContactEmail: '',
+  avatarUrl: '',
 };
 
 export function asText(value: string | null | undefined): string {
@@ -87,6 +89,7 @@ export function buildFormState(input: {
     firstName?: string | null;
     lastName?: string | null;
     phone?: string | null;
+    avatarUrl?: string | null;
   } | null;
   patient?: {
     birthDate?: string | null;
@@ -142,6 +145,7 @@ export function buildFormState(input: {
     emergencyContactRelationship: asText(emergency?.relationship),
     emergencyContactPhone: asText(emergency?.phone),
     emergencyContactEmail: asText(emergency?.email),
+    avatarUrl: asText(input.profile?.avatarUrl),
   };
 }
 
@@ -284,6 +288,7 @@ export function buildPayload(form: PatientProfileFormState): {
       firstName: toNullableString(form.firstName),
       lastName: toNullableString(form.lastName),
       phone: toNullableString(form.phone),
+      avatarUrl: toNullableString(form.avatarUrl),
     },
     patient: {
       birthDate: form.birthDate.trim() ? form.birthDate.trim() : null,
