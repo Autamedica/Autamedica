@@ -6,6 +6,13 @@ import NewsletterCapture from '../../components/NewsletterCapture.astro';
 import Footer from '../../components/Footer.astro';
 import { buildRoleAuthPath } from '../../lib/auth-flow';
 import { getI18n } from '../../i18n/index';
+
+/** 
+ * Redirección al Dashboard. 
+ * Comentá la siguiente línea si querés volver a ver la Landing Page de Médicos.
+ */
+return Astro.redirect('/doctors/dashboard');
+
 const locale = Astro.locals.locale ?? 'es';
 const { t } = getI18n(locale);
 
@@ -72,3 +79,5 @@ const pageDescription = t('portals.doctors.description');
 
   <Footer />
 </Layout>
+
+
