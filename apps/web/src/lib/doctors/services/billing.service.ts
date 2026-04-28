@@ -20,6 +20,7 @@ import type {
 type Client = SupabaseClient;
 
 import { getRuntimeEnvValue } from '@/lib/runtime-env';
+import { MERCADOPAGO_STATEMENT_DESCRIPTOR } from '@/lib/payments/constants';
 
 const MERCADOPAGO_API = 'https://api.mercadopago.com';
 
@@ -210,6 +211,7 @@ export const billingService = {
           pending: `${appUrl}/doctors/subscription?payment=pending`,
         },
         auto_return: 'approved',
+        statement_descriptor: MERCADOPAGO_STATEMENT_DESCRIPTOR,
         external_reference: `${doctorId}|${plan.id}`,
         notification_url: `${appUrl}/api/doctors/billing/webhook`,
       }),

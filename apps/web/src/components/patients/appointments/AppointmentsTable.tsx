@@ -15,16 +15,10 @@ import {
   Stethoscope,
   ArrowRight,
   Loader2,
+  CreditCard,
+  ShieldCheck,
 } from 'lucide-react';
-
-function formatPrice(amount: number | null | undefined): string {
-  if (!amount || amount <= 0) return 'Valor a confirmar';
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
+import { formatArsFromCents } from '@/lib/payments/money';
 
 interface AppointmentsTableProps {
   appointments: AppointmentWithDoctor[];
@@ -173,7 +167,7 @@ export function AppointmentsTable({
                 )}
                 {appointment.doctor?.consultation_fee != null && (
                   <span className="inline-flex items-center gap-1.5 font-medium text-stone-800">
-                    {formatPrice(appointment.doctor.consultation_fee)}
+                    {formatArsFromCents(appointment.doctor.consultation_fee)}
                   </span>
                 )}
               </div>
@@ -187,19 +181,42 @@ export function AppointmentsTable({
                 </div>
               )}
 
+              {appointment.status === 'payment_pending' && onPayAppointment && (
+                <div className="mb-4 rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-sky-50 p-4 shadow-sm shadow-amber-500/5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-amber-700 shadow-sm ring-1 ring-amber-100">
+                        <CreditCard className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+                          Falta confirmar el pago
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-stone-950">
+                          {appointment.doctor?.consultation_fee != null
+                            ? formatArsFromCents(appointment.doctor.consultation_fee)
+                            : 'Valor a confirmar'}
+                        </p>
+                        <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-600">
+                          Al acreditarse en MercadoPago, el turno cambia a confirmado y se habilita el acceso correspondiente.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onPayAppointment(appointment)}
+                      disabled={isPaying}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-stone-800 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98]"
+                    >
+                      {isPaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                      {isPaying ? 'Abriendo MercadoPago...' : 'Pagar seguro'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Actions */}
               <div className="flex flex-wrap items-center gap-2">
-                {appointment.status === 'payment_pending' && onPayAppointment && (
-                  <button
-                    type="button"
-                    onClick={() => onPayAppointment(appointment)}
-                    disabled={isPaying}
-                    className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-amber-600 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98]"
-                  >
-                    {isPaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
-                    {isPaying ? 'Abriendo pago...' : 'Pagar ahora'}
-                  </button>
-                )}
                 {isTelemedicine && isActive && onJoinTelemedicine && (
                   <button
                     type="button"

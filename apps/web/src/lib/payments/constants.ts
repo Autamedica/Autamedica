@@ -1,6 +1,7 @@
 export const APPOINTMENT_PAYMENT_PROVIDER = 'mercadopago'
 export const APPOINTMENT_PAYMENT_COMMISSION_BPS = 1800
 export const APPOINTMENT_PAYMENT_CURRENCY = 'ARS'
+export const MERCADOPAGO_STATEMENT_DESCRIPTOR = 'AUTAMEDICA'
 
 export function calculatePlatformFeeAmount(grossAmount: number): number {
   return Math.round((grossAmount * APPOINTMENT_PAYMENT_COMMISSION_BPS) / 10_000)

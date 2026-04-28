@@ -6,13 +6,26 @@ import {
   APPOINTMENT_PAYMENT_COMMISSION_BPS,
   APPOINTMENT_PAYMENT_CURRENCY,
   APPOINTMENT_PAYMENT_PROVIDER,
+  MERCADOPAGO_STATEMENT_DESCRIPTOR,
   calculateNetAmount,
   calculatePlatformFeeAmount,
 } from '@/lib/payments/constants'
+import { centsToMajorUnit, majorUnitToCents } from '@/lib/payments/money'
 
 type Db = SupabaseClient<Database>
 
 type AppointmentPaymentStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'refunded'
+
+type ExistingAppointmentPayment = {
+  id: string
+  status: AppointmentPaymentStatus
+  checkout_url: string | null
+  provider_preference_id: string | null
+  gross_amount: number
+  currency: string
+  patient_id: string
+  doctor_id: string
+}
 
 interface MercadoPagoPreferenceResponse {
   id: string
@@ -47,7 +60,7 @@ const MERCADOPAGO_API = 'https://api.mercadopago.com'
 
 function getMercadoPagoToken(): string {
   const token = getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN') ?? import.meta.env.MERCADOPAGO_ACCESS_TOKEN
-  if (!token) throw new Error('MERCADOPAGO_ACCESS_TOKEN not configured')
+  if (!token) throw new Error('payment_access_token_missing')
   return token
 }
 
@@ -56,7 +69,17 @@ function getWebhookSecret(): string {
 }
 
 function getAppUrl(): string {
-  return getRuntimeEnvValue('PUBLIC_APP_URL') ?? import.meta.env.PUBLIC_APP_URL ?? 'https://www.autamedica.com'
+  const appUrl = getRuntimeEnvValue('PUBLIC_APP_URL') ?? import.meta.env.PUBLIC_APP_URL
+  if (!appUrl) throw new Error('payment_app_url_missing')
+  return appUrl.replace(/\/+$/, '')
+}
+
+function assertWebhookRuntimeConfigured(): void {
+  if (!getWebhookSecret()) {
+    throw new Error('payment_webhook_secret_missing')
+  }
+
+  getAppUrl()
 }
 
 async function mpFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -99,6 +122,47 @@ function mapMercadoPagoStatus(status: string): AppointmentPaymentStatus {
 
 function serializeMetadata(input: Record<string, unknown>): Json {
   return input as Json
+}
+
+function constantTimeEqual(left: string, right: string): boolean {
+  if (left.length !== right.length) return false
+
+  let result = 0
+  for (let index = 0; index < left.length; index += 1) {
+    result |= left.charCodeAt(index) ^ right.charCodeAt(index)
+  }
+
+  return result === 0
+}
+
+function parseMercadoPagoSignature(signature: string): { ts: string | null; v1: string | null } {
+  return signature.split(',').reduce<{ ts: string | null; v1: string | null }>(
+    (acc, part) => {
+      const [rawKey, ...rawValue] = part.split('=')
+      const key = rawKey?.trim()
+      const value = rawValue.join('=').trim()
+      if (key === 'ts') acc.ts = value
+      if (key === 'v1') acc.v1 = value
+      return acc
+    },
+    { ts: null, v1: null },
+  )
+}
+
+async function hmacSha256Hex(secret: string, message: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(message))
+
+  return [...new Uint8Array(signature)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
 }
 
 async function findAppointmentWithDoctor(
@@ -161,12 +225,12 @@ export const appointmentPaymentsService = {
     if (appointment.patient_id !== input.patientId) throw new Error('appointment_access_denied')
     if (!appointment.doctor_id || !appointment.doctor) throw new Error('appointment_doctor_missing')
 
-    const amount = appointment.doctor.consultation_fee
-    if (!amount || amount <= 0) throw new Error('doctor_consultation_fee_missing')
+    const amountCents = appointment.doctor.consultation_fee
+    if (!amountCents || amountCents <= 0) throw new Error('doctor_consultation_fee_missing')
 
     const existing = await supabase
       .from('appointment_payments')
-      .select('id, status, checkout_url, provider_preference_id')
+      .select('id, status, checkout_url, provider_preference_id, gross_amount, currency, patient_id, doctor_id')
       .eq('appointment_id', appointment.id)
       .maybeSingle()
 
@@ -178,21 +242,32 @@ export const appointmentPaymentsService = {
       throw existing.error
     }
 
-    if (
-      existing.data?.status === 'approved' &&
-      existing.data.checkout_url &&
-      existing.data.provider_preference_id
-    ) {
+    if (existing.data?.status === 'approved' && existing.data.checkout_url && existing.data.provider_preference_id) {
+      const existingPayment = existing.data as ExistingAppointmentPayment
       return {
-        appointmentPaymentId: existing.data.id,
-        checkoutUrl: existing.data.checkout_url,
-        preferenceId: existing.data.provider_preference_id,
-        amount,
-        currency: APPOINTMENT_PAYMENT_CURRENCY,
+        appointmentPaymentId: existingPayment.id,
+        checkoutUrl: existingPayment.checkout_url,
+        preferenceId: existingPayment.provider_preference_id,
+        amount: existingPayment.gross_amount,
+        currency: existingPayment.currency,
+      }
+    }
+
+    assertWebhookRuntimeConfigured()
+
+    if (existing.data?.status === 'pending' && existing.data.checkout_url && existing.data.provider_preference_id) {
+      const existingPayment = existing.data as ExistingAppointmentPayment
+      return {
+        appointmentPaymentId: existingPayment.id,
+        checkoutUrl: existingPayment.checkout_url,
+        preferenceId: existingPayment.provider_preference_id,
+        amount: existingPayment.gross_amount,
+        currency: existingPayment.currency,
       }
     }
 
     const appUrl = getAppUrl()
+    const amount = centsToMajorUnit(amountCents)
     const mpResponse = await mpFetch<MercadoPagoPreferenceResponse>('/checkout/preferences', {
       method: 'POST',
       body: JSON.stringify({
@@ -209,6 +284,7 @@ export const appointmentPaymentsService = {
           pending: `${appUrl}/patients/appointments?payment=pending&appointmentId=${appointment.id}`,
         },
         auto_return: 'approved',
+        statement_descriptor: MERCADOPAGO_STATEMENT_DESCRIPTOR,
         external_reference: appointment.id,
         notification_url: `${appUrl}/api/payments/mercadopago/webhook`,
         metadata: {
@@ -225,7 +301,7 @@ export const appointmentPaymentsService = {
         appointment_id: appointment.id,
         patient_id: input.patientId,
         doctor_id: appointment.doctor_id,
-        gross_amount: amount,
+        gross_amount: amountCents,
         currency: APPOINTMENT_PAYMENT_CURRENCY,
         status: 'pending',
         provider: APPOINTMENT_PAYMENT_PROVIDER,
@@ -260,7 +336,7 @@ export const appointmentPaymentsService = {
       appointmentPaymentId: data.id,
       checkoutUrl: mpResponse.init_point,
       preferenceId: mpResponse.id,
-      amount,
+      amount: amountCents,
       currency: APPOINTMENT_PAYMENT_CURRENCY,
     }
   },
@@ -314,6 +390,41 @@ export const appointmentPaymentsService = {
     }
 
     const status = mapMercadoPagoStatus(payment.status)
+    const amountCents = majorUnitToCents(payment.transaction_amount)
+    const currency = payment.currency_id || APPOINTMENT_PAYMENT_CURRENCY
+
+    const { data: existingPayment, error: existingPaymentError } = await supabase
+      .from('appointment_payments')
+      .select('id, gross_amount, currency, patient_id, doctor_id')
+      .eq('appointment_id', appointment.id)
+      .maybeSingle()
+
+    if (existingPaymentError) {
+      logger.error('[appointment-payments] existing payment lookup from webhook failed', {
+        appointmentId,
+        paymentId: payment.id,
+        error: existingPaymentError,
+      })
+      throw existingPaymentError
+    }
+
+    const expectedAmountCents = existingPayment?.gross_amount ?? appointment.doctor?.consultation_fee ?? null
+    const expectedCurrency = existingPayment?.currency ?? APPOINTMENT_PAYMENT_CURRENCY
+
+    if (currency !== expectedCurrency) {
+      throw new Error(`payment_currency_mismatch:${currency}:${expectedCurrency}`)
+    }
+
+    if (status === 'approved' && expectedAmountCents !== null && amountCents !== expectedAmountCents) {
+      throw new Error(`payment_amount_mismatch:${amountCents}:${expectedAmountCents}`)
+    }
+
+    if (
+      existingPayment &&
+      (existingPayment.patient_id !== appointment.patient_id || existingPayment.doctor_id !== appointment.doctor_id)
+    ) {
+      throw new Error('payment_appointment_party_mismatch')
+    }
 
     const { error } = await supabase
       .from('appointment_payments')
@@ -321,8 +432,8 @@ export const appointmentPaymentsService = {
         appointment_id: appointment.id,
         patient_id: appointment.patient_id,
         doctor_id: appointment.doctor_id,
-        gross_amount: Math.round(payment.transaction_amount),
-        currency: payment.currency_id || APPOINTMENT_PAYMENT_CURRENCY,
+        gross_amount: amountCents,
+        currency,
         status,
         provider: APPOINTMENT_PAYMENT_PROVIDER,
         provider_payment_id: String(payment.id),
@@ -409,10 +520,20 @@ export const appointmentPaymentsService = {
     }
   },
 
-  validateWebhookSignature(signature: string | null, _body: string): boolean {
+  async validateWebhookSignature(input: {
+    signature: string | null
+    requestId: string | null
+    dataId: string | null
+  }): Promise<boolean> {
     const secret = getWebhookSecret()
-    if (!secret) return true
-    if (!signature) return false
-    return signature.includes('v1=')
+    if (!secret || !input.signature || !input.requestId || !input.dataId) return false
+
+    const { ts, v1 } = parseMercadoPagoSignature(input.signature)
+    if (!ts || !v1) return false
+
+    const manifest = `id:${input.dataId};request-id:${input.requestId};ts:${ts};`
+    const expected = await hmacSha256Hex(secret, manifest)
+
+    return constantTimeEqual(expected, v1)
   },
 }

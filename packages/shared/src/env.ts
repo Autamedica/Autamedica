@@ -442,7 +442,7 @@ export function validateProductionEnvironment(): EnvironmentValidation {
   });
 
   // Verificar pagos (opcional pero recomendado)
-  const paymentVars = ["MERCADOPAGO_ACCESS_TOKEN"];
+  const paymentVars = ["MERCADOPAGO_ACCESS_TOKEN", "MERCADOPAGO_WEBHOOK_SECRET"];
   const payments = paymentVars.every((varName) => {
     const value = process.env[varName];
     if (!value) {
