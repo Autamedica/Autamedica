@@ -225,6 +225,7 @@ js.configs.recommended,
     'apps/clinical-ai-orchestrator/**/*.{ts,tsx}',
     'apps/signaling-server/**/*.{ts,tsx}',
     'apps/mobile/**/*.{ts,tsx}',
+    'apps/newsletter-worker/src/manual-resend.ts',
     'packages/telemedicine/**/*.{ts,tsx}',
   ],
   rules: {
