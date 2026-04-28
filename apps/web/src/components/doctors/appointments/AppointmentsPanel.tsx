@@ -10,7 +10,7 @@ import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.servic
 import { getCallWindowStatus } from '@/lib/calls/lib/call-error-messages'
 import { CreateAppointmentModal } from './CreateAppointmentModal'
 import { AppointmentDetailsPanel } from './AppointmentDetailsPanel'
-import { usePatientContext } from '@/hooks/doctors/usePatientContext'
+import { usePatientContext, type PatientContextData } from '@/hooks/doctors/usePatientContext'
 import { StartCallButton } from '../calls/StartCallButton'
 import type { DoctorAppointmentFormValues } from '@/lib/doctors/types/appointments'
 
@@ -46,6 +46,111 @@ function getStatusColor(status: string | null | undefined): string {
 
 function getSoftStatusColor(status: string | null | undefined): string {
   return getStatusColor(status).replace('100', '50')
+}
+
+function cleanAppointmentNotes(notes: string | null | undefined): string {
+  return notes?.replace(/\[INVITADO:[^\]]+\]/, '').trim() ?? ''
+}
+
+function getAnamnesisUrl(patientId: string): string {
+  return `/api/doctors/patients/${patientId}/anamnesis?format=html`
+}
+
+function ClinicalContextSummary({
+  appointment,
+  context,
+  loading,
+  dense = false,
+}: {
+  appointment: Appointment
+  context: PatientContextData | null
+  loading: boolean
+  dense?: boolean
+}) {
+  const fallbackReason = cleanAppointmentNotes(appointment.notes)
+  const hasPatient = Boolean(appointment.patient_id)
+  const hasAnamnesis = context?.hasAnamnesis === true
+  const canOpenAnamnesis = hasPatient && hasAnamnesis
+
+  const reasonLabel = context?.chiefComplaint ?? (fallbackReason || 'No especificado')
+  const emptyClinicalText = !hasPatient
+    ? 'Invitado sin expediente vinculado'
+    : hasAnamnesis
+      ? 'Sin dato registrado'
+      : 'Sin anamnesis compartida'
+
+  return (
+    <>
+      {loading ? (
+        <div className={`flex items-center gap-3 justify-center bg-neutral-50/50 rounded-2xl ${dense ? 'py-4' : 'py-4'}`}>
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-am-doctor-500 border-t-transparent" />
+          <span className="text-xs font-medium text-neutral-400">Cargando contexto clínico...</span>
+        </div>
+      ) : (
+        <div className={`grid ${dense ? 'gap-4 sm:grid-cols-3' : 'gap-8 sm:grid-cols-3'}`}>
+          <div className={dense ? '' : 'space-y-2'}>
+            <p className={`${dense ? 'text-xs' : 'text-[10px] uppercase tracking-widest'} font-bold text-am-doctor-600 flex items-center gap-2`}>
+              <Stethoscope className={dense ? 'h-3.5 w-3.5' : 'h-3 w-3'} /> Motivo de consulta
+            </p>
+            <p className={`${dense ? 'mt-1 text-sm' : 'text-sm font-semibold'} text-neutral-700 leading-relaxed`}>
+              {reasonLabel}
+            </p>
+          </div>
+
+          <div className={dense ? '' : 'space-y-2'}>
+            <p className={`${dense ? 'text-xs' : 'text-[10px] uppercase tracking-widest'} font-bold text-am-doctor-600 flex items-center gap-2`}>
+              <AlertTriangle className={dense ? 'h-3.5 w-3.5' : 'h-3 w-3'} /> Antecedentes relevantes
+            </p>
+            <div className={`flex flex-wrap ${dense ? 'mt-1 gap-1.5' : 'gap-2'}`}>
+              {context?.chronicDiseases && context.chronicDiseases.length > 0 ? (
+                context.chronicDiseases.map((d, i) => (
+                  <span key={i} className={`${dense ? 'rounded-full border border-amber-200' : 'rounded-lg border border-amber-100'} bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 capitalize`}>
+                    {d}
+                  </span>
+                ))
+              ) : context?.allergies && context.allergies.length > 0 ? (
+                context.allergies.map((a, i) => (
+                  <span key={i} className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700">
+                    {a}
+                  </span>
+                ))
+              ) : (
+                <span className={`${dense ? 'rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-500' : 'text-sm font-semibold text-neutral-400 italic'}`}>
+                  {emptyClinicalText}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className={dense ? '' : 'space-y-2'}>
+            <p className={`${dense ? 'text-xs' : 'text-[10px] uppercase tracking-widest'} font-bold text-am-doctor-600 flex items-center gap-2`}>
+              <Pill className={dense ? 'h-3.5 w-3.5' : 'h-3 w-3'} /> Medicación actual
+            </p>
+            <p className={`${dense ? 'mt-1 text-sm' : 'text-sm font-semibold'} leading-relaxed ${context?.medications ? 'text-neutral-700' : 'text-neutral-400 italic'}`}>
+              {context?.medications ?? emptyClinicalText}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className={`${dense ? 'mt-4 border-t border-neutral-100 pt-3' : 'mt-8'} flex ${dense ? 'justify-center' : 'justify-end'}`}>
+        {canOpenAnamnesis ? (
+          <a
+            href={getAnamnesisUrl(appointment.patient_id as string)}
+            target="_blank"
+            rel="noreferrer"
+            className={`${dense ? 'text-xs' : 'text-[11px]'} inline-flex items-center gap-2 font-bold uppercase tracking-widest text-neutral-400 hover:text-am-doctor-600 transition-colors`}
+          >
+            <FileText className="h-3.5 w-3.5" /> Ver anamnesis completa <ChevronRight className="h-3.5 w-3.5" />
+          </a>
+        ) : (
+          <span className={`${dense ? 'text-xs' : 'text-[11px]'} inline-flex items-center gap-2 font-bold uppercase tracking-widest text-neutral-300`}>
+            {hasPatient ? 'Anamnesis no disponible' : 'Sin expediente vinculado'}
+          </span>
+        )}
+      </div>
+    </>
+  )
 }
 
 
@@ -112,6 +217,9 @@ export function AppointmentsPanel() {
     const upcoming = todayAppointments.find(a => new Date(a.start_time) >= new Date(now.getTime() - 30 * 60000))
     return upcoming ?? todayAppointments[0] ?? null
   }, [appointments])
+
+  const currentPatientId = currentTurno?.patient_id ?? null
+  const { context: currentPatientContext, loading: currentContextLoading } = usePatientContext(currentPatientId)
 
   // Next appointment after the current one
   
@@ -225,60 +333,11 @@ export function AppointmentsPanel() {
               {/* Clinical Context Integrated */}
               <div className="mt-10 pt-8 border-t border-neutral-50">
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-neutral-400 mb-6">Contexto del paciente</p>
-                {contextLoading ? (
-                  <div className="flex items-center gap-3 py-4 justify-center bg-neutral-50/50 rounded-2xl">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-am-doctor-500 border-t-transparent" />
-                    <span className="text-xs font-medium text-neutral-400">Cargando contexto clínico...</span>
-                  </div>
-                ) : (
-                  <div className="grid gap-8 sm:grid-cols-3">
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-am-doctor-600 flex items-center gap-2">
-                        <Stethoscope className="h-3 w-3" /> Motivo de consulta
-                      </p>
-                      <p className="text-sm font-semibold text-neutral-700 leading-relaxed">
-                        {(patientContext?.chiefComplaint
-                          ?? currentTurno.notes?.replace(/\[INVITADO:[^\]]+\]/, '').trim())
-                          || 'No especificado'}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-am-doctor-600 flex items-center gap-2">
-                        <AlertTriangle className="h-3 w-3" /> Antecedentes relevantes
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {patientContext?.chronicDiseases && patientContext.chronicDiseases.length > 0 ? (
-                          patientContext.chronicDiseases.map((d, i) => (
-                            <span key={i} className="rounded-lg bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 capitalize border border-amber-100">{d}</span>
-                          ))
-                        ) : (
-                          <span className="text-sm font-semibold text-neutral-400 italic">
-                            {patientContext?.hasAnamnesis === false ? 'Sin anamnesis' : 'Sin datos precargados'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-am-doctor-600 flex items-center gap-2">
-                        <Pill className="h-3 w-3" /> Medicación actual
-                      </p>
-                      <p className={`text-sm font-semibold leading-relaxed ${patientContext?.medications ? 'text-neutral-700' : 'text-neutral-400 italic'}`}>
-                        {patientContext?.medications ?? (patientContext?.hasAnamnesis === false ? 'Sin anamnesis' : 'Sin datos precargados')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                
-                {currentTurno.patient_id && (
-                  <div className="mt-8 flex justify-end">
-                    <a
-                      href={`/doctors/patients/${currentTurno.patient_id}?tab=anamnesis`}
-                      className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-neutral-400 hover:text-am-doctor-600 transition-colors"
-                    >
-                      Ver anamnesis completa <ChevronRight className="h-3.5 w-3.5" />
-                    </a>
-                  </div>
-                )}
+                <ClinicalContextSummary
+                  appointment={currentTurno}
+                  context={currentPatientContext}
+                  loading={currentContextLoading}
+                />
               </div>
             </div>
           </div>
@@ -401,61 +460,12 @@ export function AppointmentsPanel() {
           <div className="px-6 pt-6 pb-6 xl:hidden">
             <div className="rounded-2xl border border-neutral-200/60 bg-white p-5 shadow-sm">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">Contexto del paciente</p>
-              {contextLoading ? (
-                <div className="flex items-center gap-2 py-4 justify-center">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-am-doctor-500 border-t-transparent" />
-                  <span className="text-xs text-neutral-400">Cargando contexto clínico...</span>
-                </div>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div>
-                    <p className="text-xs font-semibold text-am-doctor-700 mb-1 flex items-center gap-1.5">
-                      <Stethoscope className="h-3.5 w-3.5" /> Motivo de consulta
-                    </p>
-                    <p className="text-sm text-neutral-700 leading-relaxed">
-                      {(patientContext?.chiefComplaint
-                        ?? selectedAppointment.notes?.replace(/\[INVITADO:[^\]]+\]/, '').trim())
-                        || 'No especificado'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-am-doctor-700 mb-1 flex items-center gap-1.5">
-                      <AlertTriangle className="h-3.5 w-3.5" /> Antecedentes relevantes
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {patientContext?.chronicDiseases && patientContext.chronicDiseases.length > 0 ? (
-                        patientContext.chronicDiseases.map((d, i) => (
-                          <span key={i} className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-medium text-amber-700 capitalize">{d}</span>
-                        ))
-                      ) : patientContext?.allergies && patientContext.allergies.length > 0 ? (
-                        patientContext.allergies.map((a, i) => (
-                          <span key={i} className="rounded-full bg-red-50 border border-red-200 px-2.5 py-1 text-[11px] font-medium text-red-700">{a}</span>
-                        ))
-                      ) : (
-                        <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-500">
-                          {patientContext?.hasAnamnesis === false ? 'Sin anamnesis' : 'Sin antecedentes registrados'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-am-doctor-700 mb-1 flex items-center gap-1.5">
-                      <Pill className="h-3.5 w-3.5" /> Medicación actual
-                    </p>
-                    <p className={`text-sm leading-relaxed ${patientContext?.medications ? 'text-neutral-700' : 'text-neutral-400 italic'}`}>
-                      {patientContext?.medications ?? (patientContext?.hasAnamnesis === false ? 'Sin anamnesis' : 'Sin medicación registrada')}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {selectedAppointment.patient_id && (
-                <a
-                  href={`/doctors/patients/${selectedAppointment.patient_id}?tab=anamnesis`}
-                  className="mt-4 flex w-full items-center justify-center gap-2 border-t border-neutral-100 pt-3 text-xs font-semibold text-neutral-400 hover:text-am-doctor-600 transition"
-                >
-                  <FileText className="h-3.5 w-3.5" /> Ver anamnesis completa <ChevronRight className="h-3.5 w-3.5" />
-                </a>
-              )}
+              <ClinicalContextSummary
+                appointment={selectedAppointment}
+                context={patientContext}
+                loading={contextLoading}
+                dense
+              />
             </div>
           </div>
         )}
