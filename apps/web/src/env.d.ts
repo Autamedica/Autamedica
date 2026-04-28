@@ -15,6 +15,8 @@ interface ImportMetaEnv {
   readonly PUBLIC_ADMIN_URL: string;
   readonly PUBLIC_LANDING_COPY_VARIANT?: string;
   readonly PUBLIC_GOOGLE_MAPS_API_KEY?: string;
+  readonly MERCADOPAGO_ACCESS_TOKEN?: string;
+  readonly MERCADOPAGO_WEBHOOK_SECRET?: string;
 }
 
 interface ImportMeta {

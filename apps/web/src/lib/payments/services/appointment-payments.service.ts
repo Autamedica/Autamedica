@@ -60,7 +60,7 @@ const MERCADOPAGO_API = 'https://api.mercadopago.com'
 
 function getMercadoPagoToken(): string {
   const token = getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN') ?? import.meta.env.MERCADOPAGO_ACCESS_TOKEN
-  if (!token) throw new Error('MERCADOPAGO_ACCESS_TOKEN not configured')
+  if (!token) throw new Error('payment_access_token_missing')
   return token
 }
 
@@ -69,7 +69,17 @@ function getWebhookSecret(): string {
 }
 
 function getAppUrl(): string {
-  return getRuntimeEnvValue('PUBLIC_APP_URL') ?? import.meta.env.PUBLIC_APP_URL ?? 'https://www.autamedica.com'
+  const appUrl = getRuntimeEnvValue('PUBLIC_APP_URL') ?? import.meta.env.PUBLIC_APP_URL
+  if (!appUrl) throw new Error('payment_app_url_missing')
+  return appUrl.replace(/\/+$/, '')
+}
+
+function assertWebhookRuntimeConfigured(): void {
+  if (!getWebhookSecret()) {
+    throw new Error('payment_webhook_secret_missing')
+  }
+
+  getAppUrl()
 }
 
 async function mpFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -232,11 +242,20 @@ export const appointmentPaymentsService = {
       throw existing.error
     }
 
-    if (
-      (existing.data?.status === 'pending' || existing.data?.status === 'approved') &&
-      existing.data.checkout_url &&
-      existing.data.provider_preference_id
-    ) {
+    if (existing.data?.status === 'approved' && existing.data.checkout_url && existing.data.provider_preference_id) {
+      const existingPayment = existing.data as ExistingAppointmentPayment
+      return {
+        appointmentPaymentId: existingPayment.id,
+        checkoutUrl: existingPayment.checkout_url,
+        preferenceId: existingPayment.provider_preference_id,
+        amount: existingPayment.gross_amount,
+        currency: existingPayment.currency,
+      }
+    }
+
+    assertWebhookRuntimeConfigured()
+
+    if (existing.data?.status === 'pending' && existing.data.checkout_url && existing.data.provider_preference_id) {
       const existingPayment = existing.data as ExistingAppointmentPayment
       return {
         appointmentPaymentId: existingPayment.id,

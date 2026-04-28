@@ -3,7 +3,7 @@ import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { appointmentPaymentsService } from '@/lib/payments/services/appointment-payments.service'
-import { conflict, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
+import { conflict, internalError, jsonOk, notFound, serviceUnavailable, unauthorized } from '@/lib/api-helpers'
 
 export const POST: APIRoute = async ({ request, params, locals }) => {
   const context = await resolvePatientContext(request, locals)
@@ -25,6 +25,13 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     if (message === 'appointment_access_denied') return unauthorized(message)
     if (message === 'appointment_doctor_missing') return conflict(message)
     if (message === 'doctor_consultation_fee_missing') return conflict(message)
+    if (
+      message === 'payment_access_token_missing' ||
+      message === 'payment_webhook_secret_missing' ||
+      message === 'payment_app_url_missing'
+    ) {
+      return serviceUnavailable(message)
+    }
 
     logger.error('[patients/appointments/[id]/payment] POST error', error)
     return internalError()
