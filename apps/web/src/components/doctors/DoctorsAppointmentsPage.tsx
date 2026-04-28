@@ -10,6 +10,7 @@ export function DoctorsAppointmentsPage() {
       description="Gestiona citas, teleconsultas y disponibilidad desde un entorno unificado para doctores."
       activeSection="appointments"
       hideDefaultHeader
+      hideRightSidebar
     >
       <AppointmentsPanel />
     </DoctorsPortalFrame>

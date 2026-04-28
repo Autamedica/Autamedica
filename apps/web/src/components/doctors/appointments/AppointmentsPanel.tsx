@@ -141,7 +141,7 @@ export function AppointmentsPanel() {
   const windowStatus = currentTurno ? getCallWindowStatus(currentTurno) : null
 
   return (
-    <div className="flex h-full flex-col lg:flex-row gap-0 overflow-hidden bg-white -m-6 -mt-0">
+    <div className="flex h-full flex-col xl:flex-row gap-0 overflow-hidden bg-white -m-6 -mt-0">
       {/* ── Main Content ── */}
       <div className="flex-1 min-w-0 overflow-y-auto">
 
@@ -396,9 +396,9 @@ export function AppointmentsPanel() {
           </div>
         </div>
 
-        {/* CONTEXTO DEL PACIENTE - when appointment selected */}
+        {/* CONTEXTO DEL PACIENTE - mobile/tablet detail fallback */}
         {selectedAppointment && (
-          <div className="px-6 pt-6 pb-6">
+          <div className="px-6 pt-6 pb-6 xl:hidden">
             <div className="rounded-2xl border border-neutral-200/60 bg-white p-5 shadow-sm">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">Contexto del paciente</p>
               {contextLoading ? (
@@ -462,7 +462,7 @@ export function AppointmentsPanel() {
       </div>
 
       {/* ── Details View (right panel on desktop) ── */}
-      <section className="hidden lg:flex w-[420px] shrink-0 flex-col overflow-hidden border-l border-neutral-100">
+      <section className="hidden xl:flex xl:w-[440px] 2xl:w-[480px] shrink-0 flex-col overflow-hidden border-l border-neutral-100">
         {selectedAppointment ? (
           <AppointmentDetailsPanel
             appointment={selectedAppointment}
