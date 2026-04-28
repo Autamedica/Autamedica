@@ -34,7 +34,7 @@ function isMissingAppointmentIdColumn(error: unknown): boolean {
     (error as { code?: string }).code === '42703' &&
     'message' in error &&
     typeof (error as { message?: string }).message === 'string' &&
-    (error as { message: string }).message.includes('appointment_id')
+    (error as { message: string }).message.includes('calls.appointment_id')
   )
 }
 
@@ -62,66 +62,6 @@ function withNullAppointmentId(row: LegacyCallRow | null): Call | null {
     ...row,
     appointment_id: row.appointment_id ?? null,
   } as Call
-}
-
-async function ensureCallAppointmentLink(
-  supabase: Db,
-  call: Call,
-  appointmentId?: string,
-): Promise<Call> {
-  if (!appointmentId || call.appointment_id === appointmentId) {
-    return call
-  }
-
-  const { data, error } = await selectCalls(supabase, CALL_SELECT)
-    .eq('id', call.id)
-    .maybeSingle()
-
-  if (!error) {
-    const latestCall = withNullAppointmentId(data as LegacyCallRow | null)
-    if (latestCall?.appointment_id === appointmentId) {
-      return latestCall
-    }
-  }
-
-  if (isMissingAppointmentIdColumn(error)) {
-    logger.warn('[callStartRepo] createCall could not verify appointment_id on legacy calls schema', {
-      callId: call.id,
-      appointmentId,
-    })
-    return call
-  }
-
-  const { data: linkedData, error: linkError } = await supabase
-    .from('calls')
-    .update({ appointment_id: appointmentId } as never)
-    .eq('id', call.id)
-    .select(CALL_SELECT)
-    .maybeSingle()
-
-  if (isMissingAppointmentIdColumn(linkError)) {
-    logger.warn('[callStartRepo] createCall could not link appointment_id on legacy calls schema', {
-      callId: call.id,
-      appointmentId,
-    })
-    return call
-  }
-
-  if (linkError) {
-    logger.error('[callStartRepo] createCall appointment link failed', {
-      callId: call.id,
-      appointmentId,
-      error: linkError,
-    })
-    throw linkError
-  }
-
-  const linkedCall = withNullAppointmentId(linkedData as LegacyCallRow | null)
-  if (!linkedCall) {
-    throw new Error('create_call appointment link returned empty payload')
-  }
-
-  return linkedCall
 }
 
 
@@ -271,7 +211,7 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
         p_appointment_id: appointmentId,
       } as {
         p_doctor_id: string
-        p_patient_id: string | null
+        p_patient_id: string
         p_appointment_id: string
       })
 
@@ -304,8 +244,7 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
       if (!call) {
         throw new Error('create_call returned empty call payload')
       }
-
-      return ensureCallAppointmentLink(supabase, call, appointmentId)
+      return call
     }
 
     if (!data) {
@@ -317,7 +256,7 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
       throw new Error('create_call returned empty call payload')
     }
 
-    return ensureCallAppointmentLink(supabase, call, appointmentId)
+    return call
   },
 
   async updateCallStatus(

@@ -43,6 +43,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - run: pnpm build:packages:core
       - run: npx playwright install --with-deps chromium
       - run: pnpm --filter @autamedica/web build
@@ -89,6 +91,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - run: npx playwright install --with-deps chromium
 
       - name: Production tests
