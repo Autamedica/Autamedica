@@ -56,6 +56,7 @@ interface DoctorsPortalFrameProps {
   description: string;
   activeSection: ActiveSection;
   hideDefaultHeader?: boolean;
+  hideRightSidebar?: boolean;
   children: ReactNode;
 }
 
@@ -196,6 +197,7 @@ export function DoctorsPortalFrame({
   description,
   activeSection,
   hideDefaultHeader = false,
+  hideRightSidebar = false,
   children,
 }: DoctorsPortalFrameProps): JSX.Element {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -479,7 +481,11 @@ export function DoctorsPortalFrame({
 
         {/* ── Main content ── */}
         <main className="min-w-0 flex-1 overflow-x-hidden">
-          <div className="grid min-h-full grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div
+            className={`grid min-h-full grid-cols-1 gap-0 ${
+              hideRightSidebar ? "" : "lg:grid-cols-[minmax(0,1fr)_340px]"
+            }`}
+          >
             <section className="flex min-h-full flex-col">
               <div className="flex-1 p-4 pb-24 md:p-8 md:pb-8">
                 {onboardingStatus.state === "expired" ? (
@@ -513,6 +519,7 @@ export function DoctorsPortalFrame({
             </section>
 
             {/* ── Right sidebar ── */}
+            {!hideRightSidebar ? (
             <aside className="hidden border-l border-neutral-200/60 bg-neutral-50/50 p-5 lg:block">
               <div className="space-y-4">
                 {/* Mandatos: clarifications + clinical triage */}
@@ -701,6 +708,7 @@ export function DoctorsPortalFrame({
                 </section>
               </div>
             </aside>
+            ) : null}
           </div>
         </main>
       </div>

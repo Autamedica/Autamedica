@@ -49,10 +49,10 @@ export function AppointmentDetailsPanel({
   return (
     <div className="flex h-full flex-col bg-white animate-in fade-in duration-300 relative">
       {/* Header */}
-      <header className="border-b border-am-surface-100 bg-am-surface-50/30 px-8 py-8">
-        <div className="flex items-start justify-between">
+      <header className="border-b border-am-surface-100 bg-am-surface-50/30 px-5 py-6 2xl:px-7">
+        <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <div className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${status.bg} ${status.color}`}>
                 {status.label}
               </div>
@@ -62,15 +62,15 @@ export function AppointmentDetailsPanel({
                 </div>
               )}
             </div>
-            <h2 className="mt-4 truncate text-3xl font-bold tracking-tight text-am-surface-900 capitalize">
+            <h2 className="mt-4 truncate text-2xl font-bold tracking-tight text-am-surface-900 capitalize 2xl:text-3xl">
               {patientName}
             </h2>
-            <div className="mt-2 flex items-center gap-4 text-am-surface-500">
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-am-surface-500">
               <div className="flex items-center gap-1.5 text-sm font-medium">
                 <Calendar className="h-4 w-4" />
                 {dateStr}
               </div>
-              <div className="h-1 w-1 rounded-full bg-am-surface-200" />
+              <div className="hidden h-1 w-1 rounded-full bg-am-surface-200 sm:block" />
               <div className="flex items-center gap-1.5 text-sm font-medium">
                 <Clock className="h-4 w-4" />
                 {timeStr} ({appointment.duration_minutes} min)
@@ -78,7 +78,7 @@ export function AppointmentDetailsPanel({
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex shrink-0 gap-2">
             <button
               onClick={onEdit}
               className="flex h-10 w-10 items-center justify-center rounded-xl border border-am-surface-200 bg-white text-am-surface-600 transition hover:bg-am-surface-50 shadow-am-sm"
@@ -98,9 +98,9 @@ export function AppointmentDetailsPanel({
       </header>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-8 scrollbar-thin">
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div className="space-y-8">
+      <div className="flex-1 overflow-y-auto p-5 scrollbar-thin 2xl:p-7">
+        <div className="grid gap-6 2xl:grid-cols-2 2xl:gap-8">
+          <div className="space-y-6 2xl:space-y-8">
             <section>
               <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-am-surface-400">Detalles de la consulta</h3>
               <div className="mt-4 grid gap-4">
@@ -147,9 +147,9 @@ export function AppointmentDetailsPanel({
             </section>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-6 2xl:space-y-8">
             {isTelemedicine && (
-              <section className="rounded-3xl border border-am-doctor-100 bg-am-doctor-50/50 p-6">
+              <section className="rounded-3xl border border-am-doctor-100 bg-am-doctor-50/50 p-5 2xl:p-6">
                 <div className="flex items-center gap-3">
                   <div className="rounded-xl bg-am-doctor-100 p-2 text-am-doctor-600">
                     <Video className="h-5 w-5" />
@@ -200,13 +200,13 @@ export function AppointmentDetailsPanel({
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <button 
                   onClick={() => onStatusChange('confirmed')}
-                  className="flex items-center justify-center gap-2 rounded-2xl border border-am-surface-200 bg-white py-3 text-xs font-bold text-am-surface-700 hover:bg-am-surface-50 transition-all shadow-am-sm"
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-am-surface-200 bg-white px-3 py-3 text-xs font-bold text-am-surface-700 hover:bg-am-surface-50 transition-all shadow-am-sm"
                 >
                   Confirmar
                 </button>
                 <button 
                   onClick={() => onStatusChange('completed')}
-                  className="flex items-center justify-center gap-2 rounded-2xl border border-am-surface-200 bg-white py-3 text-xs font-bold text-am-surface-700 hover:bg-am-surface-50 transition-all shadow-am-sm"
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-am-surface-200 bg-white px-3 py-3 text-xs font-bold text-am-surface-700 hover:bg-am-surface-50 transition-all shadow-am-sm"
                 >
                   Finalizada
                 </button>
