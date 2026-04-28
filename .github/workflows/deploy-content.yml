@@ -61,6 +61,8 @@ jobs:
           fi
 
       - run: pnpm install --frozen-lockfile
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - run: pnpm build:packages:core
 
