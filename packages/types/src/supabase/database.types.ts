@@ -6768,7 +6768,7 @@ export type Database = {
           phone: string | null
           role: string | null
           sss_last_checked_at: string | null
-          sss_validation_status: string
+          sss_validation_status: "pending" | "valid" | "pending_review" | "rejected" | "exempt"
           updated_at: string | null
           user_id: string
         }
@@ -6792,7 +6792,7 @@ export type Database = {
           phone?: string | null
           role?: string | null
           sss_last_checked_at?: string | null
-          sss_validation_status?: string
+          sss_validation_status?: "pending" | "valid" | "pending_review" | "rejected" | "exempt"
           updated_at?: string | null
           user_id: string
         }
@@ -6816,7 +6816,7 @@ export type Database = {
           phone?: string | null
           role?: string | null
           sss_last_checked_at?: string | null
-          sss_validation_status?: string
+          sss_validation_status?: "pending" | "valid" | "pending_review" | "rejected" | "exempt"
           updated_at?: string | null
           user_id?: string
         }

@@ -48,7 +48,7 @@ export interface Profile {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
-  sss_validation_status: 'pending' | 'valid' | 'invalid';
+  sss_validation_status: 'pending' | 'valid' | 'pending_review' | 'rejected' | 'exempt';
   sss_last_checked_at: ISODateString | null;
   especialidad_registrada: string | null;
   matricula_nacional: string | null;
@@ -71,7 +71,7 @@ export interface ProfileInsert {
   first_name?: string | null;
   last_name?: string | null;
   phone?: string | null;
-  sss_validation_status?: 'pending' | 'valid' | 'invalid';
+  sss_validation_status?: 'pending' | 'valid' | 'pending_review' | 'rejected' | 'exempt';
   sss_last_checked_at?: ISODateString | null;
   especialidad_registrada?: string | null;
   matricula_nacional?: string | null;
@@ -88,7 +88,7 @@ export interface ProfileUpdate {
   first_name?: string | null;
   last_name?: string | null;
   phone?: string | null;
-  sss_validation_status?: 'pending' | 'valid' | 'invalid';
+  sss_validation_status?: 'pending' | 'valid' | 'pending_review' | 'rejected' | 'exempt';
   sss_last_checked_at?: ISODateString | null;
   especialidad_registrada?: string | null;
   matricula_nacional?: string | null;
