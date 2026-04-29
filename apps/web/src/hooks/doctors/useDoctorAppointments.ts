@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { logger } from '@autamedica/shared'
 import { doctorAppointmentsService } from '@/lib/doctors/services/doctor-appointments.service'
+import { localDateTimeInputToIso } from '@/lib/appointments/time'
 import type {
   DoctorAppointmentFormValues,
 } from '@/lib/doctors/types/appointments'
@@ -54,7 +55,7 @@ export function useDoctorAppointments(): UseDoctorAppointmentsResult {
         const payload = {
           patient_id: values.patientId,
           guest_name: values.guestName,
-          start_time: `${values.date}T${values.time}:00`,
+          start_time: localDateTimeInputToIso(values.date, values.time),
           duration_minutes: values.durationMinutes,
           type: values.type,
           notes: values.notes,
@@ -74,7 +75,7 @@ export function useDoctorAppointments(): UseDoctorAppointmentsResult {
     async (id: string, values: DoctorAppointmentFormValues) => {
       try {
         const payload = {
-          start_time: `${values.date}T${values.time}:00`,
+          start_time: localDateTimeInputToIso(values.date, values.time),
           duration_minutes: values.durationMinutes,
           type: values.type,
           notes: values.notes,

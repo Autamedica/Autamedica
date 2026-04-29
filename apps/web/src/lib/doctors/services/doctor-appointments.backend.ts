@@ -7,6 +7,7 @@ import { createPatientRepositoryAdapter } from '@/lib/doctors/lib/repos/patients
 import { createDoctorAppointmentCommandAdapter } from '@/lib/doctors/lib/repos/doctor-appointments'
 import { listDoctorAppointmentsView } from '@/lib/doctors/queries/doctor-appointments.query'
 import { ScheduleDoctorAppointmentUseCase } from '@/lib/doctors/usecases/ScheduleDoctorAppointmentUseCase'
+import { isPastAppointmentStart } from '@/lib/appointments/time'
 import { computeEndTime } from '@/lib/patients/api/appointment-utils'
 import type { CreateDoctorAppointmentInput, UpdateDoctorAppointmentInput } from '@/lib/doctors/types/appointments'
 
@@ -51,6 +52,13 @@ export const doctorAppointmentsBackendService = {
     const patch: AppointmentUpdate = {}
 
     if (payload.start_time) {
+      const scheduledDate = new Date(payload.start_time)
+      if (Number.isNaN(scheduledDate.getTime())) {
+        throw Object.assign(new Error('start_time is invalid'), { code: 'VALIDATION' })
+      }
+      if (isPastAppointmentStart(scheduledDate.toISOString())) {
+        throw Object.assign(new Error('No se puede programar una cita en el pasado'), { code: 'VALIDATION' })
+      }
       patch.start_time = toISODateString(payload.start_time)
       const duration = payload.duration_minutes ?? 30
       patch.end_time = toISODateString(computeEndTime(payload.start_time, duration))

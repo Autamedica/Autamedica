@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import { scheduleReminders, cancelReminders, processWaitlist } from '@autamedica/scheduling'
+import { isPastAppointmentStart } from '@/lib/appointments/time'
 import type {
   AppointmentWithDoctor,
   AppointmentType,
@@ -71,6 +72,14 @@ export const appointmentsUseCase = {
     if (!start_time?.trim()) throw new Error('start_time is required')
     if (!doctor_id?.trim()) throw new Error('doctor_id is required')
 
+    const scheduledDate = new Date(start_time)
+    if (Number.isNaN(scheduledDate.getTime())) {
+      throw Object.assign(new Error('start_time is invalid'), { code: 'VALIDATION' })
+    }
+    if (isPastAppointmentStart(scheduledDate.toISOString())) {
+      throw Object.assign(new Error('No se puede programar una cita en el pasado'), { code: 'VALIDATION' })
+    }
+
     const doctorExists = await deps.appointmentsRepo.doctorExists(doctor_id)
     if (!doctorExists) throw Object.assign(new Error('Doctor not found or inactive'), { code: 'DOCTOR_NOT_FOUND' })
 
@@ -89,6 +98,16 @@ export const appointmentsUseCase = {
     patientId: string,
     payload: UpdateAppointmentPayload,
   ): Promise<AppointmentWithDoctor> {
+    if (payload.start_time) {
+      const scheduledDate = new Date(payload.start_time)
+      if (Number.isNaN(scheduledDate.getTime())) {
+        throw Object.assign(new Error('start_time is invalid'), { code: 'VALIDATION' })
+      }
+      if (isPastAppointmentStart(scheduledDate.toISOString())) {
+        throw Object.assign(new Error('No se puede programar una cita en el pasado'), { code: 'VALIDATION' })
+      }
+    }
+
     if (payload.status) {
       const existing = await deps.appointmentsRepo.findById(id, patientId)
       if (!existing) throw Object.assign(new Error('Appointment not found'), { code: 'NOT_FOUND' })

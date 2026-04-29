@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
-import { badRequest, internalError, jsonOk, unauthorized } from '@/lib/api-helpers'
+import { badRequest, conflict, internalError, jsonOk, unauthorized } from '@/lib/api-helpers'
 import { resolveDoctorContext } from '@/lib/doctors/api/doctor-context'
 import { doctorAppointmentsBackendService } from '@/lib/doctors/services/doctor-appointments.backend'
 import type { UpdateDoctorAppointmentInput } from '@/lib/doctors/types/appointments'
@@ -45,6 +45,7 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
   } catch (error) {
     const pgCode = (error as { code?: string }).code
     if (pgCode === 'PGRST116') return badRequest('Appointment not found or not owned by this doctor')
+    if (pgCode === 'VALIDATION') return conflict((error as Error).message)
 
     logger.error('[api/doctors/appointments/[id]] PATCH failed', error)
     return internalError()

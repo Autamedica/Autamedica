@@ -54,6 +54,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (errCode === 'DOCTOR_NOT_FOUND') {
       return notFound('Doctor not found or inactive')
     }
+    if (errCode === 'VALIDATION') {
+      return conflict((err as Error).message)
+    }
     if (errCode === 'P0001' && String((err as { message?: string }).message ?? '').includes('SCHEDULING_CONFLICT')) {
       return conflict('El doctor ya tiene una cita en ese horario')
     }
