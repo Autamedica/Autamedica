@@ -14,6 +14,7 @@ export interface DoctorSummary {
   consultation_fee: number | null
   first_name: string | null
   last_name: string | null
+  has_availability: boolean
   label: string
 }
 
@@ -40,7 +41,26 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
         throw error
       }
 
-      const doctors = ((data ?? []) as unknown as DoctorRow[]).map((row) => {
+      const doctorRows = (data ?? []) as unknown as DoctorRow[]
+      const doctorIds = doctorRows.map((doctor) => doctor.id)
+
+      let doctorsWithAvailability = new Set<string>()
+      if (doctorIds.length > 0) {
+        const { data: availabilityRows, error: availabilityError } = await supabase
+          .from('doctor_availability')
+          .select('doctor_id')
+          .in('doctor_id', doctorIds)
+          .eq('is_active', true)
+
+        if (availabilityError) {
+          logger.error('[doctorsRepo] listActive availability lookup failed', availabilityError)
+          throw availabilityError
+        }
+
+        doctorsWithAvailability = new Set((availabilityRows ?? []).map((row) => row.doctor_id))
+      }
+
+      const doctors = doctorRows.map((row) => {
         const firstName = row.profile?.first_name ?? ''
         const lastName = row.profile?.last_name ?? ''
         const fullName = [firstName, lastName].filter(Boolean).join(' ')
@@ -51,29 +71,16 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
           consultation_fee: row.consultation_fee ?? null,
           first_name: row.profile?.first_name ?? null,
           last_name: row.profile?.last_name ?? null,
+          has_availability: doctorsWithAvailability.has(row.id),
           label: fullName ? `Dr. ${fullName}` : 'Profesional disponible',
         }
       })
 
-      const doctorIds = doctors.map((doctor) => doctor.id)
-      if (doctorIds.length === 0) return []
-
-      const { data: availabilityRows, error: availabilityError } = await supabase
-        .from('doctor_availability')
-        .select('doctor_id')
-        .in('doctor_id', doctorIds)
-        .eq('is_active', true)
-
-      if (availabilityError) {
-        logger.error('[doctorsRepo] listActive availability filter failed', availabilityError)
-        throw availabilityError
-      }
-
-      const doctorsWithAvailability = new Set((availabilityRows ?? []).map((row) => row.doctor_id))
-
       return doctors
-        .filter((doctor) => doctorsWithAvailability.has(doctor.id))
-        .sort((a, b) => a.label.localeCompare(b.label, 'es'))
+        .sort((a, b) => {
+          if (a.has_availability !== b.has_availability) return a.has_availability ? -1 : 1
+          return a.label.localeCompare(b.label, 'es')
+        })
     },
   }
 }
