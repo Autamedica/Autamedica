@@ -76,17 +76,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/setup-pnpm
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-      - run: pnpm build:packages:core
+          pnpm-version: ${{ env.PNPM_VERSION }}
       - run: pnpm check:db:type-drift
 
   architecture-v2:
@@ -99,17 +92,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/setup-pnpm
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-      - run: pnpm build:packages:core
+          pnpm-version: ${{ env.PNPM_VERSION }}
       - run: pnpm arch:v2:changed
       - run: pnpm arch:v2:imports:changed
 
@@ -133,16 +119,19 @@ jobs:
             fi
           done
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Deno check
         run: |
-          if ! command -v deno &>/dev/null; then
-            echo "::warning::deno not installed — skipping edge function type check"
-            exit 0
-          fi
+          status=0
           for fn in supabase/functions/*/index.ts; do
             [[ ! -f "$fn" ]] && continue
-            deno check --no-lock "$fn" 2>&1 || echo "::warning::$fn failed deno check"
+            deno check --no-lock "$fn" || status=1
           done
+          exit "$status"
 
   clinical-coherence:
     name: Clinical
@@ -150,17 +139,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/setup-pnpm
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-      - run: pnpm build:packages:core
+          pnpm-version: ${{ env.PNPM_VERSION }}
       - name: Verify clinical observability (non-blocking)
         run: |
           if ! node scripts/ci/verify-clinical-observability.mjs; then
@@ -173,16 +155,9 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/setup-pnpm
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-      - run: pnpm build:packages:core
+          pnpm-version: ${{ env.PNPM_VERSION }}
       - run: pnpm check:policy
       - run: pnpm hardcode:check

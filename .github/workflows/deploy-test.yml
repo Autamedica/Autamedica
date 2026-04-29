@@ -15,22 +15,15 @@ jobs:
   canary:
     name: Environment
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 8
     steps:
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: ./.github/actions/setup-pnpm
         with:
           node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
       - run: node --version && pnpm --version
       - run: deno --version 2>/dev/null || echo "deno not installed"
       - run: git --version
-
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - run: pnpm install --frozen-lockfile
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-      - run: pnpm build:packages:core
       - run: pnpm typecheck
       - run: echo "Runner OK — $(hostname) — $(date -u)"

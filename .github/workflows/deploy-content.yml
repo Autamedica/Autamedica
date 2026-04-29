@@ -26,13 +26,10 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: ./.github/actions/setup-pnpm
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          pnpm-version: ${{ env.PNPM_VERSION }}
       - name: Validate deploy configuration
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
@@ -59,12 +56,6 @@ jobs:
           if [[ "$missing" -ne 0 ]]; then
             exit 1
           fi
-
-      - run: pnpm install --frozen-lockfile
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - run: pnpm build:packages:core
 
       - name: Build web
         run: pnpm --filter @autamedica/web build
