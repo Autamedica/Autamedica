@@ -30,8 +30,6 @@ const DOCTOR_WITH_PROFILE_SELECT = `
   payout_alias,
   signature_image_url,
   stamp_image_url,
-  signature_url,
-  stamp_url,
   bio,
   languages,
   active,

@@ -137,8 +137,8 @@ export const doctorProfileService = {
     setIfDefined(doctorData, 'professional_address', input.professionalAddress)
     setIfDefined(doctorData, 'payout_cbu', input.payoutCbu)
     setIfDefined(doctorData, 'payout_alias', input.payoutAlias)
-    setIfDefined(doctorData as any, 'signature_url', input.signatureUrl) // eslint-disable-line @typescript-eslint/no-explicit-any
-    setIfDefined(doctorData as any, 'stamp_url', input.stampUrl) // eslint-disable-line @typescript-eslint/no-explicit-any
+    setIfDefined(doctorData as any, 'signature_image_url', input.signatureUrl) // eslint-disable-line @typescript-eslint/no-explicit-any
+    setIfDefined(doctorData as any, 'stamp_image_url', input.stampUrl) // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const result = await doctorProfileRepo.upsertDoctor(admin, doctorData)
 
