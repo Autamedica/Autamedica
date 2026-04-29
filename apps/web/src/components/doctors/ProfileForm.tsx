@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { fetchApi } from '@/lib/api-client'
+import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
 import { MEDICAL_SPECIALTIES } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
-import { CheckCircle2, Loader2, ArrowLeft } from 'lucide-react'
+import { CheckCircle2, Loader2, ArrowLeft, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { SignaturePad } from './SignaturePad'
 
 const ARGENTINE_PROVINCES = [
@@ -24,11 +25,26 @@ const SPECIALTY_OPTIONS = Object.values(MEDICAL_SPECIALTIES).sort((a, b) =>
 const inputClass =
   'w-full px-3.5 py-2.5 border border-am-surface-300 rounded-xl bg-white text-am-surface-900 placeholder:text-am-surface-400 focus:ring-2 focus:ring-am-doctor-400 focus:border-am-doctor-400 transition-colors disabled:bg-am-surface-50 disabled:text-am-surface-400'
 
+function normalizeMatricula(value: unknown): string {
+  return String(value ?? '').trim().replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+}
+
 type Country = 'argentina' | 'other'
+type LicenseValidationStatus = 'pending' | 'valid' | 'pending_review' | 'rejected' | 'exempt'
+
+type VerifyDoctorLicenseResponse = {
+  success: true
+  data: {
+    status: 'valid' | 'exempt'
+    profession: string | null
+    is_psychiatrist: boolean
+    checked_at: string
+  }
+}
 
 export function ProfileForm() {
   const { user } = useAuthenticatedUser()
-  const { doctor, loading: doctorLoading } = useCurrentDoctor(user?.id)
+  const { doctor, loading: doctorLoading, refetch: refetchDoctor } = useCurrentDoctor(user?.id)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -46,6 +62,9 @@ export function ProfileForm() {
   const [payoutAlias, setPayoutAlias] = useState('')
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null)
   const [stampUrl, setStampUrl] = useState<string | null>(null)
+  const [professionalDni, setProfessionalDni] = useState('')
+  const [isVerifyingLicense, setIsVerifyingLicense] = useState(false)
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -104,6 +123,29 @@ export function ProfileForm() {
   const consultationFeeIsValid =
     normalizedFee === '' || (Number.isFinite(consultationFeeValue) && consultationFeeValue >= 0)
   const payoutCbuIsValid = normalizedCbu === '' || normalizedCbu.length === 22
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const profile = (doctor as any)?.profile
+  const licenseValidationStatus = (
+    profile?.sssValidationStatus ??
+    profile?.sss_validation_status ??
+    'pending'
+  ) as LicenseValidationStatus
+  const registeredSpecialty = profile?.especialidadRegistrada ?? profile?.especialidad_registrada
+  const lastLicenseCheck = profile?.sssLastCheckedAt ?? profile?.sss_last_checked_at
+  const normalizedDni = professionalDni.replace(/\D/g, '')
+  const savedLicenseNumber = normalizeMatricula(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (doctor as any)?.licenseNumber ?? (doctor as any)?.license_number,
+  )
+  const currentLicenseNumber = normalizeMatricula(licenseNumber)
+  const licenseMatchesSavedProfile = currentLicenseNumber !== '' && currentLicenseNumber === savedLicenseNumber
+  const canVerifyLicense =
+    normalizedDni.length >= 7 &&
+    normalizedDni.length <= 9 &&
+    currentLicenseNumber.length >= 3 &&
+    licenseMatchesSavedProfile &&
+    licenseValidationStatus !== 'exempt' &&
+    !isVerifyingLicense
   const canSubmit =
     firstName.trim() !== '' &&
     lastName.trim() !== '' &&
@@ -112,6 +154,47 @@ export function ProfileForm() {
     region !== '' &&
     consultationFeeIsValid &&
     payoutCbuIsValid
+
+  async function handleVerifyLicense() {
+    if (!canVerifyLicense || !user) return
+
+    setIsVerifyingLicense(true)
+    setVerificationMessage(null)
+    setError(null)
+
+    try {
+      const supabase = getBrowserSupabaseClient()
+      const { data, error: invokeError } = await supabase.functions.invoke<VerifyDoctorLicenseResponse>(
+        'verify-doctor-license',
+        {
+          body: {
+            dni: normalizedDni,
+            matricula: currentLicenseNumber,
+          },
+        },
+      )
+
+      if (invokeError) {
+        refetchDoctor()
+        setVerificationMessage('No pudimos validarla automáticamente. Quedó pendiente de revisión manual.')
+        return
+      }
+
+      if (data?.success) {
+        refetchDoctor()
+        setVerificationMessage(
+          data.data.profession
+            ? `Matrícula validada como ${data.data.profession}.`
+            : 'Matrícula validada.',
+        )
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al validar la matrícula')
+      logger.error('[ProfileForm] license verification error', err)
+    } finally {
+      setIsVerifyingLicense(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -348,6 +431,100 @@ export function ProfileForm() {
                 />
               </div>
             </div>
+
+            <section
+              id="license-verification"
+              className="rounded-2xl border border-am-surface-200 bg-am-surface-50 p-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-am-doctor-600">
+                  {licenseValidationStatus === 'valid' ? (
+                    <ShieldCheck className="h-5 w-5" />
+                  ) : (
+                    <ShieldAlert className="h-5 w-5" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-sm font-semibold text-am-surface-900">
+                      Validación nacional de matrícula
+                    </h2>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-am-surface-600">
+                      {licenseValidationStatus === 'valid'
+                        ? 'Validada'
+                        : licenseValidationStatus === 'exempt'
+                          ? 'No requerida'
+                          : licenseValidationStatus === 'pending_review'
+                            ? 'Requiere revisión'
+                            : licenseValidationStatus === 'rejected'
+                              ? 'No aprobada'
+                              : 'Pendiente'}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs leading-relaxed text-am-surface-500">
+                    {licenseValidationStatus === 'exempt'
+                      ? 'Este perfil está exceptuado de la validación nacional automática.'
+                      : 'Usamos la matrícula cargada en tu perfil y tu DNI profesional para cruzar datos con el registro nacional.'}
+                  </p>
+                  {!licenseMatchesSavedProfile && licenseValidationStatus !== 'exempt' && (
+                    <p className="mt-2 text-xs leading-relaxed text-amber-700">
+                      Guardá el perfil antes de validar si modificaste la matrícula.
+                    </p>
+                  )}
+
+                  {licenseValidationStatus !== 'exempt' && (
+                    <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+                      <div>
+                        <label htmlFor="professionalDni" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                          DNI profesional
+                        </label>
+                        <input
+                          type="text"
+                          id="professionalDni"
+                          value={professionalDni}
+                          onChange={(e) => setProfessionalDni(e.target.value.replace(/[^\d]/g, '').slice(0, 9))}
+                          placeholder="Solo números"
+                          inputMode="numeric"
+                          className={inputClass}
+                          disabled={isSubmitting || isVerifyingLicense}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleVerifyLicense}
+                        disabled={!canVerifyLicense}
+                        className="inline-flex h-11 items-center justify-center rounded-xl bg-am-doctor-500 px-4 text-sm font-medium text-white shadow-am-sm transition-all hover:bg-am-doctor-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isVerifyingLicense ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Validando...
+                          </span>
+                        ) : (
+                          'Validar'
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {licenseValidationStatus === 'valid' && registeredSpecialty && (
+                    <p className="mt-3 text-xs text-am-surface-500">
+                      Especialidad registrada: {registeredSpecialty}
+                    </p>
+                  )}
+                  {lastLicenseCheck && (
+                    <p className="mt-1 text-xs text-am-surface-500">
+                      Última verificación: {new Date(lastLicenseCheck).toLocaleDateString('es-AR')}
+                    </p>
+                  )}
+                  {verificationMessage && (
+                    <div className="mt-3 rounded-xl border border-am-surface-200 bg-white px-4 py-3 text-sm text-am-surface-700">
+                      {verificationMessage}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
 
             {/* REFEPS e Institución */}
             <div className="grid gap-5 sm:grid-cols-2">

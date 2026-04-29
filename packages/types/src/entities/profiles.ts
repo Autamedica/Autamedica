@@ -48,6 +48,10 @@ export interface Profile {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  sss_validation_status: 'pending' | 'valid' | 'pending_review' | 'rejected' | 'exempt';
+  sss_last_checked_at: ISODateString | null;
+  especialidad_registrada: string | null;
+  matricula_nacional: string | null;
   onboarding_started_at: ISODateString | null;
   onboarding_completed_at: ISODateString | null;
   created_at: ISODateString;
@@ -67,6 +71,10 @@ export interface ProfileInsert {
   first_name?: string | null;
   last_name?: string | null;
   phone?: string | null;
+  sss_validation_status?: 'pending' | 'valid' | 'pending_review' | 'rejected' | 'exempt';
+  sss_last_checked_at?: ISODateString | null;
+  especialidad_registrada?: string | null;
+  matricula_nacional?: string | null;
 }
 
 /**
@@ -80,6 +88,10 @@ export interface ProfileUpdate {
   first_name?: string | null;
   last_name?: string | null;
   phone?: string | null;
+  sss_validation_status?: 'pending' | 'valid' | 'pending_review' | 'rejected' | 'exempt';
+  sss_last_checked_at?: ISODateString | null;
+  especialidad_registrada?: string | null;
+  matricula_nacional?: string | null;
   onboarding_completed_at?: ISODateString | null;
   onboarding_started_at?: ISODateString | null;
   updated_at?: ISODateString;
