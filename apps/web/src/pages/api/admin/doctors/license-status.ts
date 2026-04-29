@@ -46,6 +46,10 @@ function isLicenseStatus(value: string | undefined): value is LicenseStatus {
   return LICENSE_STATUSES.includes(value as LicenseStatus);
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
 export const POST: APIRoute = async ({ request, locals }) => {
   const admin = createAstroAdminClient(locals.runtime?.env);
   const auth = await assertAdmin(request, admin);
@@ -58,28 +62,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return badRequest('invalid JSON');
   }
 
-  if (!body.userId && !body.doctorId) return badRequest('userId or doctorId required');
-  if (!isLicenseStatus(body.status)) {
+  if (!isNonEmptyString(body.userId) && !isNonEmptyString(body.doctorId)) {
+    return badRequest('userId or doctorId required');
+  }
+  if (!isNonEmptyString(body.status) || !isLicenseStatus(body.status)) {
     return badRequest(`status must be one of ${LICENSE_STATUSES.join(', ')}`);
   }
-  if (body.status === 'rejected' && !body.evidence?.trim()) {
+  if (body.status === 'rejected' && !isNonEmptyString(body.evidence)) {
     return badRequest('evidence required when rejecting');
   }
 
   try {
-    let userId = body.userId;
+    const doctorQuery = admin
+      .from('doctors')
+      .select('user_id, active')
+      .eq('active', true);
 
-    if (!userId && body.doctorId) {
-      const { data: doctor, error: doctorError } = await admin
-        .from('doctors')
-        .select('user_id')
-        .eq('id', body.doctorId)
-        .maybeSingle();
+    const { data: doctor, error: doctorError } = isNonEmptyString(body.doctorId)
+      ? await doctorQuery.eq('id', body.doctorId.trim()).maybeSingle()
+      : await doctorQuery.eq('user_id', body.userId!.trim()).maybeSingle();
 
-      if (doctorError) throw doctorError;
-      if (!doctor?.user_id) return badRequest('doctor not found');
-      userId = doctor.user_id;
-    }
+    if (doctorError) throw doctorError;
+    if (!doctor?.user_id) return badRequest('doctor not found');
+
+    const userId = doctor.user_id;
 
     const checkedAt = new Date().toISOString();
     const { error: updateError } = await admin
@@ -96,7 +102,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       targetUserId: userId,
       status: body.status,
       adminUserId: auth.userId,
-      evidence: body.evidence?.trim() || undefined,
+      evidenceProvided: isNonEmptyString(body.evidence),
     });
 
     return jsonOk({
