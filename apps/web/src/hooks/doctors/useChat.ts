@@ -108,12 +108,16 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
     try {
       setSending(true)
       setError(null)
-      await chatRepo.sendMessage({
+      const sentMessage = await chatRepo.sendMessage({
         sessionId,
         patientId,
         caseId,
         role,
         text
+      })
+      setMessages(current => {
+        if (current.some(message => message.id === sentMessage.id)) return current
+        return [...current, sentMessage]
       })
     } catch (err) {
       logger.error('[useChat] Failed to send message', err)
