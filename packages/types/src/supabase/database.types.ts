@@ -3620,6 +3620,7 @@ export type Database = {
         Row: {
           case_id: string
           channel: string
+          doctor_id: string | null
           ended_at: string | null
           id: string
           patient_id: string
@@ -3630,6 +3631,7 @@ export type Database = {
         Insert: {
           case_id: string
           channel: string
+          doctor_id?: string | null
           ended_at?: string | null
           id?: string
           patient_id: string
@@ -3640,6 +3642,7 @@ export type Database = {
         Update: {
           case_id?: string
           channel?: string
+          doctor_id?: string | null
           ended_at?: string | null
           id?: string
           patient_id?: string
@@ -3648,6 +3651,13 @@ export type Database = {
           workflow_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conversation_sessions_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversation_sessions_patient_id_fkey"
             columns: ["patient_id"]
@@ -6755,16 +6765,20 @@ export type Database = {
           deleted_at: string | null
           device_platform: string | null
           email: string | null
+          especialidad_registrada: string | null
           external_id: string | null
           fcm_token: string | null
           first_name: string | null
           last_name: string | null
+          matricula_nacional: string | null
           newsletter_subscribed: boolean
           numeric_id: number
           onboarding_completed_at: string | null
           onboarding_started_at: string | null
           phone: string | null
           role: string | null
+          sss_last_checked_at: string | null
+          sss_validation_status: "pending" | "valid" | "pending_review" | "rejected" | "exempt"
           updated_at: string | null
           user_id: string
         }
@@ -6775,16 +6789,20 @@ export type Database = {
           deleted_at?: string | null
           device_platform?: string | null
           email?: string | null
+          especialidad_registrada?: string | null
           external_id?: string | null
           fcm_token?: string | null
           first_name?: string | null
           last_name?: string | null
+          matricula_nacional?: string | null
           newsletter_subscribed?: boolean
           numeric_id?: number
           onboarding_completed_at?: string | null
           onboarding_started_at?: string | null
           phone?: string | null
           role?: string | null
+          sss_last_checked_at?: string | null
+          sss_validation_status?: "pending" | "valid" | "pending_review" | "rejected" | "exempt"
           updated_at?: string | null
           user_id: string
         }
@@ -6795,16 +6813,20 @@ export type Database = {
           deleted_at?: string | null
           device_platform?: string | null
           email?: string | null
+          especialidad_registrada?: string | null
           external_id?: string | null
           fcm_token?: string | null
           first_name?: string | null
           last_name?: string | null
+          matricula_nacional?: string | null
           newsletter_subscribed?: boolean
           numeric_id?: number
           onboarding_completed_at?: string | null
           onboarding_started_at?: string | null
           phone?: string | null
           role?: string | null
+          sss_last_checked_at?: string | null
+          sss_validation_status?: "pending" | "valid" | "pending_review" | "rejected" | "exempt"
           updated_at?: string | null
           user_id?: string
         }

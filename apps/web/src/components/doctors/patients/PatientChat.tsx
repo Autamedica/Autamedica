@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@/hooks/doctors/useChat'
-import { Send, Loader2, User, Bot, Stethoscope } from 'lucide-react'
+import { Send, Loader2, User, Stethoscope } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 
 interface PatientChatProps {
@@ -14,7 +14,7 @@ interface PatientChatProps {
 
 export function PatientChat({ patientId, doctorId, caseId, patientName }: PatientChatProps) {
   const [input, setInput] = useState('')
-  const { messages, loading, sending, sendMessage } = useChat({
+  const { messages, loading, sending, error, sendMessage } = useChat({
     patientId,
     doctorId,
     caseId,
@@ -29,14 +29,18 @@ export function PatientChat({ patientId, doctorId, caseId, patientName }: Patien
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault()
-    if (!input.trim() || sending) return
+    if (!input.trim() || sending || !doctorId) return
     const text = input
     setInput('')
-    await sendMessage(text)
+    try {
+      await sendMessage(text)
+    } catch {
+      setInput(text)
+    }
   }
 
   return (
-    <div className="flex flex-col h-[500px] border rounded-xl bg-white shadow-sm overflow-hidden">
+    <div className="flex h-[min(560px,calc(100vh-220px))] min-h-[420px] flex-col overflow-hidden rounded-xl border bg-white shadow-sm">
       {/* Header */}
       <div className="px-4 py-3 border-b bg-stone-50 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -45,10 +49,7 @@ export function PatientChat({ patientId, doctorId, caseId, patientName }: Patien
           </div>
           <div>
             <p className="text-sm font-bold">{patientName}</p>
-            <div className="flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">En línea</p>
-            </div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Canal privado</p>
           </div>
         </div>
         <Badge variant="outline" className="text-[10px]">Chat Directo</Badge>
@@ -56,9 +57,19 @@ export function PatientChat({ patientId, doctorId, caseId, patientName }: Patien
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-stone-50/30">
-        {loading ? (
+        {!doctorId ? (
+          <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+            <p className="text-sm font-semibold text-stone-700">No hay médico asignado para este chat.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Asigná el paciente a tu equipo para habilitar el canal directo.</p>
+          </div>
+        ) : loading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : error ? (
+          <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+            <p className="text-sm font-semibold text-red-700">{error}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Revisá que el paciente pertenezca a tu equipo de atención.</p>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-6">
@@ -104,7 +115,7 @@ export function PatientChat({ patientId, doctorId, caseId, patientName }: Patien
           />
           <button
             type="submit"
-            disabled={!input.trim() || sending}
+            disabled={!input.trim() || sending || !doctorId}
             className="h-9 w-9 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

@@ -78,6 +78,9 @@ function ClinicalContextSummary({
     : hasAnamnesis
       ? 'Sin dato registrado'
       : 'Sin anamnesis compartida'
+  const chronicDiseases = context?.chronicDiseases ?? []
+  const allergies = context?.allergies ?? []
+  const hasRelevantHistory = chronicDiseases.length > 0 || allergies.length > 0
 
   return (
     <>
@@ -102,18 +105,19 @@ function ClinicalContextSummary({
               <AlertTriangle className={dense ? 'h-3.5 w-3.5' : 'h-3 w-3'} /> Antecedentes relevantes
             </p>
             <div className={`flex flex-wrap ${dense ? 'mt-1 gap-1.5' : 'gap-2'}`}>
-              {context?.chronicDiseases && context.chronicDiseases.length > 0 ? (
-                context.chronicDiseases.map((d, i) => (
-                  <span key={i} className={`${dense ? 'rounded-full border border-amber-200' : 'rounded-lg border border-amber-100'} bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 capitalize`}>
+              {hasRelevantHistory ? (
+                <>
+                  {chronicDiseases.map((d, i) => (
+                    <span key={`chronic-${i}`} className={`${dense ? 'rounded-full border border-amber-200' : 'rounded-lg border border-amber-100'} bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 capitalize`}>
                     {d}
-                  </span>
-                ))
-              ) : context?.allergies && context.allergies.length > 0 ? (
-                context.allergies.map((a, i) => (
-                  <span key={i} className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700">
+                    </span>
+                  ))}
+                  {allergies.map((a, i) => (
+                    <span key={`allergy-${i}`} className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700">
                     {a}
-                  </span>
-                ))
+                    </span>
+                  ))}
+                </>
               ) : (
                 <span className={`${dense ? 'rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-500' : 'text-sm font-semibold text-neutral-400 italic'}`}>
                   {emptyClinicalText}

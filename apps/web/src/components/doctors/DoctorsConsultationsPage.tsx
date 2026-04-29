@@ -6,15 +6,13 @@ import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import { useDoctorAppointments } from "@/hooks/doctors/useDoctorAppointments";
 import { getDisplayName } from "@/lib/doctors/lib/utils";
 import { ArrowLeft, ArrowRight, Calendar, FileText, Users, Video, MessageSquare } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { PatientChat } from "@/components/doctors/patients/PatientChat";
-import { useAuthenticatedUser } from "@/hooks/doctors/useAuthenticatedUser";
 
 export function DoctorsConsultationsPage() {
   const { user } = useAuthenticatedUser();
   const { patients } = useRealPatients();
   const { appointments } = useDoctorAppointments();
-  const [showChat, setShowChat] = useState(false);
 
   const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const selectedPatientId = urlParams?.get("patient") ?? null;
@@ -49,7 +47,9 @@ export function DoctorsConsultationsPage() {
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Volver a pacientes
-          </a>          <div className="grid lg:grid-cols-3 gap-6">
+          </a>
+
+          <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
               {patientAppointments.length > 0 ? (
                 <div className="space-y-3">
