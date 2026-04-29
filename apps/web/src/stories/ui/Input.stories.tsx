@@ -108,25 +108,27 @@ export const BuscarPaciente: Story = {
   ),
 };
 
+const ConLabelYAyudaComponent = () => {
+  const [value, setValue] = useState('');
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-sm font-medium text-am-surface-700">
+        Correo electronico
+      </label>
+      <Input
+        type="email"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="paciente@email.com"
+        className={inputClass}
+      />
+      <p className="text-xs text-am-surface-400">Te enviaremos confirmaciones de turno a este email.</p>
+    </div>
+  );
+};
+
 export const ConLabelYAyuda: Story = {
-  render: () => {
-    const [value, setValue] = useState('');
-    return (
-      <div className="space-y-1.5">
-        <label className="block text-sm font-medium text-am-surface-700">
-          Correo electronico
-        </label>
-        <Input
-          type="email"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="paciente@email.com"
-          className={inputClass}
-        />
-        <p className="text-xs text-am-surface-400">Te enviaremos confirmaciones de turno a este email.</p>
-      </div>
-    );
-  },
+  render: () => <ConLabelYAyudaComponent />,
 };
 
 export const ConError: Story = {
@@ -145,34 +147,36 @@ export const ConError: Story = {
   ),
 };
 
-export const FormularioDeRegistro: Story = {
-  render: () => {
-    const [form, setForm] = useState({ nombre: '', email: '', dni: '', tel: '' });
-    const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setForm(prev => ({ ...prev, [field]: e.target.value }));
-    return (
-      <div className="space-y-4">
+const FormularioDeRegistroComponent = () => {
+  const [form, setForm] = useState({ nombre: '', email: '', dni: '', tel: '' });
+  const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm(prev => ({ ...prev, [field]: e.target.value }));
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-am-surface-700">Nombre completo</label>
+        <Input value={form.nombre} onChange={update('nombre')} placeholder="Ej: Maria Laura Gonzalez" className={inputClass} />
+      </div>
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-am-surface-700">Email</label>
+        <Input type="email" value={form.email} onChange={update('email')} placeholder="paciente@email.com" className={inputClass} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-am-surface-700">Nombre completo</label>
-          <Input value={form.nombre} onChange={update('nombre')} placeholder="Ej: Maria Laura Gonzalez" className={inputClass} />
+          <label className="block text-sm font-medium text-am-surface-700">DNI</label>
+          <Input value={form.dni} onChange={update('dni')} placeholder="32.456.789" className={inputClass} />
         </div>
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-am-surface-700">Email</label>
-          <Input type="email" value={form.email} onChange={update('email')} placeholder="paciente@email.com" className={inputClass} />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-am-surface-700">DNI</label>
-            <Input value={form.dni} onChange={update('dni')} placeholder="32.456.789" className={inputClass} />
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-am-surface-700">Telefono</label>
-            <Input type="tel" value={form.tel} onChange={update('tel')} placeholder="+54 11 1234-5678" className={inputClass} />
-          </div>
+          <label className="block text-sm font-medium text-am-surface-700">Telefono</label>
+          <Input type="tel" value={form.tel} onChange={update('tel')} placeholder="+54 11 1234-5678" className={inputClass} />
         </div>
       </div>
-    );
-  },
+    </div>
+  );
+};
+
+export const FormularioDeRegistro: Story = {
+  render: () => <FormularioDeRegistroComponent />,
   decorators: [
     (Story) => (
       <div style={{ width: '400px' }}>

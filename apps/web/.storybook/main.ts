@@ -1,7 +1,9 @@
 import type { StorybookConfig } from '@storybook/react-vite';
 // @ts-expect-error — vite is provided by @storybook/react-vite at runtime
-import { mergeConfig } from 'vite'
+import { mergeConfig } from 'vite';
 import path from 'node:path';
+import tailwindcss from 'tailwindcss';
+import autoprefixer from 'autoprefixer';
 
 const config: StorybookConfig = {
   stories: [
@@ -20,10 +22,10 @@ const config: StorybookConfig = {
       css: {
         postcss: {
           plugins: [
-            require('tailwindcss')({
+            tailwindcss({
               config: path.resolve(__dirname, '../tailwind.config.ts'),
             }),
-            require('autoprefixer')(),
+            autoprefixer(),
           ],
         },
       },
