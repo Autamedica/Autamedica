@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@/hooks/doctors/useChat'
-import { Send, Loader2, User, Bot, Stethoscope } from 'lucide-react'
+import { Send, Loader2, User, Stethoscope } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 
 interface PatientChatProps {

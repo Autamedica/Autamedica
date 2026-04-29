@@ -7,7 +7,7 @@ import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export function PatientDoctorChat() {
-  const { user, patient, profile } = usePatientSession()
+  const { patient } = usePatientSession()
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [input, setInput] = useState('')

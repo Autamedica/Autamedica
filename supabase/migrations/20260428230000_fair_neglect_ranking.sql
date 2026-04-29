@@ -7,16 +7,28 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  v_avg_rating numeric;
-  v_review_count integer;
-  v_completed_appointments integer;
-  v_cancelled_appointments integer;
+  v_avg_rating numeric(3,2);
+  v_total_reviews integer;
+  v_total_consult integer;
+  v_completed integer;
+  v_completion_rate numeric(5,2);
+  v_avg_punct numeric(3,2);
+  v_avg_comm numeric(3,2);
+  v_avg_prof numeric(3,2);
+  v_avg_clin numeric(3,2);
+  v_clinical_score numeric(5,2);
+  v_overall numeric(5,2);
+  v_last_review timestamptz;
+  v_community_replies integer;
+  v_community_threads integer;
+  v_community_helpful integer;
+  v_community_score numeric(5,2);
+  v_community_last_activity timestamptz;
   v_neglect_count integer := 0;
-  v_neglect_penalty integer := 0;
+  v_neglect_penalty numeric(5,2) := 0;
   v_is_absent_today boolean;
   v_absent_days_last_15 integer;
 BEGIN
-  -- 1. Check if doctor is marked as absent TODAY
   SELECT EXISTS (
     SELECT 1 FROM public.doctor_availability_overrides
     WHERE doctor_id = target_doctor_id
@@ -24,86 +36,156 @@ BEGIN
       AND is_available = false
   ) INTO v_is_absent_today;
 
-  -- 2. Count how many days the doctor was absent in the last 15 days
   SELECT COUNT(*)::integer INTO v_absent_days_last_15
   FROM public.doctor_availability_overrides
   WHERE doctor_id = target_doctor_id
     AND override_date > CURRENT_DATE - INTERVAL '15 days'
     AND is_available = false;
 
-  -- 3. Calculate basic metrics
-  SELECT 
-    COALESCE(AVG(rating), 0),
-    COUNT(*)
+  SELECT
+    COALESCE(AVG(overall_rating), 0),
+    COUNT(*),
+    COALESCE(AVG(punctuality_rating), 0),
+    COALESCE(AVG(communication_rating), 0),
+    COALESCE(AVG(professionalism_rating), 0),
+    COALESCE(AVG(clinical_quality_rating), 0),
+    MAX(created_at)
+  INTO v_avg_rating, v_total_reviews, v_avg_punct, v_avg_comm, v_avg_prof, v_avg_clin, v_last_review
   FROM public.doctor_reviews
   WHERE doctor_id = target_doctor_id
-  INTO v_avg_rating, v_review_count;
+    AND status = 'approved';
 
-  SELECT COUNT(*)
+  SELECT
+    COUNT(*),
+    COUNT(*) FILTER (WHERE status = 'completed')
+  INTO v_total_consult, v_completed
   FROM public.appointments
-  WHERE doctor_id = target_doctor_id AND status = 'completed'
-  INTO v_completed_appointments;
+  WHERE doctor_id = target_doctor_id;
 
-  SELECT COUNT(*)
-  FROM public.appointments
-  WHERE doctor_id = target_doctor_id AND status = 'cancelled'
-  INTO v_cancelled_appointments;
+  SELECT
+    COUNT(*),
+    COUNT(DISTINCT post_id),
+    COALESCE(SUM(reaction_count), 0),
+    MAX(created_at)
+  INTO v_community_replies, v_community_threads, v_community_helpful, v_community_last_activity
+  FROM public.community_post_comments
+  WHERE doctor_author_id = target_doctor_id
+    AND author_role = 'doctor'
+    AND deleted_at IS NULL;
 
-  -- 4. Calculate Neglect Penalty (only if NOT absent today)
-  -- If doctor is absent today, we preserve previous neglect metrics or skip update
+  v_completion_rate := CASE WHEN v_total_consult > 0
+    THEN ROUND((v_completed::numeric / v_total_consult) * 100, 2)
+    ELSE 0
+  END;
+
+  v_clinical_score := ROUND(
+    (COALESCE(v_avg_rating, 0) / 5.0 * 40) +
+    (COALESCE(v_completion_rate, 0) / 100.0 * 20) +
+    (COALESCE(v_avg_comm, 0) / 5.0 * 15) +
+    (COALESCE(v_avg_clin, 0) / 5.0 * 15) +
+    (LEAST(v_total_reviews, 50) / 50.0 * 10),
+  2);
+
+  v_community_score := ROUND(
+    (LEAST(COALESCE(v_community_helpful, 0), 120) / 120.0 * 60) +
+    (LEAST(COALESCE(v_community_threads, 0), 40) / 40.0 * 25) +
+    (LEAST(COALESCE(v_community_replies, 0), 80) / 80.0 * 15),
+  2);
+
   IF NOT v_is_absent_today THEN
-    -- A patient is considered neglected if:
-    -- - They are in the care team of the doctor
-    -- - They haven't had a completed appointment in the last (15 + absent_days) days
     SELECT COUNT(*)::integer INTO v_neglect_count
     FROM public.patient_care_team pct
     WHERE pct.doctor_id = target_doctor_id
+      AND pct.active = true
       AND NOT EXISTS (
         SELECT 1 FROM public.appointments a
         WHERE a.patient_id = pct.patient_id
           AND a.doctor_id = target_doctor_id
           AND a.status = 'completed'
-          -- We extend the 15-day window by the number of days the doctor was absent
           AND a.start_time > (CURRENT_DATE - (15 + v_absent_days_last_15) * INTERVAL '1 day')
       );
 
-    -- Penalty: 5 points per neglected patient, max 50 points
     v_neglect_penalty := LEAST(v_neglect_count * 5, 50);
   ELSE
-    -- If absent, keep current penalty or set to 0 if preferred (here we keep current state)
     SELECT neglect_count, neglect_penalty INTO v_neglect_count, v_neglect_penalty
     FROM public.doctor_ranking_metrics
     WHERE doctor_id = target_doctor_id;
   END IF;
 
-  -- 5. Update ranking metrics
+  v_overall := ROUND(
+    GREATEST(
+      0,
+      LEAST(100, COALESCE(v_clinical_score, 0) + (COALESCE(v_community_score, 0) * 0.15)) - COALESCE(v_neglect_penalty, 0)
+    ),
+  2);
+
   INSERT INTO public.doctor_ranking_metrics (
     doctor_id,
     avg_rating,
-    review_count,
-    completed_appointments,
-    cancelled_appointments,
+    total_reviews,
+    total_consultations,
+    completed_consultations,
+    completion_rate,
+    avg_punctuality,
+    avg_communication,
+    avg_professionalism,
+    avg_clinical_quality,
+    clinical_score,
+    community_replies,
+    community_threads_helped,
+    community_helpful_reactions,
+    community_score,
+    community_last_activity_at,
     neglect_count,
     neglect_penalty,
-    updated_at
+    overall_score,
+    last_review_at,
+    recalculated_at
   ) VALUES (
     target_doctor_id,
     v_avg_rating,
-    v_review_count,
-    v_completed_appointments,
-    v_cancelled_appointments,
+    v_total_reviews,
+    v_total_consult,
+    v_completed,
+    v_completion_rate,
+    v_avg_punct,
+    v_avg_comm,
+    v_avg_prof,
+    v_avg_clin,
+    v_clinical_score,
+    v_community_replies,
+    v_community_threads,
+    v_community_helpful,
+    v_community_score,
+    v_community_last_activity,
     COALESCE(v_neglect_count, 0),
     COALESCE(v_neglect_penalty, 0),
-    NOW()
+    v_overall,
+    v_last_review,
+    now()
   )
   ON CONFLICT (doctor_id) DO UPDATE SET
     avg_rating = EXCLUDED.avg_rating,
-    review_count = EXCLUDED.review_count,
-    completed_appointments = EXCLUDED.completed_appointments,
-    cancelled_appointments = EXCLUDED.cancelled_appointments,
+    total_reviews = EXCLUDED.total_reviews,
+    total_consultations = EXCLUDED.total_consultations,
+    completed_consultations = EXCLUDED.completed_consultations,
+    completion_rate = EXCLUDED.completion_rate,
+    avg_punctuality = EXCLUDED.avg_punctuality,
+    avg_communication = EXCLUDED.avg_communication,
+    avg_professionalism = EXCLUDED.avg_professionalism,
+    avg_clinical_quality = EXCLUDED.avg_clinical_quality,
+    clinical_score = EXCLUDED.clinical_score,
+    community_replies = EXCLUDED.community_replies,
+    community_threads_helped = EXCLUDED.community_threads_helped,
+    community_helpful_reactions = EXCLUDED.community_helpful_reactions,
+    community_score = EXCLUDED.community_score,
+    community_last_activity_at = EXCLUDED.community_last_activity_at,
     neglect_count = EXCLUDED.neglect_count,
     neglect_penalty = EXCLUDED.neglect_penalty,
-    updated_at = EXCLUDED.updated_at;
+    overall_score = EXCLUDED.overall_score,
+    last_review_at = EXCLUDED.last_review_at,
+    recalculated_at = now();
 
+  PERFORM public.evaluate_doctor_badges(target_doctor_id);
 END;
 $$;

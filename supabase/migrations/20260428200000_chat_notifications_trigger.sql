@@ -24,9 +24,9 @@ BEGIN
         target_audience := 'doctor';
         
         -- Obtener nombre del paciente para el título
-        SELECT (p.first_name || ' ' || p.last_name) INTO sender_name 
+        SELECT concat_ws(' ', p.first_name, p.last_name) INTO sender_name
         FROM public.profiles p 
-        JOIN public.patients pat ON pat.profile_id = p.id 
+        JOIN public.patients pat ON pat.user_id = p.user_id
         WHERE pat.id = NEW.patient_id;
     ELSIF NEW.role = 'doctor' THEN
         -- El médico escribió, notificar al paciente
@@ -34,9 +34,9 @@ BEGIN
         target_audience := 'patient';
         
         -- Obtener nombre del médico
-        SELECT (p.first_name || ' ' || p.last_name) INTO sender_name 
-        FROM public.profiles p 
-        JOIN public.doctors d ON d.id = p.id -- Asumiendo que doctor.id es el mismo que profile.id o similar
+        SELECT concat_ws(' ', p.first_name, p.last_name) INTO sender_name
+        FROM public.profiles p
+        JOIN public.doctors d ON d.user_id = p.user_id
         WHERE d.id = chat_session.doctor_id;
         
         IF sender_name IS NULL THEN sender_name := 'Tu médico'; END IF;
@@ -45,6 +45,10 @@ BEGIN
     END IF;
 
     -- Insertar la notificación
+    IF target_user_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
     INSERT INTO public.portal_notifications (
         user_id,
         audience,

@@ -1,5 +1,4 @@
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
-import type { Database, UUID } from '@autamedica/types'
 import { toCamel, logger } from '@autamedica/shared'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -9,7 +8,7 @@ export interface ChatMessage {
   role: 'patient' | 'doctor' | 'assistant' | 'system'
   rawText: string
   createdAt: string
-  metadata?: any
+  metadata?: Record<string, unknown>
 }
 
 export interface ChatSession {
@@ -21,7 +20,7 @@ export interface ChatSession {
   channel: 'chat' | 'voice'
 }
 
-type ChatClient = SupabaseClient<Database>
+type ChatClient = SupabaseClient
 
 export const chatRepo = {
   async getMessages(sessionId: string, client: ChatClient = getBrowserSupabaseClient()): Promise<ChatMessage[]> {

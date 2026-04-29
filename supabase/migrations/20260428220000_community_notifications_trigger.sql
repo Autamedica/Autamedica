@@ -19,23 +19,29 @@ BEGIN
   LOOP
     INSERT INTO public.portal_notifications (
       user_id,
-      title,
-      message,
+      audience,
+      category,
       type,
-      link,
-      metadata
+      title,
+      body,
+      action_url,
+      dedupe_key,
+      context_data
     ) VALUES (
       v_doctor_record.user_id,
+      'doctor',
+      'community',
+      'community_new_post',
       'Nueva duda en la comunidad',
       'Un paciente ha publicado: "' || LEFT(NEW.title, 50) || '..."',
-      'community_new_post',
       '/doctors/community/post/' || NEW.id,
+      'community_post_' || NEW.id || '_doctor_' || v_doctor_record.user_id,
       jsonb_build_object(
         'post_id', NEW.id,
         'group_id', NEW.group_id,
         'author_name', NEW.author_display_name
       )
-    );
+    ) ON CONFLICT (user_id, dedupe_key) DO NOTHING;
   END LOOP;
   
   RETURN NEW;
@@ -63,22 +69,28 @@ BEGIN
   IF v_post_author_user_id IS NOT NULL AND v_post_author_user_id != auth.uid() THEN
     INSERT INTO public.portal_notifications (
       user_id,
-      title,
-      message,
+      audience,
+      category,
       type,
-      link,
-      metadata
+      title,
+      body,
+      action_url,
+      dedupe_key,
+      context_data
     ) VALUES (
       v_post_author_user_id,
+      'patient',
+      'community',
+      'community_new_comment',
       'Nuevo comentario en tu post',
       COALESCE(NEW.author_display_name, 'Alguien') || ' respondió a tu publicación.',
-      'community_new_comment',
       '/patients/community/post/' || NEW.post_id,
+      'community_comment_' || NEW.id,
       jsonb_build_object(
         'post_id', NEW.post_id,
         'comment_id', NEW.id
       )
-    );
+    ) ON CONFLICT (user_id, dedupe_key) DO NOTHING;
   END IF;
 
   RETURN NEW;

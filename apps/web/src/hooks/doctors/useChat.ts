@@ -5,6 +5,15 @@ import { chatRepo, type ChatMessage } from '@/lib/doctors/lib/repos/chat'
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import { logger } from '@autamedica/shared'
 
+type ConversationEventInsert = {
+  id: string
+  session_id: string
+  role: ChatMessage['role']
+  raw_text: string
+  created_at: string
+  metadata?: ChatMessage['metadata']
+}
+
 interface UseChatProps {
   patientId: string
   doctorId: string
@@ -22,6 +31,11 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
   messagesRef.current = messages
 
   const loadChat = useCallback(async () => {
+    if (!patientId || !doctorId || !caseId) {
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
       const session = await chatRepo.getOrCreateSession({ patientId, doctorId, caseId })
@@ -56,8 +70,7 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
           filter: `session_id=eq.${sessionId}`
         },
         (payload) => {
-          const newMessage = payload.new as any
-          // Convert snake_case to camelCase manually for speed or use toCamel
+          const newMessage = payload.new as ConversationEventInsert
           const mapped: ChatMessage = {
             id: newMessage.id,
             sessionId: newMessage.session_id,
