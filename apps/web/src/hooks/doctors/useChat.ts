@@ -80,13 +80,13 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
             return
           }
 
-          const mapped: ChatMessage = {
-            id: newMessage.id,
-            sessionId: newMessage.session_id,
-            role: newMessage.role,
-            rawText: newMessage.raw_text,
-            createdAt: newMessage.created_at,
-            metadata: newMessage.metadata
+           const mapped: ChatMessage = {
+             id: newMessage.id,
+             sessionId: newMessage.session_id,
+             role: newMessage.role as ChatMessage['role'],
+             rawText: newMessage.raw_text,
+             createdAt: newMessage.created_at,
+             metadata: newMessage.metadata as ChatMessage['metadata']
           }
           
           setMessages(current => {
