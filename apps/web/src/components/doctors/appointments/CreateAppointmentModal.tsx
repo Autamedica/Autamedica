@@ -6,6 +6,7 @@ import type { Appointment } from '@autamedica/types'
 import { Calendar, Clock, MapPin, Search, Stethoscope, UserRound, Video, X, UserPlus, ArrowLeft } from 'lucide-react'
 import { useRealPatients } from '@/hooks/doctors/useRealPatients'
 import { getDisplayName } from '@/lib/doctors/lib/utils'
+import { isPastAppointmentStart, localDateInput, localDateTimeInputToIso } from '@/lib/appointments/time'
 import type {
   DoctorAppointmentFormValues,
   DoctorAppointmentType,
@@ -50,8 +51,8 @@ const APPOINTMENT_TYPES: Array<{
 ]
 
 function getInitialDate(iso?: string): string {
-  if (iso) return new Date(iso).toISOString().slice(0, 10)
-  return new Date().toISOString().slice(0, 10)
+  if (iso) return localDateInput(new Date(iso))
+  return localDateInput()
 }
 
 function getInitialTime(iso?: string): string {
@@ -128,6 +129,12 @@ export function CreateAppointmentModal({
     setError(null)
 
     try {
+      const startIso = localDateTimeInputToIso(form.date, form.time)
+      if (isPastAppointmentStart(startIso)) {
+        setError('No se puede programar una cita en el pasado.')
+        setSaving(false)
+        return
+      }
       await onSaved(form)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la cita')
@@ -309,7 +316,7 @@ export function CreateAppointmentModal({
                   <span className="text-sm font-medium text-am-surface-700">Fecha</span>
                   <input
                     type="date"
-                    min={isEditing ? undefined : getInitialDate()}
+                    min={isEditing ? undefined : localDateInput()}
                     value={form.date}
                     onChange={(event) => handleChange('date', event.target.value)}
                     className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-am-primary-400 focus-visible:ring-offset-2 transition focus:border-am-primary-400"

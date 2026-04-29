@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ScheduleDoctorAppointmentUseCase } from './ScheduleDoctorAppointmentUseCase'
 
+const futureStart = '2026-12-04T14:00:00.000Z'
+
 describe('ScheduleDoctorAppointmentUseCase', () => {
   it('creates an appointment and emits appointment.scheduled', async () => {
     const appointmentRepo = {
@@ -8,7 +10,7 @@ describe('ScheduleDoctorAppointmentUseCase', () => {
         id: 'apt-1',
         patient_id: 'pat-1',
         doctor_id: 'doc-1',
-        start_time: '2026-04-04T14:00:00.000Z',
+        start_time: futureStart,
       }),
       update: vi.fn(),
       cancel: vi.fn(),
@@ -39,7 +41,7 @@ describe('ScheduleDoctorAppointmentUseCase', () => {
       { doctorId: 'doc-1' },
       {
         patient_id: 'pat-1',
-        start_time: '2026-04-04T14:00:00.000Z',
+        start_time: futureStart,
         duration_minutes: 30,
         type: 'consultation',
         notes: 'Control clínico breve',
@@ -51,7 +53,7 @@ describe('ScheduleDoctorAppointmentUseCase', () => {
       'pat-1',
       expect.objectContaining({
         doctor_id: 'doc-1',
-        start_time: '2026-04-04T14:00:00.000Z',
+        start_time: futureStart,
         duration_minutes: 30,
         type: 'consultation',
       }),
@@ -60,7 +62,7 @@ describe('ScheduleDoctorAppointmentUseCase', () => {
       appointmentId: 'apt-1',
       doctorId: 'doc-1',
       patientId: 'pat-1',
-      startTime: '2026-04-04T14:00:00.000Z',
+      startTime: futureStart,
     })
     expect(result.id).toBe('apt-1')
   })
@@ -92,7 +94,7 @@ describe('ScheduleDoctorAppointmentUseCase', () => {
         { doctorId: 'doc-1' },
         {
           patient_id: 'missing',
-          start_time: '2026-04-04T14:00:00.000Z',
+          start_time: futureStart,
           duration_minutes: 30,
           type: 'consultation',
         },

@@ -7,6 +7,7 @@ import type {
   UUID,
 } from '@autamedica/types'
 import type { IEventBus } from '@autamedica/shared'
+import { isPastAppointmentStart } from '@/lib/appointments/time'
 import type { CreateDoctorAppointmentInput } from '@/lib/doctors/types/appointments'
 
 interface ScheduleDoctorAppointmentDeps {
@@ -43,6 +44,10 @@ export class ScheduleDoctorAppointmentUseCase {
       throw Object.assign(new Error('start_time is invalid'), { code: 'VALIDATION' })
     }
 
+    if (isPastAppointmentStart(scheduledDate.toISOString())) {
+      throw Object.assign(new Error('No se puede programar una cita en el pasado'), { code: 'VALIDATION' })
+    }
+
     if (!Number.isFinite(payload.duration_minutes) || payload.duration_minutes < 5) {
       throw Object.assign(new Error('duration_minutes must be at least 5'), { code: 'VALIDATION' })
     }
@@ -62,7 +67,7 @@ export class ScheduleDoctorAppointmentUseCase {
     const insert: AppointmentInsert = {
       doctor_id: context.doctorId as UUID,
       patient_id: (patientId as UUID) || null,
-      start_time: startTime as ISODateString,
+      start_time: scheduledDate.toISOString() as ISODateString,
       duration_minutes: payload.duration_minutes,
       type: payload.type,
       status: 'scheduled',

@@ -43,6 +43,10 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
     const deps = { appointmentsRepo: createAppointmentAdapter(supabase), dbClient: supabase }
 
     if (body.start_time) {
+      const requestedStart = new Date(body.start_time)
+      if (Number.isNaN(requestedStart.getTime())) return conflict('start_time is invalid')
+      if (requestedStart.getTime() <= Date.now()) return conflict('No se puede programar una cita en el pasado')
+
       const existing = await appointmentsUseCase.getById(deps, params.id, context.patientId)
       if (!existing) return notFound('Appointment not found')
       if (!existing.doctor_id) return badRequest('Cannot reschedule: no doctor assigned')
@@ -59,6 +63,7 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
     const typed = err as { code?: string; message?: string }
     if (typed.code === 'INVALID_TRANSITION') return badRequest(typed.message ?? 'Invalid status transition')
     if (typed.code === 'NOT_FOUND') return notFound('Appointment not found')
+    if (typed.code === 'VALIDATION') return conflict(typed.message ?? 'Invalid appointment date')
     logger.error('[appointments/[id]/PATCH]', err)
     return internalError()
   }
