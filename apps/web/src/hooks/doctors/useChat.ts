@@ -45,7 +45,7 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
       setMessages(history)
     } catch (err) {
       logger.error('[useChat] Failed to load chat', err)
-      setError('No pudimos abrir el canal seguro con este profesional.')
+      setError('No pudimos abrir el canal seguro con este paciente.')
     } finally {
       setLoading(false)
     }

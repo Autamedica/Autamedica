@@ -10,7 +10,7 @@ type AdminClient = SupabaseClient<Database>
 type AvailabilityInsert = Database['public']['Tables']['doctor_availability']['Insert']
 type DoctorInsert = Database['public']['Tables']['doctors']['Insert']
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
-type ProfileIdentityUpdate = Pick<ProfileUpdate, 'first_name' | 'last_name' | 'phone'>
+type ProfileIdentityUpdate = Partial<Pick<ProfileUpdate, 'first_name' | 'last_name' | 'phone'>>
 
 function compactPatch<T extends Record<string, unknown>>(patch: T): Partial<T> {
   return Object.fromEntries(

@@ -69,7 +69,7 @@ export function PatientChat({ patientId, doctorId, caseId, patientName }: Patien
         ) : error ? (
           <div className="flex h-full flex-col items-center justify-center p-6 text-center">
             <p className="text-sm font-semibold text-red-700">{error}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Revisá que el paciente pertenezca a tu equipo de atención.</p>
+            <p className="mt-1 text-xs text-muted-foreground">El canal se habilita para pacientes de tu equipo o con una consulta registrada a tu nombre.</p>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-6">
