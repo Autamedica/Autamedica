@@ -16,6 +16,14 @@ DECLARE
 BEGIN
     -- Obtener información de la sesión
     SELECT * INTO chat_session FROM public.conversation_sessions WHERE id = NEW.session_id;
+
+    IF chat_session.id IS NULL
+        OR chat_session.channel <> 'chat'
+        OR chat_session.workflow_type <> 'p2p_chat'
+        OR chat_session.doctor_id IS NULL
+        OR chat_session.patient_id IS NULL THEN
+        RETURN NEW;
+    END IF;
     
     -- Determinar destinatario
     IF NEW.role = 'patient' THEN
@@ -25,8 +33,8 @@ BEGIN
         
         -- Obtener nombre del paciente para el título
         SELECT (p.first_name || ' ' || p.last_name) INTO sender_name 
-        FROM public.profiles p 
-        JOIN public.patients pat ON pat.profile_id = p.id 
+        FROM public.profiles p
+        JOIN public.patients pat ON pat.user_id = p.user_id
         WHERE pat.id = NEW.patient_id;
     ELSIF NEW.role = 'doctor' THEN
         -- El médico escribió, notificar al paciente
@@ -35,8 +43,8 @@ BEGIN
         
         -- Obtener nombre del médico
         SELECT (p.first_name || ' ' || p.last_name) INTO sender_name 
-        FROM public.profiles p 
-        JOIN public.doctors d ON d.id = p.id -- Asumiendo que doctor.id es el mismo que profile.id o similar
+        FROM public.profiles p
+        JOIN public.doctors d ON d.user_id = p.user_id
         WHERE d.id = chat_session.doctor_id;
         
         IF sender_name IS NULL THEN sender_name := 'Tu médico'; END IF;
@@ -45,6 +53,10 @@ BEGIN
     END IF;
 
     -- Insertar la notificación
+    IF target_user_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
     INSERT INTO public.portal_notifications (
         user_id,
         audience,

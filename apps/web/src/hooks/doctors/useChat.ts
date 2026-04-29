@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { chatRepo, type ChatMessage } from '@/lib/doctors/lib/repos/chat'
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import { logger } from '@autamedica/shared'
+import type { Database } from '@autamedica/types'
 
 interface UseChatProps {
   patientId: string
@@ -12,18 +13,31 @@ interface UseChatProps {
   role: 'doctor' | 'patient'
 }
 
+const CHAT_MESSAGE_ROLES = new Set(['patient', 'doctor'])
+
 export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   
   const messagesRef = useRef<ChatMessage[]>([])
   messagesRef.current = messages
 
   const loadChat = useCallback(async () => {
+    if (!patientId || !doctorId || !caseId) {
+      setMessages([])
+      setSessionId(null)
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
+      setError(null)
+      setMessages([])
+      setSessionId(null)
       const session = await chatRepo.getOrCreateSession({ patientId, doctorId, caseId })
       setSessionId(session.id)
       
@@ -31,6 +45,7 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
       setMessages(history)
     } catch (err) {
       logger.error('[useChat] Failed to load chat', err)
+      setError('No pudimos abrir el canal seguro con este profesional.')
     } finally {
       setLoading(false)
     }
@@ -55,9 +70,16 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
           table: 'conversation_events',
           filter: `session_id=eq.${sessionId}`
         },
-        (payload) => {
-          const newMessage = payload.new as any
-          // Convert snake_case to camelCase manually for speed or use toCamel
+         (payload) => {
+           const newMessage = payload.new as Database['public']['Tables']['conversation_events']['Row']
+           if (
+            newMessage.event_type !== 'message'
+            || !CHAT_MESSAGE_ROLES.has(newMessage.role)
+            || typeof newMessage.raw_text !== 'string'
+          ) {
+            return
+          }
+
           const mapped: ChatMessage = {
             id: newMessage.id,
             sessionId: newMessage.session_id,
@@ -85,6 +107,7 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
     
     try {
       setSending(true)
+      setError(null)
       await chatRepo.sendMessage({
         sessionId,
         patientId,
@@ -94,6 +117,8 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
       })
     } catch (err) {
       logger.error('[useChat] Failed to send message', err)
+      setError('No pudimos enviar el mensaje. Intentá nuevamente.')
+      throw err
     } finally {
       setSending(false)
     }
@@ -103,6 +128,7 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
     messages,
     loading,
     sending,
+    error,
     sendMessage,
     sessionId
   }

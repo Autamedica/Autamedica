@@ -1,5 +1,5 @@
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
-import type { Database, UUID } from '@autamedica/types'
+import type { Database } from '@autamedica/types'
 import { toCamel, logger } from '@autamedica/shared'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -9,7 +9,7 @@ export interface ChatMessage {
   role: 'patient' | 'doctor' | 'assistant' | 'system'
   rawText: string
   createdAt: string
-  metadata?: any
+  metadata?: Record<string, unknown> | null
 }
 
 export interface ChatSession {
@@ -21,9 +21,61 @@ export interface ChatSession {
   channel: 'chat' | 'voice'
 }
 
+export interface AssignedChatDoctor {
+  doctorId: string
+  firstName: string | null
+  lastName: string | null
+  specialty: string | null
+  label: string
+}
+
 type ChatClient = SupabaseClient<Database>
+type ConversationEventRow = Database['public']['Tables']['conversation_events']['Row']
+type ConversationSessionRow = Database['public']['Tables']['conversation_sessions']['Row']
+const CHAT_MESSAGE_ROLES = new Set(['patient', 'doctor'])
+
+function isChatMessageRow(row: ConversationEventRow): boolean {
+  return row.event_type === 'message' && CHAT_MESSAGE_ROLES.has(row.role)
+}
+
+function mapAssignedDoctor(row: {
+  doctor_id: string
+  first_name: string | null
+  last_name: string | null
+  specialty: string | null
+}): AssignedChatDoctor {
+  const fullName = [row.first_name, row.last_name].filter(Boolean).join(' ').trim()
+
+  return {
+    doctorId: row.doctor_id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    specialty: row.specialty,
+    label: fullName ? `Dr. ${fullName}` : 'Tu médico',
+  }
+}
 
 export const chatRepo = {
+  async getAssignedDoctor(patientId: string, client: ChatClient = getBrowserSupabaseClient()): Promise<AssignedChatDoctor | null> {
+    const { data, error } = await client.rpc('get_assigned_chat_doctor' as never, {
+      target_patient_id: patientId,
+    } as never)
+
+    if (error) {
+      logger.error('[chatRepo] getAssignedDoctor failed', error)
+      throw error
+    }
+
+    const rows = data as unknown as Array<{
+      doctor_id: string
+      first_name: string | null
+      last_name: string | null
+      specialty: string | null
+    }> | null
+
+    return rows?.[0] ? mapAssignedDoctor(rows[0]) : null
+  },
+
   async getMessages(sessionId: string, client: ChatClient = getBrowserSupabaseClient()): Promise<ChatMessage[]> {
     const { data, error } = await client
       .from('conversation_events')
@@ -36,7 +88,7 @@ export const chatRepo = {
       throw error
     }
 
-    return toCamel<ChatMessage[]>(data ?? [])
+    return toCamel<ChatMessage[]>((data ?? []).filter(isChatMessageRow))
   },
 
   async sendMessage(
@@ -80,40 +132,18 @@ export const chatRepo = {
     },
     client: ChatClient = getBrowserSupabaseClient()
   ): Promise<ChatSession> {
-    // Try to find active session
-    const { data: existing } = await client
-      .from('conversation_sessions')
-      .select('*')
-      .eq('patient_id', payload.patientId)
-      .eq('doctor_id', payload.doctorId)
-      .eq('case_id', payload.caseId)
-      .eq('status', 'active')
-      .eq('channel', 'chat')
-      .maybeSingle()
-
-    if (existing) {
-      return toCamel<ChatSession>(existing)
-    }
-
-    // Create new
     const { data, error } = await client
-      .from('conversation_sessions')
-      .insert({
-        patient_id: payload.patientId,
-        doctor_id: payload.doctorId,
-        case_id: payload.caseId,
-        status: 'active',
-        channel: 'chat',
-        workflow_type: 'p2p_chat'
-      })
-      .select()
-      .single()
+      .rpc('get_or_create_p2p_chat_session' as never, {
+        target_patient_id: payload.patientId,
+        target_doctor_id: payload.doctorId,
+        target_case_id: payload.caseId,
+      } as never)
 
     if (error) {
-      logger.error('[chatRepo] createSession failed', error)
+      logger.error('[chatRepo] getOrCreateSession failed', error)
       throw error
     }
 
-    return toCamel<ChatSession>(data)
+    return toCamel<ChatSession>(data as unknown as ConversationSessionRow)
   }
 }

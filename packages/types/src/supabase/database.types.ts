@@ -3620,6 +3620,7 @@ export type Database = {
         Row: {
           case_id: string
           channel: string
+          doctor_id: string | null
           ended_at: string | null
           id: string
           patient_id: string
@@ -3630,6 +3631,7 @@ export type Database = {
         Insert: {
           case_id: string
           channel: string
+          doctor_id?: string | null
           ended_at?: string | null
           id?: string
           patient_id: string
@@ -3640,6 +3642,7 @@ export type Database = {
         Update: {
           case_id?: string
           channel?: string
+          doctor_id?: string | null
           ended_at?: string | null
           id?: string
           patient_id?: string
@@ -3648,6 +3651,13 @@ export type Database = {
           workflow_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conversation_sessions_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversation_sessions_patient_id_fkey"
             columns: ["patient_id"]
