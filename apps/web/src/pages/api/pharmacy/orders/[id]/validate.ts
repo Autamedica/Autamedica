@@ -4,18 +4,20 @@ import { withAuthRole, PHARMACIST_ROLES, isAuthed } from '@/lib/api-auth';
 import { jsonOk, badRequest, forbidden, internalError } from '@/lib/api-helpers';
 import { dispensationService } from '@/lib/pharmacy/services/dispensation.service';
 import type { ValidateInput } from '@/lib/pharmacy/services/dispensation.service';
+import { createAstroAdminClient } from '@/lib/supabase';
 
-export const POST: APIRoute = async ({ request, params }) => {
+export const POST: APIRoute = async ({ request, params, locals }) => {
   const orderId = params.id;
   if (!orderId) return badRequest('missing_order_id');
 
   try {
     const auth = await withAuthRole(request, PHARMACIST_ROLES);
     if (!isAuthed(auth)) return auth;
-    const { user, supabase } = auth;
+    const { user } = auth;
+    const admin = createAstroAdminClient(locals.runtime?.env);
 
     const body = await request.json() as ValidateInput;
-    const result = await dispensationService.validate(supabase, user.id, orderId, body);
+    const result = await dispensationService.validate(admin, user.id, orderId, body);
 
     if (result.ok === false) {
       const code = result.error.code;

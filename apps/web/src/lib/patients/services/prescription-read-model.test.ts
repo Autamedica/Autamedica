@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { requiresStrictPrescriptionValidation } from "@/lib/prescriptions/strict-validation";
+import {
+  getSubstanceCategory,
+  getValidityPeriodDays,
+  requiresStrictPrescriptionValidation,
+} from "@/lib/prescriptions/strict-validation";
 import {
   buildPatientPrescriptions,
   mapPrescriptionRecordToPatientPrescription,
@@ -9,7 +13,17 @@ describe("prescription-read-model", () => {
   it("detects medications with strict validation requirements", () => {
     expect(requiresStrictPrescriptionValidation("Metilfenidato 10 mg")).toBe(true);
     expect(requiresStrictPrescriptionValidation("Vyvanse 30 mg")).toBe(true);
+    expect(requiresStrictPrescriptionValidation("Clonazepam 0.5 mg")).toBe(true);
+    expect(requiresStrictPrescriptionValidation("Morfina 10 mg")).toBe(true);
     expect(requiresStrictPrescriptionValidation("Ibuprofeno 400 mg")).toBe(false);
+  });
+
+  it("classifies controlled substances with differentiated validity windows", () => {
+    expect(getSubstanceCategory("Clonazepam 0.5 mg")).toBe("psicotropico");
+    expect(getValidityPeriodDays("Clonazepam 0.5 mg")).toBe(10);
+    expect(getSubstanceCategory("Morfina 10 mg")).toBe("estupefaciente");
+    expect(getValidityPeriodDays("Morfina 10 mg")).toBe(5);
+    expect(getValidityPeriodDays("Amoxicilina 500 mg")).toBe(30);
   });
 
   it("maps core prescriptions with digital artifacts", () => {

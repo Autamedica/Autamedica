@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1120" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="2" dy="4" stdDeviation="5" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0284c7"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#059669"/>
+    </marker>
+    <marker id="arrow-slate" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/>
+    </marker>
+    <linearGradient id="header" x1="0" y1="0" x2="1800" y2="0">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#164e63"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1800" height="1120" fill="#f8fafc"/>
+
+  <rect width="1800" height="96" fill="url(#header)"/>
+  <text x="900" y="40" text-anchor="middle" font-size="28" font-weight="800" fill="#ffffff">AutaMedica - Flujo de Recetario Electronico</text>
+  <text x="900" y="68" text-anchor="middle" font-size="14" fill="#bae6fd">Emision, verificacion, dispensacion y auditoria para Registro de Recetarios Electronicos</text>
+
+  <g transform="translate(80, 132)">
+    <rect width="1640" height="104" rx="16" fill="#ffffff" stroke="#cbd5e1" filter="url(#shadow)"/>
+    <text x="30" y="36" font-size="16" font-weight="800" fill="#0f172a">Objetivo regulatorio</text>
+    <text x="30" y="66" font-size="14" fill="#334155">Cada receta emitida queda identificada por CUIR, verificable por QR, trazable por auditoria y bloqueada contra reutilizacion despues de la dispensa.</text>
+    <text x="30" y="88" font-size="12" fill="#64748b">Componentes: recetario electronico + repositorio/validador + portal farmacia + historial paciente.</text>
+  </g>
+
+  <!-- Actores -->
+  <g transform="translate(80, 300)">
+    <rect width="250" height="150" rx="14" fill="#ffffff" stroke="#38bdf8" stroke-width="2" filter="url(#shadow)"/>
+    <circle cx="48" cy="44" r="22" fill="#e0f2fe"/>
+    <text x="48" y="52" text-anchor="middle" font-size="22">M</text>
+    <text x="86" y="39" font-size="18" font-weight="800" fill="#075985">Medico</text>
+    <text x="86" y="62" font-size="12" fill="#64748b">Portal profesional</text>
+    <line x1="24" y1="78" x2="226" y2="78" stroke="#e2e8f0"/>
+    <text x="24" y="102" font-size="12" fill="#334155">Valida paciente y tratamiento</text>
+    <text x="24" y="124" font-size="12" fill="#334155">Firma y emite receta</text>
+  </g>
+
+  <g transform="translate(420, 280)">
+    <rect width="320" height="190" rx="16" fill="#eff6ff" stroke="#0284c7" stroke-width="2.5" filter="url(#shadow)"/>
+    <text x="160" y="38" text-anchor="middle" font-size="19" font-weight="800" fill="#075985">Receta AutaMedica</text>
+    <text x="36" y="72" font-size="13" fill="#0f172a">Datos clinicos estructurados</text>
+    <text x="36" y="98" font-size="13" fill="#0f172a">Medico: matricula + REFEPS</text>
+    <text x="36" y="124" font-size="13" fill="#0f172a">Paciente: DNI/CUIL + domicilio</text>
+    <text x="36" y="150" font-size="13" fill="#0f172a">Medicamento + dosis + instrucciones</text>
+    <rect x="36" y="164" width="248" height="8" rx="4" fill="#bae6fd"/>
+  </g>
+
+  <g transform="translate(820, 280)">
+    <rect width="320" height="190" rx="16" fill="#ffffff" stroke="#dc2626" stroke-width="3" filter="url(#shadow)"/>
+    <text x="160" y="38" text-anchor="middle" font-size="19" font-weight="800" fill="#164e63">Emision regulada</text>
+    <text x="34" y="72" font-size="13" fill="#334155">Genera CUIR unico</text>
+    <text x="34" y="98" font-size="13" fill="#334155">Genera QR verificable</text>
+    <text x="34" y="124" font-size="13" fill="#334155">PDF + hash de documento</text>
+    <text x="34" y="150" font-size="13" font-weight="800" fill="#dc2626">BLOQUEO: firma CA productiva</text>
+    <rect x="34" y="164" width="110" height="8" rx="4" fill="#67e8f9"/>
+    <rect x="152" y="164" width="134" height="8" rx="4" fill="#fecaca"/>
+    <g transform="translate(226, -16)">
+      <rect width="92" height="28" rx="14" fill="#dc2626"/>
+      <text x="46" y="19" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff">BLOQUEA</text>
+    </g>
+  </g>
+
+  <g transform="translate(1220, 280)">
+    <rect width="300" height="190" rx="16" fill="#f0fdf4" stroke="#059669" stroke-width="2.5" filter="url(#shadow)"/>
+    <text x="150" y="38" text-anchor="middle" font-size="19" font-weight="800" fill="#065f46">Paciente</text>
+    <text x="34" y="72" font-size="13" fill="#14532d">Recibe receta y QR</text>
+    <text x="34" y="98" font-size="13" fill="#14532d">Ve estado de la receta</text>
+    <text x="34" y="124" font-size="13" fill="#14532d">Presenta QR en farmacia</text>
+    <text x="34" y="150" font-size="13" fill="#14532d">Consulta historial y PDF</text>
+  </g>
+
+  <!-- Arrows top -->
+  <line x1="330" y1="375" x2="410" y2="375" stroke="#0284c7" stroke-width="4" marker-end="url(#arrow-blue)"/>
+  <line x1="740" y1="375" x2="810" y2="375" stroke="#0284c7" stroke-width="4" marker-end="url(#arrow-blue)"/>
+  <line x1="1140" y1="375" x2="1210" y2="375" stroke="#059669" stroke-width="4" marker-end="url(#arrow-green)"/>
+
+  <!-- Verificacion central -->
+  <g transform="translate(250, 560)">
+    <rect width="410" height="190" rx="16" fill="#ffffff" stroke="#0ea5e9" stroke-width="2" filter="url(#shadow)"/>
+    <text x="205" y="38" text-anchor="middle" font-size="19" font-weight="800" fill="#075985">Verificacion publica</text>
+    <text x="36" y="72" font-size="13" fill="#334155">Ruta: /verify/[cuir]</text>
+    <text x="36" y="98" font-size="13" fill="#334155">Confirma vigencia y estado</text>
+    <text x="36" y="124" font-size="13" fill="#334155">Muestra medico, paciente y medicamento</text>
+    <text x="36" y="150" font-size="13" fill="#334155">Expone solo datos necesarios</text>
+  </g>
+
+  <g transform="translate(770, 560)">
+    <rect width="410" height="190" rx="16" fill="#fff7ed" stroke="#dc2626" stroke-width="3" filter="url(#shadow)"/>
+    <text x="205" y="38" text-anchor="middle" font-size="19" font-weight="800" fill="#065f46">Portal Farmacia</text>
+    <text x="36" y="72" font-size="13" fill="#14532d">Toma orden pendiente</text>
+    <text x="36" y="98" font-size="13" fill="#14532d">Valida identidad y prescriptor</text>
+    <text x="36" y="124" font-size="13" font-weight="800" fill="#dc2626">BLOQUEO: farmacias piloto/onboarding</text>
+    <text x="36" y="150" font-size="13" font-weight="800" fill="#dc2626">BLOQUEO: credenciales vendor/prod</text>
+    <g transform="translate(318, -16)">
+      <rect width="92" height="28" rx="14" fill="#dc2626"/>
+      <text x="46" y="19" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff">BLOQUEA</text>
+    </g>
+  </g>
+
+  <g transform="translate(1290, 560)">
+    <rect width="330" height="190" rx="16" fill="#ffffff" stroke="#dc2626" stroke-width="3" filter="url(#shadow)"/>
+    <text x="165" y="38" text-anchor="middle" font-size="19" font-weight="800" fill="#065f46">Dispensacion</text>
+    <text x="34" y="72" font-size="13" fill="#334155">Marca dispensa parcial o total</text>
+    <text x="34" y="98" font-size="13" fill="#334155">Registra lote y vencimiento</text>
+    <text x="34" y="124" font-size="13" font-weight="800" fill="#dc2626">BLOQUEO: validacion en farmacia real</text>
+    <text x="34" y="150" font-size="13" fill="#334155">Paciente ve estado final</text>
+    <g transform="translate(238, -16)">
+      <rect width="92" height="28" rx="14" fill="#dc2626"/>
+      <text x="46" y="19" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff">BLOQUEA</text>
+    </g>
+  </g>
+
+  <!-- Bloqueos actuales -->
+  <g transform="translate(80, 778)">
+    <rect width="1640" height="54" rx="14" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+    <text x="24" y="23" font-size="15" font-weight="900" fill="#991b1b">Bloqueos actuales para funcionamiento productivo</text>
+    <text x="24" y="42" font-size="12" fill="#7f1d1d">1. Firma digital/CA productiva o Lakaut activo  2. API keys vendor en produccion  3. Farmacias piloto dadas de alta  4. Prueba real de dispensa y anti-reuso</text>
+  </g>
+
+  <!-- Arrows mid -->
+  <path d="M1370 470 C1370 520 455 520 455 550" fill="none" stroke="#475569" stroke-width="3" marker-end="url(#arrow-slate)"/>
+  <line x1="660" y1="655" x2="760" y2="655" stroke="#059669" stroke-width="4" marker-end="url(#arrow-green)"/>
+  <line x1="1180" y1="655" x2="1280" y2="655" stroke="#059669" stroke-width="4" marker-end="url(#arrow-green)"/>
+
+  <!-- Repositorio/Auditoria -->
+  <g transform="translate(160, 855)">
+    <rect width="1480" height="168" rx="18" fill="#0f172a" filter="url(#shadow)"/>
+    <text x="40" y="42" font-size="20" font-weight="800" fill="#ffffff">Repositorio, trazabilidad y control de reutilizacion</text>
+
+    <g transform="translate(40, 70)">
+      <rect width="260" height="70" rx="12" fill="#1e293b" stroke="#334155"/>
+      <text x="20" y="28" font-size="13" font-weight="700" fill="#e2e8f0">prescriptions</text>
+      <text x="20" y="50" font-size="11" fill="#94a3b8">CUIR, QR, PDF, estado, firma</text>
+    </g>
+
+    <g transform="translate(330, 70)">
+      <rect width="260" height="70" rx="12" fill="#1e293b" stroke="#334155"/>
+      <text x="20" y="28" font-size="13" font-weight="700" fill="#e2e8f0">dispensation_orders</text>
+      <text x="20" y="50" font-size="11" fill="#94a3b8">Pendiente, validada, dispensada</text>
+    </g>
+
+    <g transform="translate(620, 70)">
+      <rect width="260" height="70" rx="12" fill="#1e293b" stroke="#334155"/>
+      <text x="20" y="28" font-size="13" font-weight="700" fill="#e2e8f0">dispensation_events</text>
+      <text x="20" y="50" font-size="11" fill="#94a3b8">Cantidad, lote, farmacia, fecha</text>
+    </g>
+
+    <g transform="translate(910, 70)">
+      <rect width="260" height="70" rx="12" fill="#1e293b" stroke="#334155"/>
+      <text x="20" y="28" font-size="13" font-weight="700" fill="#e2e8f0">audit_events</text>
+      <text x="20" y="50" font-size="11" fill="#94a3b8">Actor, rol, evento, timestamp</text>
+    </g>
+
+    <g transform="translate(1200, 70)">
+      <rect width="240" height="70" rx="12" fill="#052e16" stroke="#16a34a"/>
+      <text x="20" y="28" font-size="13" font-weight="700" fill="#dcfce7">Bloqueo anti-reuso</text>
+      <text x="20" y="50" font-size="11" fill="#bbf7d0">dispensed_total / anulada</text>
+    </g>
+  </g>
+
+  <path d="M1455 750 C1455 805 1455 822 1455 845" fill="none" stroke="#dc2626" stroke-width="4" marker-end="url(#arrow-red)"/>
+  <path d="M975 750 C975 805 975 822 975 845" fill="none" stroke="#dc2626" stroke-width="4" marker-end="url(#arrow-red)"/>
+  <path d="M455 750 C455 805 455 822 455 845" fill="none" stroke="#0284c7" stroke-width="4" marker-end="url(#arrow-blue)"/>
+
+  <!-- Estados -->
+  <g transform="translate(80, 1044)">
+    <text x="0" y="0" font-size="12" font-weight="700" fill="#475569">Estados principales:</text>
+    <text x="136" y="0" font-size="12" fill="#64748b">draft -> sent -> pending dispensation -> assigned -> approved_for_dispensation -> dispensed_total</text>
+  </g>
+
+  <g transform="translate(1360, 1030)">
+    <rect width="360" height="44" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="180" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#334155">Anexo tecnico - Registro de Recetarios Electronicos</text>
+  </g>
+</svg>

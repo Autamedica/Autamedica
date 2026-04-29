@@ -330,6 +330,15 @@ function buildClinicalDataFromPayload(
   return {
     ...current,
     medication_name: payload.medication_name,
+    items: [
+      {
+        generic_name: payload.medication_name,
+        dosage: payload.dosage ?? "",
+        presentation: payload.duration ?? payload.dosage ?? "No especificada",
+        quantity: 1,
+        instructions: payload.instructions ?? "",
+      },
+    ],
     dosage: payload.dosage ?? "",
     frequency: payload.frequency ?? "",
     duration: payload.duration ?? "",
