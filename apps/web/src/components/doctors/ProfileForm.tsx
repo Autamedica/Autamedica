@@ -86,8 +86,8 @@ export function ProfileForm() {
       const fee = d.consultation_fee ?? d.consultationFee
       const cbu = d.payout_cbu ?? d.payoutCbu
       const alias = d.payout_alias ?? d.payoutAlias
-      const sig = d.signature_url ?? d.signatureImageUrl
-      const sta = d.stamp_url ?? d.stampImageUrl
+      const sig = d.signatureUrl ?? d.signature_url ?? d.signatureImageUrl ?? d.signature_image_url
+      const sta = d.stampUrl ?? d.stamp_url ?? d.stampImageUrl ?? d.stamp_image_url
       const jur = d.enrollment_jurisdiction ?? d.enrollmentJurisdiction
 
       if (first) setFirstName(first)
