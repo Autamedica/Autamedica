@@ -50,18 +50,110 @@ const DOCTOR_WITH_PROFILE_SELECT = `
   )
 `
 
+const DOCTOR_WITH_PROFILE_LEGACY_SELECT = `
+  id,
+  user_id,
+  specialty,
+  subspecialty,
+  license_number,
+  years_experience,
+  consultation_fee,
+  refeps_id,
+  enrollment_entity,
+  enrollment_jurisdiction,
+  professional_address,
+  payout_cbu,
+  payout_alias,
+  signature_image_url,
+  stamp_image_url,
+  bio,
+  languages,
+  active,
+  created_at,
+  updated_at,
+  profile:profiles!inner(
+    user_id,
+    first_name,
+    last_name,
+    email,
+    phone,
+    avatar_url,
+    role
+  )
+`
+
+type SupabaseSelectResult<T> = {
+  data: T | null
+  error: {
+    code?: string
+    message?: string
+    details?: string
+    hint?: string
+  } | null
+}
+
+const LICENSE_PROFILE_COLUMNS = [
+  'sss_validation_status',
+  'sss_last_checked_at',
+  'especialidad_registrada',
+  'matricula_nacional',
+] as const
+
+function isMissingLicenseProfileColumn(error: SupabaseSelectResult<unknown>['error']): boolean {
+  if (!error) return false
+
+  const text = [error.message, error.details, error.hint].filter(Boolean).join(' ').toLowerCase()
+  return (
+    error.code === '42703' ||
+    LICENSE_PROFILE_COLUMNS.some((column) => text.includes(column))
+  )
+}
+
+async function runDoctorProfileSelect<T>(
+  scope: string,
+  primary: () => PromiseLike<SupabaseSelectResult<T>>,
+  legacy: () => PromiseLike<SupabaseSelectResult<T>>,
+): Promise<T | null> {
+  const result = await primary()
+
+  if (!isMissingLicenseProfileColumn(result.error)) {
+    if (result.error) {
+      logger.error(`[doctorsRepo] ${scope} failed`, result.error)
+      throw result.error
+    }
+
+    return result.data
+  }
+
+  logger.warn(
+    `[doctorsRepo] ${scope} license profile columns missing; retrying legacy profile select`,
+    result.error,
+  )
+
+  const fallback = await legacy()
+  if (fallback.error) {
+    logger.error(`[doctorsRepo] ${scope} legacy fallback failed`, fallback.error)
+    throw fallback.error
+  }
+
+  return fallback.data
+}
+
 export const doctorsRepo = {
   async findAll(client: DoctorsClient = getBrowserSupabaseClient()): Promise<DoctorWithProfile[]> {
-    const { data, error } = await client
-      .from('doctors')
-      .select(DOCTOR_WITH_PROFILE_SELECT)
-      .eq('active', true)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      logger.error('[doctorsRepo] findAll failed', error)
-      throw error
-    }
+    const data = await runDoctorProfileSelect(
+      'findAll',
+      () => client
+        .from('doctors')
+        .select(DOCTOR_WITH_PROFILE_SELECT)
+        .eq('active', true)
+        .order('created_at', { ascending: false }),
+      () => client
+        .from('doctors')
+        .select(DOCTOR_WITH_PROFILE_LEGACY_SELECT)
+        .eq('active', true)
+        .order('created_at', { ascending: false }),
+    )
 
     return toCamel<DoctorWithProfile[]>(data ?? [])
   },
@@ -70,17 +162,21 @@ export const doctorsRepo = {
     userId: string,
     client: DoctorsClient = getBrowserSupabaseClient(),
   ): Promise<DoctorWithProfile | null> {
-    const { data, error } = await client
-      .from('doctors')
-      .select(DOCTOR_WITH_PROFILE_SELECT)
-      .eq('user_id', userId)
-      .eq('active', true)
-      .maybeSingle()
-
-    if (error) {
-      logger.error('[doctorsRepo] findByUserId failed', error)
-      throw error
-    }
+    const data = await runDoctorProfileSelect(
+      'findByUserId',
+      () => client
+        .from('doctors')
+        .select(DOCTOR_WITH_PROFILE_SELECT)
+        .eq('user_id', userId)
+        .eq('active', true)
+        .maybeSingle(),
+      () => client
+        .from('doctors')
+        .select(DOCTOR_WITH_PROFILE_LEGACY_SELECT)
+        .eq('user_id', userId)
+        .eq('active', true)
+        .maybeSingle(),
+    )
 
     return data ? toCamel<DoctorWithProfile>(data) : null
   },
@@ -89,17 +185,21 @@ export const doctorsRepo = {
     id: string,
     client: DoctorsClient = getBrowserSupabaseClient(),
   ): Promise<DoctorWithProfile | null> {
-    const { data, error } = await client
-      .from('doctors')
-      .select(DOCTOR_WITH_PROFILE_SELECT)
-      .eq('id', id)
-      .eq('active', true)
-      .maybeSingle()
-
-    if (error) {
-      logger.error('[doctorsRepo] findById failed', error)
-      throw error
-    }
+    const data = await runDoctorProfileSelect(
+      'findById',
+      () => client
+        .from('doctors')
+        .select(DOCTOR_WITH_PROFILE_SELECT)
+        .eq('id', id)
+        .eq('active', true)
+        .maybeSingle(),
+      () => client
+        .from('doctors')
+        .select(DOCTOR_WITH_PROFILE_LEGACY_SELECT)
+        .eq('id', id)
+        .eq('active', true)
+        .maybeSingle(),
+    )
 
     return data ? toCamel<DoctorWithProfile>(data) : null
   },
@@ -108,17 +208,21 @@ export const doctorsRepo = {
     specialty: string,
     client: DoctorsClient = getBrowserSupabaseClient(),
   ): Promise<DoctorWithProfile[]> {
-    const { data, error } = await client
-      .from('doctors')
-      .select(DOCTOR_WITH_PROFILE_SELECT)
-      .eq('specialty', specialty)
-      .eq('active', true)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      logger.error('[doctorsRepo] findBySpecialty failed', error)
-      throw error
-    }
+    const data = await runDoctorProfileSelect(
+      'findBySpecialty',
+      () => client
+        .from('doctors')
+        .select(DOCTOR_WITH_PROFILE_SELECT)
+        .eq('specialty', specialty)
+        .eq('active', true)
+        .order('created_at', { ascending: false }),
+      () => client
+        .from('doctors')
+        .select(DOCTOR_WITH_PROFILE_LEGACY_SELECT)
+        .eq('specialty', specialty)
+        .eq('active', true)
+        .order('created_at', { ascending: false }),
+    )
 
     return toCamel<DoctorWithProfile[]>(data ?? [])
   },
