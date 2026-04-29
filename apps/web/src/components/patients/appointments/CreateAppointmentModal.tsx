@@ -30,6 +30,7 @@ interface DoctorOption {
   consultation_fee: number | null;
   first_name: string | null;
   last_name: string | null;
+  has_availability?: boolean;
   label: string;
 }
 
@@ -307,16 +308,28 @@ export function CreateAppointmentModal({
 
             {/* Doctor selection */}
             <div>
-              <label className="mb-2 block text-sm font-semibold text-stone-700" htmlFor="doctor-select">
-                Profesional
-              </label>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="text-sm font-semibold text-stone-700" htmlFor="doctor-select">
+                  Profesional
+                </label>
+                {!doctorsLoading && doctors.length > 0 && (
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-stone-400">
+                    {doctors.length} {doctors.length === 1 ? 'disponible' : 'disponibles'}
+                  </span>
+                )}
+              </div>
               {doctorsLoading ? (
                 <div className="flex items-center gap-2 py-3 text-sm text-stone-500">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-stone-200 border-t-stone-500" />
                   Cargando profesionales...
                 </div>
+              ) : doctors.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-stone-200 p-8 text-center">
+                  <UserRound className="mx-auto mb-2 h-8 w-8 text-stone-300" />
+                  <p className="text-sm text-stone-500">No se encontraron profesionales disponibles.</p>
+                </div>
               ) : (
-                <div className="space-y-2">
+                <div className="max-h-[42dvh] space-y-2 overflow-y-auto pr-1">
                   {doctors.map((doc) => {
                     const isSelected = selectedDoctorId === doc.id;
                     return (
@@ -336,7 +349,7 @@ export function CreateAppointmentModal({
                           <UserRound className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-stone-900 truncate">{doc.label}</p>
+                          <p className="text-sm font-semibold text-stone-900">{doc.label}</p>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
                             {doc.specialty && (
                               <p className="flex items-center gap-1">
@@ -347,6 +360,11 @@ export function CreateAppointmentModal({
                             <p className="font-medium text-stone-700">
                               {formatArsFromCents(doc.consultation_fee)}
                             </p>
+                            {doc.has_availability === false && (
+                              <p className="font-medium text-amber-700">
+                                Sin horarios cargados
+                              </p>
+                            )}
                           </div>
                         </div>
                         {isSelected && (
