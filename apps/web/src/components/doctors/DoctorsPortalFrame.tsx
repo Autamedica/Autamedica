@@ -5,6 +5,7 @@ import { useCheckDoctorExists } from "@/hooks/doctors/useCheckDoctorExists";
 import { useClock } from "@/hooks/doctors/useClock";
 import { useDoctorStats } from "@/hooks/doctors/useDoctorStats";
 import { useCurrentDoctor } from "@/hooks/doctors/useRealDoctors";
+import { fetchApi } from "@/lib/api-client";
 import { signOutLocal } from "@/lib/auth/service";
 import { getOnboardingStatus } from "@/lib/onboarding-grace";
 import DoctorNotificationsBell from "@/components/doctors/DoctorNotificationsBell";
@@ -30,7 +31,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import type { JSX, ReactNode } from "react";
+import type { ChangeEvent, JSX, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 type ActiveSection =
@@ -99,6 +100,21 @@ function formatDateLabel(date: Date): string {
     weekday: "long",
     day: "numeric",
     month: "long",
+  });
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("invalid_file_reader_result"));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("file_read_failed"));
+    reader.readAsDataURL(file);
   });
 }
 
@@ -203,6 +219,9 @@ export function DoctorsPortalFrame({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
 
   const currentTime = useClock();
   const currentDate = new Date();
@@ -219,6 +238,15 @@ export function DoctorsPortalFrame({
   const doctorName = getDoctorDisplayName(doctor, user);
   const doctorInitials = getInitials(doctorName);
   const doctorSpecialty = doctor?.specialty || "Especialidad pendiente";
+  const doctorProfile = doctor?.profile as { avatar_url?: string | null; avatarUrl?: string | null } | undefined;
+  const userProfile = user?.profile as { avatar?: string | null; avatar_url?: string | null } | undefined;
+  const avatarUrl =
+    uploadedAvatarUrl ||
+    doctorProfile?.avatar_url ||
+    doctorProfile?.avatarUrl ||
+    userProfile?.avatar_url ||
+    userProfile?.avatar ||
+    null;
 
   const primaryLinks = useMemo<NavigationItem[]>(
     () => [
@@ -277,6 +305,37 @@ export function DoctorsPortalFrame({
       window.location.href = "/auth/login?portal=doctors";
     } catch {
       setSigningOut(false);
+    }
+  };
+
+  const handlePhotoUpload = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setPhotoError(null);
+
+    if (!["image/png", "image/webp", "image/jpeg"].includes(file.type)) {
+      setPhotoError("Formato no soportado. Usá PNG, WebP o JPEG.");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setPhotoError("La foto no puede superar 2MB.");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const image = await readFileAsDataUrl(file);
+      const result = await fetchApi<{ avatarUrl: string }>("/api/doctors/profile/photo", {
+        body: { image },
+      });
+      setUploadedAvatarUrl(result.avatarUrl);
+    } catch {
+      setPhotoError("No pudimos actualizar la foto profesional.");
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -387,9 +446,17 @@ export function DoctorsPortalFrame({
               <div
                 className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-3"}`}
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-[13px] font-semibold text-white">
-                  {doctorInitials}
-                </div>
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={doctorName}
+                    className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-[13px] font-semibold text-white">
+                    {doctorInitials}
+                  </div>
+                )}
                 {!isSidebarCollapsed ? (
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-semibold text-neutral-900">
@@ -407,6 +474,23 @@ export function DoctorsPortalFrame({
                   <X className="h-4 w-4" />
                 </button>
               </div>
+              {!isSidebarCollapsed ? (
+                <div className="mt-3">
+                  <label className="inline-flex cursor-pointer items-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-50">
+                    {uploadingPhoto ? "Subiendo..." : "Subir foto profesional"}
+                    <input
+                      type="file"
+                      accept="image/png,image/webp,image/jpeg"
+                      className="hidden"
+                      disabled={uploadingPhoto}
+                      onChange={(event) => void handlePhotoUpload(event)}
+                    />
+                  </label>
+                  {photoError ? (
+                    <p className="mt-2 text-[11px] leading-relaxed text-red-600">{photoError}</p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             {/* Navigation */}
