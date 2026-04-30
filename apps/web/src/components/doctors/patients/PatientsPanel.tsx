@@ -15,9 +15,10 @@ import { useRealPatients } from '@/hooks/doctors/useRealPatients'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { useStartCall } from '@/hooks/doctors/useStartCall'
 import { selectDoctorPatientAppointmentInsights } from '@/lib/doctors/queries/doctor-appointments.selectors'
-import { Calendar, Clock, Video, Phone, Users, FileText, RefreshCw, Search, Activity, UserCheck, UserPlus, ChevronRight } from 'lucide-react'
+import { Calendar, Clock, Video, Phone, Users, FileText, RefreshCw, Search, Activity, UserCheck, UserPlus, ChevronRight, MessageSquare, X } from 'lucide-react'
 import { useState, useMemo, useEffect } from 'react'
 import { getDisplayName, getInitials, getAvatarColor } from '@/lib/doctors/lib/utils'
+import { PatientChat } from './PatientChat'
 
 interface PatientsPanelProps {
   doctorUserId?: string
@@ -33,6 +34,7 @@ function PatientCardActions({
   patientPhone,
   appointmentId,
   onSelectPatient,
+  onOpenChat,
 }: {
   doctorId: string
   patientId: string
@@ -40,6 +42,7 @@ function PatientCardActions({
   patientPhone?: string | null
   appointmentId?: string
   onSelectPatient?: (patientId: string, tab?: PatientWorkspaceTab) => void
+  onOpenChat?: (patient: { id: string; name: string }) => void
 }) {
   const { startCall, isStarting, error } = useStartCall({
     doctorId,
@@ -94,12 +97,12 @@ function PatientCardActions({
           type="button"
           onClick={(event) => {
             event.stopPropagation()
-            onSelectPatient?.(patientId, 'patient-info')
+            onOpenChat?.({ id: patientId, name: patientName })
           }}
-          className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-blue-50 hover:text-blue-600"
+          className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-neutral-900 hover:text-white"
         >
-          <Calendar className="h-3.5 w-3.5" />
-          Ficha
+          <MessageSquare className="h-3.5 w-3.5" />
+          Chat
         </button>
       </div>
       {error && (
@@ -115,6 +118,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
   const [searchTerm, setSearchTerm] = useState('')
   const [pulseItems, setPulseItems] = useState<{name: string, email: string, joinedAt: string}[]>([])
   const [pulseLoading, setPulseLoading] = useState(false)
+  const [chatPatient, setChatPatient] = useState<{ id: string; name: string } | null>(null)
   const { user } = useAuthenticatedUser()
 
   const { patients, loading, error, refetch } = useRealPatients()
@@ -432,12 +436,29 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                     patientPhone={patient.profile?.phone}
                     appointmentId={nextAppt?.id}
                     onSelectPatient={onSelectPatient}
+                    onOpenChat={setChatPatient}
                   />
                 </CardContent>
               </Card>
               </div>
             )
           })}
+        </div>
+      )}
+      {chatPatient && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-neutral-950/30 backdrop-blur-sm" onClick={() => setChatPatient(null)}>
+          <aside className="h-full w-full max-w-md bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-400">Chat clínico</p>
+                <h2 className="text-sm font-bold text-neutral-950">{chatPatient.name}</h2>
+              </div>
+              <button type="button" onClick={() => setChatPatient(null)} className="rounded-full p-2 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-900" aria-label="Cerrar chat">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <PatientChat patientId={chatPatient.id} doctorId={resolvedDoctorUserId} caseId="general_followup" patientName={chatPatient.name} compact />
+          </aside>
         </div>
       )}
     </div>
