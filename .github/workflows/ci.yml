@@ -15,9 +15,9 @@ permissions:
   contents: read
 
 env:
-  HUSKY: '0'
-  NODE_VERSION: '20'
-  PNPM_VERSION: '9.15.2'
+  HUSKY: "0"
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9.15.2"
 
 jobs:
   build-gate:
@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
-          cache-turbo: 'true'
+          cache-turbo: "true"
       - run: pnpm arch:v2:check
       - run: pnpm arch:v2:imports:changed
       - run: pnpm typecheck

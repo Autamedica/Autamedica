@@ -4,12 +4,12 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - 'apps/web/src/pages/blog/**'
-      - 'apps/web/src/pages/sitemap.xml.ts'
+      - "apps/web/src/pages/blog/**"
+      - "apps/web/src/pages/sitemap.xml.ts"
   workflow_dispatch:
     inputs:
       deploy_database:
-        description: 'Deploy Supabase migrations and edge functions'
+        description: "Deploy Supabase migrations and edge functions"
         required: true
         default: false
         type: boolean
@@ -22,9 +22,9 @@ permissions:
   contents: read
 
 env:
-  HUSKY: '0'
-  NODE_VERSION: '20'
-  PNPM_VERSION: '9.15.2'
+  HUSKY: "0"
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9.15.2"
 
 jobs:
   validate:
@@ -54,7 +54,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
-          build-core: 'false'
+          build-core: "false"
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@b60b5899c73b63a2d2d651b1e90db8d4c9392f51 # v1.6.0
@@ -105,7 +105,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
-          cache-turbo: 'true'
+          cache-turbo: "true"
       - name: Validate deploy configuration
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
@@ -146,7 +146,6 @@ jobs:
           PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.PUBLIC_GOOGLE_MAPS_API_KEY }}
           CLOUDFLARE_CALLS_TURN_KEY_ID: ${{ secrets.CLOUDFLARE_CALLS_TURN_KEY_ID }}
           CLOUDFLARE_CALLS_TURN_TOKEN: ${{ secrets.CLOUDFLARE_CALLS_TURN_TOKEN }}
-
 
       - name: Snapshot current deployment
         id: snapshot
