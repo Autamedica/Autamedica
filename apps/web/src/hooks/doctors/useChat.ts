@@ -21,6 +21,7 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [realtimeStatus, setRealtimeStatus] = useState<'idle' | 'connecting' | 'connected' | 'degraded'>('idle')
   
   const messagesRef = useRef<ChatMessage[]>([])
   messagesRef.current = messages
@@ -29,6 +30,7 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
     if (!patientId || !doctorId || !caseId) {
       setMessages([])
       setSessionId(null)
+      setRealtimeStatus('idle')
       setLoading(false)
       return
     }
@@ -59,6 +61,7 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
   useEffect(() => {
     if (!sessionId) return
 
+    setRealtimeStatus('connecting')
     const supabase = getBrowserSupabaseClient()
     const channel = supabase
       .channel(`chat:${sessionId}`)
@@ -95,9 +98,16 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
           })
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setRealtimeStatus('connected')
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setRealtimeStatus('degraded')
+        }
+      })
 
     return () => {
+      setRealtimeStatus('idle')
       void channel.unsubscribe()
     }
   }, [sessionId])
@@ -134,6 +144,7 @@ export function useChat({ patientId, doctorId, caseId, role }: UseChatProps) {
     sending,
     error,
     sendMessage,
-    sessionId
+    sessionId,
+    realtimeStatus,
   }
 }

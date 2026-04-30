@@ -73,7 +73,7 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
   async findAppointmentById(appointmentId: string): Promise<StartCallAppointmentRecord | null> {
     const { data, error } = await supabase
       .from('appointments')
-      .select('id, doctor_id, patient_id, type, status, start_time, end_time, duration_minutes')
+      .select('id, doctor_id, patient_id, type, status, start_time, end_time, duration_minutes, created_by')
       .eq('id', appointmentId)
       .maybeSingle()
 

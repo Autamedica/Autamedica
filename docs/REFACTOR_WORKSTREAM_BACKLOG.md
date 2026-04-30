@@ -146,3 +146,28 @@ Checkpoint:
 - mezclar refactor clínico con migraciones en el mismo cambio
 - tocar `Clinical Core` desde `Platform Core` sin contrato explícito
 - declarar “terminado” algo que todavía depende de estado implícito o producción no verificada
+
+---
+
+## Workstream E — Compliance & Revenue
+
+Owner sugerido:
+
+- integraciones externas + legal/fiscal + monetización
+
+Objetivo del batch:
+
+- pasar de simulación a producción en recetas y activar flujo de caja
+
+Tareas:
+
+- reemplazar `rcta.service.ts` simulado por bridge real con el MSAL (Expediente EX-2026-43326604)
+- implementar `lakaut.service.ts` para gestión de Firma Digital licenciada (Partner Lakaut)
+- habilitar endpoints de pago en MercadoPago para suscripción profesional (bundle de firma)
+- actualizar visualización de receta para incluir CUIR nacional y sellos de firma digital válidos
+
+Done:
+
+- recetas emitidas son aceptadas en el repositorio nacional (RCTA)
+- médicos pueden tramitar y usar firma digital PAdES desde la plataforma
+- flujo de monetización activo (SaaS + Value Added Services)

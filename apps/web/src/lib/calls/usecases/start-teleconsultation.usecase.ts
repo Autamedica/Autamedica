@@ -11,7 +11,7 @@ import { appointmentPaymentsService } from '@/lib/payments/services/appointment-
 
 type Db = SupabaseClient<Database>
 
-const CALLABLE_APPOINTMENT_STATUSES = new Set(['confirmed', 'in_progress'])
+const CALLABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
 
 export interface StartCallRequest {
   doctorUserId: string
@@ -112,9 +112,12 @@ export async function startTeleconsultationUseCase(
       return { kind: 'conflict', message: 'appointment_not_callable' }
     }
 
-    const hasApprovedPayment = await appointmentPaymentsService.hasApprovedPayment(adminDb, input.appointmentId)
-    if (!hasApprovedPayment) {
-      return { kind: 'conflict', message: 'appointment_payment_required' }
+    const wasCreatedByDoctor = appointment.created_by === input.doctorUserId
+    if (!wasCreatedByDoctor) {
+      const hasApprovedPayment = await appointmentPaymentsService.hasApprovedPayment(adminDb, input.appointmentId)
+      if (!hasApprovedPayment) {
+        return { kind: 'conflict', message: 'appointment_payment_required' }
+      }
     }
 
     if (!isTelemedicineCallWindowOpen(appointment)) {

@@ -9,6 +9,7 @@ export interface StartCallAppointmentRecord {
   start_time: string | null
   end_time: string | null
   duration_minutes: number | null
+  created_by: string | null
 }
 
 export interface ICallStartRepository {

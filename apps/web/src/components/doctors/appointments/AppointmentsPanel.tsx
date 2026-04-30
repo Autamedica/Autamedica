@@ -52,6 +52,34 @@ function cleanAppointmentNotes(notes: string | null | undefined): string {
   return notes?.replace(/\[INVITADO:[^\]]+\]/, '').trim() ?? ''
 }
 
+const TERMINAL_APPOINTMENT_STATUSES = new Set(['cancelled', 'completed', 'no_show'])
+const ACTIVE_APPOINTMENT_STATUSES = new Set(['in_progress', 'scheduled', 'confirmed'])
+
+function getAppointmentSortBucket(appointment: Appointment, nowMs: number): number {
+  const status = appointment.status ?? DEFAULT_STATUS
+  const startMs = Date.parse(appointment.start_time)
+  const isFutureOrRecent = !Number.isNaN(startMs) && startMs >= nowMs - 30 * 60 * 1000
+
+  if (status === 'in_progress') return 0
+  if (ACTIVE_APPOINTMENT_STATUSES.has(status) && isFutureOrRecent) return 1
+  if (ACTIVE_APPOINTMENT_STATUSES.has(status)) return 2
+  if (TERMINAL_APPOINTMENT_STATUSES.has(status)) return 4
+  return 3
+}
+
+function sortAppointmentsForAgenda(left: Appointment, right: Appointment, nowMs: number): number {
+  const leftBucket = getAppointmentSortBucket(left, nowMs)
+  const rightBucket = getAppointmentSortBucket(right, nowMs)
+  if (leftBucket !== rightBucket) return leftBucket - rightBucket
+
+  const leftStart = Date.parse(left.start_time)
+  const rightStart = Date.parse(right.start_time)
+  const safeLeft = Number.isNaN(leftStart) ? 0 : leftStart
+  const safeRight = Number.isNaN(rightStart) ? 0 : rightStart
+
+  return leftBucket === 4 ? safeRight - safeLeft : safeLeft - safeRight
+}
+
 function getAnamnesisUrl(patientId: string): string {
   return `/api/doctors/patients/${patientId}/anamnesis?format=html`
 }
@@ -185,17 +213,16 @@ export function AppointmentsPanel() {
   }, [appointments])
 
   const filteredAppointments = useMemo(() => {
-    let list = [...appointments].sort((a, b) =>
-      new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-    )
+    const now = new Date()
+    const nowMs = now.getTime()
+    let list = [...appointments]
     if (filter === 'today') {
-      const todayStr = new Date().toISOString().slice(0, 10)
+      const todayStr = now.toISOString().slice(0, 10)
       list = list.filter(a => a.start_time.startsWith(todayStr))
     } else if (filter === 'upcoming') {
-      const now = new Date()
-      list = list.filter(a => new Date(a.start_time) >= now)
+      list = list.filter(a => new Date(a.start_time).getTime() >= nowMs - 30 * 60 * 1000)
     }
-    return list
+    return list.sort((a, b) => sortAppointmentsForAgenda(a, b, nowMs))
   }, [appointments, filter])
 
   const selectedAppointment = useMemo(() =>
@@ -260,7 +287,7 @@ export function AppointmentsPanel() {
         {/* Hero: TURNO ACTUAL (Redesign Premium) */}
         {currentTurno && (
           <div className="px-6 pt-4">
-            <div className="rounded-[28px] border border-neutral-100 bg-white p-8 shadow-sm">
+            <div className="rounded-[28px] border border-neutral-200/70 bg-white p-6 shadow-xl shadow-neutral-900/5">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-neutral-400">Turno actual</h2>
                 <button className="text-neutral-300 hover:text-neutral-500 transition-colors">
@@ -268,14 +295,14 @@ export function AppointmentsPanel() {
                 </button>
               </div>
               
-              <div className="flex flex-col lg:flex-row lg:items-center gap-10">
+              <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)_260px] xl:items-center">
                 {/* Left: Time Section */}
-                <div className="flex items-center gap-6 shrink-0">
+                <div className="flex items-center gap-5 shrink-0 rounded-2xl bg-sky-50/70 p-5 ring-1 ring-sky-100">
                   <div className="flex h-20 w-20 items-center justify-center rounded-full bg-sky-50 text-sky-600">
                     <Clock className="h-10 w-10" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold tracking-tight text-neutral-900">
+                    <p className="text-3xl font-black tracking-tight text-neutral-950">
                       {new Date(currentTurno.start_time).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     <p className="text-sm font-medium text-neutral-400 mt-1">
@@ -285,7 +312,7 @@ export function AppointmentsPanel() {
                 </div>
 
                 {/* Vertical Divider (Desktop) */}
-                <div className="hidden lg:block h-20 w-px bg-neutral-100" />
+                <div className="hidden" />
 
                 {/* Center: Patient Section */}
                 <div className="flex-1 min-w-0">
@@ -304,7 +331,7 @@ export function AppointmentsPanel() {
                 </div>
 
                 {/* Right: Status & Actions */}
-                <div className="shrink-0 flex flex-col items-center lg:items-end gap-5">
+                <div className="shrink-0 flex flex-col items-stretch gap-4 rounded-2xl border border-neutral-100 bg-neutral-50/70 p-4">
                   <span className={`rounded-lg px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest ${getSoftStatusColor(currentTurno.status)}`}>
                     {getStatusLabel(currentTurno.status)}
                   </span>
@@ -327,7 +354,7 @@ export function AppointmentsPanel() {
                         Iniciar consulta
                       </button>
                     )}
-                    <p className="mt-3 text-[11px] font-bold uppercase tracking-widest text-neutral-300">
+                    <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-widest text-neutral-400">
                       {currentTurno.type === 'telemedicine' ? 'Videoconsulta' : 'Consulta Presencial'}
                     </p>
                   </div>
@@ -335,7 +362,7 @@ export function AppointmentsPanel() {
               </div>
 
               {/* Clinical Context Integrated */}
-              <div className="mt-10 pt-8 border-t border-neutral-50">
+              <div className="mt-6 pt-6 border-t border-neutral-100">
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-neutral-400 mb-6">Contexto del paciente</p>
                 <ClinicalContextSummary
                   appointment={currentTurno}
