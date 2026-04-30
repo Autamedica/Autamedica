@@ -86,6 +86,10 @@ const STATIC_ERRORS: Record<string, CallErrorMessage> = {
     title: 'No pudimos iniciar la videollamada',
     description: 'Este turno no está en un estado habilitado para iniciar videollamada.',
   },
+  appointment_payment_required: {
+    title: 'La videoconsulta requiere validación de pago',
+    description: 'Este turno fue creado desde un flujo que requiere pago aprobado antes de iniciar la llamada. Si lo programaste manualmente desde la agenda médica, volvé a crear el turno desde Programar cita.',
+  },
   unauthorized: {
     title: 'No tenés acceso a esta llamada',
     description: 'Verificá que hayas iniciado sesión con la cuenta correcta.',

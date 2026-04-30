@@ -52,6 +52,34 @@ function cleanAppointmentNotes(notes: string | null | undefined): string {
   return notes?.replace(/\[INVITADO:[^\]]+\]/, '').trim() ?? ''
 }
 
+const TERMINAL_APPOINTMENT_STATUSES = new Set(['cancelled', 'completed', 'no_show'])
+const ACTIVE_APPOINTMENT_STATUSES = new Set(['in_progress', 'scheduled', 'confirmed'])
+
+function getAppointmentSortBucket(appointment: Appointment, nowMs: number): number {
+  const status = appointment.status ?? DEFAULT_STATUS
+  const startMs = Date.parse(appointment.start_time)
+  const isFutureOrRecent = !Number.isNaN(startMs) && startMs >= nowMs - 30 * 60 * 1000
+
+  if (status === 'in_progress') return 0
+  if (ACTIVE_APPOINTMENT_STATUSES.has(status) && isFutureOrRecent) return 1
+  if (ACTIVE_APPOINTMENT_STATUSES.has(status)) return 2
+  if (TERMINAL_APPOINTMENT_STATUSES.has(status)) return 4
+  return 3
+}
+
+function sortAppointmentsForAgenda(left: Appointment, right: Appointment, nowMs: number): number {
+  const leftBucket = getAppointmentSortBucket(left, nowMs)
+  const rightBucket = getAppointmentSortBucket(right, nowMs)
+  if (leftBucket !== rightBucket) return leftBucket - rightBucket
+
+  const leftStart = Date.parse(left.start_time)
+  const rightStart = Date.parse(right.start_time)
+  const safeLeft = Number.isNaN(leftStart) ? 0 : leftStart
+  const safeRight = Number.isNaN(rightStart) ? 0 : rightStart
+
+  return leftBucket === 4 ? safeRight - safeLeft : safeLeft - safeRight
+}
+
 function getAnamnesisUrl(patientId: string): string {
   return `/api/doctors/patients/${patientId}/anamnesis?format=html`
 }
@@ -185,17 +213,16 @@ export function AppointmentsPanel() {
   }, [appointments])
 
   const filteredAppointments = useMemo(() => {
-    let list = [...appointments].sort((a, b) =>
-      new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-    )
+    const now = new Date()
+    const nowMs = now.getTime()
+    let list = [...appointments]
     if (filter === 'today') {
-      const todayStr = new Date().toISOString().slice(0, 10)
+      const todayStr = now.toISOString().slice(0, 10)
       list = list.filter(a => a.start_time.startsWith(todayStr))
     } else if (filter === 'upcoming') {
-      const now = new Date()
-      list = list.filter(a => new Date(a.start_time) >= now)
+      list = list.filter(a => new Date(a.start_time).getTime() >= nowMs - 30 * 60 * 1000)
     }
-    return list
+    return list.sort((a, b) => sortAppointmentsForAgenda(a, b, nowMs))
   }, [appointments, filter])
 
   const selectedAppointment = useMemo(() =>

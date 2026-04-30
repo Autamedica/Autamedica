@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { mockEmit } = vi.hoisted(() => ({
+const { mockEmit, mockHasApprovedPayment } = vi.hoisted(() => ({
   mockEmit: vi.fn().mockResolvedValue(undefined),
+  mockHasApprovedPayment: vi.fn().mockResolvedValue(true),
 }))
 
 vi.mock('@autamedica/shared', () => ({
@@ -30,7 +31,7 @@ vi.mock('@/lib/calls/lib/doctor-videoconsulta-credits', () => ({
 
 vi.mock('@/lib/payments/services/appointment-payments.service', () => ({
   appointmentPaymentsService: {
-    hasApprovedPayment: vi.fn().mockResolvedValue(true),
+    hasApprovedPayment: mockHasApprovedPayment,
   },
 }))
 
@@ -65,6 +66,8 @@ function makeRepo(overrides: Partial<ICallStartRepository> = {}): ICallStartRepo
 describe('startTeleconsultationUseCase — call.started emit', () => {
   beforeEach(() => {
     mockEmit.mockClear()
+    mockHasApprovedPayment.mockReset()
+    mockHasApprovedPayment.mockResolvedValue(true)
   })
 
   it('emits call.started with the expected payload when a new call is created', async () => {
@@ -133,6 +136,41 @@ describe('startTeleconsultationUseCase — call.started emit', () => {
 
     expect(result.kind).toBe('ok')
     expect(createCall).toHaveBeenCalledWith('doctor-1', 'patient-1', 'appointment-scheduled-1')
+  })
+
+  it('does not require payment for appointments created by the doctor', async () => {
+    mockHasApprovedPayment.mockResolvedValue(false)
+    const doctorCreatedAppointment = {
+      id: 'appointment-doctor-created-1',
+      doctor_id: 'doctor-1',
+      patient_id: 'patient-1',
+      type: 'telemedicine',
+      status: 'scheduled',
+      start_time: '2026-04-17T10:00:00.000Z',
+      end_time: '2026-04-17T10:30:00.000Z',
+      duration_minutes: 30,
+      created_by: 'user-doctor-1',
+    }
+    const adminCallRepo = makeRepo({
+      findAppointmentById: vi.fn().mockResolvedValue(doctorCreatedAppointment),
+    })
+    const actorCallRepo = makeRepo()
+
+    const result = await startTeleconsultationUseCase(
+      {
+        adminCallRepo,
+        actorCallRepo,
+        adminDb: {} as any,
+      },
+      {
+        doctorUserId: 'user-doctor-1',
+        patientId: 'patient-1',
+        appointmentId: 'appointment-doctor-created-1',
+      },
+    )
+
+    expect(result.kind).toBe('ok')
+    expect(mockHasApprovedPayment).not.toHaveBeenCalled()
   })
 
   it('starts a guest appointment call without requiring an internal patient id', async () => {
