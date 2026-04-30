@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Calculator,
   Calendar,
+  CreditCard,
   FileText,
   Home,
   LogOut,
@@ -155,7 +156,6 @@ export function DoctorsPortalFrame({
   description,
   activeSection,
   hideDefaultHeader = false,
-  _hideRightSidebar = false,
   children,
 }: DoctorsPortalFrameProps): JSX.Element {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -621,7 +621,7 @@ export function DoctorsPortalFrame({
                       {description}
                     </p>
                   </div>
-                  {onboardingStatus.stage !== "completed" && (
+                  {onboardingStatus.state !== "completed" && (
                     <div className="flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-800">
                       <Sparkles className="h-3.5 w-3.5" />
                       <span>Completar perfil profesional</span>
