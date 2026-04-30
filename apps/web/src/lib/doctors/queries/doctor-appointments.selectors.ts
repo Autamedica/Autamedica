@@ -25,7 +25,7 @@ export type DoctorDailyAgendaView = {
   weekCount: number
 }
 
-const CALLABLE_APPOINTMENT_STATUSES = new Set(['confirmed', 'in_progress'])
+const CALLABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
 
 function isSameLocalDay(iso: string, referenceDate: Date): boolean {
   if (!iso) return false
