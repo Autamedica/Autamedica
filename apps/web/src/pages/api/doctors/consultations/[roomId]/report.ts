@@ -6,7 +6,7 @@ import {
 } from '@/lib/doctors/services/consultation-report.backend';
 import { resolveDoctorId, resolveRoomParticipants } from '@/lib/doctors/lib/resolve-room';
 import { createAstroAdminClient } from '@/lib/supabase';
-import { jsonOk, badRequest, forbidden, notFound, internalError } from '@/lib/api-helpers';
+import { jsonOk, badRequest, forbidden, notFound, internalError, conflict } from '@/lib/api-helpers';
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 
 
@@ -74,6 +74,10 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     }
 
     const { patientId, appointmentId } = participants;
+    if (!patientId) {
+      return conflict('report_requires_registered_patient');
+    }
+
     const body = (await request.json()) as { doctorNotes?: string };
 
     const result = await generateAndSaveReport(
@@ -86,7 +90,10 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     );
     return jsonOk(result);
   } catch (error) {
-    logger.error('[consultation-report] POST error', error);
+    logger.error('[consultation-report] POST error', {
+      roomId,
+      error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
+    });
     return internalError();
   }
 };

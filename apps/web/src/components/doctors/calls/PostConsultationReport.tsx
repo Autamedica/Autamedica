@@ -60,9 +60,11 @@ function ReportContent({ roomId }: { roomId: string }) {
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setError('Sesión expirada');
+      } else if (err instanceof ApiError && err.message.includes('report_requires_registered_patient')) {
+        setError('Para generar un reporte clínico SOAP, la sala debe estar vinculada a un paciente registrado. Guardá las notas manualmente o creá/vinculá el paciente antes de generar el informe.');
       } else {
         logger.error('[PostConsultationReport] Generate error', err);
-        setError('Error al generar reporte');
+        setError('No pudimos generar el reporte. Verificá que la consulta esté vinculada a un paciente y reintentá.');
       }
     } finally {
       setGenerating(false);
