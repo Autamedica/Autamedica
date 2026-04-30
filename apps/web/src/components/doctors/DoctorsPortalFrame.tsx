@@ -69,6 +69,7 @@ function getDoctorDisplayName(
         full_name?: string | null;
         first_name?: string | null;
         last_name?: string | null;
+        avatar_url?: string | null;
       }
     | undefined;
 
@@ -219,6 +220,8 @@ export function DoctorsPortalFrame({
   const doctorName = getDoctorDisplayName(doctor, user);
   const doctorInitials = getInitials(doctorName);
   const doctorSpecialty = doctor?.specialty || "Especialidad pendiente";
+  const doctorProfile = doctor?.profile as { avatar_url?: string | null } | undefined;
+  const doctorAvatarUrl = doctorProfile?.avatar_url ?? null;
 
   const primaryLinks = useMemo<NavigationItem[]>(
     () => [
@@ -387,15 +390,31 @@ export function DoctorsPortalFrame({
               <div
                 className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-3"}`}
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-[13px] font-semibold text-white">
-                  {doctorInitials}
-                </div>
+                <a
+                  href="/doctors/profile"
+                  className="group/avatar relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-[13px] font-semibold text-white ring-1 ring-neutral-200 transition hover:ring-neutral-400"
+                  title={doctorAvatarUrl ? "Editar foto profesional" : "Subir foto profesional"}
+                >
+                  {doctorAvatarUrl ? (
+                    <img src={doctorAvatarUrl} alt={doctorName} className="h-full w-full object-cover" />
+                  ) : (
+                    <>
+                      <span>{doctorInitials}</span>
+                      <span className="absolute inset-x-0 bottom-0 bg-amber-400 py-0.5 text-center text-[8px] font-black uppercase tracking-wide text-neutral-950">Foto</span>
+                    </>
+                  )}
+                </a>
                 {!isSidebarCollapsed ? (
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-semibold text-neutral-900">
                       {doctorName}
                     </p>
                     <p className="truncate text-[11px] text-neutral-400">{doctorSpecialty}</p>
+                    {!doctorAvatarUrl ? (
+                      <a href="/doctors/profile" className="mt-1 inline-flex text-[10px] font-bold uppercase tracking-wide text-amber-700 hover:text-amber-800">
+                        Subir foto profesional
+                      </a>
+                    ) : null}
                   </div>
                 ) : null}
                 <button

@@ -52,7 +52,7 @@ function PatientCardActions({
 
   return (
     <>
-      <div className="flex border-t border-muted/50">
+      <div className="grid grid-cols-2 gap-2 border-t border-neutral-100 bg-neutral-50/40 p-3">
         <button
           type="button"
           onClick={(event) => {
@@ -60,14 +60,24 @@ function PatientCardActions({
             void startCall()
           }}
           disabled={isStarting}
-          className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-green-600 transition-colors hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="au-focus-ring inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Video className="h-3.5 w-3.5" />
-          {isStarting ? 'Llamando...' : 'Iniciar'}
+          {isStarting ? 'Llamando...' : 'Videollamada'}
         </button>
-        <div className="w-px bg-muted/50" />
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onOpenChat?.({ id: patientId, name: patientName })
+          }}
+          className="au-focus-ring inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-900 px-3 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-neutral-800"
+        >
+          <MessageSquare className="h-3.5 w-3.5" />
+          Chat
+        </button>
         <a
-          href={patientPhone ? `tel:${patientPhone}` : undefined}
+          href={patientPhone ? 'tel:' + patientPhone : undefined}
           onClick={(event) => {
             event.stopPropagation()
             if (!patientPhone) {
@@ -75,34 +85,21 @@ function PatientCardActions({
               event.preventDefault()
             }
           }}
-          className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50"
+          className="au-focus-ring inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-xs font-semibold text-neutral-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
         >
           <Phone className="h-3.5 w-3.5" />
-          Llamar
+          Teléfono
         </a>
-        <div className="w-px bg-muted/50" />
         <button
           type="button"
           onClick={(event) => {
             event.stopPropagation()
             onSelectPatient?.(patientId, 'medical-history')
           }}
-          className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary"
+          className="au-focus-ring inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-xs font-semibold text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-100 hover:text-neutral-950"
         >
           <FileText className="h-3.5 w-3.5" />
           Historial
-        </button>
-        <div className="w-px bg-muted/50" />
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation()
-            onOpenChat?.({ id: patientId, name: patientName })
-          }}
-          className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-neutral-900 hover:text-white"
-        >
-          <MessageSquare className="h-3.5 w-3.5" />
-          Chat
         </button>
       </div>
       {error && (
@@ -207,7 +204,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
           <Skeleton className="h-10 w-48" />
           <Skeleton className="h-10 w-32" />
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {[1, 2, 3].map(i => (
             <Card key={i}>
               <CardContent className="p-5">
@@ -356,7 +353,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
           <p className="text-muted-foreground">No hay coincidencias para "{searchTerm}".</p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {filteredPatients.map((patient) => {
             const { name, isEmail } = getDisplayName(patient.profile)
             const initials = getInitials(patient.profile?.first_name, patient.profile?.last_name)
@@ -373,11 +370,11 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                 onClick={() => onSelectPatient?.(patient.id, 'patient-info')}
                 onKeyDown={(e) => { if (e.key === 'Enter') onSelectPatient?.(patient.id, 'patient-info') }}
               >
-              <Card className="overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:-translate-y-0.5 group-hover:border-primary/30">
+              <Card className="overflow-hidden rounded-2xl border-neutral-200/70 bg-white shadow-sm transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-neutral-300 group-hover:shadow-xl group-hover:shadow-neutral-900/5">
                 <CardContent className="p-0">
                   {/* Patient identity */}
-                  <div className="flex items-center gap-3 px-5 pt-5 pb-3">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border font-bold text-sm ${avatarColor}`}>
+                  <div className="flex items-center gap-3 px-5 pt-5 pb-4">
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border font-bold text-sm shadow-inner ${avatarColor}`}>
                       {initials}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -401,7 +398,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                   </div>
 
                   {/* Context info */}
-                  <div className="border-t border-muted/50 bg-muted/20 px-5 py-3 space-y-1.5">
+                  <div className="border-t border-neutral-100 bg-neutral-50/60 px-5 py-3 space-y-2">
                     {nextAppt ? (
                       <div className="flex items-center gap-2 text-xs">
                         {nextAppt.type === 'telemedicine' ? (
