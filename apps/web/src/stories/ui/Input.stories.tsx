@@ -49,7 +49,7 @@ export const Email: Story = {
 export const Contrasena: Story = {
   args: {
     type: 'password',
-    placeholder: 'Minimo 8 caracteres',
+    placeholder: 'Minimo 6 caracteres',
     className: inputClass,
   },
 };
