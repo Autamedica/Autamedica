@@ -116,21 +116,21 @@ export function GuestLinkButton({ callId }: GuestLinkButtonProps) {
 
   // step === 'done'
   return (
-    <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
-      <p className="text-sm font-semibold text-emerald-900">Enlace generado para {guestName}</p>
-      <p className="mt-1 text-xs text-emerald-700/70">Valido por 24 horas. Comparti este link por WhatsApp o email.</p>
+    <div className="mt-4 rounded-2xl border border-am-doctor-100 bg-am-doctor-50/50 p-4">
+      <p className="text-sm font-semibold text-am-doctor-900">Enlace generado para {guestName}</p>
+      <p className="mt-1 text-xs text-am-doctor-700/70">Valido por 24 horas. Comparti este link por WhatsApp o email.</p>
       <div className="mt-3 flex gap-2">
         <input
           type="text"
           readOnly
           value={link}
-          className="flex-1 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs text-slate-600"
+          className="flex-1 rounded-xl border border-am-doctor-200 bg-white px-3 py-2 text-xs text-slate-600"
           onClick={(e) => (e.target as HTMLInputElement).select()}
         />
         <button
           type="button"
           onClick={() => void copyToClipboard()}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-am-doctor-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-am-doctor-700"
         >
           {copied ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
           {copied ? 'Copiado' : 'Copiar'}

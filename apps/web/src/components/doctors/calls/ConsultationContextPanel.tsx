@@ -140,7 +140,7 @@ function QuestionsList({ questions }: { questions: SuggestedQuestion[] }) {
         >
           <div className={`mt-0.5 h-5 w-5 rounded-full border shrink-0 flex items-center justify-center transition-colors ${
             checked.has(i)
-              ? 'bg-emerald-500 border-emerald-500 text-white'
+              ? 'bg-am-doctor-500 border-am-doctor-500 text-white'
               : 'border-am-surface-300'
           }`}>
             {checked.has(i) && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -169,7 +169,7 @@ function MicLevelMeter({ level }: { level: number }) {
             key={index}
             className={`flex-1 rounded-full transition-all duration-75 ${
               level * 18 > index
-                ? index < 11 ? 'bg-emerald-400' : index < 15 ? 'bg-amber-400' : 'bg-red-400'
+                ? index < 11 ? 'bg-am-doctor-400' : index < 15 ? 'bg-amber-400' : 'bg-red-400'
                 : 'bg-am-surface-100'
             }`}
             style={{ height: `${Math.max(25, (index / 18) * 100)}%` }}
@@ -217,7 +217,7 @@ function LiveNotesSection({
           !hasContent ? 'bg-white border-am-surface-200 text-am-surface-400' :
           notesSaveState === 'saving' ? 'bg-amber-50 border-amber-200 text-amber-700' :
           notesSaveState === 'error' ? 'bg-red-50 border-red-200 text-red-700' :
-          'bg-emerald-50 border-emerald-200 text-emerald-700'
+          'bg-am-doctor-50 border-am-doctor-200 text-am-doctor-700'
         }`}>
           {notesSaveState === 'saving' ? 'GUARDANDO...' : 
            notesSaveState === 'error' ? 'ERROR LOCAL' :
@@ -349,14 +349,14 @@ export function ConsultationContextPanel({
           <div className="mt-4 space-y-1.5">
             <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-am-surface-500">
               <span className="flex items-center gap-1">
-                <span className={`h-2 w-2 rounded-full ${context.completionPercentage >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span className={`h-2 w-2 rounded-full ${context.completionPercentage >= 80 ? 'bg-am-doctor-500' : 'bg-amber-500'}`} />
                 Anamnesis
               </span>
               <span>{context.completionPercentage}%</span>
             </div>
             <div className="h-1.5 w-full bg-am-surface-100 rounded-full overflow-hidden">
               <div 
-                className={`h-full transition-all duration-1000 ease-out ${context.completionPercentage >= 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                className={`h-full transition-all duration-1000 ease-out ${context.completionPercentage >= 80 ? 'bg-am-doctor-500' : 'bg-amber-500'}`}
                 style={{ width: `${context.completionPercentage}%` }}
               />
             </div>

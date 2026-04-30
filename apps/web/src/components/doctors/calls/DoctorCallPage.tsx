@@ -430,7 +430,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-am-surface-900 px-4">
         <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-am-surface-900 p-8 text-center shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600/80">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-am-doctor-400">
             Telemedicina profesional
           </p>
           <div className="mx-auto mb-4 mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
@@ -447,7 +447,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             <button
               type="button"
               onClick={() => void refreshCallSession()}
-              className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+              className="rounded-2xl bg-am-doctor-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-am-doctor-700"
             >
               Reintentar
             </button>
@@ -464,14 +464,14 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     )
   }
 
-  if (loading || !isReady || callSessionLoading || !callSession) {
+  if ((loading || !isReady) || (!callSession && callSessionLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-am-surface-900 px-4">
         <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-am-surface-900 p-8 text-center shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600/80">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-am-doctor-400">
             Telemedicina profesional
           </p>
-          <div className="mx-auto mb-4 mt-5 h-12 w-12 animate-spin rounded-full border-b-2 border-emerald-500"></div>
+          <div className="mx-auto mb-4 mt-5 h-12 w-12 animate-spin rounded-full border-b-2 border-am-doctor-400"></div>
           <h1 className="text-xl font-semibold text-am-surface-50">Preparando videollamada...</h1>
           <p className="mt-3 text-sm text-slate-500">
             Estamos validando la sala, el contexto clínico y la conexión segura antes de ingresar.
@@ -485,7 +485,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     return (
       <div className="min-h-screen bg-am-surface-900 flex items-center justify-center px-4">
         <div className="max-w-md w-full rounded-3xl border border-slate-200 bg-am-surface-900 p-8 text-center shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600/80">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-am-doctor-400">
             Telemedicina profesional
           </p>
           <div className="mx-auto mb-4 mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-amber-50">
@@ -501,7 +501,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             <button
               type="button"
               onClick={() => void refreshCallSession()}
-              className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+              className="rounded-2xl bg-am-doctor-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-am-doctor-700"
             >
               Reintentar
             </button>
@@ -530,7 +530,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${
-                    doctorWaitingState === 'waiting' ? 'text-emerald-600/80' : 'text-slate-500/80'
+                    doctorWaitingState === 'waiting' ? 'text-am-doctor-400' : 'text-slate-500/80'
                   }`}>
                     {doctorWaitingState === 'waiting' ? 'Videollamada lista' : 'Videollamada finalizada'}
                   </p>
@@ -540,7 +540,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                 </div>
                 <div className={`rounded-full border px-4 py-2 text-sm font-semibold ${
                   doctorWaitingState === 'waiting'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    ? 'border-am-doctor-200 bg-am-doctor-50 text-am-doctor-700'
                     : doctorWaitingState === 'canceling'
                       ? 'border-amber-200 bg-amber-50 text-amber-700'
                       : 'border-slate-200 bg-am-surface-900 text-slate-700'
