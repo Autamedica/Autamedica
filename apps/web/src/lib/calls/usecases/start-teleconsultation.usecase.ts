@@ -112,9 +112,12 @@ export async function startTeleconsultationUseCase(
       return { kind: 'conflict', message: 'appointment_not_callable' }
     }
 
-    const hasApprovedPayment = await appointmentPaymentsService.hasApprovedPayment(adminDb, input.appointmentId)
-    if (!hasApprovedPayment) {
-      return { kind: 'conflict', message: 'appointment_payment_required' }
+    const wasCreatedByDoctor = appointment.created_by === input.doctorUserId
+    if (!wasCreatedByDoctor) {
+      const hasApprovedPayment = await appointmentPaymentsService.hasApprovedPayment(adminDb, input.appointmentId)
+      if (!hasApprovedPayment) {
+        return { kind: 'conflict', message: 'appointment_payment_required' }
+      }
     }
 
     if (!isTelemedicineCallWindowOpen(appointment)) {
