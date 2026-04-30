@@ -287,7 +287,7 @@ export function AppointmentsPanel() {
         {/* Hero: TURNO ACTUAL (Redesign Premium) */}
         {currentTurno && (
           <div className="px-6 pt-4">
-            <div className="rounded-[28px] border border-neutral-100 bg-white p-8 shadow-sm">
+            <div className="rounded-[28px] border border-neutral-200/70 bg-white p-6 shadow-xl shadow-neutral-900/5">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-neutral-400">Turno actual</h2>
                 <button className="text-neutral-300 hover:text-neutral-500 transition-colors">
@@ -295,14 +295,14 @@ export function AppointmentsPanel() {
                 </button>
               </div>
               
-              <div className="flex flex-col lg:flex-row lg:items-center gap-10">
+              <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)_260px] xl:items-center">
                 {/* Left: Time Section */}
-                <div className="flex items-center gap-6 shrink-0">
+                <div className="flex items-center gap-5 shrink-0 rounded-2xl bg-sky-50/70 p-5 ring-1 ring-sky-100">
                   <div className="flex h-20 w-20 items-center justify-center rounded-full bg-sky-50 text-sky-600">
                     <Clock className="h-10 w-10" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold tracking-tight text-neutral-900">
+                    <p className="text-3xl font-black tracking-tight text-neutral-950">
                       {new Date(currentTurno.start_time).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     <p className="text-sm font-medium text-neutral-400 mt-1">
@@ -312,7 +312,7 @@ export function AppointmentsPanel() {
                 </div>
 
                 {/* Vertical Divider (Desktop) */}
-                <div className="hidden lg:block h-20 w-px bg-neutral-100" />
+                <div className="hidden" />
 
                 {/* Center: Patient Section */}
                 <div className="flex-1 min-w-0">
@@ -331,7 +331,7 @@ export function AppointmentsPanel() {
                 </div>
 
                 {/* Right: Status & Actions */}
-                <div className="shrink-0 flex flex-col items-center lg:items-end gap-5">
+                <div className="shrink-0 flex flex-col items-stretch gap-4 rounded-2xl border border-neutral-100 bg-neutral-50/70 p-4">
                   <span className={`rounded-lg px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest ${getSoftStatusColor(currentTurno.status)}`}>
                     {getStatusLabel(currentTurno.status)}
                   </span>
@@ -354,7 +354,7 @@ export function AppointmentsPanel() {
                         Iniciar consulta
                       </button>
                     )}
-                    <p className="mt-3 text-[11px] font-bold uppercase tracking-widest text-neutral-300">
+                    <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-widest text-neutral-400">
                       {currentTurno.type === 'telemedicine' ? 'Videoconsulta' : 'Consulta Presencial'}
                     </p>
                   </div>
@@ -362,7 +362,7 @@ export function AppointmentsPanel() {
               </div>
 
               {/* Clinical Context Integrated */}
-              <div className="mt-10 pt-8 border-t border-neutral-50">
+              <div className="mt-6 pt-6 border-t border-neutral-100">
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-neutral-400 mb-6">Contexto del paciente</p>
                 <ClinicalContextSummary
                   appointment={currentTurno}
