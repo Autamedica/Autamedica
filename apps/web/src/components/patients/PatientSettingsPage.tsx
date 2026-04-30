@@ -33,8 +33,8 @@ function ChangePasswordSection() {
     setError(null);
     setSuccess(null);
 
-    if (newPassword.length < 8) {
-      setError('La contrasena debe tener al menos 8 caracteres.');
+    if (newPassword.length < 6) {
+      setError('La contrasena debe tener al menos 6 caracteres.');
       return;
     }
 
@@ -91,11 +91,11 @@ function ChangePasswordSection() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
-              minLength={8}
+              minLength={6}
               autoComplete="new-password"
               disabled={loading}
               className={inputClass}
-              placeholder="Minimo 8 caracteres"
+              placeholder="Minimo 6 caracteres"
             />
             <button
               type="button"
@@ -124,7 +124,7 @@ function ChangePasswordSection() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              minLength={8}
+              minLength={6}
               autoComplete="new-password"
               disabled={loading}
               className={inputClass}
@@ -149,7 +149,7 @@ function ChangePasswordSection() {
           type="submit"
           variant="primary"
           loading={loading}
-          disabled={loading || newPassword.length < 8 || newPassword !== confirmPassword}
+          disabled={loading || newPassword.length < 6 || newPassword !== confirmPassword}
         >
           Actualizar contrasena
         </AuthButton>
