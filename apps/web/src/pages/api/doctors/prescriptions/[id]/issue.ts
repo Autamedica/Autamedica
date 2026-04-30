@@ -7,17 +7,19 @@ import { logger } from '@autamedica/shared';
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 import { jsonOk, badRequest, forbidden, internalError } from '@/lib/api-helpers';
 import { issuePrescription } from '@/lib/prescriptions/issue-prescription.service';
+import { createAstroAdminClient } from '@/lib/supabase';
 
-export const POST: APIRoute = async ({ request, params }) => {
+export const POST: APIRoute = async ({ request, params, locals }) => {
   const prescriptionId = params.id;
   if (!prescriptionId) return badRequest('missing_prescription_id');
 
   try {
     const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
-    const { user, supabase } = auth;
+    const { user } = auth;
+    const admin = createAstroAdminClient(locals.runtime?.env);
 
-    const result = await issuePrescription(supabase, prescriptionId, user.id);
+    const result = await issuePrescription(admin, prescriptionId, user.id);
 
     if (result.ok) {
       return jsonOk(result.data);

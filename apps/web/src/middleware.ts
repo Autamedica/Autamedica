@@ -49,6 +49,7 @@ const PUBLIC_ROUTES = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/api/health',
+  '/verify',
   '/doctors/pricing',
   '/call/join',
   // External webhooks: validated via their own secret (HMAC/Bearer) inside the handler.

@@ -4,6 +4,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { dispensationRepo } from '../repos/dispensation.repo';
+import { requiresStrictPrescriptionValidation } from '@/lib/prescriptions/strict-validation';
 
 type Client = SupabaseClient;
 
@@ -53,6 +54,8 @@ export type ServiceError =
   | { code: 'invalid_result' }
   | { code: 'override_requires_reason' }
   | { code: 'missing_fields' }
+  | { code: 'invalid_dispense_quantity' }
+  | { code: 'dispense_quantity_exceeds_remaining' }
   | { code: 'bridge_formulation_mismatch' }
   | { code: 'bridge_quantity_mismatch' }
   | { code: 'internal'; error: unknown };
@@ -110,7 +113,7 @@ export const dispensationService = {
 
     await dispensationRepo.logAudit(supabase, {
       order_id: orderId,
-      event_type: 'order_claimed',
+      event_type: 'order_assigned',
       actor_id: userId,
       actor_role: 'pharmacist',
       details: { pharmacy_id: pharmacist.pharmacy_id },
@@ -198,6 +201,9 @@ export const dispensationService = {
     ];
     if (order.extraordinary_dose_flag) required.push('dose_check');
     if (order.prescription_type === 'transition_bridge') required.push('bridge_protocol');
+    if (order.medication && requiresStrictPrescriptionValidation(order.medication)) {
+      required.push('controlled_substance');
+    }
 
     const allPassed = required.every(r => passedTypes.has(r));
 
@@ -229,6 +235,9 @@ export const dispensationService = {
     if (!input.dispensed_medication || !input.dispensed_formulation || !input.dispensed_quantity) {
       return fail({ code: 'missing_fields' });
     }
+    if (!Number.isFinite(input.dispensed_quantity) || input.dispensed_quantity <= 0) {
+      return fail({ code: 'invalid_dispense_quantity' });
+    }
 
     const pharmacist = await dispensationRepo.findPharmacist(supabase, userId);
     if (!pharmacist) return fail({ code: 'not_pharmacist' });
@@ -250,6 +259,13 @@ export const dispensationService = {
       }
     }
 
+    const currentDispensed = await dispensationRepo.getTotalDispensed(supabase, orderId);
+    const targetQuantity = order.quantity_units ?? 0;
+    const remainingQuantity = targetQuantity - currentDispensed;
+    if (targetQuantity <= 0 || input.dispensed_quantity > remainingQuantity) {
+      return fail({ code: 'dispense_quantity_exceeds_remaining' });
+    }
+
     // Record event
     await dispensationRepo.insertDispensationEvent(supabase, {
       order_id: orderId,
@@ -269,8 +285,7 @@ export const dispensationService = {
     });
 
     // Calculate totals
-    const totalDispensed = await dispensationRepo.getTotalDispensed(supabase, orderId);
-    const targetQuantity = order.quantity_units ?? 0;
+    const totalDispensed = currentDispensed + input.dispensed_quantity;
     const newStatus = totalDispensed >= targetQuantity ? 'dispensed' : 'partially_dispensed';
 
     // Update statuses

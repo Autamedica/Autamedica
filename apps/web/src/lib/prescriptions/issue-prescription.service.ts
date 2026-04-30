@@ -10,6 +10,11 @@ import { logger } from '@autamedica/shared';
 import { generatePrescriptionPdf } from './pdf-prescription.service';
 // Certificate queries are Supabase-only (no node-forge dependency)
 import { getActiveCertificate, loadSigningCredentials } from '../doctors/services/certificate-query.service';
+import {
+  getSubstanceCategory,
+  getValidityPeriodDays,
+  requiresStrictPrescriptionValidation,
+} from './strict-validation';
 
 interface ClinicalItem {
   generic_name?: string;
@@ -24,6 +29,35 @@ interface ClinicalData {
   items?: ClinicalItem[];
   diagnosis?: string;
   notes?: string;
+}
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function buildControlledSemaphoreReasons(
+  medicationName: string,
+  category: ReturnType<typeof getSubstanceCategory>,
+  validityDays: number,
+): string[] | null {
+  if (category === 'standard') return null;
+
+  return [
+    `Medicacion controlada: ${category}`,
+    `Validez operativa: ${validityDays} dias`,
+    `Requiere validacion farmaceutica de sustancia controlada`,
+    `No repetir sin nueva receta: ${medicationName}`,
+  ];
+}
+
+function mapDrugCategoryForDatabase(
+  category: ReturnType<typeof getSubstanceCategory>,
+): 'default' | 'psychotropic' | 'narcotic' {
+  if (category === 'estupefaciente') return 'narcotic';
+  if (category === 'psicotropico' || category === 'stimulant') return 'psychotropic';
+  return 'default';
 }
 
 export interface IssuanceResult {
@@ -116,14 +150,25 @@ export async function issuePrescription(
   const item = clinicalData?.items?.[0];
   if (!item?.generic_name) return fail({ code: 'no_medication' });
 
-  const now = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const medicationName = item.generic_name;
+  const substanceCategory = getSubstanceCategory(medicationName);
+  const databaseDrugCategory = mapDrugCategoryForDatabase(substanceCategory);
+  const isControlledSubstance = requiresStrictPrescriptionValidation(medicationName);
+  const validityDays = getValidityPeriodDays(medicationName);
+  const issuedAtDate = new Date();
+  const now = issuedAtDate.toISOString();
+  const expiresAt = addDays(issuedAtDate, validityDays).toISOString();
+  const controlledSemaphoreReasons = buildControlledSemaphoreReasons(
+    medicationName,
+    substanceCategory,
+    validityDays,
+  );
 
   // 6. Generate artifacts (PDF + QR + CUIR)
   const artifacts = await generatePrescriptionPdf({
     prescriptionId,
     medication: {
-      genericName: item.generic_name,
+      genericName: medicationName,
       commercialName: item.commercial_name,
       dosage: item.dosage ?? '',
       presentation: item.presentation ?? '',
@@ -217,6 +262,9 @@ export async function issuePrescription(
       qr_code_content: artifacts.qrContent,
       signed_pdf_url: signedPdfUrl,
       signature_method: signatureMethod,
+      drug_category: databaseDrugCategory,
+      is_controlled_substance: isControlledSubstance,
+      controlled_substance_list: isControlledSubstance ? substanceCategory : null,
     })
     .eq('id', prescriptionId);
 
@@ -251,13 +299,23 @@ export async function issuePrescription(
         registration_id: `AR-RCTA-${artifacts.cuir}`,
         jurisdiction: doctor.enrollment_jurisdiction || 'CENTRAL',
         status: 'COMPLIANT',
+        drug_category: substanceCategory,
+        is_controlled_substance: isControlledSubstance,
+        validity_days: validityDays,
       },
     },
     {
       prescription_id: prescriptionId,
       event_type: 'issued',
       user_id: userId,
-      metadata: { cuir: artifacts.cuir, pdfPath, signature_hash: signatureHash },
+      metadata: {
+        cuir: artifacts.cuir,
+        pdfPath,
+        signature_hash: signatureHash,
+        drug_category: substanceCategory,
+        is_controlled_substance: isControlledSubstance,
+        expires_at: expiresAt,
+      },
     },
   ]);
 
@@ -269,13 +327,18 @@ export async function issuePrescription(
     patient_id: rx.patient_id,
     doctor_id: rx.doctor_id,
     prescription_type: 'standard',
-    medication: item.generic_name,
-    formulation: item.presentation ?? item.dosage ?? '',
+    medication: medicationName,
+    formulation: item.presentation || item.dosage || 'No especificada',
     quantity_units: item.quantity ?? 1,
-    duration_days: 30,
+    duration_days: validityDays,
     dispense_window_start: todayDate,
     dispense_window_end: expiryDate,
-    clinical_semaphore: 'green',
+    clinical_semaphore: isControlledSubstance ? 'yellow' : 'green',
+    semaphore_reasons: controlledSemaphoreReasons,
+    requires_clarification: false,
+    internal_notes: isControlledSubstance
+      ? `Medicacion controlada (${substanceCategory}). Requiere validacion farmaceutica especifica.`
+      : null,
   });
 
   if (orderError) {

@@ -6,6 +6,7 @@ import { fetchApi } from '@/lib/api-client';
 import { Button } from '@autamedica/ui';
 import { Card } from '@autamedica/ui';
 import { Check, X } from 'lucide-react';
+import { requiresStrictPrescriptionValidation } from '@/lib/prescriptions/strict-validation';
 
 interface ValidationPanelProps {
   order: {
@@ -119,6 +120,8 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
   const [clarificationSubmitting, setClarificationSubmitting] = useState(false);
   const [clarificationError, setClarificationError] = useState<string | null>(null);
 
+  const isControlledSubstance = requiresStrictPrescriptionValidation(order.medication ?? '');
+
   const allValidations = [
     ...BASE_VALIDATIONS,
     ...(order.extraordinary_dose_flag
@@ -127,7 +130,9 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
     ...(order.prescription_type === 'transition_bridge'
       ? EXTRA_VALIDATIONS.filter(v => v.condition === 'bridge')
       : []),
-    ...EXTRA_VALIDATIONS.filter(v => v.condition === 'controlled'),
+    ...(isControlledSubstance
+      ? EXTRA_VALIDATIONS.filter(v => v.condition === 'controlled')
+      : []),
   ];
 
   const handleValidate = async (validationType: string, result: 'pass' | 'fail') => {
