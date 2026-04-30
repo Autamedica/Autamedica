@@ -9,11 +9,16 @@ const apply = args.has("--apply");
 const syncBrevoSuppressions = args.has("--brevo");
 
 function normalizeEmail(value) {
-  return String(value ?? "").trim().toLowerCase();
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function validEmail(value) {
-  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value) && !value.includes("..");
+  return (
+    /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value) &&
+    !value.includes("..")
+  );
 }
 
 async function loadEnv() {
@@ -23,14 +28,18 @@ async function loadEnv() {
     const line = rawLine.trim();
     if (!line || line.startsWith("#") || !line.includes("=")) continue;
     const [key, ...rest] = line.split("=");
-    env[key.trim()] = rest.join("=").trim().replace(/^["']|["']$/g, "");
+    env[key.trim()] = rest
+      .join("=")
+      .trim()
+      .replace(/^["']|["']$/g, "");
   }
   for (const key of [
     "SUPABASE_URL",
     "SUPABASE_SERVICE_ROLE_KEY",
     "RESEND_API_KEY",
   ]) {
-    if (!env[key]) throw new Error(`${key} no configurada en ${ENV_FILE.pathname}`);
+    if (!env[key])
+      throw new Error(`${key} no configurada en ${ENV_FILE.pathname}`);
   }
   return env;
 }
@@ -47,8 +56,11 @@ async function requestJson(url, options = {}) {
     }
   }
   if (!res.ok) {
-    const detail = typeof body?.raw === "string" ? body.raw : JSON.stringify(body);
-    throw new Error(`${options.method ?? "GET"} ${url} ${res.status}: ${detail}`);
+    const detail =
+      typeof body?.raw === "string" ? body.raw : JSON.stringify(body);
+    throw new Error(
+      `${options.method ?? "GET"} ${url} ${res.status}: ${detail}`,
+    );
   }
   return body;
 }
@@ -102,7 +114,7 @@ async function loadResendContacts(env) {
         accept: "application/json",
       },
     });
-    
+
     if (Array.isArray(data?.data)) {
       rows.push(...data.data);
       if (!data.has_more || data.data.length === 0) break;
@@ -111,15 +123,19 @@ async function loadResendContacts(env) {
       break;
     }
   }
-  
+
   return rows
     .map((contact) => ({ ...contact, email: normalizeEmail(contact.email) }))
     .filter((contact) => validEmail(contact.email));
 }
 
 function buildPlan(profiles, resendContacts) {
-  const profileByEmail = new Map(profiles.map((profile) => [profile.email, profile]));
-  const contactByEmail = new Map(resendContacts.map((contact) => [contact.email, contact]));
+  const profileByEmail = new Map(
+    profiles.map((profile) => [profile.email, profile]),
+  );
+  const contactByEmail = new Map(
+    resendContacts.map((contact) => [contact.email, contact]),
+  );
   const dbActive = new Set(
     profiles
       .filter((profile) => profile.newsletter_subscribed === true)
@@ -139,7 +155,10 @@ function buildPlan(profiles, resendContacts) {
 
   for (const contact of resendContacts) {
     const profile = profileByEmail.get(contact.email);
-    if (contact.unsubscribed === true && profile?.newsletter_subscribed === true) {
+    if (
+      contact.unsubscribed === true &&
+      profile?.newsletter_subscribed === true
+    ) {
       markDbUnsubscribed.push({ profile, reason: "resend_unsubscribed" });
       dbActive.delete(contact.email);
     }
@@ -147,8 +166,14 @@ function buildPlan(profiles, resendContacts) {
 
   for (const contact of resendContacts) {
     const profile = profileByEmail.get(contact.email);
-    if (contact.unsubscribed !== true && profile?.newsletter_subscribed !== true) {
-      markResendUnsubscribed.push({ contact, reason: profile ? "db_not_subscribed" : "not_in_db" });
+    if (
+      contact.unsubscribed !== true &&
+      profile?.newsletter_subscribed !== true
+    ) {
+      markResendUnsubscribed.push({
+        contact,
+        reason: profile ? "db_not_subscribed" : "not_in_db",
+      });
     }
   }
 
@@ -167,26 +192,49 @@ function buildPlan(profiles, resendContacts) {
 }
 
 async function patchSupabaseUnsubscribed(env, email) {
-  await requestJson(`${env.SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}`, {
-    method: "PATCH",
-    headers: { ...supabaseHeaders(env), prefer: "return=minimal" },
-    body: JSON.stringify({
-      newsletter_subscribed: false,
-      updated_at: new Date().toISOString(),
-    }),
-  });
+  await requestJson(
+    `${env.SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}`,
+    {
+      method: "PATCH",
+      headers: { ...supabaseHeaders(env), prefer: "return=minimal" },
+      body: JSON.stringify({
+        newsletter_subscribed: false,
+        updated_at: new Date().toISOString(),
+      }),
+    },
+  );
+}
+
+async function patchGrowthLeadUnsubscribed(env, email) {
+  await requestJson(
+    `${env.SUPABASE_URL}/rest/v1/leads?email_normalized=eq.${encodeURIComponent(email)}&status=neq.unsubscribed`,
+    {
+      method: "PATCH",
+      headers: {
+        ...supabaseHeaders(env, "growth_os"),
+        prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        status: "unsubscribed",
+        updated_at: new Date().toISOString(),
+      }),
+    },
+  );
 }
 
 async function patchResendUnsubscribed(env, contact) {
-  await requestJson(`https://api.resend.com/contacts/${encodeURIComponent(contact.id)}`, {
-    method: "PATCH",
-    headers: {
-      authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "content-type": "application/json",
-      accept: "application/json",
+  await requestJson(
+    `https://api.resend.com/contacts/${encodeURIComponent(contact.id)}`,
+    {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${env.RESEND_API_KEY}`,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({ unsubscribed: true }),
     },
-    body: JSON.stringify({ unsubscribed: true }),
-  });
+  );
 }
 
 async function createResendContact(env, profile) {
@@ -222,7 +270,9 @@ async function brevoSuppress(env, profile) {
     "content-type": "application/json",
     accept: "application/json",
   };
-  const existing = await fetch(`https://api.brevo.com/v3/contacts/${encoded}`, { headers });
+  const existing = await fetch(`https://api.brevo.com/v3/contacts/${encoded}`, {
+    headers,
+  });
   if (existing.status === 404) {
     await requestJson("https://api.brevo.com/v3/contacts", {
       method: "POST",
@@ -258,12 +308,15 @@ async function applyPlan(env, plan) {
     db_null_false: 0,
     resend_unsubscribed: 0,
     resend_created: 0,
+    growth_leads_unsubscribed: 0,
     brevo_suppressed: 0,
   };
 
   for (const item of plan.markDbUnsubscribed) {
     await patchSupabaseUnsubscribed(env, item.profile.email);
+    await patchGrowthLeadUnsubscribed(env, item.profile.email);
     applied.db_unsubscribed += 1;
+    applied.growth_leads_unsubscribed += 1;
   }
   for (const profile of plan.markDbNullFalse) {
     await patchSupabaseUnsubscribed(env, profile.email);
@@ -271,7 +324,9 @@ async function applyPlan(env, plan) {
   }
   for (const item of plan.markResendUnsubscribed) {
     await patchResendUnsubscribed(env, item.contact);
+    await patchGrowthLeadUnsubscribed(env, item.contact.email);
     applied.resend_unsubscribed += 1;
+    applied.growth_leads_unsubscribed += 1;
     if (syncBrevoSuppressions) {
       await brevoSuppress(env, item.contact);
       applied.brevo_suppressed += 1;
@@ -282,7 +337,10 @@ async function applyPlan(env, plan) {
       await createResendContact(env, profile);
       applied.resend_created += 1;
     } catch (error) {
-      console.error(`Error creating Resend contact for ${profile.email}:`, error.message);
+      console.error(
+        `Error creating Resend contact for ${profile.email}:`,
+        error.message,
+      );
     }
   }
 
@@ -305,12 +363,22 @@ const report = {
   brevo_suppressions: syncBrevoSuppressions ? "enabled" : "disabled",
   counts: {
     supabase_profiles_with_email: profiles.length,
-    supabase_newsletter_true: profiles.filter((profile) => profile.newsletter_subscribed === true).length,
-    supabase_newsletter_false: profiles.filter((profile) => profile.newsletter_subscribed === false).length,
-    supabase_newsletter_null: profiles.filter((profile) => profile.newsletter_subscribed === null).length,
+    supabase_newsletter_true: profiles.filter(
+      (profile) => profile.newsletter_subscribed === true,
+    ).length,
+    supabase_newsletter_false: profiles.filter(
+      (profile) => profile.newsletter_subscribed === false,
+    ).length,
+    supabase_newsletter_null: profiles.filter(
+      (profile) => profile.newsletter_subscribed === null,
+    ).length,
     resend_contacts: resendContacts.length,
-    resend_active: resendContacts.filter((contact) => contact.unsubscribed !== true).length,
-    resend_unsubscribed: resendContacts.filter((contact) => contact.unsubscribed === true).length,
+    resend_active: resendContacts.filter(
+      (contact) => contact.unsubscribed !== true,
+    ).length,
+    resend_unsubscribed: resendContacts.filter(
+      (contact) => contact.unsubscribed === true,
+    ).length,
   },
   plan: {
     db_from_resend_unsubscribes: plan.markDbUnsubscribed.length,
@@ -319,10 +387,19 @@ const report = {
     resend_to_create: plan.createResendContacts.length,
   },
   samples: {
-    db_from_resend_unsubscribes: sample(plan.markDbUnsubscribed, (item) => item.profile.email),
+    db_from_resend_unsubscribes: sample(
+      plan.markDbUnsubscribed,
+      (item) => item.profile.email,
+    ),
     db_null_to_false: sample(plan.markDbNullFalse, (profile) => profile.email),
-    resend_to_unsubscribe: sample(plan.markResendUnsubscribed, (item) => item.contact.email),
-    resend_to_create: sample(plan.createResendContacts, (profile) => profile.email),
+    resend_to_unsubscribe: sample(
+      plan.markResendUnsubscribed,
+      (item) => item.contact.email,
+    ),
+    resend_to_create: sample(
+      plan.createResendContacts,
+      (profile) => profile.email,
+    ),
   },
 };
 

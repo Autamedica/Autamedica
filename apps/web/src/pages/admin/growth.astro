@@ -6,12 +6,17 @@ const title = 'Growth Dashboard | AutaMedica Admin';
 const description = 'Monitoreo de métricas de crecimiento, leads y conversión.';
 
 const session = Astro.locals.session;
-if (!session) {
+const isLocalDevBypass =
+  import.meta.env.DEV &&
+  ['localhost', '127.0.0.1'].includes(Astro.url.hostname) &&
+  Astro.url.searchParams.get('dev_admin') === '1';
+
+if (!session && !isLocalDevBypass) {
   return Astro.redirect('/auth/login?returnTo=/admin/growth&portal=admin');
 }
 
-const role = (session.user.user_metadata as Record<string, unknown>)?.role;
-if (typeof role !== 'string' || !['admin', 'organization_admin', 'platform_admin'].includes(role)) {
+const role = (session?.user.user_metadata as Record<string, unknown> | undefined)?.role;
+if (!isLocalDevBypass && (typeof role !== 'string' || !['admin', 'organization_admin', 'platform_admin'].includes(role))) {
   return Astro.redirect('/admin/unauthorized');
 }
 ---
@@ -32,9 +37,9 @@ if (typeof role !== 'string' || !['admin', 'organization_admin', 'platform_admin
         </div>
       </div>
     </header>
-    
+
     <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <GrowthDashboardUI client:load />
+      <GrowthDashboardUI devBypass={isLocalDevBypass} client:load />
     </main>
   </div>
 </Layout>

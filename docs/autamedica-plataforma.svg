@@ -130,7 +130,7 @@
       <text x="110" y="48" text-anchor="middle" font-size="13" font-weight="600" fill="#e2e8f0">Receta Electronica</text>
       <text x="110" y="66" text-anchor="middle" font-size="10" fill="#94a3b8">Ley 27.553 + firma</text>
       <text x="110" y="80" text-anchor="middle" font-size="10" fill="#94a3b8">FHIR MedicationRequest</text>
-      <text x="110" y="94" text-anchor="middle" font-size="10" fill="#22c55e">Funcional</text>
+      <text x="110" y="94" text-anchor="middle" font-size="10" fill="#f59e0b">Integración RCTA</text>
     </g>
 
     <g transform="translate(750, 70)">
@@ -278,6 +278,16 @@
     <text x="110" y="122" text-anchor="middle" font-size="10" fill="#64748b">Provenance + AuditEvent</text>
   </g>
 
+  <g transform="translate(1760, 860)">
+    <rect width="200" height="130" rx="14" fill="white" stroke="#06b6d4" stroke-width="2" filter="url(#shadow)"/>
+    <text x="100" y="35" text-anchor="middle" font-size="26">✍️</text>
+    <text x="100" y="60" text-anchor="middle" font-size="13" font-weight="600" fill="#334155">Lakaut</text>
+    <text x="100" y="80" text-anchor="middle" font-size="10" fill="#64748b">Firma Digital (Ley 25.506)</text>
+    <text x="100" y="94" text-anchor="middle" font-size="10" fill="#64748b">Certificados licenciados</text>
+    <text x="100" y="108" text-anchor="middle" font-size="10" fill="#64748b">Cloud Signature API</text>
+    <text x="100" y="122" text-anchor="middle" font-size="10" fill="#06b6d4">Partner P0</text>
+  </g>
+
   <!-- ============================================ -->
   <!-- FLECHAS actores → nucleo -->
   <!-- ============================================ -->
@@ -417,7 +427,8 @@
       <text x="15" y="45" font-size="11" fill="#991b1b" font-weight="600">Estado actual: $0 revenue</text>
       <text x="15" y="63" font-size="10" fill="#991b1b">MercadoPago configurado pero sin endpoints de cobro</text>
       <text x="15" y="78" font-size="10" fill="#991b1b">Sin planes de suscripcion | Sin take rate | Sin billing</text>
-      <text x="15" y="93" font-size="10" fill="#991b1b" font-weight="600">Prioridad #1: implementar cobro, no agregar features</text>
+      <text x="15" y="93" font-size="10" fill="#991b1b" font-weight="600">Oportunidad: Venta de certificados de Firma Digital (Lakaut)</text>
+      <text x="15" y="105" font-size="10" fill="#991b1b" font-weight="600">Prioridad #1: implementar cobro, no agregar features</text>
       <rect x="0" y="115" width="620" height="55" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/>
       <text x="15" y="135" font-size="11" fill="#166534" font-weight="600">Oportunidad: Resolucion 2214/2025</text>
       <text x="15" y="150" font-size="10" fill="#166534">Receta electronica obligatoria para TODAS las indicaciones medicas</text>
