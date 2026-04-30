@@ -11,7 +11,7 @@ import { appointmentPaymentsService } from '@/lib/payments/services/appointment-
 
 type Db = SupabaseClient<Database>
 
-const CALLABLE_APPOINTMENT_STATUSES = new Set(['confirmed', 'in_progress'])
+const CALLABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
 
 export interface StartCallRequest {
   doctorUserId: string

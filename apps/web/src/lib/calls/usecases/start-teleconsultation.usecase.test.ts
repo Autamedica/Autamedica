@@ -93,6 +93,48 @@ describe('startTeleconsultationUseCase — call.started emit', () => {
     })
   })
 
+  it('allows starting a scheduled telemedicine appointment inside the call window', async () => {
+    const scheduledAppointment = {
+      id: 'appointment-scheduled-1',
+      doctor_id: 'doctor-1',
+      patient_id: 'patient-1',
+      type: 'telemedicine',
+      status: 'scheduled',
+      start_time: '2026-04-17T10:00:00.000Z',
+      end_time: '2026-04-17T10:30:00.000Z',
+      duration_minutes: 30,
+    }
+    const createCall = vi.fn().mockResolvedValue({
+      id: 'call-scheduled-1',
+      room_id: 'room-scheduled-1',
+      doctor_id: 'doctor-1',
+      patient_id: 'patient-1',
+      status: 'requested',
+      created_at: '2026-04-17T10:00:00.000Z',
+      appointment_id: 'appointment-scheduled-1',
+    } satisfies Call)
+    const adminCallRepo = makeRepo({
+      findAppointmentById: vi.fn().mockResolvedValue(scheduledAppointment),
+    })
+    const actorCallRepo = makeRepo({ createCall })
+
+    const result = await startTeleconsultationUseCase(
+      {
+        adminCallRepo,
+        actorCallRepo,
+        adminDb: {} as any,
+      },
+      {
+        doctorUserId: 'user-doctor-1',
+        patientId: 'patient-1',
+        appointmentId: 'appointment-scheduled-1',
+      },
+    )
+
+    expect(result.kind).toBe('ok')
+    expect(createCall).toHaveBeenCalledWith('doctor-1', 'patient-1', 'appointment-scheduled-1')
+  })
+
   it('starts a guest appointment call without requiring an internal patient id', async () => {
     const guestAppointment = {
       id: 'appointment-guest-1',
