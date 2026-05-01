@@ -1,11 +1,10 @@
 name: Production Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
-    paths-ignore:
-      - "apps/web/src/pages/blog/**"
-      - "apps/web/src/pages/sitemap.xml.ts"
   workflow_dispatch:
     inputs:
       deploy_database:
@@ -31,6 +30,9 @@ jobs:
     name: Pre-flight
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: ./.github/actions/setup-pnpm
@@ -38,7 +40,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
       - run: pnpm typecheck
-      # - run: pnpm lint
 
   deploy-db:
     name: DB Migrations
@@ -263,6 +264,7 @@ jobs:
           echo "## Deploy" >> $GITHUB_STEP_SUMMARY
           echo "| Stage | Result |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| CI (gate) | ${{ github.event.workflow_run.conclusion || 'manual' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Pre-flight | ${{ needs.validate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| DB | ${{ needs.deploy-db.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build & Deploy | ${{ needs.build-and-deploy.result }} |" >> $GITHUB_STEP_SUMMARY
