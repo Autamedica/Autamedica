@@ -63,7 +63,7 @@ function formatDateTime(dateStr: string): string {
   });
 }
 
-function getStatusBadge(status: string | undefined): JSX.Element {
+function getStatusBadge(status: string | undefined) {
   const s = status ?? "draft";
   const config = STATUS_CONFIG[s] ?? STATUS_CONFIG.draft;
   const IconComponent = config.icon;
@@ -76,7 +76,7 @@ function getStatusBadge(status: string | undefined): JSX.Element {
 }
 
 function mapCoreToDisplay(rx: IssuedPrescription): PrescriptionDisplayData {
-  const clinical: Record<string, unknown> = (rx as Record<string, unknown>).clinical_data as Record<string, unknown> ?? {};
+  const clinical: Record<string, unknown> = (rx as unknown as Record<string, unknown>).clinical_data as Record<string, unknown> ?? {};
   const items = (clinical.items as Array<Record<string, unknown>>) ?? [];
   const medicationName = String(items[0]?.generic_name ?? clinical.medication_name ?? "Prescripción");
   const dosage = String(items[0]?.dosage ?? clinical.dosage ?? "");
@@ -87,7 +87,7 @@ function mapCoreToDisplay(rx: IssuedPrescription): PrescriptionDisplayData {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function DoctorsPrescriptionsPage(): JSX.Element {
+export function DoctorsPrescriptionsPage() {
   // Patient selection
   const { patients, loading: patientsLoading } = useRealPatients();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -495,7 +495,7 @@ export function DoctorsPrescriptionsPage(): JSX.Element {
 // ─── Helper functions ──────────────────────────────────────────────────────
 
 function isCuirPresent(rx: IssuedPrescription): boolean {
-  return Boolean((rx as Record<string, unknown>).cuir);
+  return Boolean((rx as unknown as Record<string, unknown>).cuir);
 }
 
 function isActive(rx: IssuedPrescription): boolean {
@@ -514,20 +514,20 @@ function isCancelledOrExpired(rx: IssuedPrescription): boolean {
 }
 
 function getStatusField(rx: IssuedPrescription): string {
-  return String((rx as Record<string, unknown>).status ?? "draft");
+  return String((rx as unknown as Record<string, unknown>).status ?? "draft");
 }
 
 function getCuir(rx: IssuedPrescription): string | undefined {
-  const cuir = (rx as Record<string, unknown>).cuir;
+  const cuir = (rx as unknown as Record<string, unknown>).cuir;
   return typeof cuir === "string" ? cuir : undefined;
 }
 
 function getCreatedAt(rx: IssuedPrescription): string {
-  return String((rx as Record<string, unknown>).created_at ?? new Date().toISOString());
+  return String((rx as unknown as Record<string, unknown>).created_at ?? new Date().toISOString());
 }
 
 function getId(rx: IssuedPrescription): string {
-  return String((rx as Record<string, unknown>).id ?? "");
+  return String((rx as unknown as Record<string, unknown>).id ?? "");
 }
 
 // ─── Detail Panel Sub-component ────────────────────────────────────────────
@@ -538,12 +538,12 @@ function PrescriptionDetailPanel({
 }: {
   prescription: IssuedPrescription;
   onClose: () => void;
-}): JSX.Element {
+}) {
   const detail = mapCoreToDisplay(prescription);
   const cuir = getCuir(prescription);
   const status = getStatusField(prescription);
   const createdAt = getCreatedAt(prescription);
-  const signedPdfUrl = (prescription as Record<string, unknown>).signed_pdf_url as string | undefined;
+  const signedPdfUrl = (prescription as unknown as Record<string, unknown>).signed_pdf_url as string | undefined;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
