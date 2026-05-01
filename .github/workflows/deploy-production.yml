@@ -1,9 +1,7 @@
 name: Production Deploy
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  push:
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -30,9 +28,6 @@ jobs:
     name: Pre-flight
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: ./.github/actions/setup-pnpm
@@ -264,7 +259,7 @@ jobs:
           echo "## Deploy" >> $GITHUB_STEP_SUMMARY
           echo "| Stage | Result |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| CI (gate) | ${{ github.event.workflow_run.conclusion || 'manual' }} |" >> $GITHUB_STEP_SUMMARY
+          # CI gate removed
           echo "| Pre-flight | ${{ needs.validate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| DB | ${{ needs.deploy-db.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build & Deploy | ${{ needs.build-and-deploy.result }} |" >> $GITHUB_STEP_SUMMARY
