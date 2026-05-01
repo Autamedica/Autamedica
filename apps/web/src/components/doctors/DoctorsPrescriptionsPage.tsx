@@ -98,8 +98,8 @@ export function DoctorsPrescriptionsPage() {
     const q = patientSearch.toLowerCase();
     return patients.filter(
       (p) =>
-        (p.profiles?.first_name?.toLowerCase().includes(q)) ||
-        (p.profiles?.last_name?.toLowerCase().includes(q)) ||
+        (p.profile?.first_name?.toLowerCase().includes(q)) ||
+        (p.profile?.last_name?.toLowerCase().includes(q)) ||
         (p.dni?.toLowerCase().includes(q))
     );
   }, [patients, patientSearch]);
@@ -244,7 +244,7 @@ export function DoctorsPrescriptionsPage() {
               </div>
               <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                 {filteredPatients.slice(0, 50).map((p) => {
-                  const name = [p.profiles?.first_name, p.profiles?.last_name].filter(Boolean).join(" ") || "Paciente";
+                  const name = [p.profile?.first_name, p.profile?.last_name].filter(Boolean).join(" ") || "Paciente";
                   const isSelected = selectedPatientId === p.user_id;
                   return (
                     <button
