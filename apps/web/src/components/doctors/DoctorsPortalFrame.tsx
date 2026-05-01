@@ -34,6 +34,7 @@ type ActiveSection =
   | "patients"
   | "appointments"
   | "consultations"
+  | "prescriptions"
   | "community"
   | "accounting"
   | "subscription"
@@ -223,6 +224,12 @@ export function DoctorsPortalFrame({
         label: "Historiales",
         icon: FileText,
         key: "consultations",
+      },
+      {
+        href: "/doctors/prescriptions",
+        label: "Recetas",
+        icon: Pill,
+        key: "prescriptions",
       },
     ],
     [stats?.todayCount],
