@@ -24,6 +24,7 @@ import {
   Sparkles,
   Trophy,
   Users,
+  Pill,
   X,
 } from "lucide-react";
 import type { ChangeEvent, JSX, ReactNode } from "react";
