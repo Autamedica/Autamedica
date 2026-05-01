@@ -3,9 +3,6 @@ name: Production Deploy
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "apps/web/src/pages/blog/**"
-      - "apps/web/src/pages/sitemap.xml.ts"
   workflow_dispatch:
     inputs:
       deploy_database:
@@ -38,7 +35,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
       - run: pnpm typecheck
-      # - run: pnpm lint
 
   deploy-db:
     name: DB Migrations
@@ -263,6 +259,7 @@ jobs:
           echo "## Deploy" >> $GITHUB_STEP_SUMMARY
           echo "| Stage | Result |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          # CI gate removed
           echo "| Pre-flight | ${{ needs.validate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| DB | ${{ needs.deploy-db.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build & Deploy | ${{ needs.build-and-deploy.result }} |" >> $GITHUB_STEP_SUMMARY

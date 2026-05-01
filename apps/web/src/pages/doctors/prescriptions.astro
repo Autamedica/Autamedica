@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { DoctorsPrescriptionsPage } from '@/components/doctors/DoctorsPrescriptionsPage';
+
+const title = 'Recetas | Portal Médico | AutaMedica';
+const description = 'Gestión de prescripciones médicas electrónicas';
+---
+
+<Layout title={title} description={description}>
+  <DoctorsPrescriptionsPage client:load />
+</Layout>
