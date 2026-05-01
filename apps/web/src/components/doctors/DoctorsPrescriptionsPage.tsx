@@ -465,16 +465,16 @@ export function DoctorsPrescriptionsPage() {
           patientId={selectedPatientId as UUID}
           onClose={() => setShowCreateModal(false)}
           onSaved={handleSaved}
-          addPrescription={handleCreateDraft as unknown as (
-            p: Record<string, unknown>,
-          ) => Promise<{ id: string }>}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          addPrescription={handleCreateDraft as any}
           updatePrescription={async (id: UUID, updates: Record<string, unknown>) => {
             await updatePrescription(id as string, updates);
           }}
           issuePrescription={async (id: UUID) => {
             await issuePrescription(id as string);
           }}
-          editingPrescription={editingPrescription as unknown as Record<string, unknown> | null}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          editingPrescription={editingPrescription as any}
           submitLabel={editingPrescription ? "Guardar cambios" : "Crear y emitir receta"}
         />
       )}
