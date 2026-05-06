@@ -1,56 +1,60 @@
 import type { APIRoute } from 'astro'
 import { createAstroAdminClient } from '@/lib/supabase'
-import { jsonOk, badRequest, internalError, notFound } from '@/lib/api-helpers'
-import { getRuntimeEnvValue } from '@/lib/runtime-env'
 
 const MERCADOPAGO_API = 'https://api.mercadopago.com'
-const PRECIO_CONSULTA = 15000 // ARS
+const PRECIO_CONSULTA = 15000
 
-function getMercadoPagoToken(): string {
-  const token = getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN') ?? (import.meta as any).env?.MERCADOPAGO_ACCESS_TOKEN
-  if (!token) return new Response(JSON.stringify({error:'payment_unavailable',message:'Pagos no configurados'}),{status:503,headers:{'Content-Type':'application/json'}})
-  return token
+function getToken(): string {
+  const env = (import.meta as any).env
+  return env?.MERCADOPAGO_ACCESS_TOKEN || ''
 }
 
 export const GET: APIRoute = async ({ url, locals }) => {
   try {
     const preanamnesisId = url.searchParams.get('id')
-    if (!preanamnesisId) return badRequest('missing_id')
+    if (!preanamnesisId) {
+      return new Response(JSON.stringify({ error: 'missing_id' }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+    }
+
+    const token = getToken()
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'payment_unavailable', message: 'Token no configurado' }), { status: 503, headers: { 'Content-Type': 'application/json' } })
+    }
 
     const supabase = createAstroAdminClient(locals.runtime?.env)
 
-    // 1. Check if session exists
+    // Check session exists
     const { data: session } = await (supabase as any)
       .from('preanamnesis_sessions')
       .select('id, status')
       .eq('id', preanamnesisId)
       .maybeSingle()
 
-    if (!session) return notFound('session_not_found')
-    if (session.status === 'paid') return jsonOk({ already_paid: true, status: 'paid' })
+    if (!session) {
+      return new Response(JSON.stringify({ error: 'session_not_found' }), { status: 404, headers: { 'Content-Type': 'application/json' } })
+    }
 
-    // 2. Check if there's already an active payment order
+    if (session.status === 'paid') {
+      return new Response(JSON.stringify({ already_paid: true }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    }
+
+    // Check existing order
     const { data: existing } = await (supabase as any)
       .from('medical_review_orders')
       .select('id, status, checkout_url')
       .eq('preanamnesis_id', preanamnesisId)
       .maybeSingle()
 
+    if (existing?.checkout_url && existing?.status !== 'paid') {
+      return new Response(null, { status: 302, headers: { Location: existing.checkout_url } })
+    }
+
     if (existing?.status === 'paid') {
-      return jsonOk({ already_paid: true, status: 'paid' })
+      return new Response(JSON.stringify({ already_paid: true }), { status: 200, headers: { 'Content-Type': 'application/json' } })
     }
 
-    if (existing?.checkout_url) {
-      // Redirect to existing checkout
-      return new Response(null, {
-        status: 302,
-        headers: { Location: existing.checkout_url },
-      })
-    }
-
-    // 3. Create or reuse medical_review_order
-    const orderId = existing?.id || crypto.randomUUID()
-
+    // Create order
+    const orderId = existing?.id || `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     if (!existing) {
       await (supabase as any).from('medical_review_orders').insert({
         id: orderId,
@@ -63,61 +67,48 @@ export const GET: APIRoute = async ({ url, locals }) => {
       })
     }
 
-    // 4. Create MercadoPago preference
-    const appUrl = 'https://www.autamedica.com'
-    const token = getMercadoPagoToken()
-
-    const mpResponse = await fetch(`${MERCADOPAGO_API}/checkout/preferences`, {
+    // Create MercadoPago preference
+    const mpResp = await fetch(`${MERCADOPAGO_API}/checkout/preferences`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({
         items: [{
-          title: 'AutaMedica - Revisión médica',
-          description: 'Consulta médica por videollamada con receta electrónica',
+          title: 'AutaMedica - Revision medica',
+          description: 'Consulta medica por videollamada con receta electronica',
           quantity: 1,
           unit_price: PRECIO_CONSULTA,
           currency_id: 'ARS',
         }],
         back_urls: {
-          success: `${appUrl}/patients/appointments?payment=success&preanamnesisId=${preanamnesisId}`,
-          failure: `${appUrl}/preanamnesis/pago?status=failure&id=${preanamnesisId}`,
-          pending: `${appUrl}/preanamnesis/pago?status=pending&id=${preanamnesisId}`,
+          success: 'https://www.autamedica.com/patients/appointments?payment=success',
+          failure: 'https://www.autamedica.com/preanamnesis?payment=failure',
+          pending: 'https://www.autamedica.com/preanamnesis?payment=pending',
         },
         auto_return: 'approved',
         statement_descriptor: 'AUTAMEDICA',
         external_reference: `preanamnesis|${preanamnesisId}`,
-        notification_url: `${appUrl}/api/preanamnesis/payments/webhook`,
-        metadata: {
-          preanamnesis_id: preanamnesisId,
-          order_id: orderId,
-        },
+        notification_url: 'https://www.autamedica.com/api/preanamnesis/payments/webhook',
+        metadata: { preanamnesis_id: preanamnesisId, order_id: orderId },
       }),
     })
 
-    if (!mpResponse.ok) {
-      const body = await mpResponse.text()
-      throw new Error(`MercadoPago API ${mpResponse.status}: ${body}`)
+    if (!mpResp.ok) {
+      const body = await mpResp.text()
+      return new Response(JSON.stringify({ error: 'mercadopago_error', detail: body }), { status: 502, headers: { 'Content-Type': 'application/json' } })
     }
 
-    const preference = await mpResponse.json() as { id: string; init_point: string }
+    const preference = await mpResp.json() as { id: string; init_point: string }
 
-    // 5. Update order with preference info
+    // Update order
     await (supabase as any).from('medical_review_orders').update({
       provider_preference_id: preference.id,
       checkout_url: preference.init_point,
       updated_at: new Date().toISOString(),
     }).eq('id', orderId)
 
-    // 6. Redirect to MercadoPago checkout
-    return new Response(null, {
-      status: 302,
-      headers: { Location: preference.init_point },
-    })
-  } catch (error) {
-    console.error('[preanamnesis/pagar]', error)
-    return internalError('payment_setup_failed')
+    // Redirect
+    return new Response(null, { status: 302, headers: { Location: preference.init_point } })
+  } catch (e: any) {
+    return new Response(JSON.stringify({ error: 'internal', message: e?.message || 'Unknown' }), { status: 500, headers: { 'Content-Type': 'application/json' } })
   }
 }
