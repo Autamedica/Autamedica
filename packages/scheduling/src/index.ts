@@ -85,3 +85,4 @@ export {
 export type { SupabaseLike } from './supabase';
 
 export { processViralLoopReferrals } from './referrals';
+export { handleTriageMessage } from './whatsapp-triage';

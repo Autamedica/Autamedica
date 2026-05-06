@@ -24,6 +24,20 @@ interface WaitlistOffer {
   appointment_type: string | null
 }
 
+interface PatientInfo {
+  id: string
+  name: string
+  phone: string
+}
+
+interface UpcomingAppointment {
+  id: string
+  doctor_name: string
+  start_time: string
+  type: string
+  status: string
+}
+
 export const openclawRepo = {
   async findPatientIdByPhone(admin: AdminClient, phone: string): Promise<string | null> {
     const { data: profiles } = await admin
@@ -42,6 +56,64 @@ export const openclawRepo = {
       .limit(1)
 
     return patients?.[0]?.id ?? null
+  },
+
+  /** Obtiene nombre y datos basicos del paciente por telefono */
+  async findPatientByPhone(admin: AdminClient, phone: string): Promise<PatientInfo | null> {
+    const { data: profiles } = await admin
+      .from('profiles')
+      .select('user_id, full_name')
+      .eq('phone', phone)
+      .limit(1)
+
+    if (!profiles?.length) return null
+
+    const { data: patients } = await admin
+      .from('patients')
+      .select('id')
+      .eq('user_id', profiles[0].user_id)
+      .eq('active', true)
+      .limit(1)
+
+    if (!patients?.length) return null
+
+    return {
+      id: patients[0].id,
+      name: profiles[0].full_name ?? 'Paciente',
+      phone,
+    }
+  },
+
+  /** Obtiene los proximos turnos de un paciente */
+  async findUpcomingAppointments(
+    admin: AdminClient,
+    patientId: string,
+    limit = 3,
+  ): Promise<UpcomingAppointment[]> {
+    const { data } = await admin
+      .from('appointments')
+      .select(`
+        id,
+        start_time,
+        type,
+        status,
+        doctor:doctor_id(full_name)
+      `)
+      .eq('patient_id', patientId)
+      .in('status', ['scheduled', 'confirmed'])
+      .gte('start_time', new Date().toISOString())
+      .order('start_time', { ascending: true })
+      .limit(limit)
+
+    if (!data?.length) return []
+
+    return data.map((row: any) => ({
+      id: row.id,
+      doctor_name: row.doctor?.full_name ?? 'Dr.',
+      start_time: row.start_time,
+      type: row.type ?? 'consulta',
+      status: row.status,
+    }))
   },
 
   async findActiveReminderForPatient(

@@ -15,6 +15,13 @@ async function getExecAsync() {
   return promisify(exec);
 }
 
+function getOpenClawCliPath(): string {
+  const env = globalThis.process?.env ?? {};
+  if (env.OPENCLAW_CLI_PATH) return env.OPENCLAW_CLI_PATH;
+  if (env.HOME) return `${env.HOME}/.npm-global/bin/openclaw`;
+  return 'openclaw';
+}
+
 export interface OpenClawConfig {
   /** URL base de OpenClaw (default: http://127.0.0.1:18789) */
   baseUrl: string;
@@ -62,7 +69,7 @@ export async function sendMessage(
   const account = config.accountId ?? 'ecucondor';
 
   const args = [
-    'openclaw', 'message', 'send',
+    getOpenClawCliPath(), 'message', 'send',
     '--channel', ch,
     '--target', to,
     '--message', message,
@@ -132,6 +139,7 @@ export function buildReminder24h(data: ReminderMessageData): string {
     `Respondé:`,
     `✅ *CONFIRMO* — para confirmar asistencia`,
     `❌ *CANCELO* — para cancelar el turno`,
+    `🩺 *SALUD* — para hacer un chequeo gratuito por WhatsApp`,
     ``,
     `_Si no respondés, el turno se mantiene agendado._`,
   ].join('\n');
@@ -172,28 +180,91 @@ export function buildWaitlistOffer(data: {
     `⏳ Tenés ${data.expiresIn} para responder.`,
     ``,
     `Respondé *ACEPTO* para reservar el turno.`,
+    `También podés responder *SALUD* para hacer un chequeo gratuito por WhatsApp.`,
   ].join('\n');
 }
 
 /**
  * Parsea la respuesta del paciente a un recordatorio.
  */
+
+/**
+ * Genera el mensaje de menu principal con opciones numeradas.
+ */
+export function buildMainMenu(patientName: string): string {
+  const greeting = patientName
+    ? "👋 *Hola " + patientName + "! Soy el asistente de AutaMedica.*"
+    : "👋 *Hola! Soy el asistente de AutaMedica.*";
+  return [
+    greeting,
+    "",
+    "Estoy aca para ayudarte. Elegi una opcion:",
+    "",
+    "1️⃣ *Agendar turno* — Agenda una consulta medica",
+    "2️⃣ *Ver mis turnos* — Consulta tus turnos proximos",
+    "3️⃣ *Hablar con un asesor* — Comunicate con una persona",
+    "4️⃣ *Chequeo de salud* — Hace un triaje gratuito por WhatsApp",
+    "5️⃣ *Anamnesis por audio* — Mandanos un audio con tus sintomas",
+    "",
+    "Responde con el *numero* de la opcion que queres.",
+  ].join('\n');
+}
+
 export function parsePatientResponse(
   message: string,
-): 'confirmed' | 'cancelled' | 'accepted' | null {
-  const normalized = message.trim().toLowerCase();
+): 'confirmed' | 'cancelled' | 'accepted' | 'menu_schedule' | 'menu_view' | 'menu_advisor' | 'health_check' | 'anamnesis_audio' | null {
+  const normalized = message
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 
-  if (['confirmo', 'si', 'sí', 'ok', 'confirmar', 'confirma'].includes(normalized)) {
-    return 'confirmed';
-  }
+  // --- MENU PRINCIPAL ---
+  if (normalized === '1' || normalized === '1°') return 'menu_schedule';
+  if (normalized === '2' || normalized === '2°') return 'menu_view';
+  if (normalized === '3' || normalized === '3°') return 'menu_advisor';
+  if (normalized === '4' || normalized === '4°') return 'health_check';
+  if (normalized === '5' || normalized === '5°') return 'anamnesis_audio';
 
-  if (['cancelo', 'cancelar', 'no', 'cancela'].includes(normalized)) {
-    return 'cancelled';
-  }
+  const scheduleKeywords = ['agendar', 'agendar turno', 'reservar turno', 'nuevo turno', 'pedir turno', 'sacar turno'];
+  for (const kw of scheduleKeywords) if (normalized.includes(kw)) return 'menu_schedule';
 
-  if (['acepto', 'aceptar', 'quiero', 'dale'].includes(normalized)) {
-    return 'accepted';
-  }
+  const viewKeywords = ['ver turnos', 'mis turnos', 'ver mis turnos', 'que turnos', 'mis citas', 'proximos turnos', 'lista turnos'];
+  for (const kw of viewKeywords) if (normalized.includes(kw)) return 'menu_view';
+
+  const advisorKeywords = ['asesor', 'hablar con', 'atencion al cliente', 'operador', 'humano', 'persona'];
+  for (const kw of advisorKeywords) if (normalized.includes(kw)) return 'menu_advisor';
+
+  if (normalized === 'menu' || normalized === 'volver') return null;
+
+  const healthCheckPatterns = [
+    'salud', 'misalud', 'mi salud', 'conocer', 'conozco', 'conocerme',
+    'chequeo', 'chequear', 'chequeame', 'triage', 'triaje',
+    'revision', 'revisar', 'revisame', 'revisa',
+    'quiero saber', 'como estoy', 'evaluacion', 'evaluame',
+    'analisis', 'analizame', 'consulta gratis', 'gratis',
+    'chequeo de salud', 'chequeo medico', 'revision de salud',
+    'estado de salud', 'mi estado', 'check', 'checkup', 'check up',
+  ];
+  for (const pattern of healthCheckPatterns) if (normalized.includes(pattern)) return 'health_check';
+
+  const anamnesisAudioPatterns = [
+    'anamnesis por audio',
+    'anamnesis audio',
+    'audio de salud',
+    'mandar audio',
+    'enviar audio',
+    'audio',
+    'nota de voz',
+    'mensaje de voz',
+    'preanamnesis',
+    'pre anamnesis',
+  ];
+  for (const pattern of anamnesisAudioPatterns) if (normalized.includes(pattern)) return 'anamnesis_audio';
+
+  if (['confirmo', 'si', 'sí', 'ok', 'confirmar', 'confirma', 'voy', 'voy a ir'].includes(normalized)) return 'confirmed';
+  if (['cancelo', 'cancelar', 'no', 'cancela', 'no puedo', 'no voy', 'suspender'].includes(normalized)) return 'cancelled';
+  if (['acepto', 'aceptar', 'quiero', 'dale', 'tomar', 'agendar', 'reservar'].includes(normalized)) return 'accepted';
 
   return null;
 }

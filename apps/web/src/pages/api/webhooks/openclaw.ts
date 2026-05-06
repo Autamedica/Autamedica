@@ -68,6 +68,27 @@ async function markInboundMessage(
   }
 }
 
+async function hasActiveTriageSession(
+  admin: ReturnType<typeof createAstroAdminClient>,
+  phone: string,
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from('whatsapp_triage_sessions')
+    .select('session_id')
+    .eq('patient_phone', phone)
+    .eq('status', 'active')
+    .order('last_activity_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    logger.error('[openclaw-webhook] Failed to load triage session', { phone, error })
+    return false
+  }
+
+  return Boolean(data?.session_id)
+}
+
 export const POST: APIRoute = async ({ request, locals }) => {
   const rawBody = await request.text()
   const authHeader = request.headers.get('Authorization')
@@ -108,32 +129,110 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
   }
 
-  const response = parsePatientResponse(message)
-  if (!response) {
-    if (message_id) {
-      await markInboundMessage(admin, message_id, {
-        status: 'ignored',
-        processed_at: new Date().toISOString(),
-        webhook_result: { action: 'ignored' },
-        last_error: null,
-      })
-    }
-    return jsonOk({ action: 'ignored', message_id })
-  }
-
-  try {
-    const result = response === 'accepted'
-      ? await openclawService.handleWaitlistAcceptance(admin, from)
-      : await openclawService.handleConfirmOrCancel(admin, from, response)
-
+  if (await hasActiveTriageSession(admin, from)) {
     if (message_id) {
       await markInboundMessage(admin, message_id, {
         status: 'processed',
         processed_at: new Date().toISOString(),
-        webhook_result: result,
+        webhook_result: { action: 'triage_reply' },
         last_error: null,
       })
     }
+
+    openclawService.handleTriageReply(admin, from, message).catch(err =>
+      console.error('[openclaw-webhook] triage reply error:', err)
+    )
+    return jsonOk({ action: 'triage_reply', message_id })
+  }
+
+  const response = parsePatientResponse(message)
+  if (!response) {
+    // Marcar como procesado ANTES de enviar respuesta (evita duplicacion)
+    if (message_id) {
+      await markInboundMessage(admin, message_id, {
+        status: "processed",
+        processed_at: new Date().toISOString(),
+        webhook_result: { action: "menu_fallback" },
+        last_error: null,
+      });
+    }
+    // Enviar menu principal para cualquier mensaje no reconocido (fire-and-forget)
+    openclawService.handleMainMenu(admin, from).catch(err =>
+      console.error('[openclaw-webhook] fallback menu error:', err)
+    );
+    return jsonOk({ action: "menu_fallback", message_id });
+  }
+
+  try {
+    let result: { action: string; [key: string]: unknown }
+
+    switch (response) {
+      // ==========================================
+      // NUEVAS OPCIONES DEL MENU
+      // ==========================================
+      case 'menu_schedule':
+        if (message_id) { await markInboundMessage(admin, message_id, { status: 'processed', processed_at: new Date().toISOString(), webhook_result: { action: 'menu_schedule' }, last_error: null }); }
+        openclawService.handleMenuSchedule(admin, from).catch(err => console.error('menu_schedule:', err));
+        result = { action: 'menu_schedule', message: 'sent' };
+        break
+
+      case 'menu_view':
+        if (message_id) { await markInboundMessage(admin, message_id, { status: 'processed', processed_at: new Date().toISOString(), webhook_result: { action: 'menu_view' }, last_error: null }); }
+        openclawService.handleMenuView(admin, from).catch(err => console.error('menu_view:', err));
+        result = { action: 'menu_view', message: 'sent' };
+        break
+
+      case 'menu_advisor':
+        if (message_id) { await markInboundMessage(admin, message_id, { status: 'processed', processed_at: new Date().toISOString(), webhook_result: { action: 'menu_advisor' }, last_error: null }); }
+        openclawService.handleMenuAdvisor(admin, from).catch(err => console.error('menu_advisor:', err));
+        result = { action: 'menu_advisor', message: 'sent' };
+        break
+
+      case 'health_check':
+        if (message_id) { await markInboundMessage(admin, message_id, { status: 'processed', processed_at: new Date().toISOString(), webhook_result: { action: 'health_check' }, last_error: null }); }
+        openclawService.handleHealthCheck(admin, from).catch(err => console.error('health_check:', err));
+        result = { action: 'health_check', message: 'sent' };
+        break
+
+      case 'anamnesis_audio':
+        if (message_id) { await markInboundMessage(admin, message_id, { status: 'processed', processed_at: new Date().toISOString(), webhook_result: { action: 'anamnesis_audio_prompt' }, last_error: null }); }
+        openclawService.handleAnamnesisAudioPrompt(admin, from).catch(err => console.error('anamnesis_audio:', err));
+        result = { action: 'anamnesis_audio_prompt', message: 'sent' };
+        break
+
+      // ==========================================
+      // LEGACY: recordatorios y waitlist
+      // ==========================================
+      case 'accepted':
+        if (message_id) {
+          await markInboundMessage(admin, message_id, {
+            status: 'processed',
+            processed_at: new Date().toISOString(),
+            webhook_result: { action: 'accepted' },
+            last_error: null,
+          });
+        }
+        result = { ...(await openclawService.handleWaitlistAcceptance(admin, from)) }
+        break
+
+      case 'confirmed':
+      case 'cancelled':
+        if (message_id) {
+          await markInboundMessage(admin, message_id, {
+            status: 'processed',
+            processed_at: new Date().toISOString(),
+            webhook_result: { action: response },
+            last_error: null,
+          });
+        }
+        result = { ...(await openclawService.handleConfirmOrCancel(admin, from, response)) }
+        break
+
+      default:
+        result = { action: 'unhandled', raw_response: response }
+    }
+
+    // already marked as processed before sending response
 
     return jsonOk({ ...result, message_id })
   } catch (err) {

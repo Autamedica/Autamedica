@@ -16,6 +16,7 @@ import { createClient } from '@supabase/supabase-js';
 import { ensureEnv } from '@autamedica/shared';
 import { parsePatientResponse } from '@autamedica/scheduling';
 import { sdReady, sdWatchdog, sdStopping, sdStatus, underSystemd } from './sd-notify';
+import { processAudioForPhone } from './audio-watcher';
 
 const env = globalThis.process?.env ?? {};
 
@@ -51,8 +52,17 @@ interface PendingInboundMessage {
   channel: string;
   from_phone: string;
   message_text: string;
-  parsed_response: 'confirmed' | 'cancelled' | 'accepted' | null;
+  parsed_response: 'confirmed' | 'cancelled' | 'accepted' | 'menu_schedule' | 'menu_view' | 'menu_advisor' | 'health_check' | null;
   attempt_count: number;
+  webhook_result?: {
+    inbound_media?: InboundMediaPayload;
+  } | null;
+}
+
+interface InboundMediaPayload {
+  path?: string | null;
+  type?: string | null;
+  fileName?: string | null;
 }
 
 function computeRetryAt(attempt: number): string {
@@ -114,8 +124,13 @@ async function persistInboundMessage(
   sourceMessageKey: string,
   fromPhone: string,
   messageText: string,
+  media?: InboundMediaPayload | null,
 ): Promise<{ id: string; created: boolean; deferredUntil: string | null }> {
   const parsedResponse = parsePatientResponse(messageText);
+  const queueParsedResponse =
+    parsedResponse === 'confirmed' || parsedResponse === 'cancelled' || parsedResponse === 'accepted'
+      ? parsedResponse
+      : null;
 
   const { data: existing, error: existingError } = await supabase
     .from('appointment_inbound_messages')
@@ -138,8 +153,9 @@ async function persistInboundMessage(
       channel: 'whatsapp',
       from_phone: fromPhone,
       message_text: messageText,
-      parsed_response: parsedResponse,
+      parsed_response: queueParsedResponse,
       deferred_until: deferredUntilIso,
+      webhook_result: media ? { inbound_media: media } : {},
     })
     .select('id')
     .single();
@@ -153,6 +169,7 @@ async function markAttemptStarted(messageId: string, nextAttemptCount: number): 
     .from('appointment_inbound_messages')
     .update({
       attempt_count: nextAttemptCount,
+      next_attempt_at: new Date(Date.now() + 30000).toISOString(),
       last_attempt_at: new Date().toISOString(),
       last_error: null,
     })
@@ -166,6 +183,59 @@ async function markAttemptFailed(messageId: string, attemptCount: number, reason
     .update({ next_attempt_at: computeRetryAt(attemptCount), last_error: reason })
     .eq('id', messageId);
   if (error) throw new Error(`schedule inbound retry: ${error.message}`);
+}
+
+async function markProcessed(messageId: string, result: Record<string, unknown>): Promise<void> {
+  const { error } = await supabase
+    .from('appointment_inbound_messages')
+    .update({
+      status: 'processed',
+      processed_at: new Date().toISOString(),
+      webhook_result: result,
+      last_error: null,
+    })
+    .eq('id', messageId);
+  if (error) throw new Error(`mark processed: ${error.message}`);
+}
+
+function getAudioMedia(message: PendingInboundMessage): InboundMediaPayload | null {
+  const media = message.webhook_result?.inbound_media;
+  if (!media?.path) return null;
+  const type = media.type ?? '';
+  const text = message.message_text.trim().toLowerCase();
+  if (type.startsWith('audio/') || text === '<media:audio>') return media;
+  return null;
+}
+
+async function processPendingAudioMessage(message: PendingInboundMessage): Promise<boolean> {
+  const media = getAudioMedia(message);
+  if (!media?.path) return false;
+
+  const nextAttemptCount = (message.attempt_count ?? 0) + 1;
+  try {
+    await markAttemptStarted(message.id, nextAttemptCount);
+    const result = await processAudioForPhone({
+      filePath: media.path,
+      phone: message.from_phone,
+      mediaType: media.type,
+      sourceMessageId: message.source_message_key,
+    });
+
+    await markProcessed(message.id, {
+      action: 'anamnesis_audio_generated',
+      preanamnesis_id: result.id,
+      pdf_url: result.pdfUrl,
+      storage_path: result.storagePath,
+      inbound_media: media,
+    });
+    console.log(`[INBOUND] audio anamnesis generated id=${message.id} preanamnesis=${result.id}`);
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    await markAttemptFailed(message.id, nextAttemptCount, reason);
+    console.error(`[INBOUND] audio processing failed id=${message.id}: ${reason}`);
+  }
+
+  return true;
 }
 
 async function promoteDeferredMessages(): Promise<void> {
@@ -228,7 +298,7 @@ async function flushPendingMessages(): Promise<void> {
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('appointment_inbound_messages')
-    .select('id, source_message_key, channel, from_phone, message_text, parsed_response, attempt_count')
+    .select('id, source_message_key, channel, from_phone, message_text, parsed_response, attempt_count, webhook_result')
     .eq('status', 'pending')
     .is('deferred_until', null)
     .or(`next_attempt_at.is.null,next_attempt_at.lte.${now}`)
@@ -241,6 +311,10 @@ async function flushPendingMessages(): Promise<void> {
   }
 
   for (const message of (data ?? []) as PendingInboundMessage[]) {
+    if (await processPendingAudioMessage(message)) {
+      continue;
+    }
+
     const payload = {
       message_id: message.id,
       from: message.from_phone,
@@ -435,14 +509,30 @@ const server = Bun.serve({
       const parsed = await readHookBody(req);
       if (!parsed.ok) return new Response(parsed.msg, { status: parsed.status });
 
-      const body = parsed.body as { from?: string; to?: string; text?: string; id?: string; ts?: string };
+      const body = parsed.body as {
+        from?: string;
+        to?: string;
+        text?: string;
+        id?: string;
+        ts?: string;
+        mediaPath?: string;
+        mediaType?: string;
+        mediaFileName?: string;
+      };
       if (!body.from || !body.text) return new Response('missing from/text', { status: 400 });
 
       const seed = body.id ? `hook:${body.id}` : `hook:${body.from}:${body.ts ?? ''}:${body.text}`;
       const sourceMessageKey = buildSourceMessageKey(seed);
+      const media = body.mediaPath || body.mediaType
+        ? {
+            path: body.mediaPath ?? null,
+            type: body.mediaType ?? null,
+            fileName: body.mediaFileName ?? null,
+          }
+        : null;
 
       try {
-        const { id, created, deferredUntil } = await persistInboundMessage(sourceMessageKey, body.from, body.text);
+        const { id, created, deferredUntil } = await persistInboundMessage(sourceMessageKey, body.from, body.text, media);
         if (created) {
           console.log(
             deferredUntil

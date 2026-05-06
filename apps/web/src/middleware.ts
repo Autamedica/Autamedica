@@ -63,6 +63,7 @@ const PUBLIC_ROUTES = [
   // withAuth() inside the handler. The middleware-level Supabase check adds latency
   // and can produce false 401s for guests with valid guest tokens (ASTRO-A/9).
   "/api/calls",
+  "/api/preanamnesis",
 ];
 
 // Static showcase pages are prerendered at build time and should bypass
