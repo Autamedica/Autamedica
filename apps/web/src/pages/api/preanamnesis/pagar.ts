@@ -8,7 +8,7 @@ const PRECIO_CONSULTA = 15000 // ARS
 
 function getMercadoPagoToken(): string {
   const token = getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN') ?? (import.meta as any).env?.MERCADOPAGO_ACCESS_TOKEN
-  if (!token) throw new Error('MercadoPago token missing')
+  if (!token) return new Response(JSON.stringify({error:'payment_unavailable',message:'Pagos no configurados'}),{status:503,headers:{'Content-Type':'application/json'}})
   return token
 }
 
