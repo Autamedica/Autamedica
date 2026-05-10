@@ -4,22 +4,15 @@ const profileUrl = 'https://ar.linkedin.com/in/eduardo-marques-b00739249?trk=pro
 
 <aside class="linkedin-profile" aria-label="Perfil de LinkedIn del fundador">
   <p class="linkedin-profile__eyebrow">Fundador</p>
-  <div
-    class="badge-base LI-profile-badge"
-    data-locale="es_ES"
-    data-size="medium"
-    data-theme="dark"
-    data-type="VERTICAL"
-    data-vanity="eduardo-marques-b00739249"
-    data-version="v1"
-  >
-    <a class="badge-base__link LI-simple-link" href={profileUrl} target="_blank" rel="me noopener noreferrer">
-      Eduardo Marques
-    </a>
-  </div>
+  <a class="linkedin-profile__card" href={profileUrl} target="_blank" rel="me noopener noreferrer">
+    <span class="linkedin-profile__mark" aria-hidden="true">in</span>
+    <span class="linkedin-profile__body">
+      <strong>Eduardo Marques</strong>
+      <span>AutaMedica</span>
+    </span>
+    <span class="linkedin-profile__cta">Ver LinkedIn</span>
+  </a>
 </aside>
-
-<script is:inline src="https://platform.linkedin.com/badges/js/profile.js" async defer type="text/javascript"></script>
 
 <style>
   .linkedin-profile {
@@ -37,11 +30,67 @@ const profileUrl = 'https://ar.linkedin.com/in/eduardo-marques-b00739249?trk=pro
     text-transform: uppercase;
   }
 
-  :global(.LI-profile-badge) {
-    max-width: 100%;
+  .linkedin-profile__card {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    gap: 0.875rem;
+    align-items: center;
+    padding: 1rem;
+    color: var(--au-text-primary);
+    text-decoration: none;
+    border: 1px solid rgba(10, 102, 194, 0.24);
+    border-radius: 0.75rem;
+    background: linear-gradient(180deg, rgba(10, 102, 194, 0.08), rgba(255, 255, 255, 0.72));
+    transition:
+      border-color 160ms ease,
+      transform 160ms ease,
+      box-shadow 160ms ease;
   }
 
-  :global(.badge-base__link) {
+  .linkedin-profile__card:hover {
+    border-color: rgba(10, 102, 194, 0.55);
+    box-shadow: 0 12px 28px rgba(10, 102, 194, 0.12);
+    transform: translateY(-1px);
+  }
+
+  .linkedin-profile__mark {
+    display: inline-flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    background: #0a66c2;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .linkedin-profile__body {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .linkedin-profile__body strong {
     color: var(--au-text-primary);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .linkedin-profile__body span {
+    color: var(--au-text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.35;
+  }
+
+  .linkedin-profile__cta {
+    grid-column: 1 / -1;
+    color: #0a66c2;
+    font-size: 0.8125rem;
+    font-weight: 700;
   }
 </style>
