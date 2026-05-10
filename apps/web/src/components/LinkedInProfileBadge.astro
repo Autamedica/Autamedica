@@ -1,0 +1,47 @@
+---
+const profileUrl = 'https://ar.linkedin.com/in/eduardo-marques-b00739249?trk=profile-badge';
+---
+
+<aside class="linkedin-profile" aria-label="Perfil de LinkedIn del fundador">
+  <p class="linkedin-profile__eyebrow">Fundador</p>
+  <div
+    class="badge-base LI-profile-badge"
+    data-locale="es_ES"
+    data-size="medium"
+    data-theme="dark"
+    data-type="VERTICAL"
+    data-vanity="eduardo-marques-b00739249"
+    data-version="v1"
+  >
+    <a class="badge-base__link LI-simple-link" href={profileUrl} target="_blank" rel="me noopener noreferrer">
+      Eduardo Marques
+    </a>
+  </div>
+</aside>
+
+<script is:inline src="https://platform.linkedin.com/badges/js/profile.js" async defer type="text/javascript"></script>
+
+<style>
+  .linkedin-profile {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--au-border);
+  }
+
+  .linkedin-profile__eyebrow {
+    margin: 0 0 1rem;
+    color: var(--au-accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  :global(.LI-profile-badge) {
+    max-width: 100%;
+  }
+
+  :global(.badge-base__link) {
+    color: var(--au-text-primary);
+  }
+</style>
