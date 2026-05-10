@@ -72,7 +72,27 @@ async function hasActiveTriageSession(
   admin: ReturnType<typeof createAstroAdminClient>,
   phone: string,
 ): Promise<boolean> {
-  const { data, error } = await admin
+  const { data, error } = await (admin as unknown as {
+    from: (table: 'whatsapp_triage_sessions') => {
+      select: (columns: 'session_id') => {
+        eq: (column: string, value: string) => {
+          eq: (column: string, value: string) => {
+            order: (
+              column: 'last_activity_at',
+              options: { ascending: boolean },
+            ) => {
+              limit: (count: number) => {
+                maybeSingle: () => Promise<{
+                  data: { session_id: string } | null
+                  error: unknown
+                }>
+              }
+            }
+          }
+        }
+      }
+    }
+  })
     .from('whatsapp_triage_sessions')
     .select('session_id')
     .eq('patient_phone', phone)
