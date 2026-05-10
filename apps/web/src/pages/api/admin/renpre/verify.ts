@@ -10,18 +10,37 @@ import type { DoctorId } from '@autamedica/types';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers';
 
+const ADMIN_ROLES = ['admin', 'platform_admin', 'organization_admin'] as const;
+type AdminRole = (typeof ADMIN_ROLES)[number];
+
+function isAdminRole(role: unknown): role is AdminRole {
+  return typeof role === 'string' && (ADMIN_ROLES as readonly string[]).includes(role);
+}
+
+type ProfileRoleRow = { role?: string | null };
+type ProfileRoleClient = {
+  from(table: 'profiles'): {
+    select(columns: 'role'): {
+      eq(column: 'user_id', value: string): {
+        maybeSingle(): Promise<{ data: ProfileRoleRow | null }>;
+      };
+    };
+  };
+};
+
 async function assertAdmin(request: Request, admin: ReturnType<typeof createAstroAdminClient>): Promise<{ ok: boolean; userId?: string }> {
   const authHeader = request.headers.get('authorization') ?? '';
   const token = authHeader.replace(/^Bearer\s+/i, '');
   if (!token) return { ok: false };
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data.user) return { ok: false };
-  const { data: profile } = await admin
+  const profileClient = admin as unknown as ProfileRoleClient;
+  const { data: profile } = await profileClient
     .from('profiles')
     .select('role')
-    .eq('id', data.user.id)
+    .eq('user_id', data.user.id)
     .maybeSingle();
-  if (profile?.role !== 'admin') return { ok: false };
+  if (!isAdminRole(profile?.role)) return { ok: false };
   return { ok: true, userId: data.user.id };
 }
 

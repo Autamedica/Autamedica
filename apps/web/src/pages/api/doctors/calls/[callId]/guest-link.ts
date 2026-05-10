@@ -4,6 +4,17 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { badRequest, forbidden, internalError, jsonOk, notFound } from '@/lib/api-helpers'
 import { withAuthRole, isAuthed, DOCTOR_ROLES } from '@/lib/api-auth'
 
+type GuestProfileRow = { first_name?: string | null; last_name?: string | null };
+type GuestProfileClient = {
+  from(table: 'profiles'): {
+    select(columns: 'first_name, last_name'): {
+      eq(column: 'user_id', value: string): {
+        maybeSingle(): Promise<{ data: GuestProfileRow | null }>;
+      };
+    };
+  };
+};
+
 export const POST: APIRoute = async ({ request, params, locals }) => {
   const callId = params.callId?.trim()
   if (!callId) return badRequest('missing_call_id')
@@ -31,7 +42,12 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     // 3. Obtener nombre del invitado
     let guestName = 'Invitado'
     if (call.patient_id) {
-       const { data: profileData } = await admin.from('profiles').select('first_name, last_name').eq('id', call.patient_id).maybeSingle()
+       const profileClient = admin as unknown as GuestProfileClient
+       const { data: profileData } = await profileClient
+         .from('profiles')
+         .select('first_name, last_name')
+         .eq('user_id', call.patient_id)
+         .maybeSingle()
        if (profileData?.first_name) {
          guestName = `${profileData.first_name} ${profileData.last_name ?? ''}`.trim()
        }

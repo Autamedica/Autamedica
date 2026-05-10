@@ -304,6 +304,10 @@ function extractRole(
   return typeof raw === "string" ? raw : undefined;
 }
 
+function isAdminRole(role: string | undefined): boolean {
+  return role === "admin" || role === "organization_admin" || role === "platform_admin";
+}
+
 /** Resolve returnTo from query params, validating against allowed hosts. */
 function resolveReturnTo(
   requestUrl: URL,
@@ -750,6 +754,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
           return context.redirect("/auth/select-role");
         }
         const roleRedirect = getRoleRedirect(userRole);
+        if (isAdminRole(userRole)) {
+          return context.redirect(roleRedirect);
+        }
         const returnToUrl = resolveReturnTo(requestUrl, roleRedirect);
         return context.redirect(returnToUrl ?? roleRedirect);
       }
