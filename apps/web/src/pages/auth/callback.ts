@@ -6,7 +6,9 @@
  * 2. Already-authenticated redirect (email/password sign-in) — has session in cookies
  * 3. Legacy token-passing (deprecated) — redirects without tokens, relies on shared cookies
  *
- * After auth, role is resolved from: query param → user_metadata → portal metadata.
+ * After auth, role is resolved from trusted metadata first. Admin roles always
+ * override URL hints and returnTo so public UI parameters cannot send an admin
+ * session to a non-admin portal.
  * Falls back to /auth/select-role for users who haven't picked a role yet.
  */
 
@@ -15,7 +17,6 @@ import {
   isValidRole,
   resolveRoleFromPortal,
   logger,
-  type UserRole
 } from '@autamedica/shared';
 import { validateRedirectUrl, isProduction } from '../../lib/auth-utils';
 import { getEnvironment, getDomainConfig } from '@autamedica/auth';
@@ -24,6 +25,7 @@ import { createSupabaseCookieClient, type CookieMethodsServer } from '../../lib/
 
 /** Roles that users can self-assign during registration/login. Admin roles require backend assignment. */
 const SELF_ASSIGNABLE_ROLES = new Set<string>(['patient', 'doctor', 'company_admin', 'company']);
+const ADMIN_ROLES = new Set<string>(['admin', 'organization_admin', 'platform_admin']);
 
 function buildSupabaseClient(
   request: Request,
@@ -89,21 +91,65 @@ function parseReturnToParam(
   }
 }
 
-/** Resolve role from user metadata */
+function isAdminRole(role: unknown): role is string {
+  return typeof role === 'string' && ADMIN_ROLES.has(role);
+}
+
+function readMetadataRole(metadata: Record<string, unknown> | null | undefined): string | undefined {
+  const role = metadata?.role;
+  return typeof role === 'string' ? role : undefined;
+}
+
+/** Resolve role from trusted metadata before URL hints. */
 function resolveRole(
   roleHint: string | null,
-  userMetadata: Record<string, unknown>
-): UserRole | undefined {
-  const fromHint = roleHint && isValidRole(roleHint) ? roleHint as UserRole : undefined;
+  userMetadata: Record<string, unknown>,
+  appMetadata?: Record<string, unknown>,
+): string | undefined {
+  const fromAppMeta = readMetadataRole(appMetadata);
+  if (isAdminRole(fromAppMeta)) return fromAppMeta;
+
+  const fromUserMeta = readMetadataRole(userMetadata);
+  if (isAdminRole(fromUserMeta)) return fromUserMeta;
+
+  const fromHint =
+    roleHint && SELF_ASSIGNABLE_ROLES.has(roleHint) && isValidRole(roleHint)
+      ? roleHint
+      : undefined;
   const fromMeta =
-    typeof userMetadata.role === 'string' && isValidRole(userMetadata.role)
-      ? userMetadata.role as UserRole
+    fromUserMeta && isValidRole(fromUserMeta)
+      ? fromUserMeta
       : undefined;
   const fromPortal =
     typeof userMetadata.portal === 'string'
       ? resolveRoleFromPortal(userMetadata.portal)
       : undefined;
-  return fromHint ?? fromMeta ?? fromPortal;
+  return fromMeta ?? fromHint ?? fromPortal;
+}
+
+function getSafeRedirect(
+  resolvedRole: string | undefined,
+  parsedReturnTo: { absolute: URL | null; relativePath: string | null },
+  requestUrl: URL,
+): string {
+  if (isAdminRole(resolvedRole)) {
+    return getRolePath(resolvedRole);
+  }
+
+  if (parsedReturnTo.absolute) {
+    if (parsedReturnTo.absolute.origin === requestUrl.origin) {
+      return parsedReturnTo.absolute.pathname + parsedReturnTo.absolute.search;
+    }
+    if (validateRedirectUrl(parsedReturnTo.absolute.toString())) {
+      return parsedReturnTo.absolute.toString();
+    }
+  }
+
+  if (parsedReturnTo.relativePath) {
+    return parsedReturnTo.relativePath;
+  }
+
+  return getRolePath(resolvedRole ?? '');
 }
 
 /** Map role to redirect path — uses DomainConfig URLs in prod/staging, query param in dev */
@@ -187,26 +233,10 @@ export const GET: APIRoute = async ({ request, cookies, redirect, locals }) => {
       }
 
       const userMetadata = (data.user?.user_metadata ?? {}) as Record<string, unknown>;
-      const resolvedRole = resolveRole(roleHint, userMetadata);
+      const appMetadata = (data.user?.app_metadata ?? {}) as Record<string, unknown>;
+      const resolvedRole = resolveRole(roleHint, userMetadata, appMetadata);
 
-      // Determine redirect destination
-      if (parsedReturnTo.absolute) {
-        // Absolute returnTo: only allow if same origin
-        if (parsedReturnTo.absolute.origin === requestUrl.origin) {
-          return redirect(parsedReturnTo.absolute.pathname + parsedReturnTo.absolute.search);
-        }
-        // Cross-origin: validate and redirect (cookies shared via domain)
-        if (validateRedirectUrl(parsedReturnTo.absolute.toString())) {
-          return redirect(parsedReturnTo.absolute.toString());
-        }
-      }
-
-      if (parsedReturnTo.relativePath) {
-        return redirect(parsedReturnTo.relativePath);
-      }
-
-      // Default role-based redirect
-      return redirect(getRolePath(resolvedRole ?? ''));
+      return redirect(getSafeRedirect(resolvedRole, parsedReturnTo, requestUrl));
     } catch {
       return redirect('/auth/login?error=callback_error');
     }
@@ -221,20 +251,8 @@ export const GET: APIRoute = async ({ request, cookies, redirect, locals }) => {
   }
 
   const userMeta = (user.user_metadata ?? {}) as Record<string, unknown>;
-  const resolvedRole = resolveRole(roleHint, userMeta);
+  const appMeta = (user.app_metadata ?? {}) as Record<string, unknown>;
+  const resolvedRole = resolveRole(roleHint, userMeta, appMeta);
 
-  if (parsedReturnTo.absolute) {
-    if (parsedReturnTo.absolute.origin === requestUrl.origin) {
-      return redirect(parsedReturnTo.absolute.pathname + parsedReturnTo.absolute.search);
-    }
-    if (validateRedirectUrl(parsedReturnTo.absolute.toString())) {
-      return redirect(parsedReturnTo.absolute.toString());
-    }
-  }
-
-  if (parsedReturnTo.relativePath) {
-    return redirect(parsedReturnTo.relativePath);
-  }
-
-  return redirect(getRolePath(resolvedRole ?? ''));
+  return redirect(getSafeRedirect(resolvedRole, parsedReturnTo, requestUrl));
 };

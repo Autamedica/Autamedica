@@ -5,6 +5,17 @@ import { badRequest, forbidden, internalError, jsonOk, notFound } from '@/lib/ap
 import { withAuthRole, isAuthed, DOCTOR_ROLES } from '@/lib/api-auth'
 import { createCallStartAdapter } from '@/lib/calls/repos/call-start.adapter'
 
+type GuestProfileRow = { first_name?: string | null; last_name?: string | null };
+type GuestProfileClient = {
+  from(table: 'profiles'): {
+    select(columns: 'first_name, last_name'): {
+      eq(column: 'user_id', value: string): {
+        maybeSingle(): Promise<{ data: GuestProfileRow | null }>;
+      };
+    };
+  };
+};
+
 export const POST: APIRoute = async ({ request, params, locals }) => {
   const appointmentId = params.id?.trim()
   if (!appointmentId) return badRequest('missing_appointment_id')
@@ -41,7 +52,12 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       }
     } else {
        // Si hay patient_id, resolvemos el nombre
-       const { data: profileData } = await admin.from('profiles').select('first_name, last_name').eq('id', appt.patient_id).maybeSingle()
+       const profileClient = admin as unknown as GuestProfileClient
+       const { data: profileData } = await profileClient
+         .from('profiles')
+         .select('first_name, last_name')
+         .eq('user_id', appt.patient_id)
+         .maybeSingle()
        if (profileData?.first_name) {
          guestName = `${profileData.first_name} ${profileData.last_name ?? ''}`.trim()
        }

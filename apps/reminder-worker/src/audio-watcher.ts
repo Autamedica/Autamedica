@@ -1,20 +1,43 @@
-import { watch, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, watch, readFileSync, readdirSync, statSync } from "node:fs";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { ensureEnv } from "@autamedica/shared";
+import { DEFAULT_OPENCLAW_CONFIG, sendMessageWithFallback } from "@autamedica/scheduling";
 // @ts-expect-error The worker runtime resolves jsPDF from the workspace install.
 import { jsPDF } from "/mnt/data/Autamedica/node_modules/.pnpm/jspdf@4.2.1/node_modules/jspdf/dist/jspdf.node.js";
 
-const MEDIA_DIR = process.env.OPENCLAW_MEDIA_DIR || "/home/edu/.openclaw/media/inbound";
-
 type SupabaseClient = ReturnType<typeof createClient>;
 
+type AnamnesisExtraction = {
+  paciente?: { edad?: string | number | null; genero?: string | null };
+  motivoConsulta?: string;
+  enfermedadActual?: {
+    sintomaPrincipal?: string;
+    cronologia?: string;
+    intensidad?: string;
+    factoresAgravantes?: string;
+    factoresAtenuantes?: string;
+    sintomasAcompanantes?: string[];
+  };
+  antecedentesPersonales?: {
+    enfermedadesPrevias?: string[];
+    medicacionActual?: string[];
+    alergias?: string;
+  };
+  signosAlarma?: string[];
+  datosFaltantes?: string[];
+  resumenOrdenado?: string;
+  impresionGeneral?: string;
+};
+
+type DeepSeekResponse = {
+  choices?: Array<{ message?: { content?: string } }>;
+};
+
 function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Falta variable de entorno ${name}`);
-  return value;
+  return ensureEnv(name);
 }
 
 const processed = new Set<string>();
@@ -22,11 +45,16 @@ let supabaseClient: SupabaseClient | null = null;
 
 function optionalEnv(...names: string[]): string | null {
   for (const name of names) {
-    const value = process.env[name];
-    if (value) return value;
+    try {
+      return ensureEnv(name);
+    } catch {
+      // Try the next candidate.
+    }
   }
   return null;
 }
+
+const MEDIA_DIR = optionalEnv("OPENCLAW_MEDIA_DIR") || "/home/edu/.openclaw/media/inbound";
 
 function getSupabase(): SupabaseClient {
   if (supabaseClient) return supabaseClient;
@@ -39,18 +67,18 @@ function getSupabase(): SupabaseClient {
   return supabaseClient;
 }
 
-async function transcribe(fp: string): Promise<string> {
+async function transcribe(fp: string, mediaType?: string | null): Promise<string> {
   const bytes = readFileSync(fp);
   const genAI = new GoogleGenerativeAI(requireEnv("GEMINI_API_KEY"));
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
   const result = await model.generateContent([
     { text: "Transcribi este audio en espanol. Solo texto." },
-    { inlineData: { mimeType: "audio/ogg", data: bytes.toString("base64") } }
+    { inlineData: { mimeType: mediaType || "audio/ogg", data: bytes.toString("base64") } }
   ]);
   return result.response.text().trim();
 }
 
-async function generateAnamnesis(transcript: string): Promise<any> {
+async function generateAnamnesis(transcript: string): Promise<AnamnesisExtraction> {
   const prompt = "Eres un medico especialista en anamnesis y recoleccion de datos clinicos con 20 anios de experiencia. Tu UNICA funcion es escuchar el relato del paciente y ordenarlo clinicamente de forma impecable. NO diagnosticas, NO sugeris estudios, NO recomendas tratamientos. Solo recolectas, ordenas y presentas los datos.\n" +
     "Genera este JSON:\n" +
     "{\n" +
@@ -81,16 +109,16 @@ async function generateAnamnesis(transcript: string): Promise<any> {
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + requireEnv("DEEPSEEK_API_KEY") },
     body: JSON.stringify({ model: "deepseek-chat", messages: [{ role: "user", content: prompt }], temperature: 0.2, max_tokens: 2000 }),
   });
-  const data = await res.json() as any;
+  const data = await res.json() as DeepSeekResponse;
   const text = data?.choices?.[0]?.message?.content?.trim() || "{}";
-  return JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+  return JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1)) as AnamnesisExtraction;
 }
 
-function esc(t: any): string { return String(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/[^\x00-\x7F]/g, (c: string) => "&#" + c.codePointAt(0) + ";"); }
+function esc(t: unknown): string { return String(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/[^\u0020-\u007E]/g, (c: string) => "&#" + c.codePointAt(0) + ";"); }
 function li(items: string[]): string { return !items?.length ? "" : "<ul>" + items.map(i => "<li>" + esc(i) + "</li>").join("") + "</ul>"; }
 
-function buildHtml(a: any, id: string): string {
-  const p = a.paciente || {}, ea = a.enfermedadActual || {}, ap = a.antecedentesPersonales || {};
+function buildHtml(a: AnamnesisExtraction, id: string): string {
+  const ea = a.enfermedadActual || {}, ap = a.antecedentesPersonales || {};
   const edad = /^\d+$/.test(String(p.edad||"").trim()) ? p.edad + " anios" : (p.edad || "no referida");
   return "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Pre-Anamnesis - AutaMedica</title>" +
 "<style>body{font-family:Arial;max-width:700px;margin:40px auto;color:#1a1a1a;line-height:1.6}h1{color:#0d6e6e;border-bottom:2px solid #0d6e6e;padding-bottom:8px}h2{color:#333;margin-top:24px}.tag{background:#e8f5f5;padding:4px 8px;border-radius:4px}.alert{background:#fff3cd;padding:10px;border-left:4px solid #ffc107;margin:12px 0}.missing{background:#f8f9fa;padding:10px;border-left:4px solid #6c757d;margin:12px 0}ul{margin:4px 0;padding-left:20px}li{margin:2px 0}.footer{margin-top:40px;padding-top:16px;border-top:1px solid #ccc;font-size:.85em;color:#888}</style></head><body>" +
@@ -115,12 +143,12 @@ function buildHtml(a: any, id: string): string {
 }
 
 
-function generatePdf(a: any, id: string): Uint8Array {
+function generatePdf(a: AnamnesisExtraction, id: string): Uint8Array {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const PW = 210, ML = 20, MR = 20, CW = PW - ML - MR, LH = 6;
   let y = 20, pageNum = 1;
-  const p = a.paciente || {}, ea = a.enfermedadActual || {}, ap = a.antecedentesPersonales || {};
-  const t = (x: any) => String(x||"").replace(/&#(\d+);/g, (_:string,n:string) => String.fromCodePoint(parseInt(n)));
+  const ea = a.enfermedadActual || {}, ap = a.antecedentesPersonales || {};
+  const t = (x: unknown) => String(x||"").replace(/&#(\d+);/g, (_:string,n:string) => String.fromCodePoint(parseInt(n)));
 
   const addPage = () => {
     // Page footer before new page
@@ -270,41 +298,43 @@ function generatePdf(a: any, id: string): Uint8Array {
 }
 
 async function upload(id: string, html: string): Promise<string> {
-  const supabase = getSupabase() as any;
+  const supabase = getSupabase();
   const bytes = new TextEncoder().encode(html);
-  await supabase.storage.from("public_assets").upload("preanamnesis/"+id+".html", bytes, { contentType: "text/html; charset=utf-8", upsert: true });
+  const { error } = await supabase.storage
+    .from("public_assets")
+    .upload("preanamnesis/"+id+".html", bytes, { contentType: "text/html; charset=utf-8", upsert: true });
+  if (error) throw new Error("upload html preanamnesis: " + error.message);
   return supabase.storage.from("public_assets").getPublicUrl("preanamnesis/"+id+".html").data.publicUrl;
 }
 
-function sendMsg(phone: string, url: string, a: any, preId: string): void {
+async function sendMsg(phone: string, url: string, a: AnamnesisExtraction, preId: string): Promise<void> {
   const hasAlarm = (a.signosAlarma||[]).length > 0;
   const alarmNote = hasAlarm ? "\n\n⚠️ Se detectaron signos que requieren atencion medica." : "";
   const pagarLink = "https://www.autamedica.com/api/preanamnesis/pagar?id=" + encodeURIComponent(preId);
-  const msg = "🩺 *Tu pre-anamnesis esta lista*" + alarmNote + "\n\n" +
-    "📄 Mira tu informe: " + url + "\n\n" +
-    "*¿Queres que un medico lo revise ahora?*\n" +
+  const msg = "🩺 *Tu pre-anamnesis en PDF esta lista*" + alarmNote + "\n\n" +
+    "📄 Informe gratis: " + url + "\n\n" +
+    "El PDF es gratuito y ya queda disponible para que lo guardes o lo compartas con un profesional.\n\n" +
+    "*Consulta medica opcional*\n" +
     "👨‍⚕️ Consulta por videollamada — 30 min\n" +
     "💊 Incluye receta electronica si corresponde\n" +
     "💰 *ARS 15.000*\n\n" +
-    "👉 *Paga y agenda al instante:*\n" +
+    "👉 Si queres que un medico lo revise ahora, paga y agenda aca:\n" +
     pagarLink + "\n\n" +
     (hasAlarm ? "⚠️ No demores la consulta.\n\n" : "") +
     "_AutaMedica — Sin salir de casa._ 🏥";
-  const account = process.env.OPENCLAW_ACCOUNT || "autamedica";
-  try {
-    execFileSync("openclaw", [
-      "message", "send",
-      "--channel", "whatsapp",
-      "--account", account,
-      "--target", phone,
-      "--message", msg,
-      "--json",
-    ], { timeout: 15000 });
-  } catch(e) {}
+  const account = optionalEnv("OPENCLAW_ACCOUNT") || "autamedica";
+  const result = await sendMessageWithFallback(
+    { ...DEFAULT_OPENCLAW_CONFIG, accountId: account },
+    { to: phone, message: msg, channel: "whatsapp" },
+  );
+
+  if (!result.ok) {
+    console.error("[AUDIO] envio WhatsApp fallido:", result.error, result.raw ?? "");
+  }
 }
 
 
-function validateAnamnesis(a: any): string[] {
+function validateAnamnesis(a: AnamnesisExtraction): string[] {
   const errors: string[] = [];
   if (!a.motivoConsulta || a.motivoConsulta.length < 5) errors.push("motivoConsulta muy corto o vacio");
   if (!a.resumenOrdenado || a.resumenOrdenado.length < 40) errors.push("resumenOrdenado muy corto o vacio");
@@ -346,7 +376,7 @@ async function persistPreanamnesisSession(input: {
   transcript: string;
   extraction: Record<string, unknown>;
 }): Promise<void> {
-  const supabase = getSupabase() as any;
+  const supabase = getSupabase();
   const { error } = await supabase
     .from("preanamnesis_sessions")
     .upsert({
@@ -372,11 +402,11 @@ export async function processAudioForPhone(params: {
 }): Promise<ProcessAudioResult> {
   const fp = params.filePath;
   if (processed.has(fp)) throw new Error("audio ya procesado");
-  try { if (Date.now() - statSync(fp).mtimeMs > 10 * 60_000) throw new Error("audio demasiado antiguo"); } catch (err) {
+  try { if (Date.now() - statSync(fp).mtimeMs > 24 * 60 * 60_000) throw new Error("audio demasiado antiguo"); } catch (err) {
     if (err instanceof Error && err.message === "audio demasiado antiguo") throw err;
   }
   console.log("[AUDIO]", path.basename(fp));
-  const t = await transcribe(fp);
+  const t = await transcribe(fp, params.mediaType);
   const tErr = validateTranscript(t);
   if (tErr) { console.log("[AUDIO] TRANSCRIPCION INVALIDA:", tErr); throw new Error(tErr); }
   console.log("[AUDIO]", t.substring(0,100));
@@ -390,7 +420,10 @@ export async function processAudioForPhone(params: {
   const pdfBytes = generatePdf(a, id);
   const supabase = getSupabase();
   const storagePath = "preanamnesis/"+id+".pdf";
-  await supabase.storage.from("public_assets").upload("preanamnesis/"+id+".pdf", pdfBytes, { contentType: "application/pdf", upsert: true });
+  const { error: pdfUploadError } = await supabase.storage
+    .from("public_assets")
+    .upload("preanamnesis/"+id+".pdf", pdfBytes, { contentType: "application/pdf", upsert: true });
+  if (pdfUploadError) throw new Error("upload pdf preanamnesis: " + pdfUploadError.message);
   const pdfUrl = supabase.storage.from("public_assets").getPublicUrl("preanamnesis/"+id+".pdf").data.publicUrl;
   console.log("[AUDIO] PDF:", pdfUrl);
   const appPdfUrl = buildPublicPdfUrl(id, pdfUrl);
@@ -402,7 +435,7 @@ export async function processAudioForPhone(params: {
     transcript: t,
     extraction: a as Record<string, unknown>,
   });
-  sendMsg(params.phone, appPdfUrl, a, id);
+  await sendMsg(params.phone, appPdfUrl, a, id);
   processed.add(fp);
   return {
     id,
@@ -416,15 +449,17 @@ export async function processAudioForPhone(params: {
 
 async function processAudio(fp: string): Promise<void> {
   // Leer telefono del metadata JSON (escrito por IAsmin plugin v6)
-  let phone = process.env.AUDIO_WATCHER_NOTIFY_PHONE || '';
+  let phone = optionalEnv("AUDIO_WATCHER_NOTIFY_PHONE") || '';
   try {
     const metaPath = fp.replace(/.ogg$/, '.json');
-    if (require('node:fs').existsSync(metaPath)) {
-      const meta = JSON.parse(require('node:fs').readFileSync(metaPath, 'utf-8'));
-      if (meta.phone) phone = meta.phone;
+    if (existsSync(metaPath)) {
+      const meta = JSON.parse(readFileSync(metaPath, 'utf-8')) as { phone?: unknown };
+      if (typeof meta.phone === 'string') phone = meta.phone;
       console.log('[AUDIO] phone from metadata: ' + phone);
     }
-  } catch(e) { /* fallback to env */ }
+  } catch {
+    console.log('[AUDIO] metadata no disponible; usando AUDIO_WATCHER_NOTIFY_PHONE si existe');
+  }
   if (phone) {
     await processAudioForPhone({ filePath: fp, phone: phone });
   } else {
