@@ -187,12 +187,13 @@ function checkAbuse(ip: string): "allowed" | "blocked" {
 // ── SECURITY HEADERS ──────────────────────────────────────────────────────────
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://platform.linkedin.com https://badges.linkedin.com https://badges.linkedin-ei.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://static.licdn.com",
   "img-src 'self' data: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co wss://*.workers.dev https://*.workers.dev https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
   "media-src 'self' blob:",
+  "frame-src 'self' https://www.linkedin.com https://platform.linkedin.com https://badges.linkedin.com https://badges.linkedin-ei.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
