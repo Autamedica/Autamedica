@@ -13,12 +13,21 @@
  */
 
 import type { SupabaseLike } from './supabase';
+import { ensureEnv } from '@autamedica/shared';
 import { sendMessageWithFallback, type OpenClawConfig } from './openclaw';
-import { processTriageWithAI, type TriageAIOutput } from './triage-ai-processor';
+import { processTriageWithAI } from './triage-ai-processor';
 
 // ==========================================
 // Tipos
 // ==========================================
+
+function optionalEnv(name: string): string | null {
+  try {
+    return ensureEnv(name);
+  } catch {
+    return null;
+  }
+}
 
 export interface TriageQuestion {
   id: string;
@@ -593,7 +602,7 @@ async function continueTriageSession(
     await persistTriageResult(supabase, session, updatedAnswers);
 
     // 🧠 Procesar con IA para estructurar datos clínicos (fire-and-forget)
-    const apiKey = process.env['GEMINI_API_KEY'] || process.env['GOOGLE_API_KEY'] || '';
+    const apiKey = optionalEnv('GEMINI_API_KEY') || optionalEnv('GOOGLE_API_KEY') || '';
     if (apiKey) {
       processTriageWithAI(updatedAnswers, apiKey)
         .then(async (aiResult) => {
