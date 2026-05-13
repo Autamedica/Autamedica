@@ -32,7 +32,7 @@ export class IssuePrescriptionUseCase {
       });
 
       // Emitir evento para activation tracker (no bloqueante)
-      domainEvents.emit('prescription.issued', {
+      void domainEvents.emit('prescription.issued', {
         prescriptionId: issued.id,
         patientId: draft.patient.patientId,
         doctorId: draft.prescriber.doctorId,

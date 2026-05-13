@@ -1,3 +1,5 @@
+import type { DoctorId, PatientId, PrescriptionId } from '@autamedica/types'
+
 /**
  * Domain Events — Contratos de eventos del dominio AutaMedica
  *
@@ -56,9 +58,9 @@ export type DomainEvents = {
 
   // Prescripciones
   'prescription.issued': {
-    prescriptionId: string
-    patientId: string
-    doctorId: string
+    prescriptionId: PrescriptionId
+    patientId: PatientId
+    doctorId: DoctorId
   }
 
   // Informes médicos

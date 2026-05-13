@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { domainEvents } from '@autamedica/shared';
 import { IssuePrescriptionUseCase } from '../IssuePrescription';
 import type { 
   IPrescriptionRepository, 
@@ -6,7 +7,7 @@ import type {
   IIdentityValidator,
   PrescriptionDraft,
 } from '../../domain/ports';
-import type { PatientId, DoctorId, OrganizationId, PrescriptionStatus } from '../../domain/models';
+import type { PatientId, DoctorId, OrganizationId, PrescriptionId, PrescriptionStatus } from '../../domain/models';
 
 const mockDraft: PrescriptionDraft = {
   patient: {
@@ -28,10 +29,15 @@ const mockDraft: PrescriptionDraft = {
 };
 
 describe('IssuePrescriptionUseCase', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('should issue a prescription successfully', async () => {
+    const emitSpy = vi.spyOn(domainEvents, 'emit').mockResolvedValue(undefined);
     const repo = {
       saveDraft: vi.fn().mockResolvedValue('pres-1'),
-      markAsIssued: vi.fn().mockResolvedValue({ id: 'pres-1', cuir: 'CUIR-123' }),
+      markAsIssued: vi.fn().mockResolvedValue({ id: 'pres-1' as unknown as PrescriptionId, cuir: 'CUIR-123' }),
       logAuditEvent: vi.fn().mockResolvedValue(undefined)
     } as unknown as IPrescriptionRepository;
 
@@ -56,6 +62,11 @@ describe('IssuePrescriptionUseCase', () => {
     expect(repo.saveDraft).toHaveBeenCalled();
     expect(vendor.submit).toHaveBeenCalled();
     expect(repo.logAuditEvent).toHaveBeenCalled();
+    expect(emitSpy).toHaveBeenCalledWith('prescription.issued', {
+      prescriptionId: 'pres-1',
+      patientId: mockDraft.patient.patientId,
+      doctorId: mockDraft.prescriber.doctorId,
+    });
   });
 
   it('should throw error if doctor is not active', async () => {
