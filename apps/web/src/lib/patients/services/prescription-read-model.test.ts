@@ -51,6 +51,22 @@ describe("prescription-read-model", () => {
     expect(result.source).toBe("prescriptions_core");
   });
 
+  it("prefers issuance status over clinical status for patient prescription cards", () => {
+    const result = mapPrescriptionRecordToPatientPrescription({
+      id: "rx-2",
+      title: "Prescripcion: Amoxicilina",
+      created_at: "2026-04-08T10:00:00.000Z",
+      content: {
+        medication_name: "Amoxicilina",
+        status: "activa",
+        issuance_status: "sent",
+        source: "prescriptions_core",
+      },
+    });
+
+    expect(result.status).toBe("sent");
+  });
+
   it("adds an artifact warning for strict-validation medications without verifiable support", () => {
     const [result] = buildPatientPrescriptions([
       {

@@ -24,6 +24,7 @@ import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import { usePrescriptionsCore } from "@/hooks/doctors/usePrescriptionsCore";
 import type { IssuedPrescription } from "@autamedica/prescriptions";
 import type { UUID } from "@/types/medical";
+import type { PatientWithProfile } from "@autamedica/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -106,6 +107,82 @@ function mapCoreToDisplay(rx: IssuedPrescription): PrescriptionDisplayData {
   return { medicationName, dosage, diagnosis, notes };
 }
 
+function normalizeSearch(value: string | null | undefined): string {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function compactPatientId(id: string | null | undefined): string {
+  return id ? id.slice(0, 8).toUpperCase() : "SIN-ID";
+}
+
+function getPatientDisplayName(patient: PatientWithProfile): string {
+  const fullName = [patient.profile?.first_name, patient.profile?.last_name]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(" ");
+
+  if (fullName) return fullName;
+  if (patient.profile?.email) return patient.profile.email;
+  if (patient.profile?.phone) return patient.profile.phone;
+  if (patient.dni) return `DNI ${patient.dni}`;
+  return `Paciente ${compactPatientId(patient.id)}`;
+}
+
+function getPatientSecondaryLabel(patient: PatientWithProfile): string {
+  if (patient.dni) return `DNI ${patient.dni}`;
+  if (patient.profile?.phone && patient.profile?.email) return patient.profile.phone;
+  if (patient.profile?.external_id) return patient.profile.external_id;
+  return `ID ${compactPatientId(patient.id)}`;
+}
+
+function matchesPatientSearch(patient: PatientWithProfile, query: string): boolean {
+  const haystack = [
+    getPatientDisplayName(patient),
+    getPatientSecondaryLabel(patient),
+    patient.profile?.first_name,
+    patient.profile?.last_name,
+    patient.profile?.email,
+    patient.profile?.phone,
+    patient.profile?.external_id,
+    patient.dni,
+    patient.user_id,
+    patient.id,
+  ]
+    .map(normalizeSearch)
+    .filter(Boolean)
+    .join(" ");
+
+  return haystack.includes(query);
+}
+
+function getSignedPdfUrl(rx: IssuedPrescription): string | undefined {
+  const value = (rx as unknown as Record<string, unknown>).signed_pdf_url;
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+}
+
+function getPrescriptionViewUrl(rx: IssuedPrescription): string | undefined {
+  const signedPdfUrl = getSignedPdfUrl(rx);
+  if (signedPdfUrl) return signedPdfUrl;
+
+  const cuir = getCuir(rx);
+  return cuir ? `/verify/${encodeURIComponent(cuir)}` : undefined;
+}
+
+function printPrescriptionArtifact(rx: IssuedPrescription): boolean {
+  const url = getPrescriptionViewUrl(rx);
+  if (!url) return false;
+
+  const popup = window.open(url, "_blank", "noopener,noreferrer");
+  if (!popup) return false;
+
+  popup.addEventListener("load", () => {
+    popup.focus();
+    popup.print();
+  }, { once: true });
+
+  return true;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function DoctorsPrescriptionsPage() {
@@ -116,13 +193,8 @@ export function DoctorsPrescriptionsPage() {
 
   const filteredPatients = useMemo(() => {
     if (!patientSearch.trim()) return patients;
-    const q = patientSearch.toLowerCase();
-    return patients.filter(
-      (p) =>
-        (p.profile?.first_name?.toLowerCase().includes(q)) ||
-        (p.profile?.last_name?.toLowerCase().includes(q)) ||
-        (p.dni?.toLowerCase().includes(q))
-    );
+    const q = patientSearch.trim().toLowerCase();
+    return patients.filter((p) => matchesPatientSearch(p, q));
   }, [patients, patientSearch]);
 
   // Prescriptions for selected patient
@@ -176,8 +248,25 @@ export function DoctorsPrescriptionsPage() {
   }, [prescriptions, activeTab, search]);
 
   const viewPrescription = (rx: IssuedPrescription): void => {
+    const url = getPrescriptionViewUrl(rx);
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+
     setSelectedPrescription(rx);
     setShowDetailPanel(true);
+  };
+
+  const inspectPrescription = (rx: IssuedPrescription): void => {
+    setSelectedPrescription(rx);
+    setShowDetailPanel(true);
+  };
+
+  const printPrescription = (rx: IssuedPrescription): void => {
+    if (!printPrescriptionArtifact(rx)) {
+      inspectPrescription(rx);
+    }
   };
 
   const handleSaved = (): void => {
@@ -265,7 +354,8 @@ export function DoctorsPrescriptionsPage() {
               </div>
               <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                 {filteredPatients.slice(0, 50).map((p) => {
-                  const name = [p.profile?.first_name, p.profile?.last_name].filter(Boolean).join(" ") || "Paciente";
+                  const name = getPatientDisplayName(p);
+                  const secondaryLabel = getPatientSecondaryLabel(p);
                   const isSelected = selectedPatientId === p.id;
                   return (
                     <button
@@ -278,8 +368,8 @@ export function DoctorsPrescriptionsPage() {
                       }`}
                     >
                       <User className="h-3.5 w-3.5" />
-                      <span className="max-w-[200px] truncate">{name}</span>
-                      {p.dni && <span className="text-[10px] opacity-60">{p.dni}</span>}
+                      <span className="max-w-[220px] truncate">{name}</span>
+                      <span className="text-[10px] opacity-60">{secondaryLabel}</span>
                     </button>
                   );
                 })}
@@ -424,6 +514,7 @@ export function DoctorsPrescriptionsPage() {
                       const cuir = getCuir(rx);
                       const status = getStatusField(rx);
                       const createdAt = getCreatedAt(rx);
+                      const viewUrl = getPrescriptionViewUrl(rx);
                       return (
                         <motion.div
                           key={getId(rx)}
@@ -461,18 +552,32 @@ export function DoctorsPrescriptionsPage() {
                             </div>
                             <div className="flex items-center gap-2">
                               <button
+                                type="button"
                                 onClick={() => viewPrescription(rx)}
+                                disabled={!viewUrl}
                                 className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 hover:border-neutral-300"
+                                title={viewUrl ? "Abrir receta digital" : "La receta todavia no tiene PDF/verificador"}
                               >
                                 <Eye className="h-3.5 w-3.5" />
                                 Ver
                               </button>
                               <button
-                                onClick={() => window.print()}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 hover:border-neutral-300"
+                                type="button"
+                                onClick={() => printPrescription(rx)}
+                                disabled={!viewUrl}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 hover:border-neutral-300 disabled:cursor-not-allowed disabled:opacity-40"
+                                title={viewUrl ? "Abrir receta para imprimir" : "La receta todavia no tiene PDF/verificador"}
                               >
                                 <Printer className="h-3.5 w-3.5" />
                                 Imprimir
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => inspectPrescription(rx)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 hover:border-neutral-300"
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                                Detalle
                               </button>
                             </div>
                           </div>

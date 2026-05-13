@@ -66,7 +66,7 @@ export function mapPrescriptionRecordToPatientPrescription(
     doctor_name: asString(content.doctor_name),
     prescriber_specialty: asString(content.prescriber_specialty),
     notes: asString(content.notes),
-    status: asString(content.status) ?? "activa",
+    status: asString(content.issuance_status) ?? asString(content.status) ?? "activa",
     prescribed_date: asString(content.prescribed_date) ?? fallbackDate,
     start_date: asString(content.start_date) ?? fallbackDate,
     end_date: asString(content.end_date),
