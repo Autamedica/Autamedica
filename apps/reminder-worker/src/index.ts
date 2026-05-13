@@ -20,6 +20,7 @@ import { createClient } from '@supabase/supabase-js';
 import { processReminderCycle, DEFAULT_OPENCLAW_CONFIG } from '@autamedica/scheduling';
 import type { OpenClawConfig } from '@autamedica/scheduling';
 import { getServerEnvOrDefault } from '@autamedica/shared';
+import { processDoctorWhatsAppJobs } from './doctor-whatsapp-notifications';
 
 // Config from env
 const SUPABASE_URL = getServerEnvOrDefault('SUPABASE_URL');
@@ -64,15 +65,27 @@ async function tick() {
       batchSize: 50,
       dryRun: effectiveDryRun,
     });
+    const doctorWhatsAppResult = await processDoctorWhatsAppJobs(supabase, {
+      openclaw: openclawConfig,
+      batchSize: 25,
+      dryRun: effectiveDryRun,
+    });
 
-    if (result.processed > 0 || result.waitlistOffersSent > 0 || result.waitlistExpired > 0 || result.noShowsMarked > 0) {
+    if (
+      result.processed > 0 ||
+      result.waitlistOffersSent > 0 ||
+      result.waitlistExpired > 0 ||
+      result.noShowsMarked > 0 ||
+      doctorWhatsAppResult.processed > 0
+    ) {
       console.log(
-        `[${new Date().toISOString()}] Processed: ${result.processed} | Sent: ${result.sent} | Failed: ${result.failed} | Waitlist sent: ${result.waitlistOffersSent} | Waitlist expired: ${result.waitlistExpired} | No-show marked: ${result.noShowsMarked}`,
+        `[${new Date().toISOString()}] Processed: ${result.processed} | Sent: ${result.sent} | Failed: ${result.failed} | Waitlist sent: ${result.waitlistOffersSent} | Waitlist expired: ${result.waitlistExpired} | No-show marked: ${result.noShowsMarked} | Doctor WA sent: ${doctorWhatsAppResult.sent} | Doctor WA failed: ${doctorWhatsAppResult.failed}`,
       );
     }
 
-    if (result.errors.length > 0) {
-      for (const err of result.errors) {
+    const errors = [...result.errors, ...doctorWhatsAppResult.errors];
+    if (errors.length > 0) {
+      for (const err of errors) {
         console.error(`  ❌ ${err}`);
       }
     }
