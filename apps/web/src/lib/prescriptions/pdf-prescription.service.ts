@@ -1,3 +1,4 @@
+import { getServerEnvOrDefault } from '@autamedica/shared';
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { rctaService } from './rcta.service';
@@ -90,6 +91,8 @@ const CODE128_PATTERNS = [
   '214121', '412121', '111143', '111341', '131141', '114113', '114311', '411113', '411311', '113141',
   '114131', '311141', '411131', '211412', '211214', '211232', '2331112',
 ] as const;
+
+const OFFICIAL_RENAPDIS_RL_NUMBER = 'RL-2026-47574120-APN-SSVEIYES#MS';
 
 function buildCode128BValues(value: string): number[] {
   const sanitized = value.replace(/[^\x20-\x7e]/g, '').slice(0, 48);
@@ -405,7 +408,8 @@ export async function generatePrescriptionPdf(
     marginLeft, footerY + 4
   );
 
-  const renapdisLegajo = process.env.RENAPDIS_RL_NUMBER || 'RL pendiente';
+  const renapdisLegajo =
+    getServerEnvOrDefault('RENAPDIS_RL_NUMBER', OFFICIAL_RENAPDIS_RL_NUMBER) ?? OFFICIAL_RENAPDIS_RL_NUMBER;
   doc.text(
     'Esta receta fue creada por un emisor inscripto y validado en el Registro de Recetarios Electrónicos',
     marginLeft,

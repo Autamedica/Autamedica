@@ -21,7 +21,6 @@ import {
 import "./lib/patients/services/clinical-orchestrator.service";
 import "./lib/notifications/notification-triggers";
 import "./lib/payments/triggers";
-import "./lib/activation/activation-tracker-integration";
 
 // Rutas que requieren autenticación
 const PROTECTED_ROUTES = [
@@ -870,11 +869,21 @@ export const onRequest = defineMiddleware(async (context, next) => {
     logger.error("Middleware error:", err);
 
     if (isProtectedPath(pathname) || isPortalHostRoot) {
+      let loginPortal = "patients";
+      if (isDoctorHostRoot || pathname.startsWith("/doctors"))
+        loginPortal = "doctors";
+      else if (isPharmacyHost || pathname.startsWith("/pharmacy"))
+        loginPortal = "pharmacy";
+      else if (isCompanyHost || pathname.startsWith("/companies"))
+        loginPortal = "companies";
+      else if (pathname.startsWith("/admin")) loginPortal = "admin";
+
       const loginUrl = new URL("/auth/login", context.request.url);
       loginUrl.searchParams.set(
         "returnTo",
         isPortalHostRoot ? "/" : pathname + requestUrl.search,
       );
+      loginUrl.searchParams.set("portal", loginPortal);
       return context.redirect(loginUrl.toString());
     }
 
