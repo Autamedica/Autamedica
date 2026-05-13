@@ -32,13 +32,17 @@ export class IssuePrescriptionUseCase {
       });
 
       // Emitir evento para activation tracker (no bloqueante)
-      void domainEvents.emit('prescription.issued', {
-        prescriptionId: issued.id,
-        patientId: draft.patient.patientId,
-        doctorId: draft.prescriber.doctorId,
-      }).catch((err: unknown) => {
-        logger.warn('[IssuePrescription] prescription.issued emit failed', err)
-      })
+      void (async () => {
+        try {
+          await domainEvents.emit('prescription.issued', {
+            prescriptionId: issued.id,
+            patientId: draft.patient.patientId,
+            doctorId: draft.prescriber.doctorId,
+          })
+        } catch (err: unknown) {
+          logger.warn('[IssuePrescription] prescription.issued emit failed', err)
+        }
+      })()
 
       return issued;
     } catch (error) {
