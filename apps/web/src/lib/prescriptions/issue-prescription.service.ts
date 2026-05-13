@@ -104,11 +104,30 @@ export type IssuanceError =
   | { code: 'missing_patient_identification' }
   | { code: 'missing_patient_address' }
   | { code: 'no_medication' }
+  | { code: 'missing_cuir' }
+  | { code: 'pdf_upload_failed' }
   | { code: 'update_failed' };
 
 type Result = { ok: true; data: IssuanceResult } | { ok: false; error: IssuanceError };
 
 function fail(error: IssuanceError): Result { return { ok: false, error }; }
+
+function getPrescriptionStoragePath(cuir: string, signedPdfUrl?: string | null): string {
+  if (signedPdfUrl) {
+    try {
+      const url = new URL(signedPdfUrl);
+      const marker = '/medical-documents/';
+      const index = url.pathname.indexOf(marker);
+      if (index >= 0) {
+        return decodeURIComponent(url.pathname.slice(index + marker.length));
+      }
+    } catch {
+      // Fall back to the canonical legacy path below.
+    }
+  }
+
+  return `prescriptions/${cuir}/receta-${cuir}.pdf`;
+}
 
 async function resolveProfileName(
   supabase: SupabaseClient,
@@ -373,6 +392,148 @@ export async function issuePrescription(
   }
 
   logger.info('[issuePrescription] Complete', { prescriptionId, cuir: artifacts.cuir });
+
+  return {
+    ok: true,
+    data: {
+      cuir: artifacts.cuir,
+      qrContent: artifacts.qrContent,
+      signedPdfUrl,
+      issuedAt: now,
+      expiresAt,
+    },
+  };
+}
+
+export async function regenerateIssuedPrescriptionPdf(
+  supabase: SupabaseClient,
+  prescriptionId: string,
+  userId: string,
+): Promise<Result> {
+  const { data: doctor } = await supabase
+    .from('doctors')
+    .select('id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url')
+    .eq('user_id', userId)
+    .single();
+
+  if (!doctor) return fail({ code: 'doctor_not_found' });
+  if (!doctor.license_number) return fail({ code: 'missing_license_number' });
+  if (!doctor.refeps_id) return fail({ code: 'missing_refeps_id' });
+  if (!doctor.professional_address) return fail({ code: 'missing_professional_address' });
+
+  const { data: rx } = await supabase
+    .from('prescriptions')
+    .select('id, doctor_id, patient_id, status, clinical_data, cuir, signed_pdf_url')
+    .eq('id', prescriptionId)
+    .single();
+
+  if (!rx) return fail({ code: 'prescription_not_found' });
+  if (rx.doctor_id !== doctor.id) return fail({ code: 'not_your_prescription' });
+  if (!rx.cuir) return fail({ code: 'missing_cuir' });
+
+  const { data: patient } = await supabase
+    .from('patients')
+    .select('user_id, dni, cuil, address, birth_date, gender, insurance_info')
+    .eq('id', rx.patient_id)
+    .single();
+
+  if (!patient) return fail({ code: 'patient_not_found' });
+
+  const clinicalData = rx.clinical_data as ClinicalData;
+  const externalPatient = clinicalData?.external_patient;
+  if (!patient.dni && !patient.cuil && !externalPatient?.dni && !externalPatient?.cuil) {
+    return fail({ code: 'missing_patient_identification' });
+  }
+  if (!patient.address && !externalPatient?.address) return fail({ code: 'missing_patient_address' });
+
+  const item = clinicalData?.items?.[0];
+  if (!item?.generic_name) return fail({ code: 'no_medication' });
+
+  const patientName = externalPatient?.name?.trim()
+    || (patient.user_id ? await resolveProfileName(supabase, patient.user_id, '') : 'Paciente');
+  const doctorName = await resolveProfileName(supabase, userId, 'Dr.');
+  const now = new Date().toISOString();
+  const validityDays = getValidityPeriodDays(item.generic_name);
+  const expiresAt = addDays(new Date(now), validityDays).toISOString();
+
+  const artifacts = await generatePrescriptionPdf({
+    prescriptionId,
+    existingCuir: rx.cuir,
+    medication: {
+      genericName: item.generic_name,
+      commercialName: item.commercial_name,
+      dosage: item.dosage ?? '',
+      presentation: item.presentation ?? '',
+      quantity: item.quantity ?? 0,
+      instructions: item.instructions ?? '',
+    },
+    diagnosis: clinicalData.diagnosis ?? '',
+    notes: clinicalData.notes,
+    patient: {
+      name: patientName,
+      dni: patient.dni ?? externalPatient?.dni ?? undefined,
+      cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
+      dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
+      sex: patient.gender ?? externalPatient?.gender ?? undefined,
+      insurancePlan: resolveInsurancePlan(patient.insurance_info),
+      address: patient.address ?? externalPatient?.address ?? undefined,
+    },
+    prescriber: {
+      name: doctorName,
+      license: doctor.license_number,
+      licenseJurisdiction: doctor.enrollment_jurisdiction ?? undefined,
+      licenseEntity: doctor.enrollment_entity ?? undefined,
+      refeps: doctor.refeps_id ?? undefined,
+      specialty: doctor.specialty ?? undefined,
+      professionalAddress: doctor.professional_address ?? undefined,
+      signatureImageUrl: doctor.signature_image_url ?? undefined,
+      stampImageUrl: doctor.stamp_image_url ?? undefined,
+    },
+    issuedAt: now,
+    expiresAt,
+  });
+
+  const pdfPath = getPrescriptionStoragePath(rx.cuir, rx.signed_pdf_url);
+  const { error: uploadError } = await supabase.storage
+    .from('medical-documents')
+    .upload(pdfPath, artifacts.pdfBuffer, {
+      contentType: 'application/pdf',
+      upsert: true,
+    });
+
+  if (uploadError) {
+    logger.warn('[regenerateIssuedPrescriptionPdf] PDF upload failed', uploadError);
+    return fail({ code: 'pdf_upload_failed' });
+  }
+
+  const { data: urlData } = await supabase.storage
+    .from('medical-documents')
+    .createSignedUrl(pdfPath, 365 * 24 * 60 * 60);
+  const signedPdfUrl = urlData?.signedUrl ?? rx.signed_pdf_url ?? null;
+
+  const { error: updateError } = await supabase
+    .from('prescriptions')
+    .update({
+      qr_code_content: artifacts.qrContent,
+      signed_pdf_url: signedPdfUrl,
+    })
+    .eq('id', prescriptionId);
+
+  if (updateError) {
+    logger.error('[regenerateIssuedPrescriptionPdf] Update failed', updateError);
+    return fail({ code: 'update_failed' });
+  }
+
+  await supabase.from('prescription_audit_events').insert({
+    prescription_id: prescriptionId,
+    event_type: 'pdf_regenerated',
+    user_id: userId,
+    metadata: {
+      cuir: artifacts.cuir,
+      pdfPath,
+      reason: 'refresh_prescription_artifact_template',
+    },
+  });
 
   return {
     ok: true,
