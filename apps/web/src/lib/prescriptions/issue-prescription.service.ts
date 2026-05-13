@@ -29,6 +29,14 @@ interface ClinicalData {
   items?: ClinicalItem[];
   diagnosis?: string;
   notes?: string;
+  external_patient?: {
+    name?: string;
+    dni?: string;
+    cuil?: string;
+    address?: string;
+    birth_date?: string;
+    gender?: string;
+  };
 }
 
 function addDays(date: Date, days: number): Date {
@@ -152,17 +160,19 @@ export async function issuePrescription(
     .single();
 
   if (!patient) return fail({ code: 'patient_not_found' });
-  if (!patient.dni && !patient.cuil) return fail({ code: 'missing_patient_identification' });
-  if (!patient.address) return fail({ code: 'missing_patient_address' });
+  // 4. Parse clinical data
+  const clinicalData = rx.clinical_data as ClinicalData;
+  const externalPatient = clinicalData?.external_patient;
+  if (!patient.dni && !patient.cuil && !externalPatient?.dni && !externalPatient?.cuil) {
+    return fail({ code: 'missing_patient_identification' });
+  }
+  if (!patient.address && !externalPatient?.address) return fail({ code: 'missing_patient_address' });
 
-  // 4. Resolve names
-  const patientName = patient.user_id
-    ? await resolveProfileName(supabase, patient.user_id, '')
-    : 'Paciente';
+  // 5. Resolve names
+  const patientName = externalPatient?.name?.trim()
+    || (patient.user_id ? await resolveProfileName(supabase, patient.user_id, '') : 'Paciente');
   const doctorName = await resolveProfileName(supabase, userId, 'Dr.');
 
-  // 5. Parse clinical data
-  const clinicalData = rx.clinical_data as ClinicalData;
   const item = clinicalData?.items?.[0];
   if (!item?.generic_name) return fail({ code: 'no_medication' });
 
@@ -195,12 +205,12 @@ export async function issuePrescription(
     notes: clinicalData.notes,
     patient: {
       name: patientName,
-      dni: patient.dni ?? undefined,
-      cuil: patient.cuil ?? undefined,
-      dateOfBirth: patient.birth_date ?? undefined,
-      sex: patient.gender ?? undefined,
+      dni: patient.dni ?? externalPatient?.dni ?? undefined,
+      cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
+      dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
+      sex: patient.gender ?? externalPatient?.gender ?? undefined,
       insurancePlan: resolveInsurancePlan(patient.insurance_info),
-      address: patient.address ?? undefined,
+      address: patient.address ?? externalPatient?.address ?? undefined,
     },
     prescriber: {
       name: doctorName,

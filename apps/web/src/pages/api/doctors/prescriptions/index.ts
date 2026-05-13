@@ -73,6 +73,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (error instanceof Error && error.message === "forbidden_patient_access") {
       return forbidden("forbidden_patient_access");
     }
+    if (error instanceof Error && error.message === "patient_id_required") {
+      return badRequest("patient_id or external_patient is required");
+    }
+    if (error instanceof Error && error.message === "external_patient_identification_required") {
+      return badRequest("Para pacientes sin cuenta debe informar DNI o CUIL.");
+    }
+    if (error instanceof Error && error.message === "external_patient_address_required") {
+      return badRequest("Para pacientes sin cuenta debe informar domicilio.");
+    }
     if (error instanceof Error && error.message === "strict_prescription_missing_required_fields") {
       return badRequest(
         "Para metilfenidato o lisdexanfetamina debe informar diagnostico y dosis antes de guardar el borrador clinico.",

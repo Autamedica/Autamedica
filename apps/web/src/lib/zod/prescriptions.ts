@@ -10,8 +10,20 @@ export const DoctorClinicalPrescriptionStatusSchema = z.enum([
   'pausada',
 ])
 
-export const DoctorPrescriptionCreateSchema = z.object({
-  patient_id: z.string().trim().min(1, 'patient_id is required'),
+export const ExternalPrescriptionPatientSchema = z.object({
+  name: z.string().trim().min(1, 'external_patient.name is required').max(200),
+  dni: OptionalText(30),
+  cuil: OptionalText(30),
+  address: OptionalText(300),
+  birth_date: z.string().optional(),
+  gender: OptionalText(40),
+}).refine((value) => Boolean(value.dni || value.cuil), {
+  message: 'external_patient.dni or external_patient.cuil is required',
+})
+
+const DoctorPrescriptionCreateBaseSchema = z.object({
+  patient_id: z.string().trim().min(1, 'patient_id is required').optional(),
+  external_patient: ExternalPrescriptionPatientSchema.optional(),
   medication_name: z.string().trim().min(1, 'medication_name is required').max(200),
   dosage: OptionalText(200),
   frequency: OptionalText(200),
@@ -26,8 +38,13 @@ export const DoctorPrescriptionCreateSchema = z.object({
   diagnosis: OptionalNullableText(500),
 })
 
-export const DoctorPrescriptionUpdateSchema = DoctorPrescriptionCreateSchema
-  .omit({ patient_id: true })
+export const DoctorPrescriptionCreateSchema = DoctorPrescriptionCreateBaseSchema
+  .refine((value) => Boolean(value.patient_id || value.external_patient), {
+    message: 'patient_id or external_patient is required',
+  })
+
+export const DoctorPrescriptionUpdateSchema = DoctorPrescriptionCreateBaseSchema
+  .omit({ patient_id: true, external_patient: true })
   .partial()
   .refine((value) => Object.keys(value).length > 0, {
     message: 'at least one field is required',
