@@ -17,6 +17,9 @@ export interface AutamedicaEmailTemplateInput {
   unsubscribeUrl?: string;
   variant?: AutamedicaEmailVariant;
   gifUrl?: string;
+  closingName?: string;
+  closingRole?: string;
+  showPersonalSignature?: boolean;
 }
 
 export interface RenderedEmail {
@@ -58,8 +61,8 @@ function textFromInput(input: AutamedicaEmailTemplateInput): string {
     input.action ? `${input.action.label}: ${input.action.url}` : '',
     input.secondaryLink ? `${input.secondaryLink.label}: ${input.secondaryLink.url}` : '',
     '',
-    'Eduardo Marques',
-    'Fundador · AutaMedica',
+    input.showPersonalSignature === false ? '' : input.closingName ?? 'Eduardo Marques',
+    input.showPersonalSignature === false ? '' : input.closingRole ?? 'Fundador: Eduardo Marques',
     'contacto@autamedica.com',
   ].filter(Boolean);
 
@@ -102,13 +105,16 @@ export function renderAutamedicaEmail(
   <title>${escapeHtml(subject)}</title>
   <style>
     body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #0F172A; }
-    .email-container { max-width: 600px; margin: 40px auto; background-color: #FFFFFF; border-radius: 28px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: 0 20px 40px rgba(15,23,42,0.06); }
+    .email-container { max-width: 640px; margin: 40px auto; background-color: #FFFFFF; border-radius: 12px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: 0 20px 40px rgba(15,23,42,0.06); }
+    .brand-header { background: linear-gradient(135deg,#143B5A,#2876A4); padding: 40px 40px 28px; text-align: center; }
+    .brand-header img { display: block; width: 225px; max-width: 70%; height: auto; border: 0; outline: none; text-decoration: none; margin: 0 auto 24px; background: #FFFFFF; }
+    .brand-kicker { color: #DDEAF4; font-size: 15px; line-height: 1.2; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 500; }
     .content { padding: 44px 46px 42px; line-height: 1.62; }
-    h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 30px; line-height: 1.18; font-weight: 700; color: #020617; margin: 0 0 22px; letter-spacing: 0; }
+    h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 26px; line-height: 1.2; font-weight: 700; color: #0F2B46; margin: 0 0 22px; letter-spacing: 0; }
     p { font-size: 16px; margin: 0 0 18px; color: #475569; }
     strong { color: #111827; }
     .note { background-color: #F8FAFC; padding: 22px; border-radius: 18px; margin: 30px 0 0; border-left: 4px solid #00A3FF; }
-    .button { background-color: #020617; color: #FFFFFF !important; padding: 15px 30px; text-decoration: none; border-radius: 9999px; font-weight: 700; display: inline-block; font-size: 15px; }
+    .button { background-color: #1B4F72; color: #FFFFFF !important; padding: 13px 26px; text-decoration: none; border-radius: 8px; font-weight: 700; display: inline-block; font-size: 15px; }
     .footer { padding: 32px 40px 38px; text-align: center; font-size: 13px; color: #64748B; border-top: 1px solid #F1F5F9; }
     .footer a { color: #64748B; }
     @media (max-width: 640px) {
@@ -121,17 +127,10 @@ export function renderAutamedicaEmail(
 <body>
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(preheader)}</div>
   <div class="email-container">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-      <tr>
-        <td
-          background="${escapeHtml(gifUrl)}"
-          bgcolor="#EAF6FF"
-          width="600"
-          height="220"
-          style="background-image:url('${escapeHtml(gifUrl)}');background-repeat:no-repeat;background-position:center;background-size:cover;height:220px;border-bottom:1px solid #F1F5F9;"
-        ></td>
-      </tr>
-    </table>
+    <div class="brand-header">
+      <img src="${escapeHtml(gifUrl)}" alt="AutaMedica">
+      <div class="brand-kicker">Telemedicina para LATAM</div>
+    </div>
 
     <div class="content">
       <h1>${escapeHtml(input.title)}</h1>
@@ -141,15 +140,19 @@ export function renderAutamedicaEmail(
       ${actionHtml}
       ${secondaryHtml}
 
-      <div style="margin-top:38px;">
+      ${
+        input.showPersonalSignature === false
+          ? ''
+          : `<div style="margin-top:38px;">
         <p style="margin:0 0 4px;color:#475569;">Saludos,</p>
-        <p style="margin:0;color:#111827;"><strong>Eduardo Marques</strong><br>Fundador · AutaMedica</p>
-      </div>
+        <p style="margin:0;color:#111827;"><strong>${escapeHtml(input.closingName ?? 'Eduardo Marques')}</strong><br>${escapeHtml(input.closingRole ?? 'Fundador: Eduardo Marques')}</p>
+      </div>`
+      }
     </div>
 
     <div class="footer">
       <p style="font-size:13px;margin:0 0 10px;">AutaMedica · contacto@autamedica.com</p>
-      <p style="font-size:12px;margin:0 0 18px;">${escapeHtml(input.footerText ?? 'Tecnologia para que la consulta empiece con mejor informacion.')}</p>
+      <p style="font-size:12px;margin:0 0 18px;">${escapeHtml(input.footerText ?? 'Salud digital, continuidad de cuidado y tecnologia clinica.')}</p>
       ${unsubscribeHtml}
     </div>
   </div>

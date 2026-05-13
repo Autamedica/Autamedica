@@ -108,20 +108,22 @@ function renderDoctorNewAppointment(job: EmailJob): RenderedEmail {
   const data = job.template_data ?? {};
   const appointmentTime = stringFromData(data, 'appointment_time');
   const patientName = stringFromData(data, 'patient_name') || 'Un paciente';
-  const actionUrl = stringFromData(data, 'action_url') || 'https://www.autamedica.com/doctors/agenda';
+  const actionUrl = stringFromData(data, 'action_url') || 'https://doctor.autamedica.com/doctors/appointments';
   const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
 
-  return renderAutamedicaEmail('AutaMedica · nueva cita agendada', {
+  return renderAutamedicaEmail('AutaMedica · consulta pagada y confirmada', {
     variant: 'transactional',
-    title: `Hola, ${firstName(job)}`,
-    preheader: 'Tenes una nueva cita agendada en AutaMedica.',
+    title: 'Consulta pagada y confirmada',
+    preheader: 'Tenes una consulta confirmada en tu agenda de AutaMedica.',
     paragraphs: [
       appointmentTime
-        ? `${patientName} agendo una consulta para el ${appointmentTime} hs.`
-        : `${patientName} agendo una nueva consulta.`,
-      'Ya podes verla desde tu agenda medica.',
+        ? `${patientName} confirmo el pago de una consulta para el ${appointmentTime}.`
+        : `${patientName} confirmo el pago de una consulta.`,
+      'Ya podes revisar los detalles desde tu agenda medica.',
     ],
     action: { label: 'Ver agenda', url: actionUrl },
+    footerText: 'Salud digital, continuidad de cuidado y tecnologia clinica.',
+    showPersonalSignature: false,
     unsubscribeUrl,
   });
 }
