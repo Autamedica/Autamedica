@@ -167,7 +167,7 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
             <div>
               <label className="block text-xs font-medium text-am-surface-700 mb-1">Tipo</label>
               <select value={form.substitution_type} onChange={set('substitution_type')} className={inputClass}>
-                <option value="" disabled>Seleccionar solo si aplica</option>
+                <option value="">Sin cambios</option>
                 <option value="generic_equivalent">Equivalente genérico</option>
                 <option value="therapeutic_equivalent">Equivalente terapéutico</option>
                 <option value="emergency_substitute">Sustituto de emergencia</option>
