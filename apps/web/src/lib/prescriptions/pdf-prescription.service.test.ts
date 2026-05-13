@@ -1,9 +1,16 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { primeRuntimeEnv, resetRuntimeEnvCache } from '@/lib/runtime-env';
 import { generatePrescriptionPdf } from './pdf-prescription.service';
 import { rctaService } from './rcta.service';
 
 describe('generatePrescriptionPdf', () => {
+  afterEach(() => {
+    resetRuntimeEnvCache();
+    vi.restoreAllMocks();
+  });
+
   it('renders a visible barcode block tied to the CUIR', async () => {
+    primeRuntimeEnv({ RENAPDIS_RL_NUMBER: 'RL-2026-47574120-APN-SSVEIYES#MS' });
     vi.spyOn(rctaService, 'registerPrescription').mockResolvedValueOnce({
       cuir: 'AR-20260511-C0EEE620',
       evidenceHash: 'test-evidence-hash',
@@ -58,5 +65,47 @@ describe('generatePrescriptionPdf', () => {
     expect(pdfText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
     expect(pdfText).not.toMatch(/no sustituci[oó]n/i);
     expect(pdfText).toContain('AR-20260511-C0EEE620');
+  });
+
+  it('reads RENAPDIS legajo from the Cloudflare runtime env cache', async () => {
+    primeRuntimeEnv({ RENAPDIS_RL_NUMBER: 'RL-RUNTIME-RENAPDIS-123' });
+    vi.spyOn(rctaService, 'registerPrescription').mockResolvedValueOnce({
+      cuir: 'AR-20260511-RENAPDIS',
+      evidenceHash: 'test-evidence-hash',
+      registrationId: 'rcta_idx_test',
+      timestamp: '2026-05-11T12:00:00.000Z',
+    });
+
+    const artifacts = await generatePrescriptionPdf({
+      prescriptionId: 'rx-renapdis',
+      diagnosis: 'Control',
+      issuedAt: '2026-05-11',
+      medication: {
+        genericName: 'Ibuprofeno',
+        commercialName: 'Actron',
+        dosage: '400mg',
+        instructions: 'Tomar segun indicacion medica',
+        presentation: 'Comprimidos',
+        quantity: 10,
+      },
+      patient: {
+        address: 'Av. Corrientes 1234, CABA',
+        cuil: '27301234568',
+        dateOfBirth: '1990-06-14',
+        dni: '30123456',
+        name: 'Maria Gonzalez',
+        sex: 'Femenino',
+      },
+      prescriber: {
+        license: 'MN-123456',
+        licenseEntity: 'Ministerio de Salud',
+        licenseJurisdiction: 'MN',
+        name: 'Dr. Eduardo Marques da Rosa',
+      },
+    });
+
+    const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
+
+    expect(pdfText).toContain('RL-RUNTIME-RENAPDIS-123');
   });
 });

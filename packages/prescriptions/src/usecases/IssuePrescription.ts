@@ -1,4 +1,4 @@
-import { logger } from '@autamedica/shared';
+import { logger, domainEvents } from '@autamedica/shared';
 import type { 
   PrescriptionDraft, 
   IssuedPrescription,
@@ -30,6 +30,20 @@ export class IssuePrescriptionUseCase {
         userId,
         metadata: { ipAddress: context.ip, userAgent: context.ua, signatureHash: result.vendorPrescriptionId }
       });
+
+      // Emitir evento para activation tracker (no bloqueante)
+      void (async () => {
+        try {
+          await domainEvents.emit('prescription.issued', {
+            prescriptionId: issued.id,
+            patientId: draft.patient.patientId,
+            doctorId: draft.prescriber.doctorId,
+          })
+        } catch (err: unknown) {
+          logger.warn('[IssuePrescription] prescription.issued emit failed', err)
+        }
+      })()
+
       return issued;
     } catch (error) {
       logger.error('[IssuePrescription] Critical failure', error);
