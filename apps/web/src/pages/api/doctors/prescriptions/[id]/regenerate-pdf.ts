@@ -1,6 +1,7 @@
 /**
  * POST /api/doctors/prescriptions/:id/regenerate-pdf
  * Rebuilds the stored PDF for an already issued prescription without changing its CUIR.
+ * The route parameter accepts the internal prescription id or the public CUIR.
  */
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
