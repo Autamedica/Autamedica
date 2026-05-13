@@ -34,6 +34,8 @@ jobs:
       - run: pnpm arch:v2:check
       - run: pnpm arch:v2:imports:changed
       - run: pnpm typecheck
+      - name: Build workspace packages
+        run: pnpm build:packages:core
       - name: Build web
         run: pnpm --filter @autamedica/web build
         env:

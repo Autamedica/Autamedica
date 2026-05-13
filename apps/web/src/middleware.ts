@@ -21,7 +21,6 @@ import {
 import "./lib/patients/services/clinical-orchestrator.service";
 import "./lib/notifications/notification-triggers";
 import "./lib/payments/triggers";
-import "./lib/activation/activation-tracker-integration";
 
 // Rutas que requieren autenticación
 const PROTECTED_ROUTES = [

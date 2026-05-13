@@ -39,6 +39,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
       - run: npx playwright install --with-deps chromium
+      - name: Build workspace packages
+        run: pnpm build:packages:core
       - run: pnpm --filter @autamedica/web build
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}

@@ -1,3 +1,4 @@
+import { getServerEnvOrDefault } from '@autamedica/shared';
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { rctaService } from './rcta.service';
@@ -405,7 +406,7 @@ export async function generatePrescriptionPdf(
     marginLeft, footerY + 4
   );
 
-  const renapdisLegajo = process.env.RENAPDIS_RL_NUMBER || 'RL pendiente';
+  const renapdisLegajo = getServerEnvOrDefault('RENAPDIS_RL_NUMBER', 'RL pendiente') ?? 'RL pendiente';
   doc.text(
     'Esta receta fue creada por un emisor inscripto y validado en el Registro de Recetarios Electrónicos',
     marginLeft,

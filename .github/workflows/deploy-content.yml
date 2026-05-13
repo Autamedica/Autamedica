@@ -57,6 +57,9 @@ jobs:
             exit 1
           fi
 
+      - name: Build workspace packages
+        run: pnpm build:packages:core
+
       - name: Build web
         run: pnpm --filter @autamedica/web build
         env:
