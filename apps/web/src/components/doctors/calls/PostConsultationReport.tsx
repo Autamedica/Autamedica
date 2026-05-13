@@ -345,7 +345,10 @@ function ReportContent({ roomId }: { roomId: string }) {
               setShowPrescriptionModal(false);
               window.location.href = '/doctors/dashboard';
             }}
-            addPrescription={(p) => prescriptionService.create(reportData.patientId, p)}
+            addPrescription={(p) => prescriptionService.create(reportData.patientId, {
+              ...p,
+              patient_id: reportData.patientId as UUID,
+            })}
             issuePrescription={async (id) => {
               await prescriptionService.issue(id);
             }}

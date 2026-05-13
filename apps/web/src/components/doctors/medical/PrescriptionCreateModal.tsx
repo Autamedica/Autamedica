@@ -14,7 +14,8 @@ interface PrescriptionCreateModalProps {
   onClose: () => void;
   onSaved: () => void;
   addPrescription: (
-    p: Omit<Prescription, "id" | "created_at" | "updated_at"> & {
+    p: Omit<Prescription, "id" | "created_at" | "updated_at" | "patient_id"> & {
+      patient_id?: UUID;
       external_patient?: ExternalPatientForm;
     },
   ) => Promise<Prescription>;
@@ -102,10 +103,7 @@ export function PrescriptionCreateModal({
     setSaving(true);
     setError(null);
 
-    const payload: Omit<Prescription, "id" | "created_at" | "updated_at"> & {
-      external_patient?: ExternalPatientForm;
-    } = {
-      patient_id: (patientId ?? "") as UUID,
+    const basePayload: Omit<Prescription, "id" | "created_at" | "updated_at" | "patient_id"> = {
       doctor_id: "" as UUID,
       medical_record_id: null,
       medication_name: form.medication_name.trim(),
@@ -125,16 +123,22 @@ export function PrescriptionCreateModal({
         : new Date().toISOString(),
       end_date: form.end_date ? new Date(form.end_date).toISOString() : null,
     };
-    if (!patientId) {
-      payload.external_patient = {
-        name: form.patient_name.trim(),
-        dni: form.patient_dni.trim() || undefined,
-        cuil: form.patient_cuil.trim() || undefined,
-        address: form.patient_address.trim() || undefined,
-        birth_date: form.patient_birth_date || undefined,
-        gender: form.patient_gender || undefined,
-      };
-    }
+    const payload: Omit<Prescription, "id" | "created_at" | "updated_at" | "patient_id"> & {
+      patient_id?: UUID;
+      external_patient?: ExternalPatientForm;
+    } = patientId
+      ? { ...basePayload, patient_id: patientId }
+      : {
+          ...basePayload,
+          external_patient: {
+            name: form.patient_name.trim(),
+            dni: form.patient_dni.trim() || undefined,
+            cuil: form.patient_cuil.trim() || undefined,
+            address: form.patient_address.trim() || undefined,
+            birth_date: form.patient_birth_date || undefined,
+            gender: form.patient_gender || undefined,
+          },
+        };
 
     try {
       if (isEditing && editingPrescription) {
