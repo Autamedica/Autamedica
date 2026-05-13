@@ -66,6 +66,7 @@ interface PrescriptionContent {
   notes?: string | null;
   diagnosis?: string | null;
   side_effects_warning?: string | null;
+  external_patient?: ExternalPrescriptionPatient;
   medications?: Array<{
     name?: string;
     dosage?: string;
@@ -88,7 +89,8 @@ interface LegacyPrescriptionRow {
 }
 
 export interface DoctorPrescriptionWritePayload {
-  patient_id: UUID;
+  patient_id?: UUID;
+  external_patient?: ExternalPrescriptionPatient;
   medication_name: string;
   dosage?: string;
   frequency?: string;
@@ -103,6 +105,15 @@ export interface DoctorPrescriptionWritePayload {
   side_effects_warning?: string | null;
 }
 
+export interface ExternalPrescriptionPatient {
+  name: string;
+  dni?: string;
+  cuil?: string;
+  address?: string;
+  birth_date?: string;
+  gender?: string;
+}
+
 function getPrescriptionContent(content: unknown): PrescriptionContent {
   if (content && typeof content === "object" && !Array.isArray(content)) {
     return content as PrescriptionContent;
@@ -112,6 +123,54 @@ function getPrescriptionContent(content: unknown): PrescriptionContent {
 
 function asString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function normalizeOptionalText(value: string | undefined): string | null {
+  return value?.trim() || null;
+}
+
+async function resolveExternalPrescriptionPatient(
+  supabase: Db,
+  externalPatient: ExternalPrescriptionPatient | undefined,
+): Promise<UUID> {
+  if (!externalPatient) {
+    throw new Error("patient_id_required");
+  }
+
+  const dni = normalizeOptionalText(externalPatient.dni);
+  const cuil = normalizeOptionalText(externalPatient.cuil);
+  const address = normalizeOptionalText(externalPatient.address);
+
+  if (!dni && !cuil) {
+    throw new Error("external_patient_identification_required");
+  }
+  if (!address) {
+    throw new Error("external_patient_address_required");
+  }
+
+  const { data, error } = await supabase
+    .from("patients")
+    .insert({
+      active: true,
+      address,
+      birth_date: normalizeOptionalText(externalPatient.birth_date),
+      cuil,
+      dni,
+      gender: normalizeOptionalText(externalPatient.gender),
+      medical_history: {
+        source: "doctor_prescription_external_patient",
+        name: externalPatient.name.trim(),
+      },
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    logger.error("[doctorPrescriptionBackendService] external patient create failed", error);
+    throw error;
+  }
+
+  return data.id as UUID;
 }
 
 function normalizeVendorName(value: string | null): string | null {
@@ -326,8 +385,19 @@ function buildClinicalDataFromPayload(
   const startDate = payload.start_date || current?.start_date || prescribedDate;
   const clinicalStatus = payload.status || current?.clinical_status || current?.status || "activa";
   const requiresStrictValidation = requiresStrictPrescriptionValidation(payload.medication_name);
+  const sourceExternalPatient = payload.external_patient ?? current?.external_patient;
+  const externalPatient = sourceExternalPatient
+    ? {
+        name: sourceExternalPatient.name.trim(),
+        dni: normalizeOptionalText(sourceExternalPatient.dni),
+        cuil: normalizeOptionalText(sourceExternalPatient.cuil),
+        address: normalizeOptionalText(sourceExternalPatient.address),
+        birth_date: normalizeOptionalText(sourceExternalPatient.birth_date),
+        gender: normalizeOptionalText(sourceExternalPatient.gender),
+      }
+    : null;
 
-  return {
+  const clinicalData = {
     ...current,
     medication_name: payload.medication_name,
     items: [
@@ -344,6 +414,7 @@ function buildClinicalDataFromPayload(
     duration: payload.duration ?? "",
     instructions: payload.instructions ?? "",
     diagnosis: payload.diagnosis ?? null,
+    ...(externalPatient ? { external_patient: externalPatient } : {}),
     notes: payload.notes ?? null,
     side_effects_warning: payload.side_effects_warning ?? null,
     status: clinicalStatus,
@@ -358,6 +429,8 @@ function buildClinicalDataFromPayload(
     ),
     source: "doctor_portal",
   };
+
+  return clinicalData as unknown as Database["public"]["Tables"]["prescriptions"]["Insert"]["clinical_data"];
 }
 
 function buildLegacyRecordUpdate(payload: DoctorPrescriptionWritePayload): MedicalRecordUpdate {
@@ -462,9 +535,16 @@ export const doctorPrescriptionBackendService = {
     context: DoctorContext,
     payload: DoctorPrescriptionWritePayload,
   ): Promise<Prescription> {
-    const canAccess = await doctorHasPatientAccess(supabase, context.doctorId, payload.patient_id);
-    if (!canAccess) {
-      throw new Error("forbidden_patient_access");
+    const patientId = payload.patient_id ?? await resolveExternalPrescriptionPatient(
+      supabase,
+      payload.external_patient,
+    );
+    const isExternalPatient = Boolean(payload.external_patient && !payload.patient_id);
+    if (!isExternalPatient) {
+      const canAccess = await doctorHasPatientAccess(supabase, context.doctorId, patientId);
+      if (!canAccess) {
+        throw new Error("forbidden_patient_access");
+      }
     }
 
     assertStrictPrescriptionRequirements(payload);
@@ -472,6 +552,7 @@ export const doctorPrescriptionBackendService = {
     const clinicalStatus = payload.status ?? "activa";
     const clinicalData = buildClinicalDataFromPayload({
       ...payload,
+      patient_id: patientId,
       status: clinicalStatus,
     });
 
@@ -479,7 +560,7 @@ export const doctorPrescriptionBackendService = {
       .from("prescriptions")
       .insert({
         doctor_id: context.doctorId,
-        patient_id: payload.patient_id,
+        patient_id: patientId,
         status: mapClinicalStatusToCoreStatus(clinicalStatus),
         vendor_name: "pending",
         clinical_data: clinicalData,
@@ -490,7 +571,7 @@ export const doctorPrescriptionBackendService = {
     if (error) {
       logger.error("[doctorPrescriptionBackendService] create failed", {
         doctorId: context.doctorId,
-        patientId: payload.patient_id,
+        patientId,
         error,
       });
       throw error;

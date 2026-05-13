@@ -46,6 +46,27 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
 
 type TabType = "all" | "draft" | "active" | "dispensed" | "cancelled";
 
+interface PrescriptionDraftForm {
+  medication_name: string;
+  dosage?: string;
+  frequency?: string;
+  duration?: string;
+  instructions?: string;
+  diagnosis?: string | null;
+  notes?: string | null;
+  status?: string;
+  start_date?: string;
+  end_date?: string | null;
+  external_patient?: {
+    name: string;
+    dni?: string;
+    cuil?: string;
+    address?: string;
+    birth_date?: string;
+    gender?: string;
+  };
+}
+
 interface PrescriptionDisplayData {
   medicationName: string;
   dosage: string;
@@ -165,10 +186,11 @@ export function DoctorsPrescriptionsPage() {
   };
 
   const handleCreateDraft = async (
-    p: { medication_name: string; dosage?: string; frequency?: string; duration?: string; instructions?: string; diagnosis?: string | null; notes?: string | null; status?: string; start_date?: string; end_date?: string | null },
+    p: PrescriptionDraftForm,
   ): Promise<{ id: string }> => {
     const id = await createDraft({
-      patient_id: selectedPatientId,
+      patient_id: selectedPatientId ?? undefined,
+      external_patient: p.external_patient,
       medication_name: p.medication_name,
       dosage: p.dosage,
       frequency: p.frequency,
@@ -203,13 +225,12 @@ export function DoctorsPrescriptionsPage() {
             <p className="mt-1 text-sm text-neutral-500">
               {selectedPatientId
                 ? "Administrá las prescripciones del paciente seleccionado"
-                : "Seleccioná un paciente para ver y crear recetas"}
+                : "Creá una receta para un paciente de la plataforma o cargá sus datos manualmente"}
             </p>
           </div>
           <button
             onClick={() => { setEditingPrescription(null); setShowCreateModal(true); }}
-            disabled={!selectedPatientId}
-            className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-neutral-800 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-neutral-800 active:scale-[0.97]"
           >
             <Plus className="h-4 w-4" />
             Nueva receta
@@ -245,11 +266,11 @@ export function DoctorsPrescriptionsPage() {
               <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                 {filteredPatients.slice(0, 50).map((p) => {
                   const name = [p.profile?.first_name, p.profile?.last_name].filter(Boolean).join(" ") || "Paciente";
-                  const isSelected = selectedPatientId === p.user_id;
+                  const isSelected = selectedPatientId === p.id;
                   return (
                     <button
                       key={p.id}
-                      onClick={() => setSelectedPatientId(isSelected ? null : (p.user_id ?? null))}
+                      onClick={() => setSelectedPatientId(isSelected ? null : p.id)}
                       className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-all ${
                         isSelected
                           ? "border-neutral-900 bg-neutral-900 text-white"
@@ -280,8 +301,15 @@ export function DoctorsPrescriptionsPage() {
             <User className="mb-4 h-12 w-12 text-neutral-300" />
             <p className="text-lg font-medium text-neutral-600">Seleccioná un paciente</p>
             <p className="mt-1 text-sm text-neutral-400">
-              Elegí un paciente de la lista para ver sus recetas o crear una nueva
+              Elegí un paciente para ver su historial o creá una receta cargando sus datos manualmente.
             </p>
+            <button
+              onClick={() => { setEditingPrescription(null); setShowCreateModal(true); }}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
+            >
+              <Plus className="h-4 w-4" />
+              Nueva receta
+            </button>
           </motion.div>
         )}
 
@@ -460,9 +488,9 @@ export function DoctorsPrescriptionsPage() {
       </div>
 
       {/* ── PrescriptionCreateModal ── */}
-      {showCreateModal && selectedPatientId && (
+      {showCreateModal && (
         <PrescriptionCreateModal
-          patientId={selectedPatientId as UUID}
+          patientId={(selectedPatientId ?? undefined) as UUID | undefined}
           onClose={() => setShowCreateModal(false)}
           onSaved={handleSaved}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
