@@ -6,24 +6,25 @@ import type {
   IIdentityValidator,
   PrescriptionDraft,
 } from '../../domain/ports';
+import type { PatientId, DoctorId, OrganizationId, PrescriptionStatus } from '../../domain/models';
 
 const mockDraft: PrescriptionDraft = {
   patient: {
-    patientId: 'pat-1' as any,
+    patientId: 'pat-1' as unknown as PatientId,
     cuil: '20123456789',
-    dni: '12345678' as any,
+    dni: '12345678',
     fullName: 'John Doe'
   },
   prescriber: {
-    doctorId: 'doc-1' as any,
+    doctorId: 'doc-1' as unknown as DoctorId,
     matriculaNumber: '12345',
     matriculaType: 'MN',
     fullName: 'Dr. Smith'
   },
-  organizationId: 'org-1' as any,
+  organizationId: 'org-1' as unknown as OrganizationId,
   items: [],
   type: 'medication',
-  status: 'draft' as any
+  status: 'draft' as PrescriptionStatus
 };
 
 describe('IssuePrescriptionUseCase', () => {
@@ -63,7 +64,9 @@ describe('IssuePrescriptionUseCase', () => {
       validatePatient: vi.fn().mockResolvedValue({ isValid: true })
     } as unknown as IIdentityValidator;
 
-    const useCase = new IssuePrescriptionUseCase({} as any, {} as any, identity);
+    const repo = {} as unknown as IPrescriptionRepository;
+    const vendor = {} as unknown as IPrescriptionVendor;
+    const useCase = new IssuePrescriptionUseCase(repo, vendor, identity);
     await expect(useCase.execute(mockDraft, 'user-1', { ip: '1', ua: 't' }))
       .rejects.toThrow('Doctor not authorized');
   });

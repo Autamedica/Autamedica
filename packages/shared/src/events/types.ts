@@ -54,6 +54,13 @@ export type DomainEvents = {
     durationSeconds: number
   }
 
+  // Prescripciones
+  'prescription.issued': {
+    prescriptionId: string
+    patientId: string
+    doctorId: string
+  }
+
   // Informes médicos
   'consultation.report_generated': {
     consultationId: string

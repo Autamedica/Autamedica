@@ -1,6 +1,7 @@
 import { getServerEnvOrDefault } from '@autamedica/shared';
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
+import { getRuntimeEnvValue } from '@/lib/runtime-env';
 import { rctaService } from './rcta.service';
 import { getValidityPeriodDays } from './strict-validation';
 
@@ -409,6 +410,7 @@ export async function generatePrescriptionPdf(
   );
 
   const renapdisLegajo =
+    getRuntimeEnvValue('RENAPDIS_RL_NUMBER') ??
     getServerEnvOrDefault('RENAPDIS_RL_NUMBER', OFFICIAL_RENAPDIS_RL_NUMBER) ?? OFFICIAL_RENAPDIS_RL_NUMBER;
   doc.text(
     'Esta receta fue creada por un emisor inscripto y validado en el Registro de Recetarios Electrónicos',
