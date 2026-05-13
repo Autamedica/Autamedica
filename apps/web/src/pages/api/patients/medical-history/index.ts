@@ -11,7 +11,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   try {
     const data = await medicalHistoryService.getFullHistory(createAstroAdminClient(locals.runtime?.env), context.patientId)
-    return jsonOk(data)
+    const response = jsonOk(data)
+    response.headers.set('Cache-Control', 'no-store, max-age=0')
+    return response
   } catch (err) {
     logger.error('[medical-history/GET]', err)
     return internalError()

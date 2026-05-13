@@ -84,6 +84,24 @@ export function useMedicalHistory(patientId?: string) {
     return () => { cancelled = true }
   }, [applyMedicalHistoryResponse])
 
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void fetchMedicalHistory()
+      }
+    }
+
+    window.addEventListener('focus', refreshWhenVisible)
+    window.addEventListener('pageshow', refreshWhenVisible)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+
+    return () => {
+      window.removeEventListener('focus', refreshWhenVisible)
+      window.removeEventListener('pageshow', refreshWhenVisible)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
+  }, [fetchMedicalHistory])
+
   const addCondition = async (condition: { condition: string; icd10_code?: string; notes?: string }) => {
     try {
       await fetchApi('/api/patients/medical-history/conditions', {
