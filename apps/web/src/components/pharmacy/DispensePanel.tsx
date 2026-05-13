@@ -167,18 +167,16 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
             <div>
               <label className="block text-xs font-medium text-am-surface-700 mb-1">Tipo</label>
               <select value={form.substitution_type} onChange={set('substitution_type')} className={inputClass}>
-                <option value="">Sin cambios</option>
+                
                 <option value="generic_equivalent">Equivalente genérico</option>
                 <option value="therapeutic_equivalent">Equivalente terapéutico</option>
                 <option value="emergency_substitute">Sustituto de emergencia</option>
               </select>
             </div>
-            {form.substitution_type && (
-              <div>
+            <div>
                 <label className="block text-xs font-medium text-am-surface-700 mb-1">Motivo</label>
                 <input type="text" value={form.substitution_reason} onChange={set('substitution_reason')} placeholder="Razón de la sustitución" className={inputClass} />
               </div>
-            )}
           </div>
         </Card>
       )}

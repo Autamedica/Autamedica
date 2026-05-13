@@ -21,6 +21,7 @@ import {
 import "./lib/patients/services/clinical-orchestrator.service";
 import "./lib/notifications/notification-triggers";
 import "./lib/payments/triggers";
+import "./lib/activation/activation-tracker-integration";
 
 // Rutas que requieren autenticación
 const PROTECTED_ROUTES = [
@@ -641,15 +642,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return secureNext();
   }
 
-  const isLocalDevGrowthBypass =
+  const isLocalDevAdminBypass =
     import.meta.env.DEV &&
     ["localhost", "127.0.0.1"].includes(requestUrl.hostname) &&
-    requestUrl.searchParams.get("dev_admin") === "1" &&
-    (pathname === "/admin/growth" || pathname.startsWith("/api/admin/growth-"));
+    (pathname.startsWith("/admin") || pathname.startsWith("/api/admin/"));
 
-  if (isLocalDevGrowthBypass) {
+  if (isLocalDevAdminBypass) {
     logger.warn(
-      "[DEV_GROWTH_BYPASS] Local-only growth dashboard bypass active",
+      "[DEV_ADMIN_BYPASS] Local-only admin bypass active",
       { pathname },
     );
     return secureNext();
