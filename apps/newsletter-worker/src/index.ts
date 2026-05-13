@@ -5,6 +5,7 @@ export interface Env {
   RESEND_API_KEY: string;
   RESEND_AUDIENCE_ID: string;
   BREVO_API_KEY: string;
+  BREVO_DEFAULT_TEMPLATE_ID?: string;
   BREVO_LIST_IDS?: string;
   BREVO_NEWSLETTER_RECIPIENTS?: string;
   TRIGGER_KEY: string;
@@ -31,6 +32,7 @@ const ARTICLE_FETCH_TIMEOUT_MS = 8000;
 const MAX_ARTICLE_CHARS = 4000;
 const AUTAMEDICA_BRAND_GIF_URL =
   "https://qxjjrpksmwwrmubhvjew.supabase.co/storage/v1/object/public/public_assets/autamedica-reference-style.gif";
+const AUTAMEDICA_BREVO_DEFAULT_TEMPLATE_ID = 8;
 
 interface NewsItem {
   title: string;
@@ -1181,14 +1183,25 @@ async function sendBrevoCampaign(env: Env, subject: string, html: string, listId
 }
 
 async function sendBrevoSmtp(env: Env, subject: string, html: string, recipient: { email: string; name?: string }): Promise<string> {
+  const templateId = Number.parseInt(env.BREVO_DEFAULT_TEMPLATE_ID || String(AUTAMEDICA_BREVO_DEFAULT_TEMPLATE_ID), 10);
   const res = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: { "api-key": env.BREVO_API_KEY, "content-type": "application/json" },
     body: JSON.stringify({
       sender: { name: env.FROM_NAME, email: env.FROM_EMAIL },
       to: [{ email: recipient.email, name: recipient.name || recipient.email }],
-      subject,
-      htmlContent: normalizeUnsubscribeLinks(html),
+      templateId,
+      params: {
+        subject,
+        title: subject,
+        subtitle: "Newsletter AutaMedica",
+        body_html: normalizeUnsubscribeLinks(html),
+        cta_url: "https://www.autamedica.com",
+        cta_label: "Abrir AutaMedica",
+        secondary_url: "https://www.autamedica.com/unsubscribe",
+        secondary_label: "Darme de baja",
+        signature_name: env.FROM_NAME || "AutaMedica",
+      },
       tags: ["newsletter", "autamedica"],
     }),
   });
