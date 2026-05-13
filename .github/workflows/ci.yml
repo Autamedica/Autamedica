@@ -47,6 +47,7 @@ jobs:
           PUBLIC_DOCTORS_URL: https://doctor.autamedica.com
           PUBLIC_COMPANIES_URL: https://empresa.autamedica.com
           PUBLIC_ADMIN_URL: https://autamedica-admin.pages.dev
+          RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
   lint-gate:
     name: Lint
@@ -78,6 +79,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
       - run: pnpm test:unit
+        env:
+          RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
   rls-tests:
     name: RLS

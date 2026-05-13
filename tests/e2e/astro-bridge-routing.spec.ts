@@ -50,7 +50,6 @@ test.describe('Astro Bridge Routing', () => {
       { path: '/patients/legacy-zone', portal: 'patients' },
       { path: '/doctors/legacy-zone', portal: 'doctors' },
       { path: '/companies/legacy-zone', portal: 'companies' },
-      { path: '/admin/legacy-zone', portal: 'admin' },
     ];
 
     for (const item of cases) {

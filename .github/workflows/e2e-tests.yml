@@ -47,6 +47,7 @@ jobs:
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
           PUBLIC_SIGNALING_URL: ${{ secrets.PUBLIC_SIGNALING_URL }}
           PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL }}
+          RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
       - name: Run critical routing test
         run: |
@@ -62,6 +63,7 @@ jobs:
           PUBLIC_DOCTORS_URL: https://doctor.autamedica.com
           PUBLIC_COMPANIES_URL: https://empresa.autamedica.com
           PUBLIC_ADMIN_URL: https://autamedica-admin.pages.dev
+          RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()

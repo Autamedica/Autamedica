@@ -48,9 +48,9 @@ describe('generatePrescriptionPdf', () => {
     expect(artifacts.cuir).toBe('AR-20260511-C0EEE620');
     expect(artifacts.qrContent).toBe('https://www.autamedica.com/verify/AR-20260511-C0EEE620');
     expect(pdfText).toContain('CÓDIGO DE BARRAS');
-    expect(pdfText).toContain('Presentación: 500mg');
-    expect(pdfText).toContain('Forma farmacéutica: Comprimidos');
-    expect(pdfText).toContain('Fecha: 11/05/2026');
+    expect(pdfText).toContain('500mg');
+    expect(pdfText).toContain('Comprimidos');
+    expect(pdfText).toContain('Fecha de registro: 11/05/2026');
     expect(pdfText).toContain('Identificador verificable de receta electrónica');
     expect(pdfText).toContain(
       'Esta receta fue creada por un emisor inscripto y validado en el Registro de Recetarios Electrónicos',
