@@ -60,6 +60,22 @@ function mapDrugCategoryForDatabase(
   return 'default';
 }
 
+function resolveInsurancePlan(insuranceInfo: unknown): string | undefined {
+  if (!insuranceInfo || typeof insuranceInfo !== 'object' || Array.isArray(insuranceInfo)) {
+    return undefined;
+  }
+
+  const data = insuranceInfo as Record<string, unknown>;
+  const pickString = (keys: string[]): string | undefined => {
+    const value = keys.map((key) => data[key]).find((entry) => typeof entry === 'string');
+    return typeof value === 'string' ? value : undefined;
+  };
+  const provider = pickString(['provider', 'insurance_provider', 'obraSocial']);
+  const plan = pickString(['plan', 'insurance_plan', 'planName']);
+
+  return [provider, plan].filter(Boolean).join(' ').trim() || undefined;
+}
+
 export interface IssuanceResult {
   cuir: string;
   qrContent: string;
@@ -131,7 +147,7 @@ export async function issuePrescription(
   // 3. Get and validate patient
   const { data: patient } = await supabase
     .from('patients')
-    .select('user_id, dni, cuil, address, birth_date, gender')
+    .select('user_id, dni, cuil, address, birth_date, gender, insurance_info')
     .eq('id', rx.patient_id)
     .single();
 
@@ -183,6 +199,7 @@ export async function issuePrescription(
       cuil: patient.cuil ?? undefined,
       dateOfBirth: patient.birth_date ?? undefined,
       sex: patient.gender ?? undefined,
+      insurancePlan: resolveInsurancePlan(patient.insurance_info),
       address: patient.address ?? undefined,
     },
     prescriber: {

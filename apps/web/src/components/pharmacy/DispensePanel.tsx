@@ -34,7 +34,7 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
     dispensed_quantity: order.quantity_units ?? 0,
     batch_number: '',
     expiry_date: '',
-    substitution_type: 'none',
+    substitution_type: '',
     substitution_reason: '',
     pharmacy_notes: '',
   });
@@ -69,7 +69,7 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
             dispensed_quantity: Number(form.dispensed_quantity),
             batch_number: form.batch_number || undefined,
             expiry_date: form.expiry_date || undefined,
-            substitution_type: form.substitution_type !== 'none' ? form.substitution_type : undefined,
+            substitution_type: form.substitution_type || undefined,
             substitution_reason: form.substitution_reason || undefined,
             pharmacy_notes: form.pharmacy_notes || undefined,
           },
@@ -167,13 +167,13 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
             <div>
               <label className="block text-xs font-medium text-am-surface-700 mb-1">Tipo</label>
               <select value={form.substitution_type} onChange={set('substitution_type')} className={inputClass}>
-                <option value="none">Sin sustitución</option>
+                <option value="" disabled>Seleccionar solo si aplica</option>
                 <option value="generic_equivalent">Equivalente genérico</option>
                 <option value="therapeutic_equivalent">Equivalente terapéutico</option>
                 <option value="emergency_substitute">Sustituto de emergencia</option>
               </select>
             </div>
-            {form.substitution_type !== 'none' && (
+            {form.substitution_type && (
               <div>
                 <label className="block text-xs font-medium text-am-surface-700 mb-1">Motivo</label>
                 <input type="text" value={form.substitution_reason} onChange={set('substitution_reason')} placeholder="Razón de la sustitución" className={inputClass} />
