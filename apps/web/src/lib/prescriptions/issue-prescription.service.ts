@@ -407,7 +407,7 @@ export async function issuePrescription(
 
 export async function regenerateIssuedPrescriptionPdf(
   supabase: SupabaseClient,
-  prescriptionId: string,
+  prescriptionRef: string,
   userId: string,
 ): Promise<Result> {
   const { data: doctor } = await supabase
@@ -421,11 +421,15 @@ export async function regenerateIssuedPrescriptionPdf(
   if (!doctor.refeps_id) return fail({ code: 'missing_refeps_id' });
   if (!doctor.professional_address) return fail({ code: 'missing_professional_address' });
 
-  const { data: rx } = await supabase
+  const prescriptionQuery = supabase
     .from('prescriptions')
     .select('id, doctor_id, patient_id, status, clinical_data, cuir, signed_pdf_url')
-    .eq('id', prescriptionId)
-    .single();
+    .limit(1);
+
+  const { data: rows } = prescriptionRef.startsWith('AM-') || prescriptionRef.startsWith('AR-')
+    ? await prescriptionQuery.eq('cuir', prescriptionRef)
+    : await prescriptionQuery.eq('id', prescriptionRef);
+  const rx = rows?.[0];
 
   if (!rx) return fail({ code: 'prescription_not_found' });
   if (rx.doctor_id !== doctor.id) return fail({ code: 'not_your_prescription' });
@@ -457,7 +461,7 @@ export async function regenerateIssuedPrescriptionPdf(
   const expiresAt = addDays(new Date(now), validityDays).toISOString();
 
   const artifacts = await generatePrescriptionPdf({
-    prescriptionId,
+    prescriptionId: rx.id,
     existingCuir: rx.cuir,
     medication: {
       genericName: item.generic_name,
@@ -517,7 +521,7 @@ export async function regenerateIssuedPrescriptionPdf(
       qr_code_content: artifacts.qrContent,
       signed_pdf_url: signedPdfUrl,
     })
-    .eq('id', prescriptionId);
+    .eq('id', rx.id);
 
   if (updateError) {
     logger.error('[regenerateIssuedPrescriptionPdf] Update failed', updateError);
@@ -525,7 +529,7 @@ export async function regenerateIssuedPrescriptionPdf(
   }
 
   await supabase.from('prescription_audit_events').insert({
-    prescription_id: prescriptionId,
+    prescription_id: rx.id,
     event_type: 'pdf_regenerated',
     user_id: userId,
     metadata: {
