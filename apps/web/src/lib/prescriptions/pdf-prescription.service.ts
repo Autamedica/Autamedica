@@ -1,6 +1,5 @@
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
-import { getServerEnvOrDefault } from '@autamedica/shared';
 import { rctaService } from './rcta.service';
 import { getValidityPeriodDays } from './strict-validation';
 
@@ -245,9 +244,9 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(10);
   doc.setTextColor(30, 41, 59);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Presentación: ${input.medication.dosage}`, marginLeft + 4, y + 30);
-  doc.text(`Forma farmacéutica: ${input.medication.presentation}`, marginLeft + 4, y + 36);
-  doc.text(`Cantidad: ${input.medication.quantity} unidades`, marginLeft + 92, y + 36);
+  const medSpecs = `${input.medication.dosage} — ${input.medication.presentation}`;
+  doc.text(medSpecs, marginLeft + 4, y + 30);
+  doc.text(`Cantidad: ${input.medication.quantity} unidades`, marginLeft + 4, y + 36);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'italic');
@@ -264,11 +263,7 @@ export async function generatePrescriptionPdf(
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'normal');
   doc.text(input.diagnosis || 'Criterio clínico', marginLeft, y, { maxWidth: contentWidth });
-  y += 6;
-  doc.setFontSize(8);
-  doc.setTextColor(71, 85, 105);
-  doc.text(`Fecha: ${formatDate(input.issuedAt)}`, marginLeft, y);
-  y += 8;
+  y += 12;
 
   // Notes
   if (input.notes) {
@@ -398,7 +393,7 @@ export async function generatePrescriptionPdf(
   doc.text(`Hash: verificable vía QR`, infoBoxX + 3, validatorY + 8);
 
   // Footer (Compliance & Privacy)
-  const footerY = 272;
+  const footerY = 276;
   doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
   doc.text(
@@ -410,16 +405,16 @@ export async function generatePrescriptionPdf(
     marginLeft, footerY + 4
   );
 
-  const renapdisLegajo = getServerEnvOrDefault('RENAPDIS_RL_NUMBER', 'RL-2026-47574120-APN-SSVEIYES#MS');
-  const footerLegends = doc.splitTextToSize(
-    `Este documento ha sido firmado —electrónica o digitalmente según corresponda— por ${input.prescriber.name}\n` +
-      `Esta receta fue creada por un emisor inscripto y validado en el Registro de Recetarios Electrónicos del Ministerio de Salud de la Nación — ${renapdisLegajo}`,
-    contentWidth,
-  );
+  const renapdisLegajo = process.env.RENAPDIS_RL_NUMBER || 'RL pendiente';
   doc.text(
-    footerLegends,
+    'Esta receta fue creada por un emisor inscripto y validado en el Registro de Recetarios Electrónicos',
     marginLeft,
     footerY + 10,
+  );
+  doc.text(
+    `del Ministerio de Salud de la Nación - ${renapdisLegajo}.`,
+    marginLeft,
+    footerY + 14,
   );
 
   const pdfBuffer = new Uint8Array(doc.output('arraybuffer'));
