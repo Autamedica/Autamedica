@@ -108,4 +108,41 @@ describe('generatePrescriptionPdf', () => {
 
     expect(pdfText).toContain('RL-RUNTIME-RENAPDIS-123');
   });
+
+  it('can regenerate an already issued prescription without registering a new CUIR', async () => {
+    const registerSpy = vi.spyOn(rctaService, 'registerPrescription');
+
+    const artifacts = await generatePrescriptionPdf({
+      prescriptionId: 'rx-existing',
+      diagnosis: 'Control',
+      issuedAt: '2026-05-11',
+      existingCuir: 'AM-3A40CA048B7E',
+      medication: {
+        genericName: 'Metilfenidato',
+        dosage: '10mg',
+        instructions: 'Tomar segun indicacion medica',
+        presentation: 'Comprimidos',
+        quantity: 30,
+      },
+      patient: {
+        address: 'Av. Corrientes 1234, CABA',
+        dni: '30123456',
+        name: 'Maria Gonzalez',
+      },
+      prescriber: {
+        license: 'MN-123456',
+        name: 'Dr. Eduardo Marques da Rosa',
+        professionalAddress: 'Av. Santa Fe 1500, CABA',
+        refeps: 'REF-78901',
+      },
+    });
+
+    const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
+
+    expect(registerSpy).not.toHaveBeenCalled();
+    expect(artifacts.cuir).toBe('AM-3A40CA048B7E');
+    expect(artifacts.qrContent).toBe('https://www.autamedica.com/verify/AM-3A40CA048B7E');
+    expect(pdfText).toContain('CÓDIGO DE BARRAS');
+    expect(pdfText).toContain('AM-3A40CA048B7E');
+  });
 });

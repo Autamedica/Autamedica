@@ -41,6 +41,7 @@ export interface PrescriptionPdfInput {
   issuedAt: string;
   // expiresAt is now derived but can be overridden
   expiresAt?: string;
+  existingCuir?: string;
 }
 
 export interface PrescriptionArtifacts {
@@ -134,13 +135,14 @@ function drawCode128Barcode(
 export async function generatePrescriptionPdf(
   input: PrescriptionPdfInput,
 ): Promise<PrescriptionArtifacts> {
-  // 1. RCTA Registration (Argentina Compliance)
-  const registration = await rctaService.registerPrescription(
-    input.prescriber.license, 
-    input.patient.dni || 'unknown', 
-    input.medication.genericName
-  );
-  
+  const registration = input.existingCuir
+    ? { cuir: input.existingCuir }
+    : await rctaService.registerPrescription(
+      input.prescriber.license,
+      input.patient.dni || 'unknown',
+      input.medication.genericName,
+    );
+
   const cuir = registration.cuir;
   const qrContent = `https://www.autamedica.com/verify/${cuir}`;
   const expiresAt = input.expiresAt || calculateExpiry(input.issuedAt, input.medication.genericName);
