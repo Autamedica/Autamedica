@@ -14,6 +14,7 @@ const OPENCLAW_BIN = process.env.OPENCLAW_CLI_PATH || 'openclaw'
 const DEFAULT_ACCOUNT = process.env.OPENCLAW_ACCOUNT || 'autamedica'
 const DEFAULT_CHANNEL = process.env.OPENCLAW_CHANNEL || 'whatsapp'
 const REQUIRED_SCOPE = process.env.OPENCLAW_REQUIRED_SCOPE || 'openclaw:send'
+const RELAY_USER_AGENT = process.env.OPENCLAW_EVENT_RELAY_USER_AGENT || 'AutaMedica-OpenClaw-Relay/1.0'
 
 const MAX_BODY_BYTES = Number(process.env.OPENCLAW_EVENT_RELAY_MAX_BODY_BYTES || '32768')
 const MAX_MESSAGE_CHARS = Number(process.env.OPENCLAW_EVENT_RELAY_MAX_MESSAGE_CHARS || '4000')
@@ -77,6 +78,7 @@ async function authorize(apiKey) {
       headers: {
         'content-type': 'application/json',
         'x-api-key': apiKey,
+        'user-agent': RELAY_USER_AGENT,
       },
       body: JSON.stringify({ scope: REQUIRED_SCOPE }),
       signal: controller.signal,
