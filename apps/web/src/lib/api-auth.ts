@@ -1,9 +1,17 @@
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
-import { unauthorized, forbidden } from '@/lib/api-helpers'
-import { createAstroServerClientFromRequest } from '@/lib/supabase'
+import { unauthorized, forbidden, jsonFail } from '@/lib/api-helpers'
+import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
 
 type TypedClient = SupabaseClient<Database>
+type ApiKeyRow = {
+  id: string
+  key_prefix: string
+  scopes: string[]
+  belongs_to: string | null
+  expires_at: string | null
+  revoked_at: string | null
+}
 
 export interface AuthedRequest {
   user: User
@@ -117,4 +125,109 @@ export function isAuthed<T extends AuthedRequest | SessionRequest>(
   result: T | Response,
 ): result is T {
   return !(result instanceof Response)
+}
+
+// ==========================================
+// API Key Authentication (B2B / external services)
+// ==========================================
+export interface ApiKeyRequest {
+  apiKeyId: string
+  keyPrefix: string
+  scopes: string[]
+  belongsTo: string | null
+  supabase: TypedClient
+}
+
+export function apiKeyHasScope(apiKey: ApiKeyRequest, scope: string): boolean {
+  return apiKey.scopes.includes('*') || apiKey.scopes.includes(scope)
+}
+
+/**
+ * Validates an API key from the X-API-Key header.
+ * Returns the key metadata + Supabase client, or null if no API key present.
+ * Returns a Response (401) if the key is invalid/revoked/expired.
+ */
+export async function withApiKey(
+  request: Request,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  locals?: { runtime?: { env?: any } }
+): Promise<ApiKeyRequest | null | Response> {
+  const apiKey = request.headers.get('X-API-Key')
+  if (!apiKey) return null
+
+  // Hash key for lookup
+  const crypto = await import('node:crypto')
+  const hash = crypto.createHash('sha256').update(apiKey).digest('hex')
+
+  let supabase: TypedClient
+  try {
+    supabase = createAstroAdminClient(locals?.runtime?.env)
+  } catch {
+    return null
+  }
+
+  const apiKeyTable = supabase.from('api_keys' as never) as unknown as {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        maybeSingle: () => Promise<{ data: ApiKeyRow | null; error: unknown }>
+      }
+    }
+  }
+
+  const { data: key, error } = await apiKeyTable
+    .select('id, key_prefix, scopes, belongs_to, expires_at, revoked_at')
+    .eq('key_hash', hash)
+    .maybeSingle()
+
+  if (error || !key) {
+    return jsonFail('UNAUTHENTICATED', 'invalid api key', 401)
+  }
+
+  if (key.revoked_at) {
+    return jsonFail('UNAUTHENTICATED', 'api key revoked', 401)
+  }
+
+  if (key.expires_at && new Date(key.expires_at) < new Date()) {
+    return jsonFail('UNAUTHENTICATED', 'api key expired', 401)
+  }
+
+  // Update last_used_at (fire-and-forget)
+  ;(supabase.from('api_keys' as never) as unknown as {
+    update: (patch: { last_used_at: string }) => {
+      eq: (column: string, value: string) => Promise<unknown>
+    }
+  })
+    .update({ last_used_at: new Date().toISOString() })
+    .eq('id', key.id)
+    .then(() => {})
+
+  return {
+    apiKeyId: key.id,
+    keyPrefix: key.key_prefix,
+    scopes: key.scopes,
+    belongsTo: key.belongs_to,
+    supabase,
+  }
+}
+
+/**
+ * Authenticate via API key OR user session. Tries API key first, then session.
+ * Returns the authenticated context or a Response (401/403).
+ */
+export async function withAuthOrApiKey(
+  request: Request,
+  allowedRoles?: string[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  locals?: { runtime?: { env?: any } }
+): Promise<{ user: User; supabase: TypedClient } | { apiKey: ApiKeyRequest } | Response> {
+  // 1. Try API key first
+  const apiKeyResult = await withApiKey(request, locals)
+  if (apiKeyResult instanceof Response) return apiKeyResult
+  if (apiKeyResult) return { apiKey: apiKeyResult }
+
+  // 2. Fall back to user session
+  if (allowedRoles) {
+    return withAuthRole(request, allowedRoles as any, locals)
+  }
+  return withAuth(request, locals)
 }
