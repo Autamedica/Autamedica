@@ -17,6 +17,8 @@ const ALLOWED_SCOPES = new Set<string>([
   'prescriptions:read',
 ])
 
+type ApiKeyPayload = Record<string, unknown>
+
 type ApiKeysTable = {
   select: (columns: string) => {
     is: (column: string, value: null) => {
@@ -25,7 +27,7 @@ type ApiKeysTable = {
   }
   insert: (row: Record<string, unknown>) => {
     select: (columns: string) => {
-      single: () => Promise<{ data: unknown; error: { message: string } | null }>
+      single: () => Promise<{ data: ApiKeyPayload | null; error: { message: string } | null }>
     }
   }
 }
@@ -116,6 +118,7 @@ export async function POST(request: Request) {
     .single()
 
   if (error) return jsonFail('INTERNAL', error.message, 500)
+  if (!key) return jsonFail('INTERNAL', 'api key creation returned no data', 500)
 
   return jsonOk({ ...key, api_key: fullKey }, 201)
 }
