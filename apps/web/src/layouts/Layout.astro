@@ -126,5 +126,16 @@ const activeTabDoctor =
 
     {isPatientHost && <PatientSessionSync client:load />}
     {isDoctorHost && <DoctorBottomNav activeTab={activeTabDoctor} />}
+
+    <script is:inline>
+      document.addEventListener('astro:before-swap', () => {
+        if (window.gsap) {
+          window.gsap.killTweensOf('*');
+          if (window.ScrollTrigger) {
+            window.ScrollTrigger.getAll().forEach((t) => t.kill());
+          }
+        }
+      });
+    </script>
   </body>
 </html>
