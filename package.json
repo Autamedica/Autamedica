@@ -68,7 +68,7 @@
     "docs:db:ci": "GLOSSARY_MODE=sql tsx scripts/database-glossary/cli/index.ts generate",
     "docs:db:validate": "tsx scripts/database-glossary/cli/index.ts validate",
     "docs:db:test": "tsx scripts/database-glossary/cli/index.ts test",
-    "docs:db:check-diff": "git diff --exit-code -- docs/database/_generated/ docs/database/schema.md || (echo '❌ DB Glossary desincronizado. Ejecutá pnpm docs:db' && exit 1)",
+    "docs:db:check-diff": "git diff --exit-code -- docs/database/_generated/ docs/database/schema.md || (echo '\u274c DB Glossary desincronizado. Ejecut\u00e1 pnpm docs:db' && exit 1)",
     "env:validate": "node scripts/validate-env.mjs",
     "env:validate:production": "node scripts/validate-production-values.mjs",
     "env:validate:staging": "node scripts/validate-staging.mjs",
@@ -139,7 +139,8 @@
     "deploy:newsletter-worker": "pnpm -C apps/newsletter-worker deploy",
     "newsletter:sync-audience": "pnpm -C apps/newsletter-worker sync-audience",
     "newsletter:sync-audience:apply": "pnpm -C apps/newsletter-worker sync-audience:apply",
-    "e2e:patients": "node scripts/e2e/patients-login.mjs"
+    "e2e:patients": "node scripts/e2e/patients-login.mjs",
+    "ads:validate": "tsx tools/ads-linter.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
