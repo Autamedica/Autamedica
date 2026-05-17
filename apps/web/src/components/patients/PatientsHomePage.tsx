@@ -41,14 +41,14 @@ interface PatientsHomePageProps {
 }
 
 const SERVICES = [
-  { icon: Video, label: 'Videoconsulta', href: '/patients/appointments?type=telemedicine' },
-  { icon: Calendar, label: 'Mis turnos', href: '/patients/appointments' },
-  { icon: FileText, label: 'Mis recetas', href: '/patients/medical-history' },
-  { icon: Heart, label: 'Historia general', href: '/patients/anamnesis' },
-  { icon: Brain, label: 'Psiquiatría', href: '/patients/psychiatry' },
-  { icon: Shield, label: 'Salud preventiva', href: '/patients/preventive-health' },
-  { icon: Heart, label: 'Salud reproductiva', href: '/patients/reproductive-health' },
-  { icon: Users, label: 'Comunidad', href: '/patients/community' },
+  { icon: Video, label: 'Hablar con un Doctor', href: '/patients/appointments?type=telemedicine' },
+  { icon: Calendar, label: 'Mi Agenda', href: '/patients/appointments' },
+  { icon: FileText, label: 'Mis Recetas y Pedidos', href: '/patients/medical-history' },
+  { icon: Heart, label: 'Mi Carpeta Médica', href: '/patients/anamnesis' },
+  { icon: Brain, label: 'Salud Mental', href: '/patients/psychiatry' },
+  { icon: Shield, label: 'Chequeos y Prevención', href: '/patients/preventive-health' },
+  { icon: Heart, label: 'Salud Sexual y Reproductiva', href: '/patients/reproductive-health' },
+  { icon: Users, label: 'Foro de la Comunidad', href: '/patients/community' },
 ] as const
 
 const BOTTOM_TABS = [
@@ -56,7 +56,7 @@ const BOTTOM_TABS = [
   { icon: Calendar, label: 'Agenda', href: '/patients/appointments' },
   { icon: Video, label: 'Consultar', href: '/patients/appointments?type=telemedicine' },
   { icon: FileText, label: 'Recetas', href: '/patients/medical-history' },
-  { icon: Users, label: 'Comunidad', href: '/patients/community' },
+  { icon: Users, label: 'Foro de la Comunidad', href: '/patients/community' },
 ] as const
 
 export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
