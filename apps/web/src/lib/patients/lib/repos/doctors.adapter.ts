@@ -78,8 +78,40 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
 
       return doctors
         .sort((a, b) => {
-          if (a.has_availability !== b.has_availability) return a.has_availability ? -1 : 1
-          return a.label.localeCompare(b.label, 'es')
+          // Rule 1: Specific profiles (Eduardo & Demo) always last
+          const lastProfiles = ['EDUARDO DA ROSA', 'DEMO GARCIA'];
+          const isLastA = lastProfiles.some(p => a.label.toUpperCase().includes(p));
+          const isLastB = lastProfiles.some(p => b.label.toUpperCase().includes(p));
+
+          if (isLastA && !isLastB) return 1;
+          if (!isLastA && isLastB) return -1;
+          if (isLastA && isLastB) {
+            // Keep specific order among themselves if both are 'last'
+            return a.label.localeCompare(b.label, 'es');
+          }
+
+          // Rule 2: Grouping by availability and fee presence
+          // Priority: 
+          // 1. Available + Has Fee (Active & Ready)
+          // 2. Available + No Fee (Active but Pricing Pending)
+          // 3. Unavailable + Has Fee (Potentially had patients/history but currently offline)
+          // 4. Unavailable + No Fee (Inactive/New)
+          
+          const getPriority = (d: DoctorSummary) => {
+            if (d.has_availability) {
+              return d.consultation_fee ? 1 : 2;
+            } else {
+              return d.consultation_fee ? 3 : 4;
+            }
+          };
+
+          const priorityA = getPriority(a);
+          const priorityB = getPriority(b);
+
+          if (priorityA !== priorityB) return priorityA - priorityB;
+
+          // Rule 3: Alphabetical within same priority
+          return a.label.localeCompare(b.label, 'es');
         })
     },
   }
