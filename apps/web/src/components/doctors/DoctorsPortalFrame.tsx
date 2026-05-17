@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import type { ChangeEvent, JSX, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { useDoctorHeartbeat } from "@/hooks/doctors/useDoctorHeartbeat";
 
 type ActiveSection =
   | "dashboard"
@@ -175,6 +176,9 @@ export function DoctorsPortalFrame({
   const { doctor } = useCurrentDoctor(user?.id);
   const { stats } = useDoctorStats(doctor?.id, user?.id);
   const { exists: _doctorExists } = useCheckDoctorExists(user?.id);
+
+  // 🩺 Activar monitoreo de presencia (Heartbeat)
+  useDoctorHeartbeat(doctor?.id);
 
   const onboardingStatus = useMemo(
     () => getOnboardingStatus(user?.onboardingCompletedAt, user?.createdAt),
