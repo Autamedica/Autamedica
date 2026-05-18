@@ -1,5 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+import { EmailRealtimeDashboard } from '@/components/admin/EmailRealtimeDashboard';
+
 
 const title = 'Panel de Administración | AutaMedica';
 const description = 'Panel de administración de AutaMedica';
@@ -68,6 +70,11 @@ if (typeof role !== 'string' || !['admin', 'organization_admin', 'platform_admin
               <span class="text-xs font-medium bg-green-50 text-green-700 px-2 py-0.5 rounded-full">Growth OS</span>
             </div>
           </a>
+
+          
+          <div class="mb-8">
+            <EmailRealtimeDashboard client:load />
+          </div>
 
           <div class="bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300">
             <p class="text-sm font-medium text-gray-500 mb-3">
