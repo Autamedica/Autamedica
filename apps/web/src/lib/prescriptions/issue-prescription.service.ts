@@ -129,6 +129,20 @@ function getPrescriptionStoragePath(cuir: string, signedPdfUrl?: string | null):
   return `prescriptions/${cuir}/receta-${cuir}.pdf`;
 }
 
+function resolveExternalPrescriptionForPdf(
+  vendorName?: string | null,
+  vendorId?: string | null,
+): Parameters<typeof generatePrescriptionPdf>[0]['externalPrescription'] {
+  if (vendorName !== 'farmalink' || !vendorId) return undefined;
+
+  return {
+    provider: 'farmalink',
+    number: vendorId,
+    displayLabel: 'RECETA FARMALINK',
+    legend: 'Número de receta para validación online en farmacia',
+  };
+}
+
 async function resolveProfileName(
   supabase: SupabaseClient,
   userId: string,
@@ -423,7 +437,7 @@ export async function regenerateIssuedPrescriptionPdf(
 
   const prescriptionQuery = supabase
     .from('prescriptions')
-    .select('id, doctor_id, patient_id, status, clinical_data, cuir, signed_pdf_url')
+    .select('id, doctor_id, patient_id, status, clinical_data, cuir, signed_pdf_url, vendor_name, vendor_id')
     .limit(1);
 
   const { data: rows } = prescriptionRef.startsWith('AM-') || prescriptionRef.startsWith('AR-')
@@ -463,6 +477,7 @@ export async function regenerateIssuedPrescriptionPdf(
   const artifacts = await generatePrescriptionPdf({
     prescriptionId: rx.id,
     existingCuir: rx.cuir,
+    externalPrescription: resolveExternalPrescriptionForPdf(rx.vendor_name, rx.vendor_id),
     medication: {
       genericName: item.generic_name,
       commercialName: item.commercial_name,

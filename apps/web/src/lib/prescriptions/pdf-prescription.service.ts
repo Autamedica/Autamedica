@@ -42,6 +42,13 @@ export interface PrescriptionPdfInput {
   // expiresAt is now derived but can be overridden
   expiresAt?: string;
   existingCuir?: string;
+  externalPrescription?: {
+    provider: 'farmalink' | string;
+    number: string;
+    barcodeTitle?: string;
+    displayLabel?: string;
+    legend?: string;
+  };
 }
 
 export interface PrescriptionArtifacts {
@@ -146,6 +153,14 @@ export async function generatePrescriptionPdf(
   const cuir = registration.cuir;
   const qrContent = `https://www.autamedica.com/verify/${cuir}`;
   const expiresAt = input.expiresAt || calculateExpiry(input.issuedAt, input.medication.genericName);
+  const barcodeValue = input.externalPrescription?.number || cuir;
+  const barcodeTitle = input.externalPrescription?.barcodeTitle || 'CÓDIGO DE BARRAS';
+  const barcodeDisplayLabel = input.externalPrescription?.displayLabel
+    || (input.externalPrescription ? 'RECETA EXTERNA' : 'CUIR');
+  const barcodeLegend = input.externalPrescription?.legend
+    || (input.externalPrescription
+      ? 'Número de receta para validación online en farmacia'
+      : 'Identificador verificable de receta electrónica');
 
   // Generate QR
   const qrDataUrl = await QRCode.toDataURL(qrContent, {
@@ -292,14 +307,14 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(100, 116, 139);
-  doc.text('CÓDIGO DE BARRAS', marginLeft + 4, barcodeY + 5);
-  drawCode128Barcode(doc, cuir, marginLeft + 48, barcodeY + 3, 78, 8);
+  doc.text(barcodeTitle, marginLeft + 4, barcodeY + 5);
+  drawCode128Barcode(doc, barcodeValue, marginLeft + 48, barcodeY + 3, 78, 8);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(15, 23, 42);
-  doc.text(`CUIR: ${cuir}`, marginLeft + 48, barcodeY + 14);
+  doc.text(`${barcodeDisplayLabel}: ${barcodeValue}`, marginLeft + 48, barcodeY + 14);
   doc.setTextColor(100, 116, 139);
-  doc.text('Identificador verificable de receta electrónica', marginLeft + 132, barcodeY + 9);
+  doc.text(barcodeLegend, marginLeft + 132, barcodeY + 9);
 
   // Prescriber (Regulatory Info Block)
   y = 210; // Fixed position for footer block

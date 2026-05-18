@@ -145,4 +145,51 @@ describe('generatePrescriptionPdf', () => {
     expect(pdfText).toContain('CÓDIGO DE BARRAS');
     expect(pdfText).toContain('AM-3A40CA048B7E');
   });
+
+  it('renders the Farmalink prescription number in the barcode when supplied', async () => {
+    const registerSpy = vi.spyOn(rctaService, 'registerPrescription').mockResolvedValueOnce({
+      cuir: 'AR-20260518-FARMALINK',
+      evidenceHash: 'test-evidence-hash',
+      registrationId: 'rcta_idx_test',
+      timestamp: '2026-05-18T12:00:00.000Z',
+    });
+
+    const artifacts = await generatePrescriptionPdf({
+      prescriptionId: 'rx-farmalink',
+      diagnosis: 'Control',
+      issuedAt: '2026-05-18',
+      externalPrescription: {
+        provider: 'farmalink',
+        number: '9600000002762',
+        displayLabel: 'RECETA FARMALINK',
+        legend: 'Número de receta para validación online en farmacia',
+      },
+      medication: {
+        genericName: 'Amoxicilina',
+        dosage: '500mg',
+        instructions: 'Tomar segun indicacion medica',
+        presentation: 'Comprimidos',
+        quantity: 16,
+      },
+      patient: {
+        address: 'Av. Corrientes 1234, CABA',
+        dni: '30123456',
+        name: 'Maria Gonzalez',
+      },
+      prescriber: {
+        license: 'MN-123456',
+        name: 'Dr. Eduardo Marques da Rosa',
+        professionalAddress: 'Av. Santa Fe 1500, CABA',
+        refeps: 'REF-78901',
+      },
+    });
+
+    const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
+
+    expect(registerSpy).toHaveBeenCalledOnce();
+    expect(artifacts.cuir).toBe('AR-20260518-FARMALINK');
+    expect(pdfText).toContain('CUIR: AR-20260518-FARMALINK');
+    expect(pdfText).toContain('RECETA FARMALINK: 9600000002762');
+    expect(pdfText).toContain('Número de receta para validación online en farmacia');
+  });
 });

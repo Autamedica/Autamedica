@@ -2,23 +2,46 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+interface EmailEventLog {
+  created_at: string;
+  email: string;
+  event_type: string;
+}
+
+interface ChartBucket {
+  time: string;
+  entregados: number;
+  abiertos: number;
+  clics: number;
+}
+
+interface EmailEventsClient {
+  from(relation: 'email_events_log'): {
+    select(columns: string): {
+      gte(column: string, value: string): {
+        order(column: string, options: { ascending: boolean }): Promise<{ data: EmailEventLog[] | null }>;
+      };
+    };
+  };
+}
 
 export function EmailRealtimeDashboard() {
   const supabase = getBrowserSupabaseClient();
-  const [events, setEvents] = useState<any[]>([]);
+  const emailEventsClient = supabase as unknown as EmailEventsClient;
+  const [events, setEvents] = useState<EmailEventLog[]>([]);
   const [stats, setStats] = useState({ delivered: 0, opened: 0, clicks: 0, bounced: 0 });
 
   useEffect(() => {
     const fetchInitialData = async () => {
       const unaHoraAtras = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { data } = await supabase
+      const { data } = await emailEventsClient
         .from('email_events_log')
-        .select('*')
+        .select('created_at,email,event_type')
         .gte('created_at', unaHoraAtras)
         .order('created_at', { ascending: true });
         
-      if (data) {
+      if (Array.isArray(data)) {
         setEvents(data);
         updateStats(data);
       }
@@ -30,7 +53,7 @@ export function EmailRealtimeDashboard() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'email_events_log' },
-        (payload) => {
+        (payload: { new: EmailEventLog }) => {
           setEvents((current) => {
             const nuevos = [...current, payload.new];
             updateStats(nuevos);
@@ -43,9 +66,9 @@ export function EmailRealtimeDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [emailEventsClient, supabase]);
 
-  const updateStats = (data: any[]) => {
+  const updateStats = (data: EmailEventLog[]) => {
     const s = { delivered: 0, opened: 0, clicks: 0, bounced: 0 };
     data.forEach(e => {
       if (e.event_type === 'delivered') s.delivered++;
@@ -57,18 +80,22 @@ export function EmailRealtimeDashboard() {
   };
 
   const chartData = useMemo(() => {
-    const grouped: Record<string, any> = {};
+    const grouped: Record<string, ChartBucket> = {};
     events.forEach(e => {
       const date = new Date(e.created_at);
       const min = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      if (!grouped[min]) grouped[min] = { time: min, Entregados: 0, Abiertos: 0, Clics: 0 };
+      if (!grouped[min]) grouped[min] = { time: min, entregados: 0, abiertos: 0, clics: 0 };
       
-      if (e.event_type === 'delivered') grouped[min].Entregados++;
-      if (e.event_type === 'opened') grouped[min].Abiertos++;
-      if (e.event_type === 'click') grouped[min].Clics++;
+      if (e.event_type === 'delivered') grouped[min].entregados++;
+      if (e.event_type === 'opened') grouped[min].abiertos++;
+      if (e.event_type === 'click') grouped[min].clics++;
     });
     return Object.values(grouped);
   }, [events]);
+  const chartMax = Math.max(
+    1,
+    ...chartData.map((bucket) => bucket.entregados + bucket.abiertos + bucket.clics),
+  );
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-stone-200 p-6 space-y-6">
@@ -85,18 +112,32 @@ export function EmailRealtimeDashboard() {
       </div>
 
       <div className="h-72 mt-8">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-            <XAxis dataKey="time" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-            <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-            <Tooltip cursor={{fill: '#f8fafc'}} />
-            <Legend />
-            <Bar dataKey="Entregados" fill="#3b82f6" radius={[4,4,0,0]} />
-            <Bar dataKey="Abiertos" fill="#10b981" radius={[4,4,0,0]} />
-            <Bar dataKey="Clics" fill="#8b5cf6" radius={[4,4,0,0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="flex h-full items-end gap-2 border-b border-l border-stone-200 px-3 pb-6">
+          {chartData.length === 0 ? (
+            <div className="flex h-full w-full items-center justify-center text-sm text-stone-400">
+              Sin eventos recientes
+            </div>
+          ) : chartData.map((bucket) => {
+            const total = bucket.entregados + bucket.abiertos + bucket.clics;
+            const height = Math.max(8, Math.round((total / chartMax) * 220));
+
+            return (
+              <div key={bucket.time} className="flex min-w-8 flex-1 flex-col items-center gap-2">
+                <div className="flex w-full max-w-12 flex-col justify-end overflow-hidden rounded-t bg-stone-100" style={{ height }}>
+                  <div className="bg-purple-600" style={{ height: `${(bucket.clics / Math.max(1, total)) * 100}%` }} />
+                  <div className="bg-green-500" style={{ height: `${(bucket.abiertos / Math.max(1, total)) * 100}%` }} />
+                  <div className="bg-blue-600" style={{ height: `${(bucket.entregados / Math.max(1, total)) * 100}%` }} />
+                </div>
+                <span className="text-[10px] text-stone-400">{bucket.time}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-3 flex gap-4 text-xs text-stone-500">
+          <LegendItem color="bg-blue-600" label="Entregados" />
+          <LegendItem color="bg-green-500" label="Abiertos" />
+          <LegendItem color="bg-purple-600" label="Clics" />
+        </div>
       </div>
       
       <div className="mt-8">
@@ -121,5 +162,14 @@ function StatBox({ label, value, color }: { label: string, value: number, color:
       <div className={`text-3xl font-black ${color}`}>{value}</div>
       <div className="text-xs text-stone-500 uppercase tracking-widest mt-1">{label}</div>
     </div>
+  );
+}
+
+function LegendItem({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className={`h-2.5 w-2.5 rounded-sm ${color}`} />
+      {label}
+    </span>
   );
 }
