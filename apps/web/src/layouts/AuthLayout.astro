@@ -2,6 +2,7 @@
 import '../styles/globals.css';
 import '../styles/auth.css';
 import { SentryInit } from '../components/SentryInit';
+import GoogleTag from '../components/analytics/GoogleTag.astro';
 import SeoMeta from '../components/seo/SeoMeta.astro';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { getI18n } from '../i18n/index';
@@ -106,6 +107,7 @@ const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePub
         }
       }
     </style>
+    <GoogleTag />
   </head>
   <body class="antialiased">
     <SentryInit client:load />
