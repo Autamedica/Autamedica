@@ -7,6 +7,7 @@
 - API receta: `/api/recetaElect/v3`.
 - Token: `/api/oauth/token/generate`.
 - Operaciones preparadas: `altaReceta`, `consultaReceta`, `bajaReceta`.
+- Emision AutaMedica: cuando `FARMALINK_ENABLED=true`, el servicio de emision intenta `altaReceta` antes de generar el PDF. Si Farmalink aprueba, guarda `vendor_name = "farmalink"` y `vendor_id = nroRecElectronica`, y el PDF imprime `RECETA FARMALINK` en el codigo de barras.
 - Bloqueo actual: faltan credenciales OAuth/aplicacion de Farmalink Seguridad.
 
 ## Contrato OAuth
@@ -44,6 +45,20 @@ FARMALINK_BASIC_PASSWORD=
 FARMALINK_ORG_ID=
 FARMALINK_ORG_TYPE=NMD
 FARMALINK_PUNTO_EMISOR_ID=
+FARMALINK_IP_ORIGIN=
+FARMALINK_BROWSER_INFO=AutaMedica
+FARMALINK_PRESCRIPTION_TYPE=
+FARMALINK_HOMOLOGATION_COD_ENTIDAD=
+FARMALINK_HOMOLOGATION_CREDENCIAL=
+FARMALINK_HOMOLOGATION_PLAN=NO POSEE
+FARMALINK_DEFAULT_PRODUCT_CODE=
+FARMALINK_DEFAULT_DRUG_CODE=
+FARMALINK_PRESCRIBER_DOCUMENT_NUMBER=
+FARMALINK_PRESCRIBER_BIRTH_DATE=
+FARMALINK_PRESCRIBER_CUIL=
+FARMALINK_PRESCRIBER_SEX=
+FARMALINK_PRESCRIBER_LICENSE_TYPE=MN
+FARMALINK_PRESCRIBER_LICENSE_PROVINCE=C
 ```
 
 No cargar en el repo las credenciales del catalogo ni las credenciales OAuth.
@@ -59,12 +74,28 @@ El mapper local arma `altaRecetaElectRq` con:
 
 Farmalink responde aprobado con `respuesta.codigo = "00"` y `recElectronica.nroRecElectronica`. Ese numero debe guardarse como `vendor_id` con `vendor_name = "farmalink"` y mostrarse en el PDF como codigo de barras de farmacia. El CUIR de AutaMedica se conserva para verificacion interna y QR.
 
+## Datos de homologacion en AutaMedica
+
+El alta usa estos origenes de datos, en orden:
+
+- `clinical_data.farmalink` de la receta, si existe.
+- `patients.insurance_info.farmalink` o campos equivalentes de seguro, si existen.
+- Variables `FARMALINK_HOMOLOGATION_*` para pruebas controladas.
+
+Campos minimos para que `FARMALINK_ENABLED=true` no bloquee la emision:
+
+- Organizacion: `FARMALINK_ORG_ID`, `FARMALINK_ORG_TYPE`, `FARMALINK_IP_ORIGIN`.
+- Afiliado: `FARMALINK_HOMOLOGATION_COD_ENTIDAD`, `FARMALINK_HOMOLOGATION_CREDENCIAL`, `FARMALINK_HOMOLOGATION_PLAN`.
+- Medicamento: `FARMALINK_DEFAULT_PRODUCT_CODE`, `FARMALINK_DEFAULT_DRUG_CODE`.
+- Prescriptor: `FARMALINK_PRESCRIBER_DOCUMENT_NUMBER`, `FARMALINK_PRESCRIBER_BIRTH_DATE`.
+
 ## Archivos implementados
 
 - `apps/web/src/lib/prescriptions/farmalink.types.ts`
 - `apps/web/src/lib/prescriptions/farmalink.mapper.ts`
 - `apps/web/src/lib/prescriptions/farmalink.client.ts`
 - `apps/web/src/lib/prescriptions/pdf-prescription.service.ts`
+- `apps/web/src/lib/prescriptions/issue-prescription.service.ts`
 
 ## Checklist cuando Farmalink entregue credenciales
 

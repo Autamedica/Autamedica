@@ -171,4 +171,17 @@ describe('Farmalink mapper', () => {
       },
     })).toThrow(FarmalinkMappingError);
   });
+
+  it('throws when the Farmalink entity code is missing', () => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,
+      affiliate: {
+        ...baseInput.affiliate,
+        credential: {
+          ...baseInput.affiliate.credential,
+          codEntidad: Number.NaN,
+        },
+      },
+    })).toThrow(FarmalinkMappingError);
+  });
 });

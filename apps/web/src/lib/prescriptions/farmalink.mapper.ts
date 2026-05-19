@@ -48,6 +48,13 @@ function optionalNumberFromDigits(value: string | number | undefined): number | 
   return digits ? Number(digits) : undefined;
 }
 
+function positiveNumber(value: number | undefined, field: string): number {
+  if (value === undefined || !Number.isFinite(value) || value <= 0) {
+    throw new FarmalinkMappingError(field);
+  }
+  return value;
+}
+
 function dateOnly(value: string, field: string): string {
   const normalized = assertText(value, field);
   const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -177,7 +184,7 @@ export function buildFarmalinkAltaRecetaRequest(
           mail: optionalText(input.affiliate.email),
           datosOfuscado: boolFlag(input.affiliate.dataObfuscated, 'N'),
           credencial: {
-            codEntidad: input.affiliate.credential.codEntidad,
+            codEntidad: positiveNumber(input.affiliate.credential.codEntidad, 'affiliate.credential.codEntidad'),
             pan: assertText(digitsOnly(input.affiliate.credential.pan), 'affiliate.credential.pan'),
             plan: assertText(input.affiliate.credential.plan, 'affiliate.credential.plan'),
           },
