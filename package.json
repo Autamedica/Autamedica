@@ -228,6 +228,7 @@
       "react": "19.0.0",
       "react-dom": "19.0.0",
       "vitest": "^4.1.0",
+      "devalue": ">=5.8.1",
       "h3": ">=1.15.6",
       "rollup": ">=4.59.0",
       "update-browserslist-db": "^1.2.3",
