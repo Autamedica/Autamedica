@@ -1,0 +1,124 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { primeRuntimeEnv, resetRuntimeEnvCache } from '@/lib/runtime-env';
+import { buildFarmalinkAltaRecetaRequest } from './farmalink.mapper';
+import { __testables } from './issue-prescription.service';
+
+const doctor = {
+  id: 'doctor-1',
+  license_number: '123456',
+  specialty: 'Clinica Medica',
+  refeps_id: '54122333444',
+  enrollment_entity: 'MN',
+  enrollment_jurisdiction: 'C',
+  professional_address: 'Av. Santa Fe 1500, CABA',
+};
+
+const patient = {
+  dni: '30123456',
+  cuil: '27-30123456-8',
+  address: 'Av. Corrientes 1234, CABA',
+  birth_date: '1990-06-14',
+  gender: 'female',
+  insurance_info: null,
+};
+
+const item = {
+  generic_name: 'AMOXICILINA',
+  commercial_name: 'Amoxidal',
+  dosage: '500 MG',
+  presentation: 'Comprimidos',
+  quantity: 1,
+  instructions: 'Tomar segun indicacion medica',
+};
+
+describe('issuePrescription Farmalink wiring', () => {
+  afterEach(() => {
+    resetRuntimeEnvCache();
+  });
+
+  it('builds a homologation AltaReceta payload from runtime env and prescription data', () => {
+    primeRuntimeEnv({
+      FARMALINK_ORG_ID: '100',
+      FARMALINK_IP_ORIGIN: '8.8.8.8',
+      FARMALINK_PUNTO_EMISOR_ID: '10000',
+      FARMALINK_HOMOLOGATION_COD_ENTIDAD: '7100',
+      FARMALINK_HOMOLOGATION_CREDENCIAL: '12345678',
+      FARMALINK_HOMOLOGATION_PLAN: 'NO POSEE',
+      FARMALINK_PRESCRIBER_BIRTH_DATE: '1980-01-01',
+      FARMALINK_PRESCRIBER_DOCUMENT_NUMBER: '22333444',
+      FARMALINK_DEFAULT_PRODUCT_CODE: '123',
+      FARMALINK_DEFAULT_DRUG_CODE: '1',
+    });
+
+    const mapInput = __testables.buildFarmalinkPrescriptionMapInput({
+      clinicalData: { diagnosis: 'Cefalea' },
+      doctor,
+      doctorName: 'Dr. Eduardo Marques',
+      item,
+      patient,
+      patientName: 'Maria Gonzalez',
+      now: '2026-05-18T12:00:00.000Z',
+      expiresAt: '2026-06-17T12:00:00.000Z',
+    });
+    const request = buildFarmalinkAltaRecetaRequest(mapInput);
+
+    expect(request.altaRecetaElectRq.infoCabeceraRq).toEqual({
+      idOrganizacion: '100',
+      tipoOrganizacion: 'NMD',
+      ipOrigen: '8.8.8.8',
+      infoBrowser: 'AutaMedica',
+    });
+    expect(request.altaRecetaElectRq.puntoEmisor).toEqual({ id: 10000 });
+    expect(request.altaRecetaElectRq.recElectronica.afiliado.credencial).toEqual({
+      codEntidad: 7100,
+      pan: '12345678',
+      plan: 'NO POSEE',
+    });
+    expect(request.altaRecetaElectRq.recElectronica.detalleRecElectronica.item[0])
+      .toMatchObject({
+        codProducto: '00123',
+        codDroga: '00001',
+        textoGenerico: 'AMOXICILINA 500 MG Comprimidos',
+      });
+  });
+
+  it('lets clinical Farmalink metadata override generic env defaults', () => {
+    primeRuntimeEnv({
+      FARMALINK_ORG_ID: '100',
+      FARMALINK_IP_ORIGIN: '8.8.8.8',
+      FARMALINK_HOMOLOGATION_COD_ENTIDAD: '7100',
+      FARMALINK_HOMOLOGATION_CREDENCIAL: '12345678',
+      FARMALINK_PRESCRIBER_BIRTH_DATE: '1980-01-01',
+      FARMALINK_PRESCRIBER_DOCUMENT_NUMBER: '22333444',
+      FARMALINK_DEFAULT_PRODUCT_CODE: '123',
+      FARMALINK_DEFAULT_DRUG_CODE: '1',
+    });
+
+    const mapInput = __testables.buildFarmalinkPrescriptionMapInput({
+      clinicalData: {
+        diagnosis: 'Control',
+        farmalink: {
+          credential: { codEntidad: 7100, pan: '87654321', plan: 'TEST' },
+          item: { productCode: '999', drugCode: '888', genericText: 'IBUPROFENO 400 MG' },
+        },
+      },
+      doctor,
+      doctorName: 'Dr. Eduardo Marques',
+      item,
+      patient,
+      patientName: 'Maria Gonzalez',
+      now: '2026-05-18T12:00:00.000Z',
+      expiresAt: '2026-06-17T12:00:00.000Z',
+    });
+    const request = buildFarmalinkAltaRecetaRequest(mapInput);
+
+    expect(request.altaRecetaElectRq.recElectronica.afiliado.credencial.pan).toBe('87654321');
+    expect(request.altaRecetaElectRq.recElectronica.afiliado.credencial.plan).toBe('TEST');
+    expect(request.altaRecetaElectRq.recElectronica.detalleRecElectronica.item[0])
+      .toMatchObject({
+        codProducto: '00999',
+        codDroga: '00888',
+        textoGenerico: 'IBUPROFENO 400 MG',
+      });
+  });
+});
