@@ -1,0 +1,14 @@
+---
+const GOOGLE_ADS_ID = 'AW-18168503394';
+---
+
+<!-- Google tag (gtag.js) -->
+<script is:inline async src="https://www.googletagmanager.com/gtag/js?id=AW-18168503394"></script>
+<script is:inline define:vars={{ GOOGLE_ADS_ID }}>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() {
+    dataLayer.push(arguments);
+  }
+  gtag('js', new Date());
+  gtag('config', GOOGLE_ADS_ID);
+</script>

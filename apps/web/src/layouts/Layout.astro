@@ -2,6 +2,7 @@
 import '../styles/globals.css';
 import StructuredData from '../components/seo/StructuredData.astro';
 import SeoMeta from '../components/seo/SeoMeta.astro';
+import GoogleTag from '../components/analytics/GoogleTag.astro';
 import ScrollProgress from '../components/ui/ScrollProgress.astro';
 import CookieBanner from '../components/CookieBanner.astro';
 import OfflineBanner from '../components/OfflineBanner.astro';
@@ -114,6 +115,7 @@ const activeTabDoctor =
     <link rel="manifest" href="/manifest.json" />
     <StructuredData />
     <meta name="view-transition" content="same-origin" />
+    <GoogleTag />
   </head>
   <body class="antialiased">
     <SentryInit client:load />
