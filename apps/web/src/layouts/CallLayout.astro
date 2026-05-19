@@ -1,7 +1,6 @@
 ---
 import '../styles/globals.css';
 import { SentryInit } from '../components/SentryInit';
-import GoogleTag from '../components/analytics/GoogleTag.astro';
 import { resolvePublicClientEnv } from '../lib/runtime-env';
 
 interface Props {
@@ -53,7 +52,6 @@ const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePub
     >
       window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SENTRY_DSN };
     </script>
-    <GoogleTag />
   </head>
   <body class="call-layout antialiased">
     <SentryInit client:load />

@@ -3,12 +3,58 @@ const GOOGLE_ADS_ID = 'AW-18168503394';
 ---
 
 <!-- Google tag (gtag.js) -->
-<script is:inline async src="https://www.googletagmanager.com/gtag/js?id=AW-18168503394"></script>
 <script is:inline define:vars={{ GOOGLE_ADS_ID }}>
-  window.dataLayer = window.dataLayer || [];
-  function gtag() {
-    dataLayer.push(arguments);
-  }
-  gtag('js', new Date());
-  gtag('config', GOOGLE_ADS_ID);
+  (() => {
+    const STORAGE_KEY = 'au-cookie-consent';
+    const SCRIPT_ID = 'autamedica-google-tag';
+    const CONSENT_EVENT = 'au:cookie-consent:accepted';
+    const CONTROLLER_KEY = '__autamedicaGoogleTagControllerReady';
+    const LOADED_KEY = '__autamedicaGoogleTagLoaded';
+    const LOAD_KEY = '__autamedicaLoadGoogleTag';
+
+    if (window[CONTROLLER_KEY]) {
+      window[LOAD_KEY]?.();
+      return;
+    }
+
+    function hasCookieConsent() {
+      try {
+        return localStorage.getItem(STORAGE_KEY) === 'accepted';
+      } catch {
+        return false;
+      }
+    }
+
+    function loadGoogleTag() {
+      if (!hasCookieConsent() || window[LOADED_KEY]) return;
+
+      window[LOADED_KEY] = true;
+      window.dataLayer = window.dataLayer || [];
+      window.gtag =
+        window.gtag ||
+        function gtag() {
+          window.dataLayer.push(arguments);
+        };
+
+      window.gtag('js', new Date());
+      window.gtag('config', GOOGLE_ADS_ID);
+
+      if (document.getElementById(SCRIPT_ID)) return;
+
+      const script = document.createElement('script');
+      script.id = SCRIPT_ID;
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(
+        GOOGLE_ADS_ID,
+      )}`;
+      document.head.appendChild(script);
+    }
+
+    window[CONTROLLER_KEY] = true;
+    window[LOAD_KEY] = loadGoogleTag;
+
+    loadGoogleTag();
+    document.addEventListener(CONSENT_EVENT, loadGoogleTag);
+    document.addEventListener('astro:after-swap', loadGoogleTag);
+  })();
 </script>

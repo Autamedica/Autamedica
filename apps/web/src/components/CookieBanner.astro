@@ -28,6 +28,7 @@
 
 <script>
   const STORAGE_KEY = 'au-cookie-consent';
+  const CONSENT_EVENT = 'au:cookie-consent:accepted';
 
   function initCookieBanner() {
     if (localStorage.getItem(STORAGE_KEY)) return;
@@ -39,6 +40,7 @@
 
     document.getElementById('au-cookie-accept')?.addEventListener('click', () => {
       localStorage.setItem(STORAGE_KEY, 'accepted');
+      document.dispatchEvent(new CustomEvent(CONSENT_EVENT));
       banner.classList.add('hidden');
     });
   }
