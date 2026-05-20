@@ -296,7 +296,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const admin = createAstroAdminClient(
       runtimeEnv,
     ) as unknown as SupabaseClient<Database>;
-    const growth = admin.schema("growth_os") as unknown as GrowthSchemaClient;
+    const growth = (admin as any).schema("growth_os") as unknown as GrowthSchemaClient;
 
     const { data, error } = await growth.rpc<DashboardSummary>(
       "dashboard_summary",

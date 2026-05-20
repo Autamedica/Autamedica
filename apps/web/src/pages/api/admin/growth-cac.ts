@@ -141,7 +141,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   try {
     const admin = createAstroAdminClient(runtimeEnv);
-    const growth = admin.schema("growth_os") as unknown as GrowthSchemaClient;
+    const growth = (admin as any).schema("growth_os") as unknown as GrowthSchemaClient;
 
     const { data: attribution, error: attrError } = await growth
       .from<LeadAttributionRow>("lead_attribution")
