@@ -61,9 +61,11 @@ export function isProduction(): boolean {
 }
 
 export function getCanonicalAuthCallbackUrl(currentOrigin?: string): string {
-  const authOrigin = isProduction()
+  const origin = currentOrigin ?? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  const isPagesDev = origin.includes('.pages.dev');
+  const authOrigin = (isProduction() && !isPagesDev)
     ? 'https://www.autamedica.com'
-    : (currentOrigin ?? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'));
+    : origin;
 
   return new URL('/auth/callback', authOrigin).toString();
 }
