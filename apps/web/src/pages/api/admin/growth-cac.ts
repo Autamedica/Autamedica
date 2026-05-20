@@ -64,24 +64,49 @@ function isLocalDevBypass(request: Request): boolean {
   );
 }
 
-function isAuthorized(
+const ADMIN_ROLES = ["admin", "organization_admin", "platform_admin"] as const;
+
+function getMetadataRole(user: App.Locals["session"]["user"] | undefined): string | undefined {
+  const appRole = (user?.app_metadata as Record<string, unknown> | undefined)?.role;
+  if (typeof appRole === "string") return appRole;
+
+  const userRole = (user?.user_metadata as Record<string, unknown> | undefined)?.role;
+  return typeof userRole === "string" ? userRole : undefined;
+}
+
+async function isAuthorized(
   locals: App.Locals,
   request: Request,
   runtimeEnv: RuntimeEnv,
-): boolean {
+): Promise<boolean> {
   if (isLocalDevBypass(request)) return true;
 
-  const session = locals.session;
-  if (session) {
-    const role = (session.user.user_metadata as Record<string, unknown>)?.role;
-    if (
-      typeof role === "string" &&
-      ["admin", "organization_admin", "platform_admin"].includes(role)
-    ) {
-      return true;
+  // Check session first (for admin UI)
+  const user = locals.session?.user;
+  const role = getMetadataRole(user);
+  if (role && ADMIN_ROLES.includes(role as (typeof ADMIN_ROLES)[number])) return true;
+
+  if (user?.id) {
+    try {
+      const admin = createAstroAdminClient(runtimeEnv);
+      const { data } = await admin
+        .from("profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (
+        data?.role &&
+        ADMIN_ROLES.includes(data.role as (typeof ADMIN_ROLES)[number])
+      ) {
+        return true;
+      }
+    } catch (e) {
+      logger.error("[growth/cac] Failed db role check in authorization", e);
     }
   }
 
+  // Check secret (for cron/internal)
   const secret =
     readEnv(runtimeEnv, "CRON_SECRET") || readEnv(runtimeEnv, "TRIGGER_KEY");
   if (!secret) return false;
@@ -100,10 +125,9 @@ function centsToMajorUnit(value: number | string | null): number {
   const amount = Number(value || 0);
   return Number.isFinite(amount) ? amount / 100 : 0;
 }
-
 export const GET: APIRoute = async ({ request, locals }) => {
   const runtimeEnv = locals.runtime?.env;
-  if (!isAuthorized(locals, request, runtimeEnv)) {
+  if (!(await isAuthorized(locals, request, runtimeEnv))) {
     return json({ error: "unauthorized" }, 401);
   }
 
