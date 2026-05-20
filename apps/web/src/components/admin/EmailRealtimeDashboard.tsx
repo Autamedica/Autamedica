@@ -3,10 +3,13 @@
 import { useEffect, useState, useMemo } from 'react';
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
 
+const MAX_EMAIL_EVENTS_ROWS = 50000;
+
 interface EmailEventLog {
   created_at: string;
   email: string;
   event_type: string;
+  subject: string | null;
 }
 
 interface ChartBucket {
@@ -16,11 +19,26 @@ interface ChartBucket {
   clics: number;
 }
 
+interface TopLead {
+  email: string;
+  opens: number;
+  clicks: number;
+  delivered: number;
+  bounced: number;
+  total: number;
+  score: number;
+  lastEventAt: string;
+  lastSubject: string | null;
+}
+
 interface EmailEventsClient {
   from(relation: 'email_events_log'): {
     select(columns: string): {
       gte(column: string, value: string): {
         order(column: string, options: { ascending: boolean }): Promise<{ data: EmailEventLog[] | null }>;
+      };
+      order(column: string, options: { ascending: boolean }): {
+        range(from: number, to: number): Promise<{ data: EmailEventLog[] | null }>;
       };
     };
   };
@@ -31,19 +49,19 @@ export function EmailRealtimeDashboard() {
   const emailEventsClient = supabase as unknown as EmailEventsClient;
   const [events, setEvents] = useState<EmailEventLog[]>([]);
   const [stats, setStats] = useState({ delivered: 0, opened: 0, clicks: 0, bounced: 0 });
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      const unaHoraAtras = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { data } = await emailEventsClient
-        .from('email_events_log')
-        .select('created_at,email,event_type')
-        .gte('created_at', unaHoraAtras)
-        .order('created_at', { ascending: true });
+      try {
+        setFetchError(null);
+        const data = await fetchAllEmailEvents(emailEventsClient);
         
-      if (Array.isArray(data)) {
         setEvents(data);
         updateStats(data);
+      } catch (error) {
+        setFetchError('No se pudieron cargar los eventos históricos de email.');
+        console.error('[EmailRealtimeDashboard] Failed to fetch email events', error);
       }
     };
     
@@ -71,38 +89,52 @@ export function EmailRealtimeDashboard() {
   const updateStats = (data: EmailEventLog[]) => {
     const s = { delivered: 0, opened: 0, clicks: 0, bounced: 0 };
     data.forEach(e => {
-      if (e.event_type === 'delivered') s.delivered++;
-      if (e.event_type === 'opened') s.opened++;
-      if (e.event_type === 'click') s.clicks++;
-      if (e.event_type === 'hard_bounce' || e.event_type === 'soft_bounce' || e.event_type === 'bounced') s.bounced++;
+      const eventType = normalizeEmailEventType(e.event_type);
+      if (eventType === 'delivered') s.delivered++;
+      if (eventType === 'opened') s.opened++;
+      if (eventType === 'click') s.clicks++;
+      if (eventType === 'bounced') s.bounced++;
     });
     setStats(s);
   };
 
+  const recentEvents = useMemo(() => {
+    const unaHoraAtras = Date.now() - 60 * 60 * 1000;
+    return events.filter((event) => new Date(event.created_at).getTime() >= unaHoraAtras);
+  }, [events]);
+
   const chartData = useMemo(() => {
     const grouped: Record<string, ChartBucket> = {};
-    events.forEach(e => {
+    recentEvents.forEach(e => {
       const date = new Date(e.created_at);
       const min = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       if (!grouped[min]) grouped[min] = { time: min, entregados: 0, abiertos: 0, clics: 0 };
       
-      if (e.event_type === 'delivered') grouped[min].entregados++;
-      if (e.event_type === 'opened') grouped[min].abiertos++;
-      if (e.event_type === 'click') grouped[min].clics++;
+      const eventType = normalizeEmailEventType(e.event_type);
+      if (eventType === 'delivered') grouped[min].entregados++;
+      if (eventType === 'opened') grouped[min].abiertos++;
+      if (eventType === 'click') grouped[min].clics++;
     });
     return Object.values(grouped);
-  }, [events]);
+  }, [recentEvents]);
   const chartMax = Math.max(
     1,
     ...chartData.map((bucket) => bucket.entregados + bucket.abiertos + bucket.clics),
   );
+  const topLeads = useMemo(() => calculateTopLeads(events), [events]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-stone-200 p-6 space-y-6">
       <div>
         <h2 className="text-xl font-bold text-stone-800">Tiempo real (API Interna)</h2>
-        <p className="text-sm text-stone-500">Datos sincronizados instantáneamente desde Brevo Webhooks</p>
+        <p className="text-sm text-stone-500">Histórico importado + eventos sincronizados instantáneamente desde Brevo Webhooks</p>
       </div>
+
+      {fetchError ? (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {fetchError}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-4 gap-4">
         <StatBox label="Entregado" value={stats.delivered} color="text-blue-600" />
@@ -139,12 +171,62 @@ export function EmailRealtimeDashboard() {
           <LegendItem color="bg-purple-600" label="Clics" />
         </div>
       </div>
+
+      <div className="mt-8 overflow-hidden rounded-lg border border-stone-200">
+        <div className="flex items-center justify-between gap-3 border-b border-stone-100 bg-stone-50 px-4 py-3">
+          <div>
+            <h3 className="text-sm font-semibold text-stone-800">Top Leads / Mayor Interés</h3>
+            <p className="text-xs text-stone-500">Ranking por aperturas y clics acumulados en todo el historial disponible.</p>
+          </div>
+          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-stone-600">
+            Top 10
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-white text-xs font-semibold uppercase tracking-wide text-stone-500">
+              <tr>
+                <th className="px-4 py-3">Lead</th>
+                <th className="px-4 py-3 text-right">Aperturas</th>
+                <th className="px-4 py-3 text-right">Clics</th>
+                <th className="px-4 py-3 text-right">Score</th>
+                <th className="px-4 py-3">Última interacción</th>
+                <th className="px-4 py-3">Último asunto</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {topLeads.map((lead) => (
+                <tr key={lead.email} className="hover:bg-stone-50">
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-stone-900">{lead.email}</div>
+                    <div className="text-xs text-stone-500">
+                      {lead.delivered} entregados · {lead.bounced} rebotados · {lead.total} eventos
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right font-semibold text-green-600">{lead.opens}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-purple-600">{lead.clicks}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-stone-900">{lead.score}</td>
+                  <td className="px-4 py-3 text-xs text-stone-500">{formatDateTime(lead.lastEventAt)}</td>
+                  <td className="max-w-xs truncate px-4 py-3 text-xs text-stone-600">{lead.lastSubject || '-'}</td>
+                </tr>
+              ))}
+              {topLeads.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-stone-500">
+                    Todavía no hay aperturas o clics para rankear.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
       
       <div className="mt-8">
         <h3 className="text-sm font-semibold text-stone-800 mb-4">Últimos eventos</h3>
         <div className="space-y-2">
-          {events.slice(-5).reverse().map((e, idx) => (
-            <div key={idx} className="text-xs flex justify-between border-b pb-2">
+          {events.slice(-5).reverse().map((e) => (
+            <div key={`${e.created_at}-${e.event_type}-${e.email}`} className="text-xs flex justify-between border-b pb-2">
                <span className="font-mono text-stone-500">{new Date(e.created_at).toLocaleTimeString()}</span>
                <span className="font-medium">{e.email}</span>
                <span className="uppercase tracking-wider text-[10px] bg-stone-100 px-2 py-1 rounded">{e.event_type}</span>
@@ -154,6 +236,83 @@ export function EmailRealtimeDashboard() {
       </div>
     </div>
   );
+}
+
+async function fetchAllEmailEvents(emailEventsClient: EmailEventsClient): Promise<EmailEventLog[]> {
+  const pageSize = 1000;
+  const allEvents: EmailEventLog[] = [];
+
+  for (let from = 0; ; from += pageSize) {
+    if (allEvents.length >= MAX_EMAIL_EVENTS_ROWS) break;
+    const { data } = await emailEventsClient
+      .from('email_events_log')
+      .select('created_at,email,event_type,subject')
+      .order('created_at', { ascending: true })
+      .range(from, Math.min(from + pageSize - 1, MAX_EMAIL_EVENTS_ROWS - 1));
+
+    if (!Array.isArray(data) || data.length === 0) break;
+    allEvents.push(...data);
+    if (data.length < pageSize) break;
+  }
+
+  return allEvents;
+}
+
+function calculateTopLeads(events: EmailEventLog[]): TopLead[] {
+  const leads = new Map<string, TopLead>();
+
+  events.forEach((event) => {
+    const email = event.email.toLowerCase();
+    const eventType = normalizeEmailEventType(event.event_type);
+    const current = leads.get(email) ?? {
+      email,
+      opens: 0,
+      clicks: 0,
+      delivered: 0,
+      bounced: 0,
+      total: 0,
+      score: 0,
+      lastEventAt: event.created_at,
+      lastSubject: event.subject,
+    };
+
+    current.total += 1;
+    if (eventType === 'opened') current.opens += 1;
+    if (eventType === 'click') current.clicks += 1;
+    if (eventType === 'delivered') current.delivered += 1;
+    if (eventType === 'bounced') current.bounced += 1;
+    if (new Date(event.created_at).getTime() >= new Date(current.lastEventAt).getTime()) {
+      current.lastEventAt = event.created_at;
+      current.lastSubject = event.subject;
+    }
+    current.score = current.opens + current.clicks * 3;
+    leads.set(email, current);
+  });
+
+  return Array.from(leads.values())
+    .filter((lead) => lead.opens > 0 || lead.clicks > 0)
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score;
+      return new Date(right.lastEventAt).getTime() - new Date(left.lastEventAt).getTime();
+    })
+    .slice(0, 10);
+}
+
+function normalizeEmailEventType(eventType: string): 'delivered' | 'opened' | 'click' | 'bounced' | 'other' {
+  if (eventType === 'delivered') return 'delivered';
+  if (eventType === 'opened' || eventType === 'openings') return 'opened';
+  if (eventType === 'click' || eventType === 'clicks') return 'click';
+  if (['hard_bounce', 'soft_bounce', 'bounced', 'hardBounces', 'softBounces'].includes(eventType)) return 'bounced';
+  return 'other';
+}
+
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function StatBox({ label, value, color }: { label: string, value: number, color: string }) {
