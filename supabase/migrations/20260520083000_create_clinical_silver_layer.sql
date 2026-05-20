@@ -46,12 +46,14 @@ ALTER TABLE public.clinical_symptom_observations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.clinical_patient_conditions ENABLE ROW LEVEL SECURITY;
 
 -- Patients can only read their own clinical silver layer data
+DROP POLICY IF EXISTS "Patients can read own clinical symptoms" ON public.clinical_symptom_observations;
 CREATE POLICY "Patients can read own clinical symptoms"
   ON public.clinical_symptom_observations FOR SELECT
   USING (patient_id IN (
     SELECT id FROM public.patients WHERE user_id = auth.uid()
   ));
 
+DROP POLICY IF EXISTS "Patients can read own clinical conditions" ON public.clinical_patient_conditions;
 CREATE POLICY "Patients can read own clinical conditions"
   ON public.clinical_patient_conditions FOR SELECT
   USING (patient_id IN (
@@ -59,11 +61,13 @@ CREATE POLICY "Patients can read own clinical conditions"
   ));
 
 -- Service role and internal workers have full permissions
+DROP POLICY IF EXISTS "Service role manages clinical symptoms" ON public.clinical_symptom_observations;
 CREATE POLICY "Service role manages clinical symptoms"
   ON public.clinical_symptom_observations FOR ALL
   USING (true)
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Service role manages clinical conditions" ON public.clinical_patient_conditions;
 CREATE POLICY "Service role manages clinical conditions"
   ON public.clinical_patient_conditions FOR ALL
   USING (true)
