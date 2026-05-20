@@ -86,7 +86,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    const { error: upsertError } = await admin
+    const { error: upsertError } = await (admin as any)
       .schema("growth_os")
       .from("leads")
       .upsert(leadsToInsert, {
