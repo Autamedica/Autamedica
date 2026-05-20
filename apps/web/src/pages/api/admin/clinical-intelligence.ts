@@ -116,9 +116,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
     ) as unknown as SupabaseClient<Database>;
 
     // 1. CAPA ORO: Fetch seasonal metrics (preaggregated high-performance OLAP)
-    const { data: goldMetrics, error: goldError } = await admin
-      .from("clinical_gold_seasonal_metrics" as unknown as "patients")
-      .select("season, symptom_name, snomed_code, icd11_code, case_count") as unknown as {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: goldMetrics, error: goldError } = await (admin as any)
+      .from("clinical_gold_seasonal_metrics")
+      .select("season, symptom_name, snomed_code, icd11_code, case_count") as {
         data: GoldSeasonalMetric[] | null;
         error: { message: string } | null;
       };
@@ -126,8 +127,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
     if (goldError) throw new Error(goldError.message);
 
     // 2. DATA SCIENCE: Run Early Warning Engine (Anomalies & Outbreaks detection)
-    const { data: anomalies, error: anomalyError } = await admin
-      .rpc("detect_clinical_anomalies") as unknown as {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: anomalies, error: anomalyError } = await (admin as any)
+      .rpc("detect_clinical_anomalies") as {
         data: AnomalyDetectionRow[] | null;
         error: { message: string } | null;
       };
@@ -137,10 +139,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
     }
 
     // 3. CAPA PLATA: Fetch current Red Flags for live tracking
-    const { data: rawRedFlags, error: rfError } = await admin
-      .from("clinical_symptom_observations" as unknown as "patients")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rawRedFlags, error: rfError } = await (admin as any)
+      .from("clinical_symptom_observations")
       .select("symptom_name, snomed_code")
-      .eq("is_red_flag", true) as unknown as {
+      .eq("is_red_flag", true) as {
         data: RedFlagObservationRow[] | null;
         error: { message: string } | null;
       };
