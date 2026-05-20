@@ -88,7 +88,9 @@ export function EmailRealtimeDashboard() {
 
   const updateStats = (data: EmailEventLog[]) => {
     const s = { delivered: 0, opened: 0, clicks: 0, bounced: 0 };
+    if (!Array.isArray(data)) return;
     data.forEach(e => {
+      if (!e?.event_type) return;
       const eventType = normalizeEmailEventType(e.event_type);
       if (eventType === 'delivered') s.delivered++;
       if (eventType === 'opened') s.opened++;
@@ -100,13 +102,21 @@ export function EmailRealtimeDashboard() {
 
   const recentEvents = useMemo(() => {
     const unaHoraAtras = Date.now() - 60 * 60 * 1000;
-    return events.filter((event) => new Date(event.created_at).getTime() >= unaHoraAtras);
+    if (!Array.isArray(events)) return [];
+    return events.filter((event) => {
+      if (!event?.created_at) return false;
+      const t = new Date(event.created_at).getTime();
+      return !isNaN(t) && t >= unaHoraAtras;
+    });
   }, [events]);
 
   const chartData = useMemo(() => {
     const grouped: Record<string, ChartBucket> = {};
+    if (!Array.isArray(recentEvents)) return [];
     recentEvents.forEach(e => {
+      if (!e?.created_at || !e?.event_type) return;
       const date = new Date(e.created_at);
+      if (isNaN(date.getTime())) return;
       const min = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       if (!grouped[min]) grouped[min] = { time: min, entregados: 0, abiertos: 0, clics: 0 };
       
@@ -225,11 +235,11 @@ export function EmailRealtimeDashboard() {
       <div className="mt-8">
         <h3 className="text-sm font-semibold text-stone-800 mb-4">Últimos eventos</h3>
         <div className="space-y-2">
-          {events.slice(-5).reverse().map((e) => (
-            <div key={`${e.created_at}-${e.event_type}-${e.email}`} className="text-xs flex justify-between border-b pb-2">
+          {events.slice(-5).reverse().filter(e => e?.email && e?.created_at).map((e) => (
+            <div key={`${e.created_at}-${e.event_type ?? ''}-${e.email}`} className="text-xs flex justify-between border-b pb-2">
                <span className="font-mono text-stone-500">{new Date(e.created_at).toLocaleTimeString()}</span>
                <span className="font-medium">{e.email}</span>
-               <span className="uppercase tracking-wider text-[10px] bg-stone-100 px-2 py-1 rounded">{e.event_type}</span>
+               <span className="uppercase tracking-wider text-[10px] bg-stone-100 px-2 py-1 rounded">{e.event_type ?? 'other'}</span>
             </div>
           ))}
         </div>
@@ -260,8 +270,10 @@ async function fetchAllEmailEvents(emailEventsClient: EmailEventsClient): Promis
 
 function calculateTopLeads(events: EmailEventLog[]): TopLead[] {
   const leads = new Map<string, TopLead>();
+  if (!Array.isArray(events)) return [];
 
   events.forEach((event) => {
+    if (!event?.email || !event?.event_type || !event?.created_at) return;
     const email = event.email.toLowerCase();
     const eventType = normalizeEmailEventType(event.event_type);
     const current = leads.get(email) ?? {
@@ -281,7 +293,10 @@ function calculateTopLeads(events: EmailEventLog[]): TopLead[] {
     if (eventType === 'click') current.clicks += 1;
     if (eventType === 'delivered') current.delivered += 1;
     if (eventType === 'bounced') current.bounced += 1;
-    if (new Date(event.created_at).getTime() >= new Date(current.lastEventAt).getTime()) {
+    
+    const eventTime = new Date(event.created_at).getTime();
+    const currentTime = new Date(current.lastEventAt).getTime();
+    if (!isNaN(eventTime) && (isNaN(currentTime) || eventTime >= currentTime)) {
       current.lastEventAt = event.created_at;
       current.lastSubject = event.subject;
     }
@@ -293,12 +308,15 @@ function calculateTopLeads(events: EmailEventLog[]): TopLead[] {
     .filter((lead) => lead.opens > 0 || lead.clicks > 0)
     .sort((left, right) => {
       if (right.score !== left.score) return right.score - left.score;
-      return new Date(right.lastEventAt).getTime() - new Date(left.lastEventAt).getTime();
+      const rightTime = new Date(right.lastEventAt).getTime();
+      const leftTime = new Date(left.lastEventAt).getTime();
+      return (isNaN(rightTime) ? 0 : rightTime) - (isNaN(leftTime) ? 0 : leftTime);
     })
     .slice(0, 10);
 }
 
-function normalizeEmailEventType(eventType: string): 'delivered' | 'opened' | 'click' | 'bounced' | 'other' {
+function normalizeEmailEventType(eventType: string | null | undefined): 'delivered' | 'opened' | 'click' | 'bounced' | 'other' {
+  if (!eventType) return 'other';
   if (eventType === 'delivered') return 'delivered';
   if (eventType === 'opened' || eventType === 'openings') return 'opened';
   if (eventType === 'click' || eventType === 'clicks') return 'click';
