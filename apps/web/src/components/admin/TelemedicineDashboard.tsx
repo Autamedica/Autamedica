@@ -13,6 +13,8 @@ interface CallRecord {
   appointment_id: string | null
   created_at: string
   ended_at: string | null
+  doctor_joined: boolean
+  patient_joined: boolean
 }
 
 interface TelemedicineStats {
@@ -31,6 +33,25 @@ interface DashboardData {
   eventsByType: Record<string, number>
 }
 
+interface NotificationRiskSummary {
+  total: number
+  p0: number
+  p1: number
+  p2: number
+}
+
+interface NotificationRisk {
+  appointment_id: string
+  start_time: string
+  urgency: 'p0' | 'p1' | 'p2'
+  risk_reasons: string[]
+}
+
+interface NotificationRiskData {
+  summary: NotificationRiskSummary
+  risks: NotificationRisk[]
+}
+
 const STATUS_COLORS: Record<string, string> = {
   connected: 'bg-green-100 text-green-800',
   ended: 'bg-gray-100 text-gray-800',
@@ -45,13 +66,18 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function TelemedicineDashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
+  const [notificationRisks, setNotificationRisks] = useState<NotificationRiskData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const loadTelemedicineStats = useCallback(async () => {
     try {
-      const result = await fetchApi<DashboardData>('/api/admin/telemedicine-stats')
-      setData(result)
+      const [statsResult, risksResult] = await Promise.all([
+        fetchApi<DashboardData>('/api/admin/telemedicine-stats'),
+        fetchApi<NotificationRiskData>('/api/admin/appointment-notification-risks?limit=8'),
+      ])
+      setData(statsResult)
+      setNotificationRisks(risksResult)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
@@ -92,6 +118,8 @@ export default function TelemedicineDashboard() {
   if (!data) return null
 
   const { stats, recentCalls, eventsByType } = data
+  const riskSummary = notificationRisks?.summary ?? { total: 0, p0: 0, p1: 0, p2: 0 }
+  const activeRisks = notificationRisks?.risks ?? []
 
   return (
     <div className="space-y-6">
@@ -101,6 +129,48 @@ export default function TelemedicineDashboard() {
         <StatCard label="Ultimas 24h" value={stats.calls24h} />
         <StatCard label="Ultimos 7d" value={stats.calls7d} />
         <StatCard label="Duracion promedio" value={formatDuration(stats.avgDurationSeconds)} />
+      </div>
+
+      <div className={`rounded-lg border p-4 ${riskSummary.p0 > 0 ? 'border-red-200 bg-red-50' : riskSummary.p1 > 0 ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Riesgo de notificaciones de turnos</h3>
+            <p className="mt-1 text-sm text-gray-700">
+              {riskSummary.total === 0
+                ? 'Sin turnos confirmados futuros con evidencia incompleta.'
+                : `${riskSummary.total} turno(s) con evidencia incompleta: P0 ${riskSummary.p0}, P1 ${riskSummary.p1}, P2 ${riskSummary.p2}.`}
+            </p>
+          </div>
+          <div className="flex gap-2 text-xs font-semibold">
+            <span className="rounded bg-red-100 px-2 py-1 text-red-800">P0 {riskSummary.p0}</span>
+            <span className="rounded bg-amber-100 px-2 py-1 text-amber-800">P1 {riskSummary.p1}</span>
+            <span className="rounded bg-gray-100 px-2 py-1 text-gray-800">P2 {riskSummary.p2}</span>
+          </div>
+        </div>
+        {activeRisks.length > 0 && (
+          <div className="mt-3 overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-xs">
+              <thead>
+                <tr className="text-left text-gray-500">
+                  <th className="py-2 pr-3 font-medium uppercase">Urgencia</th>
+                  <th className="py-2 pr-3 font-medium uppercase">Appointment</th>
+                  <th className="py-2 pr-3 font-medium uppercase">Inicio</th>
+                  <th className="py-2 font-medium uppercase">Faltante</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {activeRisks.map((risk) => (
+                  <tr key={risk.appointment_id}>
+                    <td className="py-2 pr-3 font-semibold uppercase text-gray-900">{risk.urgency}</td>
+                    <td className="py-2 pr-3 font-mono text-gray-700">{risk.appointment_id.slice(0, 8)}...</td>
+                    <td className="py-2 pr-3 text-gray-700">{new Date(risk.start_time).toLocaleString('es-AR')}</td>
+                    <td className="py-2 text-gray-700">{risk.risk_reasons.join(', ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Status breakdown */}
@@ -148,6 +218,7 @@ export default function TelemedicineDashboard() {
               <tr>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Room</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Participantes</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Appointment</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Creada</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Duracion</th>
@@ -158,15 +229,35 @@ export default function TelemedicineDashboard() {
                 const duration = call.ended_at
                   ? Math.round((new Date(call.ended_at).getTime() - new Date(call.created_at).getTime()) / 1000)
                   : null
+                const isNoShow = call.patient_joined && !call.doctor_joined && (call.status === 'ended' || call.status === 'connecting')
+                const isRealCall = call.doctor_joined && call.patient_joined
                 return (
-                  <tr key={call.id} className="hover:bg-gray-50">
+                  <tr key={call.id} className={`hover:bg-gray-50 ${isNoShow ? 'bg-red-50' : ''}`}>
                     <td className="px-3 py-2 text-xs font-mono text-gray-700 truncate max-w-[140px]">
                       {call.room_id}
                     </td>
                     <td className="px-3 py-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[call.status] ?? 'bg-gray-100 text-gray-700'}`}>
-                        {call.status}
-                      </span>
+                      {isNoShow ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          no-show 🩺
+                        </span>
+                      ) : (
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[call.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                          {call.status}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-sm ${call.doctor_joined ? '' : 'opacity-25 grayscale'}`} title={call.doctor_joined ? 'Médico conectado' : 'Médico ausente'}>
+                          🩺
+                        </span>
+                        <span className={`text-sm ${call.patient_joined ? '' : 'opacity-25 grayscale'}`} title={call.patient_joined ? 'Paciente conectado' : 'Paciente ausente'}>
+                          👤
+                        </span>
+                        {isRealCall && <span className="text-xs text-green-600 font-medium ml-1">✓ Consulta</span>}
+                        {isNoShow && <span className="text-xs text-red-600 font-medium ml-1">Sin médico</span>}
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-xs text-gray-500">
                       {call.appointment_id ? call.appointment_id.slice(0, 8) + '...' : '-'}
@@ -180,7 +271,7 @@ export default function TelemedicineDashboard() {
               })}
               {recentCalls.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-4 text-center text-sm text-gray-400">
+                  <td colSpan={6} className="px-3 py-4 text-center text-sm text-gray-400">
                     Sin llamadas registradas
                   </td>
                 </tr>
