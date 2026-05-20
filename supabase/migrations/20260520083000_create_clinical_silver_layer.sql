@@ -79,16 +79,21 @@ DECLARE
   v_red_flag text;
   v_symptom_name_translated text;
 BEGIN
+  -- Verify extraction result is available and checkpoint is 'final' to build mature intelligence
+  IF NEW.extraction_result IS NULL OR NEW.extraction_result = '{}'::jsonb THEN
+    RETURN NEW;
+  END IF;
+
+  -- Verify patient exists in the patients table to avoid FK violation on orphaned extractions
+  IF NOT EXISTS (SELECT 1 FROM public.patients WHERE id = NEW.patient_id) THEN
+    RETURN NEW;
+  END IF;
+
   -- Idempotency: Clean up any previous structured data for this extraction
   DELETE FROM public.clinical_symptom_observations 
     WHERE anamnesis_extraction_id = NEW.id;
   DELETE FROM public.clinical_patient_conditions 
     WHERE anamnesis_extraction_id = NEW.id;
-
-  -- Verify extraction result is available and checkpoint is 'final' to build mature intelligence
-  IF NEW.extraction_result IS NULL OR NEW.extraction_result = '{}'::jsonb THEN
-    RETURN NEW;
-  END IF;
 
   -- 1. Extract Primary Symptom (chiefComplaintCode)
   v_chief_complaint_code := NEW.extraction_result->'normalizedOpenFields'->>'chiefComplaintCode';
