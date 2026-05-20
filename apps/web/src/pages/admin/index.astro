@@ -1,92 +1,123 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import { EmailRealtimeDashboard } from '@/components/admin/EmailRealtimeDashboard';
-
+import { resolveAdminRole } from '@/lib/admin/auth';
 
 const title = 'Panel de Administración | AutaMedica';
-const description = 'Panel de administración de AutaMedica';
+const description = 'Centro operativo de administración, growth, CRM y telemedicina de AutaMedica.';
 
 const session = Astro.locals.session;
 if (!session) {
   return Astro.redirect('/auth/login?returnTo=/admin&portal=admin');
 }
 
-const role = (session.user.user_metadata as Record<string, unknown>)?.role;
-if (typeof role !== 'string' || !['admin', 'organization_admin', 'platform_admin'].includes(role)) {
+const role = await resolveAdminRole(session, Astro.locals.supabase);
+if (!role) {
   return Astro.redirect('/admin/unauthorized');
 }
+
+const modules = [
+  {
+    href: '/admin/growth',
+    label: 'Growth OS',
+    eyebrow: 'Adquisicion',
+    description: 'Leads, newsletters, CAC, revenue atribuido y salud de sincronizacion Supabase.',
+    metric: 'Embudo',
+    accent: 'border-sky-300',
+  },
+  {
+    href: '/admin/crm',
+    label: 'CRM Outbound',
+    eyebrow: 'Comercial',
+    description: 'Pipeline B2B, cuentas, llamadas, WhatsApp y registro rapido de resultados.',
+    metric: 'Cuentas',
+    accent: 'border-emerald-300',
+  },
+  {
+    href: '/admin/telemedicine',
+    label: 'Telemedicina',
+    eyebrow: 'Runtime',
+    description: 'Observabilidad de llamadas, sesiones recientes, eventos y calidad operativa.',
+    metric: 'Llamadas',
+    accent: 'border-indigo-300',
+  },
+];
 ---
 
 <Layout title={title} description={description}>
-  <div class="min-h-screen bg-gray-50">
-    <header class="bg-white shadow">
+  <div class="min-h-screen bg-slate-50">
+    <header class="border-b border-slate-200 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex items-center">
+        <div class="flex min-h-16 flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
             <h1 class="text-xl font-semibold text-gray-900">
               AutaMedica Admin
             </h1>
+            <p class="text-sm text-slate-500">Rol activo: {role}</p>
           </div>
+          <nav class="flex flex-wrap gap-2 text-sm">
+            <a href="/admin/growth" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-sky-400 hover:text-sky-700">Growth</a>
+            <a href="/admin/crm" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-emerald-400 hover:text-emerald-700">CRM</a>
+            <a href="/admin/telemedicine" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-indigo-400 hover:text-indigo-700">Telemedicina</a>
+          </nav>
         </div>
       </div>
     </header>
-    <main>
-      <div class="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div class="mb-8">
-          <h2 class="text-2xl font-bold text-gray-900 mb-2">
-            Panel de Administración
+
+    <main class="max-w-7xl mx-auto space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+      <section class="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wide text-sky-700">Centro operativo</p>
+          <h2 class="mt-2 text-3xl font-semibold tracking-normal text-slate-950">
+            Panel de administracion
           </h2>
-          <p class="text-gray-500 text-sm">
-            Este panel está en desarrollo. Las secciones disponibles se listan a continuación.
+          <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+            Acceso directo a los tableros ya implementados: adquisicion, CRM, emails en tiempo real y observabilidad de telemedicina.
           </p>
         </div>
-
-        <div class="space-y-4">
-          <a
-            href="/admin/telemedicine"
-            class="block bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:border-blue-300 hover:shadow transition-all"
-          >
-            <h3 class="text-lg font-medium text-gray-900 mb-1">
-              Telemedicina
-            </h3>
-            <p class="text-gray-500 text-sm">
-              Observabilidad de llamadas, estado de sesiones y métricas de calidad.
-            </p>
-          </a>
-
-          <a
-            href="/admin/growth"
-            class="block bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:border-blue-300 hover:shadow transition-all"
-          >
-            <div class="flex justify-between items-start">
-              <div>
-                <h3 class="text-lg font-medium text-gray-900 mb-1">
-                  Growth & Marketing
-                </h3>
-                <p class="text-gray-500 text-sm">
-                  Métricas de adquisición, leads, embudo de conversión y atribución de revenue.
-                </p>
-              </div>
-              <span class="text-xs font-medium bg-green-50 text-green-700 px-2 py-0.5 rounded-full">Growth OS</span>
+        <div class="rounded-md border border-slate-200 bg-white p-4">
+          <p class="text-xs font-semibold uppercase text-slate-500">Estado de superficie</p>
+          <div class="mt-3 space-y-2 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600">Autenticacion admin</span>
+              <span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">activa</span>
             </div>
-          </a>
-
-          
-          <div class="mb-8">
-            <EmailRealtimeDashboard client:load />
-          </div>
-
-          <div class="bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300">
-            <p class="text-sm font-medium text-gray-500 mb-3">
-              Secciones en desarrollo
-            </p>
-            <ul class="text-sm text-gray-400 space-y-1">
-              <li>Gestión de usuarios (médicos, pacientes, empresas)</li>
-              <li>Configuración y monitoreo del sistema</li>
-            </ul>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600">Modulos visibles</span>
+              <span class="font-semibold text-slate-950">{modules.length}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600">Email realtime</span>
+              <span class="rounded-full bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700">embebido</span>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      <section class="grid gap-4 md:grid-cols-3">
+        {modules.map((module) => (
+          <a
+            href={module.href}
+            class={`group block rounded-md border ${module.accent} bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md`}
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-wide text-slate-500">{module.eyebrow}</p>
+                <h3 class="mt-2 text-lg font-semibold text-slate-950">{module.label}</h3>
+              </div>
+              <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{module.metric}</span>
+            </div>
+            <p class="mt-4 min-h-16 text-sm leading-6 text-slate-600">{module.description}</p>
+            <span class="mt-4 inline-flex text-sm font-semibold text-sky-700 group-hover:text-sky-900">
+              Abrir modulo
+            </span>
+          </a>
+        ))}
+      </section>
+
+      <section>
+        <EmailRealtimeDashboard client:load />
+      </section>
     </main>
   </div>
 </Layout>

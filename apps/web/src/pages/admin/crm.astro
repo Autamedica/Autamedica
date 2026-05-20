@@ -1,6 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import { CrmDashboardUI } from '@/components/admin/CrmDashboardUI';
+import { resolveAdminRole } from '@/lib/admin/auth';
 
 const title = 'CRM Outbound | AutaMedica Admin';
 const description = 'Pipeline B2B de llamadas, WhatsApp y cuentas outbound.';
@@ -14,10 +15,8 @@ if (!session && !isLocalDevBypass) {
   return Astro.redirect('/auth/login?returnTo=/admin/crm&portal=admin');
 }
 
-const appRole = (session?.user.app_metadata as Record<string, unknown> | undefined)?.role;
-const userRole = (session?.user.user_metadata as Record<string, unknown> | undefined)?.role;
-const role = typeof appRole === 'string' ? appRole : userRole;
-if (!isLocalDevBypass && (typeof role !== 'string' || !['admin', 'organization_admin', 'platform_admin'].includes(role))) {
+const role = await resolveAdminRole(session, Astro.locals.supabase);
+if (!isLocalDevBypass && !role) {
   return Astro.redirect('/admin/unauthorized');
 }
 ---
