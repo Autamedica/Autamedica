@@ -238,6 +238,22 @@ export function CreateAppointmentModal({
   const isPastDate = (dateStr: string) => new Date(dateStr + 'T23:59:59') < new Date();
   const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId);
 
+  const sortedDoctors = useMemo(() => {
+    return [...doctors].sort((a, b) => {
+      const isAPending = a.license_number?.startsWith('PENDING') || a.license_number === 'PENDING';
+      const isADemo = a.license_number?.includes('DEMO');
+      const isADisabled = isAPending || isADemo;
+
+      const isBPending = b.license_number?.startsWith('PENDING') || b.license_number === 'PENDING';
+      const isBDemo = b.license_number?.includes('DEMO');
+      const isBDisabled = isBPending || isBDemo;
+
+      if (isADisabled && !isBDisabled) return 1;
+      if (!isADisabled && isBDisabled) return -1;
+      return 0;
+    });
+  }, [doctors]);
+
   const activeDaySlots = selectedDay
     ? (slotsByDay.get(selectedDay) ?? []).filter((s) => s.is_available)
     : [];
@@ -331,7 +347,7 @@ export function CreateAppointmentModal({
                 </div>
               ) : (
                 <div className="max-h-[42dvh] space-y-2 overflow-y-auto pr-1">
-                  {doctors.map((doc) => {
+                  {sortedDoctors.map((doc) => {
                     const isSelected = selectedDoctorId === doc.id;
                     const isPending = doc.license_number?.startsWith('PENDING') || doc.license_number === 'PENDING';
                     const isDemo = doc.license_number?.includes('DEMO');
