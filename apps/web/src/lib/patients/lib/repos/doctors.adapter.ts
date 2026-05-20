@@ -16,12 +16,14 @@ export interface DoctorSummary {
   last_name: string | null
   has_availability: boolean
   label: string
+  license_number: string | null
 }
 
 interface DoctorRow {
   id: string
   specialty: string | null
   consultation_fee: number | null
+  license_number: string | null
   profile: {
     first_name: string | null
     last_name: string | null
@@ -33,7 +35,7 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
     async listActive(): Promise<DoctorSummary[]> {
       const { data, error } = await supabase
         .from('doctors')
-        .select('id, specialty, consultation_fee, profile:profiles!doctors_user_id_fkey(first_name, last_name)')
+        .select('id, specialty, consultation_fee, license_number, profile:profiles!doctors_user_id_fkey(first_name, last_name)')
         .eq('active', true)
 
       if (error) {
@@ -73,6 +75,7 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
           last_name: row.profile?.last_name ?? null,
           has_availability: doctorsWithAvailability.has(row.id),
           label: fullName ? `Dr. ${fullName}` : 'Profesional disponible',
+          license_number: row.license_number ?? null,
         }
       })
 

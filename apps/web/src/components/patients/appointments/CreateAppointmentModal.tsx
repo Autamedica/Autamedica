@@ -32,6 +32,7 @@ interface DoctorOption {
   last_name: string | null;
   has_availability?: boolean;
   label: string;
+  license_number?: string | null;
 }
 
 interface SlotData {
@@ -332,19 +333,29 @@ export function CreateAppointmentModal({
                 <div className="max-h-[42dvh] space-y-2 overflow-y-auto pr-1">
                   {doctors.map((doc) => {
                     const isSelected = selectedDoctorId === doc.id;
+                    const isPending = doc.license_number?.startsWith('PENDING') || doc.license_number === 'PENDING';
+                    const isDemo = doc.license_number?.includes('DEMO');
+                    const isDisabled = isPending || isDemo;
                     return (
                       <button
                         key={doc.id}
                         type="button"
+                        disabled={isDisabled}
                         onClick={() => setSelectedDoctorId(doc.id)}
                         className={`flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left transition-all ${
-                          isSelected
-                            ? 'border-stone-900 bg-stone-50'
-                            : 'border-stone-100 hover:border-stone-200 hover:bg-stone-50/50'
+                          isDisabled
+                            ? 'opacity-60 cursor-not-allowed bg-stone-50/50 border-stone-100'
+                            : isSelected
+                              ? 'border-stone-900 bg-stone-50'
+                              : 'border-stone-100 hover:border-stone-200 hover:bg-stone-50/50'
                         }`}
                       >
                         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                          isSelected ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500'
+                          isDisabled
+                            ? 'bg-stone-100 text-stone-400'
+                            : isSelected
+                              ? 'bg-stone-900 text-white'
+                              : 'bg-stone-100 text-stone-500'
                         }`}>
                           <UserRound className="h-5 w-5" />
                         </div>
@@ -360,14 +371,24 @@ export function CreateAppointmentModal({
                             <p className="font-medium text-stone-700">
                               {formatArsFromCents(doc.consultation_fee)}
                             </p>
-                            {doc.has_availability === false && (
+                            {isPending && (
+                              <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700 ring-1 ring-red-600/10">
+                                Inhabilitado (Matrícula pendiente)
+                              </span>
+                            )}
+                            {isDemo && (
+                              <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-600 ring-1 ring-stone-500/10">
+                                Inhabilitado (Cuenta de prueba)
+                              </span>
+                            )}
+                            {!isDisabled && doc.has_availability === false && (
                               <p className="font-medium text-amber-700">
                                 Sin horarios cargados
                               </p>
                             )}
                           </div>
                         </div>
-                        {isSelected && (
+                        {isSelected && !isDisabled && (
                           <div className="flex h-5 w-5 items-center justify-center rounded-full bg-stone-900 text-white">
                             <Check className="h-3 w-3" />
                           </div>
