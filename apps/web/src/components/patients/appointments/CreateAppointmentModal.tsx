@@ -248,8 +248,18 @@ export function CreateAppointmentModal({
       const isBDemo = b.license_number?.includes('DEMO');
       const isBDisabled = isBPending || isBDemo;
 
+      // 1. Group disabled/pending doctors at the absolute bottom
       if (isADisabled && !isBDisabled) return 1;
       if (!isADisabled && isBDisabled) return -1;
+
+      // 2. If both are active, place Eduardo da Rosa (MP006402) at the end of the active section
+      if (!isADisabled && !isBDisabled) {
+        const isAEduardo = a.license_number === 'MP006402' || a.id === '080fb7ae-92b4-44d4-8941-a6db65004b9f';
+        const isBEduardo = b.license_number === 'MP006402' || b.id === '080fb7ae-92b4-44d4-8941-a6db65004b9f';
+        if (isAEduardo && !isBEduardo) return 1;
+        if (!isAEduardo && isBEduardo) return -1;
+      }
+
       return 0;
     });
   }, [doctors]);
