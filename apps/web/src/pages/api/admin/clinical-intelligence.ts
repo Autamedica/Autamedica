@@ -104,38 +104,14 @@ function getSouthernHemisphereSeason(dateStr: string): "Verano" | "Otoño" | "In
   return "Primavera";
 }
 
-// Convert chief complaint code to clean Spanish text
-const CHIEF_COMPLAINT_TRANSLATIONS: Record<string, string> = {
-  headache: "Cefalea / Dolor de cabeza",
-  chest_pain: "Dolor torácico / Pecho",
-  cervical_pressure: "Presión cervical",
-  dyspnea: "Dificultad respiratoria (Disnea)",
-  cough: "Tos",
-  abdominal_pain: "Dolor abdominal",
-  digestive_symptoms: "Síntomas digestivos",
-  genitourinary_symptoms: "Síntomas genitourinarios",
-  palpitations: "Palpitaciones",
-  fatigue: "Fatiga / Cansancio extremo",
-  fever: "Fiebre / Síndrome febril",
-  dizziness: "Mareos / Inestabilidad",
-  back_pain: "Dorsalgia / Dolor de espalda",
-  neuro: "Déficit o foco neurológico",
-  mood_disorder: "Trastorno del ánimo / Ansiedad",
-  other: "Otros síntomas no especificados",
-};
-
-interface AnamnesisExtractionRow {
+interface SilverSymptomObservationRow {
   created_at: string;
-  extraction_result: {
-    normalizedOpenFields?: {
-      ageMonths?: number | null;
-      chiefComplaintCode?: string | null;
-      redFlagCodes?: string[];
-    };
-    presentIllness?: {
-      associatedSymptoms?: string[];
-    };
-  };
+  symptom_name: string;
+  is_primary: boolean;
+  is_red_flag: boolean;
+  patients: {
+    age_months: number | null;
+  } | null;
 }
 
 export const GET: APIRoute = async ({ request, locals }) => {
@@ -149,15 +125,26 @@ export const GET: APIRoute = async ({ request, locals }) => {
       runtimeEnv,
     ) as unknown as SupabaseClient<Database>;
 
-    // Fetch extraction results to build real-time clinical intelligence
-    const { data: rawExtractions, error } = await admin
-      .from("anamnesis_extractions" as unknown as "patients")
-      .select("created_at, extraction_result")
-      .order("created_at", { ascending: false }) as unknown as { data: AnamnesisExtractionRow[] | null; error: { message: string } | null };
+    // Capa Plata Query: Read structured symptom observations with highly optimized indexed join
+    const { data: rawObservations, error } = await admin
+      .from("clinical_symptom_observations" as unknown as "patients")
+      .select(`
+        created_at,
+        symptom_name,
+        is_primary,
+        is_red_flag,
+        patients (
+          age_months
+        )
+      `)
+      .order("created_at", { ascending: false }) as unknown as { 
+        data: SilverSymptomObservationRow[] | null; 
+        error: { message: string } | null; 
+      };
 
     if (error) throw new Error(error.message);
 
-    const extractions = rawExtractions || [];
+    const observations = rawObservations || [];
 
     // Aggregations
     const seasonalSymptoms: Record<string, Record<string, number>> = {
@@ -176,50 +163,24 @@ export const GET: APIRoute = async ({ request, locals }) => {
     };
 
     const totalRedFlags: Record<string, number> = {};
-    let totalConsultationsWithSymptoms = 0;
+    const uniqueConsultationSymptoms = new Set<string>();
 
-    extractions.forEach((item) => {
-      const result = item.extraction_result;
+    observations.forEach((item) => {
+      const symptomName = item.symptom_name;
       const createdAt = item.created_at;
-      if (!result || !createdAt) return;
+      if (!symptomName || !createdAt) return;
 
-      const openFields = result.normalizedOpenFields;
-      const presentIllness = result.presentIllness;
-
-      const chiefComplaintCode = openFields?.chiefComplaintCode;
-      const associatedSymptoms = presentIllness?.associatedSymptoms || [];
-      const redFlags = openFields?.redFlagCodes || [];
-
-      // Determine main symptom
-      let primarySymptom = "";
-      if (chiefComplaintCode && CHIEF_COMPLAINT_TRANSLATIONS[chiefComplaintCode]) {
-        primarySymptom = CHIEF_COMPLAINT_TRANSLATIONS[chiefComplaintCode];
-      }
-
-      // Collect all symptoms (primary + associated)
-      const allSymptomsInConsultation = new Set<string>();
-      if (primarySymptom) allSymptomsInConsultation.add(primarySymptom);
-
-      associatedSymptoms.forEach((s) => {
-        if (s && s.trim().length > 0) {
-          // Normalize text
-          const clean = s.trim().charAt(0).toUpperCase() + s.trim().slice(1).toLowerCase();
-          allSymptomsInConsultation.add(clean);
-        }
-      });
-
-      if (allSymptomsInConsultation.size > 0) {
-        totalConsultationsWithSymptoms++;
-      }
+      const isRedFlag = item.is_red_flag;
+      const ageMonths = item.patients?.age_months;
 
       // 1. Season Aggregation
       const season = getSouthernHemisphereSeason(createdAt);
-      allSymptomsInConsultation.forEach((symptom) => {
-        seasonalSymptoms[season][symptom] = (seasonalSymptoms[season][symptom] || 0) + 1;
-      });
+      if (!isRedFlag) {
+        seasonalSymptoms[season][symptomName] = (seasonalSymptoms[season][symptomName] || 0) + 1;
+        uniqueConsultationSymptoms.add(symptomName);
+      }
 
       // 2. Age Group Aggregation
-      const ageMonths = openFields?.ageMonths;
       let ageGroup = "Sin especificar";
       if (typeof ageMonths === "number") {
         const years = ageMonths / 12;
@@ -234,15 +195,14 @@ export const GET: APIRoute = async ({ request, locals }) => {
         }
       }
 
-      allSymptomsInConsultation.forEach((symptom) => {
-        ageGroupSymptoms[ageGroup][symptom] = (ageGroupSymptoms[ageGroup][symptom] || 0) + 1;
-      });
+      if (!isRedFlag) {
+        ageGroupSymptoms[ageGroup][symptomName] = (ageGroupSymptoms[ageGroup][symptomName] || 0) + 1;
+      }
 
       // 3. Red Flags count
-      redFlags.forEach((flag) => {
-        const readableFlag = flag.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-        totalRedFlags[readableFlag] = (totalRedFlags[readableFlag] || 0) + 1;
-      });
+      if (isRedFlag) {
+        totalRedFlags[symptomName] = (totalRedFlags[symptomName] || 0) + 1;
+      }
     });
 
     // Helper to format rankings sorted by count
@@ -265,15 +225,15 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     return json({
       success: true,
-      total_consultations_analyzed: extractions.length,
-      total_consultations_with_symptoms: totalConsultationsWithSymptoms,
+      total_consultations_analyzed: observations.length,
+      total_consultations_with_symptoms: uniqueConsultationSymptoms.size,
       seasonal_symptoms: formattedSeasonal,
       age_group_symptoms: formattedAgeGroups,
       red_flags_ranking: getTopSymptoms(totalRedFlags, 8),
     });
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : "clinical_intelligence_failed";
-    logger.error("[admin/clinical-intelligence] Failed to process clinical intelligence", err);
+    logger.error("[admin/clinical-intelligence] Failed to process clinical intelligence using Silver Layer", err);
     return json({ error: "clinical_intelligence_failed", details: errorMsg }, 500);
   }
 };
