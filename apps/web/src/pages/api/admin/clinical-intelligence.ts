@@ -82,36 +82,26 @@ function json(data: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
 }
 
-// Seasonal detection for CABA/Argentina (Southern Hemisphere)
-function getSouthernHemisphereSeason(dateStr: string): "Verano" | "Otoño" | "Invierno" | "Primavera" {
-  const date = new Date(dateStr);
-  const month = date.getMonth(); // 0-indexed (0: Jan, 11: Dec)
-  const day = date.getDate();
-
-  // Summer: Dec 21 - Mar 20
-  if ((month === 11 && day >= 21) || month === 0 || month === 1 || (month === 2 && day <= 20)) {
-    return "Verano";
-  }
-  // Autumn: Mar 21 - Jun 20
-  if ((month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
-    return "Otoño";
-  }
-  // Winter: Jun 21 - Sep 20
-  if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 20)) {
-    return "Invierno";
-  }
-  // Spring: Sep 21 - Dec 20
-  return "Primavera";
+interface GoldSeasonalMetric {
+  season: string;
+  symptom_name: string;
+  snomed_code: string | null;
+  icd11_code: string | null;
+  case_count: number;
 }
 
-interface SilverSymptomObservationRow {
-  created_at: string;
+interface AnomalyDetectionRow {
+  symptom: string;
+  snomed: string | null;
+  last_week_count: number;
+  historical_weekly_avg: number;
+  percent_increase: number;
+  is_outbreak_warning: boolean;
+}
+
+interface RedFlagObservationRow {
   symptom_name: string;
-  is_primary: boolean;
-  is_red_flag: boolean;
-  patients: {
-    age_months: number | null;
-  } | null;
+  snomed_code: string | null;
 }
 
 export const GET: APIRoute = async ({ request, locals }) => {
@@ -125,115 +115,85 @@ export const GET: APIRoute = async ({ request, locals }) => {
       runtimeEnv,
     ) as unknown as SupabaseClient<Database>;
 
-    // Capa Plata Query: Read structured symptom observations with highly optimized indexed join
-    const { data: rawObservations, error } = await admin
-      .from("clinical_symptom_observations" as unknown as "patients")
-      .select(`
-        created_at,
-        symptom_name,
-        is_primary,
-        is_red_flag,
-        patients (
-          age_months
-        )
-      `)
-      .order("created_at", { ascending: false }) as unknown as { 
-        data: SilverSymptomObservationRow[] | null; 
-        error: { message: string } | null; 
+    // 1. CAPA ORO: Fetch seasonal metrics (preaggregated high-performance OLAP)
+    const { data: goldMetrics, error: goldError } = await admin
+      .from("clinical_gold_seasonal_metrics" as unknown as "patients")
+      .select("season, symptom_name, snomed_code, icd11_code, case_count") as unknown as {
+        data: GoldSeasonalMetric[] | null;
+        error: { message: string } | null;
       };
 
-    if (error) throw new Error(error.message);
+    if (goldError) throw new Error(goldError.message);
 
-    const observations = rawObservations || [];
+    // 2. DATA SCIENCE: Run Early Warning Engine (Anomalies & Outbreaks detection)
+    const { data: anomalies, error: anomalyError } = await admin
+      .rpc("detect_clinical_anomalies") as unknown as {
+        data: AnomalyDetectionRow[] | null;
+        error: { message: string } | null;
+      };
 
-    // Aggregations
-    const seasonalSymptoms: Record<string, Record<string, number>> = {
-      Verano: {},
-      Otoño: {},
-      Invierno: {},
-      Primavera: {},
+    if (anomalyError) {
+      logger.error("[admin/clinical-intelligence] Early warning engine failed", anomalyError);
+    }
+
+    // 3. CAPA PLATA: Fetch current Red Flags for live tracking
+    const { data: rawRedFlags, error: rfError } = await admin
+      .from("clinical_symptom_observations" as unknown as "patients")
+      .select("symptom_name, snomed_code")
+      .eq("is_red_flag", true) as unknown as {
+        data: RedFlagObservationRow[] | null;
+        error: { message: string } | null;
+      };
+
+    if (rfError) throw new Error(rfError.message);
+
+    // Process Seasonal Symptoms from Gold Layer
+    const seasonalSymptoms: Record<string, Array<{ name: string; count: number; snomed?: string | null; icd11?: string | null }>> = {
+      Verano: [],
+      Otoño: [],
+      Invierno: [],
+      Primavera: [],
     };
 
-    const ageGroupSymptoms: Record<string, Record<string, number>> = {
-      "Pediátrico (0-14 años)": {},
-      "Joven Adulto (15-29 años)": {},
-      "Adulto (30-59 años)": {},
-      "Adulto Mayor (60+ años)": {},
-      "Sin especificar": {},
-    };
-
-    const totalRedFlags: Record<string, number> = {};
-    const uniqueConsultationSymptoms = new Set<string>();
-
-    observations.forEach((item) => {
-      const symptomName = item.symptom_name;
-      const createdAt = item.created_at;
-      if (!symptomName || !createdAt) return;
-
-      const isRedFlag = item.is_red_flag;
-      const ageMonths = item.patients?.age_months;
-
-      // 1. Season Aggregation
-      const season = getSouthernHemisphereSeason(createdAt);
-      if (!isRedFlag) {
-        seasonalSymptoms[season][symptomName] = (seasonalSymptoms[season][symptomName] || 0) + 1;
-        uniqueConsultationSymptoms.add(symptomName);
-      }
-
-      // 2. Age Group Aggregation
-      let ageGroup = "Sin especificar";
-      if (typeof ageMonths === "number") {
-        const years = ageMonths / 12;
-        if (years < 15) {
-          ageGroup = "Pediátrico (0-14 años)";
-        } else if (years < 30) {
-          ageGroup = "Joven Adulto (15-29 años)";
-        } else if (years < 60) {
-          ageGroup = "Adulto (30-59 años)";
-        } else {
-          ageGroup = "Adulto Mayor (60+ años)";
-        }
-      }
-
-      if (!isRedFlag) {
-        ageGroupSymptoms[ageGroup][symptomName] = (ageGroupSymptoms[ageGroup][symptomName] || 0) + 1;
-      }
-
-      // 3. Red Flags count
-      if (isRedFlag) {
-        totalRedFlags[symptomName] = (totalRedFlags[symptomName] || 0) + 1;
+    (goldMetrics || []).forEach((row) => {
+      if (seasonalSymptoms[row.season]) {
+        seasonalSymptoms[row.season].push({
+          name: row.symptom_name,
+          count: Number(row.case_count),
+          snomed: row.snomed_code,
+          icd11: row.icd11_code,
+        });
       }
     });
 
-    // Helper to format rankings sorted by count
-    const getTopSymptoms = (groupedData: Record<string, number>, limit = 6) => {
-      return Object.entries(groupedData)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, limit)
-        .map(([name, count]) => ({ name, count }));
-    };
+    // Sort seasonal aggregations
+    Object.keys(seasonalSymptoms).forEach((season) => {
+      seasonalSymptoms[season] = seasonalSymptoms[season]
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6);
+    });
 
-    const formattedSeasonal = Object.keys(seasonalSymptoms).reduce((acc, season) => {
-      acc[season] = getTopSymptoms(seasonalSymptoms[season]);
-      return acc;
-    }, {} as Record<string, Array<{ name: string; count: number }>>);
+    // Process Red Flags live count
+    const totalRedFlags: Record<string, number> = {};
+    (rawRedFlags || []).forEach((row) => {
+      totalRedFlags[row.symptom_name] = (totalRedFlags[row.symptom_name] || 0) + 1;
+    });
 
-    const formattedAgeGroups = Object.keys(ageGroupSymptoms).reduce((acc, group) => {
-      acc[group] = getTopSymptoms(ageGroupSymptoms[group]);
-      return acc;
-    }, {} as Record<string, Array<{ name: string; count: number }>>);
+    const formattedRedFlags = Object.entries(totalRedFlags)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([name, count]) => ({ name, count }));
 
     return json({
       success: true,
-      total_consultations_analyzed: observations.length,
-      total_consultations_with_symptoms: uniqueConsultationSymptoms.size,
-      seasonal_symptoms: formattedSeasonal,
-      age_group_symptoms: formattedAgeGroups,
-      red_flags_ranking: getTopSymptoms(totalRedFlags, 8),
+      seasonal_symptoms: seasonalSymptoms,
+      red_flags_ranking: formattedRedFlags,
+      early_warning_alerts: (anomalies || []).filter(a => a.is_outbreak_warning || a.percent_increase > 15),
+      historical_anomalies: anomalies || [],
     });
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : "clinical_intelligence_failed";
-    logger.error("[admin/clinical-intelligence] Failed to process clinical intelligence using Silver Layer", err);
+    logger.error("[admin/clinical-intelligence] Failed to process clinical intelligence from Gold Layer & EWS", err);
     return json({ error: "clinical_intelligence_failed", details: errorMsg }, 500);
   }
 };

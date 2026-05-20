@@ -6,6 +6,7 @@ type Account = {
   account_type: string;
   status: string;
   main_phone_e164: string | null;
+  main_email: string | null;
   whatsapp_url: string | null;
   address: string | null;
   city: string | null;
@@ -184,6 +185,12 @@ export function CrmDashboardUI({ devBypass = false }: { devBypass?: boolean }) {
                           <a href={`tel:${account.main_phone_e164}`} className="block font-medium text-slate-800 hover:text-sky-700">
                             {account.main_phone_e164}
                           </a>
+                          
+                          {account.main_email && (
+                            <a href={"mailto:" + account.main_email} className="text-xs font-medium text-blue-700 hover:underline block">
+                              {account.main_email}
+                            </a>
+                          )}
                           {account.whatsapp_url && (
                             <a href={account.whatsapp_url} target="_blank" rel="noreferrer" className="text-xs font-medium text-emerald-700 hover:underline">
                               WhatsApp

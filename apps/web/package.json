@@ -73,6 +73,7 @@
     "@types/react": "19.1.0",
     "@types/react-dom": "19.1.1",
     "autoprefixer": "^10.0.0",
+    "cheerio": "^1.2.0",
     "eslint": "^9.34.0",
     "postcss": "^8.0.0",
     "storybook": "8.6.18",

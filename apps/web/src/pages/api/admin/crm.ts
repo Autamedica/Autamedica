@@ -13,6 +13,7 @@ type CrmAccountRow = {
   account_type: string;
   status: string;
   main_phone_e164: string | null;
+  main_email: string | null;
   whatsapp_url: string | null;
   address: string | null;
   city: string | null;
@@ -113,7 +114,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     .schema("growth_os")
     .from("crm_accounts")
     .select(
-      "id,name,account_type,status,main_phone_e164,whatsapp_url,address,city,website,priority,score,tags,last_contacted_at,next_action_at,created_at",
+      "id,name,account_type,status,main_phone_e164,main_email,whatsapp_url,address,city,website,priority,score,tags,last_contacted_at,next_action_at,created_at",
       { count: "exact" },
     )
     .order("priority", { ascending: false })
