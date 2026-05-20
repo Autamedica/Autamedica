@@ -1,6 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import TelemedicineDashboard from '@/components/admin/TelemedicineDashboard';
+import { resolveAdminRole } from '@/lib/admin/auth';
 
 const title = 'Telemedicina — Admin | AutaMedica';
 const description = 'Dashboard de observabilidad de telemedicina';
@@ -10,8 +11,8 @@ if (!session) {
   return Astro.redirect('/auth/login?returnTo=/admin/telemedicine&portal=admin');
 }
 
-const role = (session.user.user_metadata as Record<string, unknown>)?.role;
-if (typeof role !== 'string' || !['admin', 'organization_admin', 'platform_admin'].includes(role)) {
+const role = await resolveAdminRole(session, Astro.locals.supabase);
+if (!role) {
   return Astro.redirect('/admin/unauthorized');
 }
 ---

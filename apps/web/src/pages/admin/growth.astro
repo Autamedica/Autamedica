@@ -1,6 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import { GrowthDashboardUI } from '@/components/admin/GrowthDashboardUI';
+import { resolveAdminRole } from '@/lib/admin/auth';
 
 const title = 'Growth Dashboard | AutaMedica Admin';
 const description = 'Monitoreo de métricas de crecimiento, leads y conversión.';
@@ -15,8 +16,8 @@ if (!session && !isLocalDevBypass) {
   return Astro.redirect('/auth/login?returnTo=/admin/growth&portal=admin');
 }
 
-const role = (session?.user.user_metadata as Record<string, unknown> | undefined)?.role;
-if (!isLocalDevBypass && (typeof role !== 'string' || !['admin', 'organization_admin', 'platform_admin'].includes(role))) {
+const role = await resolveAdminRole(session, Astro.locals.supabase);
+if (!isLocalDevBypass && !role) {
   return Astro.redirect('/admin/unauthorized');
 }
 ---
