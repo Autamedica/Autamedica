@@ -45,13 +45,20 @@ interface EmailEventsClient {
 }
 
 export function EmailRealtimeDashboard() {
-  const supabase = getBrowserSupabaseClient();
-  const emailEventsClient = supabase as unknown as EmailEventsClient;
+  const [supabase, setSupabase] = useState<ReturnType<typeof getBrowserSupabaseClient> | null>(null);
   const [events, setEvents] = useState<EmailEventLog[]>([]);
   const [stats, setStats] = useState({ delivered: 0, opened: 0, clicks: 0, bounced: 0 });
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
+    const client = getBrowserSupabaseClient();
+    setSupabase(client);
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
+    const emailEventsClient = supabase as unknown as EmailEventsClient;
+
     const fetchInitialData = async () => {
       try {
         setFetchError(null);
@@ -84,7 +91,7 @@ export function EmailRealtimeDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [emailEventsClient, supabase]);
+  }, [supabase]);
 
   const updateStats = (data: EmailEventLog[]) => {
     const s = { delivered: 0, opened: 0, clicks: 0, bounced: 0 };
@@ -132,6 +139,26 @@ export function EmailRealtimeDashboard() {
     ...chartData.map((bucket) => bucket.entregados + bucket.abiertos + bucket.clics),
   );
   const topLeads = useMemo(() => calculateTopLeads(events), [events]);
+
+  if (!supabase) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-stone-200 p-6 space-y-6 animate-pulse">
+        <div className="flex items-center justify-between border-b pb-4">
+          <div>
+            <div className="h-5 bg-stone-200 rounded w-48 mb-2" />
+            <div className="h-3 bg-stone-100 rounded w-96" />
+          </div>
+          <div className="h-8 bg-stone-200 rounded w-24" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="h-20 bg-stone-50 rounded-lg border border-stone-100" />
+          <div className="h-20 bg-stone-50 rounded-lg border border-stone-100" />
+          <div className="h-20 bg-stone-50 rounded-lg border border-stone-100" />
+          <div className="h-20 bg-stone-50 rounded-lg border border-stone-100" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-stone-200 p-6 space-y-6">
