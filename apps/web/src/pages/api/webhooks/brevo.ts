@@ -2,21 +2,26 @@ import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@autamedica/shared';
 
-const supabase = createClient(
-  import.meta.env.PUBLIC_SUPABASE_URL!,
-  import.meta.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async (context) => {
   try {
-    const payload = await request.json();
+    const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || context.locals?.runtime?.env?.PUBLIC_SUPABASE_URL;
+    const supabaseKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || context.locals?.runtime?.env?.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      logger.error('[Webhook Brevo] Missing Supabase credentials');
+      return new Response(JSON.stringify({ error: 'Configuration Error' }), { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const payload = await context.request.json();
     logger.info('[Webhook Brevo] Evento recibido');
 
     const events = Array.isArray(payload) ? payload : [payload];
 
     for (const event of events) {
       const email = event.email || 'desconocido';
-      const eventType = event.event || 'unknown'; 
+      const eventType = event.event || 'unknown';
       const messageId = event['message-id'] || event.messageId || null;
       const subject = event.subject || null;
       
