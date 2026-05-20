@@ -51,7 +51,7 @@ export function getDomainConfig(): DomainConfig {
     },
     staging: {
       base: 'pages.dev',
-      cookie: '.pages.dev',
+      cookie: typeof window !== 'undefined' ? window.location.hostname : '',
       apps: {
         web: 'https://autamedica-web-app-staging.pages.dev',
         auth: 'https://autamedica-web-app-staging.pages.dev',
