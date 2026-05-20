@@ -172,7 +172,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          for project in autamedica-doctors autamedica-patients autamedica-companies; do
+          for project in autamedica-doctors autamedica-patients autamedica-companies autamedica-admin; do
             pnpm dlx wrangler pages deploy dist --project-name="$project" --branch=main
           done
 
