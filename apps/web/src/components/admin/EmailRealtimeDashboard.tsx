@@ -3,6 +3,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
 
+const MAX_EMAIL_EVENTS_ROWS = 50000;
+
 interface EmailEventLog {
   created_at: string;
   email: string;
@@ -47,14 +49,19 @@ export function EmailRealtimeDashboard() {
   const emailEventsClient = supabase as unknown as EmailEventsClient;
   const [events, setEvents] = useState<EmailEventLog[]>([]);
   const [stats, setStats] = useState({ delivered: 0, opened: 0, clicks: 0, bounced: 0 });
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      const data = await fetchAllEmailEvents(emailEventsClient);
+      try {
+        setFetchError(null);
+        const data = await fetchAllEmailEvents(emailEventsClient);
         
-      if (Array.isArray(data)) {
         setEvents(data);
         updateStats(data);
+      } catch (error) {
+        setFetchError('No se pudieron cargar los eventos históricos de email.');
+        console.error('[EmailRealtimeDashboard] Failed to fetch email events', error);
       }
     };
     
@@ -122,6 +129,12 @@ export function EmailRealtimeDashboard() {
         <h2 className="text-xl font-bold text-stone-800">Tiempo real (API Interna)</h2>
         <p className="text-sm text-stone-500">Histórico importado + eventos sincronizados instantáneamente desde Brevo Webhooks</p>
       </div>
+
+      {fetchError ? (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {fetchError}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-4 gap-4">
         <StatBox label="Entregado" value={stats.delivered} color="text-blue-600" />
@@ -212,8 +225,8 @@ export function EmailRealtimeDashboard() {
       <div className="mt-8">
         <h3 className="text-sm font-semibold text-stone-800 mb-4">Últimos eventos</h3>
         <div className="space-y-2">
-          {events.slice(-5).reverse().map((e, idx) => (
-            <div key={idx} className="text-xs flex justify-between border-b pb-2">
+          {events.slice(-5).reverse().map((e) => (
+            <div key={`${e.created_at}-${e.event_type}-${e.email}`} className="text-xs flex justify-between border-b pb-2">
                <span className="font-mono text-stone-500">{new Date(e.created_at).toLocaleTimeString()}</span>
                <span className="font-medium">{e.email}</span>
                <span className="uppercase tracking-wider text-[10px] bg-stone-100 px-2 py-1 rounded">{e.event_type}</span>
@@ -230,11 +243,12 @@ async function fetchAllEmailEvents(emailEventsClient: EmailEventsClient): Promis
   const allEvents: EmailEventLog[] = [];
 
   for (let from = 0; ; from += pageSize) {
+    if (allEvents.length >= MAX_EMAIL_EVENTS_ROWS) break;
     const { data } = await emailEventsClient
       .from('email_events_log')
       .select('created_at,email,event_type,subject')
       .order('created_at', { ascending: true })
-      .range(from, from + pageSize - 1);
+      .range(from, Math.min(from + pageSize - 1, MAX_EMAIL_EVENTS_ROWS - 1));
 
     if (!Array.isArray(data) || data.length === 0) break;
     allEvents.push(...data);

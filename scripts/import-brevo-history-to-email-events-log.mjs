@@ -5,7 +5,10 @@ import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 import { config as loadDotenv } from "dotenv";
 
-const DEFAULT_INPUT = "/home/edu/autamedica-brevo-events-2026-04-01_2026-04-21.json";
+const DEFAULT_INPUT = path.resolve(
+  process.cwd(),
+  "autamedica-brevo-events-2026-04-01_2026-04-21.json",
+);
 const BATCH_SIZE = 200;
 
 loadDotenv({ path: path.resolve(process.cwd(), ".env"), quiet: true });
@@ -23,7 +26,11 @@ function parseArgs(argv) {
     if (arg === "--apply") {
       args.apply = true;
     } else if (arg === "--input") {
-      args.input = argv[index + 1] ?? args.input;
+      const input = argv[index + 1];
+      if (!input || input.startsWith("-")) {
+        throw new Error("--input requiere una ruta de archivo valida");
+      }
+      args.input = input;
       index += 1;
     } else if (arg.startsWith("--input=")) {
       args.input = arg.slice("--input=".length);
@@ -71,7 +78,7 @@ function normalizeEventType(eventType) {
 function normalizeDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return new Date().toISOString();
+    return null;
   }
 
   return date.toISOString();
@@ -90,10 +97,11 @@ function eventKey(row) {
 function toEmailEventLogRows(events) {
   return events
     .filter((event) => typeof event?.email === "string" && event.email.includes("@"))
-    .map((event) => {
+    .flatMap((event) => {
       const providerMessageId = event.messageId ?? event["message-id"] ?? null;
       const eventType = normalizeEventType(event.event);
       const createdAt = normalizeDate(event.date ?? event.ts ?? event.created_at);
+      if (!createdAt) return [];
 
       return {
         email: event.email.trim().toLowerCase(),
