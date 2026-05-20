@@ -80,13 +80,19 @@ DECLARE
   resolved_snomed VARCHAR(50);
   resolved_icd11 VARCHAR(50);
 BEGIN
-  -- Clear previous observations for the updated raw extraction
-  DELETE FROM public.clinical_symptom_observations WHERE patient_id = NEW.patient_id;
-  DELETE FROM public.clinical_patient_conditions WHERE patient_id = NEW.patient_id;
-
+  -- Verify extraction result is available and checkpoint is 'final' to build mature intelligence
   IF NEW.extraction_result IS NULL OR NEW.extraction_result = '{}'::jsonb THEN
     RETURN NEW;
   END IF;
+
+  -- Verify patient exists in the patients table to avoid FK violation on orphaned extractions
+  IF NOT EXISTS (SELECT 1 FROM public.patients WHERE id = NEW.patient_id) THEN
+    RETURN NEW;
+  END IF;
+
+  -- Clear previous observations for the updated raw extraction surgically
+  DELETE FROM public.clinical_symptom_observations WHERE anamnesis_extraction_id = NEW.id;
+  DELETE FROM public.clinical_patient_conditions WHERE anamnesis_extraction_id = NEW.id;
 
   -- 1. Main Symptom (Chief Complaint)
   chief_complaint := NEW.extraction_result->'normalizedOpenFields'->>'chiefComplaintCode';
@@ -102,9 +108,9 @@ BEGIN
     END IF;
 
     INSERT INTO public.clinical_symptom_observations 
-      (patient_id, symptom_name, is_primary, is_red_flag, snomed_code, icd11_code, created_at)
+      (anamnesis_extraction_id, patient_id, symptom_name, is_primary, is_red_flag, snomed_code, icd11_code, created_at)
     VALUES 
-      (NEW.patient_id, clean_symptom_name, true, false, resolved_snomed, resolved_icd11, NEW.created_at);
+      (NEW.id, NEW.patient_id, clean_symptom_name, true, false, resolved_snomed, resolved_icd11, NEW.created_at);
   END IF;
 
   -- 2. Associated Symptoms
@@ -126,13 +132,13 @@ BEGIN
         -- Avoid inserting duplicate primary symptoms
         IF NOT EXISTS (
           SELECT 1 FROM public.clinical_symptom_observations 
-          WHERE patient_id = NEW.patient_id 
+          WHERE anamnesis_extraction_id = NEW.id 
             AND lower(symptom_name) = lower(clean_symptom_name)
         ) THEN
           INSERT INTO public.clinical_symptom_observations 
-            (patient_id, symptom_name, is_primary, is_red_flag, snomed_code, icd11_code, created_at)
+            (anamnesis_extraction_id, patient_id, symptom_name, is_primary, is_red_flag, snomed_code, icd11_code, created_at)
           VALUES 
-            (NEW.patient_id, clean_symptom_name, false, false, resolved_snomed, resolved_icd11, NEW.created_at);
+            (NEW.id, NEW.patient_id, clean_symptom_name, false, false, resolved_snomed, resolved_icd11, NEW.created_at);
         END IF;
       END IF;
     END LOOP;
@@ -155,9 +161,9 @@ BEGIN
         END IF;
 
         INSERT INTO public.clinical_symptom_observations 
-          (patient_id, symptom_name, is_primary, is_red_flag, snomed_code, icd11_code, created_at)
+          (anamnesis_extraction_id, patient_id, symptom_name, is_primary, is_red_flag, snomed_code, icd11_code, created_at)
         VALUES 
-          (NEW.patient_id, clean_symptom_name, false, true, resolved_snomed, resolved_icd11, NEW.created_at);
+          (NEW.id, NEW.patient_id, clean_symptom_name, false, true, resolved_snomed, resolved_icd11, NEW.created_at);
       END IF;
     END LOOP;
   END IF;
@@ -180,9 +186,9 @@ BEGIN
         END IF;
 
         INSERT INTO public.clinical_patient_conditions 
-          (patient_id, condition_name, condition_category, status, snomed_code, icd11_code, created_at)
+          (anamnesis_extraction_id, patient_id, condition_name, category, snomed_code, icd11_code, created_at)
         VALUES 
-          (NEW.patient_id, clean_symptom_name, 'pathological', COALESCE(antecedent->>'status', 'active'), resolved_snomed, resolved_icd11, NEW.created_at);
+          (NEW.id, NEW.patient_id, clean_symptom_name, 'pathological', resolved_snomed, resolved_icd11, NEW.created_at);
       END IF;
     END LOOP;
   END IF;
@@ -203,9 +209,9 @@ BEGIN
         END IF;
 
         INSERT INTO public.clinical_patient_conditions 
-          (patient_id, condition_name, condition_category, status, snomed_code, icd11_code, created_at)
+          (anamnesis_extraction_id, patient_id, condition_name, category, snomed_code, icd11_code, created_at)
         VALUES 
-          (NEW.patient_id, clean_symptom_name, 'physiological', COALESCE(antecedent->>'status', 'active'), resolved_snomed, resolved_icd11, NEW.created_at);
+          (NEW.id, NEW.patient_id, clean_symptom_name, 'physiological', resolved_snomed, resolved_icd11, NEW.created_at);
       END IF;
     END LOOP;
   END IF;
@@ -263,11 +269,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_gold_seasonal_metrics_uniq
 -- ====================================================================
 
 -- Function to dynamically compute and detect epidemiological anomalies in symptoms
--- e.g. An increase of 25% or more over historical statistical average
+DROP FUNCTION IF EXISTS public.detect_clinical_anomalies();
+
 CREATE OR REPLACE FUNCTION public.detect_clinical_anomalies()
 RETURNS TABLE (
-  symptom VARCHAR(150),
-  snomed VARCHAR(50),
+  symptom TEXT,
+  snomed TEXT,
   last_week_count BIGINT,
   historical_weekly_avg NUMERIC,
   percent_increase NUMERIC,
