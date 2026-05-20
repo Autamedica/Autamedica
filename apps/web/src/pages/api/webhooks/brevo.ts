@@ -4,8 +4,8 @@ import { logger } from '@autamedica/shared';
 
 export const POST: APIRoute = async (context) => {
   try {
-    const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || context.locals?.runtime?.env?.PUBLIC_SUPABASE_URL;
-    const supabaseKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || context.locals?.runtime?.env?.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl = (import.meta.env.PUBLIC_SUPABASE_URL || context.locals?.runtime?.env?.PUBLIC_SUPABASE_URL) as string;
+    const supabaseKey = (import.meta.env.SUPABASE_SERVICE_ROLE_KEY || context.locals?.runtime?.env?.SUPABASE_SERVICE_ROLE_KEY) as string;
 
     if (!supabaseUrl || !supabaseKey) {
       logger.error('[Webhook Brevo] Missing Supabase credentials');
