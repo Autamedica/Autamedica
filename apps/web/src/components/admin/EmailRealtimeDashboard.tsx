@@ -47,8 +47,9 @@ interface EmailEventsClient {
 export function EmailRealtimeDashboard() {
   const [supabase, setSupabase] = useState<ReturnType<typeof getBrowserSupabaseClient> | null>(null);
   const [events, setEvents] = useState<EmailEventLog[]>([]);
-  const [stats, setStats] = useState({ delivered: 0, opened: 0, clicks: 0, bounced: 0 });
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [searchEmail, setSearchEmail] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('');
 
   useEffect(() => {
     const client = getBrowserSupabaseClient();
@@ -63,9 +64,7 @@ export function EmailRealtimeDashboard() {
       try {
         setFetchError(null);
         const data = await fetchAllEmailEvents(emailEventsClient);
-        
         setEvents(data);
-        updateStats(data);
       } catch (error) {
         setFetchError('No se pudieron cargar los eventos históricos de email.');
         console.error('[EmailRealtimeDashboard] Failed to fetch email events', error);
@@ -79,11 +78,7 @@ export function EmailRealtimeDashboard() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'email_events_log' },
         (payload: { new: EmailEventLog }) => {
-          setEvents((current) => {
-            const nuevos = [...current, payload.new];
-            updateStats(nuevos);
-            return nuevos;
-          });
+          setEvents((current) => [...current, payload.new]);
         }
       )
       .subscribe();
@@ -93,10 +88,27 @@ export function EmailRealtimeDashboard() {
     };
   }, [supabase]);
 
-  const updateStats = (data: EmailEventLog[]) => {
+  // Extract unique subjects for campaign filtering
+  const uniqueSubjects = useMemo(() => {
+    if (!Array.isArray(events)) return [];
+    const subjects = new Set<string>();
+    events.forEach(e => {
+      if (e.subject) subjects.add(e.subject);
+    });
+    return Array.from(subjects).sort();
+  }, [events]);
+
+  // Filter events globally by subject selection
+  const filteredEventsBySubject = useMemo(() => {
+    if (!Array.isArray(events)) return [];
+    if (!selectedSubject) return events;
+    return events.filter(e => e.subject === selectedSubject);
+  }, [events, selectedSubject]);
+
+  // Compute stats on demand from filtered events
+  const stats = useMemo(() => {
     const s = { delivered: 0, opened: 0, clicks: 0, bounced: 0 };
-    if (!Array.isArray(data)) return;
-    data.forEach(e => {
+    filteredEventsBySubject.forEach(e => {
       if (!e?.event_type) return;
       const eventType = normalizeEmailEventType(e.event_type);
       if (eventType === 'delivered') s.delivered++;
@@ -104,22 +116,20 @@ export function EmailRealtimeDashboard() {
       if (eventType === 'click') s.clicks++;
       if (eventType === 'bounced') s.bounced++;
     });
-    setStats(s);
-  };
+    return s;
+  }, [filteredEventsBySubject]);
 
   const recentEvents = useMemo(() => {
     const unaHoraAtras = Date.now() - 60 * 60 * 1000;
-    if (!Array.isArray(events)) return [];
-    return events.filter((event) => {
+    return filteredEventsBySubject.filter((event) => {
       if (!event?.created_at) return false;
       const t = new Date(event.created_at).getTime();
       return !isNaN(t) && t >= unaHoraAtras;
     });
-  }, [events]);
+  }, [filteredEventsBySubject]);
 
   const chartData = useMemo(() => {
     const grouped: Record<string, ChartBucket> = {};
-    if (!Array.isArray(recentEvents)) return [];
     recentEvents.forEach(e => {
       if (!e?.created_at || !e?.event_type) return;
       const date = new Date(e.created_at);
@@ -134,11 +144,21 @@ export function EmailRealtimeDashboard() {
     });
     return Object.values(grouped);
   }, [recentEvents]);
+
   const chartMax = Math.max(
     1,
     ...chartData.map((bucket) => bucket.entregados + bucket.abiertos + bucket.clics),
   );
-  const topLeads = useMemo(() => calculateTopLeads(events), [events]);
+
+  // Apply dynamic email search to top leads on filtered events
+  const filteredEventsForLeads = useMemo(() => {
+    return filteredEventsBySubject.filter(e => {
+      if (!searchEmail) return true;
+      return e.email.toLowerCase().includes(searchEmail.toLowerCase());
+    });
+  }, [filteredEventsBySubject, searchEmail]);
+
+  const topLeads = useMemo(() => calculateTopLeads(filteredEventsForLeads), [filteredEventsForLeads]);
 
   if (!supabase) {
     return (
@@ -162,9 +182,19 @@ export function EmailRealtimeDashboard() {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-stone-200 p-6 space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-stone-800">Tiempo real (API Interna)</h2>
-        <p className="text-sm text-stone-500">Histórico importado + eventos sincronizados instantáneamente desde Brevo Webhooks</p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-stone-100 pb-4">
+        <div>
+          <h2 className="text-xl font-bold text-stone-800">Email Realtime Growth OS</h2>
+          <p className="text-sm text-stone-500">Métricas globales y en tiempo real sincronizadas instantáneamente desde Brevo Webhooks</p>
+        </div>
+        {(selectedSubject || searchEmail) && (
+          <button
+            onClick={() => { setSelectedSubject(''); setSearchEmail(''); }}
+            className="self-start md:self-auto text-xs font-semibold text-stone-500 hover:text-stone-800 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-md transition-colors"
+          >
+            Limpiar filtros ✕
+          </button>
+        )}
       </div>
 
       {fetchError ? (
@@ -172,6 +202,49 @@ export function EmailRealtimeDashboard() {
           {fetchError}
         </div>
       ) : null}
+
+      {/* Control Filters Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-stone-50 p-4 rounded-lg border border-stone-150">
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1.5">
+            Filtrar por Campaña / Asunto
+          </label>
+          <select
+            value={selectedSubject}
+            onChange={(e) => setSelectedSubject(e.target.value)}
+            className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-stone-700 focus:border-stone-500 focus:outline-none"
+          >
+            <option value="">Todas las campañas y asuntos ({uniqueSubjects.length})</option>
+            {uniqueSubjects.map((subj) => (
+              <option key={subj} value={subj}>
+                {subj}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1.5">
+            Buscar Lead (Email)
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Buscar por email del destinatario..."
+              value={searchEmail}
+              onChange={(e) => setSearchEmail(e.target.value)}
+              className="w-full rounded-md border border-stone-300 bg-white pl-3 pr-8 py-2 text-sm text-stone-700 focus:border-stone-500 focus:outline-none"
+            />
+            {searchEmail && (
+              <button
+                onClick={() => setSearchEmail('')}
+                className="absolute right-2.5 top-2.5 text-stone-400 hover:text-stone-600 text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-4 gap-4">
         <StatBox label="Entregado" value={stats.delivered} color="text-blue-600" />
@@ -260,9 +333,9 @@ export function EmailRealtimeDashboard() {
       </div>
       
       <div className="mt-8">
-        <h3 className="text-sm font-semibold text-stone-800 mb-4">Últimos eventos</h3>
+        <h3 className="text-sm font-semibold text-stone-800 mb-4">Últimos eventos ({filteredEventsForLeads.length})</h3>
         <div className="space-y-2">
-          {events.slice(-5).reverse().filter(e => e?.email && e?.created_at).map((e) => (
+          {filteredEventsForLeads.slice(-10).reverse().filter(e => e?.email && e?.created_at).map((e) => (
             <div key={`${e.created_at}-${e.event_type ?? ''}-${e.email}`} className="text-xs flex justify-between border-b pb-2">
                <span className="font-mono text-stone-500">{new Date(e.created_at).toLocaleTimeString()}</span>
                <span className="font-medium">{e.email}</span>
