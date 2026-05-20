@@ -87,15 +87,41 @@ export const telemedicineStatsService = {
       stats = callsResult.data as Record<string, unknown>
     }
 
-    const events = (eventsResult.data ?? []) as Array<{ type: string }>
+    const events = (eventsResult.data ?? []) as Array<{ type: string; call_id: string; payload: Record<string, unknown> | null }>
     const eventsByType = events.reduce<Record<string, number>>((acc, e) => {
       acc[e.type] = (acc[e.type] ?? 0) + 1
       return acc
     }, {})
 
+    // Build participant map: for each call_id, collect which userTypes connected
+    const participantMap = new Map<string, Set<string>>()
+    for (const event of events) {
+      const payload = event.payload as Record<string, unknown> | null
+      const innerPayload = payload?.payload as Record<string, unknown> | undefined
+      const userType = (innerPayload?.userType ?? payload?.userType) as string | undefined
+      if (userType && event.call_id) {
+        const participants = participantMap.get(event.call_id) ?? new Set<string>()
+        participants.add(userType)
+        participantMap.set(event.call_id, participants)
+      }
+    }
+
+    // Enrich recent calls with participant info
+    const recentCalls = (recentCallsResult.data ?? []).map((call: Record<string, unknown>) => {
+      const callId = call.id as string
+      const participants = participantMap.get(callId)
+      const doctorJoined = participants?.has('doctor') ?? false
+      const patientJoined = participants?.has('patient') ?? false
+      return {
+        ...call,
+        doctor_joined: doctorJoined,
+        patient_joined: patientJoined,
+      }
+    })
+
     return {
       stats,
-      recentCalls: recentCallsResult.data ?? [],
+      recentCalls,
       eventsByType,
     }
   },
