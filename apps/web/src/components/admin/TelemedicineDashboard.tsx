@@ -50,6 +50,7 @@ interface NotificationRisk {
 interface NotificationRiskData {
   summary: NotificationRiskSummary
   risks: NotificationRisk[]
+  degraded?: boolean
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -67,18 +68,24 @@ const STATUS_COLORS: Record<string, string> = {
 export default function TelemedicineDashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [notificationRisks, setNotificationRisks] = useState<NotificationRiskData | null>(null)
+  const [notificationRiskError, setNotificationRiskError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const loadTelemedicineStats = useCallback(async () => {
     try {
-      const [statsResult, risksResult] = await Promise.all([
-        fetchApi<DashboardData>('/api/admin/telemedicine-stats'),
-        fetchApi<NotificationRiskData>('/api/admin/appointment-notification-risks?limit=8'),
-      ])
+      const statsResult = await fetchApi<DashboardData>('/api/admin/telemedicine-stats')
       setData(statsResult)
-      setNotificationRisks(risksResult)
       setError(null)
+
+      try {
+        const risksResult = await fetchApi<NotificationRiskData>('/api/admin/appointment-notification-risks?limit=8')
+        setNotificationRisks(risksResult)
+        setNotificationRiskError(risksResult.degraded ? 'Vista de riesgos temporalmente no disponible.' : null)
+      } catch (riskErr) {
+        setNotificationRisks(null)
+        setNotificationRiskError(riskErr instanceof Error ? riskErr.message : 'Vista de riesgos temporalmente no disponible.')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
@@ -136,9 +143,11 @@ export default function TelemedicineDashboard() {
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Riesgo de notificaciones de turnos</h3>
             <p className="mt-1 text-sm text-gray-700">
-              {riskSummary.total === 0
-                ? 'Sin turnos confirmados futuros con evidencia incompleta.'
-                : `${riskSummary.total} turno(s) con evidencia incompleta: P0 ${riskSummary.p0}, P1 ${riskSummary.p1}, P2 ${riskSummary.p2}.`}
+              {notificationRiskError
+                ? notificationRiskError
+                : riskSummary.total === 0
+                  ? 'Sin turnos confirmados futuros con evidencia incompleta.'
+                  : `${riskSummary.total} turno(s) con evidencia incompleta: P0 ${riskSummary.p0}, P1 ${riskSummary.p1}, P2 ${riskSummary.p2}.`}
             </p>
           </div>
           <div className="flex gap-2 text-xs font-semibold">
