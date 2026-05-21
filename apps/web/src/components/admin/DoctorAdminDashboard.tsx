@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
 
 type Profile = {
   user_id: string;
@@ -37,6 +38,21 @@ type Doctor = {
   updated_at: string;
   profile: Profile;
 };
+
+async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  try {
+    const supabase = getBrowserSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    const headers = new Headers(options.headers);
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    return fetch(url, { ...options, headers });
+  } catch (err) {
+    return fetch(url, options);
+  }
+}
 
 export function DoctorAdminDashboard() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -93,7 +109,7 @@ export function DoctorAdminDashboard() {
     setError(null);
     try {
       // Fetch session token from locals or cookies if present
-      const response = await fetch('/api/admin/doctors');
+      const response = await fetchWithAuth('/api/admin/doctors');
       if (response.status === 401) {
         throw new Error('No autorizado. Debes ser administrador para acceder.');
       }
@@ -187,7 +203,7 @@ export function DoctorAdminDashboard() {
     setSuccessMessage(null);
 
     try {
-      const response = await fetch(`/api/admin/doctors/${selectedDoctor.id}`, {
+      const response = await fetchWithAuth(`/api/admin/doctors/${selectedDoctor.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm),
@@ -230,7 +246,7 @@ export function DoctorAdminDashboard() {
     setSuccessMessage(null);
 
     try {
-      const response = await fetch(`/api/admin/doctors/${selectedDoctor.id}?mode=${mode}`, {
+      const response = await fetchWithAuth(`/api/admin/doctors/${selectedDoctor.id}?mode=${mode}`, {
         method: 'DELETE',
       });
 
@@ -280,7 +296,7 @@ export function DoctorAdminDashboard() {
     setSuccessMessage(null);
 
     try {
-      const response = await fetch('/api/admin/doctors', {
+      const response = await fetchWithAuth('/api/admin/doctors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newForm),
