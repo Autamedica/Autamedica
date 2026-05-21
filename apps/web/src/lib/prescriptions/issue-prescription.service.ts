@@ -111,6 +111,7 @@ export type IssuanceError =
   | { code: 'doctor_not_found' }
   | { code: 'missing_license_number' }
   | { code: 'missing_refeps_id' }
+  | { code: 'prescriber_validation_required' }
   | { code: 'missing_professional_address' }
   | { code: 'prescription_not_found' }
   | { code: 'not_your_prescription' }
@@ -181,6 +182,12 @@ interface IssuePatient {
   birth_date?: string | null;
   gender?: string | null;
   insurance_info?: unknown;
+}
+
+type PrescriberValidationStatus = 'pending' | 'valid' | 'pending_review' | 'rejected' | 'exempt';
+
+function canIssueWithPrescriberValidationStatus(status?: string | null): boolean {
+  return status === 'valid' || status === 'exempt';
 }
 
 interface FarmalinkRegistration {
@@ -486,6 +493,18 @@ export async function issuePrescription(
   if (!doctor.license_number) return fail({ code: 'missing_license_number' });
   if (!doctor.refeps_id) return fail({ code: 'missing_refeps_id' });
   if (!doctor.professional_address) return fail({ code: 'missing_professional_address' });
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('sss_validation_status')
+    .eq('user_id', userId)
+    .single();
+
+  if (!canIssueWithPrescriberValidationStatus(
+    profile?.sss_validation_status as PrescriberValidationStatus | null | undefined,
+  )) {
+    return fail({ code: 'prescriber_validation_required' });
+  }
 
   // 2. Get and validate prescription
   const { data: rx } = await supabase
@@ -916,4 +935,5 @@ export async function regenerateIssuedPrescriptionPdf(
 
 export const __testables = {
   buildFarmalinkPrescriptionMapInput,
+  canIssueWithPrescriberValidationStatus,
 };

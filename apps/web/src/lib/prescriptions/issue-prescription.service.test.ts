@@ -122,3 +122,17 @@ describe('issuePrescription Farmalink wiring', () => {
       });
   });
 });
+
+describe('issuePrescription prescriber validation gate', () => {
+  it('allows nationally validated and explicitly exempt prescribers', () => {
+    expect(__testables.canIssueWithPrescriberValidationStatus('valid')).toBe(true);
+    expect(__testables.canIssueWithPrescriberValidationStatus('exempt')).toBe(true);
+  });
+
+  it('blocks issuance while the prescriber validation is unresolved', () => {
+    expect(__testables.canIssueWithPrescriberValidationStatus('pending')).toBe(false);
+    expect(__testables.canIssueWithPrescriberValidationStatus('pending_review')).toBe(false);
+    expect(__testables.canIssueWithPrescriberValidationStatus('rejected')).toBe(false);
+    expect(__testables.canIssueWithPrescriberValidationStatus(null)).toBe(false);
+  });
+});

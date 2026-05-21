@@ -7,6 +7,8 @@
 - API receta: `/api/recetaElect/v3`.
 - Token: `/api/oauth/token/generate`.
 - Operaciones preparadas: `altaReceta`, `consultaReceta`, `bajaReceta`.
+- Precondicion de emision: el prescriptor debe tener validacion profesional
+  aceptada en AutaMedica (`profiles.sss_validation_status` `valid` o `exempt`).
 - Emision AutaMedica: cuando `FARMALINK_ENABLED=true`, el servicio de emision intenta `altaReceta` antes de generar el PDF. Si Farmalink aprueba, guarda `vendor_name = "farmalink"` y `vendor_id = nroRecElectronica`, y el PDF imprime `RECETA FARMALINK` en el codigo de barras.
 - Bloqueo actual: faltan credenciales OAuth/aplicacion de Farmalink Seguridad.
 
