@@ -657,7 +657,7 @@ export function PatientPopulationDashboard() {
             <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-xs">
               <span className="text-[10px] uppercase font-bold tracking-wider text-rose-500">Banderas Rojas de Alarma Detectadas</span>
               <div className="text-2xl font-black text-rose-700 font-mono mt-1">
-                {clinicalData.red_flags_ranking.reduce((sum, item) => sum + item.count, 0)}
+                {(clinicalData?.red_flags_ranking || []).reduce((sum, item) => sum + item.count, 0)}
               </div>
             </div>
           </div>
@@ -672,7 +672,7 @@ export function PatientPopulationDashboard() {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {(['Invierno', 'Primavera', 'Verano', 'Otoño'] as const).map((season) => {
-                const symptoms = clinicalData.seasonal_symptoms[season] || [];
+                const symptoms = clinicalData?.seasonal_symptoms?.[season] || [];
                 const colors = {
                   Invierno: 'bg-sky-500 text-sky-700 border-sky-100 bg-sky-50/50',
                   Primavera: 'bg-emerald-500 text-emerald-700 border-emerald-100 bg-emerald-50/50',
@@ -721,7 +721,7 @@ export function PatientPopulationDashboard() {
                 </h3>
                 <p className="text-xs text-stone-500 mb-4">Detección predictiva de incrementos atípicos de síntomas</p>
                 <div className="space-y-3">
-                  {clinicalData.early_warning_alerts && clinicalData.early_warning_alerts.length > 0 ? (
+                  {clinicalData?.early_warning_alerts && clinicalData.early_warning_alerts.length > 0 ? (
                     clinicalData.early_warning_alerts.map((alert) => (
                       <div key={alert.symptom} className={`p-3 rounded-lg border ${alert.is_outbreak_warning ? 'bg-red-50/50 border-red-200 text-red-900' : 'bg-amber-50/50 border-amber-200 text-amber-900'}`}>
                         <div className="flex justify-between items-center">
@@ -753,7 +753,7 @@ export function PatientPopulationDashboard() {
                 </h3>
                 <p className="text-xs text-stone-500 mb-4">Alertas críticas de gravedad identificadas por el pipeline de IA en la Capa Plata</p>
                 <div className="space-y-3">
-                  {clinicalData.red_flags_ranking.map((flag) => (
+                  {(clinicalData?.red_flags_ranking || []).map((flag) => (
                     <div key={flag.name} className="group">
                       <div className="flex justify-between text-xs mb-1">
                         <span className="font-semibold text-rose-700 truncate max-w-[280px]" title={flag.name}>{flag.name}</span>
