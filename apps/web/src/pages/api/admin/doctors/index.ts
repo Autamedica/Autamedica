@@ -225,7 +225,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (doctorFetchErr) throw doctorFetchErr;
 
-    const doctorInsert: Record<string, string | number | boolean | string[] | null | undefined> = {
+    const doctorInsert = {
       user_id: targetUserId,
       specialty: specialty || '',
       subspecialty: subspecialty || '',

@@ -55,7 +55,15 @@ export function DoctorAdminDashboard() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Form states for New / Edit doctor
-  const [editForm, setEditForm] = useState<Partial<Doctor & Profile & { matriculaNacional: string; especialidadRegistrada: string; sssValidationStatus: string }>>({});
+  const [editForm, setEditForm] = useState<Partial<Doctor & Profile & {
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+    role: string;
+    matriculaNacional: string;
+    especialidadRegistrada: string;
+    sssValidationStatus: string;
+  }>>({});
   const [newForm, setNewForm] = useState({
     email: '',
     firstName: '',
@@ -108,7 +116,7 @@ export function DoctorAdminDashboard() {
   // Filtered doctors list
   const filteredDoctors = useMemo(() => {
     return doctors.filter((doc) => {
-      const p = doc.profile || {};
+      const p = doc.profile || {} as Profile;
       const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase();
       const email = (p.email || '').toLowerCase();
       const spec = (doc.specialty || '').toLowerCase();
@@ -150,7 +158,7 @@ export function DoctorAdminDashboard() {
   // Open Edit Side-Over
   function handleEditClick(doctor: Doctor) {
     setSelectedDoctor(doctor);
-    const p = doctor.profile || {};
+    const p = doctor.profile || {} as Profile;
     setEditForm({
       ...doctor,
       firstName: p.first_name,
@@ -480,7 +488,7 @@ export function DoctorAdminDashboard() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {filteredDoctors.map((doctor) => {
-                    const p = doctor.profile || {};
+                    const p = doctor.profile || {} as Profile;
                     const isSelected = selectedDoctor?.id === doctor.id;
                     return (
                       <tr
