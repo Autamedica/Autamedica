@@ -6,7 +6,24 @@ import { badRequest, internalError, jsonOk, unauthorized } from '@/lib/api-helpe
 async function assertAdmin(
   request: Request,
   admin: ReturnType<typeof createAstroAdminClient>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  locals?: any,
 ): Promise<{ ok: boolean; userId?: string }> {
+  // 1. Try Astro's server-side verified locals session
+  if (locals?.session?.user) {
+    const userId = locals.session.user.id;
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (profile?.role && ['admin', 'platform_admin', 'organization_admin'].includes(profile.role)) {
+      return { ok: true, userId };
+    }
+  }
+
+  // 2. Fallback to Authorization Header token
   const authHeader = request.headers.get('authorization') ?? '';
   const token = authHeader.replace(/^Bearer\s+/i, '');
   if (!token) return { ok: false };
@@ -29,7 +46,7 @@ async function assertAdmin(
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const admin = createAstroAdminClient(locals.runtime?.env);
-  const auth = await assertAdmin(request, admin);
+  const auth = await assertAdmin(request, admin, locals);
   if (!auth.ok) return unauthorized('admin role required');
 
   try {
@@ -84,7 +101,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const admin = createAstroAdminClient(locals.runtime?.env);
-  const auth = await assertAdmin(request, admin);
+  const auth = await assertAdmin(request, admin, locals);
   if (!auth.ok) return unauthorized('admin role required');
 
   interface CreateDoctorBody {

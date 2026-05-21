@@ -117,6 +117,9 @@ export function DoctorAdminDashboard() {
       if (!response.ok) {
         throw new Error(data.error || 'Error al cargar médicos');
       }
+      if (!Array.isArray(data)) {
+        throw new Error('La respuesta del servidor no tiene el formato esperado.');
+      }
       setDoctors(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error inesperado al conectar con el servidor.');
@@ -131,6 +134,7 @@ export function DoctorAdminDashboard() {
 
   // Filtered doctors list
   const filteredDoctors = useMemo(() => {
+    if (!Array.isArray(doctors)) return [];
     return doctors.filter((doc) => {
       const p = doc.profile || {} as Profile;
       const fullName = `${p.first_name || ''} ${p.last_name || ''}`.toLowerCase();
@@ -164,6 +168,9 @@ export function DoctorAdminDashboard() {
 
   // Statistics calculated in real-time
   const stats = useMemo(() => {
+    if (!Array.isArray(doctors)) {
+      return { total: 0, active: 0, pendingSisa: 0, validSisa: 0 };
+    }
     const total = doctors.length;
     const active = doctors.filter((d) => d.active).length;
     const pendingSisa = doctors.filter((d) => d.profile?.sss_validation_status === 'pending_review').length;
