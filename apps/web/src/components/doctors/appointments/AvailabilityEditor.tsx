@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Clock, Save, Trash2, Plus, AlertCircle, CheckCircle2, Settings2 } from 'lucide-react'
+import { fetchApi } from '@/lib/api-client'
 
 const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'] as const
 const DAY_FULL_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] as const
@@ -44,10 +45,8 @@ export function AvailabilityEditor() {
   const fetchSchedule = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/doctors/availability', { credentials: 'include' })
-      if (!res.ok) throw new Error('Error cargando disponibilidad')
-      const data = await res.json()
-      const weekly: WeeklySlotRow[] = data.weekly ?? []
+      const data = await fetchApi<{ weekly?: WeeklySlotRow[] }>('/api/doctors/availability')
+      const weekly = data.weekly ?? []
 
       // Detect fake 24/7 preset
       const isFake = weekly.length >= 7 && weekly.every(
@@ -92,16 +91,10 @@ export function AvailabilityEditor() {
     try {
       setSaveStatus('saving')
       setErrorMsg('')
-      const res = await fetch('/api/doctors/availability', {
+      await fetchApi('/api/doctors/availability', {
         method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slots }),
+        body: { slots },
       })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error ?? 'Error al guardar')
-      }
       setSaveStatus('saved')
       setTimeout(() => setSaveStatus('idle'), 3000)
     } catch (err) {

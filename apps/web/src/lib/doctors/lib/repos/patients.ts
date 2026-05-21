@@ -153,6 +153,7 @@ export const patientsRepo = {
       .from('appointments')
       .select('patient_id')
       .eq('doctor_id', doctor.id)
+      .neq('status', 'cancelled')
 
     const appointmentIds = (appointmentPatients ?? [])
       .map(a => a.patient_id)
