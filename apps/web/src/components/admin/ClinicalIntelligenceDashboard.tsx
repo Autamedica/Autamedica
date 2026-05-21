@@ -146,12 +146,12 @@ export function ClinicalIntelligenceDashboard() {
         <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Alertas de Brote</span>
-            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${data.early_warning_alerts.length > 0 ? 'bg-rose-50 text-rose-700 animate-pulse' : 'bg-emerald-50 text-emerald-700'}`}>
-              {data.early_warning_alerts.length > 0 ? 'Alerta Activa' : 'Estable'}
+            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${(data?.early_warning_alerts || []).length > 0 ? 'bg-rose-50 text-rose-700 animate-pulse' : 'bg-emerald-50 text-emerald-700'}`}>
+              {(data?.early_warning_alerts || []).length > 0 ? 'Alerta Activa' : 'Estable'}
             </span>
           </div>
           <p className="mt-4 text-3xl font-bold tracking-tight text-slate-900">
-            {data.early_warning_alerts.length}
+            {(data?.early_warning_alerts || []).length}
           </p>
           <p className="mt-1 text-xs text-slate-500">Detecciones anormales de síntomas esta semana</p>
           <div className="absolute right-0 bottom-0 translate-x-2 translate-y-2 opacity-5">
@@ -165,7 +165,7 @@ export function ClinicalIntelligenceDashboard() {
             <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">En Proceso</span>
           </div>
           <p className="mt-4 text-3xl font-bold tracking-tight text-slate-900">
-            {data.red_flags_ranking.reduce((acc, curr) => acc + curr.count, 0)}
+            {(data?.red_flags_ranking || []).reduce((acc, curr) => acc + curr.count, 0)}
           </p>
           <p className="mt-1 text-xs text-slate-500">Total de observaciones críticas reportadas</p>
           <div className="absolute right-0 bottom-0 translate-x-2 translate-y-2 opacity-5">
@@ -207,7 +207,7 @@ export function ClinicalIntelligenceDashboard() {
         </div>
 
         <div className="p-6">
-          {data.early_warning_alerts.length === 0 ? (
+          {(data?.early_warning_alerts || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <div className="rounded-full bg-emerald-50 p-3 text-emerald-600">
                 <CheckCircle2 className="h-6 w-6" />
@@ -217,7 +217,7 @@ export function ClinicalIntelligenceDashboard() {
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {data.early_warning_alerts.map((alert, idx) => (
+              {(data?.early_warning_alerts || []).map((alert, idx) => (
                 <div
                   key={idx}
                   className={`group relative overflow-hidden rounded-xl border p-5 shadow-sm transition hover:shadow-md ${
@@ -298,7 +298,7 @@ export function ClinicalIntelligenceDashboard() {
 
           <div className="p-6">
             <div className="grid gap-4 sm:grid-cols-2">
-              {data.seasonal_symptoms[selectedSeason]?.map((item, idx) => (
+              {(data?.seasonal_symptoms?.[selectedSeason] || []).map((item, idx) => (
                 <div key={idx} className="flex flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/30 p-4 hover:border-slate-200 transition">
                   <div className="flex items-start justify-between">
                     <div>
@@ -326,7 +326,7 @@ export function ClinicalIntelligenceDashboard() {
                   </div>
                 </div>
               ))}
-              {(!data.seasonal_symptoms[selectedSeason] || data.seasonal_symptoms[selectedSeason].length === 0) && (
+              {(!data?.seasonal_symptoms?.[selectedSeason] || data.seasonal_symptoms[selectedSeason].length === 0) && (
                 <p className="text-center text-sm text-slate-400 py-6 sm:col-span-2">Sin datos disponibles para esta estación.</p>
               )}
             </div>
@@ -344,15 +344,15 @@ export function ClinicalIntelligenceDashboard() {
           </div>
 
           <div className="p-6 flex-1 flex flex-col justify-between">
-            {data.red_flags_ranking.length === 0 ? (
+            {(data?.red_flags_ranking || []).length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center my-auto">
                 <CheckCircle2 className="h-10 w-10 text-emerald-500" />
                 <h4 className="mt-2 text-xs font-semibold text-slate-900">Ningún caso crítico reportado</h4>
               </div>
             ) : (
               <div className="space-y-4 my-auto">
-                {data.red_flags_ranking.map((item, idx) => {
-                  const maxCount = Math.max(...data.red_flags_ranking.map(r => r.count), 1);
+                {(data?.red_flags_ranking || []).map((item, idx) => {
+                  const maxCount = Math.max(...(data?.red_flags_ranking || []).map(r => r.count), 1);
                   const percentage = (item.count / maxCount) * 100;
                   return (
                     <div key={idx} className="space-y-1">
