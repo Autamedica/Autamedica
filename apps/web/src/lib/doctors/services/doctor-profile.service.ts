@@ -20,15 +20,10 @@ type ScheduleInput = Record<
   }
 >
 
-const DEFAULT_AVAILABILITY_PRESET = [
-  { day_of_week: 0, start_time: '00:00', end_time: '23:59' },
-  { day_of_week: 1, start_time: '00:00', end_time: '23:59' },
-  { day_of_week: 2, start_time: '00:00', end_time: '23:59' },
-  { day_of_week: 3, start_time: '00:00', end_time: '23:59' },
-  { day_of_week: 4, start_time: '00:00', end_time: '23:59' },
-  { day_of_week: 5, start_time: '00:00', end_time: '23:59' },
-  { day_of_week: 6, start_time: '00:00', end_time: '23:59' },
-] as const
+// No default availability — doctors must configure their schedule explicitly.
+// Previously, a 24/7 preset was auto-applied, causing no-show incidents
+// when doctors didn't realize they appeared available.
+
 
 function buildAvailabilityRows(doctorId: string, schedule: unknown): AvailabilityInsert[] {
   if (!schedule || typeof schedule !== 'object') return []
@@ -61,16 +56,7 @@ function buildAvailabilityRows(doctorId: string, schedule: unknown): Availabilit
   return rows
 }
 
-function buildDefaultAvailabilityRows(doctorId: string): AvailabilityInsert[] {
-  return DEFAULT_AVAILABILITY_PRESET.map((slot) => ({
-    doctor_id: doctorId,
-    day_of_week: slot.day_of_week,
-    start_time: slot.start_time,
-    end_time: slot.end_time,
-    slot_duration: 30,
-    is_active: true,
-  }))
-}
+
 
 export interface DoctorProfileInput {
   userId: string
@@ -169,14 +155,9 @@ export const doctorProfileService = {
 
     if (availabilityRows.length > 0) {
       await doctorProfileRepo.replaceAvailability(admin, doctorId, availabilityRows)
-    } else if (isActive) {
-      const existing = await doctorProfileRepo.countActiveAvailability(admin, doctorId)
-      if (existing === 0) {
-        await doctorProfileRepo.insertDefaultAvailability(
-          admin, buildDefaultAvailabilityRows(doctorId),
-        )
-      }
     }
+    // No default availability is auto-inserted.
+    // Doctors must configure their schedule from their dashboard.
 
     return result;
   },

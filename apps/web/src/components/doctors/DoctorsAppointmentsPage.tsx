@@ -1,6 +1,7 @@
 "use client";
 
 import { AppointmentsPanel } from "@/components/doctors/appointments/AppointmentsPanel";
+import { AvailabilityEditor } from "@/components/doctors/appointments/AvailabilityEditor";
 import { DoctorsPortalFrame } from "@/components/doctors/DoctorsPortalFrame";
 
 export function DoctorsAppointmentsPage() {
@@ -12,6 +13,9 @@ export function DoctorsAppointmentsPage() {
       hideDefaultHeader
       hideRightSidebar
     >
+      <div className="px-6 pt-4 pb-2">
+        <AvailabilityEditor />
+      </div>
       <AppointmentsPanel />
     </DoctorsPortalFrame>
   );

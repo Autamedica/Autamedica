@@ -50,7 +50,7 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
       if (doctorIds.length > 0) {
         const { data: availabilityRows, error: availabilityError } = await supabase
           .from('doctor_availability')
-          .select('doctor_id')
+          .select('doctor_id, start_time, end_time')
           .in('doctor_id', doctorIds)
           .eq('is_active', true)
 
@@ -59,31 +59,47 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
           throw availabilityError
         }
 
-        doctorsWithAvailability = new Set((availabilityRows ?? []).map((row) => row.doctor_id))
+        // Group availability by doctor and exclude fake 24/7 defaults
+        const availByDoctor = new Map<string, Array<{ start_time: string; end_time: string }>>()
+        for (const row of availabilityRows ?? []) {
+          const list = availByDoctor.get(row.doctor_id) ?? []
+          list.push({ start_time: row.start_time, end_time: row.end_time })
+          availByDoctor.set(row.doctor_id, list)
+        }
+
+        availByDoctor.forEach((slots, doctorId) => {
+          // Detect fake 24/7 preset: all slots are 00:00-23:59
+          const isFakePreset = slots.length >= 7 && slots.every(
+            (s) => s.start_time === '00:00:00' && s.end_time === '23:59:00',
+          )
+          if (!isFakePreset && slots.length > 0) {
+            doctorsWithAvailability.add(doctorId)
+          }
+        })
       }
 
-      const doctors = doctorRows.map((row) => {
-        const firstName = row.profile?.first_name ?? ''
-        const lastName = row.profile?.last_name ?? ''
-        const fullName = [firstName, lastName].filter(Boolean).join(' ')
+      const doctors = doctorRows
+        // Only show doctors who explicitly configured real availability
+        .filter((row) => doctorsWithAvailability.has(row.id))
+        .map((row) => {
+          const firstName = row.profile?.first_name ?? ''
+          const lastName = row.profile?.last_name ?? ''
+          const fullName = [firstName, lastName].filter(Boolean).join(' ')
 
-        return {
-          id: row.id,
-          specialty: row.specialty,
-          consultation_fee: row.consultation_fee ?? null,
-          first_name: row.profile?.first_name ?? null,
-          last_name: row.profile?.last_name ?? null,
-          has_availability: doctorsWithAvailability.has(row.id),
-          label: fullName ? `Dr. ${fullName}` : 'Profesional disponible',
-          license_number: row.license_number ?? null,
-        }
-      })
+          return {
+            id: row.id,
+            specialty: row.specialty,
+            consultation_fee: row.consultation_fee ?? null,
+            first_name: row.profile?.first_name ?? null,
+            last_name: row.profile?.last_name ?? null,
+            has_availability: true,
+            label: fullName ? `Dr. ${fullName}` : 'Profesional disponible',
+            license_number: row.license_number ?? null,
+          }
+        })
 
       return doctors
-        .sort((a, b) => {
-          if (a.has_availability !== b.has_availability) return a.has_availability ? -1 : 1
-          return a.label.localeCompare(b.label, 'es')
-        })
+        .sort((a, b) => a.label.localeCompare(b.label, 'es'))
     },
   }
 }

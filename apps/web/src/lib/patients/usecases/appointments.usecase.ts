@@ -83,6 +83,15 @@ export const appointmentsUseCase = {
     const doctorExists = await deps.appointmentsRepo.doctorExists(doctor_id)
     if (!doctorExists) throw Object.assign(new Error('Doctor not found or inactive'), { code: 'DOCTOR_NOT_FOUND' })
 
+    // Verify doctor has real availability configured (prevents no-show from unconfigured schedules)
+    const hasRealAvailability = await checkDoctorHasRealAvailability(deps.dbClient, doctor_id)
+    if (!hasRealAvailability) {
+      throw Object.assign(
+        new Error('Este profesional aún no configuró su disponibilidad. No se pueden agendar turnos.'),
+        { code: 'NO_AVAILABILITY' },
+      )
+    }
+
     try {
       const appointment = await deps.appointmentsRepo.create(patientId, payload)
       return appointment
@@ -185,4 +194,31 @@ export const appointmentsUseCase = {
       throw err
     }
   },
+}
+
+/**
+ * Checks if a doctor has real availability configured (not the old fake 24/7 preset).
+ * A doctor with only 00:00-23:59 entries for all 7 days is treated as unconfigured.
+ */
+async function checkDoctorHasRealAvailability(db: Db, doctorId: string): Promise<boolean> {
+  const { data, error } = await db
+    .from('doctor_availability')
+    .select('start_time, end_time')
+    .eq('doctor_id', doctorId)
+    .eq('is_active', true)
+
+  if (error) {
+    logger.error('[checkDoctorHasRealAvailability] query failed', error)
+    // Fail open: allow booking if we can't check (avoid blocking legitimate patients)
+    return true
+  }
+
+  if (!data || data.length === 0) return false
+
+  // Detect fake 24/7 preset
+  const allFake = data.length >= 7 && data.every(
+    (s) => s.start_time === '00:00:00' && s.end_time === '23:59:00',
+  )
+
+  return !allFake
 }
