@@ -76,7 +76,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // 2. Perform updates to mark payment as refunded
     const updatedMetadata = {
-      ...(payment.metadata || {}),
+      ...(payment.metadata as Record<string, unknown> || {}),
       refund_reason: reason,
       refunded_by: auth.userId,
       refunded_at: new Date().toISOString(),
@@ -101,7 +101,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (earning) {
       const updatedEarningMetadata = {
-        ...(earning.metadata || {}),
+        ...(earning.metadata as Record<string, unknown> || {}),
         cancelled_reason: `refunded: ${reason}`,
         cancelled_by: auth.userId,
       };

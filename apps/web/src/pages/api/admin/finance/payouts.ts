@@ -76,7 +76,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // 2. Mark as paid, record metadata and timestamp
     const updatedMetadata = {
-      ...(earning.metadata || {}),
+      ...(earning.metadata as Record<string, unknown> || {}),
       payment_reference: paymentReference,
       payout_approved_by: auth.userId,
     };
