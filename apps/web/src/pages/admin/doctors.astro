@@ -1,0 +1,59 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { DoctorAdminDashboard } from '@/components/admin/DoctorAdminDashboard';
+import { resolveAdminRole } from '@/lib/admin/auth';
+
+const title = 'Administración de Médicos | AutaMedica Admin';
+const description = 'Control total, edición de perfiles médicos, validación oficial SISA/REFEPS y gestión de matrículas.';
+
+const session = Astro.locals.session;
+if (!session) {
+  return Astro.redirect('/auth/login?returnTo=/admin/doctors&portal=admin');
+}
+
+const role = await resolveAdminRole(session, Astro.locals.supabase);
+if (!role) {
+  return Astro.redirect('/admin/unauthorized');
+}
+---
+
+<Layout title={title} description={description}>
+  <div class="min-h-screen bg-slate-50">
+    <header class="border-b border-slate-200 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex min-h-16 flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 class="text-xl font-semibold text-gray-900 font-sans">
+              AutaMedica Admin
+            </h1>
+            <p class="text-sm text-slate-500">Rol activo: {role}</p>
+          </div>
+          <nav class="flex flex-wrap gap-2 text-sm">
+            <a href="/admin" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-slate-400 hover:text-slate-900">Inicio</a>
+            <a href="/admin/doctors" class="rounded-md border border-sky-400 bg-sky-50 px-3 py-2 font-semibold text-sky-700">Médicos</a>
+            <a href="/admin/growth" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-sky-400 hover:text-sky-700">Growth</a>
+            <a href="/admin/crm" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-emerald-400 hover:text-emerald-700">CRM</a>
+            <a href="/admin/telemedicine" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-indigo-400 hover:text-indigo-700">Telemedicina</a>
+            <a href="/admin/patients" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-amber-400 hover:text-amber-700">Pacientes</a>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+      <section class="flex flex-col gap-1">
+        <p class="text-xs font-bold uppercase tracking-wide text-sky-700">Gestión de Staff Médico</p>
+        <h2 class="text-3xl font-semibold tracking-normal text-slate-950">
+          Control Total & Validación Médica
+        </h2>
+        <p class="max-w-3xl text-sm leading-6 text-slate-600">
+          Supervisa perfiles, modifica credenciales profesionales, habilita o deshabilita facultativos en tiempo real y gestiona la validación oficial en los registros nacionales SISA / REFEPS.
+        </p>
+      </section>
+
+      <section>
+        <DoctorAdminDashboard client:load />
+      </section>
+    </main>
+  </div>
+</Layout>

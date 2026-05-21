@@ -18,12 +18,20 @@ if (!role) {
 
 const modules = [
   {
+    href: '/admin/doctors',
+    label: 'Médicos & Staff',
+    eyebrow: 'Operaciones',
+    description: 'Control de matrículas, validación oficial SISA / REFEPS, tarifas y biografía profesional.',
+    metric: 'Médicos',
+    accent: 'border-sky-300',
+  },
+  {
     href: '/admin/growth',
     label: 'Growth OS',
     eyebrow: 'Adquisicion',
     description: 'Leads, newsletters, CAC, revenue atribuido y salud de sincronizacion Supabase.',
     metric: 'Embudo',
-    accent: 'border-sky-300',
+    accent: 'border-slate-300',
   },
   {
     href: '/admin/crm',
@@ -64,7 +72,8 @@ const modules = [
             <p class="text-sm text-slate-500">Rol activo: {role}</p>
           </div>
           <nav class="flex flex-wrap gap-2 text-sm">
-            <a href="/admin/growth" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-sky-400 hover:text-sky-700">Growth</a>
+            <a href="/admin/doctors" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-sky-400 hover:text-sky-700">Médicos</a>
+            <a href="/admin/growth" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-slate-400 hover:text-slate-900">Growth</a>
             <a href="/admin/crm" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-emerald-400 hover:text-emerald-700">CRM</a>
             <a href="/admin/telemedicine" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-indigo-400 hover:text-indigo-700">Telemedicina</a>
             <a href="/admin/patients" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-amber-400 hover:text-amber-700">Pacientes</a>
