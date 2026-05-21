@@ -51,6 +51,8 @@ export function ClinicalIntelligenceDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSeason, setSelectedSeason] = useState<'Verano' | 'Otoño' | 'Invierno' | 'Primavera'>('Invierno');
   const [selectedAnomaly, setSelectedAnomaly] = useState<AnomalyDetectionRow | null>(null);
+  const [redFlagsView, setRedFlagsView] = useState<'list' | 'waffle'>('waffle');
+  const [hoveredRedFlag, setHoveredRedFlag] = useState<string | null>(null);
 
   async function fetchClinicalData() {
     setLoading(true);
@@ -136,6 +138,117 @@ export function ClinicalIntelligenceDashboard() {
       </div>
     );
   }
+
+  const renderRedFlagsWaffle = () => {
+    const items = data?.red_flags_ranking || [];
+    const total = items.reduce((acc, curr) => acc + curr.count, 0);
+
+    if (total === 0) {
+      return (
+        <div className="text-xs text-slate-400 py-12 text-center w-full">
+          No hay datos de banderas rojas disponibles
+        </div>
+      );
+    }
+
+    // Calcular proporciones aproximadas
+    let remainingBlocks = 100;
+    const itemsWithPercents = items.map((item) => {
+      const pct = Math.floor((item.count / total) * 100);
+      remainingBlocks -= pct;
+      return { ...item, pct };
+    });
+
+    // Distribuir el residuo a los elementos con mayor residuo de redondeo
+    if (remainingBlocks > 0) {
+      const itemsWithResidues = items.map((item, idx) => {
+        const exact = (item.count / total) * 100;
+        const diff = exact - Math.floor(exact);
+        return { idx, diff };
+      });
+      itemsWithResidues.sort((a, b) => b.diff - a.diff);
+      for (let i = 0; i < remainingBlocks; i++) {
+        const itemIdx = itemsWithResidues[i % itemsWithResidues.length].idx;
+        itemsWithPercents[itemIdx].pct += 1;
+      }
+    }
+
+    // Construir la matriz de 100 bloques
+    const blocks: string[] = [];
+    itemsWithPercents.forEach((item) => {
+      for (let i = 0; i < item.pct; i++) {
+        blocks.push(item.name);
+      }
+    });
+
+    // Mapeo de colores estéticos premium para hasta 6 categorías
+    const colors = [
+      'bg-rose-500 shadow-rose-500/20 text-rose-500',
+      'bg-amber-500 shadow-amber-500/20 text-amber-500',
+      'bg-indigo-500 shadow-indigo-500/20 text-indigo-500',
+      'bg-emerald-500 shadow-emerald-500/20 text-emerald-500',
+      'bg-sky-500 shadow-sky-500/20 text-sky-500',
+      'bg-purple-500 shadow-purple-500/20 text-purple-500',
+    ];
+
+    const colorMap: Record<string, string> = {};
+    items.forEach((item, idx) => {
+      colorMap[item.name] = colors[idx % colors.length];
+    });
+
+    return (
+      <div className="space-y-4 select-none">
+        <div className="flex flex-wrap gap-2 justify-center py-1.5 border-b border-slate-100 pb-3">
+          {items.map((item, idx) => {
+            const pct = Math.round((item.count / total) * 100);
+            const colorClass = colorMap[item.name].split(' ')[0];
+            return (
+              <div
+                key={idx}
+                onMouseEnter={() => setHoveredRedFlag(item.name)}
+                onMouseLeave={() => setHoveredRedFlag(null)}
+                className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium transition cursor-default ${
+                  hoveredRedFlag === item.name ? 'bg-slate-100 scale-105 shadow-xs' : 'bg-slate-50'
+                }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${colorClass}`} />
+                <span className="text-slate-600 font-semibold">{item.name}</span>
+                <span className="text-slate-400 font-mono">({pct}%)</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-center">
+          <div className="grid grid-cols-10 gap-1 p-1.5 bg-slate-50 rounded-xl border border-slate-200/60 shadow-inner w-fit">
+            {blocks.map((name, idx) => {
+              const isDimmed = hoveredRedFlag !== null && hoveredRedFlag !== name;
+              const colorClass = colorMap[name];
+              
+              return (
+                <div
+                  key={idx}
+                  onMouseEnter={() => setHoveredRedFlag(name)}
+                  onMouseLeave={() => setHoveredRedFlag(null)}
+                  className={`h-4.5 w-4.5 rounded-xs transition-all duration-300 ease-out cursor-help shadow-xs relative group/block ${colorClass} ${
+                    isDimmed ? 'opacity-20 scale-90 blur-[0.2px]' : 'opacity-100 scale-100'
+                  }`}
+                >
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 hidden group-hover/block:flex flex-col items-center z-20 pointer-events-none transition-all animate-fade-in whitespace-nowrap">
+                    <div className="bg-slate-900 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg border border-slate-800 flex items-center gap-1.5 font-mono">
+                      <span className={`h-1.5 w-1.5 rounded-full ${colorClass.split(' ')[0]}`} />
+                      {name} (Bloque #{idx + 1})
+                    </div>
+                    <div className="w-1.5 h-1.5 bg-slate-900 rotate-45 -mt-1 border-r border-b border-slate-800" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   if (!data) return null;
 
@@ -335,12 +448,38 @@ export function ClinicalIntelligenceDashboard() {
 
         {/* Live Red Flags Tracker */}
         <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
-          <div className="border-b border-slate-200 bg-slate-50/50 px-6 py-4">
-            <h3 className="text-base font-semibold text-slate-950 flex items-center gap-2">
-              <Thermometer className="h-5 w-5 text-rose-500" />
-              Live Red Flags Tracker
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Síntomas marcados con bandera roja de atención prioritaria.</p>
+          <div className="border-b border-slate-200 bg-slate-50/50 px-6 py-4 flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-semibold text-slate-950 flex items-center gap-2">
+                <Thermometer className="h-5 w-5 text-rose-500" />
+                Live Red Flags Tracker
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">Síntomas marcados con bandera roja de atención prioritaria.</p>
+            </div>
+            
+            {/* View Selector Tabs */}
+            <div className="flex rounded-lg bg-slate-100 p-0.5 text-[10px] font-medium shrink-0">
+              <button
+                onClick={() => setRedFlagsView('waffle')}
+                className={`rounded-md px-2 py-1 transition ${
+                  redFlagsView === 'waffle'
+                    ? 'bg-white text-slate-950 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Waffle
+              </button>
+              <button
+                onClick={() => setRedFlagsView('list')}
+                className={`rounded-md px-2 py-1 transition ${
+                  redFlagsView === 'list'
+                    ? 'bg-white text-slate-950 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Lista
+              </button>
+            </div>
           </div>
 
           <div className="p-6 flex-1 flex flex-col justify-between">
@@ -348,6 +487,10 @@ export function ClinicalIntelligenceDashboard() {
               <div className="flex flex-col items-center justify-center py-12 text-center my-auto">
                 <CheckCircle2 className="h-10 w-10 text-emerald-500" />
                 <h4 className="mt-2 text-xs font-semibold text-slate-900">Ningún caso crítico reportado</h4>
+              </div>
+            ) : redFlagsView === 'waffle' ? (
+              <div className="my-auto">
+                {renderRedFlagsWaffle()}
               </div>
             ) : (
               <div className="space-y-4 my-auto">
