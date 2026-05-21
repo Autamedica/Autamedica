@@ -1,0 +1,61 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { ClinicalIntelligenceDashboard } from '@/components/admin/ClinicalIntelligenceDashboard';
+import { resolveAdminRole } from '@/lib/admin/auth';
+
+const title = 'Inteligencia Clínica & Alertas Tempranas | AutaMedica Admin';
+const description = 'Monitoreo analítico de brotes epidemiológicos, anomalías sintomáticas y métricas estacionales en tiempo real.';
+
+const session = Astro.locals.session;
+if (!session) {
+  return Astro.redirect('/auth/login?returnTo=/admin/clinical&portal=admin');
+}
+
+const role = await resolveAdminRole(session, Astro.locals.supabase);
+if (!role) {
+  return Astro.redirect('/admin/unauthorized');
+}
+---
+
+<Layout title={title} description={description}>
+  <div class="min-h-screen bg-slate-50">
+    <header class="border-b border-slate-200 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex min-h-16 flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              AutaMedica Admin
+            </h1>
+            <p class="text-sm text-slate-500">Rol activo: {role}</p>
+          </div>
+          <nav class="flex flex-wrap gap-2 text-sm">
+            <a href="/admin" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-slate-400 hover:text-slate-900">Inicio</a>
+            <a href="/admin/doctors" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-sky-400 hover:text-sky-700">Médicos</a>
+            <a href="/admin/growth" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-slate-400 hover:text-slate-900">Growth</a>
+            <a href="/admin/crm" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-emerald-400 hover:text-emerald-700">CRM</a>
+            <a href="/admin/telemedicine" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-indigo-400 hover:text-indigo-700">Telemedicina</a>
+            <a href="/admin/patients" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-amber-400 hover:text-amber-700">Pacientes</a>
+            <a href="/admin/clinical" class="rounded-md border border-rose-400 bg-rose-50 px-3 py-2 font-semibold text-rose-700">Inteligencia Clínica</a>
+            <a href="/admin/finance" class="rounded-md border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-stone-400 hover:text-stone-900">Finanzas</a>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+      <section class="flex flex-col gap-1">
+        <p class="text-xs font-bold uppercase tracking-wide text-rose-700">Inteligencia Clínica Avanzada</p>
+        <h2 class="text-3xl font-semibold tracking-normal text-slate-950">
+          Clinical Early Warning System (EWS)
+        </h2>
+        <p class="max-w-3xl text-sm leading-6 text-slate-600">
+          Monitorea desviaciones estadísticas y brotes epidemiológicos en tiempo real. Este panel consume directamente la Capa de Oro analítica (OLAP) de la plataforma y procesa alertas basadas en taxonomías internacionales SNOMED CT y CIE-11.
+        </p>
+      </section>
+
+      <section>
+        <ClinicalIntelligenceDashboard client:load />
+      </section>
+    </main>
+  </div>
+</Layout>
