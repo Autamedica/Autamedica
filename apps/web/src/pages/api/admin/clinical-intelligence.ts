@@ -189,10 +189,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     return json({
       success: true,
-      seasonal_symptoms: seasonalSymptoms,
-      red_flags_ranking: formattedRedFlags,
-      early_warning_alerts: (anomalies || []).filter(a => a.is_outbreak_warning || a.percent_increase > 15),
-      historical_anomalies: anomalies || [],
+      data: {
+        success: true,
+        seasonal_symptoms: seasonalSymptoms,
+        red_flags_ranking: formattedRedFlags,
+        early_warning_alerts: (anomalies || []).filter(a => a.is_outbreak_warning || a.percent_increase > 15),
+        historical_anomalies: anomalies || [],
+      }
     });
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : "clinical_intelligence_failed";
@@ -277,12 +280,15 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     return json({
       success: true,
-      seasonal_symptoms: fallbackSeasonalSymptoms,
-      red_flags_ranking: fallbackRedFlags,
-      early_warning_alerts: fallbackAnomalies.filter(a => a.is_outbreak_warning || a.percent_increase > 15),
-      historical_anomalies: fallbackAnomalies,
-      is_fallback: true,
-      details: errorMsg
+      data: {
+        success: true,
+        seasonal_symptoms: fallbackSeasonalSymptoms,
+        red_flags_ranking: fallbackRedFlags,
+        early_warning_alerts: fallbackAnomalies.filter(a => a.is_outbreak_warning || a.percent_increase > 15),
+        historical_anomalies: fallbackAnomalies,
+        is_fallback: true,
+        details: errorMsg
+      }
     });
   }
 };
