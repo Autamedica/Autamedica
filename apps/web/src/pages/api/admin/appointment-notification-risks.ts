@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
 import { ADMIN_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth'
-import { forbidden, internalError, jsonOk } from '@/lib/api-helpers'
+import { forbidden, jsonOk } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 
 export const prerender = false
@@ -100,7 +100,12 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     if (error) {
       logger.error('[appointment-notification-risks] query failed', error)
-      return internalError()
+      return jsonOk({
+        summary: { total: 0, p0: 0, p1: 0, p2: 0 },
+        risks: [],
+        degraded: true,
+        error: 'risk_query_failed',
+      })
     }
 
     const risks = (data ?? []) as AppointmentNotificationRisk[]
@@ -116,6 +121,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return jsonOk({ summary, risks })
   } catch (error) {
     logger.error('[appointment-notification-risks] GET error', error)
-    return internalError()
+    return jsonOk({
+      summary: { total: 0, p0: 0, p1: 0, p2: 0 },
+      risks: [],
+      degraded: true,
+      error: 'risk_endpoint_failed',
+    })
   }
 }
