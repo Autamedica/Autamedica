@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import type { FormEvent } from 'react';
+import { fetchApi } from '@/lib/api-client';
 
 type DemographicsData = {
   success: boolean;
@@ -147,9 +149,10 @@ export function PatientPopulationDashboard() {
       setLoadingPatients(true);
       const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const bypassParam = isDev ? '&dev_admin=1' : '';
-      const res = await fetch(`/api/admin/patients?q=${encodeURIComponent(query)}${bypassParam}`);
-      if (!res.ok) throw new Error('No se pudo cargar la lista de pacientes.');
-      const data = await res.json();
+      const data = await fetchApi<Patient[]>(`/api/admin/patients?q=${encodeURIComponent(query)}${bypassParam}`);
+      if (!Array.isArray(data)) {
+        throw new Error('La respuesta de pacientes no tiene el formato esperado.');
+      }
       setPatients(data);
     } catch (err) {
       console.error('[PatientPopulationDashboard] Error fetching patients list:', err);
@@ -205,7 +208,7 @@ export function PatientPopulationDashboard() {
     setActionSuccess(null);
   };
 
-  const handleSavePatient = async (e: React.FormEvent) => {
+  const handleSavePatient = async (e: FormEvent) => {
     e.preventDefault();
     setActionLoading(true);
     setActionError(null);
@@ -244,16 +247,10 @@ export function PatientPopulationDashboard() {
         url = `/api/admin/patients${bypassParam}`;
       }
 
-      const res = await fetch(url, {
+      await fetchApi<Patient>(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: payload,
       });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.details || errData.error || 'Error al guardar los datos del paciente.');
-      }
 
       setActionSuccess(isEditing ? 'Paciente actualizado correctamente.' : 'Paciente creado correctamente.');
       setTimeout(() => {
@@ -278,11 +275,7 @@ export function PatientPopulationDashboard() {
     const bypassParam = isDev ? '?dev_admin=1' : '';
 
     try {
-      const res = await fetch(`/api/admin/patients/${id}${bypassParam}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.details || errData.error || 'No se pudo eliminar al paciente.');
-      }
+      await fetchApi<{ success: true }>(`/api/admin/patients/${id}${bypassParam}`, { method: 'DELETE' });
 
       setConfirmDeleteId(null);
       void fetchPatientsList(searchQuery);
