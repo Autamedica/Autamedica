@@ -5,7 +5,6 @@ import {
   setupWakeLockVisibilityHandler,
   patchVideoPlayback,
 } from '../media-optimizations'
-import type { CallSessionRuntime } from '../call-session/types'
 import type { CallProvider, ConnectionState } from '../providers/types'
 import type { CallStatus } from '../calls/types'
 
@@ -22,7 +21,6 @@ interface UseCallLifecycleEffectsOptions {
   client: CallProvider | null
   callId?: string
   connectionState: ConnectionState
-  runtime?: CallSessionRuntime
   persistCallStatus: (status: CallStatus, reason?: string) => Promise<void>
   hasStartedCallRef: MutableRefObject<boolean>
   manualHangupRef: MutableRefObject<boolean>
@@ -36,8 +34,6 @@ interface UseCallLifecycleEffectsOptions {
   chatMessagesRef: RefObject<HTMLDivElement | null>
   chatMessages: unknown[]
   isChatPanelOpen: boolean
-  supabaseUrl?: string
-  supabaseAnonKey?: string
 }
 
 export function useCallLifecycleEffects({
@@ -59,9 +55,6 @@ export function useCallLifecycleEffects({
   chatMessagesRef,
   chatMessages,
   isChatPanelOpen,
-  supabaseUrl,
-  supabaseAnonKey,
-  runtime,
 }: UseCallLifecycleEffectsOptions) {
   const hasAnnouncedCallStartRef = useRef(false)
 
@@ -91,34 +84,23 @@ export function useCallLifecycleEffects({
   //   return setupVisibilityVideoPause(() => client.getLocalStream())
   // }, [isInRoom, client])
 
-  // Persist call status
+  // Persist only join progress here. A transport close/failure can be a tab
+  // refresh or short network outage; ending the business call at that point
+  // prevents the participant from rejoining the same room.
   useEffect(() => {
     if (!callId || !hasStartedCallRef.current) return
     if (connectionState === 'connecting') { void persistCallStatus('connecting'); return }
     if (connectionState === 'connected' && isCallEstablished) { void persistCallStatus('connected'); return }
-    if ((connectionState === 'closed' || connectionState === 'failed') && !manualHangupRef.current) {
-      void persistCallStatus('ended', 'connection_closed')
-    }
   }, [callId, connectionState, hasStartedCallRef, isCallEstablished, manualHangupRef, persistCallStatus])
 
-  // Persist call status on page close via fetch+keepalive
+  // On unload we only detach from media/signaling. The call is ended by the
+  // explicit hangup action, not by refresh/navigation, so room rejoin remains
+  // possible after transient browser/network interruptions.
   useEffect(() => {
-    if (!callId || !hasStartedCallRef.current || !supabaseUrl || !supabaseAnonKey) return
+    if (!callId || !hasStartedCallRef.current) return
 
     const handleBeforeUnload = () => {
       if (manualHangupRef.current) return
-      const url = `${new URL(supabaseUrl).origin}/functions/v1/update-call-status`
-      const payload = JSON.stringify({ callId, status: 'ended', reason: 'page_closed', runtime })
-      fetch(url, {
-        method: 'POST',
-        keepalive: true,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-          'apikey': supabaseAnonKey,
-        },
-        body: payload,
-      }).catch(() => { /* best-effort on page close */ })
 
       // Fire a clean disconnect so the SFU frees the tracks and the other
       // peer gets user-left in <200ms instead of waiting for ICE timeout.
@@ -128,7 +110,7 @@ export function useCallLifecycleEffects({
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [callId, hasStartedCallRef, manualHangupRef, runtime, supabaseUrl, supabaseAnonKey, client])
+  }, [callId, hasStartedCallRef, manualHangupRef, client])
 
   // Remote stream sync
   useEffect(() => {
