@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
+import { ApiError, fetchApi } from '@/lib/api-client';
 
 type Profile = {
   user_id: string;
@@ -39,20 +39,11 @@ type Doctor = {
   profile: Profile;
 };
 
-async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
-  try {
-    const supabase = getBrowserSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    const headers = new Headers(options.headers);
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-    return fetch(url, { ...options, headers });
-  } catch (err) {
-    return fetch(url, options);
-  }
-}
+type DeleteDoctorResponse = {
+  success: true;
+  mode: 'soft' | 'hard';
+  message: string;
+};
 
 export function DoctorAdminDashboard() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -108,21 +99,19 @@ export function DoctorAdminDashboard() {
     setLoading(true);
     setError(null);
     try {
-      // Fetch session token from locals or cookies if present
-      const response = await fetchWithAuth('/api/admin/doctors');
-      if (response.status === 401) {
-        throw new Error('No autorizado. Debes ser administrador para acceder.');
-      }
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al cargar médicos');
-      }
+      const data = await fetchApi<Doctor[]>('/api/admin/doctors');
       if (!Array.isArray(data)) {
         throw new Error('La respuesta del servidor no tiene el formato esperado.');
       }
       setDoctors(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error inesperado al conectar con el servidor.');
+      setError(
+        err instanceof ApiError && err.status === 401
+          ? 'No autorizado. Debes ser administrador para acceder.'
+          : err instanceof Error
+            ? err.message
+            : 'Error inesperado al conectar con el servidor.'
+      );
     } finally {
       setLoading(false);
     }
@@ -210,16 +199,10 @@ export function DoctorAdminDashboard() {
     setSuccessMessage(null);
 
     try {
-      const response = await fetchWithAuth(`/api/admin/doctors/${selectedDoctor.id}`, {
+      const data = await fetchApi<Doctor>(`/api/admin/doctors/${selectedDoctor.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
+        body: editForm,
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al actualizar médico');
-      }
 
       setSuccessMessage('Información médica actualizada con éxito.');
       
@@ -253,14 +236,9 @@ export function DoctorAdminDashboard() {
     setSuccessMessage(null);
 
     try {
-      const response = await fetchWithAuth(`/api/admin/doctors/${selectedDoctor.id}?mode=${mode}`, {
+      const data = await fetchApi<DeleteDoctorResponse>(`/api/admin/doctors/${selectedDoctor.id}?mode=${mode}`, {
         method: 'DELETE',
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al procesar la baja');
-      }
 
       setSuccessMessage(data.message);
 
@@ -303,16 +281,10 @@ export function DoctorAdminDashboard() {
     setSuccessMessage(null);
 
     try {
-      const response = await fetchWithAuth('/api/admin/doctors', {
+      const data = await fetchApi<Doctor>('/api/admin/doctors', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newForm),
+        body: newForm,
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al registrar médico');
-      }
 
       setDoctors((prev) => [data, ...prev]);
       setIsNewModalOpen(false);

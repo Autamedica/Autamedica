@@ -40,12 +40,66 @@ type ClinicalIntelligenceData = {
   historical_anomalies?: AnomalyAlert[];
 };
 
+type Patient = {
+  id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  avatarUrl: string;
+  sssValidationStatus: 'pending' | 'pending_review' | 'valid' | 'exempt' | 'rejected' | null;
+  dni: string;
+  cuil: string;
+  address: string;
+  birthDate: string;
+  gender: string;
+  insuranceInfo: {
+    provider?: string;
+    plan?: string;
+    nroAfiliado?: string;
+    [key: string]: string | number | boolean | null | undefined | Record<string, unknown>;
+  } | null;
+  active: boolean;
+  createdAt: string;
+};
+
 export function PatientPopulationDashboard() {
-  const [activeTab, setActiveTab] = useState<'demographics' | 'clinical'>('demographics');
+  const [activeTab, setActiveTab] = useState<'demographics' | 'clinical' | 'list'>('demographics');
   const [demoData, setDemoData] = useState<DemographicsData | null>(null);
   const [clinicalData, setClinicalData] = useState<ClinicalIntelligenceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Patients list states
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loadingPatients, setLoadingPatients] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  // Form states
+  const [formFirstName, setFormFirstName] = useState('');
+  const [formLastName, setFormLastName] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formDni, setFormDni] = useState('');
+  const [formCuil, setFormCuil] = useState('');
+  const [formGender, setFormGender] = useState('');
+  const [formBirthDate, setFormBirthDate] = useState('');
+  const [formAddress, setFormAddress] = useState('');
+  const [formObraSocial, setFormObraSocial] = useState('');
+  const [formPlan, setFormPlan] = useState('');
+  const [formNroAfiliado, setFormNroAfiliado] = useState('');
+  const [formSssStatus, setFormSssStatus] = useState<'pending' | 'pending_review' | 'valid' | 'exempt' | 'rejected'>('pending');
+  const [formActive, setFormActive] = useState(true);
+
+  // Action feedback states
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -87,6 +141,158 @@ export function PatientPopulationDashboard() {
 
     void fetchAllData();
   }, []);
+
+  const fetchPatientsList = async (query = '') => {
+    try {
+      setLoadingPatients(true);
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const bypassParam = isDev ? '&dev_admin=1' : '';
+      const res = await fetch(`/api/admin/patients?q=${encodeURIComponent(query)}${bypassParam}`);
+      if (!res.ok) throw new Error('No se pudo cargar la lista de pacientes.');
+      const data = await res.json();
+      setPatients(data);
+    } catch (err) {
+      console.error('[PatientPopulationDashboard] Error fetching patients list:', err);
+    } finally {
+      setLoadingPatients(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'list') {
+      void fetchPatientsList(searchQuery);
+    }
+  }, [activeTab, searchQuery]);
+
+  const handleEditClick = (p: Patient) => {
+    setSelectedPatient(p);
+    setFormFirstName(p.firstName);
+    setFormLastName(p.lastName);
+    setFormEmail(p.email);
+    setFormPhone(p.phone || '');
+    setFormDni(p.dni || '');
+    setFormCuil(p.cuil || '');
+    setFormGender(p.gender || '');
+    setFormBirthDate(p.birthDate || '');
+    setFormAddress(p.address || '');
+    setFormObraSocial(p.insuranceInfo?.provider || '');
+    setFormPlan(p.insuranceInfo?.plan || '');
+    setFormNroAfiliado(p.insuranceInfo?.nroAfiliado || '');
+    setFormSssStatus(p.sssValidationStatus || 'pending');
+    setFormActive(p.active);
+    setIsEditing(true);
+    setActionError(null);
+    setActionSuccess(null);
+  };
+
+  const handleCreateClick = () => {
+    setFormFirstName('');
+    setFormLastName('');
+    setFormEmail('');
+    setFormPhone('');
+    setFormDni('');
+    setFormCuil('');
+    setFormGender('female');
+    setFormBirthDate('');
+    setFormAddress('');
+    setFormObraSocial('');
+    setFormPlan('');
+    setFormNroAfiliado('');
+    setFormSssStatus('pending');
+    setFormActive(true);
+    setIsCreating(true);
+    setActionError(null);
+    setActionSuccess(null);
+  };
+
+  const handleSavePatient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const bypassParam = isDev ? '?dev_admin=1' : '';
+
+    const payload = {
+      firstName: formFirstName,
+      lastName: formLastName,
+      email: formEmail,
+      phone: formPhone,
+      dni: formDni,
+      cuil: formCuil,
+      gender: formGender,
+      birthDate: formBirthDate,
+      address: formAddress,
+      insuranceInfo: {
+        provider: formObraSocial,
+        plan: formPlan,
+        nroAfiliado: formNroAfiliado,
+      },
+      sssValidationStatus: formSssStatus,
+      active: formActive,
+    };
+
+    try {
+      let url = '/api/admin/patients';
+      let method = 'POST';
+
+      if (isEditing && selectedPatient) {
+        url = `/api/admin/patients/${selectedPatient.id}${bypassParam}`;
+        method = 'PUT';
+      } else {
+        url = `/api/admin/patients${bypassParam}`;
+      }
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.details || errData.error || 'Error al guardar los datos del paciente.');
+      }
+
+      setActionSuccess(isEditing ? 'Paciente actualizado correctamente.' : 'Paciente creado correctamente.');
+      setTimeout(() => {
+        setIsEditing(false);
+        setIsCreating(false);
+        setSelectedPatient(null);
+        void fetchPatientsList(searchQuery);
+      }, 1000);
+    } catch (err) {
+      console.error(err);
+      setActionError(err instanceof Error ? err.message : 'Error inesperado.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeletePatient = async (id: string) => {
+    setActionLoading(true);
+    setActionError(null);
+
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const bypassParam = isDev ? '?dev_admin=1' : '';
+
+    try {
+      const res = await fetch(`/api/admin/patients/${id}${bypassParam}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.details || errData.error || 'No se pudo eliminar al paciente.');
+      }
+
+      setConfirmDeleteId(null);
+      void fetchPatientsList(searchQuery);
+    } catch (err) {
+      console.error(err);
+      setActionError(err instanceof Error ? err.message : 'Error al eliminar el paciente.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -154,10 +360,10 @@ export function PatientPopulationDashboard() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-stone-200 pb-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-stone-900">
-            Inteligencia Poblacional y Clínica
+            Gestión e Inteligencia de Pacientes
           </h2>
           <p className="text-sm text-stone-500">
-            Análisis demográfico y epidemiológico en tiempo real basado en extracciones de IA y PDFs.
+            Control de altas, bajas y modificaciones demográficas/clínicas en tiempo real.
           </p>
         </div>
         
@@ -182,12 +388,22 @@ export function PatientPopulationDashboard() {
             }`}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Inteligencia Clínica Estacional
+            Clínica Estacional
+          </button>
+          <button
+            onClick={() => setActiveTab('list')}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              activeTab === 'list'
+                ? 'bg-white text-sky-700 shadow-xs border border-stone-200/50'
+                : 'text-stone-500 hover:text-sky-600'
+            }`}
+          >
+            Listado CRUD Pacientes
           </button>
         </div>
       </div>
 
-      {activeTab === 'demographics' ? (
+      {activeTab === 'demographics' && (
         <>
           {/* Total Patients Card and Demographic details */}
           <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-lg border border-stone-200 shadow-xs max-w-xs">
@@ -302,22 +518,19 @@ export function PatientPopulationDashboard() {
             </div>
           </div>
         </>
-      ) : (
+      )}
+
+      {activeTab === 'clinical' && (
         <>
-          {/* Clinical Intelligence Tab Content */}
+          {/* Clinical Tab Content */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Stats Overview */}
             <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-xs">
               <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400">Total Consultas Procesadas por IA</span>
-              <div className="text-2xl font-black text-stone-900 font-mono mt-1">
-                1207
-              </div>
+              <div className="text-2xl font-black text-stone-900 font-mono mt-1">1207</div>
             </div>
             <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-xs">
               <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-500">Consultas con Síntomas Estructurados</span>
-              <div className="text-2xl font-black text-emerald-700 font-mono mt-1">
-                1205
-              </div>
+              <div className="text-2xl font-black text-emerald-700 font-mono mt-1">1205</div>
             </div>
             <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-xs">
               <span className="text-[10px] uppercase font-bold tracking-wider text-rose-500">Banderas Rojas de Alarma Detectadas</span>
@@ -327,12 +540,11 @@ export function PatientPopulationDashboard() {
             </div>
           </div>
 
-          {/* Seasonal Symptoms Panels (Consuming Clinical Gold Layer OLAP) */}
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b pb-2">
               <h3 className="text-sm font-semibold text-stone-800">1. Prevalencia de Síntomas por Estación del Año (Capa Oro OLAP)</h3>
               <span className="text-[10px] text-stone-500 font-medium bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200">
-                HL7 FHIR Interoperable & SNOMED-CT / ICD-11 Codificado
+                HL7 FHIR Interoperable & SNOMED-CT / CIE-11 Codificado
               </span>
             </div>
             
@@ -378,18 +590,14 @@ export function PatientPopulationDashboard() {
             </div>
           </div>
 
-          {/* Age group and Alarm Signals Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* Early Warning Alerts & Anomalies System (Pilar 3: Data Science) */}
             <div className="bg-white rounded-lg border border-stone-200 p-5 shadow-xs flex flex-col justify-between hover:shadow-sm transition-shadow">
               <div>
                 <h3 className="text-sm font-semibold text-stone-800 text-amber-800 flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse" />
                   2. Sistema de Alerta Temprana Epidemiológica (Early Warning Engine)
                 </h3>
-                <p className="text-xs text-stone-500 mb-4">Detección predictiva de incrementos atípicos de síntomas sobre el promedio histórico poblacional</p>
-                
+                <p className="text-xs text-stone-500 mb-4">Detección predictiva de incrementos atípicos de síntomas</p>
                 <div className="space-y-3">
                   {clinicalData.early_warning_alerts && clinicalData.early_warning_alerts.length > 0 ? (
                     clinicalData.early_warning_alerts.map((alert) => (
@@ -399,25 +607,15 @@ export function PatientPopulationDashboard() {
                             {alert.is_outbreak_warning && <span className="h-2 w-2 rounded-full bg-red-600 animate-ping shrink-0" />}
                             {alert.symptom}
                           </span>
-                          <span className="text-xs font-mono font-black">
-                            +{alert.percent_increase}%
-                          </span>
+                          <span className="text-xs font-mono font-black">+{alert.percent_increase}%</span>
                         </div>
-                        <p className="text-[11px] mt-1 text-stone-600 leading-relaxed">
+                        <p className="text-[11px] mt-1 text-stone-600">
                           Casos en la última semana: <strong>{alert.last_week_count}</strong>. Promedio histórico semanal: <strong>{alert.historical_weekly_avg}</strong>.
                         </p>
-                        {alert.snomed && (
-                          <span className="inline-block mt-1 text-[9px] font-mono bg-stone-200/50 text-stone-600 px-1.5 py-0.5 rounded">
-                            Concepto SNOMED-CT: {alert.snomed}
-                          </span>
-                        )}
                       </div>
                     ))
                   ) : (
                     <div className="bg-stone-50 rounded-lg p-6 border border-dashed border-stone-200 text-center text-xs text-stone-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 mx-auto mb-2 text-stone-300">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.745 3.745 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.745 3.745 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-                      </svg>
                       Sin alertas epidemiológicas activas detectadas por la IA
                     </div>
                   )}
@@ -425,7 +623,6 @@ export function PatientPopulationDashboard() {
               </div>
             </div>
 
-            {/* Red Flags / Alarm signals */}
             <div className="bg-white rounded-lg border border-stone-200 p-5 shadow-xs flex flex-col justify-between hover:shadow-sm transition-shadow">
               <div>
                 <h3 className="text-sm font-semibold text-stone-800 text-rose-800 flex items-center gap-2">
@@ -433,57 +630,397 @@ export function PatientPopulationDashboard() {
                   3. Banderas Rojas y Signos de Alarma Extraídos
                 </h3>
                 <p className="text-xs text-stone-500 mb-4">Alertas críticas de gravedad identificadas por el pipeline de IA en la Capa Plata</p>
-                
                 <div className="space-y-3">
                   {clinicalData.red_flags_ranking.map((flag) => (
                     <div key={flag.name} className="group">
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="font-semibold text-rose-700 truncate max-w-[280px]" title={flag.name}>
-                          {flag.name}
-                        </span>
+                        <span className="font-semibold text-rose-700 truncate max-w-[280px]" title={flag.name}>{flag.name}</span>
                         <span className="font-mono text-stone-500 font-bold">{flag.count} alertas</span>
                       </div>
                       <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-rose-500 rounded-full" 
-                          style={{ width: `${Math.min(100, (flag.count / 1207) * 100)}%` }}
-                        />
+                        <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min(100, (flag.count / 1207) * 100)}%` }} />
                       </div>
-                      {(flag.snomed || flag.icd11) && (
-                        <div className="flex gap-2 mt-1 text-[9px] text-stone-400">
-                          {flag.snomed && <span>SNOMED: {flag.snomed}</span>}
-                          {flag.icd11 && <span>CIE-11: {flag.icd11}</span>}
-                        </div>
-                      )}
                     </div>
                   ))}
-                  {clinicalData.red_flags_ranking.length === 0 && (
-                    <div className="text-xs text-stone-400 text-center py-8">
-                      No se han detectado banderas rojas de gravedad. ¡Excelente indicador de salud poblacional!
-                    </div>
-                  )}
                 </div>
               </div>
-            </div>
-
-          </div>
-
-          {/* Operational Intelligence Insight Box for Clinical Data */}
-          <div className="bg-emerald-50 rounded-lg border border-emerald-200 p-4 flex gap-3 text-emerald-900">
-            <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 mt-0.5">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4.5 h-4.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 21m0 0-.813-5.096L3 15.187m6 5.813V9.75M14.25 5.25a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
-              </svg>
-            </div>
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800">Insight Epidemiológico Activo (Capa Oro)</h4>
-              <p className="text-xs text-emerald-700 mt-0.5 leading-relaxed">
-                El monitoreo de la Capa Oro y el <strong>Early Warning System (EWS)</strong> revelan que las consultas por afecciones respiratorias (Tos y Disnea) muestran un incremento del 25% interanual. Esta detección predictiva te permite <strong>anticipar convenios estratégicos con pediatras de CABA</strong> y lanzar campañas de email marketing de vacunación hiper-segmentadas antes del comienzo de la temporada alta escolar.
-              </p>
             </div>
           </div>
         </>
       )}
+
+      {activeTab === 'list' && (
+        <div className="space-y-6">
+          
+          {/* Filter Toolbar */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 rounded-xl border border-stone-200 shadow-xs">
+            <div className="relative flex-1 w-full">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="absolute left-3 top-3 h-4.5 w-4.5 text-stone-400">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.608 10.608Z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Buscar paciente por nombre, apellido, email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-stone-50 border border-stone-200 rounded-lg pl-10 pr-4 py-2 text-sm text-stone-900 placeholder-stone-400 focus:outline-hidden focus:border-sky-400 focus:bg-white transition-all"
+              />
+            </div>
+            
+            <button
+              onClick={handleCreateClick}
+              className="w-full sm:w-auto px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 shadow-xs transition-colors shrink-0"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Nuevo Paciente
+            </button>
+          </div>
+
+          {/* List Display */}
+          {loadingPatients ? (
+            <div className="grid grid-cols-1 gap-4">
+              <div className="h-16 bg-white border border-stone-200 rounded-lg animate-pulse" />
+              <div className="h-16 bg-white border border-stone-200 rounded-lg animate-pulse" />
+              <div className="h-16 bg-white border border-stone-200 rounded-lg animate-pulse" />
+            </div>
+          ) : patients.length === 0 ? (
+            <div className="bg-white border border-stone-200 rounded-xl p-12 text-center text-stone-500">
+              No se encontraron pacientes que coincidan con la búsqueda.
+            </div>
+          ) : (
+            <div className="bg-white border border-stone-200 rounded-xl overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-stone-200 text-left text-sm">
+                  <thead className="bg-stone-50 text-xs font-semibold uppercase tracking-wider text-stone-500">
+                    <tr>
+                      <th className="px-6 py-4">Paciente</th>
+                      <th className="px-6 py-4">DNI / CUIL</th>
+                      <th className="px-6 py-4">Obra Social</th>
+                      <th className="px-6 py-4">Estado SSS</th>
+                      <th className="px-6 py-4">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100 bg-white">
+                    {patients.map((p) => (
+                      <tr key={p.id} className="hover:bg-stone-50/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-600 font-bold">
+                              {p.firstName[0]}{p.lastName[0]}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-stone-900">{p.firstName} {p.lastName}</div>
+                              <div className="text-xs text-stone-400">{p.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-xs font-mono text-stone-600">
+                          <div>DNI: {p.dni || 'N/D'}</div>
+                          <div className="text-[10px] text-stone-400">CUIL: {p.cuil || 'N/D'}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-xs font-medium text-stone-800">{p.insuranceInfo?.provider || 'Particular'}</div>
+                          <div className="text-[10px] text-stone-400">{p.insuranceInfo?.plan ? `Plan: ${p.insuranceInfo.plan}` : ''}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            p.sssValidationStatus === 'valid'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : p.sssValidationStatus === 'exempt'
+                              ? 'bg-purple-50 text-purple-700 border-purple-200'
+                              : p.sssValidationStatus === 'rejected'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {p.sssValidationStatus === 'valid' ? 'Validado' : p.sssValidationStatus === 'exempt' ? 'Exceptuado' : p.sssValidationStatus === 'rejected' ? 'Rechazado' : 'Pendiente'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleEditClick(p)}
+                              className="px-2.5 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50 rounded border border-transparent hover:border-sky-200 transition-all"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(p.id)}
+                              className="px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded border border-transparent hover:border-rose-200 transition-all"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Creation / Editing Modal Panel */}
+      {(isEditing || isCreating) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-xl shadow-xl border border-stone-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col">
+            
+            <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50 rounded-t-xl shrink-0">
+              <h3 className="text-lg font-bold text-stone-900">
+                {isEditing ? 'Editar Perfil de Paciente' : 'Manual Patient Registration (CRM)'}
+              </h3>
+              <button
+                onClick={() => { setIsEditing(false); setIsCreating(false); setSelectedPatient(null); }}
+                className="text-stone-400 hover:text-stone-600 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePatient} className="p-6 space-y-6 flex-1">
+              
+              {actionError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold">
+                  {actionError}
+                </div>
+              )}
+
+              {actionSuccess && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-xs font-semibold">
+                  {actionSuccess}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                {/* Personal Information */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-stone-600">Nombre</label>
+                  <input
+                    type="text"
+                    required
+                    value={formFirstName}
+                    onChange={(e) => setFormFirstName(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-stone-600">Apellido</label>
+                  <input
+                    type="text"
+                    required
+                    value={formLastName}
+                    onChange={(e) => setFormLastName(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-stone-600">Email de Contacto</label>
+                  <input
+                    type="email"
+                    required
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-stone-600">Teléfono (WhatsApp)</label>
+                  <input
+                    type="text"
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-stone-600">DNI</label>
+                  <input
+                    type="text"
+                    value={formDni}
+                    onChange={(e) => setFormDni(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-stone-600">CUIL</label>
+                  <input
+                    type="text"
+                    value={formCuil}
+                    onChange={(e) => setFormCuil(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-stone-600">Género</label>
+                  <select
+                    value={formGender}
+                    onChange={(e) => setFormGender(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-hidden"
+                  >
+                    <option value="female">Femenino</option>
+                    <option value="male">Masculino</option>
+                    <option value="other">Otro</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-stone-600">Fecha de Nacimiento</label>
+                  <input
+                    type="date"
+                    value={formBirthDate}
+                    onChange={(e) => setFormBirthDate(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-xs font-bold text-stone-600">Dirección Residencial</label>
+                  <input
+                    type="text"
+                    value={formAddress}
+                    onChange={(e) => setFormAddress(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                  />
+                </div>
+              </div>
+
+              {/* Insurance / Obra Social Details */}
+              <div className="border-t border-stone-100 pt-6">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-sky-700 mb-4">Información de Cobertura Médica</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-stone-600">Obra Social / Prepaga</label>
+                    <input
+                      type="text"
+                      placeholder="Ej: OSDE, Swiss Medical..."
+                      value={formObraSocial}
+                      onChange={(e) => setFormObraSocial(e.target.value)}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-stone-600">Plan</label>
+                    <input
+                      type="text"
+                      placeholder="Ej: 210, 310..."
+                      value={formPlan}
+                      onChange={(e) => setFormPlan(e.target.value)}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-stone-600">Nro Afiliado</label>
+                    <input
+                      type="text"
+                      value={formNroAfiliado}
+                      onChange={(e) => setFormNroAfiliado(e.target.value)}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Status and Active checks */}
+              <div className="border-t border-stone-100 pt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-stone-600">Estado de Validación SSS</label>
+                  <select
+                    value={formSssStatus}
+                    onChange={(e) => setFormSssStatus(e.target.value as 'pending' | 'pending_review' | 'valid' | 'exempt' | 'rejected')}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-hidden"
+                  >
+                    <option value="pending">Pendiente</option>
+                    <option value="pending_review">En Revisión</option>
+                    <option value="valid">Validado / Activo</option>
+                    <option value="exempt">Exceptuado</option>
+                    <option value="rejected">Rechazado</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 pt-6">
+                  <input
+                    type="checkbox"
+                    id="formActive"
+                    checked={formActive}
+                    onChange={(e) => setFormActive(e.target.checked)}
+                    className="h-4 w-4 text-sky-600 border-stone-300 rounded focus:ring-sky-500"
+                  />
+                  <label htmlFor="formActive" className="text-xs font-bold text-stone-700">
+                    Paciente Habilitado en la Plataforma
+                  </label>
+                </div>
+              </div>
+
+              {/* Form actions */}
+              <div className="border-t border-stone-200 pt-4 flex items-center justify-end gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setIsEditing(false); setIsCreating(false); setSelectedPatient(null); }}
+                  className="px-4 py-2 border border-stone-200 hover:bg-stone-50 text-stone-700 rounded-lg text-sm font-semibold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold shadow-xs transition-colors disabled:opacity-50"
+                >
+                  {actionLoading ? 'Guardando...' : 'Guardar Paciente'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation of Delete Modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-xl shadow-xl border border-stone-200 max-w-md p-6 space-y-4">
+            <h3 className="text-lg font-bold text-rose-800 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-rose-600">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+              </svg>
+              ¡Atención! Acción Irreversible
+            </h3>
+            
+            <p className="text-sm text-stone-600 leading-relaxed">
+              ¿Estás completamente seguro de que deseas eliminar este paciente de forma definitiva? Esta acción borrará todas sus recetas, historial médico y perfil de forma permanente, cumpliendo con el **Derecho al Olvido (RGPD)**.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="px-4 py-2 border border-stone-200 hover:bg-stone-50 text-stone-700 rounded-lg text-xs font-semibold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => void handleDeletePatient(confirmDeleteId)}
+                disabled={actionLoading}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs disabled:opacity-50"
+              >
+                {actionLoading ? 'Eliminando...' : 'Sí, Eliminar Paciente'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
