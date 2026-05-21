@@ -72,6 +72,7 @@ export function PatientPopulationDashboard() {
   const [clinicalData, setClinicalData] = useState<ClinicalIntelligenceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hoveredGender, setHoveredGender] = useState<'female' | 'male' | 'other' | null>(null);
 
   // Patients list states
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -346,6 +347,70 @@ export function PatientPopulationDashboard() {
     );
   };
 
+  const renderWaffleChart = () => {
+    const fCount = demographics.by_gender['female'] || demographics.by_gender['Femenino'] || 0;
+    const mCount = demographics.by_gender['male'] || demographics.by_gender['Masculino'] || 0;
+    const oCount = (demographics.by_gender['other'] || 0) + (demographics.by_gender['prefer_not_to_say'] || 0);
+    const total = fCount + mCount + oCount;
+
+    if (total === 0) {
+      return (
+        <div className="text-xs text-stone-400 py-6 text-center w-full">
+          No hay datos demográficos disponibles
+        </div>
+      );
+    }
+
+    const fPercent = Math.round((fCount / total) * 100);
+    const oPercent = Math.round((oCount / total) * 100);
+    const mPercent = 100 - (fPercent + oPercent);
+
+    // Build the 100 blocks array
+    const blocks: ('female' | 'male' | 'other')[] = [];
+    for (let i = 0; i < fPercent; i++) blocks.push('female');
+    for (let i = 0; i < mPercent; i++) blocks.push('male');
+    for (let i = 0; i < oPercent; i++) blocks.push('other');
+
+    const colorMap = {
+      female: 'bg-purple-500 shadow-purple-500/20',
+      male: 'bg-blue-500 shadow-blue-500/20',
+      other: 'bg-stone-400 shadow-stone-400/20',
+    };
+
+    const labelMap = {
+      female: 'Femenino',
+      male: 'Masculino',
+      other: 'Otro / Sin Especificar',
+    };
+
+    return (
+      <div className="grid grid-cols-10 gap-1 p-2 bg-stone-50 rounded-xl border border-stone-100 shadow-inner w-fit select-none">
+        {blocks.map((type, idx) => {
+          const isDimmed = hoveredGender !== null && hoveredGender !== type;
+          const colorClass = colorMap[type];
+          
+          return (
+            <div
+              key={idx}
+              className={`h-4.5 w-4.5 rounded-xs transition-all duration-300 ease-out cursor-help shadow-xs relative group/block ${colorClass} ${
+                isDimmed ? 'opacity-20 scale-90 blur-[0.2px]' : 'opacity-100 scale-100'
+              }`}
+            >
+              {/* Elegant Tooltip */}
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 hidden group-hover/block:flex flex-col items-center z-20 pointer-events-none transition-all animate-fade-in whitespace-nowrap">
+                <div className="bg-stone-900 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg border border-stone-800 flex items-center gap-1.5 font-mono">
+                  <span className={`h-1.5 w-1.5 rounded-full ${type === 'female' ? 'bg-purple-400' : type === 'male' ? 'bg-blue-400' : 'bg-stone-300'}`} />
+                  {labelMap[type]} (Bloque #{idx + 1})
+                </div>
+                <div className="w-1.5 h-1.5 bg-stone-900 rotate-45 -mt-1 border-r border-b border-stone-800" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="bg-stone-50 rounded-xl border border-stone-200 p-6 space-y-6">
       
@@ -412,31 +477,95 @@ export function PatientPopulationDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Gender Distribution Card */}
-            <div className="bg-white rounded-lg border border-stone-200 p-5 shadow-xs flex flex-col justify-between space-y-4 hover:shadow-sm transition-shadow">
+            {/* Gender Distribution Card - Waffle Chart de Última Generación */}
+            <div className="bg-white rounded-lg border border-stone-200 p-5 shadow-xs flex flex-col justify-between space-y-4 hover:shadow-sm transition-shadow md:col-span-2 lg:col-span-1">
               <div>
-                <h3 className="text-sm font-semibold text-stone-800">Distribución por Género</h3>
-                <p className="text-xs text-stone-500">Desglose e identidades de la población</p>
+                <h3 className="text-sm font-semibold text-stone-800 flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4.5 h-4.5 text-purple-600">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                  </svg>
+                  Distribución por Género
+                </h3>
+                <p className="text-xs text-stone-500">Cada bloque equivale exactamente a 1% de la población activa</p>
               </div>
-              <div className="space-y-3 py-2">
-                {renderProgressBar(
-                  'Femenino', 
-                  demographics.by_gender['female'] || demographics.by_gender['Femenino'] || 0, 
-                  total_patients, 
-                  'bg-purple-500'
-                )}
-                {renderProgressBar(
-                  'Masculino', 
-                  demographics.by_gender['male'] || demographics.by_gender['Masculino'] || 0, 
-                  total_patients, 
-                  'bg-blue-500'
-                )}
-                {renderProgressBar(
-                  'Otro / Sin Especificar', 
-                  (demographics.by_gender['other'] || 0) + (demographics.by_gender['prefer_not_to_say'] || 0), 
-                  total_patients, 
-                  'bg-stone-400'
-                )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-center py-1">
+                {/* Waffle Chart Rendering */}
+                <div className="flex justify-center shrink-0">
+                  {renderWaffleChart()}
+                </div>
+
+                {/* Interactive Legend with Staggered Highlight Effects */}
+                <div className="space-y-2.5">
+                  <div 
+                    onMouseEnter={() => setHoveredGender('female')}
+                    onMouseLeave={() => setHoveredGender(null)}
+                    className={`p-2 rounded-lg border transition-all duration-200 ${
+                      hoveredGender === 'female' 
+                        ? 'border-purple-200 bg-purple-50/50 pl-3 border-l-4 border-l-purple-500' 
+                        : 'border-stone-100 hover:border-stone-200 bg-stone-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-xs mb-0.5">
+                      <span className="font-semibold text-stone-700 flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-xs bg-purple-500 shadow-xs" />
+                        Femenino
+                      </span>
+                      <span className="font-mono font-bold text-purple-700">
+                        {demographics.by_gender['female'] || demographics.by_gender['Femenino'] || 0}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-stone-400 font-medium">
+                      {total_patients > 0 ? Math.round(((demographics.by_gender['female'] || demographics.by_gender['Femenino'] || 0) / total_patients) * 100) : 0}% del total de pacientes
+                    </div>
+                  </div>
+
+                  <div 
+                    onMouseEnter={() => setHoveredGender('male')}
+                    onMouseLeave={() => setHoveredGender(null)}
+                    className={`p-2 rounded-lg border transition-all duration-200 ${
+                      hoveredGender === 'male' 
+                        ? 'border-blue-200 bg-blue-50/50 pl-3 border-l-4 border-l-blue-500' 
+                        : 'border-stone-100 hover:border-stone-200 bg-stone-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-xs mb-0.5">
+                      <span className="font-semibold text-stone-700 flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-xs bg-blue-500 shadow-xs" />
+                        Masculino
+                      </span>
+                      <span className="font-mono font-bold text-blue-700">
+                        {demographics.by_gender['male'] || demographics.by_gender['Masculino'] || 0}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-stone-400 font-medium">
+                      {total_patients > 0 ? Math.round(((demographics.by_gender['male'] || demographics.by_gender['Masculino'] || 0) / total_patients) * 100) : 0}% del total de pacientes
+                    </div>
+                  </div>
+
+                  <div 
+                    onMouseEnter={() => setHoveredGender('other')}
+                    onMouseLeave={() => setHoveredGender(null)}
+                    className={`p-2 rounded-lg border transition-all duration-200 ${
+                      hoveredGender === 'other' 
+                        ? 'border-stone-300 bg-stone-100 pl-3 border-l-4 border-l-stone-500' 
+                        : 'border-stone-100 hover:border-stone-200 bg-stone-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-xs mb-0.5">
+                      <span className="font-semibold text-stone-700 flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-xs bg-stone-400 shadow-xs" />
+                        Otro / Sin Especificar
+                      </span>
+                      <span className="font-mono font-bold text-stone-600">
+                        {(demographics.by_gender['other'] || 0) + (demographics.by_gender['prefer_not_to_say'] || 0)}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-stone-400 font-medium">
+                      {total_patients > 0 ? Math.round((((demographics.by_gender['other'] || 0) + (demographics.by_gender['prefer_not_to_say'] || 0)) / total_patients) * 100) : 0}% del total de pacientes
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
