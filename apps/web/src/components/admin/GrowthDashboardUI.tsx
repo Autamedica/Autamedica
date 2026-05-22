@@ -817,37 +817,179 @@ const DistributionCard: React.FC<{
   barClassName: string;
   emptyText: string;
 }> = ({ title, icon: Icon, entries, total, barClassName, emptyText }) => {
+  const [view, setView] = useState<'list' | 'waffle'>('list');
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+
   const sortedEntries = Object.entries(entries || {}).sort(
     ([, a], [, b]) => b - a,
   );
 
+  const renderWaffle = () => {
+    const items = sortedEntries;
+    const totalCount = items.reduce((acc, [, val]) => acc + val, 0);
+
+    if (totalCount === 0) {
+      return <EmptyLine text={emptyText} />;
+    }
+
+    // Calcular proporciones aproximadas de 100 bloques
+    let remainingBlocks = 100;
+    const itemsWithPercents = items.map(([name, count]) => {
+      const pct = Math.floor((count / totalCount) * 100);
+      remainingBlocks -= pct;
+      return { name, count, pct };
+    });
+
+    if (remainingBlocks > 0) {
+      const itemsWithResidues = items.map(([, count], idx) => {
+        const exact = (count / totalCount) * 100;
+        const diff = exact - Math.floor(exact);
+        return { idx, diff };
+      });
+      itemsWithResidues.sort((a, b) => b.diff - a.diff);
+      for (let i = 0; i < remainingBlocks; i++) {
+        const itemIdx = itemsWithResidues[i % itemsWithResidues.length].idx;
+        itemsWithPercents[itemIdx].pct += 1;
+      }
+    }
+
+    const blocks: string[] = [];
+    itemsWithPercents.forEach((item) => {
+      for (let i = 0; i < item.pct; i++) {
+        blocks.push(item.name);
+      }
+    });
+
+    // Colores premium
+    const colors = [
+      'bg-cyan-500 shadow-cyan-500/20 text-cyan-500',
+      'bg-indigo-500 shadow-indigo-500/20 text-indigo-500',
+      'bg-emerald-500 shadow-emerald-500/20 text-emerald-500',
+      'bg-amber-500 shadow-amber-500/20 text-amber-500',
+      'bg-rose-500 shadow-rose-500/20 text-rose-500',
+      'bg-purple-500 shadow-purple-500/20 text-purple-500',
+      'bg-slate-500 shadow-slate-500/20 text-slate-500',
+    ];
+
+    const colorMap: Record<string, string> = {};
+    items.forEach(([name], idx) => {
+      colorMap[name] = colors[idx % colors.length];
+    });
+
+    return (
+      <div className="space-y-4 select-none">
+        <div className="flex flex-wrap gap-1 justify-center py-1 border-b border-slate-100 pb-3">
+          {items.map(([name, count]) => {
+            const pct = Math.round((count / totalCount) * 100);
+            const colorClass = colorMap[name].split(' ')[0];
+            return (
+              <div
+                key={name}
+                onMouseEnter={() => setHoveredItem(name)}
+                onMouseLeave={() => setHoveredItem(null)}
+                className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold transition cursor-default ${
+                  hoveredItem === name ? 'bg-slate-100 scale-105 shadow-xs' : 'bg-slate-50'
+                }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${colorClass}`} />
+                <span className="text-slate-600 truncate max-w-[80px]">{humanize(name)}</span>
+                <span className="text-slate-400 font-mono">({pct}%)</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-center">
+          <div className="grid grid-cols-10 gap-0.5 p-1 bg-slate-50 rounded-lg border border-slate-200/60 shadow-inner w-fit">
+            {blocks.map((name, idx) => {
+              const isDimmed = hoveredItem !== null && hoveredItem !== name;
+              const colorClass = colorMap[name];
+              
+              return (
+                <div
+                  key={idx}
+                  onMouseEnter={() => setHoveredItem(name)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                  className={`h-3 w-3 rounded-xs transition-all duration-300 ease-out cursor-help shadow-xs relative group/block ${colorClass} ${
+                    isDimmed ? 'opacity-20 scale-90 blur-[0.2px]' : 'opacity-100 scale-100'
+                  }`}
+                >
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 hidden group-hover/block:flex flex-col items-center z-20 pointer-events-none transition-all animate-fade-in whitespace-nowrap">
+                    <div className="bg-slate-900 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-lg border border-slate-800 flex items-center gap-1 font-mono">
+                      <span className={`h-1 w-1 rounded-full ${colorClass.split(' ')[0]}`} />
+                      {humanize(name)} (Bloque #{idx + 1})
+                    </div>
+                    <div className="w-1 h-1 bg-slate-900 rotate-45 -mt-0.5 border-r border-b border-slate-800" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
       <div className="mb-6 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
           {title}
         </h3>
-        <Icon className="h-4 w-4 text-gray-400" />
-      </div>
-      <div className="space-y-4">
-        {sortedEntries.map(([label, count]) => (
-          <div key={label}>
-            <div className="flex justify-between text-sm mb-1">
-              <span className="capitalize text-gray-600">
-                {humanize(label)}
-              </span>
-              <span className="font-medium text-gray-900">{count}</span>
-            </div>
-            <div className="w-full bg-gray-100 rounded-full h-2">
-              <div
-                className={`${barClassName} h-2 rounded-full`}
-                style={{ width: `${percentage(count, total)}%` }}
-              />
-            </div>
+        
+        <div className="flex items-center gap-2">
+          {/* View Selector Tabs */}
+          <div className="flex rounded-lg bg-slate-100 p-0.5 text-[9px] font-medium shrink-0">
+            <button
+              onClick={() => setView('list')}
+              className={`rounded-md px-1.5 py-0.5 transition ${
+                view === 'list'
+                  ? 'bg-white text-slate-950 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Lista
+            </button>
+            <button
+              onClick={() => setView('waffle')}
+              className={`rounded-md px-1.5 py-0.5 transition ${
+                view === 'waffle'
+                  ? 'bg-white text-slate-950 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Waffle
+            </button>
           </div>
-        ))}
-        {sortedEntries.length === 0 && <EmptyLine text={emptyText} />}
+          <Icon className="h-4 w-4 text-gray-400" />
+        </div>
       </div>
+
+      {view === 'waffle' ? (
+        <div className="my-auto">
+          {renderWaffle()}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {sortedEntries.map(([label, count]) => (
+            <div key={label}>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="capitalize text-gray-600">
+                  {humanize(label)}
+                </span>
+                <span className="font-medium text-gray-900">{count}</span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-2">
+                <div
+                  className={`${barClassName} h-2 rounded-full`}
+                  style={{ width: `${percentage(count, total)}%` }}
+                />
+              </div>
+            </div>
+          ))}
+          {sortedEntries.length === 0 && <EmptyLine text={emptyText} />}
+        </div>
+      )}
     </div>
   );
 };
