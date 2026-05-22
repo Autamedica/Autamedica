@@ -1177,6 +1177,161 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_capabilities: {
+        Row: {
+          agent_type: string
+          capability: string
+          channel: string | null
+          created_at: string
+          enabled: boolean
+          id: number
+          reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agent_type: string
+          capability: string
+          channel?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: number
+          reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agent_type?: string
+          capability?: string
+          channel?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: number
+          reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      agent_jobs: {
+        Row: {
+          agent_type: string
+          appointment_id: string | null
+          attempts: number
+          channel: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          lead_id: string | null
+          payload: Json
+          scheduled_for: string
+          source_id: string | null
+          source_table: string | null
+          status: string
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          agent_type: string
+          appointment_id?: string | null
+          attempts?: number
+          channel: string
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          lead_id?: string | null
+          payload?: Json
+          scheduled_for?: string
+          source_id?: string | null
+          source_table?: string | null
+          status?: string
+          trigger_type: string
+          updated_at?: string
+        }
+        Update: {
+          agent_type?: string
+          appointment_id?: string | null
+          attempts?: number
+          channel?: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          lead_id?: string | null
+          payload?: Json
+          scheduled_for?: string
+          source_id?: string | null
+          source_table?: string | null
+          status?: string
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_jobs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_attribution"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "agent_jobs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_runs: {
+        Row: {
+          compliance_result: Json
+          created_at: string
+          id: number
+          input_snapshot: Json
+          job_id: string
+          model_name: string | null
+          output_snapshot: Json
+          prompt_version: string | null
+          provider_result: Json
+          stage: string
+        }
+        Insert: {
+          compliance_result?: Json
+          created_at?: string
+          id?: number
+          input_snapshot?: Json
+          job_id: string
+          model_name?: string | null
+          output_snapshot?: Json
+          prompt_version?: string | null
+          provider_result?: Json
+          stage: string
+        }
+        Update: {
+          compliance_result?: Json
+          created_at?: string
+          id?: number
+          input_snapshot?: Json
+          job_id?: string
+          model_name?: string | null
+          output_snapshot?: Json
+          prompt_version?: string | null
+          provider_result?: Json
+          stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "agent_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_voice_examples: {
         Row: {
           channel: string
@@ -1301,6 +1456,422 @@ export type Database = {
           variants?: Json
         }
         Relationships: []
+      }
+      crm_accounts: {
+        Row: {
+          account_type: string
+          address: string | null
+          city: string | null
+          country: string
+          created_at: string
+          id: string
+          last_contacted_at: string | null
+          lat: number | null
+          legal_name: string | null
+          lng: number | null
+          lost_reason: string | null
+          main_email: string | null
+          main_phone: string | null
+          main_phone_e164: string | null
+          metadata: Json
+          name: string
+          next_action_at: string | null
+          owner_user_id: string | null
+          priority: number
+          province: string | null
+          score: number
+          source: string
+          source_external_id: string | null
+          source_url: string | null
+          status: string
+          tags: string[]
+          updated_at: string
+          website: string | null
+          whatsapp_url: string | null
+        }
+        Insert: {
+          account_type?: string
+          address?: string | null
+          city?: string | null
+          country?: string
+          created_at?: string
+          id?: string
+          last_contacted_at?: string | null
+          lat?: number | null
+          legal_name?: string | null
+          lng?: number | null
+          lost_reason?: string | null
+          main_email?: string | null
+          main_phone?: string | null
+          main_phone_e164?: string | null
+          metadata?: Json
+          name: string
+          next_action_at?: string | null
+          owner_user_id?: string | null
+          priority?: number
+          province?: string | null
+          score?: number
+          source?: string
+          source_external_id?: string | null
+          source_url?: string | null
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          website?: string | null
+          whatsapp_url?: string | null
+        }
+        Update: {
+          account_type?: string
+          address?: string | null
+          city?: string | null
+          country?: string
+          created_at?: string
+          id?: string
+          last_contacted_at?: string | null
+          lat?: number | null
+          legal_name?: string | null
+          lng?: number | null
+          lost_reason?: string | null
+          main_email?: string | null
+          main_phone?: string | null
+          main_phone_e164?: string | null
+          metadata?: Json
+          name?: string
+          next_action_at?: string | null
+          owner_user_id?: string | null
+          priority?: number
+          province?: string | null
+          score?: number
+          source?: string
+          source_external_id?: string | null
+          source_url?: string | null
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          website?: string | null
+          whatsapp_url?: string | null
+        }
+        Relationships: []
+      }
+      crm_activities: {
+        Row: {
+          account_id: string | null
+          activity_type: string
+          body: string | null
+          completed_at: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          direction: string
+          id: string
+          metadata: Json
+          opportunity_id: string | null
+          outcome: string | null
+          scheduled_at: string | null
+          subject: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          activity_type: string
+          body?: string | null
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          metadata?: Json
+          opportunity_id?: string | null
+          outcome?: string | null
+          scheduled_at?: string | null
+          subject?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          activity_type?: string
+          body?: string | null
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          metadata?: Json
+          opportunity_id?: string | null
+          outcome?: string | null
+          scheduled_at?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_activities_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "crm_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contacts: {
+        Row: {
+          account_id: string
+          consent_status: string
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          is_primary: boolean
+          metadata: Json
+          phone: string | null
+          phone_e164: string | null
+          role_title: string | null
+          updated_at: string
+          whatsapp_url: string | null
+        }
+        Insert: {
+          account_id: string
+          consent_status?: string
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_primary?: boolean
+          metadata?: Json
+          phone?: string | null
+          phone_e164?: string | null
+          role_title?: string | null
+          updated_at?: string
+          whatsapp_url?: string | null
+        }
+        Update: {
+          account_id?: string
+          consent_status?: string
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_primary?: boolean
+          metadata?: Json
+          phone?: string | null
+          phone_e164?: string | null
+          role_title?: string | null
+          updated_at?: string
+          whatsapp_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_import_batches: {
+        Row: {
+          created_at: string
+          filename: string | null
+          id: string
+          imported_by: string | null
+          metadata: Json
+          rows_inserted: number
+          rows_skipped: number
+          rows_total: number
+          rows_updated: number
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          filename?: string | null
+          id?: string
+          imported_by?: string | null
+          metadata?: Json
+          rows_inserted?: number
+          rows_skipped?: number
+          rows_total?: number
+          rows_updated?: number
+          source: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string | null
+          id?: string
+          imported_by?: string | null
+          metadata?: Json
+          rows_inserted?: number
+          rows_skipped?: number
+          rows_total?: number
+          rows_updated?: number
+          source?: string
+        }
+        Relationships: []
+      }
+      crm_opportunities: {
+        Row: {
+          account_id: string
+          created_at: string
+          currency: string
+          expected_close_date: string | null
+          id: string
+          lost_reason: string | null
+          metadata: Json
+          owner_user_id: string | null
+          probability: number
+          stage: string
+          title: string
+          updated_at: string
+          value_estimate: number | null
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          currency?: string
+          expected_close_date?: string | null
+          id?: string
+          lost_reason?: string | null
+          metadata?: Json
+          owner_user_id?: string | null
+          probability?: number
+          stage?: string
+          title: string
+          updated_at?: string
+          value_estimate?: number | null
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          currency?: string
+          expected_close_date?: string | null
+          id?: string
+          lost_reason?: string | null
+          metadata?: Json
+          owner_user_id?: string | null
+          probability?: number
+          stage?: string
+          title?: string
+          updated_at?: string
+          value_estimate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_opportunities_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "crm_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_suppression_list: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          phone_e164: string | null
+          reason: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          phone_e164?: string | null
+          reason: string
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          phone_e164?: string | null
+          reason?: string
+          source?: string
+        }
+        Relationships: []
+      }
+      doctor_whatsapp_jobs: {
+        Row: {
+          appointment_id: string
+          attempts: number
+          created_at: string
+          dedupe_key: string
+          doctor_id: string
+          id: string
+          last_error: string | null
+          message: string
+          recipient_phone: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_id: string
+          attempts?: number
+          created_at?: string
+          dedupe_key: string
+          doctor_id: string
+          id?: string
+          last_error?: string | null
+          message: string
+          recipient_phone: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string
+          attempts?: number
+          created_at?: string
+          dedupe_key?: string
+          doctor_id?: string
+          id?: string
+          last_error?: string | null
+          message?: string
+          recipient_phone?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_whatsapp_jobs_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointment_notification_risks"
+            referencedColumns: ["appointment_id"]
+          },
+          {
+            foreignKeyName: "doctor_whatsapp_jobs_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "lead_attribution"
+            referencedColumns: ["appointment_id"]
+          },
+        ]
       }
       email_events: {
         Row: {
@@ -1821,6 +2392,115 @@ export type Database = {
           },
         ]
       }
+      patient_activation: {
+        Row: {
+          acquired_at: string | null
+          activated_at: string | null
+          anamnesis_completed_at: string | null
+          anamnesis_started_at: string | null
+          appointment_booked_at: string | null
+          churn_reason: string | null
+          churned_at: string | null
+          consultation_done_at: string | null
+          created_at: string
+          current_step: string
+          days_to_activation: number | null
+          dni_verified_at: string | null
+          id: string
+          lead_id: string | null
+          metadata: Json
+          prescription_sent_at: string | null
+          profile_id: string | null
+          source_channel: string
+          source_detail: string | null
+          triaged_at: string | null
+          updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          whatsapp_linked_at: string | null
+          whatsapp_phone: string | null
+        }
+        Insert: {
+          acquired_at?: string | null
+          activated_at?: string | null
+          anamnesis_completed_at?: string | null
+          anamnesis_started_at?: string | null
+          appointment_booked_at?: string | null
+          churn_reason?: string | null
+          churned_at?: string | null
+          consultation_done_at?: string | null
+          created_at?: string
+          current_step?: string
+          days_to_activation?: number | null
+          dni_verified_at?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          prescription_sent_at?: string | null
+          profile_id?: string | null
+          source_channel?: string
+          source_detail?: string | null
+          triaged_at?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          whatsapp_linked_at?: string | null
+          whatsapp_phone?: string | null
+        }
+        Update: {
+          acquired_at?: string | null
+          activated_at?: string | null
+          anamnesis_completed_at?: string | null
+          anamnesis_started_at?: string | null
+          appointment_booked_at?: string | null
+          churn_reason?: string | null
+          churned_at?: string | null
+          consultation_done_at?: string | null
+          created_at?: string
+          current_step?: string
+          days_to_activation?: number | null
+          dni_verified_at?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          prescription_sent_at?: string | null
+          profile_id?: string | null
+          source_channel?: string
+          source_detail?: string | null
+          triaged_at?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          whatsapp_linked_at?: string | null
+          whatsapp_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_activation_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_attribution"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "patient_activation_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_activation_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "lead_attribution"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       publish_log: {
         Row: {
           channel: string
@@ -1861,6 +2541,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      suppressed_notification_contacts: {
+        Row: {
+          channel: string
+          contact_value: string
+          created_at: string
+          created_by: string | null
+          id: string
+          reason: string
+          source: string
+        }
+        Insert: {
+          channel: string
+          contact_value: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reason: string
+          source?: string
+        }
+        Update: {
+          channel?: string
+          contact_value?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reason?: string
+          source?: string
+        }
+        Relationships: []
       }
       system_flags: {
         Row: {
@@ -1947,6 +2657,76 @@ export type Database = {
       }
     }
     Views: {
+      activation_funnel: {
+        Row: {
+          acquired: number | null
+          activated: number | null
+          anamnesis_done: number | null
+          avg_days_to_activation: number | null
+          booked: number | null
+          churned: number | null
+          consulted: number | null
+          dni_ok: number | null
+          linked: number | null
+          source_channel: string | null
+          triaged: number | null
+        }
+        Relationships: []
+      }
+      appointment_notification_risks: {
+        Row: {
+          appointment_id: string | null
+          doctor_email: string | null
+          doctor_email_enqueued: boolean | null
+          doctor_id: string | null
+          doctor_phone: string | null
+          doctor_portal_notification_enqueued: boolean | null
+          doctor_user_id: string | null
+          doctor_whatsapp_enqueued: boolean | null
+          patient_id: string | null
+          patient_phone: string | null
+          patient_user_id: string | null
+          patient_whatsapp_reminder_enqueued: boolean | null
+          risk_reasons: string[] | null
+          start_time: string | null
+          status: string | null
+          urgency: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "lead_attribution"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "doctors_user_id_fkey"
+            columns: ["doctor_user_id"]
+            isOneToOne: true
+            referencedRelation: "lead_attribution"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "patients_user_id_fkey"
+            columns: ["patient_user_id"]
+            isOneToOne: true
+            referencedRelation: "lead_attribution"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      daily_activation_cohort: {
+        Row: {
+          activated: number | null
+          activation_rate_pct: number | null
+          churned: number | null
+          cohort_date: string | null
+          source_channel: string | null
+          total_acquired: number | null
+        }
+        Relationships: []
+      }
       lead_attribution: {
         Row: {
           appointment_id: string | null
@@ -1977,6 +2757,33 @@ export type Database = {
       }
     }
     Functions: {
+      claim_due_agent_jobs: {
+        Args: { batch_size?: number }
+        Returns: {
+          agent_type: string
+          appointment_id: string | null
+          attempts: number
+          channel: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          lead_id: string | null
+          payload: Json
+          scheduled_for: string
+          source_id: string | null
+          source_table: string | null
+          status: string
+          trigger_type: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "agent_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_next_topic: {
         Args: { p_claimed_by: string }
         Returns: {
@@ -2013,6 +2820,14 @@ export type Database = {
         Returns: number
       }
       is_channel_enabled: { Args: { ch: string }; Returns: boolean }
+      is_notification_contact_suppressed: {
+        Args: { contact_channel: string; contact_value: string }
+        Returns: boolean
+      }
+      normalize_notification_contact: {
+        Args: { contact_channel: string; contact_value: string }
+        Returns: string
+      }
       resolve_topic: {
         Args: {
           p_content_piece_id?: string
@@ -2469,6 +3284,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      api_keys: {
+        Row: {
+          belongs_to: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          scopes: string[]
+          updated_at: string
+        }
+        Insert: {
+          belongs_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Update: {
+          belongs_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Relationships: []
       }
       appointment_history: {
         Row: {
@@ -3161,6 +4021,144 @@ export type Database = {
           },
         ]
       }
+      clinical_concept_maps: {
+        Row: {
+          concept_type: string
+          created_at: string
+          display_name_es: string
+          icd11_code: string | null
+          icd11_display: string | null
+          id: string
+          local_code: string
+          loinc_code: string | null
+          snomed_code: string | null
+          snomed_display: string | null
+        }
+        Insert: {
+          concept_type: string
+          created_at?: string
+          display_name_es: string
+          icd11_code?: string | null
+          icd11_display?: string | null
+          id?: string
+          local_code: string
+          loinc_code?: string | null
+          snomed_code?: string | null
+          snomed_display?: string | null
+        }
+        Update: {
+          concept_type?: string
+          created_at?: string
+          display_name_es?: string
+          icd11_code?: string | null
+          icd11_display?: string | null
+          id?: string
+          local_code?: string
+          loinc_code?: string | null
+          snomed_code?: string | null
+          snomed_display?: string | null
+        }
+        Relationships: []
+      }
+      clinical_patient_conditions: {
+        Row: {
+          anamnesis_extraction_id: string
+          category: string
+          condition_name: string
+          created_at: string
+          icd11_code: string | null
+          id: string
+          patient_id: string
+          snomed_code: string | null
+        }
+        Insert: {
+          anamnesis_extraction_id: string
+          category: string
+          condition_name: string
+          created_at?: string
+          icd11_code?: string | null
+          id?: string
+          patient_id: string
+          snomed_code?: string | null
+        }
+        Update: {
+          anamnesis_extraction_id?: string
+          category?: string
+          condition_name?: string
+          created_at?: string
+          icd11_code?: string | null
+          id?: string
+          patient_id?: string
+          snomed_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_patient_conditions_anamnesis_extraction_id_fkey"
+            columns: ["anamnesis_extraction_id"]
+            isOneToOne: false
+            referencedRelation: "anamnesis_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_patient_conditions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_symptom_observations: {
+        Row: {
+          anamnesis_extraction_id: string
+          created_at: string
+          icd11_code: string | null
+          id: string
+          is_primary: boolean
+          is_red_flag: boolean
+          patient_id: string
+          snomed_code: string | null
+          symptom_name: string
+        }
+        Insert: {
+          anamnesis_extraction_id: string
+          created_at?: string
+          icd11_code?: string | null
+          id?: string
+          is_primary?: boolean
+          is_red_flag?: boolean
+          patient_id: string
+          snomed_code?: string | null
+          symptom_name: string
+        }
+        Update: {
+          anamnesis_extraction_id?: string
+          created_at?: string
+          icd11_code?: string | null
+          id?: string
+          is_primary?: boolean
+          is_red_flag?: boolean
+          patient_id?: string
+          snomed_code?: string | null
+          symptom_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_symptom_observations_anamnesis_extraction_id_fkey"
+            columns: ["anamnesis_extraction_id"]
+            isOneToOne: false
+            referencedRelation: "anamnesis_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_symptom_observations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_comment_reactions: {
         Row: {
           comment_id: string
@@ -3620,6 +4618,7 @@ export type Database = {
         Row: {
           case_id: string
           channel: string
+          doctor_id: string | null
           ended_at: string | null
           id: string
           patient_id: string
@@ -3630,6 +4629,7 @@ export type Database = {
         Insert: {
           case_id: string
           channel: string
+          doctor_id?: string | null
           ended_at?: string | null
           id?: string
           patient_id: string
@@ -3640,6 +4640,7 @@ export type Database = {
         Update: {
           case_id?: string
           channel?: string
+          doctor_id?: string | null
           ended_at?: string | null
           id?: string
           patient_id?: string
@@ -3648,6 +4649,13 @@ export type Database = {
           workflow_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conversation_sessions_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversation_sessions_patient_id_fkey"
             columns: ["patient_id"]
@@ -4389,6 +5397,35 @@ export type Database = {
           },
         ]
       }
+      doctor_heartbeats: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_heartbeats_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_income_records: {
         Row: {
           appointment_id: string | null
@@ -4951,6 +5988,84 @@ export type Database = {
           },
         ]
       }
+      email_events_log: {
+        Row: {
+          created_at: string
+          email: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          provider: string
+          provider_message_id: string | null
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          provider: string
+          provider_message_id?: string | null
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          provider?: string
+          provider_message_id?: string | null
+          subject?: string | null
+        }
+        Relationships: []
+      }
+      geriatric_contacts: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          has_whatsapp: boolean | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          rating: string | null
+          replied_at: string | null
+          sent_at: string | null
+          status: string | null
+          zone: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          has_whatsapp?: boolean | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          rating?: string | null
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          zone?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          has_whatsapp?: boolean | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          rating?: string | null
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          zone?: string | null
+        }
+        Relationships: []
+      }
       group_memberships: {
         Row: {
           comment_count: number
@@ -5490,6 +6605,81 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_review_orders: {
+        Row: {
+          amount_cents: number
+          assigned_at: string | null
+          created_at: string
+          currency: string
+          doctor_id: string | null
+          id: string
+          metadata: Json
+          paid_at: string | null
+          patient_phone: string
+          payment_provider: string
+          payment_url: string | null
+          preanamnesis_id: string
+          provider_payment_id: string | null
+          provider_preference_id: string | null
+          reviewed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          assigned_at?: string | null
+          created_at?: string
+          currency?: string
+          doctor_id?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          patient_phone: string
+          payment_provider?: string
+          payment_url?: string | null
+          preanamnesis_id: string
+          provider_payment_id?: string | null
+          provider_preference_id?: string | null
+          reviewed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          assigned_at?: string | null
+          created_at?: string
+          currency?: string
+          doctor_id?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          patient_phone?: string
+          payment_provider?: string
+          payment_url?: string | null
+          preanamnesis_id?: string
+          provider_payment_id?: string | null
+          provider_preference_id?: string | null
+          reviewed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_review_orders_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_review_orders_preanamnesis_id_fkey"
+            columns: ["preanamnesis_id"]
+            isOneToOne: true
+            referencedRelation: "preanamnesis_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -6160,6 +7350,66 @@ export type Database = {
           },
         ]
       }
+      patient_triage_results: {
+        Row: {
+          ai_chief_complaint: string | null
+          ai_clinical_narrative: string | null
+          ai_covered_areas: string[] | null
+          ai_missing_areas: string[] | null
+          ai_processed: boolean | null
+          ai_recommendations: string | null
+          ai_safety_flags: string[] | null
+          ai_severity: string | null
+          alerts_detected: string[] | null
+          answers: Json
+          created_at: string
+          id: number
+          patient_id: string | null
+          patient_name: string | null
+          patient_phone: string
+          session_id: string | null
+          source: string
+        }
+        Insert: {
+          ai_chief_complaint?: string | null
+          ai_clinical_narrative?: string | null
+          ai_covered_areas?: string[] | null
+          ai_missing_areas?: string[] | null
+          ai_processed?: boolean | null
+          ai_recommendations?: string | null
+          ai_safety_flags?: string[] | null
+          ai_severity?: string | null
+          alerts_detected?: string[] | null
+          answers?: Json
+          created_at?: string
+          id?: number
+          patient_id?: string | null
+          patient_name?: string | null
+          patient_phone: string
+          session_id?: string | null
+          source?: string
+        }
+        Update: {
+          ai_chief_complaint?: string | null
+          ai_clinical_narrative?: string | null
+          ai_covered_areas?: string[] | null
+          ai_missing_areas?: string[] | null
+          ai_processed?: boolean | null
+          ai_recommendations?: string | null
+          ai_safety_flags?: string[] | null
+          ai_severity?: string | null
+          alerts_detected?: string[] | null
+          answers?: Json
+          created_at?: string
+          id?: number
+          patient_id?: string | null
+          patient_name?: string | null
+          patient_phone?: string
+          session_id?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           active: boolean | null
@@ -6551,6 +7801,51 @@ export type Database = {
           },
         ]
       }
+      preanamnesis_sessions: {
+        Row: {
+          access_mode: string
+          created_at: string
+          extraction_json: Json
+          id: string
+          patient_phone: string
+          pdf_url: string
+          source: string
+          status: string
+          storage_bucket: string
+          storage_path: string
+          transcript: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_mode?: string
+          created_at?: string
+          extraction_json?: Json
+          id: string
+          patient_phone: string
+          pdf_url: string
+          source?: string
+          status?: string
+          storage_bucket?: string
+          storage_path: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_mode?: string
+          created_at?: string
+          extraction_json?: Json
+          id?: string
+          patient_phone?: string
+          pdf_url?: string
+          source?: string
+          status?: string
+          storage_bucket?: string
+          storage_path?: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       prescription_audit_events: {
         Row: {
           event_type: string
@@ -6768,7 +8063,7 @@ export type Database = {
           phone: string | null
           role: string | null
           sss_last_checked_at: string | null
-          sss_validation_status: "pending" | "valid" | "pending_review" | "rejected" | "exempt"
+          sss_validation_status: string
           updated_at: string | null
           user_id: string
         }
@@ -6792,7 +8087,7 @@ export type Database = {
           phone?: string | null
           role?: string | null
           sss_last_checked_at?: string | null
-          sss_validation_status?: "pending" | "valid" | "pending_review" | "rejected" | "exempt"
+          sss_validation_status?: string
           updated_at?: string | null
           user_id: string
         }
@@ -6816,7 +8111,7 @@ export type Database = {
           phone?: string | null
           role?: string | null
           sss_last_checked_at?: string | null
-          sss_validation_status?: "pending" | "valid" | "pending_review" | "rejected" | "exempt"
+          sss_validation_status?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -7678,8 +8973,224 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_triage_sessions: {
+        Row: {
+          answers: Json
+          created_at: string
+          current_question: number
+          id: number
+          last_activity_at: string
+          patient_name: string
+          patient_phone: string
+          session_id: string
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          current_question?: number
+          id?: number
+          last_activity_at?: string
+          patient_name?: string
+          patient_phone: string
+          session_id: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          current_question?: number
+          id?: number
+          last_activity_at?: string
+          patient_name?: string
+          patient_phone?: string
+          session_id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
+      analytics_appointments: {
+        Row: {
+          appointment_date: string | null
+          appointment_hour: number | null
+          appointment_status: string | null
+          appointment_type: string | null
+          doctor_key: string | null
+          duration_minutes: number | null
+          is_cancelled: boolean | null
+          is_completed: boolean | null
+          is_no_show: boolean | null
+          patient_key: string | null
+        }
+        Insert: {
+          appointment_date?: never
+          appointment_hour?: never
+          appointment_status?: never
+          appointment_type?: never
+          doctor_key?: never
+          duration_minutes?: number | null
+          is_cancelled?: never
+          is_completed?: never
+          is_no_show?: never
+          patient_key?: never
+        }
+        Update: {
+          appointment_date?: never
+          appointment_hour?: never
+          appointment_status?: never
+          appointment_type?: never
+          doctor_key?: never
+          duration_minutes?: number | null
+          is_cancelled?: never
+          is_completed?: never
+          is_no_show?: never
+          patient_key?: never
+        }
+        Relationships: []
+      }
+      analytics_clinical_triage_cases: {
+        Row: {
+          case_created_date: string | null
+          case_intent: string | null
+          case_updated_date: string | null
+          clinical_vertical: string | null
+          conflicted_field_count: number | null
+          has_assigned_doctor: boolean | null
+          integrity_score: number | null
+          integrity_status: string | null
+          locked_field_count: number | null
+          missing_field_count: number | null
+          patient_key: string | null
+          requires_same_day_action: boolean | null
+          resolution_deadline_date: string | null
+          resolved_date: string | null
+          risk_of_interruption: string | null
+          triage_priority: string | null
+          triage_priority_rank: number | null
+          triage_status: string | null
+          workflow_type: string | null
+        }
+        Insert: {
+          case_created_date?: never
+          case_intent?: string | null
+          case_updated_date?: never
+          clinical_vertical?: string | null
+          conflicted_field_count?: number | null
+          has_assigned_doctor?: never
+          integrity_score?: number | null
+          integrity_status?: string | null
+          locked_field_count?: number | null
+          missing_field_count?: number | null
+          patient_key?: never
+          requires_same_day_action?: never
+          resolution_deadline_date?: never
+          resolved_date?: never
+          risk_of_interruption?: never
+          triage_priority?: string | null
+          triage_priority_rank?: number | null
+          triage_status?: string | null
+          workflow_type?: string | null
+        }
+        Update: {
+          case_created_date?: never
+          case_intent?: string | null
+          case_updated_date?: never
+          clinical_vertical?: string | null
+          conflicted_field_count?: number | null
+          has_assigned_doctor?: never
+          integrity_score?: number | null
+          integrity_status?: string | null
+          locked_field_count?: number | null
+          missing_field_count?: number | null
+          patient_key?: never
+          requires_same_day_action?: never
+          resolution_deadline_date?: never
+          resolved_date?: never
+          risk_of_interruption?: never
+          triage_priority?: string | null
+          triage_priority_rank?: number | null
+          triage_status?: string | null
+          workflow_type?: string | null
+        }
+        Relationships: []
+      }
+      analytics_patient_data_quality: {
+        Row: {
+          age_band: string | null
+          expected_demographic_field_count: number | null
+          has_birth_date: boolean | null
+          has_gender: boolean | null
+          has_insurance_info: boolean | null
+          has_phone: boolean | null
+          missing_demographic_field_count: number | null
+          organization_id: string | null
+          patient_created_date: string | null
+          patient_key: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patients_company_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_whatsapp_triage_results: {
+        Row: {
+          ai_processed: boolean | null
+          ai_severity: string | null
+          alert_count: number | null
+          covered_area_count: number | null
+          missing_area_count: number | null
+          patient_key: string | null
+          result_created_date: string | null
+          safety_flag_count: number | null
+          source: string | null
+        }
+        Insert: {
+          ai_processed?: never
+          ai_severity?: never
+          alert_count?: never
+          covered_area_count?: never
+          missing_area_count?: never
+          patient_key?: never
+          result_created_date?: never
+          safety_flag_count?: never
+          source?: string | null
+        }
+        Update: {
+          ai_processed?: never
+          ai_severity?: never
+          alert_count?: never
+          covered_area_count?: never
+          missing_area_count?: never
+          patient_key?: never
+          result_created_date?: never
+          safety_flag_count?: never
+          source?: string | null
+        }
+        Relationships: []
+      }
+      clinical_gold_seasonal_metrics: {
+        Row: {
+          case_count: number | null
+          icd11_code: string | null
+          season: string | null
+          snomed_code: string | null
+          symptom_name: string | null
+        }
+        Relationships: []
+      }
       geography_columns: {
         Row: {
           coord_dimension: number | null
@@ -7802,6 +9313,17 @@ export type Database = {
           storage_buckets: number | null
           tables_with_rls: number | null
           total_policies: number | null
+        }
+        Relationships: []
+      }
+      v_patient_demographics: {
+        Row: {
+          age_group: string | null
+          count: number | null
+          gender: string | null
+          insurance_name: string | null
+          region: string | null
+          total_active_patients: number | null
         }
         Relationships: []
       }
@@ -7945,6 +9467,10 @@ export type Database = {
           }
       auto_delete_expired_recordings: { Args: never; Returns: undefined }
       auto_revoke_expired_authorizations: { Args: never; Returns: undefined }
+      can_access_p2p_chat_session: {
+        Args: { target_session_id: string }
+        Returns: boolean
+      }
       check_orphaned_profiles: {
         Args: never
         Returns: {
@@ -8020,7 +9546,22 @@ export type Database = {
       }
       current_pharmacist_id: { Args: never; Returns: string }
       current_pharmacist_pharmacy_ids: { Args: never; Returns: string[] }
+      detect_clinical_anomalies: {
+        Args: never
+        Returns: {
+          historical_weekly_avg: number
+          is_outbreak_warning: boolean
+          last_week_count: number
+          percent_increase: number
+          snomed: string
+          symptom: string
+        }[]
+      }
       disablelongtransactions: { Args: never; Returns: string }
+      doctor_can_chat_with_patient: {
+        Args: { target_doctor_id: string; target_patient_id: string }
+        Returns: boolean
+      }
       doctor_has_patient_access: {
         Args: { patient_user_id: string }
         Returns: boolean
@@ -8061,6 +9602,7 @@ export type Database = {
         Args: { target_doctor_id: string }
         Returns: undefined
       }
+      execute_sql_temp: { Args: { sql_query: string }; Returns: Json }
       find_nearby_health_centers: {
         Args: {
           max_results?: number
@@ -8186,6 +9728,15 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_assigned_chat_doctor: {
+        Args: { target_patient_id: string }
+        Returns: {
+          doctor_id: string
+          first_name: string
+          last_name: string
+          specialty: string
+        }[]
+      }
       get_content_mode: { Args: never; Returns: string }
       get_content_pieces_due: {
         Args: never
@@ -8197,9 +9748,37 @@ export type Database = {
           variants: Json
         }[]
       }
+      get_doctor_online_minutes: {
+        Args: { p_doctor_id: string; p_end_date: string; p_start_date: string }
+        Returns: number
+      }
       get_my_doctor_id: { Args: never; Returns: string }
       get_my_patient_id: { Args: never; Returns: string }
       get_next_numeric_id: { Args: never; Returns: number }
+      get_or_create_p2p_chat_session: {
+        Args: {
+          target_case_id?: string
+          target_doctor_id: string
+          target_patient_id: string
+        }
+        Returns: {
+          case_id: string
+          channel: string
+          doctor_id: string | null
+          ended_at: string | null
+          id: string
+          patient_id: string
+          started_at: string
+          status: string
+          workflow_type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conversation_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_recommended_screenings: {
         Args: { include_overdue?: boolean; patient_id_param: string }
         Returns: {
