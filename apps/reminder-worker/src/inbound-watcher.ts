@@ -17,6 +17,7 @@ import { ensureEnv } from '@autamedica/shared';
 import { parsePatientResponse } from '@autamedica/scheduling';
 import { sdReady, sdWatchdog, sdStopping, sdStatus, underSystemd } from './sd-notify';
 import { processAudioForPhone } from './audio-watcher';
+import { processLabImageForPatient } from './lab-watcher';
 
 const env = globalThis.process?.env ?? {};
 
@@ -238,6 +239,45 @@ async function processPendingAudioMessage(message: PendingInboundMessage): Promi
   return true;
 }
 
+function getImageMedia(message: PendingInboundMessage): InboundMediaPayload | null {
+  const media = message.webhook_result?.inbound_media;
+  if (!media?.path) return null;
+  const type = media.type ?? '';
+  if (type.startsWith('image/')) return media;
+  return null;
+}
+
+async function processPendingImageMessage(message: PendingInboundMessage): Promise<boolean> {
+  const media = getImageMedia(message);
+  if (!media?.path) return false;
+
+  const nextAttemptCount = (message.attempt_count ?? 0) + 1;
+  try {
+    await markAttemptStarted(message.id, nextAttemptCount);
+    const result = await processLabImageForPatient({
+      filePath: media.path,
+      phone: message.from_phone,
+      mediaType: media.type,
+      sourceMessageId: message.source_message_key,
+    });
+
+    await markProcessed(message.id, {
+      action: 'lab_analysis_completed',
+      analysis_id: result.id,
+      study_name: result.study_name,
+      inbound_media: media,
+    });
+    console.log(`[INBOUND] lab analysis generated id=${message.id} analysis=${result.id}`);
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    await markAttemptFailed(message.id, nextAttemptCount, reason);
+    console.error(`[INBOUND] image processing failed id=${message.id}: ${reason}`);
+  }
+
+  return true;
+}
+
+
 async function promoteDeferredMessages(): Promise<void> {
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
@@ -312,6 +352,9 @@ async function flushPendingMessages(): Promise<void> {
 
   for (const message of (data ?? []) as PendingInboundMessage[]) {
     if (await processPendingAudioMessage(message)) {
+      continue;
+    }
+    if (await processPendingImageMessage(message)) {
       continue;
     }
 

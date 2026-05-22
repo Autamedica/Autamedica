@@ -7,8 +7,9 @@ import { ensureEnv } from "@autamedica/shared";
 import { DEFAULT_OPENCLAW_CONFIG, sendMessageWithFallback } from "@autamedica/scheduling";
 // @ts-expect-error The worker runtime resolves jsPDF from the workspace install.
 import { jsPDF } from "/mnt/data/Autamedica/node_modules/.pnpm/jspdf@4.2.1/node_modules/jspdf/dist/jspdf.node.js";
+import type { Database } from "@autamedica/types";
 
-type SupabaseClient = ReturnType<typeof createClient>;
+type SupabaseClient = ReturnType<typeof createClient<Database>>;
 
 type AnamnesisExtraction = {
   paciente?: { edad?: string | number | null; genero?: string | null };
@@ -61,7 +62,7 @@ function getSupabase(): SupabaseClient {
   const url = requireEnv("SUPABASE_URL");
   const key = optionalEnv("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_KEY");
   if (!key) throw new Error("Falta variable de entorno SUPABASE_SERVICE_ROLE_KEY");
-  supabaseClient = createClient(url, key, {
+  supabaseClient = createClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   return supabaseClient;
@@ -119,6 +120,7 @@ function li(items: string[]): string { return !items?.length ? "" : "<ul>" + ite
 
 function buildHtml(a: AnamnesisExtraction, id: string): string {
   const ea = a.enfermedadActual || {}, ap = a.antecedentesPersonales || {};
+  const p = a.paciente || {};
   const edad = /^\d+$/.test(String(p.edad||"").trim()) ? p.edad + " anios" : (p.edad || "no referida");
   return "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Pre-Anamnesis - AutaMedica</title>" +
 "<style>body{font-family:Arial;max-width:700px;margin:40px auto;color:#1a1a1a;line-height:1.6}h1{color:#0d6e6e;border-bottom:2px solid #0d6e6e;padding-bottom:8px}h2{color:#333;margin-top:24px}.tag{background:#e8f5f5;padding:4px 8px;border-radius:4px}.alert{background:#fff3cd;padding:10px;border-left:4px solid #ffc107;margin:12px 0}.missing{background:#f8f9fa;padding:10px;border-left:4px solid #6c757d;margin:12px 0}ul{margin:4px 0;padding-left:20px}li{margin:2px 0}.footer{margin-top:40px;padding-top:16px;border-top:1px solid #ccc;font-size:.85em;color:#888}</style></head><body>" +
@@ -219,7 +221,7 @@ function generatePdf(a: AnamnesisExtraction, id: string): Uint8Array {
     doc.text("Información pendiente para tu médico:", ML, y);
     y += LH;
     doc.setFont("helvetica", "normal");
-    for (const item of a.datosFaltantes.slice(0, 8)) {
+    for (const item of (a.datosFaltantes || []).slice(0, 8)) {
       if (y > 272) addPage();
       doc.text("- " + t(item), ML + 3, y);
       y += LH;
@@ -268,11 +270,11 @@ function generatePdf(a: AnamnesisExtraction, id: string): Uint8Array {
     (ea.sintomasAcompanantes?.length ? "\nSíntomas asociados: " + ea.sintomasAcompanantes.map((x:string) => t(x)).join(", ") : "")
   );
   section("ANTECEDENTES PERSONALES",
-    "Enfermedades previas: " + ((ap.enfermedadesPrevias||[]).length ? ap.enfermedadesPrevias.map((x:string) => t(x)).join(", ") : "No referidas") + "\n" +
-    "Medicación actual: " + ((ap.medicacionActual||[]).length ? ap.medicacionActual.map((x:string) => t(x)).join(", ") : "No referida") + "\n" +
+    "Enfermedades previas: " + ((ap.enfermedadesPrevias||[]).length ? (ap.enfermedadesPrevias || []).map((x:string) => t(x)).join(", ") : "No referidas") + "\n" +
+    "Medicación actual: " + ((ap.medicacionActual||[]).length ? (ap.medicacionActual || []).map((x:string) => t(x)).join(", ") : "No referida") + "\n" +
     "Alergias: " + t(ap.alergias||"No referidas")
   );
-  if ((a.signosAlarma||[]).length) section("BANDERAS DE SEGURIDAD", a.signosAlarma.map((x:string) => "! " + t(x)).join("\n"), true);
+  if ((a.signosAlarma||[]).length) section("BANDERAS DE SEGURIDAD", (a.signosAlarma || []).map((x:string) => "! " + t(x)).join("\n"), true);
   section("RESUMEN CLÍNICO ORDENADO", t(a.resumenOrdenado));
   section("IMPRESIÓN GENERAL", t(a.impresionGeneral));
 
@@ -376,7 +378,8 @@ async function persistPreanamnesisSession(input: {
   transcript: string;
   extraction: Record<string, unknown>;
 }): Promise<void> {
-  const supabase = getSupabase();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = getSupabase() as any;
   const { error } = await supabase
     .from("preanamnesis_sessions")
     .upsert({

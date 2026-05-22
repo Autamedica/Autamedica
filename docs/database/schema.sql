@@ -1223,3 +1223,28 @@ INSERT INTO public.service_plans (name, description, plan_type, price_monthly, p
 ('Enterprise', 'Full-featured healthcare platform for large organizations', 'enterprise', 49.99, 499.99,
  '{"telemedicine": true, "medical_records": true, "appointment_scheduling": true, "admin_dashboard": true, "custom_integrations": true, "dedicated_support": true}', 1000, 2000)
 ON CONFLICT DO NOTHING;
+
+-- ============================================================================
+-- CLINICAL AI LAB ANALYSES (Added 2026-05-22)
+-- ============================================================================
+CREATE TYPE public.lab_analysis_status AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
+
+CREATE TABLE IF NOT EXISTS public.clinical_ai_lab_analyses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    patient_profile_id UUID NOT NULL REFERENCES public.patients(id) ON DELETE RESTRICT,
+    inbound_message_id UUID,
+    storage_path TEXT NOT NULL,
+    media_type TEXT NOT NULL,
+    status public.lab_analysis_status NOT NULL DEFAULT 'PENDING',
+    study_name TEXT,
+    study_date DATE,
+    extracted_data_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+    red_flags_detected JSONB NOT NULL DEFAULT '[]'::JSONB,
+    clinical_summary TEXT,
+    error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.clinical_ai_lab_analyses ENABLE ROW LEVEL SECURITY;
+
