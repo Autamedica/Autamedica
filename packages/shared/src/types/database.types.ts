@@ -5879,6 +5879,7 @@ export type Database = {
           bank_cbu_cvu: string | null
           bank_name: string | null
           bio: string | null
+          care_guide_template: 'neutral' | 'female' | 'empathetic' | null
           certifications: Json | null
           consultation_fee: number | null
           created_at: string | null
@@ -5912,6 +5913,7 @@ export type Database = {
           bank_cbu_cvu?: string | null
           bank_name?: string | null
           bio?: string | null
+          care_guide_template?: 'neutral' | 'female' | 'empathetic' | null
           certifications?: Json | null
           consultation_fee?: number | null
           created_at?: string | null
@@ -5945,6 +5947,7 @@ export type Database = {
           bank_cbu_cvu?: string | null
           bank_name?: string | null
           bio?: string | null
+          care_guide_template?: 'neutral' | 'female' | 'empathetic' | null
           certifications?: Json | null
           consultation_fee?: number | null
           created_at?: string | null

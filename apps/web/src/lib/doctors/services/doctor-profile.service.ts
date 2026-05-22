@@ -73,6 +73,7 @@ export interface DoctorProfileInput {
   consultationFee?: number | null
   acceptedInsurance?: Json
   bio?: string | null
+  careGuideTemplate?: 'neutral' | 'female' | 'empathetic' | null
   languages?: Json
   refepsId?: string | null
   enrollmentEntity?: string | null
@@ -116,6 +117,7 @@ export const doctorProfileService = {
     setIfDefined(doctorData, 'consultation_fee', input.consultationFee)
     setIfDefined(doctorData, 'accepted_insurance', input.acceptedInsurance)
     setIfDefined(doctorData, 'bio', input.bio)
+    setIfDefined(doctorData, 'care_guide_template', input.careGuideTemplate)
     setIfDefined(doctorData, 'languages', input.languages)
     setIfDefined(doctorData, 'refeps_id', input.refepsId)
     setIfDefined(doctorData, 'enrollment_entity', input.enrollmentEntity)

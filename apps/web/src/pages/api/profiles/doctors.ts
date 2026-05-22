@@ -72,6 +72,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       consultationFee: optionalNumber(body, 'consultation_fee'),
       acceptedInsurance: 'accepted_insurance' in body ? (body.accepted_insurance as Json) ?? null : undefined,
       bio: optionalString(body, 'bio'),
+      careGuideTemplate: (body.care_guide_template === 'neutral' || body.care_guide_template === 'female' || body.care_guide_template === 'empathetic')
+        ? body.care_guide_template as 'neutral' | 'female' | 'empathetic'
+        : undefined,
       languages: 'languages' in body ? (body.languages as Json) ?? null : undefined,
       refepsId: optionalString(body, 'refeps_id'),
       enrollmentEntity: optionalString(body, 'enrollment_entity'),

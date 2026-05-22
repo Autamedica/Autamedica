@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { badRequest, internalError, jsonOk, unauthorized } from "@/lib/api-helpers";
 import { resolveDoctorContext } from "@/lib/doctors/api/doctor-context";
 import { generatePatientCareGuide } from "@/lib/prescriptions/prescription-enrichment.service";
+import { createAstroAdminClient } from "@/lib/supabase";
 import { logger } from "@autamedica/shared";
 import { captureSentryException } from '@/lib/observability/sentry';
 
@@ -17,12 +18,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest("medicationName is required and must be a non-empty string");
     }
 
+    const admin = createAstroAdminClient(locals.runtime?.env);
+    const { data: doctor } = await admin
+      .from('doctors')
+      .select('care_guide_template')
+      .eq('id', context.doctorId)
+      .single();
+
+    const careGuideTemplate = doctor?.care_guide_template ?? 'neutral';
+
     const careGuide = await generatePatientCareGuide({
       medicationName: medicationName.trim(),
       dosage: dosage?.trim(),
       instructions: instructions?.trim(),
       diagnosis: diagnosis?.trim(),
       patientName: patientName?.trim(),
+      careGuideTemplate,
     });
 
     return jsonOk(careGuide);

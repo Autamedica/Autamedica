@@ -7,7 +7,7 @@ import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
 import { MEDICAL_SPECIALTIES } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
-import { CheckCircle2, Loader2, ArrowLeft, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { CheckCircle2, Loader2, ArrowLeft, ShieldAlert, ShieldCheck, Heart, Sparkles, Stethoscope } from 'lucide-react'
 import { SignaturePad } from './SignaturePad'
 
 const ARGENTINE_PROVINCES = [
@@ -63,6 +63,7 @@ export function ProfileForm() {
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null)
   const [stampUrl, setStampUrl] = useState<string | null>(null)
   const [professionalDni, setProfessionalDni] = useState('')
+  const [careGuideTemplate, setCareGuideTemplate] = useState<'neutral' | 'female' | 'empathetic'>('neutral')
   const [isVerifyingLicense, setIsVerifyingLicense] = useState(false)
   const [verificationMessage, setVerificationMessage] = useState<string | null>(null)
 
@@ -89,6 +90,7 @@ export function ProfileForm() {
       const sig = d.signatureUrl ?? d.signature_url ?? d.signatureImageUrl ?? d.signature_image_url
       const sta = d.stampUrl ?? d.stamp_url ?? d.stampImageUrl ?? d.stamp_image_url
       const jur = d.enrollment_jurisdiction ?? d.enrollmentJurisdiction
+      const cgt = d.care_guide_template ?? d.careGuideTemplate ?? 'neutral'
 
       if (first) setFirstName(first)
       if (last) setLastName(last)
@@ -103,6 +105,7 @@ export function ProfileForm() {
       if (alias) setPayoutAlias(alias)
       if (sig) setSignatureUrl(sig)
       if (sta) setStampUrl(sta)
+      if (cgt) setCareGuideTemplate(cgt)
       
       if (jur) {
         if ((ARGENTINE_PROVINCES as readonly string[]).includes(jur)) {
@@ -220,6 +223,7 @@ export function ProfileForm() {
           payout_alias: payoutAlias.trim() || undefined,
           signature_url: signatureUrl || undefined,
           stamp_url: stampUrl || undefined,
+          care_guide_template: careGuideTemplate,
           active: true,
         },
       })
@@ -627,6 +631,113 @@ export function ProfileForm() {
                 El CBU/CVU tiene que tener exactamente 22 dígitos.
               </div>
             )}
+
+            {/* AI Care Guide Template Picker */}
+            <div className="h-px w-full bg-am-surface-200 my-6" />
+            <h2 className="text-base font-semibold text-am-surface-800 mb-1 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-am-doctor-500 animate-pulse" />
+              Guía de Cuidados del Paciente (AI)
+            </h2>
+            <p className="text-xs text-am-surface-500 mb-4 leading-relaxed">
+              La inteligencia artificial de AutaMedica enriquecerá tus recetas generando una guía personalizada con consejos de toma, advertencias y hábitos. Elegí el estilo y tono de comunicación que mejor se adapte a vos:
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              {/* Tarjeta Neutra */}
+              <button
+                type="button"
+                onClick={() => setCareGuideTemplate('neutral')}
+                disabled={isSubmitting}
+                className={`flex flex-col items-start text-left p-4 rounded-2xl border-2 transition-all duration-300 ${
+                  careGuideTemplate === 'neutral'
+                    ? 'border-am-doctor-500 bg-am-doctor-50/40 shadow-sm'
+                    : 'border-am-surface-200 bg-white hover:border-am-surface-300 hover:shadow-am-sm'
+                }`}
+              >
+                <div className={`p-2 rounded-xl mb-3 ${
+                  careGuideTemplate === 'neutral' ? 'bg-am-doctor-100 text-am-doctor-600' : 'bg-am-surface-100 text-am-surface-500'
+                }`}>
+                  <Stethoscope className="h-5 w-5" />
+                </div>
+                <h3 className="text-sm font-semibold text-am-surface-900">Neutra / Clínica</h3>
+                <p className="mt-1 text-[11px] leading-relaxed text-am-surface-500">
+                  Tono formal, técnico y puramente científico. Comunicación clínica estándar y descriptiva.
+                </p>
+              </button>
+
+              {/* Tarjeta Médica Femenina */}
+              <button
+                type="button"
+                onClick={() => setCareGuideTemplate('female')}
+                disabled={isSubmitting}
+                className={`flex flex-col items-start text-left p-4 rounded-2xl border-2 transition-all duration-300 ${
+                  careGuideTemplate === 'female'
+                    ? 'border-am-doctor-500 bg-am-doctor-50/40 shadow-sm'
+                    : 'border-am-surface-200 bg-white hover:border-am-surface-300 hover:shadow-am-sm'
+                }`}
+              >
+                <div className={`p-2 rounded-xl mb-3 ${
+                  careGuideTemplate === 'female' ? 'bg-rose-100 text-rose-600' : 'bg-am-surface-100 text-am-surface-500'
+                }`}>
+                  <Heart className="h-5 w-5" />
+                </div>
+                <h3 className="text-sm font-semibold text-am-surface-900">Médica Femenina</h3>
+                <p className="mt-1 text-[11px] leading-relaxed text-am-surface-500">
+                  Concordancia en femenino ("doctora", "médica") con un tono sumamente empático y profesional.
+                </p>
+              </button>
+
+              {/* Tarjeta Empática / Cercana */}
+              <button
+                type="button"
+                onClick={() => setCareGuideTemplate('empathetic')}
+                disabled={isSubmitting}
+                className={`flex flex-col items-start text-left p-4 rounded-2xl border-2 transition-all duration-300 ${
+                  careGuideTemplate === 'empathetic'
+                    ? 'border-am-doctor-500 bg-am-doctor-50/40 shadow-sm'
+                    : 'border-am-surface-200 bg-white hover:border-am-surface-300 hover:shadow-am-sm'
+                }`}
+              >
+                <div className={`p-2 rounded-xl mb-3 ${
+                  careGuideTemplate === 'empathetic' ? 'bg-amber-100 text-amber-600' : 'bg-am-surface-100 text-am-surface-500'
+                }`}>
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <h3 className="text-sm font-semibold text-am-surface-900">Informal / Cercana</h3>
+                <p className="mt-1 text-[11px] leading-relaxed text-am-surface-500">
+                  Uso de voseo/tuteo natural y lenguaje súper sencillo y claro para facilitar el cumplimiento del paciente.
+                </p>
+              </button>
+            </div>
+
+            {/* Vista Previa de la Guía AI */}
+            <div className="mt-4 rounded-2xl border border-am-surface-200 bg-am-surface-50/50 p-4 transition-all duration-300">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-am-surface-400">
+                  Vista Previa del Tono Sugerido
+                </span>
+                <span className="text-[10px] rounded-md bg-white px-2 py-0.5 font-medium text-am-surface-500 border border-am-surface-200 shadow-am-xs">
+                  Generado por Gemini AI
+                </span>
+              </div>
+              <div className="text-xs text-am-surface-700 leading-relaxed italic bg-white p-3 rounded-xl border border-am-surface-100 shadow-am-xs">
+                {careGuideTemplate === 'neutral' && (
+                  <span>
+                    "Se prescribe tratamiento antibiótico con Amoxicilina 500mg. Es fundamental respetar la dosificación cada 8 horas y completar los 7 días de duración total establecidos por este profesional para evitar resistencia bacteriana."
+                  </span>
+                )}
+                {careGuideTemplate === 'female' && (
+                  <span>
+                    "Hola, soy tu doctora. Te indico iniciar este tratamiento de Amoxicilina 500mg. Es muy importante que tomes la dosis a horario cada 8 horas y termines el esquema de 7 días completo para asegurar tu total recuperación. Estoy para acompañarte."
+                  </span>
+                )}
+                {careGuideTemplate === 'empathetic' && (
+                  <span>
+                    "¡Hola! Para ayudarte a curar esa infección rápido, te receté Amoxicilina 500mg. Tomalo cada 8 horas y no lo dejes antes de los 7 días aunque ya te sientas de diez. Si tenés alguna duda con la toma o efectos raros, consultame enseguida."
+                  </span>
+                )}
+              </div>
+            </div>
 
             {/* Firma y Sello */}
             <div className="h-px w-full bg-am-surface-200 my-6" />
