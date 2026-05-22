@@ -66,6 +66,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .upload(filePath, decodedImage.bytes, {
         contentType: decodedImage.contentType,
         upsert: true,
+        cacheControl: 'no-cache',
       });
 
     if (uploadError) {

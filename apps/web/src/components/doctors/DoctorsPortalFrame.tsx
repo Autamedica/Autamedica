@@ -172,7 +172,7 @@ export function DoctorsPortalFrame({
   const currentTime = useClock();
   const currentDate = new Date();
   const { user, loading: authLoading } = useAuthenticatedUser();
-  const { doctor } = useCurrentDoctor(user?.id);
+  const { doctor, refetch: refetchDoctor } = useCurrentDoctor(user?.id);
   const { stats } = useDoctorStats(doctor?.id, user?.id);
   const { exists: _doctorExists } = useCheckDoctorExists(user?.id);
 
@@ -186,18 +186,31 @@ export function DoctorsPortalFrame({
   const doctorSpecialty = doctor?.specialty || "Especialidad pendiente";
 
   const doctorProfile = doctor?.profile as
-    | { avatar_url?: string | null; avatarUrl?: string | null }
+    | { avatar_url?: string | null; avatarUrl?: string | null; updated_at?: string | null; updatedAt?: string | null }
     | undefined;
   const userProfile = user?.profile as
-    | { avatar?: string | null; avatar_url?: string | null }
+    | { avatar?: string | null; avatar_url?: string | null; updated_at?: string | null; updatedAt?: string | null }
     | undefined;
-  const avatarUrl =
+  const baseAvatarUrl =
     uploadedAvatarUrl ||
     doctorProfile?.avatar_url ||
     doctorProfile?.avatarUrl ||
     userProfile?.avatar_url ||
     userProfile?.avatar ||
     null;
+
+  const avatarUrl = useMemo(() => {
+    if (!baseAvatarUrl) return null;
+    if (baseAvatarUrl.startsWith("data:") || baseAvatarUrl.includes("?t=")) {
+      return baseAvatarUrl;
+    }
+    const updatedAt = doctorProfile?.updated_at || doctorProfile?.updatedAt || userProfile?.updated_at || userProfile?.updatedAt;
+    if (updatedAt) {
+      const ts = new Date(updatedAt).getTime();
+      return `${baseAvatarUrl}?t=${ts}`;
+    }
+    return baseAvatarUrl;
+  }, [baseAvatarUrl, doctorProfile?.updated_at, doctorProfile?.updatedAt, userProfile?.updated_at, userProfile?.updatedAt]);
 
   const primaryLinks = useMemo<NavigationItem[]>(
     () => [
@@ -329,7 +342,8 @@ export function DoctorsPortalFrame({
           body: { image },
         },
       );
-      setUploadedAvatarUrl(result.avatarUrl);
+      setUploadedAvatarUrl(`${result.avatarUrl}?t=${Date.now()}`);
+      await refetchDoctor().catch(() => null);
     } catch {
       setPhotoError("No pudimos actualizar la foto profesional.");
     } finally {
@@ -449,9 +463,8 @@ export function DoctorsPortalFrame({
               <div
                 className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-3"}`}
               >
-                <a
-                  href="/doctors/profile"
-                  className="group/avatar relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-[13px] font-semibold text-white ring-1 ring-neutral-200 transition hover:ring-neutral-400"
+                <label
+                  className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-[13px] font-semibold text-white ring-1 ring-neutral-200 transition hover:ring-neutral-400"
                   title={
                     avatarUrl
                       ? "Editar foto profesional"
@@ -475,9 +488,20 @@ export function DoctorsPortalFrame({
                     </>
                   )}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
-                    <Settings className="h-4 w-4 text-white" />
+                    {uploadingPhoto ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : (
+                      <Settings className="h-4 w-4 text-white" />
+                    )}
                   </div>
-                </a>
+                  <input
+                    type="file"
+                    accept="image/png,image/webp,image/jpeg"
+                    className="hidden"
+                    disabled={uploadingPhoto}
+                    onChange={(event) => void handlePhotoUpload(event)}
+                  />
+                </label>
                 {!isSidebarCollapsed ? (
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-semibold text-neutral-900">
@@ -486,14 +510,6 @@ export function DoctorsPortalFrame({
                     <p className="truncate text-[11px] text-neutral-400">
                       {doctorSpecialty}
                     </p>
-                    {!avatarUrl ? (
-                      <a
-                        href="/doctors/profile"
-                        className="mt-1 inline-flex text-[10px] font-bold uppercase tracking-wide text-amber-700 hover:text-amber-800"
-                      >
-                        Subir foto profesional
-                      </a>
-                    ) : null}
                   </div>
                 ) : null}
                 <button
@@ -505,23 +521,11 @@ export function DoctorsPortalFrame({
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              {!isSidebarCollapsed ? (
-                <div className="mt-3">
-                  <label className="inline-flex cursor-pointer items-center rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-50">
-                    {uploadingPhoto ? "Subiendo..." : "Subir foto profesional"}
-                    <input
-                      type="file"
-                      accept="image/png,image/webp,image/jpeg"
-                      className="hidden"
-                      disabled={uploadingPhoto}
-                      onChange={(event) => void handlePhotoUpload(event)}
-                    />
-                  </label>
-                  {photoError ? (
-                    <p className="mt-2 text-[11px] leading-relaxed text-red-600">
-                      {photoError}
-                    </p>
-                  ) : null}
+              {!isSidebarCollapsed && photoError ? (
+                <div className="mt-2">
+                  <p className="text-[11px] leading-relaxed text-red-600">
+                    {photoError}
+                  </p>
                 </div>
               ) : null}
             </div>

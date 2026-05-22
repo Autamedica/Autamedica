@@ -16,7 +16,7 @@ interface UseCurrentDoctorResult {
   doctor: DoctorWithProfile | null
   loading: boolean
   error: string | null
-  refetch: () => void
+  refetch: () => Promise<void>
 }
 
 export function useCurrentDoctor(userId?: string): UseCurrentDoctorResult {
@@ -59,7 +59,7 @@ interface UseDoctorsResult {
   doctors: DoctorWithProfile[]
   loading: boolean
   error: string | null
-  refetch: () => void
+  refetch: () => Promise<void>
 }
 
 export function useRealDoctors(): UseDoctorsResult {
@@ -120,7 +120,7 @@ interface UseDoctorsBySpecialtyResult {
   doctors: DoctorWithProfile[]
   loading: boolean
   error: string | null
-  refetch: () => void
+  refetch: () => Promise<void>
 }
 
 export function useDoctorsBySpecialty(specialty: string): UseDoctorsBySpecialtyResult {
