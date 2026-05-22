@@ -33,6 +33,7 @@ interface DoctorOption {
   has_availability?: boolean;
   label: string;
   license_number?: string | null;
+  avatar_url?: string | null;
 }
 
 interface SlotData {
@@ -376,14 +377,18 @@ export function CreateAppointmentModal({
                               : 'border-stone-100 hover:border-stone-200 hover:bg-stone-50/50'
                         }`}
                       >
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full ${
                           isDisabled
                             ? 'bg-stone-100 text-stone-400'
                             : isSelected
                               ? 'bg-stone-900 text-white'
                               : 'bg-stone-100 text-stone-500'
                         }`}>
-                          <UserRound className="h-5 w-5" />
+                          {doc.avatar_url ? (
+                            <img src={doc.avatar_url} alt={doc.label} className="h-full w-full object-cover" />
+                          ) : (
+                            <UserRound className="h-5 w-5" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-stone-900">{doc.label}</p>
