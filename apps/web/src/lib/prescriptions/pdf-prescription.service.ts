@@ -1,6 +1,7 @@
 import { getServerEnvOrDefault } from '@autamedica/shared';
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
+import fs from 'fs';
 import { getRuntimeEnvValue } from '@/lib/runtime-env';
 import { rctaService } from './rcta.service';
 import { getValidityPeriodDays } from './strict-validation';
@@ -197,6 +198,14 @@ export async function generatePrescriptionPdf(
   let careBannerTextColor: [number, number, number] = [15, 118, 110]; // teal-700
   let careBorderLeftColor: [number, number, number] = [13, 148, 136]; // teal-600
 
+  // Colores de tarjetas generales
+  let patientBgColor: [number, number, number] = [248, 250, 252];     // slate-50
+  let borderColor: [number, number, number] = [241, 245, 249];        // slate-100
+  let labelTextColor: [number, number, number] = [100, 116, 139];     // slate-500
+  let darkTextColor: [number, number, number] = [15, 23, 42];         // slate-900
+  let mediumTextColor: [number, number, number] = [51, 65, 85];        // slate-700
+  let infoTextColor: [number, number, number] = [71, 85, 105];         // slate-600
+
   if (template === 'empathetic') {
     // Empático / Cercano: Tonos de azul médico y verde clínico cálido
     headerBgColor = [2, 132, 199];          // sky-700 (Azul cálido)
@@ -210,17 +219,25 @@ export async function generatePrescriptionPdf(
     careBannerTextColor = [15, 118, 110];   // teal-700
     careBorderLeftColor = [8, 145, 178];    // cyan-700
   } else if (template === 'female') {
-    // Cálido / Femenino: Tonos rosa profundo y malva elegante
-    headerBgColor = [190, 24, 93];          // pink-700 (Rosa profundo/Malva)
-    headerAccentColor = [254, 242, 242];    // red-50
+    // Cálido / Femenino: Verde azulado médico / Teal clínico premium (#0d9488) con toques rosa pastel sutiles
+    headerBgColor = [13, 148, 136];         // #0d9488 (Teal clínico)
+    headerAccentColor = [253, 242, 248];    // pink-50
     
-    careHeaderBgColor = [219, 39, 119];     // pink-600
+    careHeaderBgColor = [13, 148, 136];     // #0d9488 (Teal clínico)
     careHeaderTextColor = [253, 242, 248];  // pink-50
-    careWelcomeTextColor = [219, 39, 119];  // pink-600
+    careWelcomeTextColor = [13, 148, 136];  // #0d9488
     
     careBannerBgColor = [253, 242, 248];    // pink-50
     careBannerTextColor = [157, 23, 77];    // pink-800
-    careBorderLeftColor = [219, 39, 119];   // pink-600
+    careBorderLeftColor = [13, 148, 136];   // #0d9488
+
+    // Tarjetas blancas refinadas con acentos rosa pastel suave
+    patientBgColor = [255, 255, 255];       // Fondo blanco puro
+    borderColor = [249, 168, 212];          // #f9a8d4 (Borde rosa pastel suave)
+    labelTextColor = [13, 148, 136];        // Teal clínico
+    darkTextColor = [15, 23, 42];           // Negro puro
+    mediumTextColor = [13, 148, 136];       // Teal clínico para specs
+    infoTextColor = [71, 85, 105];          // Slate-600
   }
 
   // Header (Dynamic Theme Background)
@@ -231,6 +248,15 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text('RECETA MÉDICA ELECTRÓNICA', marginLeft, 18);
+
+  // Dibuja el logo de AutaMedica si está disponible en local
+  try {
+    const logoBuffer = fs.readFileSync('apps/web/public/logo.png');
+    const logoBase64 = logoBuffer.toString('base64');
+    doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', marginLeft + 115, 10, 9, 9);
+  } catch (err) {
+    // Si falla la lectura local, no interrumpir el flujo
+  }
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
@@ -251,16 +277,27 @@ export async function generatePrescriptionPdf(
 
   // Patient info (Compliance Block)
   const patientBlockHeight = input.patient.address || input.patient.insurancePlan ? 40 : 32;
-  doc.setFillColor(248, 250, 252); 
+  doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]); 
   doc.rect(marginLeft, y, contentWidth, patientBlockHeight, 'F');
+
+  if (template === 'female') {
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.setLineWidth(0.3);
+    doc.rect(marginLeft, y, contentWidth, patientBlockHeight, 'S');
+    // Franja vertical de acento a la izquierda (ancho 3mm)
+    doc.setFillColor(headerBgColor[0], headerBgColor[1], headerBgColor[2]); // Teal médico
+    doc.rect(marginLeft, y, 3, patientBlockHeight, 'F');
+  }
+
+  const textOffset = template === 'female' ? 6 : 4;
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(100, 116, 139);
-  doc.text('DATOS DEL PACIENTE', marginLeft + 4, y + 6);
+  doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+  doc.text('DATOS DEL PACIENTE', marginLeft + textOffset, y + 6);
   
   doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42);
-  doc.text(input.patient.name, marginLeft + 4, y + 14);
+  doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
+  doc.text(input.patient.name, marginLeft + textOffset, y + 14);
 
   const patientSex = formatPatientSex(input.patient.sex);
   const patientMeta = [
@@ -272,73 +309,98 @@ export async function generatePrescriptionPdf(
   
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text(patientMeta, marginLeft + 4, y + 20);
+  doc.text(patientMeta, marginLeft + textOffset, y + 20);
   
   let extraLine = 0;
   if (input.patient.address) {
     doc.setFontSize(8);
-    doc.setTextColor(71, 85, 105);
-    doc.text(`Domicilio: ${input.patient.address}`, marginLeft + 4, y + 26);
+    doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
+    doc.text(`Domicilio: ${input.patient.address}`, marginLeft + textOffset, y + 26);
     extraLine += 6;
   }
   if (input.patient.insurancePlan) {
     doc.setFontSize(8);
-    doc.setTextColor(71, 85, 105);
-    doc.text(`OOSS / Plan: ${input.patient.insurancePlan}`, marginLeft + 4, y + 26 + extraLine);
+    doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
+    doc.text(`OOSS / Plan: ${input.patient.insurancePlan}`, marginLeft + textOffset, y + 26 + extraLine);
   }
   y += patientBlockHeight + 8;
 
   // Medication (IFA Prominence - Critical for Compliance)
-  doc.setFillColor(240, 249, 255); 
-  doc.rect(marginLeft, y, contentWidth, 45, 'F');
+  const medBlockHeight = 48;
+  doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]); 
+  doc.rect(marginLeft, y, contentWidth, medBlockHeight, 'F');
 
+  if (template === 'female') {
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.setLineWidth(0.3);
+    doc.rect(marginLeft, y, contentWidth, medBlockHeight, 'S');
+    // Franja vertical de acento a la izquierda (ancho 3mm)
+    doc.setFillColor(headerBgColor[0], headerBgColor[1], headerBgColor[2]); // Teal médico
+    doc.rect(marginLeft, y, 3, medBlockHeight, 'F');
+  }
+
+  const medTextOffset = template === 'female' ? 6 : 4;
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(2, 132, 199); 
-  doc.text('PRESCRIPCIÓN (IFA)', marginLeft + 4, y + 6);
+  doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+  doc.text('PRESCRIPCIÓN (IFA)', marginLeft + medTextOffset, y + 6);
 
-  // Generic Name (IFA) - Large and prominent
-  doc.setFontSize(16);
-  doc.setTextColor(15, 23, 42);
+  // Generic Name (IFA) - Large and prominent (20pt en template female)
+  doc.setFontSize(template === 'female' ? 20 : 16);
+  doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
   doc.setFont('helvetica', 'bold');
-  doc.text(input.medication.genericName.toUpperCase(), marginLeft + 4, y + 16);
+  doc.text(input.medication.genericName.toUpperCase(), marginLeft + medTextOffset, y + 16);
 
   if (input.medication.commercialName) {
     doc.setFontSize(10);
-    doc.setTextColor(100, 116, 139);
+    doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Sugerido: ${input.medication.commercialName}`, marginLeft + 4, y + 23);
+    doc.text(`Sugerido: ${input.medication.commercialName}`, marginLeft + medTextOffset, y + 23);
   }
 
   doc.setFontSize(10);
-  doc.setTextColor(30, 41, 59);
+  doc.setTextColor(mediumTextColor[0], mediumTextColor[1], mediumTextColor[2]);
   doc.setFont('helvetica', 'bold');
   const medSpecs = `${input.medication.dosage} — ${input.medication.presentation}`;
-  doc.text(medSpecs, marginLeft + 4, y + 30);
-  doc.text(`Cantidad: ${input.medication.quantity} unidades`, marginLeft + 4, y + 36);
+  doc.text(medSpecs, marginLeft + medTextOffset, y + 30);
+  doc.text(`Cantidad: ${input.medication.quantity} unidades`, marginLeft + medTextOffset, y + 36);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'italic');
-  doc.text(input.medication.instructions, marginLeft + 4, y + 42, { maxWidth: contentWidth - 8 });
-  y += 55;
+  doc.text(input.medication.instructions, marginLeft + medTextOffset, y + 42, { maxWidth: contentWidth - (template === 'female' ? 12 : 8) });
+  y += medBlockHeight + 8;
 
-  // Diagnosis
+  // Diagnosis (IFA Prominence - Premium Medical Card)
+  const diagnosisHeight = 16;
+  doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]); 
+  doc.rect(marginLeft, y, contentWidth, diagnosisHeight, 'F');
+  
+  if (template === 'female') {
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.setLineWidth(0.3);
+    doc.rect(marginLeft, y, contentWidth, diagnosisHeight, 'S');
+    // Franja vertical de acento a la izquierda (ancho 3mm)
+    doc.setFillColor(headerBgColor[0], headerBgColor[1], headerBgColor[2]); // Teal médico
+    doc.rect(marginLeft, y, 3, diagnosisHeight, 'F');
+  }
+
+  const diagTextOffset = template === 'female' ? 6 : 4;
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(100, 116, 139);
-  doc.text('DIAGNÓSTICO / INDICACIONES', marginLeft, y);
-  y += 5;
+  doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+  doc.text('DIAGNÓSTICO / INDICACIONES', marginLeft + diagTextOffset, y + 5);
+  
   doc.setFontSize(10);
-  doc.setTextColor(15, 23, 42);
+  doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
   doc.setFont('helvetica', 'normal');
-  doc.text(input.diagnosis || 'Criterio clínico', marginLeft, y, { maxWidth: contentWidth });
-  y += 12;
+  doc.text(input.diagnosis || 'Criterio clínico', marginLeft + diagTextOffset, y + 11, { maxWidth: contentWidth - (template === 'female' ? 12 : 8) });
+  y += diagnosisHeight + 8;
 
   // Notes
   if (input.notes) {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(100, 116, 139);
+    doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
     doc.text('OBSERVACIONES ADICIONALES', marginLeft, y);
     y += 5;
     doc.setFontSize(9);
@@ -350,58 +412,93 @@ export async function generatePrescriptionPdf(
   const barcodeY = 192;
   doc.setFillColor(255, 255, 255);
   doc.rect(marginLeft, barcodeY, contentWidth, 16, 'F');
-  doc.setDrawColor(226, 232, 240);
-  doc.rect(marginLeft, barcodeY, contentWidth, 16);
+  
+  if (template === 'female') {
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.setLineWidth(0.3);
+    doc.rect(marginLeft, barcodeY, contentWidth, 16, 'S');
+    // Franja vertical de acento a la izquierda (ancho 3mm)
+    doc.setFillColor(headerBgColor[0], headerBgColor[1], headerBgColor[2]); // Teal médico
+    doc.rect(marginLeft, barcodeY, 3, 16, 'F');
+  } else {
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(marginLeft, barcodeY, contentWidth, 16);
+  }
+
+  const barcodeOffset = template === 'female' ? 6 : 4;
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(100, 116, 139);
-  doc.text(barcodeTitle, marginLeft + 4, barcodeY + 5);
+  doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+  doc.text(barcodeTitle, marginLeft + barcodeOffset, barcodeY + 5);
   drawCode128Barcode(doc, barcodeValue, marginLeft + 48, barcodeY + 3, 78, 8);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(15, 23, 42);
+  doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
   doc.text(`${barcodeDisplayLabel}: ${barcodeValue}`, marginLeft + 48, barcodeY + 14);
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
   doc.text(barcodeLegend, marginLeft + 132, barcodeY + 9);
 
-  // Prescriber (Regulatory Info Block)
+  // Prescriber (Regulatory Info Block - Premium Medical Card)
   y = 210; // Fixed position for footer block
-  doc.setDrawColor(226, 232, 240);
-  doc.line(marginLeft, y, marginLeft + contentWidth, y);
-  y += 8;
-
+  const prescriberBlockHeight = 30;
+  
+  doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]);
+  doc.rect(marginLeft, y, contentWidth, prescriberBlockHeight, 'F');
+  
+  if (template === 'female') {
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.setLineWidth(0.3);
+    doc.rect(marginLeft, y, contentWidth, prescriberBlockHeight, 'S');
+    // Franja vertical de acento a la izquierda (ancho 3mm)
+    doc.setFillColor(headerBgColor[0], headerBgColor[1], headerBgColor[2]); // Teal médico
+    doc.rect(marginLeft, y, 3, prescriberBlockHeight, 'F');
+  } else {
+    doc.setDrawColor(226, 232, 240);
+    doc.line(marginLeft, y, marginLeft + contentWidth, y);
+  }
+  
+  const presTextOffset = template === 'female' ? 6 : 4;
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(100, 116, 139);
-  doc.text('PROFESIONAL PRESCRIPTOR', marginLeft, y);
+  doc.setTextColor(labelTextColor[0], labelTextColor[1], labelTextColor[2]);
+  doc.text('PROFESIONAL PRESCRIPTOR', marginLeft + presTextOffset, y + 6);
   
-  y += 7;
-  doc.setFontSize(12);
-  doc.setTextColor(15, 23, 42);
-  doc.text(input.prescriber.name, marginLeft, y);
+  const doctorY = y + 13;
+  if (template === 'female') {
+    doc.setFont('times', 'bolditalic');
+    doc.setFontSize(14); // Más dibujada, elegante y distinguida
+  } else {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+  }
+  doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
+  doc.text(input.prescriber.name, marginLeft + presTextOffset, doctorY);
+  doc.setFont('helvetica', 'normal'); // Restaurar tipografía default
   
-  y += 5;
+  const detailsY = doctorY + 5;
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   const prescriberInfo = [
     input.prescriber.profession || 'Médico/a',
     input.prescriber.specialty ? `Esp: ${input.prescriber.specialty}` : null,
   ].filter(Boolean).join('  |  ');
-  doc.text(prescriberInfo, marginLeft, y);
+  doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
+  doc.text(prescriberInfo, marginLeft + presTextOffset, detailsY);
 
-  y += 5;
+  const licenseY = detailsY + 5;
   doc.setFontSize(8);
   const licenseInfo = [
     `Matrícula: ${input.prescriber.license} (${input.prescriber.licenseJurisdiction || 'MN'})`,
     input.prescriber.refeps ? `REFEPS: ${input.prescriber.refeps}` : null,
     input.prescriber.licenseEntity ? `Entidad: ${input.prescriber.licenseEntity}` : null,
   ].filter(Boolean).join('  —  ');
-  doc.text(licenseInfo, marginLeft, y);
+  doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
+  doc.text(licenseInfo, marginLeft + presTextOffset, licenseY);
 
   if (input.prescriber.professionalAddress) {
-    y += 4;
     doc.setFontSize(7);
-    doc.text(`Domicilio profesional: ${input.prescriber.professionalAddress}`, marginLeft, y);
+    doc.setTextColor(infoTextColor[0], infoTextColor[1], infoTextColor[2]);
+    doc.text(`Domicilio profesional: ${input.prescriber.professionalAddress}`, marginLeft + presTextOffset, licenseY + 4);
   }
 
   // Firma Digital
@@ -418,7 +515,7 @@ export async function generatePrescriptionPdf(
       doc.addImage(sigDataUrl, sigFormat, marginLeft, signatureY, 35, 20);
     } catch {
       // Fallback: draw placeholder if image fetch fails
-      doc.setFillColor(248, 250, 252);
+      doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]);
       doc.rect(marginLeft, signatureY, 35, 20, 'F');
     }
   }
@@ -440,15 +537,26 @@ export async function generatePrescriptionPdf(
   // Digital signature info box (next to visual signature)
   const infoBoxX = input.prescriber.stampImageUrl ? marginLeft + 80 : marginLeft + 40;
   const infoBoxWidth = pageWidth - 20 - infoBoxX;
-  doc.setFillColor(248, 250, 252);
+  doc.setFillColor(patientBgColor[0], patientBgColor[1], patientBgColor[2]);
   doc.rect(infoBoxX, signatureY, infoBoxWidth, 25, 'F');
-  doc.setDrawColor(15, 23, 42);
-  doc.rect(infoBoxX, signatureY, infoBoxWidth, 25);
+  
+  if (template === 'female') {
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.setLineWidth(0.3);
+    doc.rect(infoBoxX, signatureY, infoBoxWidth, 25, 'S');
+    // Franja vertical de acento a la izquierda (ancho 2.5mm)
+    doc.setFillColor(headerBgColor[0], headerBgColor[1], headerBgColor[2]); // Teal médico
+    doc.rect(infoBoxX, signatureY, 2.5, 25, 'F');
+  } else {
+    doc.setDrawColor(15, 23, 42);
+    doc.rect(infoBoxX, signatureY, infoBoxWidth, 25);
+  }
 
+  const sigInfoOffset = template === 'female' ? 5 : 3;
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(15, 23, 42);
-  doc.text('FIRMA ELECTRÓNICA', infoBoxX + 3, signatureY + 5);
+  doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
+  doc.text('FIRMA ELECTRÓNICA', infoBoxX + sigInfoOffset, signatureY + 5);
   doc.setFontSize(5.5);
   doc.setFont('helvetica', 'normal');
   const signatureLegend = doc.splitTextToSize(
