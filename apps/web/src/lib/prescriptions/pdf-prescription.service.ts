@@ -55,6 +55,7 @@ export interface PrescriptionPdfInput {
     warnings?: string | null;
     lifestyle?: string | null;
   };
+  template?: 'neutral' | 'female' | 'empathetic';
 }
 
 export interface PrescriptionArtifacts {
@@ -181,8 +182,49 @@ export async function generatePrescriptionPdf(
   const contentWidth = pageWidth - 40;
   let y = 20;
 
-  // Header (Dark Slate - Premium Look)
-  doc.setFillColor(15, 23, 42); 
+  // 1. Resolver el template estético de la receta
+  const template = input.template ?? 'neutral';
+
+  // Configuración de Paletas de Color según Template
+  let headerBgColor: [number, number, number] = [15, 23, 42];        // #0f172a (Dark Slate)
+  let headerAccentColor: [number, number, number] = [56, 189, 248];   // sky-400 (celeste)
+  
+  let careHeaderBgColor: [number, number, number] = [13, 148, 136];   // teal-600
+  let careHeaderTextColor: [number, number, number] = [204, 251, 241]; // teal-100
+  let careWelcomeTextColor: [number, number, number] = [13, 148, 136]; // teal-600
+  
+  let careBannerBgColor: [number, number, number] = [240, 253, 250];  // teal-50
+  let careBannerTextColor: [number, number, number] = [15, 118, 110]; // teal-700
+  let careBorderLeftColor: [number, number, number] = [13, 148, 136]; // teal-600
+
+  if (template === 'empathetic') {
+    // Empático / Cercano: Tonos de azul médico y verde clínico cálido
+    headerBgColor = [2, 132, 199];          // sky-700 (Azul cálido)
+    headerAccentColor = [254, 243, 199];    // amber-100 para contraste
+    
+    careHeaderBgColor = [8, 145, 178];      // cyan-700
+    careHeaderTextColor = [224, 242, 254];  // cyan-100
+    careWelcomeTextColor = [8, 145, 178];   // cyan-700
+    
+    careBannerBgColor = [240, 253, 250];    // teal-50
+    careBannerTextColor = [15, 118, 110];   // teal-700
+    careBorderLeftColor = [8, 145, 178];    // cyan-700
+  } else if (template === 'female') {
+    // Cálido / Femenino: Tonos rosa profundo y malva elegante
+    headerBgColor = [190, 24, 93];          // pink-700 (Rosa profundo/Malva)
+    headerAccentColor = [254, 242, 242];    // red-50
+    
+    careHeaderBgColor = [219, 39, 119];     // pink-600
+    careHeaderTextColor = [253, 242, 248];  // pink-50
+    careWelcomeTextColor = [219, 39, 119];  // pink-600
+    
+    careBannerBgColor = [253, 242, 248];    // pink-50
+    careBannerTextColor = [157, 23, 77];    // pink-800
+    careBorderLeftColor = [219, 39, 119];   // pink-600
+  }
+
+  // Header (Dynamic Theme Background)
+  doc.setFillColor(headerBgColor[0], headerBgColor[1], headerBgColor[2]); 
   doc.rect(0, 0, pageWidth, 45, 'F');
 
   doc.setTextColor(255, 255, 255);
@@ -193,7 +235,7 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text('Sistema Nacional de Trazabilidad de Actos (RCTA)', marginLeft, 26);
-  doc.setTextColor(56, 189, 248); // sky-400 for CUIR
+  doc.setTextColor(headerAccentColor[0], headerAccentColor[1], headerAccentColor[2]);
   doc.setFont('helvetica', 'bold');
   doc.text(`CUIR: ${cuir}`, marginLeft, 33);
   
@@ -462,8 +504,8 @@ export async function generatePrescriptionPdf(
   // Agregamos una nueva página
   doc.addPage();
 
-  // Cabecera premium en verde cerceta/teal profundo
-  doc.setFillColor(13, 148, 136); // teal-600
+  // Cabecera premium con color de fondo dinámico según el template
+  doc.setFillColor(careHeaderBgColor[0], careHeaderBgColor[1], careHeaderBgColor[2]);
   doc.rect(0, 0, pageWidth, 40, 'F');
 
   doc.setTextColor(255, 255, 255);
@@ -473,7 +515,7 @@ export async function generatePrescriptionPdf(
 
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(204, 251, 241); // teal-100
+  doc.setTextColor(careHeaderTextColor[0], careHeaderTextColor[1], careHeaderTextColor[2]);
   doc.text('Diseñada con precisión médica y soporte inteligente para ayudarte a cumplir tu tratamiento de forma segura.', marginLeft, 24);
   doc.text(`Paciente: ${input.patient.name}  |  Medicamento: ${input.medication.genericName}`, marginLeft, 30);
 
@@ -482,13 +524,13 @@ export async function generatePrescriptionPdf(
 
   let py = 50;
 
-  // Tarjeta de Fármaco e Información General
-  doc.setFillColor(240, 253, 250); // teal-50
+  // Tarjeta de Fármaco e Información General con colores dinámicos
+  doc.setFillColor(careBannerBgColor[0], careBannerBgColor[1], careBannerBgColor[2]);
   doc.rect(marginLeft, py, contentWidth, 22, 'F');
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(15, 118, 110); // teal-700
+  doc.setTextColor(careBannerTextColor[0], careBannerTextColor[1], careBannerTextColor[2]);
   doc.text(`${input.medication.genericName} ${input.medication.dosage}`, marginLeft + 6, py + 8);
 
   doc.setFontSize(7.5);
@@ -513,7 +555,9 @@ export async function generatePrescriptionPdf(
     doc.setFillColor(...bgColor);
     doc.rect(marginLeft, py, contentWidth, 28, 'F');
     
-    doc.setDrawColor(...borderColor);
+    // Si el borde de acento izquierdo no es por defecto, usamos el color dinámico de acento del template
+    const borderAccent = borderColor === careBorderLeftColor ? careBorderLeftColor : borderColor;
+    doc.setDrawColor(borderAccent[0], borderAccent[1], borderAccent[2]);
     doc.setLineWidth(0.3);
     doc.line(marginLeft, py, marginLeft, py + 28); // Línea lateral de acento
 
@@ -531,13 +575,13 @@ export async function generatePrescriptionPdf(
     py += 34;
   };
 
-  // Bloque 1: Consejos de toma
+  // Bloque 1: Consejos de toma (Usa acento dinámico)
   drawCareBlock(
     'CÓMO TOMAR TU MEDICACIÓN',
     careTips,
     '💡',
     [248, 250, 252], // slate-50
-    [203, 213, 225], // slate-300
+    careBorderLeftColor, // Usa acento dinámico de color
     [15, 23, 42]     // slate-900
   );
 
@@ -561,20 +605,20 @@ export async function generatePrescriptionPdf(
     [185, 28, 28]    // red-700
   );
 
-  // Bloque 4: Recomendaciones y bienestar
+  // Bloque 4: Recomendaciones y bienestar (Usa acento dinámico)
   drawCareBlock(
     'BIENESTAR Y RECOMENDACIONES CLÍNICAS',
     careLifestyle,
     '🥗',
     [240, 253, 244], // green-50
-    [74, 222, 128],  // green-400
+    careBorderLeftColor, // Usa acento dinámico de color
     [21, 128, 61]    // green-700
   );
 
   // Mensaje final cálido del equipo médico
   doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
-  doc.setTextColor(13, 148, 136); // teal-600
+  doc.setTextColor(careWelcomeTextColor[0], careWelcomeTextColor[1], careWelcomeTextColor[2]);
   doc.text('Tu médico de cabecera y el equipo de AutaMedica te desean una pronta y excelente recuperación.', marginLeft, py + 4);
 
   const pdfBuffer = new Uint8Array(doc.output('arraybuffer'));

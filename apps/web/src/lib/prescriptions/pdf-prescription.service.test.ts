@@ -192,4 +192,53 @@ describe('generatePrescriptionPdf', () => {
     expect(pdfText).toContain('RECETA FARMALINK: 9600000002762');
     expect(pdfText).toContain('Número de receta para validación online en farmacia');
   });
+
+  it('generates pdf correctly for female and empathetic aesthetic templates', async () => {
+    vi.spyOn(rctaService, 'registerPrescription').mockResolvedValue({
+      cuir: 'AR-20260522-TEMPLATES',
+      evidenceHash: 'test-evidence-hash',
+      registrationId: 'rcta_idx_test',
+      timestamp: '2026-05-22T12:00:00.000Z',
+    });
+
+    const commonInput = {
+      prescriptionId: 'rx-template-test',
+      diagnosis: 'Control',
+      issuedAt: '2026-05-22',
+      medication: {
+        genericName: 'Amoxicilina',
+        dosage: '500mg',
+        instructions: 'Tomar segun indicacion medica',
+        presentation: 'Comprimidos',
+        quantity: 16,
+      },
+      patient: {
+        dni: '30123456',
+        name: 'Maria Gonzalez',
+      },
+      prescriber: {
+        license: 'MN-123456',
+        name: 'Dr. Eduardo Marques da Rosa',
+      },
+    };
+
+    const artifactsFemale = await generatePrescriptionPdf({
+      ...commonInput,
+      template: 'female',
+    });
+
+    const artifactsEmpathetic = await generatePrescriptionPdf({
+      ...commonInput,
+      template: 'empathetic',
+    });
+
+    expect(artifactsFemale.cuir).toBe('AR-20260522-TEMPLATES');
+    expect(artifactsEmpathetic.cuir).toBe('AR-20260522-TEMPLATES');
+
+    const pdfTextFemale = Buffer.from(artifactsFemale.pdfBuffer).toString('latin1');
+    const pdfTextEmpathetic = Buffer.from(artifactsEmpathetic.pdfBuffer).toString('latin1');
+
+    expect(pdfTextFemale).toContain('RECETA MÉDICA ELECTRÓNICA');
+    expect(pdfTextEmpathetic).toContain('RECETA MÉDICA ELECTRÓNICA');
+  });
 });

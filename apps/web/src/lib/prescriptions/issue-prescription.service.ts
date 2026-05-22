@@ -482,7 +482,7 @@ export async function issuePrescription(
   // 1. Resolve and validate doctor
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url')
+    .select('id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
     .eq('user_id', userId)
     .single();
 
@@ -597,6 +597,7 @@ export async function issuePrescription(
       warnings: clinicalData.care_guide_warnings,
       lifestyle: clinicalData.care_guide_lifestyle,
     },
+    template: doctor.care_guide_template ?? 'neutral',
   });
 
   // 6b. Attempt PAdES digital signing if doctor has a certificate
@@ -782,7 +783,7 @@ export async function regenerateIssuedPrescriptionPdf(
 ): Promise<Result> {
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url')
+    .select('id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
     .eq('user_id', userId)
     .single();
 
@@ -872,6 +873,7 @@ export async function regenerateIssuedPrescriptionPdf(
       warnings: clinicalData.care_guide_warnings,
       lifestyle: clinicalData.care_guide_lifestyle,
     },
+    template: doctor.care_guide_template ?? 'neutral',
   });
 
   const pdfPath = getPrescriptionStoragePath(rx.cuir, rx.signed_pdf_url);
