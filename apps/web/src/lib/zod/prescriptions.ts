@@ -36,6 +36,10 @@ const DoctorPrescriptionCreateBaseSchema = z.object({
   notes: OptionalNullableText(2000),
   side_effects_warning: OptionalNullableText(2000),
   diagnosis: OptionalNullableText(500),
+  care_guide_tips: OptionalNullableText(4000),
+  care_guide_forgotten: OptionalNullableText(4000),
+  care_guide_warnings: OptionalNullableText(4000),
+  care_guide_lifestyle: OptionalNullableText(4000),
 })
 
 export const DoctorPrescriptionCreateSchema = DoctorPrescriptionCreateBaseSchema

@@ -149,6 +149,12 @@ export interface Prescription {
   artifact_warning?: string | null;
   requires_strict_validation?: boolean;
 
+  // Campos para la Guía de Cuidado Personalizado enriquecida por IA y editada por el médico
+  care_guide_tips?: string | null;
+  care_guide_forgotten?: string | null;
+  care_guide_warnings?: string | null;
+  care_guide_lifestyle?: string | null;
+
   created_at: ISODateString;
   updated_at: ISODateString;
 }

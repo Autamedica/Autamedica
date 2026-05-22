@@ -49,6 +49,12 @@ export interface PrescriptionPdfInput {
     displayLabel?: string;
     legend?: string;
   };
+  careGuide?: {
+    tips?: string | null;
+    forgotten?: string | null;
+    warnings?: string | null;
+    lifestyle?: string | null;
+  };
 }
 
 export interface PrescriptionArtifacts {
@@ -439,6 +445,137 @@ export async function generatePrescriptionPdf(
     marginLeft,
     footerY + 14,
   );
+
+  // ==========================================
+  // PÁGINA 2: GUÍA DE ACOMPAÑAMIENTO AL PACIENTE
+  // ==========================================
+  
+  const careTips = input.careGuide?.tips || 
+    `Hola ${input.patient.name}, recordá tomar este medicamento respetando los intervalos de horas indicados por tu médico. Acompañalo con un vaso de agua y consultá las indicaciones de alimentación.`;
+  const careForgotten = input.careGuide?.forgotten || 
+    'Si omitís una dosis, tomala apenas lo recuerdes, a menos que ya falte poco para la siguiente toma. En ese caso, salteá la dosis olvidada. ¡Nunca tomes una dosis doble para compensar!';
+  const careWarnings = input.careGuide?.warnings || 
+    'Prestá atención a cómo responde tu cuerpo. Si presentás sarpullido severo, dificultad al respirar o inflamación, suspendé el tratamiento de inmediato y acudí a urgencias.';
+  const careLifestyle = input.careGuide?.lifestyle || 
+    `Para acompañar tu tratamiento ${input.diagnosis ? `de ${input.diagnosis}` : ''}, te sugerimos priorizar el descanso, mantener una excelente hidratación y llevar una alimentación liviana.`;
+
+  // Agregamos una nueva página
+  doc.addPage();
+
+  // Cabecera premium en verde cerceta/teal profundo
+  doc.setFillColor(13, 148, 136); // teal-600
+  doc.rect(0, 0, pageWidth, 40, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('GUÍA DE ACOMPAÑAMIENTO AL PACIENTE', marginLeft, 16);
+
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(204, 251, 241); // teal-100
+  doc.text('Diseñada con precisión médica y soporte inteligente para ayudarte a cumplir tu tratamiento de forma segura.', marginLeft, 24);
+  doc.text(`Paciente: ${input.patient.name}  |  Medicamento: ${input.medication.genericName}`, marginLeft, 30);
+
+  // QR para escaneo rápido
+  doc.addImage(qrDataUrl, 'PNG', pageWidth - 45, 6, 28, 28);
+
+  let py = 50;
+
+  // Tarjeta de Fármaco e Información General
+  doc.setFillColor(240, 253, 250); // teal-50
+  doc.rect(marginLeft, py, contentWidth, 22, 'F');
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 118, 110); // teal-700
+  doc.text(`${input.medication.genericName} ${input.medication.dosage}`, marginLeft + 6, py + 8);
+
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105); // slate-600
+  doc.text(`Esquema prescrito: ${input.medication.instructions}`, marginLeft + 6, py + 14);
+  if (input.diagnosis) {
+    doc.text(`Diagnóstico asociado: ${input.diagnosis}`, marginLeft + 100, py + 14);
+  }
+
+  py += 30;
+
+  // Función helper para dibujar cada bloque de cuidado
+  const drawCareBlock = (
+    title: string,
+    content: string,
+    iconChar: string,
+    bgColor: [number, number, number],
+    borderColor: [number, number, number],
+    textColor: [number, number, number]
+  ) => {
+    doc.setFillColor(...bgColor);
+    doc.rect(marginLeft, py, contentWidth, 28, 'F');
+    
+    doc.setDrawColor(...borderColor);
+    doc.setLineWidth(0.3);
+    doc.line(marginLeft, py, marginLeft, py + 28); // Línea lateral de acento
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...textColor);
+    doc.text(`${iconChar} ${title}`, marginLeft + 6, py + 6);
+
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(51, 65, 85); // slate-700
+    const lines = doc.splitTextToSize(content, contentWidth - 12);
+    doc.text(lines, marginLeft + 6, py + 12);
+
+    py += 34;
+  };
+
+  // Bloque 1: Consejos de toma
+  drawCareBlock(
+    'CÓMO TOMAR TU MEDICACIÓN',
+    careTips,
+    '💡',
+    [248, 250, 252], // slate-50
+    [203, 213, 225], // slate-300
+    [15, 23, 42]     // slate-900
+  );
+
+  // Bloque 2: Qué hacer ante olvidos
+  drawCareBlock(
+    'QUÉ HACER SI TE OLVIDÁS DE UNA TOMA',
+    careForgotten,
+    '🔄',
+    [254, 243, 199], // amber-100
+    [251, 191, 36],  // amber-400
+    [180, 83, 9]     // amber-700
+  );
+
+  // Bloque 3: Efectos esperados y alertas
+  drawCareBlock(
+    'SÍNTOMAS COMUNES Y ALERTAS DE URGENCIA',
+    careWarnings,
+    '⚠️',
+    [254, 242, 242], // red-50
+    [248, 113, 113], // red-400
+    [185, 28, 28]    // red-700
+  );
+
+  // Bloque 4: Recomendaciones y bienestar
+  drawCareBlock(
+    'BIENESTAR Y RECOMENDACIONES CLÍNICAS',
+    careLifestyle,
+    '🥗',
+    [240, 253, 244], // green-50
+    [74, 222, 128],  // green-400
+    [21, 128, 61]    // green-700
+  );
+
+  // Mensaje final cálido del equipo médico
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(13, 148, 136); // teal-600
+  doc.text('Tu médico de cabecera y el equipo de AutaMedica te desean una pronta y excelente recuperación.', marginLeft, py + 4);
 
   const pdfBuffer = new Uint8Array(doc.output('arraybuffer'));
   const pdfFilename = `receta-ar-${cuir}.pdf`;

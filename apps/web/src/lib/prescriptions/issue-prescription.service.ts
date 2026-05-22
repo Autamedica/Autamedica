@@ -50,6 +50,10 @@ interface ClinicalData {
     birth_date?: string;
     gender?: string;
   };
+  care_guide_tips?: string | null;
+  care_guide_forgotten?: string | null;
+  care_guide_warnings?: string | null;
+  care_guide_lifestyle?: string | null;
 }
 
 function addDays(date: Date, days: number): Date {
@@ -587,6 +591,12 @@ export async function issuePrescription(
     },
     issuedAt: now,
     expiresAt,
+    careGuide: {
+      tips: clinicalData.care_guide_tips,
+      forgotten: clinicalData.care_guide_forgotten,
+      warnings: clinicalData.care_guide_warnings,
+      lifestyle: clinicalData.care_guide_lifestyle,
+    },
   });
 
   // 6b. Attempt PAdES digital signing if doctor has a certificate
@@ -856,6 +866,12 @@ export async function regenerateIssuedPrescriptionPdf(
     },
     issuedAt: now,
     expiresAt,
+    careGuide: {
+      tips: clinicalData.care_guide_tips,
+      forgotten: clinicalData.care_guide_forgotten,
+      warnings: clinicalData.care_guide_warnings,
+      lifestyle: clinicalData.care_guide_lifestyle,
+    },
   });
 
   const pdfPath = getPrescriptionStoragePath(rx.cuir, rx.signed_pdf_url);

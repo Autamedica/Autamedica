@@ -74,6 +74,10 @@ interface PrescriptionContent {
     duration?: string;
     instructions?: string;
   }>;
+  care_guide_tips?: string | null;
+  care_guide_forgotten?: string | null;
+  care_guide_warnings?: string | null;
+  care_guide_lifestyle?: string | null;
   [key: string]: unknown;
 }
 
@@ -103,6 +107,10 @@ export interface DoctorPrescriptionWritePayload {
   notes?: string | null;
   diagnosis?: string | null;
   side_effects_warning?: string | null;
+  care_guide_tips?: string | null;
+  care_guide_forgotten?: string | null;
+  care_guide_warnings?: string | null;
+  care_guide_lifestyle?: string | null;
 }
 
 export interface ExternalPrescriptionPatient {
@@ -351,6 +359,10 @@ export function mapCoreRowToPrescription(row: CorePrescriptionRow): Prescription
     is_digital_artifact_ready: digitalArtifactReady,
     artifact_warning: artifactWarning,
     requires_strict_validation: requiresStrictValidation,
+    care_guide_tips: content.care_guide_tips ?? null,
+    care_guide_forgotten: content.care_guide_forgotten ?? null,
+    care_guide_warnings: content.care_guide_warnings ?? null,
+    care_guide_lifestyle: content.care_guide_lifestyle ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -417,6 +429,10 @@ function buildClinicalDataFromPayload(
     ...(externalPatient ? { external_patient: externalPatient } : {}),
     notes: payload.notes ?? null,
     side_effects_warning: payload.side_effects_warning ?? null,
+    care_guide_tips: payload.care_guide_tips ?? current?.care_guide_tips ?? null,
+    care_guide_forgotten: payload.care_guide_forgotten ?? current?.care_guide_forgotten ?? null,
+    care_guide_warnings: payload.care_guide_warnings ?? current?.care_guide_warnings ?? null,
+    care_guide_lifestyle: payload.care_guide_lifestyle ?? current?.care_guide_lifestyle ?? null,
     status: clinicalStatus,
     clinical_status: clinicalStatus,
     prescribed_date: prescribedDate,
