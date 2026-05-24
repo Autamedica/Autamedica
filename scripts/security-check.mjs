@@ -202,6 +202,10 @@ function checkForSecrets() {
     /github_pat_[a-zA-Z0-9_]{82}/, // GitHub Personal Access Tokens
     /ghp_[a-zA-Z0-9]{36}/, // GitHub Personal Access Tokens (classic)
     /xoxb-[0-9]{12}-[0-9]{12}-[a-zA-Z0-9]{24}/, // Slack Bot Tokens
+    /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/, // JWT-like tokens, including Supabase anon/service_role
+    /sbp_[A-Za-z0-9]{20,}/, // Supabase access tokens
+    /SUPABASE_SERVICE_ROLE_KEY\s*[:=]\s*['"][^'"]+['"]/, // Supabase service role hardcoded assignment
+    /SUPABASE_ACCESS_TOKEN\s*[:=]\s*['"][^'"]+['"]/, // Supabase access token hardcoded assignment
   ];
 
   function scanDirectory(dir) {

@@ -163,7 +163,7 @@ if command -v supabase &> /dev/null; then
     echo "  supabase login"
     echo ""
     echo "O exporta un access token:"
-    echo "  export SUPABASE_ACCESS_TOKEN='sbp_tu_token_aqui'"
+    echo "  export SUPABASE_ACCESS_TOKEN='sbp_<token>_token_aqui'"
     echo ""
   fi
 fi

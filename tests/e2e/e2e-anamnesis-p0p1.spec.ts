@@ -14,9 +14,13 @@
  */
 import { chromium, type Page } from 'playwright';
 
-const SB_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
-const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4ampycGtzbXd3cm11Ymh2amV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTA0NjgsImV4cCI6MjA4Nzk2NjQ2OH0.Cnb_sTp_C3FYFF19YQfHTfyMiFFMN0aw2Xj0hUU-aa0';
-const SB_SRV = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4ampycGtzbXd3cm11Ymh2amV3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjM5MDQ2OCwiZXhwIjoyMDg3OTY2NDY4fQ.1mkkee3DSFOnuN7sI_D4buAxC_wNOcFGga_fhvs9zAo';
+const SB_URL = process.env.PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? 'https://qxjjrpksmwwrmubhvjew.supabase.co';
+const SB_ANON = process.env.PUBLIC_SUPABASE_ANON_KEY;
+const SB_SRV = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SB_ANON || !SB_SRV) {
+  throw new Error('Missing PUBLIC_SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY');
+}
 const BASE = 'http://localhost:3000';
 const OUT = '/tmp/anamnesis-e2e';
 
@@ -74,18 +78,15 @@ async function run() {
   // Inject cookies via @supabase/ssr createBrowserClient
   await page.goto(`${BASE}/auth/login`, { waitUntil: 'networkidle', timeout: 15000 });
   await page.waitForTimeout(1500);
-  const authOk = await page.evaluate(async (s) => {
+  const authOk = await page.evaluate(async ({ session, supabaseUrl, supabaseAnonKey }) => {
     const { createBrowserClient } = await import('https://esm.sh/@supabase/ssr@0.6.1');
-    const sb = createBrowserClient(
-      'https://qxjjrpksmwwrmubhvjew.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4ampycGtzbXd3cm11Ymh2amV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTA0NjgsImV4cCI6MjA4Nzk2NjQ2OH0.Cnb_sTp_C3FYFF19YQfHTfyMiFFMN0aw2Xj0hUU-aa0'
-    );
+    const sb = createBrowserClient(supabaseUrl, supabaseAnonKey);
     const { data, _error } = await sb.auth.setSession({
-      access_token: s.access_token,
-      refresh_token: s.refresh_token,
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
     });
     return { ok: !!data?.session, cookies: document.cookie.includes('sb-') };
-  }, session);
+  }, { session, supabaseUrl: SB_URL, supabaseAnonKey: SB_ANON });
   record('auth:cookies', authOk.ok && authOk.cookies, `session=${authOk.ok}, cookies=${authOk.cookies}`);
 
   // ── Completed View ──

@@ -22,7 +22,7 @@ fi
 echo "🔐 Verificando acceso a Supabase..."
 
 # Usar el token que ya tienes configurado
-export SUPABASE_ACCESS_TOKEN="sbp_aa74b7707840d07be814d4f92adde20dd35d3c16"
+: "${SUPABASE_ACCESS_TOKEN:?SUPABASE_ACCESS_TOKEN is required}"
 
 if ! supabase projects list 2>/dev/null | grep -q "$PROJECT_REF"; then
     echo "❌ No se puede acceder al proyecto Supabase."

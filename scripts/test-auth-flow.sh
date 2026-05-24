@@ -39,7 +39,7 @@ echo ""
 echo "3️⃣ Verificando configuración Supabase..."
 SUPABASE_CONFIG=$(curl -s -X GET \
   "https://api.supabase.com/v1/projects/qxjjrpksmwwrmubhvjew/config/auth" \
-  -H "Authorization: Bearer sbp_aa74b7707840d07be814d4f92adde20dd35d3c16" \
+  -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN:?SUPABASE_ACCESS_TOKEN is required}" \
   -H "Content-Type: application/json")
 
 SITE_URL=$(echo "$SUPABASE_CONFIG" | grep -o '"site_url":"[^"]*"' | cut -d'"' -f4)

@@ -2,15 +2,30 @@ import type { APIRoute } from 'astro';
 import { jsPDF } from 'jspdf';
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4ampycGtzbXd3cm11Ymh2amV3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjM5MDQ2OCwiZXhwIjoyMDg3OTY2NDY4fQ.1mkkee3DSFOnuN7sI_D4buAxC_wNOcFGga_fhvs9zAo';
+const DEFAULT_SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
 
-export const GET: APIRoute = async ({ params }) => {
+function resolveSupabaseEnv(runtimeEnv?: Record<string, unknown> | null) {
+  const supabaseUrl =
+    (runtimeEnv?.PUBLIC_SUPABASE_URL as string | undefined) ??
+    import.meta.env.PUBLIC_SUPABASE_URL ??
+    import.meta.env.SUPABASE_URL ??
+    DEFAULT_SUPABASE_URL;
+  const supabaseKey =
+    (runtimeEnv?.SUPABASE_SERVICE_ROLE_KEY as string | undefined) ??
+    import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  return supabaseKey ? { supabaseUrl, supabaseKey } : null;
+}
+
+export const GET: APIRoute = async ({ params, locals }) => {
   const id = params.id?.replace('.pdf', '') || '';
   if (!id || id.includes('..')) return new Response('Not found', { status: 404 });
 
   try {
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const env = resolveSupabaseEnv(locals.runtime?.env);
+    if (!env) return new Response('Server configuration error', { status: 500 });
+
+    const supabase = createClient(env.supabaseUrl, env.supabaseKey);
     const { data, error } = await supabase.storage.from('public_assets').download(`preanamnesis/${id}.html`);
     if (error || !data) return new Response('Not found', { status: 404 });
 
