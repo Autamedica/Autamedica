@@ -392,7 +392,7 @@ export function PatientPopulationDashboard() {
           return (
             <div
               key={idx}
-              className={`h-4.5 w-4.5 rounded-xs transition-all duration-300 ease-out cursor-help shadow-xs relative group/block ${colorClass} ${
+              className={`h-3 w-3 rounded-xs transition-all duration-300 ease-out cursor-help shadow-xs relative group/block ${colorClass} ${
                 isDimmed ? 'opacity-20 scale-90 blur-[0.2px]' : 'opacity-100 scale-100'
               }`}
             >
@@ -481,7 +481,7 @@ export function PatientPopulationDashboard() {
             <div className="bg-white rounded-lg border border-stone-200 p-5 shadow-xs flex flex-col justify-between space-y-4 hover:shadow-sm transition-shadow md:col-span-2 lg:col-span-1">
               <div>
                 <h3 className="text-sm font-semibold text-stone-800 flex items-center gap-1.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4.5 h-4.5 text-purple-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-purple-600">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
                   </svg>
                   Distribución por Género
@@ -628,7 +628,7 @@ export function PatientPopulationDashboard() {
           {/* Operational Intelligence Insight Box */}
           <div className="bg-amber-50 rounded-lg border border-amber-200 p-4 flex gap-3 text-amber-900">
             <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 shrink-0 mt-0.5">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4.5 h-4.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a3 3 0 0 0-3-3H9m3 3h3m2.25 1.5a1.5 1.5 0 0 1-1.5 1.5h-9a1.5 1.5 0 0 1-1.5-1.5V6a1.5 1.5 0 0 1 1.5-1.5h9a1.5 1.5 0 0 1 1.5 1.5v8.25ZM12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
               </svg>
             </div>
@@ -777,7 +777,7 @@ export function PatientPopulationDashboard() {
           {/* Filter Toolbar */}
           <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 rounded-xl border border-stone-200 shadow-xs">
             <div className="relative flex-1 w-full">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="absolute left-3 top-3 h-4.5 w-4.5 text-stone-400">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="absolute left-3 top-3 h-5 w-5 text-stone-400">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.608 10.608Z" />
               </svg>
               <input
