@@ -9,7 +9,7 @@ TO = "ariel.perrone@ama-med.org.ar"
 SUBJECT = "Re: Salud digital · a disposición de la AMA"
 
 GIF = "https://qxjjrpksmwwrmubhvjew.supabase.co/storage/v1/object/public/public_assets/autamedica-reference-style.gif"
-WA_LINK = "https://wa.me/5491166599559?text=Hola%20Ariel%2C%20conversamos%20sobre%20salud%20digital"
+WA_LINK = "https://wa.me/5491168261552?text=Hola%20Ariel%2C%20conversamos%20sobre%20salud%20digital"
 
 TEMPLATE = """<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{subject}</title></head>

@@ -10,7 +10,7 @@ GMAIL_USER = "autamedica@gmail.com"
 GMAIL_APP_PASSWORD = "cmcq pmwa xanv zekl"
 FROM = "AutaMedica <contacto@autamedica.com>"
 GIF = "https://qxjjrpksmwwrmubhvjew.supabase.co/storage/v1/object/public/public_assets/autamedica-reference-style.gif"
-WA_LINK = "https://wa.me/5491166599559?text=Hola%2C%20vi%20la%20propuesta%20de%20AutaMedica%20y%20me%20interesa%20coordinar%20una%20demo"
+WA_LINK = "https://wa.me/5491168261552?text=Hola%2C%20vi%20la%20propuesta%20de%20AutaMedica%20y%20me%20interesa%20coordinar%20una%20demo"
 
 TEMPLATE = """<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{subject}</title></head>
@@ -53,7 +53,7 @@ EMAILS = [
 <li>Esta semana detectamos un brote con <strong>+124% de incremento</strong> vs. promedio — antes de la notificación oficial</li>
 </ul>
 <p>Ofrecemos un <strong>piloto gratuito de 30 días</strong> para CABA. Sin integración compleja, sin costo.</p>
-<p>¿Podemos coordinar 15 minutos para mostrarles el sistema en vivo?</p>""",
+<p>Si la propuesta es de su interés, quedo a disposición para responder a este correo y profundizar en los detalles técnicos.</p>""",
     },
     {
         "to": "mesadeentradas@msal.gov.ar",
@@ -70,7 +70,7 @@ EMAILS = [
 <li><strong>Detección automática de brotes</strong> con alertas cuando un síndrome supera umbrales estacionales</li>
 <li>Interoperabilidad nativa con sistemas de salud pública (HL7 FHIR)</li>
 </ul>
-<p>Proponemos una <strong>reunión técnica de 15 minutos</strong> para demostrar el sistema.</p>""",
+<p>Si la propuesta es de su interés, quedamos a su entera disposición para responder a este correo y compartir más detalles.</p>""",
     },
     {
         "to": "epidemiologia@ms.gba.gov.ar",
@@ -83,7 +83,7 @@ EMAILS = [
 <p>Desarrollamos un sistema que <strong>captura síntomas directamente del paciente</strong> (vía WhatsApp y telemedicina) y genera alertas automáticas de brotes <strong>antes de que lleguen al hospital</strong>.</p>
 <p><strong>Resultado concreto:</strong> esta semana detectamos un incremento del <strong>+124%</strong> en un síndrome respiratorio, 72 horas antes de que apareciera en reportes hospitalarios.</p>
 <p>Proponemos un <strong>piloto gratuito en un municipio</strong> a elección. Sin integración compleja.</p>
-<p>¿Tienen 15 minutos para una demo?</p>""",
+<p>Si la iniciativa es de su interés, quedo a disposición para responder a este correo y profundizar en los detalles técnicos.</p>""",
     },
     {
         "to": "secretariadireccion@ine.gov.ar",
@@ -95,7 +95,7 @@ EMAILS = [
 <p>Entendemos que el INE recibe muestras <strong>después</strong> de que un brote ya se manifestó clínicamente. Tenemos datos que pueden complementar esa cadena.</p>
 <p>Nuestro sistema captura síntomas de <strong>+1.200 pacientes en tiempo real</strong> y los codifica automáticamente en SNOMED-CT / ICD-11. Cuando un síndrome supera el umbral estacional, generamos una <strong>alerta automática con geolocalización</strong>.</p>
 <p><strong>¿Qué ganan?</strong> Una capa de datos primarios que llega <strong>antes</strong> de la derivación a laboratorio — señal temprana para priorizar recursos diagnósticos.</p>
-<p>¿Podemos coordinar una reunión técnica breve?</p>""",
+<p>Si la propuesta es de su interés, quedo a disposición para responder a este correo y compartir más detalles.</p>""",
     },
     {
         "to": "pwr-arg@paho.org",
@@ -111,7 +111,7 @@ EMAILS = [
 <li>Es replicable en cualquier país de la región con acceso a WhatsApp</li>
 <li>Interoperabilidad nativa HL7 FHIR, compatible con estándares OPS/OMS</li>
 </ul>
-<p>Nos encantaría explorar si hay programas de cooperación técnica o financiamiento donde esto encaje. ¿Tienen disponibilidad para 15 minutos?</p>""",
+<p>Nos encantaría explorar si hay programas de cooperación técnica o financiamiento donde esto encaje. Si la propuesta es de su interés, quedo a disposición para responder a este correo.</p>""",
     },
 
     # TIER 2 — LABORATORIOS FARMA
@@ -130,7 +130,7 @@ EMAILS = [
 <li>Todo codificado en <strong>SNOMED-CT / ICD-11</strong>, listo para análisis</li>
 </ul>
 <p>Los datos son anonimizados y cumplen con regulaciones de protección de datos de salud.</p>
-<p>¿Les interesa una demo de 15 minutos para ver qué tipo de señales genera el sistema?</p>""",
+<p>Si esta tecnología y el tipo de señales clínicas que genera el sistema son de su interés, quedo a disposición para responder a este correo.</p>""",
     },
     {
         "to": "argentina.informacion_medica@roche.com",
@@ -141,7 +141,7 @@ EMAILS = [
         "body": """<p>Estimados,</p>
 <p>Desarrollamos una plataforma de telemedicina que captura datos clínicos <strong>desde el primer contacto del paciente</strong> — antes de la consulta hospitalaria — y los estructura automáticamente en SNOMED-CT.</p>
 <p>Creemos que hay valor para equipos de información médica en acceder a <strong>datos de prevalencia de síntomas en tiempo real</strong>, especialmente para áreas terapéuticas donde Roche lidera.</p>
-<p>¿Podemos coordinar una conversación breve para explorar sinergias?</p>""",
+<p>Si la propuesta y el perfil de AutaMedica son de su interés, quedo a disposición para responder a este correo.</p>""",
     },
     {
         "to": "Calidadproducto-Argentina@pfizer.com",
@@ -157,7 +157,7 @@ EMAILS = [
 <li>Alertas automáticas de señales adversas por principio activo</li>
 <li>Todo codificado en estándares internacionales (SNOMED-CT / ICD-11)</li>
 </ul>
-<p>¿Tienen disponibilidad para 15 minutos?</p>""",
+<p>Si la propuesta es de su interés, quedo a disposición para responder a este correo.</p>""",
     },
     {
         "to": "soibago@bago.com.ar",
@@ -173,7 +173,7 @@ EMAILS = [
 <li><strong>Farmacovigilancia</strong>: correlaciones síntoma-medicación desde datos primarios</li>
 <li>Datos codificados y anonimizados, listos para análisis</li>
 </ul>
-<p>¿Podemos coordinar 15 minutos para una demo?</p>""",
+<p>Si la propuesta y el perfil de AutaMedica son de su interés, quedo a disposición para responder a este correo.</p>""",
     },
     {
         "to": "farmacovigilancia@roemmers.com.ar",
@@ -189,7 +189,7 @@ EMAILS = [
 <li>Prevalencia de síntomas por zona geográfica y franja etaria</li>
 <li>API de datos anonimizados en formato estándar</li>
 </ul>
-<p>¿15 minutos para una demo?</p>""",
+<p>Si la propuesta es de su interés, quedo a disposición para responder a este correo.</p>""",
     },
 
     # TIER 3 — PREPAGAS
@@ -208,7 +208,7 @@ EMAILS = [
 <li><strong>Datos propios</strong>: prevalencia de síntomas de sus afiliados en tiempo real</li>
 </ul>
 <p>Modelo per-member-per-month. Piloto gratuito de 30 días.</p>
-<p>¿Podemos coordinar 15 minutos?</p>""",
+<p>Si la propuesta es de su interés, quedo a disposición para responder a este correo.</p>""",
     },
     {
         "to": "info@swissmedical.com.ar",
@@ -224,7 +224,7 @@ EMAILS = [
 <li>Triaje predictivo para redirigir pacientes antes del pico</li>
 <li>Dashboard en tiempo real con datos de sus afiliados</li>
 </ul>
-<p>Piloto gratuito de 30 días. ¿Coordinamos una demo?</p>""",
+<p>Si la propuesta y el inicio de un piloto gratuito son de su interés, quedo a disposición para responder a este correo.</p>""",
     },
     {
         "to": "mirna.kaploen@galenoargentina.com.ar",
@@ -235,7 +235,7 @@ EMAILS = [
         "body": """<p>Estimada Mirna,</p>
 <p>Galeno viene creciendo fuerte en digital. Tenemos algo que encaja: un sistema que <strong>detecta cuándo va a crecer la demanda de guardia por zona</strong>, con 72 horas de anticipación.</p>
 <p><strong>Resultado concreto:</strong> esta semana detectamos un brote respiratorio con +124% de incremento antes de la notificación oficial.</p>
-<p>Modelo per-member-per-month. Piloto gratuito. ¿15 minutos para verlo?</p>""",
+<p>Modelo per-member-per-month. Si la propuesta y el inicio de un piloto gratuito son de su interés, quedo a disposición para responder a este correo.</p>""",
     },
 
     # TIER 4 — ACADEMIA
@@ -254,7 +254,7 @@ EMAILS = [
 <li>Opera en producción con <strong>+1.200 pacientes</strong>, registrado ante MSAL</li>
 </ul>
 <p><strong>¿Qué buscamos?</strong> Validación académica y posible colaboración en investigación. Publicamos datos que hoy no existen en el circuito sanitario argentino.</p>
-<p>¿Tienen disponibilidad para 15 minutos?</p>""",
+<p>Si la propuesta es de su interés, quedo a disposición para responder a este correo.</p>""",
     },
     {
         "to": "info@fundacionsadosky.org.ar",
@@ -271,7 +271,7 @@ EMAILS = [
 <li>Interoperabilidad HL7 FHIR nativa</li>
 </ul>
 <p>Buscamos explorar si hay <strong>líneas de financiamiento o programas de la Fundación</strong> donde este proyecto encaje para escalar.</p>
-<p>¿Podemos coordinar una reunión breve?</p>""",
+<p>Si la propuesta y el perfil de AutaMedica son de su interés, quedo a disposición para responder a este correo.</p>""",
     },
 ]
 
