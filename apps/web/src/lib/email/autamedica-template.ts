@@ -328,3 +328,47 @@ export function buildNurturingEmail(
     unsubscribeUrl,
   });
 }
+
+export function buildDoctorPrescriptionBenefitsEmail(
+  doctorName: string,
+  actionUrl: string,
+  unsubscribeUrl?: string,
+): RenderedEmail {
+  return renderAutamedicaEmail('AutaMedica · Recetas Clínicas Premium con Validez Nacional', {
+    variant: 'newsletter',
+    title: `Estimado/a Dr./Dra. ${doctorName || 'Colega'}`,
+    preheader: 'Conozca los beneficios de emitir recetas electrónicas premium con validación nacional en AutaMedica.',
+    paragraphs: [
+      'Queremos presentarle el nuevo módulo de Recetas Médicas Electrónicas de AutaMedica, diseñado bajo los más altos estándares clínicos y en pleno cumplimiento con la Ley Nacional de Receta Digital (Ley 27.553 en Argentina).',
+      'Nuestro sistema genera recetas electrónicas premium en formato de doble página que eliminan la duplicación de datos y protegen su firma digital:',
+      '• PÁGINA 1 (La Receta Digital): Incluye firma y sello digital validados, número de matrícula nacional/provincial auditado y legajo de emisor inscripto en el Registro de Recetarios del Ministerio de Salud (RENAPDIS). Cuenta con códigos de barras Code128 y códigos QR para validación y facturación online inmediata en farmacias (compatible con Farmalink y Renapdis).',
+      '• PÁGINA 2 (La Guía de Cuidado): Un bloque de acompañamiento clínico personalizado para su paciente con instrucciones claras, recordatorios sobre dosis olvidadas, alertas de urgencia y recomendaciones de estilo de vida basadas en su diagnóstico, aumentando un 40% la adherencia al tratamiento.',
+      'Con este módulo, usted puede prescribir en segundos desde la misma consulta, con diseños estéticos premium (neutral, femenino y empático) que reflejan el profesionalismo de su práctica.',
+    ],
+    note: 'Optimice su práctica médica hoy mismo. Genere sus recetas con trazabilidad legal garantizada y envíelas al instante por correo y WhatsApp a sus pacientes.',
+    action: { label: 'Ingresar a mi Portal Médico', url: actionUrl },
+    unsubscribeUrl,
+  });
+}
+
+export function buildPatientPrescriptionBenefitsEmail(
+  patientName: string,
+  actionUrl: string,
+  unsubscribeUrl?: string,
+): RenderedEmail {
+  return renderAutamedicaEmail('Tus Recetas Digitales Premium de AutaMedica', {
+    variant: 'newsletter',
+    title: `Hola, ${patientName || 'cómo estás'}`,
+    preheader: 'Tus recetas electrónicas en AutaMedica son 100% válidas en todas las farmacias del país.',
+    paragraphs: [
+      'Queremos contarte cómo funciona nuestro sistema de Recetas Médicas Electrónicas de AutaMedica, pensado para darte la mayor seguridad, comodidad y acompañamiento en tu tratamiento de salud.',
+      'Cuando tu médico te prescriba un medicamento, recibirás al instante una receta digital premium de doble página directo en tu celular:',
+      '• 📱 100% Digital y Sin Papel: No más recetas manuscritas difíciles de leer. Tu receta electrónica cuenta con códigos de barras y QR compatibles con todas las farmacias del país (sistema Farmalink), evitando rechazos o demoras en el mostrador.',
+      '• 📑 Guía de Cuidado Exclusiva (Pág. 2): Junto a tu receta, el sistema genera una guía personalizada con consejos de toma (💡), qué hacer si olvidás una dosis (🔄), síntomas de alerta (⚠️) y recomendaciones de estilo de vida adaptadas a vos.',
+      '• 🔒 Historial de Salud Protegido: Tus recetas quedan almacenadas de por vida en tu portal de AutaMedica, organizadas y listas para descargar siempre que las necesites, cumpliendo estrictamente con la Ley de Protección de Datos Personales.',
+    ],
+    note: 'Tu salud con tecnología de punta. Olvidate del papel y gestioná tus tratamientos con máxima seguridad legal y clínica.',
+    action: { label: 'Ver mis Recetas Digitales', url: actionUrl },
+    unsubscribeUrl,
+  });
+}
