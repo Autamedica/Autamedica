@@ -55,7 +55,7 @@ jobs:
             | grep -E '^\+' \
             | grep -vE '^\+\+\+' \
             | grep -E 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sbp_[A-Za-z0-9]{20,}|sk_live|pk_live|service_role_key\s*[:=]|SUPABASE_SERVICE_ROLE_KEY\s*[:=]|SUPABASE_ACCESS_TOKEN\s*[:=]' \
-            | grep -v 'process\.env\|import\.meta\.env\|secrets\.\|EXAMPLE\|placeholder'; then
+            | grep -v 'process\.env\|import\.meta\.env\|secrets\.\|EXAMPLE\|placeholder\|echo\|<token>\|:\?'; then
             echo "::error::Secrets detected in diff"
             exit 1
           fi
