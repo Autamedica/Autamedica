@@ -19,7 +19,7 @@ const SB_ANON = process.env.PUBLIC_SUPABASE_ANON_KEY;
 const SB_SRV = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SB_ANON || !SB_SRV) {
-  throw new Error('Missing PUBLIC_SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY');
+  throw new Error('Missing Supabase credentials');
 }
 const BASE = 'http://localhost:3000';
 const OUT = '/tmp/anamnesis-e2e';

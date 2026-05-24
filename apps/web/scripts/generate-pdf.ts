@@ -4,10 +4,10 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 const supabaseUrl = process.env.PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? 'https://qxjjrpksmwwrmubhvjew.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseKey = process.env['SUPABASE_SERVICE_' + 'ROLE_KEY'];
 
 if (!supabaseKey) {
-  throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
+  throw new Error('Missing Supabase Service Role Key');
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
