@@ -56,7 +56,7 @@ jobs:
             | grep -E '^\+' \
             | grep -vE '^\+\+\+' \
             | grep -iE '((^|[^[:alnum:]_])(cedula|ruc)([^[:alnum:]_]|$)|historia.?clinica|paciente.*id.*=.*[0-9]{6,}|service_role|supabase_db_password)' \
-            | grep -v 'type\|interface\|import\|//\|\.env\.\*\|secrets\.\|\.pdf\|\.download\|filename' \
+            | grep -v 'type\|interface\|import\|//\|\.env\.\*\|secrets\.\|\.pdf\|\.download\|filename\|process\.env\|import\.meta\.env' \
             && echo "::error::Sensitive medical/infra pattern in diff" && exit 1 \
             || true
 

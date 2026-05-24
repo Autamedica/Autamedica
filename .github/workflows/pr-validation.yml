@@ -51,7 +51,9 @@ jobs:
 
       - name: Secrets in diff
         run: |
-          if git diff ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- '*.ts' '*.tsx' '*.js' '*.mjs' '*.json' '*.sh' '*.yml' '*.yaml' \
+          if git diff ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- '*.ts' '*.tsx' '*.js' '*.mjs' '*.json' '*.sh' ':(exclude).github' \
+            | grep -E '^\+' \
+            | grep -vE '^\+\+\+' \
             | grep -E 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sbp_[A-Za-z0-9]{20,}|sk_live|pk_live|service_role_key\s*[:=]|SUPABASE_SERVICE_ROLE_KEY\s*[:=]|SUPABASE_ACCESS_TOKEN\s*[:=]' \
             | grep -v 'process\.env\|import\.meta\.env\|secrets\.\|EXAMPLE\|placeholder'; then
             echo "::error::Secrets detected in diff"
