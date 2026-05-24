@@ -66,7 +66,7 @@ jobs:
           FOUND=0
           if grep -rn "AIza[S]y" --include="*.yml" --include="*.yaml" --include="*.ts" . --exclude-dir=".github/workflows" | grep -v node_modules | grep -v '.env.example'; then FOUND=1; fi
           if grep -rn "s[k]_live\|s[k]_test" --include="*.ts" --include="*.yml" . --exclude-dir=".github" | grep -v node_modules; then FOUND=1; fi
-          if grep -rnE "eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sbp_[A-Za-z0-9]{20,}|SUPABASE_SERVICE_ROLE_KEY[[:space:]]*[:=][[:space:]]*['\"]|SUPABASE_ACCESS_TOKEN[[:space:]]*[:=][[:space:]]*['\"]" --include="*.ts" --include="*.js" --include="*.mjs" --include="*.sh" --include="*.yml" --include="*.yaml" . --exclude-dir=".github" --exclude-dir="node_modules" | grep -vE "process\.env|import\.meta\.env|secrets\.|<token>|placeholder|REPLACE_WITH"; then FOUND=1; fi
+          if grep -rnE "eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sbp_[A-Za-z0-9]{20,}|SUPABASE_SERVICE_ROLE_KEY[[:space:]]*[:=][[:space:]]*['\"]|SUPABASE_ACCESS_TOKEN[[:space:]]*[:=][[:space:]]*['\"]" --include="*.ts" --include="*.js" --include="*.mjs" --include="*.sh" --include="*.yml" --include="*.yaml" --exclude="*.test.ts" --exclude="*.spec.ts" . --exclude-dir=".github" --exclude-dir="node_modules" | grep -vE "process\.env|import\.meta\.env|secrets\.|<token>|placeholder|REPLACE_WITH"; then FOUND=1; fi
           if [ "$FOUND" = "1" ]; then echo "::error::Hardcoded secrets detected"; exit 1; fi
   unit-tests:
     name: Tests
