@@ -8,7 +8,7 @@
 # Prerequisites:
 #   - Supabase CLI installed (brew install supabase/tap/supabase)
 #   - SUPABASE_ACCESS_TOKEN env var set (Supabase Personal Access Token)
-#     e.g. export SUPABASE_ACCESS_TOKEN=sbp_f51b4...
+#     e.g. export SUPABASE_ACCESS_TOKEN=sbp_<token>
 #
 # Usage:
 #   ./scripts/deploy/deploy-functions.sh
@@ -37,9 +37,9 @@ if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
     echo "Error: SUPABASE_ACCESS_TOKEN not set"
     echo ""
     echo "  IMPORTANT: Use a Supabase Personal Access Token (PAT)."
-    echo "  Expected format: sbp_..."
+    echo "  Expected format: sbp_<token>"
     echo ""
-    echo "  export SUPABASE_ACCESS_TOKEN=sbp_f51b440ec7..."
+    echo "  export SUPABASE_ACCESS_TOKEN=sbp_<token>"
     exit 1
 fi
 echo "Authentication: ready"

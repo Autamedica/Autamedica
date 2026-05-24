@@ -178,8 +178,8 @@ LIVEKIT_URL               # Manual - para get-meeting-token
 ### Edge Functions
 
 ```bash
-# Prerequisito: token PAT (formato actual: sbp_...)
-export SUPABASE_ACCESS_TOKEN=sbp_f51b440ec7a0c794b6a1879fc7618b19ce5ce74f
+# Prerequisito: token PAT (formato actual: sbp_<token>)
+export SUPABASE_ACCESS_TOKEN=sbp_<token>
 
 # Deploy todas (script canonico)
 ./scripts/deploy/deploy-functions.sh
@@ -201,13 +201,13 @@ payload = json.dumps({'query': sql})
 open('/tmp/migration.json', 'w').write(payload)
 "
 curl -X POST \
-  -H 'Authorization: Bearer sbp_...' \
+  -H 'Authorization: Bearer sbp_<token>' \
   -H 'Content-Type: application/json' \
   -d @/tmp/migration.json \
   'https://api.supabase.com/v1/projects/qxjjrpksmwwrmubhvjew/database/query'
 
 # Via CLI
-SUPABASE_ACCESS_TOKEN=sbp_f51b4... supabase db push --project-ref qxjjrpksmwwrmubhvjew
+SUPABASE_ACCESS_TOKEN=sbp_<token> supabase db push --project-ref qxjjrpksmwwrmubhvjew
 ```
 
 ### Regenerar tipos DB
@@ -248,7 +248,7 @@ done
 ### Supabase CLI (Personal Access Token)
 
 - Env var: `SUPABASE_ACCESS_TOKEN`
-- Formato esperado: `sbp_...`
+- Formato esperado: `sbp_<token>`
 - Usar el token PAT exacto como lo entrega Supabase (no agregar ni remover prefijos manualmente)
 - Generar/rotar: Dashboard > Account > Access Tokens
 
@@ -277,7 +277,7 @@ Eliminar `supabase/functions/deno.lock` antes del deploy. El script `deploy-func
 
 ### "Invalid access token format"
 
-El CLI no acepta tokens con `v0_`. Usar `sbp_...` sin el prefijo `v0_`.
+El CLI no acepta tokens con `v0_`. Usar `sbp_<token>` sin el prefijo `v0_`.
 
 ### "infinite recursion in policy for relation profiles"
 

@@ -7,7 +7,7 @@ echo "🔧 Configurando Supabase con URLs de Cloudflare Pages..."
 echo ""
 
 PROJECT_REF="qxjjrpksmwwrmubhvjew"
-ACCESS_TOKEN="sbp_aa74b7707840d07be814d4f92adde20dd35d3c16"
+ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN:?SUPABASE_ACCESS_TOKEN is required}"
 
 # Dominios productivos (pueden sobreescribirse vía variables de entorno)
 WEBAPP_URL="${WEBAPP_URL:-https://autamedica.com}"

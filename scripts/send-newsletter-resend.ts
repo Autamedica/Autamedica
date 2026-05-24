@@ -3,8 +3,12 @@ import * as fs from 'fs';
 
 // CONFIGURACIÓN (Pegarás tu llave aquí)
 const RESEND_API_KEY = 're_xxxxxxxxx'; 
-const supabaseUrl = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4ampycGtzbXd3cm11Ymh2amV3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjM5MDQ2OCwiZXhwIjoyMDg3OTY2NDY4fQ.1mkkee3DSFOnuN7sI_D4buAxC_wNOcFGga_fhvs9zAo';
+const supabaseUrl = process.env.PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? 'https://qxjjrpksmwwrmubhvjew.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseKey) {
+  throw new Error('Missing Supabase Service Role Key');
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 const htmlTemplate = fs.readFileSync('/home/edu/autamedica-newsletter-final.html', 'utf8');
@@ -28,7 +32,7 @@ async function main() {
             const response = await fetch('https://api.resend.com/emails', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer \${RESEND_API_KEY}`,
+                    'Authorization': `Bearer ${RESEND_API_KEY}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
