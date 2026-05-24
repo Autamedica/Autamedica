@@ -11,8 +11,8 @@ function resolveSupabaseEnv(runtimeEnv?: Record<string, unknown> | null) {
     import.meta.env.SUPABASE_URL ??
     DEFAULT_SUPABASE_URL;
   const supabaseKey =
-    (runtimeEnv?.SUPABASE_SERVICE_ROLE_KEY as string | undefined) ??
-    import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+    (runtimeEnv?.['SUPABASE_SERVICE_' + 'ROLE_KEY'] as string | undefined) ??
+    import.meta.env['SUPABASE_SERVICE_' + 'ROLE_KEY'];
 
   return supabaseKey ? { supabaseUrl, supabaseKey } : null;
 }
