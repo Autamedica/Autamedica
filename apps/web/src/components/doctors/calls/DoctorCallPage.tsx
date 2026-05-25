@@ -387,6 +387,12 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         return
       }
 
+      // Evitamos persistir estados de conexión mientras el médico está esperando a que el paciente acepte
+      // para evitar conflictos 409 con la máquina de estados estricta de la base de datos
+      if ((doctorWaitingState as string) === 'waiting' && (status === 'connecting' || status === 'connected')) {
+        return
+      }
+
       if (status !== 'connecting' && status !== 'connected' && status !== 'ended') {
         return
       }
@@ -400,7 +406,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         logger.warn('[DoctorCallPage] Failed to persist call status', { status, error: err })
       }
     },
-    [callSession]
+    [callSession, doctorWaitingState]
   )
 
   const { userId, userName } = useMemo(() => {
