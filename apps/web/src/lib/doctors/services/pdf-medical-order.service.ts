@@ -63,6 +63,20 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
+function sanitizePdfText(text?: string | null): string | undefined {
+  if (text === undefined || text === null) return undefined;
+  const normalized = text
+    .replace(/[\u201c\u201d\u201e\u201f\u00ab\u00bb]/g, '"')
+    .replace(/[\u2018\u2019\u201a\u201b]/g, "'")
+    .replace(/[\u2013\u2014\u2212]/g, '-')
+    .replace(/\u00a0/g, ' ');
+
+  return normalized
+    .split('')
+    .filter((char) => char.charCodeAt(0) <= 255)
+    .join('');
+}
+
 type PdfImageFormat = 'PNG' | 'JPEG' | 'WEBP';
 
 function detectImageFormat(buffer: ArrayBuffer, contentType: string): PdfImageFormat | null {
@@ -201,8 +215,28 @@ function drawCode128Barcode(
 }
 
 export async function generateMedicalOrderPdf(
-  input: MedicalOrderPdfInput,
+  originalInput: MedicalOrderPdfInput,
 ): Promise<MedicalOrderArtifacts> {
+  const input: MedicalOrderPdfInput = {
+    ...originalInput,
+    practices: originalInput.practices.map(p => ({ name: sanitizePdfText(p.name) })),
+    diagnosis: sanitizePdfText(originalInput.diagnosis),
+    notes: sanitizePdfText(originalInput.notes),
+    patient: {
+      ...originalInput.patient,
+      name: sanitizePdfText(originalInput.patient.name),
+      insurancePlan: sanitizePdfText(originalInput.patient.insurancePlan),
+      address: sanitizePdfText(originalInput.patient.address),
+    },
+    prescriber: {
+      ...originalInput.prescriber,
+      name: sanitizePdfText(originalInput.prescriber.name),
+      profession: sanitizePdfText(originalInput.prescriber.profession),
+      specialty: sanitizePdfText(originalInput.prescriber.specialty),
+      professionalAddress: sanitizePdfText(originalInput.prescriber.professionalAddress),
+    },
+  };
+
   const cuir = input.existingCuir || `O-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
   const qrContent = `https://www.autamedica.com/verify-order/${cuir}`;
   const barcodeValue = cuir;
