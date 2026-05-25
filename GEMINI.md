@@ -72,6 +72,22 @@
 
 - **Cualquier otro TODO será considerado un error.**
 
+### REGLA #6: Diagnósticos Transparentes (Prohibido Errores Genéricos)
+
+- **Mandato:** Todo bloque `catch` o flujo de error crítico (ej: generación de PDFs, llamadas externas, integraciones de pago, actualizaciones de DB) debe **capturar y propagar detalles específicos del error**.
+- **Prohibido:** Generar códigos de error opacos o mudos (ej: un simple `pdf_generation_failed`) sin adjuntar los detalles técnicos (`error.message`, stack trace, etc.). El error debe permitir identificar la causa exacta del fallo al primer vistazo en el cliente o los logs de red.
+- **Patrón Recomendado:**
+  ```typescript
+  try {
+    // Lógica sensible
+  } catch (error) {
+    const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    logger.error("Error en proceso crítico", { error });
+    return fail({ code: "pdf_generation_failed", details });
+  }
+  ```
+  Y en el controlador o API endpoint, mapear y retornar `details` en el cuerpo del JSON de error `HTTP 500`.
+
 ---
 
 ## 2. Supabase & DB Hardening (Dos Planos)
