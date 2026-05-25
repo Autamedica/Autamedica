@@ -660,9 +660,6 @@ export function ProfileForm() {
                   <Stethoscope className="h-5 w-5" />
                 </div>
                 <h3 className="text-sm font-semibold text-am-surface-900">Neutra / Clínica</h3>
-                <p className="mt-1 text-[11px] leading-relaxed text-am-surface-500">
-                  Tono formal, técnico y puramente científico. Comunicación clínica estándar y descriptiva.
-                </p>
               </button>
 
               {/* Tarjeta Profesional Femenina */}
@@ -682,9 +679,6 @@ export function ProfileForm() {
                   <Heart className="h-5 w-5" />
                 </div>
                 <h3 className="text-sm font-semibold text-am-surface-900">Profesional Femenina</h3>
-                <p className="mt-1 text-[11px] leading-relaxed text-am-surface-500">
-                  Concordancia en femenino con un tono clínico, claro y profesional.
-                </p>
               </button>
 
               {/* Tarjeta Empática / Cercana */}
@@ -704,9 +698,6 @@ export function ProfileForm() {
                   <MessageSquareText className="h-5 w-5" />
                 </div>
                 <h3 className="text-sm font-semibold text-am-surface-900">Cercana</h3>
-                <p className="mt-1 text-[11px] leading-relaxed text-am-surface-500">
-                  Lenguaje simple y directo, manteniendo registro médico profesional.
-                </p>
               </button>
             </div>
 
