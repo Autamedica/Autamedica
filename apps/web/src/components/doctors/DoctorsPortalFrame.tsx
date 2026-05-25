@@ -14,6 +14,8 @@ import {
   ArrowRight,
   Calculator,
   Calendar,
+  Check,
+  CheckCircle2,
   CreditCard,
   FileText,
   Home,
@@ -184,6 +186,8 @@ export function DoctorsPortalFrame({
   const doctorName = getDoctorDisplayName(doctor, user);
   const doctorInitials = getInitials(doctorName);
   const doctorSpecialty = doctor?.specialty || "Especialidad pendiente";
+  const sssStatus = (doctor?.profile as { sssValidationStatus?: string | null } | undefined)?.sssValidationStatus ?? "pending";
+  const isValidOrExempt = sssStatus === "valid" || sssStatus === "exempt";
 
   const doctorProfile = doctor?.profile as
     | { avatar_url?: string | null; avatarUrl?: string | null; updated_at?: string | null; updatedAt?: string | null }
@@ -463,49 +467,67 @@ export function DoctorsPortalFrame({
               <div
                 className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-3"}`}
               >
-                <label
-                  className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-[13px] font-semibold text-white ring-1 ring-neutral-200 transition hover:ring-neutral-400"
-                  title={
-                    avatarUrl
-                      ? "Editar foto profesional"
-                      : "Subir foto profesional"
-                  }
-                >
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={doctorName}
-                      className="h-full w-full object-cover transition duration-300 group-hover/avatar:scale-110"
-                    />
-                  ) : (
-                    <>
-                      <span className="transition duration-300 group-hover/avatar:scale-110">
-                        {doctorInitials}
-                      </span>
-                      <span className="absolute inset-x-0 bottom-0 bg-amber-400 py-0.5 text-center text-[8px] font-black uppercase tracking-wide text-neutral-950">
-                        Foto
-                      </span>
-                    </>
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
-                    {uploadingPhoto ? (
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <div className="relative flex-shrink-0">
+                  <label
+                    className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-[13px] font-semibold text-white ring-1 ring-neutral-200 transition hover:ring-neutral-400"
+                    title={
+                      avatarUrl
+                        ? "Editar foto profesional"
+                        : "Subir foto profesional"
+                    }
+                  >
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={doctorName}
+                        className="h-full w-full object-cover transition duration-300 group-hover/avatar:scale-110"
+                      />
                     ) : (
-                      <Settings className="h-4 w-4 text-white" />
+                      <>
+                        <span className="transition duration-300 group-hover/avatar:scale-110">
+                          {doctorInitials}
+                        </span>
+                        <span className="absolute inset-x-0 bottom-0 bg-amber-400 py-0.5 text-center text-[8px] font-black uppercase tracking-wide text-neutral-950">
+                          Foto
+                        </span>
+                      </>
                     )}
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/png,image/webp,image/jpeg"
-                    className="hidden"
-                    disabled={uploadingPhoto}
-                    onChange={(event) => void handlePhotoUpload(event)}
-                  />
-                </label>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
+                      {uploadingPhoto ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      ) : (
+                        <Settings className="h-4 w-4 text-white" />
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/png,image/webp,image/jpeg"
+                      className="hidden"
+                      disabled={uploadingPhoto}
+                      onChange={(event) => void handlePhotoUpload(event)}
+                    />
+                  </label>
+                  {isValidOrExempt && (
+                    <div
+                      className="absolute -bottom-1 -right-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 text-white ring-2 ring-white shadow-sm animate-fade-in"
+                      title="Matrícula validada en SSS / REFEPS"
+                    >
+                      <Check className="h-2.5 w-2.5 text-white" strokeWidth={3.5} />
+                    </div>
+                  )}
+                </div>
                 {!isSidebarCollapsed ? (
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-semibold text-neutral-900">
+                    <p className="flex items-center gap-1.5 truncate text-[13px] font-semibold text-neutral-900">
                       {doctorName}
+                      {isValidOrExempt && (
+                        <span
+                          className="inline-flex items-center justify-center text-amber-500"
+                          title="Matrícula validada en SSS / REFEPS"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 fill-amber-50 text-amber-500" />
+                        </span>
+                      )}
                     </p>
                     <p className="truncate text-[11px] text-neutral-400">
                       {doctorSpecialty}

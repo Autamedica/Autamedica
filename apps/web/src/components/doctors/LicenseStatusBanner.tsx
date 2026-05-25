@@ -2,7 +2,7 @@
 
 import { useCurrentDoctor } from "@/hooks/doctors/useRealDoctors";
 import { useAuthenticatedUser } from "@/hooks/doctors/useAuthenticatedUser";
-import { CheckCircle2, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { motion } from "framer-motion";
 import type { DoctorWithProfile } from "@autamedica/types";
 
@@ -29,34 +29,9 @@ export function LicenseStatusBanner({ doctor: providedDoctor }: { doctor?: Docto
   const isExempt = sssStatus === "exempt";
   const isRejected = sssStatus === "rejected";
   const needsReview = sssStatus === "pending_review";
-  const registryLicense = profile?.matriculaNacional;
 
   if (isValid || isExempt) {
-    return (
-      <div className="relative mb-8 flex items-center justify-between overflow-hidden rounded-xl border border-emerald-200/50 bg-emerald-50/50 p-4 px-6 backdrop-blur-sm">
-        <div className="absolute inset-0 bg-emerald-500/5 opacity-50" />
-        <div className="relative z-10 flex items-center gap-4">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-          </div>
-          <div>
-            <h3 className="text-sm font-medium uppercase tracking-tight text-emerald-900">
-              {isExempt ? "Validacion no requerida" : "Matricula validada"}
-            </h3>
-            <p className="text-xs text-emerald-700/80">
-              {isExempt
-                ? "Perfil exceptuado por criterio operativo. Credenciales habilitadas sin cruce SSS/REFEPS."
-                : "Registro Nacional SSS / REFEPS. Credenciales habilitadas para emision de recetas electronicas."}
-            </p>
-          </div>
-        </div>
-        {isExempt || registryLicense ? (
-          <div className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-600">
-            {isExempt ? "EXCEPCION" : `Matricula ${registryLicense}`}
-          </div>
-        ) : null}
-      </div>
-    );
+    return null;
   }
 
   return (
