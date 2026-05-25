@@ -171,6 +171,24 @@ export function DoctorsPortalFrame({
     null,
   );
 
+  const [cachedProfile, setCachedProfile] = useState<{
+    doctorName?: string;
+    doctorInitials?: string;
+    doctorSpecialty?: string;
+    avatarUrl?: string | null;
+    isValidOrExempt?: boolean;
+  } | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const val = localStorage.getItem("autamedica_doctor_profile_cache");
+        return val ? JSON.parse(val) : null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+
   const currentTime = useClock();
   const currentDate = new Date();
   const { user, loading: authLoading } = useAuthenticatedUser();
@@ -215,6 +233,24 @@ export function DoctorsPortalFrame({
     }
     return baseAvatarUrl;
   }, [baseAvatarUrl, doctorProfile?.updated_at, doctorProfile?.updatedAt, userProfile?.updated_at, userProfile?.updatedAt]);
+
+  useEffect(() => {
+    if (!authLoading && user && doctor) {
+      const cache = {
+        doctorName,
+        doctorInitials,
+        doctorSpecialty,
+        avatarUrl,
+        isValidOrExempt,
+      };
+      try {
+        localStorage.setItem("autamedica_doctor_profile_cache", JSON.stringify(cache));
+        setCachedProfile(cache);
+      } catch (err) {
+        // Ignore quota/storage errors
+      }
+    }
+  }, [authLoading, user, doctor, doctorName, doctorInitials, doctorSpecialty, avatarUrl, isValidOrExempt]);
 
   const primaryLinks = useMemo<NavigationItem[]>(
     () => [
@@ -356,6 +392,62 @@ export function DoctorsPortalFrame({
   };
 
   if (authLoading) {
+    if (cachedProfile) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-6">
+          <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-neutral-200 bg-white px-8 py-10 text-center shadow-sm">
+            {/* Avatar with Golden Badge */}
+            <div className="relative mb-5 flex-shrink-0">
+              <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-base font-semibold text-white ring-1 ring-neutral-200 shadow-inner">
+                {cachedProfile.avatarUrl ? (
+                  <img
+                    src={cachedProfile.avatarUrl}
+                    alt={cachedProfile.doctorName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span>{cachedProfile.doctorInitials || "DR"}</span>
+                )}
+              </div>
+              {cachedProfile.isValidOrExempt && (
+                <div
+                  className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 text-white ring-2 ring-white shadow-sm"
+                  title="Matrícula validada en SSS / REFEPS"
+                >
+                  <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
+                </div>
+              )}
+            </div>
+
+            {/* Doctor Name with Verified icon */}
+            <h2 className="flex items-center gap-1.5 text-base font-semibold text-neutral-900">
+              {cachedProfile.doctorName}
+              {cachedProfile.isValidOrExempt && (
+                <span
+                  className="inline-flex items-center justify-center text-amber-500"
+                  title="Matrícula validada en SSS / REFEPS"
+                >
+                  <CheckCircle2 className="h-4 w-4 fill-amber-50 text-amber-500" />
+                </span>
+              )}
+            </h2>
+            <p className="mt-0.5 text-xs text-neutral-400">{cachedProfile.doctorSpecialty}</p>
+
+            <hr className="my-5 w-full border-neutral-100" />
+
+            {/* Loading text and indicator */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-900" />
+                <span className="text-sm font-medium text-neutral-900">Verificando credenciales</span>
+              </div>
+              <p className="text-[11px] text-neutral-400">Iniciando sesión segura en AutaMedica...</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-6">
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-neutral-200 bg-white px-10 py-12">
