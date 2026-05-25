@@ -110,6 +110,22 @@ function parseJsonResponse(text: string): Record<string, unknown> {
   }
 }
 
+function coerceStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === 'string')
+      .map(item => item.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  }
+
+  return [];
+}
+
 function toReportResponse(parsed: Record<string, unknown>, provider: string, model: string): GenerateReportResponse {
   return {
     report: {
@@ -119,8 +135,8 @@ function toReportResponse(parsed: Record<string, unknown>, provider: string, mod
       plan: (parsed.plan as string) || 'Sin datos suficientes',
     },
     chiefComplaint: (parsed.chiefComplaint as string) ?? null,
-    differentialDiagnosis: (parsed.differentialDiagnosis as string[]) ?? [],
-    followUpRecommendations: (parsed.followUpRecommendations as string[]) ?? [],
+    differentialDiagnosis: coerceStringArray(parsed.differentialDiagnosis),
+    followUpRecommendations: coerceStringArray(parsed.followUpRecommendations),
     confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 50,
     provider,
     model,

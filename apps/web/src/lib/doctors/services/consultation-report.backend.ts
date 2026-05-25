@@ -55,8 +55,8 @@ export async function generateAndSaveReport(
   patientId: string;
   report: Record<string, unknown>;
   chiefComplaint: string | null;
-  differentialDiagnosis: string | null;
-  followUpRecommendations: string | null;
+  differentialDiagnosis: string[];
+  followUpRecommendations: string[];
   confidence: number | null;
   provider: string;
 }> {
@@ -141,8 +141,8 @@ export async function generateAndSaveReport(
     patientId,
     report: result.report as unknown as Record<string, unknown>,
     chiefComplaint: result.chiefComplaint,
-    differentialDiagnosis: result.differentialDiagnosis.join(', ') || null,
-    followUpRecommendations: result.followUpRecommendations.join(', ') || null,
+    differentialDiagnosis: result.differentialDiagnosis,
+    followUpRecommendations: result.followUpRecommendations,
     confidence: result.confidence,
     provider: result.provider,
   };
