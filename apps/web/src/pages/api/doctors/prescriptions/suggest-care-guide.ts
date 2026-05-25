@@ -25,7 +25,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .select('id, care_guide_template')
       .eq('user_id', user.id)
       .maybeSingle();
-
     if (doctorError) {
       logger.warn("[api/doctors/prescriptions/suggest-care-guide] doctor template lookup failed", {
         userId: user.id,
@@ -33,8 +32,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    const careGuideTemplate = doctor?.care_guide_template ?? 'neutral';
-
+    const careGuideTemplate = (doctor?.care_guide_template as "female" | "neutral" | "empathetic") ?? 'neutral';
     const result = await generatePatientCareGuideResult({
       medicationName: medicationName.trim(),
       dosage: dosage?.trim(),

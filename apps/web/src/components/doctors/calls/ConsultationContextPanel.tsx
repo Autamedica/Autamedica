@@ -240,12 +240,12 @@ function LiveNotesSection({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-2">
           <button
             type="button"
             onClick={onToggleVoiceNotes}
             disabled={!voiceNotesAvailable}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold transition-all shadow-am-sm active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
+            className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold transition-all shadow-am-sm active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
               voiceNotesEnabled
                 ? 'bg-red-600 text-white hover:bg-red-700 ring-4 ring-red-100'
                 : 'bg-am-doctor-600 text-white hover:bg-am-doctor-700'
@@ -263,6 +263,7 @@ function LiveNotesSection({
               </>
             )}
           </button>
+
         </div>
 
         {liveTranscriptPreview && (

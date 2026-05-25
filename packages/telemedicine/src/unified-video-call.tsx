@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import type { JSX } from 'react'
+import type { JSX, ReactNode } from 'react'
 import { logger } from '@autamedica/shared'
 import type { CallService } from './calls/service'
 import type { CallStatus } from './calls/types'
@@ -62,6 +62,8 @@ export interface UnifiedVideoCallProps {
   autoStart?: boolean
   /** Runtime engine shown as badge in CallTopBar. */
   runtime?: CallSessionRuntime
+  /** Optional product-specific controls rendered inside the bottom call bar. */
+  auxiliaryControls?: ReactNode
 }
 
 interface RemoteUser {
@@ -92,6 +94,7 @@ export function UnifiedVideoCall({
   theme = userType === 'doctor' ? 'doctor' : 'patient',
   autoStart = false,
   runtime,
+  auxiliaryControls,
 }: UnifiedVideoCallProps): JSX.Element {
   /* ── State ── */
   const [client, setClient] = useState<CallProvider | null>(null)
@@ -957,6 +960,7 @@ export function UnifiedVideoCall({
           onToggleChat={toggleChatPanel}
           onTogglePiP={togglePiP}
           onEndCall={endCall}
+          auxiliaryActions={auxiliaryControls}
         />
       )}
 

@@ -14,6 +14,8 @@ import {
   ArrowRight,
   Calculator,
   Calendar,
+  Check,
+  CheckCircle2,
   CreditCard,
   FileText,
   Home,
@@ -169,6 +171,25 @@ export function DoctorsPortalFrame({
     null,
   );
 
+  const [cachedProfile, setCachedProfile] = useState<{
+    doctorName?: string;
+    doctorInitials?: string;
+    doctorSpecialty?: string;
+    avatarUrl?: string | null;
+    isValidOrExempt?: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    try {
+      const val = localStorage.getItem("autamedica_doctor_profile_cache");
+      if (val) {
+        setCachedProfile(JSON.parse(val));
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
   const currentTime = useClock();
   const currentDate = new Date();
   const { user, loading: authLoading } = useAuthenticatedUser();
@@ -184,6 +205,8 @@ export function DoctorsPortalFrame({
   const doctorName = getDoctorDisplayName(doctor, user);
   const doctorInitials = getInitials(doctorName);
   const doctorSpecialty = doctor?.specialty || "Especialidad pendiente";
+  const sssStatus = (doctor?.profile as { sssValidationStatus?: string | null } | undefined)?.sssValidationStatus ?? "pending";
+  const isValidOrExempt = sssStatus === "valid" || sssStatus === "exempt";
 
   const doctorProfile = doctor?.profile as
     | { avatar_url?: string | null; avatarUrl?: string | null; updated_at?: string | null; updatedAt?: string | null }
@@ -211,6 +234,24 @@ export function DoctorsPortalFrame({
     }
     return baseAvatarUrl;
   }, [baseAvatarUrl, doctorProfile?.updated_at, doctorProfile?.updatedAt, userProfile?.updated_at, userProfile?.updatedAt]);
+
+  useEffect(() => {
+    if (!authLoading && user && doctor) {
+      const cache = {
+        doctorName,
+        doctorInitials,
+        doctorSpecialty,
+        avatarUrl,
+        isValidOrExempt,
+      };
+      try {
+        localStorage.setItem("autamedica_doctor_profile_cache", JSON.stringify(cache));
+        setCachedProfile(cache);
+      } catch (err) {
+        // Ignore quota/storage errors
+      }
+    }
+  }, [authLoading, user, doctor, doctorName, doctorInitials, doctorSpecialty, avatarUrl, isValidOrExempt]);
 
   const primaryLinks = useMemo<NavigationItem[]>(
     () => [
@@ -352,6 +393,62 @@ export function DoctorsPortalFrame({
   };
 
   if (authLoading) {
+    if (cachedProfile) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-6">
+          <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-neutral-200 bg-white px-8 py-10 text-center shadow-sm">
+            {/* Avatar with Golden Badge */}
+            <div className="relative mb-5 flex-shrink-0">
+              <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-base font-semibold text-white ring-1 ring-neutral-200 shadow-inner">
+                {cachedProfile.avatarUrl ? (
+                  <img
+                    src={cachedProfile.avatarUrl}
+                    alt={cachedProfile.doctorName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span>{cachedProfile.doctorInitials || "DR"}</span>
+                )}
+              </div>
+              {cachedProfile.isValidOrExempt && (
+                <div
+                  className="absolute -bottom-1 -right-1 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 text-white ring-2 ring-white shadow-sm"
+                  title="Matrícula validada en SSS / REFEPS"
+                >
+                  <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
+                </div>
+              )}
+            </div>
+
+            {/* Doctor Name with Verified icon */}
+            <h2 className="flex items-center gap-1.5 text-base font-semibold text-neutral-900">
+              {cachedProfile.doctorName}
+              {cachedProfile.isValidOrExempt && (
+                <span
+                  className="inline-flex items-center justify-center text-amber-500"
+                  title="Matrícula validada en SSS / REFEPS"
+                >
+                  <CheckCircle2 className="h-4 w-4 fill-amber-50 text-amber-500" />
+                </span>
+              )}
+            </h2>
+            <p className="mt-0.5 text-xs text-neutral-400">{cachedProfile.doctorSpecialty}</p>
+
+            <hr className="my-5 w-full border-neutral-100" />
+
+            {/* Loading text and indicator */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-900" />
+                <span className="text-sm font-medium text-neutral-900">Verificando credenciales</span>
+              </div>
+              <p className="text-[11px] text-neutral-400">Iniciando sesión segura en AutaMedica...</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-6">
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-neutral-200 bg-white px-10 py-12">
@@ -463,49 +560,67 @@ export function DoctorsPortalFrame({
               <div
                 className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-3"}`}
               >
-                <label
-                  className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-[13px] font-semibold text-white ring-1 ring-neutral-200 transition hover:ring-neutral-400"
-                  title={
-                    avatarUrl
-                      ? "Editar foto profesional"
-                      : "Subir foto profesional"
-                  }
-                >
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={doctorName}
-                      className="h-full w-full object-cover transition duration-300 group-hover/avatar:scale-110"
-                    />
-                  ) : (
-                    <>
-                      <span className="transition duration-300 group-hover/avatar:scale-110">
-                        {doctorInitials}
-                      </span>
-                      <span className="absolute inset-x-0 bottom-0 bg-amber-400 py-0.5 text-center text-[8px] font-black uppercase tracking-wide text-neutral-950">
-                        Foto
-                      </span>
-                    </>
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
-                    {uploadingPhoto ? (
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <div className="relative flex-shrink-0">
+                  <label
+                    className="group/avatar relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-neutral-900 text-[13px] font-semibold text-white ring-1 ring-neutral-200 transition hover:ring-neutral-400"
+                    title={
+                      avatarUrl
+                        ? "Editar foto profesional"
+                        : "Subir foto profesional"
+                    }
+                  >
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={doctorName}
+                        className="h-full w-full object-cover transition duration-300 group-hover/avatar:scale-110"
+                      />
                     ) : (
-                      <Settings className="h-4 w-4 text-white" />
+                      <>
+                        <span className="transition duration-300 group-hover/avatar:scale-110">
+                          {doctorInitials}
+                        </span>
+                        <span className="absolute inset-x-0 bottom-0 bg-amber-400 py-0.5 text-center text-[8px] font-black uppercase tracking-wide text-neutral-950">
+                          Foto
+                        </span>
+                      </>
                     )}
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/png,image/webp,image/jpeg"
-                    className="hidden"
-                    disabled={uploadingPhoto}
-                    onChange={(event) => void handlePhotoUpload(event)}
-                  />
-                </label>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-300 group-hover/avatar:opacity-100">
+                      {uploadingPhoto ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      ) : (
+                        <Settings className="h-4 w-4 text-white" />
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/png,image/webp,image/jpeg"
+                      className="hidden"
+                      disabled={uploadingPhoto}
+                      onChange={(event) => void handlePhotoUpload(event)}
+                    />
+                  </label>
+                  {isValidOrExempt && (
+                    <div
+                      className="absolute -bottom-1 -right-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 text-white ring-2 ring-white shadow-sm animate-fade-in"
+                      title="Matrícula validada en SSS / REFEPS"
+                    >
+                      <Check className="h-2.5 w-2.5 text-white" strokeWidth={3.5} />
+                    </div>
+                  )}
+                </div>
                 {!isSidebarCollapsed ? (
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-semibold text-neutral-900">
+                    <p className="flex items-center gap-1.5 truncate text-[13px] font-semibold text-neutral-900">
                       {doctorName}
+                      {isValidOrExempt && (
+                        <span
+                          className="inline-flex items-center justify-center text-amber-500"
+                          title="Matrícula validada en SSS / REFEPS"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 fill-amber-50 text-amber-500" />
+                        </span>
+                      )}
                     </p>
                     <p className="truncate text-[11px] text-neutral-400">
                       {doctorSpecialty}

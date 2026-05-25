@@ -40,7 +40,7 @@ interface ExtractionCacheRecord {
 
 export interface ConsultationContextResult {
   hasAnamnesis: boolean
-  patient: { name: string; dateOfBirth: string | null; gender: string | null } | null
+  patient: { id?: string | null; name: string; dateOfBirth: string | null; gender: string | null } | null
   anamnesisStatus?: string
   completionPercentage?: number | null
   summary: ReturnType<typeof buildAnamnesisSummary> | null
@@ -132,7 +132,7 @@ export const consultationContextService = {
     if (!patientId) {
       return {
         hasAnamnesis: false,
-        patient: patientProfile,
+        patient: { id: null, ...patientProfile },
         summary: null,
         extraction: null,
         redFlags: [],
@@ -194,7 +194,7 @@ export const consultationContextService = {
 
     return {
       hasAnamnesis: true,
-      patient: patientProfile,
+      patient: { id: patientId, ...patientProfile },
       anamnesisStatus: anamnesis.status,
       completionPercentage: anamnesis.completion_percentage,
       summary,

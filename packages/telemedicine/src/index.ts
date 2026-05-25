@@ -75,6 +75,7 @@ export { HttpWebRTCClient } from './http-webrtc-client'
 // UI Components
 export { UnifiedVideoCall } from './unified-video-call'
 export type { UnifiedVideoCallProps } from './unified-video-call'
+export { CallAuxiliaryButton } from './components/CallControlsBar'
 export { TelemedicineDebugPanel } from './telemedicine-debug-panel'
 export type { TelemedicineDebugPanelProps } from './telemedicine-debug-panel'
 export { ReconnectingOverlay } from './components/ReconnectingOverlay'

@@ -3,6 +3,7 @@ import { logger } from '@autamedica/shared';
 import { fetchApi, ApiError } from '@/lib/api-client';
 
 export interface PatientProfile {
+  id?: string;
   name: string;
   dateOfBirth: string | null;
   gender: string | null;

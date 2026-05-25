@@ -1,10 +1,16 @@
-import { createHash } from 'crypto';
-
 export interface RCTARegistrationResult {
   cuir: string;
   registrationId: string;
   timestamp: string;
   evidenceHash: string;
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**
@@ -32,18 +38,14 @@ export class RCTAService {
     
     // Generate a structured CUIR: PREFIX-YYYYMMDD-HASH
     const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    const hash = createHash('sha256')
-      .update(`${doctorId}:${patientId}:${medicationIFA}:${timestamp}:${nonce}`)
-      .digest('hex')
+    const hash = (await sha256Hex(`${doctorId}:${patientId}:${medicationIFA}:${timestamp}:${nonce}`))
       .substring(0, 8)
       .toUpperCase();
       
     const cuir = `${RCTAService.PREFIX}-${dateStr}-${hash}`;
     
     // Create a deterministic registration evidence hash for audit
-    const evidenceHash = createHash('sha256')
-      .update(`${cuir}${timestamp}${nonce}`)
-      .digest('hex');
+    const evidenceHash = await sha256Hex(`${cuir}${timestamp}${nonce}`);
 
     return {
       cuir,

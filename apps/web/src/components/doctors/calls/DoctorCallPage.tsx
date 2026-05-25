@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
-import { UnifiedVideoCall, createCallProvider, createCallService, useAudioTranscription, useTurnCredentials } from '@autamedica/telemedicine'
+import { UnifiedVideoCall, CallAuxiliaryButton, createCallProvider, createCallService, useAudioTranscription, useTurnCredentials } from '@autamedica/telemedicine'
+import { FileText, Pill } from 'lucide-react'
 import type { TranscriptSegment } from '@autamedica/telemedicine'
 import type { CallStatus } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
@@ -21,6 +22,11 @@ import {
   writeConsultationNotesDraft,
 } from '@/lib/doctors/calls/consultation-notes-draft'
 import { ConsultationContextPanel } from './ConsultationContextPanel'
+import { PrescriptionCreateModal } from '@/components/doctors/medical/PrescriptionCreateModal'
+import { prescriptionService } from '@/lib/doctors/services/prescription.service'
+import { MedicalOrderCreateModal } from '@/components/doctors/medical/MedicalOrderCreateModal'
+import { medicalOrderService } from '@/lib/doctors/services/medical-order.service'
+import type { UUID, Prescription, MedicalOrder } from '@/types/medical'
 
 interface DoctorCallPageProps {
   roomId: string
@@ -69,6 +75,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const [voiceNotesEnabled, setVoiceNotesEnabled] = useState(false)
   const [liveMicLevel, setLiveMicLevel] = useState(0)
   const [captionText, setCaptionText] = useState('')
+  const [showPrescriptionModal, setShowPrescriptionModal] = useState(false)
+  const [showStudyOrderModal, setShowStudyOrderModal] = useState(false)
   const { context, loading: contextLoading, error: contextError } = useConsultationContext(roomId)
   const {
     session: callSession,
@@ -632,6 +640,22 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             runtime={callSession.runtime}
             className="h-screen"
             onLocalAudioLevelChange={handleAudioLevelChange}
+            auxiliaryControls={
+              context?.patient?.id ? (
+                <>
+                  <CallAuxiliaryButton
+                    icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                    label="Receta"
+                    onClick={() => setShowPrescriptionModal(true)}
+                  />
+                  <CallAuxiliaryButton
+                    icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                    label="Estudio"
+                    onClick={() => setShowStudyOrderModal(true)}
+                  />
+                </>
+              ) : null
+            }
           />
         )}
 
@@ -675,6 +699,56 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           onToggleVoiceNotes={handleToggleVoiceNotes}
         />
       </div>
+
+      {showPrescriptionModal && context?.patient?.id && (
+        <PrescriptionCreateModal
+          patientId={context.patient.id as UUID}
+          onClose={() => setShowPrescriptionModal(false)}
+          onSaved={() => {
+            setShowPrescriptionModal(false)
+          }}
+          addPrescription={(p) => {
+            const pid = context?.patient?.id;
+            if (!pid) throw new Error('Patient ID missing');
+            return prescriptionService.create(pid, {
+              ...p,
+              patient_id: pid as UUID,
+            });
+          }}
+          issuePrescription={async (id) => {
+            await prescriptionService.issue(id)
+          }}
+          updatePrescription={async (id, updates) => {
+            await prescriptionService.update(id, {} as Prescription, updates)
+          }}
+          submitLabel="Emitir receta"
+        />
+      )}
+
+      {showStudyOrderModal && context?.patient?.id && (
+        <MedicalOrderCreateModal
+          patientId={context.patient.id as UUID}
+          onClose={() => setShowStudyOrderModal(false)}
+          onSaved={() => {
+            setShowStudyOrderModal(false)
+          }}
+          addMedicalOrder={(o) => {
+            const pid = context?.patient?.id;
+            if (!pid) throw new Error('Patient ID missing');
+            return medicalOrderService.create(pid, {
+              ...o,
+              patient_id: pid as UUID,
+            });
+          }}
+          issueMedicalOrder={async (id) => {
+            await medicalOrderService.issue(id)
+          }}
+          updateMedicalOrder={async (id, updates) => {
+            await medicalOrderService.update(id, {} as MedicalOrder, updates)
+          }}
+          submitLabel="Solicitar estudio"
+        />
+      )}
     </div>
   )
 }
