@@ -7,7 +7,7 @@ import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
 import { MEDICAL_SPECIALTIES } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
-import { CheckCircle2, Loader2, ArrowLeft, ShieldAlert, ShieldCheck, Heart, Sparkles, Stethoscope } from 'lucide-react'
+import { CheckCircle2, Loader2, ArrowLeft, ShieldAlert, ShieldCheck, Heart, MessageSquareText, Stethoscope } from 'lucide-react'
 import { SignaturePad } from './SignaturePad'
 
 const ARGENTINE_PROVINCES = [
@@ -632,14 +632,14 @@ export function ProfileForm() {
               </div>
             )}
 
-            {/* AI Care Guide Template Picker */}
+            {/* Patient Instructions Template Picker */}
             <div className="h-px w-full bg-am-surface-200 my-6" />
             <h2 className="text-base font-semibold text-am-surface-800 mb-1 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-am-doctor-500 animate-pulse" />
-              Guía de Cuidados del Paciente (AI)
+              <MessageSquareText className="h-5 w-5 text-am-doctor-500" />
+              Indicaciones para el paciente
             </h2>
             <p className="text-xs text-am-surface-500 mb-4 leading-relaxed">
-              La inteligencia artificial de AutaMedica enriquecerá tus recetas generando una guía personalizada con consejos de toma, advertencias y hábitos. Elegí el estilo y tono de comunicación que mejor se adapte a vos:
+              Elegí el estilo de comunicación que se usará como base editable en las indicaciones de tus recetas.
             </p>
 
             <div className="grid gap-4 sm:grid-cols-3">
@@ -665,7 +665,7 @@ export function ProfileForm() {
                 </p>
               </button>
 
-              {/* Tarjeta Médica Femenina */}
+              {/* Tarjeta Profesional Femenina */}
               <button
                 type="button"
                 onClick={() => setCareGuideTemplate('female')}
@@ -681,9 +681,9 @@ export function ProfileForm() {
                 }`}>
                   <Heart className="h-5 w-5" />
                 </div>
-                <h3 className="text-sm font-semibold text-am-surface-900">Médica Femenina</h3>
+                <h3 className="text-sm font-semibold text-am-surface-900">Profesional Femenina</h3>
                 <p className="mt-1 text-[11px] leading-relaxed text-am-surface-500">
-                  Concordancia en femenino ("doctora", "médica") con un tono sumamente empático y profesional.
+                  Concordancia en femenino con un tono clínico, claro y profesional.
                 </p>
               </button>
 
@@ -701,39 +701,36 @@ export function ProfileForm() {
                 <div className={`p-2 rounded-xl mb-3 ${
                   careGuideTemplate === 'empathetic' ? 'bg-amber-100 text-amber-600' : 'bg-am-surface-100 text-am-surface-500'
                 }`}>
-                  <Sparkles className="h-5 w-5" />
+                  <MessageSquareText className="h-5 w-5" />
                 </div>
-                <h3 className="text-sm font-semibold text-am-surface-900">Informal / Cercana</h3>
+                <h3 className="text-sm font-semibold text-am-surface-900">Cercana</h3>
                 <p className="mt-1 text-[11px] leading-relaxed text-am-surface-500">
-                  Uso de voseo/tuteo natural y lenguaje súper sencillo y claro para facilitar el cumplimiento del paciente.
+                  Lenguaje simple y directo, manteniendo registro médico profesional.
                 </p>
               </button>
             </div>
 
-            {/* Vista Previa de la Guía AI */}
+            {/* Vista previa de indicaciones */}
             <div className="mt-4 rounded-2xl border border-am-surface-200 bg-am-surface-50/50 p-4 transition-all duration-300">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-am-surface-400">
-                  Vista Previa del Tono Sugerido
-                </span>
-                <span className="text-[10px] rounded-md bg-white px-2 py-0.5 font-medium text-am-surface-500 border border-am-surface-200 shadow-am-xs">
-                  Generado por Gemini AI
+                  Vista previa del tono
                 </span>
               </div>
               <div className="text-xs text-am-surface-700 leading-relaxed italic bg-white p-3 rounded-xl border border-am-surface-100 shadow-am-xs">
                 {careGuideTemplate === 'neutral' && (
                   <span>
-                    "Se prescribe tratamiento antibiótico con Amoxicilina 500mg. Es fundamental respetar la dosificación cada 8 horas y completar los 7 días de duración total establecidos por este profesional para evitar resistencia bacteriana."
+                    "Tomar Amoxicilina 500 mg cada 8 horas durante 7 días. Completar el tratamiento indicado aunque los síntomas mejoren antes. Consultar ante reacción alérgica, dificultad para respirar o diarrea intensa."
                   </span>
                 )}
                 {careGuideTemplate === 'female' && (
                   <span>
-                    "Hola, soy tu doctora. Te indico iniciar este tratamiento de Amoxicilina 500mg. Es muy importante que tomes la dosis a horario cada 8 horas y termines el esquema de 7 días completo para asegurar tu total recuperación. Estoy para acompañarte."
+                    "Tomá Amoxicilina 500 mg cada 8 horas durante 7 días. Completá el esquema indicado aunque te sientas mejor antes. Consultá si aparece alergia, dificultad para respirar o diarrea intensa."
                   </span>
                 )}
                 {careGuideTemplate === 'empathetic' && (
                   <span>
-                    "¡Hola! Para ayudarte a curar esa infección rápido, te receté Amoxicilina 500mg. Tomalo cada 8 horas y no lo dejes antes de los 7 días aunque ya te sientas de diez. Si tenés alguna duda con la toma o efectos raros, consultame enseguida."
+                    "Tomá Amoxicilina 500 mg cada 8 horas durante 7 días. No suspendas el tratamiento antes de tiempo aunque mejores. Si aparece sarpullido, falta de aire o diarrea fuerte, consultá de inmediato."
                   </span>
                 )}
               </div>
