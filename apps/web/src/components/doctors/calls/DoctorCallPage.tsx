@@ -697,6 +697,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           voiceNotesAvailable={!showDoctorWaitingRoom && transcriptionState.isSupported}
           liveTranscriptPreview={liveTranscriptPreview}
           onToggleVoiceNotes={handleToggleVoiceNotes}
+          onEmitPrescription={context?.patient?.id ? () => setShowPrescriptionModal(true) : undefined}
+          onEmitStudyOrder={context?.patient?.id ? () => setShowStudyOrderModal(true) : undefined}
         />
       </div>
 
