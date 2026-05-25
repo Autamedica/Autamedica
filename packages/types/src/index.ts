@@ -941,6 +941,18 @@ export type {
   AppointmentView,
   ICallGuestInviteRepository,
   CallGuestInviteRecord,
+  IClinicalRulesRepository,
+  IRuleExecutionRepository,
+  ClinicalRule,
+  ClinicalRuleVersion,
+  ClinicalRuleCondition,
+  ClinicalRequiredObservation,
+  ClinicalResolutionCriterion,
+  ClinicalRedFlag,
+  ClinicalRuleExecution,
+  ClinicalRuleOverride,
+  ClinicalEvidence,
+  TroponinMeasurement,
 } from './ports';
 
 // ==========================================

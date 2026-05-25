@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { evaluateClinicalSafetyUseCase } from './evaluate-clinical-safety.usecase';
 import type { 
-  IClinicalRulesRepository, 
   ClinicalRule, 
   ClinicalRuleVersion, 
   ClinicalRuleCondition, 
   ClinicalRequiredObservation, 
-  ClinicalResolutionCriterion, 
-  ClinicalEvidence
-
+  ClinicalResolutionCriterion
 } from '@autamedica/types';
+import type { 
+  IClinicalRulesRepository, 
+  ClinicalEvidence
+} from '@autamedica/types/ports';
 
 const { mockEmit } = vi.hoisted(() => ({
   mockEmit: vi.fn().mockResolvedValue(undefined),

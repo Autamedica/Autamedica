@@ -71,6 +71,19 @@ export type DomainEvents = {
     reportUrl?: string
   }
 
+  // Seguridad Clínica
+  'clinical.safety_rule_evaluated': {
+    incidentId: string
+    patientId: string
+    doctorId: string
+    recommendation: 'allow_closure' | 'block_closure' | 'escalate'
+    isValid: boolean
+    reason?: string
+    executionId?: string
+    overrideId?: string
+    outboxId?: string
+  }
+
 }
 
 export type DomainEventName = keyof DomainEvents

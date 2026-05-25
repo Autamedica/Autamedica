@@ -111,6 +111,8 @@ firebase-debug.log
 
 # Temporary scripts
 md2pdf.js
+scratch/
+**/scratch/
 
 # Supabase temp files
 supabase/.temp/

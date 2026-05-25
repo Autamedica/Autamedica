@@ -1,8 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database, ClinicalEvidence } from '@autamedica/types';
+import type { Database } from '@autamedica/types';
+import type { ClinicalEvidence, IClinicalRulesRepository } from '@autamedica/types/ports';
 import { logger, domainEvents } from '@autamedica/shared';
 import { evaluateClinicalSafety } from '@autamedica/shared';
-import type { IClinicalRulesRepository } from '@autamedica/types';
 
 type Db = SupabaseClient<Database>;
 
@@ -136,7 +136,7 @@ export async function evaluateClinicalSafetyUseCase(
         p_reason: reason || 'Evaluación de seguridad clínica satisfactoria.',
         p_override_reason: finalOverrideReason || null,
         p_authorized_by: authorizedBy || null,
-      } as unknown as Record<string, unknown>
+      }
     );
 
     if (txError || !txResult) {
