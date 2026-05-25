@@ -70,19 +70,19 @@ export function CallTopBar({
         >
           <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
 
-          <div className="relative flex items-center justify-between px-4 pt-3 sm:px-6 sm:pt-4">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-xl">
+          <div className="relative flex min-w-0 items-center justify-between gap-2 px-3 pt-3 sm:px-6 sm:pt-4">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3">
+              <div className="flex min-w-0 items-center gap-2 rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-xl">
                 <motion.span
-                  className={`h-2 w-2 rounded-full ${connectionDotColor}`}
+                  className={`h-2 w-2 shrink-0 rounded-full ${connectionDotColor}`}
                   animate={shouldPulse ? { scale: [1, 1.4, 1], opacity: [1, 0.5, 1] } : {}}
                   transition={shouldPulse ? { duration: 1.5, repeat: Infinity } : {}}
                 />
-                <span>{statusLabel}</span>
+                <span className="min-w-0 truncate">{statusLabel}</span>
               </div>
               {runtime && (
                 <div
-                  className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-xl ${
+                  className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-xl ${
                     runtime === 'cloudflare-calls'
                       ? 'bg-cyan-500/15 text-cyan-400 ring-1 ring-cyan-400/20'
                       : runtime === 'webrtc-p2p'
@@ -105,11 +105,11 @@ export function CallTopBar({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <AnimatePresence>
                 {isRecording && (
                   <motion.div
-                    className="flex items-center gap-1.5 rounded-full bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-300 backdrop-blur-xl ring-1 ring-red-400/20"
+                    className="flex items-center gap-1.5 rounded-full bg-red-500/20 px-2.5 py-1.5 text-xs font-semibold text-red-300 backdrop-blur-xl ring-1 ring-red-400/20 sm:px-3"
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
@@ -125,12 +125,12 @@ export function CallTopBar({
                 )}
               </AnimatePresence>
               {isConnected && (
-                <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-xs text-white backdrop-blur-xl">
+                <div className="hidden items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-xs text-white backdrop-blur-xl min-[380px]:flex">
                   <Clock className="h-3.5 w-3.5 text-slate-400" />
                   <span className="font-mono tabular-nums">{formattedDuration}</span>
                 </div>
               )}
-              <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-xs text-white backdrop-blur-xl">
+              <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5 text-xs text-white backdrop-blur-xl sm:px-3">
                 <Users className="h-3.5 w-3.5 text-slate-400" />
                 <span>{participantCount}</span>
               </div>

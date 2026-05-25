@@ -193,7 +193,7 @@ export function ActiveCallLayout({
           drag
           dragMomentum={false}
           dragConstraints={{ left: -1000, right: 1000, top: -1000, bottom: 1000 }}
-          className="absolute bottom-28 md:bottom-32 right-4 md:right-12 z-40 w-32 sm:w-48 aspect-video overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-white/10 bg-am-surface-800 shadow-am-xl cursor-grab active:cursor-grabbing"
+          className="absolute bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] right-3 z-30 aspect-video w-28 cursor-grab overflow-hidden rounded-2xl border border-white/10 bg-am-surface-800 shadow-am-xl active:cursor-grabbing sm:bottom-28 sm:right-4 sm:w-40 sm:border-2 md:bottom-32 md:right-12 md:w-48 md:rounded-3xl"
         >
           {isVideoEnabled ? (
             <video
