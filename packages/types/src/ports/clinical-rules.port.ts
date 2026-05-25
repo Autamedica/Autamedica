@@ -59,11 +59,17 @@ export type EquipmentEvent = Database['public']['Tables']['equipment_events']['R
 export interface IEquipmentSafetyRepository {
   getEquipmentById(id: string): Promise<MedicalEquipment | null>;
   getEquipmentBySerialNumber(serialNumber: string): Promise<MedicalEquipment | null>;
-  updateEquipmentStatus(id: string, status: MedicalEquipment['current_status']): Promise<MedicalEquipment>;
+  updateEquipmentStatus(
+    id: string,
+    status: MedicalEquipment['current_status'],
+    calibration?: {
+      lastCalibratedAt: string;
+      nextCalibrationDue: string;
+    }
+  ): Promise<MedicalEquipment>;
   createEquipmentIncident(incident: Omit<EquipmentIncident, 'id' | 'reported_at'>): Promise<EquipmentIncident>;
   getOpenIncidentForEquipment(equipmentId: string): Promise<EquipmentIncident | null>;
   resolveIncident(incidentId: string, updates: Partial<EquipmentIncident>): Promise<EquipmentIncident>;
   logEquipmentEvent(event: Omit<EquipmentEvent, 'id' | 'timestamp'>): Promise<EquipmentEvent>;
   getEventsForIncident(incidentId: string): Promise<EquipmentEvent[]>;
 }
-

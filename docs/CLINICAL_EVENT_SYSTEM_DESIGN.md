@@ -2,9 +2,23 @@
 
 ## Source of Truth & Technical Research Model
 
-### Version 2.0 - Clinical & Interoperability Hardening
+### Version 2.2 - CEEDS Implementation Snapshot
 
 This document serves as the architectural blueprint and clinical research source for the **Clinical & Equipment Event-Driven System (CEEDS)** in AutaMedica. It details how the platform tracks, escalates, and resolves clinical conditions and medical equipment lifecycles based on severity, clinical setting (UTI vs. Emergency Guardia), and medical evidence.
+
+### Current Implementation Status
+
+The current codebase implements CEEDS as an event-driven safety and traceability subsystem with two operational planes:
+
+- **Clinical plane:** `clinical_incidents`, `clinical_rule_executions`, `clinical_rule_overrides`, and `clinical_outbox_events` persist safety evaluations and asynchronous dispatch work.
+- **Equipment plane:** `medical_equipment`, `equipment_incidents`, and immutable `equipment_events` model device lifecycle, calibration lockout, and metrological validation evidence.
+- **Worker dispatch:** `apps/reminder-worker/src/clinical-safety-outbox.ts` polls `clinical_outbox_events`, resolves clinical context, applies setting-specific routing, deduplicates alerts, and marks outbox rows as processed or failed.
+- **Equipment lifecycle:** `apps/web/src/lib/clinical-safety/usecases/equipment-lifecycle.usecase.ts` enforces calibration certificate requirements before `validation_pending -> active`, creates a real incident when an equipment event has no open ticket, logs immutable equipment events, and only resolves the ticket after the event is persisted.
+- **Internal APIs:** authenticated web endpoints expose clinical safety evaluation, physician-gated incident closure, and equipment lifecycle checks to product workflows.
+- **Admin visibility and action:** `/admin/clinical` embeds a CEEDS operational panel backed by `GET /api/admin/clinical-safety-summary`, showing open clinical incidents, breached SLAs, outbox health, unavailable equipment, expired calibration, and open equipment tickets. Admin users can move at-risk equipment through the finite-state lifecycle from the same panel.
+- **Validation coverage:** focused tests cover alarm policy routing, outbox idempotency, equipment calibration lockout, certificate enforcement, and real-incident audit linkage.
+
+CEEDS is not an autonomous diagnosis engine. It is an audit, escalation, and assisted closure layer: clinical responsibility stays with the physician, while the platform preserves evidence, rules, state transitions, and operational traceability.
 
 ---
 
@@ -117,8 +131,11 @@ stateDiagram-v2
 
 Every active medical device in the system must preserve a record of metrological calibration, linking to certified patterns traceable to national standards (e.g., INTI in Argentina). The system enforces that:
 
-- A device in `validation_pending` cannot be transitioned back to `active` without attaching an signed metrology certificate.
+- A device in `validation_pending` cannot be transitioned back to `active` without attaching a signed metrology certificate.
 - Automated countdowns block the equipment vector the moment `next_calibration_due` is breached.
+- `next_calibration_due` is extended only during a verified `validation_pending -> active` transition. Ordinary status changes do not silently renew calibration.
+- Every `equipment_event` must point to a real `equipment_incidents` row. If a lifecycle transition occurs without an open ticket, CEEDS creates an audit incident before logging the immutable event.
+- `equipment_events` are append-only through the same mutation-prevention trigger family used for clinical audit events.
 
 ---
 
@@ -337,6 +354,63 @@ export interface MedicalEquipment {
 
 ## 6. Business Logic Validation & Dynamic SLAs
 
+### 6.0 Product Integration Endpoints
+
+CEEDS is exposed through authenticated API routes that delegate to the clinical-safety use cases. These endpoints are intentionally thin controllers: they validate input, enforce actor authorization, create the correct Supabase adapter, and return the use-case result.
+
+| Endpoint | Actor | Purpose | Core Guardrail |
+| :--- | :--- | :--- | :--- |
+| `POST /api/doctors/clinical-safety-evaluate` | Active doctor | Evaluate whether a clinical incident can close or must remain blocked/escalated. | The incident must belong to the authenticated doctor. |
+| `POST /api/doctors/clinical-safety-close-incident` | Active doctor | Re-run the CEEDS safety evaluation and resolve the incident only when rules recommend `allow_closure`. | Returns `409 clinical_safety_blocks_closure` with evaluation details when evidence is insufficient or escalation is required. |
+| `GET /api/admin/clinical-safety-equipment-availability?equipmentId=...` | Admin / organization admin / platform admin | Check whether a device can be used in a clinical workflow. | Expired calibration and non-`active` status return lockout. |
+| `POST /api/admin/clinical-safety-equipment-status` | Admin / organization admin / platform admin | Move equipment through the CEEDS finite-state lifecycle. | `validation_pending -> active` requires a calibration certificate URL. |
+| `GET /api/admin/clinical-safety-summary` | Admin / organization admin / platform admin | Feed the CEEDS admin panel with clinical, outbox, and equipment risk counters. | Service role is used only after admin-role authentication. |
+
+### 6.1 Admin Operational Actions
+
+The CEEDS admin panel now exposes controlled equipment lifecycle actions for at-risk devices:
+
+- Target statuses: `review_required`, `under_maintenance`, `validation_pending`, `active`, and `decommissioned`.
+- Every action requires an operational note and writes through `POST /api/admin/clinical-safety-equipment-status`.
+- Reactivation to `active` preserves the backend certificate gate: equipment returning from `validation_pending` must include a calibration certificate URL.
+- The panel refreshes the summary after each successful action so counters, open tickets, and calibration state remain aligned with persisted events.
+
+### 6.2 Physician Closure Flow
+
+The post-consultation report flow now surfaces active CEEDS clinical incidents for the current patient and physician. After the report is saved, the physician can submit closure evidence from the same screen. The UI calls `POST /api/doctors/clinical-safety-close-incident`, which:
+
+- validates that the incident belongs to the authenticated physician,
+- re-runs the catalog-backed clinical safety evaluation,
+- blocks closure with `409 clinical_safety_blocks_closure` when evidence does not satisfy the rule,
+- records the status transition in `clinical_incident_events` only after the incident is resolved.
+
+Example clinical evaluation payload:
+
+```json
+{
+  "incidentId": "00000000-0000-0000-0000-000000000000",
+  "evidence": {
+    "ecgStElevationMm": 1.0,
+    "peakEcgStElevationMm": 3.0,
+    "troponinHistory": [
+      { "timestamp": "2026-05-25T12:00:00.000Z", "valueNgMl": 7.1 },
+      { "timestamp": "2026-05-25T15:00:00.000Z", "valueNgMl": 5.4 }
+    ]
+  }
+}
+```
+
+Example equipment status payload:
+
+```json
+{
+  "equipmentId": "00000000-0000-0000-0000-000000000000",
+  "targetStatus": "active",
+  "notes": "Validacion metrologica revisada por mantenimiento.",
+  "calibrationCertificateUrl": "https://example.org/certificados/ventilador-001.pdf"
+}
+```
+
 ```typescript
 /**
  * Calculates the strict SLA deadline for an incident based on setting and disease.
@@ -467,6 +541,29 @@ Clinical safety in telemetry requires avoiding "alarm fatigue"—the desensitiza
 
 To reduce false alarms, clinical limits are not hardcoded. The system evaluates the patient's baseline (e.g., a patient with chronic atrial fibrillation will have adjusted arrhythmia thresholds) preventing constant alerts. Adjusting baseline parameters requires explicit clinician authentication and logs an immutable `AuditEvent`.
 
+### 7.3 Implemented Dispatch Policy by Setting
+
+The reminder worker applies a concrete alarm policy derived from `(setting, severity)` before dispatching an outbox event. The policy controls route, priority, deduplication window, and expected action window:
+
+| Setting | Severity | Route | Priority | Dedupe Window | Expected Action |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `uti` | `critical` | `icu_bedside` | P1 | 1 minute | 1 minute |
+| `uti` | non-critical | `icu_bedside` | P2 | 5 minutes | 5 minutes |
+| `guardia` | `critical` | `shockroom` | P1 | 2 minutes | 10 minutes |
+| `guardia` | non-critical | `triage_queue` | P2 | 10 minutes | 30 minutes |
+| `ward` | `critical` / `high` | `ward_rounds` | P2 | 30 minutes | 60 minutes |
+| `ward` | `medium` / `low` | `ward_rounds` | P3 | 60 minutes | 240 minutes |
+| `outpatient` | `critical` / `high` | `outpatient_followup` | P3 | 2 hours | 24 hours |
+| `outpatient` | `medium` / `low` | `outpatient_followup` | P4 | 4 hours | 7 days |
+
+The idempotency key is no longer a fixed hourly bucket. It is calculated from the policy window:
+
+```text
+incident_id + rule_version_id + trigger_type + floor(now / dedupeWindowMs)
+```
+
+This keeps UTI and Guardia alerts responsive while preventing outpatient and ward workflows from generating repetitive noise.
+
 ---
 
 ## 8. Interoperability & Tecnovigilancia Framework
@@ -526,10 +623,10 @@ In production, relying on standard in-memory event dispatchers (`InMemoryDomainE
              |
              +---> Fail ---> Rollback (All or nothing)
              v
- [Background Dispatch Worker (Cron / Queue)]
-   1. Poll clinical_outbox_events where status = 'PENDING'
+[Background Dispatch Worker (Cron / Queue)]
+   1. Poll clinical_outbox_events where status = 'pending'
    2. Dispatch to external notifications, telemetry alerts, or WebSockets
-   3. Update status = 'PROCESSED'
+   3. Update status = 'processed'
 ```
 
 - **Transactional Outbox Schema:**
@@ -538,7 +635,9 @@ In production, relying on standard in-memory event dispatchers (`InMemoryDomainE
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_type TEXT NOT NULL,
     payload JSONB NOT NULL,
-    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'PROCESSED', 'FAILED')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processed', 'failed')),
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    error_message TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     processed_at TIMESTAMPTZ
   );
@@ -547,8 +646,8 @@ In production, relying on standard in-memory event dispatchers (`InMemoryDomainE
 ### 9.2 Alarm Idempotency and Fatigue Prevention
 
 To prevent multiple duplicate telemetry warnings or notification runs (e.g., when cron validation scripts overlap), every alarm must be dispatched with an **Idempotency Key** structured as:
-$$\text{Idempotency Key} = \text{incident\_id} + \text{rule\_id} + \text{trigger\_type} + \text{time\_window}$$
-The dispatch layer verifies the existence of this key before broadcasting any visual or auditory alarms, ensuring that patients and staff are protected from alert noise and fatigue.
+$$\text{Idempotency Key} = \text{incident\_id} + \text{rule\_version\_id} + \text{trigger\_type} + \text{policy\_time\_window}$$
+The dispatch layer verifies the existence of this key before broadcasting any visual or auditory alarms, ensuring that patients and staff are protected from alert noise and fatigue. The current implementation keeps this dedupe cache in the long-running reminder worker process; a durable distributed idempotency table should be added before horizontally scaling workers.
 
 ### 9.3 Definitive Legal & Technical Positioning
 

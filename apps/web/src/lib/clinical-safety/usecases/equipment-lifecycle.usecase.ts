@@ -2,12 +2,21 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   Database,
   MedicalEquipment,
+  EquipmentIncident,
   EquipmentEvent,
   IEquipmentSafetyRepository,
 } from '@autamedica/types';
 import { logger } from '@autamedica/shared';
 
 type Db = SupabaseClient<Database>;
+type UpdateEquipmentStatusWithCalibration = (
+  id: string,
+  status: MedicalEquipment['current_status'],
+  calibration?: {
+    lastCalibratedAt: string;
+    nextCalibrationDue: string;
+  }
+) => Promise<MedicalEquipment>;
 
 export interface EquipmentLifecycleDeps {
   supabase: Db;
@@ -49,6 +58,47 @@ export interface TecnovigilanciaReportResponse {
   reportJson: any;
 }
 
+const CALIBRATION_VALIDITY_DAYS = 180;
+
+function addDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function actionTypeForStatus(status: MedicalEquipment['current_status']): EquipmentEvent['action_type'] {
+  if (status === 'active') return 'verify';
+  if (status === 'validation_pending') return 'calibrate';
+  if (status === 'review_required') return 'diagnose';
+  if (status === 'decommissioned') return 'close';
+  return 'repair';
+}
+
+async function ensureIncidentForEquipmentEvent(
+  repo: IEquipmentSafetyRepository,
+  input: {
+    equipmentId: string;
+    actorId: string;
+    targetStatus: MedicalEquipment['current_status'];
+    notes: string;
+    calibrationCertificateUrl?: string;
+  }
+): Promise<EquipmentIncident> {
+  const activeIncident = await repo.getOpenIncidentForEquipment(input.equipmentId);
+  if (activeIncident) return activeIncident;
+
+  return repo.createEquipmentIncident({
+    equipment_id: input.equipmentId,
+    reporter_id: input.actorId,
+    assigned_technician_id: null,
+    severity: input.targetStatus === 'active' ? 'low' : 'medium',
+    status: 'open',
+    resolved_at: null,
+    next_verification_due: null,
+    technical_summary: `Evento de ciclo de vida CEEDS sin ticket previo: ${input.targetStatus}. Notas: ${input.notes}`,
+    calibration_certificate_url: input.calibrationCertificateUrl ?? null,
+    closed_at: null,
+  });
+}
+
 /**
  * 1. FSM State Transition Usecase
  * Governs transitions between: active, review_required, under_maintenance, validation_pending, decommissioned.
@@ -67,41 +117,66 @@ export async function updateEquipmentStatusUseCase(
   }
 
   const currentStatus = device.current_status;
+  let incidentForEvent = await equipmentSafetyRepo.getOpenIncidentForEquipment(equipmentId);
+  let calibration:
+    | {
+        lastCalibratedAt: string;
+        nextCalibrationDue: string;
+      }
+    | undefined;
 
   // 2. Validate ANMAT strict transition rule: validation_pending -> active
   if (targetStatus === 'active' && currentStatus === 'validation_pending') {
-    const activeIncident = await equipmentSafetyRepo.getOpenIncidentForEquipment(equipmentId);
-    
     // Check if certificate URL was provided in parameters or exists in active ticket
-    const certUrl = calibrationCertificateUrl || activeIncident?.calibration_certificate_url;
+    const certUrl = calibrationCertificateUrl || incidentForEvent?.calibration_certificate_url;
     if (!certUrl || certUrl.trim() === '') {
       throw new Error(
         'REGLA ANMAT EXIGIDA: No se puede habilitar un equipo desde Validación Pendiente sin adjuntar un certificado de calibración metrológica firmado.'
       );
     }
 
-    // Resolve active incident ticket
-    if (activeIncident) {
-      await equipmentSafetyRepo.resolveIncident(activeIncident.id, {
-        status: 'resolved',
-        calibration_certificate_url: certUrl,
-        technical_summary: `Validación metrológica exitosa. Certificado: ${certUrl}. Notas: ${notes}`,
-      });
-    }
+    const now = new Date();
+    calibration = {
+      lastCalibratedAt: now.toISOString(),
+      nextCalibrationDue: addDays(now, CALIBRATION_VALIDITY_DAYS).toISOString(),
+    };
   }
 
-  // 3. Update device status FSM
-  const updatedDevice = await equipmentSafetyRepo.updateEquipmentStatus(equipmentId, targetStatus);
+  // 3. Ensure every immutable equipment event has a real incident FK.
+  if (!incidentForEvent) {
+    incidentForEvent = await ensureIncidentForEquipmentEvent(equipmentSafetyRepo, {
+      equipmentId,
+      actorId,
+      targetStatus,
+      notes,
+      calibrationCertificateUrl,
+    });
+  }
 
-  // 4. Log immutable Equipment Event
-  const activeIncident = await equipmentSafetyRepo.getOpenIncidentForEquipment(equipmentId);
+  // 4. Update device status FSM
+  const updatedDevice = await (equipmentSafetyRepo.updateEquipmentStatus as UpdateEquipmentStatusWithCalibration)(
+    equipmentId,
+    targetStatus,
+    calibration
+  );
+
+  // 5. Log immutable Equipment Event
   const loggedEvent = await equipmentSafetyRepo.logEquipmentEvent({
-    incident_id: activeIncident?.id || '00000000-0000-0000-0000-000000000000', // Default if no open incident exists
+    incident_id: incidentForEvent.id,
     actor_id: actorId,
-    action_type: targetStatus === 'active' ? 'verify' : 'repair',
+    action_type: actionTypeForStatus(targetStatus),
     is_resolved: targetStatus === 'active',
     notes: `Transición de estado: ${currentStatus} -> ${targetStatus}. Notas: ${notes}`,
   });
+
+  // 6. Resolve ticket only after the immutable event exists.
+  if (targetStatus === 'active') {
+    await equipmentSafetyRepo.resolveIncident(incidentForEvent.id, {
+      status: 'resolved',
+      calibration_certificate_url: calibrationCertificateUrl || incidentForEvent.calibration_certificate_url,
+      technical_summary: `Equipo habilitado. Notas: ${notes}`,
+    });
+  }
 
   return {
     success: true,

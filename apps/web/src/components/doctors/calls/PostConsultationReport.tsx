@@ -26,6 +26,30 @@ interface ReportData {
   followUpRecommendations: string[];
   confidence: number;
   provider: string;
+  activeClinicalIncidents: ActiveClinicalIncident[];
+}
+
+interface ActiveClinicalIncident {
+  id: string;
+  conditionDisplay: string;
+  setting: string;
+  severity: string;
+  status: string;
+  slaDeadline: string;
+}
+
+interface ClinicalClosureEvidence {
+  painScaleVas: string;
+  oxygenSaturationPct: string;
+  glasgowComaScale: string;
+  ecgStElevationMm: string;
+  peakEcgStElevationMm: string;
+  hasThunderclapOnset: boolean;
+  hasNewFocalDeficits: boolean;
+  hasMeningism: boolean;
+  isImmunodeficient: boolean;
+  resolutionNotes: string;
+  overrideReason: string;
 }
 
 export default function PostConsultationReport({ roomId }: PostConsultationReportProps) {
@@ -46,6 +70,23 @@ function ReportContent({ roomId }: { roomId: string }) {
   const [saved, setSaved] = useState(false);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedIncidentId, setSelectedIncidentId] = useState<string>('');
+  const [closureEvidence, setClosureEvidence] = useState<ClinicalClosureEvidence>({
+    painScaleVas: '',
+    oxygenSaturationPct: '',
+    glasgowComaScale: '',
+    ecgStElevationMm: '',
+    peakEcgStElevationMm: '',
+    hasThunderclapOnset: false,
+    hasNewFocalDeficits: false,
+    hasMeningism: false,
+    isImmunodeficient: false,
+    resolutionNotes: '',
+    overrideReason: '',
+  });
+  const [closingIncident, setClosingIncident] = useState(false);
+  const [closedIncidentIds, setClosedIncidentIds] = useState<string[]>([]);
+  const [closureMessage, setClosureMessage] = useState<string | null>(null);
 
   const generateReport = useCallback(async () => {
     setGenerating(true);
@@ -57,6 +98,7 @@ function ReportContent({ roomId }: { roomId: string }) {
       });
       setReportData(data);
       setEditedReport(data.report);
+      setSelectedIncidentId(data.activeClinicalIncidents[0]?.id ?? '');
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setError('Sesión expirada');
@@ -98,6 +140,50 @@ function ReportContent({ roomId }: { roomId: string }) {
   const updateField = useCallback((field: keyof SOAPReport, value: string) => {
     setEditedReport(prev => prev ? { ...prev, [field]: value } : null);
   }, []);
+
+  const closeSelectedIncident = useCallback(async () => {
+    if (!selectedIncidentId) return;
+    setClosingIncident(true);
+    setClosureMessage(null);
+
+    const numericEvidence = {
+      ...(closureEvidence.painScaleVas ? { painScaleVas: Number(closureEvidence.painScaleVas) } : {}),
+      ...(closureEvidence.oxygenSaturationPct ? { oxygenSaturationPct: Number(closureEvidence.oxygenSaturationPct) } : {}),
+      ...(closureEvidence.glasgowComaScale ? { glasgowComaScale: Number(closureEvidence.glasgowComaScale) } : {}),
+      ...(closureEvidence.ecgStElevationMm ? { ecgStElevationMm: Number(closureEvidence.ecgStElevationMm) } : {}),
+      ...(closureEvidence.peakEcgStElevationMm ? { peakEcgStElevationMm: Number(closureEvidence.peakEcgStElevationMm) } : {}),
+    };
+
+    try {
+      await fetchApi('/api/doctors/clinical-safety-close-incident', {
+        method: 'POST',
+        body: {
+          incidentId: selectedIncidentId,
+          evidence: {
+            ...numericEvidence,
+            hasThunderclapOnset: closureEvidence.hasThunderclapOnset,
+            hasNewFocalDeficits: closureEvidence.hasNewFocalDeficits,
+            hasMeningism: closureEvidence.hasMeningism,
+            isImmunodeficient: closureEvidence.isImmunodeficient,
+          },
+          resolutionNotes: closureEvidence.resolutionNotes || undefined,
+          overrideReason: closureEvidence.overrideReason || undefined,
+        },
+      });
+
+      setClosedIncidentIds((current) => [...new Set([...current, selectedIncidentId])]);
+      setClosureMessage('Incidente clínico resuelto con control CEEDS.');
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setClosureMessage('CEEDS bloqueó el cierre: falta evidencia o corresponde escalar el incidente.');
+      } else {
+        logger.error('[PostConsultationReport] Clinical incident close error', err);
+        setClosureMessage('No se pudo resolver el incidente clínico.');
+      }
+    } finally {
+      setClosingIncident(false);
+    }
+  }, [closureEvidence, selectedIncidentId]);
 
   useEffect(() => {
     const draft = readConsultationNotesDraft(roomId);
@@ -293,6 +379,131 @@ function ReportContent({ roomId }: { roomId: string }) {
                   </svg>
                   <p className="text-sm text-am-doctor-800 font-medium">Reporte guardado exitosamente</p>
                 </div>
+
+                {reportData.activeClinicalIncidents.length > 0 && (
+                  <div className="rounded-xl bg-white border border-am-surface-200 shadow-am-sm p-4 space-y-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-am-surface-900">Cierre clínico CEEDS</h3>
+                      <p className="text-xs text-am-surface-500 mt-1">
+                        Incidentes activos del paciente requieren evidencia clínica antes de resolver.
+                      </p>
+                    </div>
+
+                    <select
+                      value={selectedIncidentId}
+                      onChange={(event) => setSelectedIncidentId(event.target.value)}
+                      className="w-full h-10 rounded-lg border border-am-surface-200 bg-white px-3 text-sm text-am-surface-800"
+                    >
+                      {reportData.activeClinicalIncidents.map((incident) => (
+                        <option
+                          key={incident.id}
+                          value={incident.id}
+                          disabled={closedIncidentIds.includes(incident.id)}
+                        >
+                          {incident.conditionDisplay} · {incident.setting} · {incident.severity}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <input
+                        value={closureEvidence.painScaleVas}
+                        onChange={(event) => setClosureEvidence((current) => ({ ...current, painScaleVas: event.target.value }))}
+                        type="number"
+                        min="0"
+                        max="10"
+                        placeholder="VAS 0-10"
+                        className="h-10 rounded-lg border border-am-surface-200 px-3 text-sm"
+                      />
+                      <input
+                        value={closureEvidence.oxygenSaturationPct}
+                        onChange={(event) => setClosureEvidence((current) => ({ ...current, oxygenSaturationPct: event.target.value }))}
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="SpO2 %"
+                        className="h-10 rounded-lg border border-am-surface-200 px-3 text-sm"
+                      />
+                      <input
+                        value={closureEvidence.glasgowComaScale}
+                        onChange={(event) => setClosureEvidence((current) => ({ ...current, glasgowComaScale: event.target.value }))}
+                        type="number"
+                        min="3"
+                        max="15"
+                        placeholder="Glasgow"
+                        className="h-10 rounded-lg border border-am-surface-200 px-3 text-sm"
+                      />
+                      <input
+                        value={closureEvidence.ecgStElevationMm}
+                        onChange={(event) => setClosureEvidence((current) => ({ ...current, ecgStElevationMm: event.target.value }))}
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        placeholder="ST actual mm"
+                        className="h-10 rounded-lg border border-am-surface-200 px-3 text-sm"
+                      />
+                      <input
+                        value={closureEvidence.peakEcgStElevationMm}
+                        onChange={(event) => setClosureEvidence((current) => ({ ...current, peakEcgStElevationMm: event.target.value }))}
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        placeholder="ST pico mm"
+                        className="h-10 rounded-lg border border-am-surface-200 px-3 text-sm"
+                      />
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {[
+                        ['hasThunderclapOnset', 'Inicio thunderclap'],
+                        ['hasNewFocalDeficits', 'Déficit focal nuevo'],
+                        ['hasMeningism', 'Meningismo'],
+                        ['isImmunodeficient', 'Inmunodeficiencia'],
+                      ].map(([key, label]) => (
+                        <label key={key} className="flex items-center gap-2 text-sm text-am-surface-700">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(closureEvidence[key as keyof ClinicalClosureEvidence])}
+                            onChange={(event) => setClosureEvidence((current) => ({
+                              ...current,
+                              [key]: event.target.checked,
+                            }))}
+                            className="h-4 w-4 rounded border-am-surface-300"
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+
+                    <textarea
+                      value={closureEvidence.resolutionNotes}
+                      onChange={(event) => setClosureEvidence((current) => ({ ...current, resolutionNotes: event.target.value }))}
+                      placeholder="Notas de resolución"
+                      rows={2}
+                      className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm resize-y"
+                    />
+
+                    <textarea
+                      value={closureEvidence.overrideReason}
+                      onChange={(event) => setClosureEvidence((current) => ({ ...current, overrideReason: event.target.value }))}
+                      placeholder="Justificación médica si corresponde superar el bloqueo"
+                      rows={2}
+                      className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm resize-y"
+                    />
+
+                    {closureMessage && (
+                      <p className="text-sm text-am-surface-700">{closureMessage}</p>
+                    )}
+
+                    <button
+                      onClick={closeSelectedIncident}
+                      disabled={closingIncident || !selectedIncidentId || closedIncidentIds.includes(selectedIncidentId)}
+                      className="w-full py-3 rounded-xl shadow-am-sm text-sm font-medium text-white bg-am-surface-900 hover:bg-am-surface-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {closingIncident ? 'Evaluando CEEDS...' : 'Resolver incidente'}
+                    </button>
+                  </div>
+                )}
 
                 <div className="flex gap-3">
                   <a

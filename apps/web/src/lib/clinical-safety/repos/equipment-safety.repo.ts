@@ -42,14 +42,24 @@ export function createEquipmentSafetyAdapter(supabase: Db): IEquipmentSafetyRepo
 
     async updateEquipmentStatus(
       id: string,
-      status: MedicalEquipment['current_status']
+      status: MedicalEquipment['current_status'],
+      calibration?: {
+        lastCalibratedAt: string;
+        nextCalibrationDue: string;
+      }
     ): Promise<MedicalEquipment> {
+      const updatePayload: Database['public']['Tables']['medical_equipment']['Update'] = {
+        current_status: status,
+      };
+
+      if (calibration) {
+        updatePayload.last_calibrated_at = calibration.lastCalibratedAt;
+        updatePayload.next_calibration_due = calibration.nextCalibrationDue;
+      }
+
       const { data, error } = await supabase
         .from('medical_equipment')
-        .update({
-          current_status: status,
-          next_calibration_due: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(), // Extends next calibration deadline on status update (if re-calibrated)
-        })
+        .update(updatePayload)
         .eq('id', id)
         .select('*')
         .single();

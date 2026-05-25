@@ -1,5 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+import { CEEDSDashboard } from '@/components/admin/CEEDSDashboard';
 import { ClinicalIntelligenceDashboard } from '@/components/admin/ClinicalIntelligenceDashboard';
 import { resolveAdminRole } from '@/lib/admin/auth';
 
@@ -51,6 +52,10 @@ if (!role) {
         <p class="max-w-3xl text-sm leading-6 text-slate-600">
           Monitorea desviaciones estadísticas y brotes epidemiológicos en tiempo real. Este panel consume directamente la Capa de Oro analítica (OLAP) de la plataforma y procesa alertas basadas en taxonomías internacionales SNOMED CT y CIE-11.
         </p>
+      </section>
+
+      <section>
+        <CEEDSDashboard client:load />
       </section>
 
       <section>

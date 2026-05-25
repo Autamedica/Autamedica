@@ -14,6 +14,17 @@ export interface OutboxProcessResult {
   errors: string[];
 }
 
+type ClinicalSetting = 'uti' | 'guardia' | 'ward' | 'outpatient';
+type IncidentSeverity = 'critical' | 'high' | 'medium' | 'low';
+type AlarmRoute = 'shockroom' | 'icu_bedside' | 'triage_queue' | 'ward_rounds' | 'outpatient_followup';
+
+export interface ClinicalAlarmPolicy {
+  route: AlarmRoute;
+  priority: 1 | 2 | 3 | 4;
+  dedupeWindowMs: number;
+  expectedActionWindowMinutes: number;
+}
+
 interface OutboxEvent {
   id: string;
   event_type: string;
@@ -35,9 +46,10 @@ interface OutboxEvent {
   error_message: string | null;
 }
 
-// In-memory cache to prevent duplicate alerts within the same time window (1 hour)
+const MINUTE_MS = 60 * 1000;
+
+// In-memory cache to prevent duplicate alerts within a setting-specific window.
 const recentlyDispatchedAlarms = new Map<string, number>();
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 /**
  * Cleans up expired items in the idempotency cache.
@@ -45,23 +57,51 @@ const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 function cleanupIdempotencyCache() {
   const now = Date.now();
   for (const [key, timestamp] of recentlyDispatchedAlarms.entries()) {
-    if (now - timestamp > CACHE_TTL_MS) {
+    if (now - timestamp > 4 * 60 * MINUTE_MS) {
       recentlyDispatchedAlarms.delete(key);
     }
   }
 }
 
+export function resolveClinicalAlarmPolicy(
+  setting: ClinicalSetting,
+  severity: IncidentSeverity
+): ClinicalAlarmPolicy {
+  if (setting === 'uti') {
+    return severity === 'critical'
+      ? { route: 'icu_bedside', priority: 1, dedupeWindowMs: 1 * MINUTE_MS, expectedActionWindowMinutes: 1 }
+      : { route: 'icu_bedside', priority: 2, dedupeWindowMs: 5 * MINUTE_MS, expectedActionWindowMinutes: 5 };
+  }
+
+  if (setting === 'guardia') {
+    return severity === 'critical'
+      ? { route: 'shockroom', priority: 1, dedupeWindowMs: 2 * MINUTE_MS, expectedActionWindowMinutes: 10 }
+      : { route: 'triage_queue', priority: 2, dedupeWindowMs: 10 * MINUTE_MS, expectedActionWindowMinutes: 30 };
+  }
+
+  if (setting === 'ward') {
+    return severity === 'critical' || severity === 'high'
+      ? { route: 'ward_rounds', priority: 2, dedupeWindowMs: 30 * MINUTE_MS, expectedActionWindowMinutes: 60 }
+      : { route: 'ward_rounds', priority: 3, dedupeWindowMs: 60 * MINUTE_MS, expectedActionWindowMinutes: 240 };
+  }
+
+  return severity === 'critical' || severity === 'high'
+    ? { route: 'outpatient_followup', priority: 3, dedupeWindowMs: 2 * 60 * MINUTE_MS, expectedActionWindowMinutes: 24 * 60 }
+    : { route: 'outpatient_followup', priority: 4, dedupeWindowMs: 4 * 60 * MINUTE_MS, expectedActionWindowMinutes: 7 * 24 * 60 };
+}
+
 /**
  * Generates a unique, clinical alarm idempotency key.
- * Structure: incident_id + rule_version_id + trigger_type + hourly_window
+ * Structure: incident_id + rule_version_id + trigger_type + setting_policy_window
  */
 export function generateAlarmIdempotencyKey(
   incidentId: string,
   ruleVersionId: string,
-  triggerType: string
+  triggerType: string,
+  dedupeWindowMs = 60 * MINUTE_MS,
+  now = new Date()
 ): string {
-  // Use YYYY-MM-DDTHH (hourly resolution) as the time window
-  const timeWindow = new Date().toISOString().substring(0, 13);
+  const timeWindow = Math.floor(now.getTime() / dedupeWindowMs);
   return `${incidentId}:${ruleVersionId}:${triggerType}:${timeWindow}`;
 }
 
@@ -118,23 +158,27 @@ export async function processClinicalOutboxJobs(
           logger.error(`[ClinicalOutboxWorker] Failed to fetch incident ${incident_id}`, incidentErr);
         }
 
-        const setting = incident?.setting ?? 'outpatient';
-        const severity = incident?.severity ?? 'medium';
+        const setting = (incident?.setting ?? 'outpatient') as ClinicalSetting;
+        const severity = (incident?.severity ?? 'medium') as IncidentSeverity;
         const conditionDisplay = incident?.condition_display ?? 'Condición clínica';
+        const alarmPolicy = resolveClinicalAlarmPolicy(setting, severity);
 
         // 3. Formulate the Idempotency Key
         const idempotencyKey = generateAlarmIdempotencyKey(
           incident_id,
           rule_version_id,
-          event.event_type
+          event.event_type,
+          alarmPolicy.dedupeWindowMs
         );
 
         // 4. Verify in cache to prevent duplicate alerts (Alarm Fatigue Prevention)
         const lastDispatched = recentlyDispatchedAlarms.get(idempotencyKey);
-        if (lastDispatched && Date.now() - lastDispatched < CACHE_TTL_MS) {
+        if (lastDispatched && Date.now() - lastDispatched < alarmPolicy.dedupeWindowMs) {
           logger.info(`[ClinicalOutboxWorker] Skipping duplicate clinical alarm (idempotency key match)`, {
             idempotencyKey,
             eventId: event.id,
+            route: alarmPolicy.route,
+            dedupeWindowMs: alarmPolicy.dedupeWindowMs,
           });
 
           // Mark outbox event as processed (it was skipped intentionally due to idempotency)
@@ -161,14 +205,20 @@ export async function processClinicalOutboxJobs(
             idempotencyKey,
             setting,
             severity,
+            route: alarmPolicy.route,
+            priority: alarmPolicy.priority,
+            expectedActionWindowMinutes: alarmPolicy.expectedActionWindowMinutes,
             recommendation,
           });
         } else {
           // Simulate direct alarm system / pager broadcast as described in Section 7 of the design doc
-          logger.warn(`[ClinicalOutboxWorker] BROADCAST ALARM DISPATCHED: [${severity.toUpperCase()}] [${setting.toUpperCase()}]`, {
+          logger.warn(`[ClinicalOutboxWorker] BROADCAST ALARM DISPATCHED: [P${alarmPolicy.priority}] [${alarmPolicy.route}]`, {
             idempotencyKey,
             incidentId: incident_id,
             diagnosis: conditionDisplay,
+            setting,
+            severity,
+            expectedActionWindowMinutes: alarmPolicy.expectedActionWindowMinutes,
             recommendation,
             reason,
           });
