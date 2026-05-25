@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    const careGuideTemplate = doctor?.care_guide_template ?? 'neutral';
+    const careGuideTemplate = (doctor?.care_guide_template as "female" | "neutral" | "empathetic") ?? 'neutral';
 
     const result = await generatePatientCareGuideResult({
       medicationName: medicationName.trim(),

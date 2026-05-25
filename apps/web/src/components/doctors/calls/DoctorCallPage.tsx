@@ -21,6 +21,11 @@ import {
   writeConsultationNotesDraft,
 } from '@/lib/doctors/calls/consultation-notes-draft'
 import { ConsultationContextPanel } from './ConsultationContextPanel'
+import { PrescriptionCreateModal } from '@/components/doctors/medical/PrescriptionCreateModal'
+import { prescriptionService } from '@/lib/doctors/services/prescription.service'
+import { MedicalOrderCreateModal } from '@/components/doctors/medical/MedicalOrderCreateModal'
+import { medicalOrderService } from '@/lib/doctors/services/medical-order.service'
+import type { UUID } from '@/types/medical'
 
 interface DoctorCallPageProps {
   roomId: string
@@ -69,6 +74,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const [voiceNotesEnabled, setVoiceNotesEnabled] = useState(false)
   const [liveMicLevel, setLiveMicLevel] = useState(0)
   const [captionText, setCaptionText] = useState('')
+  const [showPrescriptionModal, setShowPrescriptionModal] = useState(false)
+  const [showStudyOrderModal, setShowStudyOrderModal] = useState(false)
   const { context, loading: contextLoading, error: contextError } = useConsultationContext(roomId)
   const {
     session: callSession,
@@ -673,8 +680,60 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           voiceNotesAvailable={!showDoctorWaitingRoom && transcriptionState.isSupported}
           liveTranscriptPreview={liveTranscriptPreview}
           onToggleVoiceNotes={handleToggleVoiceNotes}
+          onEmitPrescription={context?.patient?.id ? () => setShowPrescriptionModal(true) : undefined}
+          onEmitStudyOrder={context?.patient?.id ? () => setShowStudyOrderModal(true) : undefined}
         />
       </div>
+
+      {showPrescriptionModal && context?.patient?.id && (
+        <PrescriptionCreateModal
+          patientId={context.patient.id as UUID}
+          onClose={() => setShowPrescriptionModal(false)}
+          onSaved={() => {
+            setShowPrescriptionModal(false)
+          }}
+          addPrescription={(p) => {
+            const pid = context?.patient?.id;
+            if (!pid) throw new Error('Patient ID missing');
+            return prescriptionService.create(pid, {
+              ...p,
+              patient_id: pid as UUID,
+            });
+          }}
+          issuePrescription={async (id) => {
+            await prescriptionService.issue(id)
+          }}
+          updatePrescription={async (id, updates) => {
+            await prescriptionService.update(id, {} as Prescription, updates)
+          }}
+          submitLabel="Emitir receta"
+        />
+      )}
+
+      {showStudyOrderModal && context?.patient?.id && (
+        <MedicalOrderCreateModal
+          patientId={context.patient.id as UUID}
+          onClose={() => setShowStudyOrderModal(false)}
+          onSaved={() => {
+            setShowStudyOrderModal(false)
+          }}
+          addMedicalOrder={(o) => {
+            const pid = context?.patient?.id;
+            if (!pid) throw new Error('Patient ID missing');
+            return medicalOrderService.create(pid, {
+              ...o,
+              patient_id: pid as UUID,
+            });
+          }}
+          issueMedicalOrder={async (id) => {
+            await medicalOrderService.issue(id)
+          }}
+          updateMedicalOrder={async (id, updates) => {
+            await medicalOrderService.update(id, {} as MedicalOrder, updates)
+          }}
+          submitLabel="Solicitar estudio"
+        />
+      )}
     </div>
   )
 }
