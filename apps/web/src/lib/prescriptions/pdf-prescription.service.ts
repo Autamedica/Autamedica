@@ -84,6 +84,8 @@ function calculateExpiry(issuedAt: string, genericName: string): string {
   return date.toISOString();
 }
 
+type PdfImageFormat = 'PNG' | 'JPEG' | 'WEBP';
+
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -97,7 +99,42 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-async function loadLogoDataUrl(): Promise<string | null> {
+function detectImageFormat(buffer: ArrayBuffer, contentType: string): PdfImageFormat | null {
+  const normalizedContentType = contentType.toLowerCase();
+  if (normalizedContentType.includes('png')) return 'PNG';
+  if (normalizedContentType.includes('jpeg') || normalizedContentType.includes('jpg')) return 'JPEG';
+  if (normalizedContentType.includes('webp')) return 'WEBP';
+
+  const bytes = new Uint8Array(buffer);
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return 'PNG';
+  }
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'JPEG';
+  }
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return 'WEBP';
+  }
+
+  return null;
+}
+
+function mimeForPdfImageFormat(format: PdfImageFormat): string {
+  if (format === 'JPEG') return 'image/jpeg';
+  if (format === 'WEBP') return 'image/webp';
+  return 'image/png';
+}
+
+async function loadLogoImage(): Promise<{ dataUrl: string; format: PdfImageFormat } | null> {
   const appUrl =
     getRuntimeEnvValue('PUBLIC_APP_URL') ??
     import.meta.env.PUBLIC_APP_URL ??
@@ -108,11 +145,31 @@ async function loadLogoDataUrl(): Promise<string | null> {
     const response = await fetch(logoUrl);
     if (!response.ok) return null;
 
-    const contentType = response.headers.get('content-type') ?? 'image/png';
-    const base64 = arrayBufferToBase64(await response.arrayBuffer());
-    return `data:${contentType};base64,${base64}`;
+    const buffer = await response.arrayBuffer();
+    const format = detectImageFormat(buffer, response.headers.get('content-type') ?? '');
+    if (!format) return null;
+
+    const base64 = arrayBufferToBase64(buffer);
+    return { dataUrl: `data:${mimeForPdfImageFormat(format)};base64,${base64}`, format };
   } catch {
     return null;
+  }
+}
+
+function safeAddImage(
+  doc: jsPDF,
+  imageData: string,
+  format: PdfImageFormat,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): boolean {
+  try {
+    doc.addImage(imageData, format, x, y, width, height);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -280,9 +337,9 @@ export async function generatePrescriptionPdf(
   doc.setFont('helvetica', 'bold');
   doc.text('RECETA MÉDICA ELECTRÓNICA', marginLeft, 18);
 
-  const logoDataUrl = await loadLogoDataUrl();
-  if (logoDataUrl) {
-    doc.addImage(logoDataUrl, 'PNG', marginLeft + 115, 10, 9, 9);
+  const logoImage = await loadLogoImage();
+  if (logoImage) {
+    safeAddImage(doc, logoImage.dataUrl, logoImage.format, marginLeft + 115, 10, 9, 9);
   }
 
   doc.setFontSize(9);
