@@ -54,10 +54,13 @@ function buildSupabaseClient(
       });
     },
     setAll(cookiesToSet) {
+      const reqHostname = new URL(request.url).hostname;
+      const useDomainOverride = isProduction() && (reqHostname === 'autamedica.com' || reqHostname.endsWith('.autamedica.com'));
+      const domainOverride = useDomainOverride ? '.autamedica.com' : undefined;
       for (const { name, value, options } of cookiesToSet) {
         cookies.set(name, value, {
           ...options,
-          domain: isProduction() ? '.autamedica.com' : undefined,
+          domain: domainOverride,
           path: '/',
           sameSite: 'lax',
           secure: isProduction(),

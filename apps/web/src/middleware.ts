@@ -679,7 +679,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
         });
       },
       setAll(cookiesToSet) {
-        const domainOverride = isProduction() ? ".autamedica.com" : undefined;
+        const reqHostname = requestUrl.hostname;
+        const useDomainOverride = isProduction() && (reqHostname === 'autamedica.com' || reqHostname.endsWith('.autamedica.com'));
+        const domainOverride = useDomainOverride ? ".autamedica.com" : undefined;
         for (const { name, value, options } of cookiesToSet) {
           context.cookies.set(name, value, {
             ...options,
