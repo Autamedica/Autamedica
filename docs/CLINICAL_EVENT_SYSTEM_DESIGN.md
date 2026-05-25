@@ -2,13 +2,13 @@
 
 ## Source of Truth & Technical Research Model
 
-### Version 2.2 - CEEDS Implementation Snapshot
+### Version 2.2 - Merged & Production-Ready (May 25, 2026)
 
 This document serves as the architectural blueprint and clinical research source for the **Clinical & Equipment Event-Driven System (CEEDS)** in AutaMedica. It details how the platform tracks, escalates, and resolves clinical conditions and medical equipment lifecycles based on severity, clinical setting (UTI vs. Emergency Guardia), and medical evidence.
 
 ### Current Implementation Status
 
-The current codebase implements CEEDS as an event-driven safety and traceability subsystem with two operational planes:
+CEEDS v2.2 has been **fully merged into the `main` production branch (PR #465)** and is active in our analytical pipelines. The current codebase implements CEEDS as an event-driven safety and traceability subsystem with two operational planes:
 
 - **Clinical plane:** `clinical_incidents`, `clinical_rule_executions`, `clinical_rule_overrides`, and `clinical_outbox_events` persist safety evaluations and asynchronous dispatch work.
 - **Equipment plane:** `medical_equipment`, `equipment_incidents`, and immutable `equipment_events` model device lifecycle, calibration lockout, and metrological validation evidence.
@@ -358,13 +358,13 @@ export interface MedicalEquipment {
 
 CEEDS is exposed through authenticated API routes that delegate to the clinical-safety use cases. These endpoints are intentionally thin controllers: they validate input, enforce actor authorization, create the correct Supabase adapter, and return the use-case result.
 
-| Endpoint | Actor | Purpose | Core Guardrail |
-| :--- | :--- | :--- | :--- |
-| `POST /api/doctors/clinical-safety-evaluate` | Active doctor | Evaluate whether a clinical incident can close or must remain blocked/escalated. | The incident must belong to the authenticated doctor. |
-| `POST /api/doctors/clinical-safety-close-incident` | Active doctor | Re-run the CEEDS safety evaluation and resolve the incident only when rules recommend `allow_closure`. | Returns `409 clinical_safety_blocks_closure` with evaluation details when evidence is insufficient or escalation is required. |
-| `GET /api/admin/clinical-safety-equipment-availability?equipmentId=...` | Admin / organization admin / platform admin | Check whether a device can be used in a clinical workflow. | Expired calibration and non-`active` status return lockout. |
-| `POST /api/admin/clinical-safety-equipment-status` | Admin / organization admin / platform admin | Move equipment through the CEEDS finite-state lifecycle. | `validation_pending -> active` requires a calibration certificate URL. |
-| `GET /api/admin/clinical-safety-summary` | Admin / organization admin / platform admin | Feed the CEEDS admin panel with clinical, outbox, and equipment risk counters. | Service role is used only after admin-role authentication. |
+| Endpoint                                                                | Actor                                       | Purpose                                                                                                | Core Guardrail                                                                                                                |
+| :---------------------------------------------------------------------- | :------------------------------------------ | :----------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/doctors/clinical-safety-evaluate`                            | Active doctor                               | Evaluate whether a clinical incident can close or must remain blocked/escalated.                       | The incident must belong to the authenticated doctor.                                                                         |
+| `POST /api/doctors/clinical-safety-close-incident`                      | Active doctor                               | Re-run the CEEDS safety evaluation and resolve the incident only when rules recommend `allow_closure`. | Returns `409 clinical_safety_blocks_closure` with evaluation details when evidence is insufficient or escalation is required. |
+| `GET /api/admin/clinical-safety-equipment-availability?equipmentId=...` | Admin / organization admin / platform admin | Check whether a device can be used in a clinical workflow.                                             | Expired calibration and non-`active` status return lockout.                                                                   |
+| `POST /api/admin/clinical-safety-equipment-status`                      | Admin / organization admin / platform admin | Move equipment through the CEEDS finite-state lifecycle.                                               | `validation_pending -> active` requires a calibration certificate URL.                                                        |
+| `GET /api/admin/clinical-safety-summary`                                | Admin / organization admin / platform admin | Feed the CEEDS admin panel with clinical, outbox, and equipment risk counters.                         | Service role is used only after admin-role authentication.                                                                    |
 
 ### 6.1 Admin Operational Actions
 
@@ -545,16 +545,16 @@ To reduce false alarms, clinical limits are not hardcoded. The system evaluates 
 
 The reminder worker applies a concrete alarm policy derived from `(setting, severity)` before dispatching an outbox event. The policy controls route, priority, deduplication window, and expected action window:
 
-| Setting | Severity | Route | Priority | Dedupe Window | Expected Action |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `uti` | `critical` | `icu_bedside` | P1 | 1 minute | 1 minute |
-| `uti` | non-critical | `icu_bedside` | P2 | 5 minutes | 5 minutes |
-| `guardia` | `critical` | `shockroom` | P1 | 2 minutes | 10 minutes |
-| `guardia` | non-critical | `triage_queue` | P2 | 10 minutes | 30 minutes |
-| `ward` | `critical` / `high` | `ward_rounds` | P2 | 30 minutes | 60 minutes |
-| `ward` | `medium` / `low` | `ward_rounds` | P3 | 60 minutes | 240 minutes |
-| `outpatient` | `critical` / `high` | `outpatient_followup` | P3 | 2 hours | 24 hours |
-| `outpatient` | `medium` / `low` | `outpatient_followup` | P4 | 4 hours | 7 days |
+| Setting      | Severity            | Route                 | Priority | Dedupe Window | Expected Action |
+| :----------- | :------------------ | :-------------------- | :------- | :------------ | :-------------- |
+| `uti`        | `critical`          | `icu_bedside`         | P1       | 1 minute      | 1 minute        |
+| `uti`        | non-critical        | `icu_bedside`         | P2       | 5 minutes     | 5 minutes       |
+| `guardia`    | `critical`          | `shockroom`           | P1       | 2 minutes     | 10 minutes      |
+| `guardia`    | non-critical        | `triage_queue`        | P2       | 10 minutes    | 30 minutes      |
+| `ward`       | `critical` / `high` | `ward_rounds`         | P2       | 30 minutes    | 60 minutes      |
+| `ward`       | `medium` / `low`    | `ward_rounds`         | P3       | 60 minutes    | 240 minutes     |
+| `outpatient` | `critical` / `high` | `outpatient_followup` | P3       | 2 hours       | 24 hours        |
+| `outpatient` | `medium` / `low`    | `outpatient_followup` | P4       | 4 hours       | 7 days          |
 
 The idempotency key is no longer a fixed hourly bucket. It is calculated from the policy window:
 
