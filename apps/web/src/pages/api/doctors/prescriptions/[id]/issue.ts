@@ -25,16 +25,19 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return jsonOk(result.data);
     }
 
-    const errorResult = result as { ok: false; error: { code: string } };
-    const code = errorResult.error.code;
+    const errorResult = result as { ok: false; error: { code: string; details?: string } };
+    const { code, details } = errorResult.error;
     if (code === 'doctor_not_found' || code === 'not_your_prescription') {
       return forbidden(code);
     }
     if (code === 'update_failed') {
-      return internalError();
+      return internalError('update_failed', details);
     }
     if (code === 'pdf_generation_failed') {
-      return internalError('pdf_generation_failed');
+      return internalError('pdf_generation_failed', details);
+    }
+    if (code === 'pdf_upload_failed') {
+      return internalError('pdf_upload_failed', details);
     }
 
     return badRequest(code);

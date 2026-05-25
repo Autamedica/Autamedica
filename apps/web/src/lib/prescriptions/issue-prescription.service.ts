@@ -125,9 +125,9 @@ export type IssuanceError =
   | { code: 'missing_patient_address' }
   | { code: 'no_medication' }
   | { code: 'missing_cuir' }
-  | { code: 'pdf_generation_failed' }
-  | { code: 'pdf_upload_failed' }
-  | { code: 'update_failed' }
+  | { code: 'pdf_generation_failed'; details?: string }
+  | { code: 'pdf_upload_failed'; details?: string }
+  | { code: 'update_failed'; details?: string }
   | { code: 'farmalink_missing_config' }
   | { code: 'farmalink_mapping_failed' }
   | { code: 'farmalink_registration_failed' }
@@ -630,11 +630,12 @@ export async function issuePrescription(
       template: doctor.care_guide_template ?? 'neutral',
     });
   } catch (error) {
+    const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     logger.error('[issuePrescription] PDF generation failed', {
       prescriptionId,
       error: error instanceof Error ? { name: error.name, message: error.message } : String(error),
     });
-    return fail({ code: 'pdf_generation_failed' });
+    return fail({ code: 'pdf_generation_failed', details });
   }
 
   // 6b. Attempt PAdES digital signing if doctor has a certificate
@@ -707,7 +708,7 @@ export async function issuePrescription(
 
   if (updateError) {
     logger.error('[issuePrescription] Update failed', updateError);
-    return fail({ code: 'update_failed' });
+    return fail({ code: 'update_failed', details: updateError.message || String(updateError) });
   }
 
   // 9. Audit events (batched)
@@ -922,7 +923,7 @@ export async function regenerateIssuedPrescriptionPdf(
 
   if (uploadError) {
     logger.warn('[regenerateIssuedPrescriptionPdf] PDF upload failed', uploadError);
-    return fail({ code: 'pdf_upload_failed' });
+    return fail({ code: 'pdf_upload_failed', details: uploadError.message || String(uploadError) });
   }
 
   const { data: urlData } = await supabase.storage
@@ -940,7 +941,7 @@ export async function regenerateIssuedPrescriptionPdf(
 
   if (updateError) {
     logger.error('[regenerateIssuedPrescriptionPdf] Update failed', updateError);
-    return fail({ code: 'update_failed' });
+    return fail({ code: 'update_failed', details: updateError.message || String(updateError) });
   }
 
   await supabase.from('prescription_audit_events').insert({
