@@ -125,6 +125,7 @@ export type IssuanceError =
   | { code: 'missing_patient_address' }
   | { code: 'no_medication' }
   | { code: 'missing_cuir' }
+  | { code: 'pdf_generation_failed' }
   | { code: 'pdf_upload_failed' }
   | { code: 'update_failed' }
   | { code: 'farmalink_missing_config' }
@@ -583,49 +584,58 @@ export async function issuePrescription(
   const vendorId = externalRegistration?.vendorId ?? `am-${Date.now()}`;
 
   // 6. Generate artifacts (PDF + QR + CUIR)
-  const artifacts = await generatePrescriptionPdf({
-    prescriptionId,
-    externalPrescription: externalRegistration?.externalPrescription,
-    medication: {
-      genericName: medicationName,
-      commercialName: item.commercial_name,
-      dosage: item.dosage ?? '',
-      presentation: item.presentation ?? '',
-      quantity: item.quantity ?? 0,
-      instructions: item.instructions ?? '',
-    },
-    diagnosis: clinicalData.diagnosis ?? '',
-    notes: clinicalData.notes,
-    patient: {
-      name: patientName,
-      dni: patient.dni ?? externalPatient?.dni ?? undefined,
-      cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
-      dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
-      sex: patient.gender ?? externalPatient?.gender ?? undefined,
-      insurancePlan: resolveInsurancePlan(patient.insurance_info),
-      address: patient.address ?? externalPatient?.address ?? undefined,
-    },
-    prescriber: {
-      name: doctorName,
-      license: doctor.license_number,
-      licenseJurisdiction: doctor.enrollment_jurisdiction ?? undefined,
-      licenseEntity: doctor.enrollment_entity ?? undefined,
-      refeps: doctor.refeps_id ?? undefined,
-      specialty: doctor.specialty ?? undefined,
-      professionalAddress: doctor.professional_address ?? undefined,
-      signatureImageUrl: doctor.signature_image_url ?? undefined,
-      stampImageUrl: doctor.stamp_image_url ?? undefined,
-    },
-    issuedAt: now,
-    expiresAt,
-    careGuide: {
-      tips: clinicalData.care_guide_tips,
-      forgotten: clinicalData.care_guide_forgotten,
-      warnings: clinicalData.care_guide_warnings,
-      lifestyle: clinicalData.care_guide_lifestyle,
-    },
-    template: doctor.care_guide_template ?? 'neutral',
-  });
+  let artifacts: Awaited<ReturnType<typeof generatePrescriptionPdf>>;
+  try {
+    artifacts = await generatePrescriptionPdf({
+      prescriptionId,
+      externalPrescription: externalRegistration?.externalPrescription,
+      medication: {
+        genericName: medicationName,
+        commercialName: item.commercial_name,
+        dosage: item.dosage ?? '',
+        presentation: item.presentation ?? '',
+        quantity: item.quantity ?? 0,
+        instructions: item.instructions ?? '',
+      },
+      diagnosis: clinicalData.diagnosis ?? '',
+      notes: clinicalData.notes,
+      patient: {
+        name: patientName,
+        dni: patient.dni ?? externalPatient?.dni ?? undefined,
+        cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
+        dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
+        sex: patient.gender ?? externalPatient?.gender ?? undefined,
+        insurancePlan: resolveInsurancePlan(patient.insurance_info),
+        address: patient.address ?? externalPatient?.address ?? undefined,
+      },
+      prescriber: {
+        name: doctorName,
+        license: doctor.license_number,
+        licenseJurisdiction: doctor.enrollment_jurisdiction ?? undefined,
+        licenseEntity: doctor.enrollment_entity ?? undefined,
+        refeps: doctor.refeps_id ?? undefined,
+        specialty: doctor.specialty ?? undefined,
+        professionalAddress: doctor.professional_address ?? undefined,
+        signatureImageUrl: doctor.signature_image_url ?? undefined,
+        stampImageUrl: doctor.stamp_image_url ?? undefined,
+      },
+      issuedAt: now,
+      expiresAt,
+      careGuide: {
+        tips: clinicalData.care_guide_tips,
+        forgotten: clinicalData.care_guide_forgotten,
+        warnings: clinicalData.care_guide_warnings,
+        lifestyle: clinicalData.care_guide_lifestyle,
+      },
+      template: doctor.care_guide_template ?? 'neutral',
+    });
+  } catch (error) {
+    logger.error('[issuePrescription] PDF generation failed', {
+      prescriptionId,
+      error: error instanceof Error ? { name: error.name, message: error.message } : String(error),
+    });
+    return fail({ code: 'pdf_generation_failed' });
+  }
 
   // 6b. Attempt PAdES digital signing if doctor has a certificate
   let finalPdfBuffer = artifacts.pdfBuffer;
