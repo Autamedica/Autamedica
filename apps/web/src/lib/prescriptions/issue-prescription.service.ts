@@ -491,7 +491,7 @@ export async function issuePrescription(
     .from('doctors')
     .select('id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   if (!doctor) return fail({ code: 'doctor_not_found' });
   if (!doctor.license_number) return fail({ code: 'missing_license_number' });

@@ -8,27 +8,41 @@ export interface PatientCareGuide {
   recomendacionesClinicas: string;
 }
 
+export interface PatientCareGuideResult {
+  guide: PatientCareGuide;
+  provider: 'gemini' | 'fallback';
+  reason?: 'missing_api_key' | 'api_error' | 'parse_error' | 'exception';
+  model: string;
+  status?: number;
+}
+
 const GEMINI_GENERATE_CONTENT_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const DEFAULT_MODEL = 'gemini-3-flash-preview';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 /**
  * Prompt del sistema para el Enriquecimiento de Recetas Médicas en AutaMedica.
- * Diseñado para generar guías de acompañamiento amigables, seguras y empáticas.
+ * Diseñado para generar indicaciones clínicas claras y editables por el médico.
  */
 function buildEnrichmentSystemPrompt(template: 'neutral' | 'female' | 'empathetic' = 'neutral'): string {
   let toneGuideline = '';
   if (template === 'female') {
-    toneGuideline = 'Tono de comunicación: Redacta SIEMPRE en primera persona del femenino ("soy tu doctora", "soy tu médica", "te receté", "te indico", "estoy a tu disposición"). Utiliza una concordancia de género 100% femenina para la profesional firmante. El tono debe ser sumamente empático, cercano, contenedor y profesional.';
+    toneGuideline = 'Tono de comunicación: clínico, claro y profesional. Si se menciona a la profesional firmante, usar concordancia femenina. Evitar promesas, exageraciones, informalidad y lenguaje comercial.';
   } else if (template === 'empathetic') {
-    toneGuideline = 'Tono de comunicación: Altamente empático, amigable, cálido y sumamente cercano. Utiliza el voseo rioplatense argentino de forma muy natural ("tomalo", "hacelo", "cuidate", "consultame", "sentirse de diez"). Explica todo con palabras sumamente sencillas y llanas, evitando cualquier formalidad o tecnicismo innecesario.';
+    toneGuideline = 'Tono de comunicación: empático y simple, manteniendo registro médico profesional. Se permite voseo rioplatense moderado. Evitar chistes, exageraciones, frases marketineras y familiaridad excesiva.';
   } else {
-    toneGuideline = 'Tono de comunicación: Neutro, formal, clínico, descriptivo y sumamente profesional. Redacta en tercera persona de forma objetiva ("se prescribe", "se recomienda tomar", "es fundamental cumplir con la dosis").';
+    toneGuideline = 'Tono de comunicación: neutro, formal, clínico y descriptivo. Redactar en tercera persona de forma objetiva.';
   }
 
   return [
     'Rol: Médico clínico y farmacéutico senior especializado en comunicación médica personalizada y educación para la salud.',
-    'Misión: Recibir los datos crudos de una receta médica y el diagnóstico del paciente, y transformarlos en una "Guía de Cuidado del Paciente" hiper-personalizada, de altísimo valor humano y educativo.',
+    'Misión: transformar los datos de una prescripción y el diagnóstico en indicaciones para el paciente, claras, seguras y revisables por el médico firmante.',
     toneGuideline,
+    'Reglas de autoría y determinismo:',
+    '- Escribir como indicación médica final, no como sugerencia de IA.',
+    '- No mencionar IA, automatización, sistema, modelo, recomendación generada ni "su médico prescriptor".',
+    '- Si la dosis, frecuencia, duración o instrucciones vienen informadas, copiarlas de forma concreta y sin alternativas.',
+    '- Nunca inventar esquemas alternativos. Si frecuencia = "8" o "cada 8 horas", escribir "cada 8 horas"; no escribir "cada 8 o cada 12 horas".',
+    '- Si un dato no fue informado, omitirlo o indicar "según indicación médica", pero no reemplazar datos existentes por opciones genéricas.',
     'Pautas clínicas obligatorias:',
     '- Consejos de Toma: Explicar claramente cómo y cuándo tomar el medicamento, si conviene tomarlo con alimentos para evitar malestar estomacal, horarios sugeridos y evitar interacciones críticas (ej. no tomar alcohol ni mezclar antibióticos con lácteos si aplica).',
     '- Qué hacer ante olvidos: Dar una instrucción precisa y libre de pánico. Por regla general: tomar apenas se recuerde, pero si falta poco para la próxima dosis, saltearla y continuar con el esquema regular. Advertir firmemente NO duplicar dosis.',
@@ -67,46 +81,84 @@ function getEnrichmentResponseSchema(): Record<string, unknown> {
   };
 }
 
+function normalizeFrequencyForPatient(frequency?: string): string {
+  const value = frequency?.trim();
+  if (!value) return '';
+  if (/^\d+$/.test(value)) return `cada ${value} horas`;
+  return value;
+}
+
+function buildAdministrationLine(params: {
+  medicationName: string;
+  dosage?: string;
+  frequency?: string;
+  duration?: string;
+  instructions?: string;
+}): string {
+  const medication = params.medicationName.trim();
+  const pieces = [
+    medication,
+    params.dosage?.trim(),
+    normalizeFrequencyForPatient(params.frequency),
+    params.duration?.trim() ? `durante ${params.duration.trim()}` : '',
+  ].filter(Boolean);
+  const base = pieces.length > 0
+    ? `Tomar ${pieces.join(', ')}.`
+    : 'Tomar según indicación médica.';
+  const instructions = params.instructions?.trim();
+  return instructions ? `${base} ${instructions}` : base;
+}
+
 /**
  * Fallback clínico offline para cuando no haya API Key de Gemini o falle la conexión.
- * Garantiza que la experiencia del usuario sea premium en cualquier circunstancia.
  */
 function getClinicalFallbackGuide(
   medicationName: string,
+  dosage?: string,
+  frequency?: string,
+  duration?: string,
+  instructions?: string,
   diagnosis?: string,
   patientName = 'Paciente',
   template: 'neutral' | 'female' | 'empathetic' = 'neutral'
 ): PatientCareGuide {
   const normalizedMed = medicationName.toLowerCase();
   const normalizedDiag = (diagnosis ?? '').toLowerCase();
+  const administration = buildAdministrationLine({
+    medicationName,
+    dosage,
+    frequency,
+    duration,
+    instructions,
+  });
 
   let salutation = `Hola ${patientName}`;
   let doctorTerm = 'el médico';
 
   if (template === 'female') {
-    salutation = `Hola ${patientName}, soy tu doctora`;
+    salutation = `Hola ${patientName}`;
     doctorTerm = 'esta profesional';
   } else if (template === 'empathetic') {
-    salutation = `¡Hola ${patientName}! Para ayudarte a sentirte de diez`;
-    doctorTerm = 'tu profesional de confianza';
+    salutation = `Hola ${patientName}`;
+    doctorTerm = 'tu profesional de salud';
   }
 
   // Antibióticos (Amoxicilina, Ciprofloxacina, etc.)
   if (normalizedMed.includes('amox') || normalizedMed.includes('antibio') || normalizedMed.includes('cipro')) {
     const toma = template === 'empathetic'
-      ? `${salutation}, recordá tomar este antibiótico respetando a rajatabla las horas indicadas para que te haga efecto. Es clave tomarlo con algo de comida para cuidar la panza. Completá todos los días indicados, por más que te sientas de diez antes.`
-      : `${salutation}, recordá tomar este antibiótico respetando estrictamente las horas indicadas para que mantenga su efecto. Es ideal tomarlo con o justo después de las comidas para proteger tu estómago. Completá los días indicados por ${doctorTerm}, aunque te sientas mejor antes. Evitá el consumo de alcohol durante el tratamiento.`;
+      ? `${salutation}. ${administration} Puede tomarse con comida para reducir molestias digestivas. Completá el tratamiento indicado aunque los síntomas mejoren antes.`
+      : `${salutation}. ${administration} Puede tomarse con o después de las comidas para reducir molestias digestivas. Completá el tratamiento indicado por ${doctorTerm}, aunque los síntomas mejoren antes. Evitá el consumo de alcohol durante el tratamiento.`;
 
     const olvido = template === 'empathetic'
-      ? 'Si te olvidás de una toma, metele apenas te acuerdes. Pero si ya falta re poco para la siguiente, salteala y seguí con tu ritmo normal. ¡Bajo ningún concepto dupliques la dosis!'
+      ? 'Si omitís una toma, tomala cuando lo recuerdes. Si falta poco para la próxima dosis, salteá la dosis omitida y continuá con el esquema habitual. No dupliques dosis.'
       : 'Si te olvidás de una dosis, tomala apenas te acuerdes. Sin embargo, si faltan menos de 3 horas para la siguiente toma, es mejor saltear la dosis olvidada y continuar con tu horario habitual. ¡Nunca tomes doble dosis para compensar!';
 
     const efectos = template === 'empathetic'
-      ? 'Puede que sientas un sabor raro o algo de molestia en la panza. Alerta: Si te sale algún sarpullido, se te hincha la cara o tenés diarrea muy fuerte, suspendé al toque y avisanos por el chat.'
+      ? 'Puede causar molestias digestivas leves o cambios de sabor. Consultá de inmediato si aparece sarpullido, hinchazón de labios o cara, dificultad para respirar o diarrea intensa.'
       : 'Es normal que sientas un sabor metálico o leves molestias estomacales. Alerta: Si presentás sarpullido en la piel, hinchazón en la cara o diarrea intensa y persistente, suspendé la toma y avisanos por el chat de inmediato.';
 
     const recom = template === 'empathetic'
-      ? `Para ponerle el pecho a tu recuperación ${normalizedDiag ? `de ${diagnosis}` : 'de este cuadro'}, priorizá el descanso, tomá abundante agua para hidratarte bien y comé livianito.`
+      ? `Para acompañar la recuperación ${normalizedDiag ? `de ${diagnosis}` : 'del cuadro'}, priorizá descanso, hidratación y alimentación liviana.`
       : `Para acompañar tu recuperación ${normalizedDiag ? `de ${diagnosis}` : 'del cuadro infeccioso'}, priorizá el reposo, tomá abundante agua para mantenerte bien hidratado y consumí alimentos blandos y fáciles de digerir.`;
 
     return {
@@ -120,19 +172,19 @@ function getClinicalFallbackGuide(
   // Analgésicos/Antiinflamatorios (Ibuprofeno, Paracetamol, etc.)
   if (normalizedMed.includes('ibu') || normalizedMed.includes('parac') || normalizedMed.includes('aspir') || normalizedMed.includes('diclo')) {
     const toma = template === 'empathetic'
-      ? `${salutation}, este analgésico te va a ayudar un montón a calmar el dolor y desinflamar. Tomalo siempre con un vaso de leche o comida para proteger la panza. Usalo sólo cuando te duela, respetando las horas recomendadas.`
-      : `${salutation}, este analgésico ayuda a calmar el dolor y desinflamar. Tomalo siempre acompañado de alimentos o un vaso de leche para cuidar la mucosa gástrica. Usalo únicamente mientras persistan las molestias, respetando el intervalo de horas prescrito.`;
+      ? `${salutation}. ${administration} Si es un antiinflamatorio, conviene tomarlo con comida para reducir molestias digestivas.`
+      : `${salutation}. ${administration} Si es un antiinflamatorio, conviene tomarlo acompañado de alimentos para cuidar la mucosa gástrica.`;
 
     const olvido = template === 'empathetic'
-      ? 'Si te salteás una toma y te sigue doliendo, tomala en ese momento. Pero si ya casi es hora de la próxima, dejala pasar y seguí con tu ritmo normal. No dupliques la dosis por nada del mundo.'
+      ? 'Si omitís una toma y continúa la indicación, podés tomarla al recordarlo. Si falta poco para la próxima dosis, omití la anterior. No dupliques dosis.'
       : 'Si omitís una dosis y el dolor persiste, podés tomarla en ese momento. Pero si ya es casi la hora de la siguiente, omitila y seguí con tu ritmo normal. No dupliques la dosis bajo ningún concepto.';
 
     const efectos = template === 'empathetic'
-      ? 'A veces cae un toque pesado al estómago. Alerta: Si sentís un dolor de panza muy fuerte, acidez insoportable, o te cuesta respirar, suspendelo al toque.'
+      ? 'Puede causar malestar digestivo. Consultá si aparece dolor abdominal intenso, acidez marcada, materia fecal oscura, vómitos persistentes o dificultad para respirar.'
       : 'Puede causar un leve malestar estomacal. Alerta: Si notás dolor de estómago severo, acidez intensa, evacuaciones oscuras o dificultad para respirar, suspendé su uso de forma inmediata.';
 
     const recom = template === 'empathetic'
-      ? `Para sentirte mejor ${normalizedDiag ? `de ${diagnosis}` : 'del dolor'}, te sugiero ponerte paños tibios o fríos en la zona que te jode, evitá hacer fuerza y mantenete en una posición súper relajada.`
+      ? `Para acompañar el alivio ${normalizedDiag ? `de ${diagnosis}` : 'del dolor'}, evitá esfuerzos y aplicá medidas locales si fueron indicadas por el médico.`
       : `Para complementar el alivio ${normalizedDiag ? `de ${diagnosis}` : 'del dolor'}, te sugerimos aplicar compresas tibias o frías en la zona afectada según corresponda, evitar esfuerzos físicos innecesarios y mantener una postura relajada.`;
 
     return {
@@ -145,20 +197,20 @@ function getClinicalFallbackGuide(
 
   // Fallback genérico para otros medicamentos
   const tomaGen = template === 'empathetic'
-    ? `${salutation}, para que te haga un efecto de diez, te recomiendo tomar el medicamento siempre en los mismos horarios todos los días. Acompañalo con un vaso de agua.`
-    : `${salutation}, para obtener los mejores resultados, te recomendamos tomar este medicamento en los mismos horarios todos los días. Acompañalo con un vaso de agua y consultá las indicaciones de tu médico sobre la relación con las comidas.`;
+    ? `${salutation}. ${administration} Acompañalo con agua, salvo que se haya indicado otra forma de administración.`
+    : `${salutation}. ${administration} Acompañalo con un vaso de agua, salvo que se haya indicado otra forma de administración.`;
 
   const olvidoGen = template === 'empathetic'
-    ? 'Si te olvidás de tomarlo, metele en cuanto te des cuenta, salvo que falte re poco para la siguiente dosis. Ahí salteala y seguí normal. Jamás tomes dos juntas.'
+    ? 'Si omitís una toma, tomala al recordarlo salvo que falte poco para la próxima dosis. En ese caso, salteá la dosis omitida. No dupliques dosis.'
     : 'Si te olvidás de una toma, consumila en cuanto te des cuenta, a menos que falte poco para la próxima. En ese caso, salteá la dosis omitida. Jamás tomes dos dosis al mismo tiempo.';
 
   const efectosGen = template === 'empathetic'
-    ? 'Fijate cómo reacciona tu cuerpo los primeros días. Si te sentís muy mareado, te cuesta respirar o te sale alguna alergia, suspendé la toma de inmediato y escribinos.'
+    ? 'Prestá atención a síntomas nuevos durante los primeros días. Consultá si aparecen mareos intensos, dificultad para respirar, reacción alérgica o cualquier síntoma que preocupe.'
     : 'Prestá atención a cómo se siente tu cuerpo durante los primeros días. Si notás mareos intensos, dificultad para respirar, sarpullidos o cualquier síntoma inusual, suspendé la toma y ponete en contacto con nosotros.';
 
   const recomGen = template === 'empathetic'
-    ? 'Te aconsejo descansar bien, tomar bastante agua y comer sano para ayudar a que te recuperes volando.'
-    : 'Te aconsejamos mantener un descanso adecuado, hidratación regular y llevar una alimentación equilibrada para ayudar a que tu tratamiento sea 100% efectivo.';
+    ? 'Mantené descanso adecuado, hidratación y alimentación regular durante el tratamiento.'
+    : 'Te aconsejamos mantener descanso adecuado, hidratación regular y alimentación equilibrada durante el tratamiento.';
 
   return {
     consejosToma: tomaGen,
@@ -171,22 +223,55 @@ function getClinicalFallbackGuide(
 export async function generatePatientCareGuide(params: {
   medicationName: string;
   dosage?: string;
+  frequency?: string;
+  duration?: string;
   instructions?: string;
   diagnosis?: string;
   patientName?: string;
   careGuideTemplate?: 'neutral' | 'female' | 'empathetic';
 }): Promise<PatientCareGuide> {
-  const { medicationName, dosage, instructions, diagnosis, patientName, careGuideTemplate = 'neutral' } = params;
+  return (await generatePatientCareGuideResult(params)).guide;
+}
+
+export async function generatePatientCareGuideResult(params: {
+  medicationName: string;
+  dosage?: string;
+  frequency?: string;
+  duration?: string;
+  instructions?: string;
+  diagnosis?: string;
+  patientName?: string;
+  careGuideTemplate?: 'neutral' | 'female' | 'empathetic';
+}): Promise<PatientCareGuideResult> {
+  const { medicationName, dosage, frequency, duration, instructions, diagnosis, patientName, careGuideTemplate = 'neutral' } = params;
   const apiKey = resolveServerEnv('GEMINI_API_KEY');
+  const model =
+    resolveServerEnv('PRESCRIPTION_CARE_GUIDE_MODEL') ??
+    resolveServerEnv('ANAMNESIS_AI_GEMINI_MODEL') ??
+    DEFAULT_MODEL;
 
   if (!apiKey) {
     logger.info('[generatePatientCareGuide] No GEMINI_API_KEY configured, returning smart clinical fallback');
-    return getClinicalFallbackGuide(medicationName, diagnosis, patientName, careGuideTemplate);
+    return {
+      guide: getClinicalFallbackGuide(
+        medicationName,
+        dosage,
+        frequency,
+        duration,
+        instructions,
+        diagnosis,
+        patientName,
+        careGuideTemplate,
+      ),
+      provider: 'fallback',
+      reason: 'missing_api_key',
+      model,
+    };
   }
 
   try {
     const response = await fetch(
-      `${GEMINI_GENERATE_CONTENT_URL}/${DEFAULT_MODEL}:generateContent`,
+      `${GEMINI_GENERATE_CONTENT_URL}/${model}:generateContent`,
       {
         method: 'POST',
         headers: {
@@ -205,6 +290,8 @@ export async function generatePatientCareGuide(params: {
                   'DATOS DE LA PRESCRIPCIÓN CLÍNICA:',
                   `- Medicamento: ${medicationName}`,
                   dosage ? `- Dosificación: ${dosage}` : '',
+                  frequency ? `- Frecuencia: ${frequency}` : '',
+                  duration ? `- Duración: ${duration}` : '',
                   instructions ? `- Instrucciones médicas: ${instructions}` : '',
                   diagnosis ? `- Diagnóstico clínico: ${diagnosis}` : '',
                   patientName ? `- Nombre del Paciente: ${patientName}` : '',
@@ -227,8 +314,26 @@ export async function generatePatientCareGuide(params: {
     );
 
     if (!response.ok) {
-      logger.error('[generatePatientCareGuide] Gemini API request failed', { status: response.status });
-      return getClinicalFallbackGuide(medicationName, diagnosis, patientName, careGuideTemplate);
+      logger.error('[generatePatientCareGuide] Gemini API request failed', {
+        status: response.status,
+        model,
+      });
+      return {
+        guide: getClinicalFallbackGuide(
+          medicationName,
+          dosage,
+          frequency,
+          duration,
+          instructions,
+          diagnosis,
+          patientName,
+          careGuideTemplate,
+        ),
+        provider: 'fallback',
+        reason: 'api_error',
+        model,
+        status: response.status,
+      };
     }
 
     const payload = (await response.json()) as Record<string, unknown>;
@@ -240,16 +345,48 @@ export async function generatePatientCareGuide(params: {
       
       if (parsed.consejosToma && parsed.queHacerAnteOlvidos && parsed.efectosEsperados && parsed.recomendacionesClinicas) {
         logger.info('[generatePatientCareGuide] Successfully generated patient care guide via Gemini');
-        return parsed;
+        return {
+          guide: parsed,
+          provider: 'gemini',
+          model,
+        };
       }
     }
 
     logger.warn('[generatePatientCareGuide] Parsing Gemini response failed, using clinical fallback');
-    return getClinicalFallbackGuide(medicationName, diagnosis, patientName, careGuideTemplate);
+    return {
+      guide: getClinicalFallbackGuide(
+        medicationName,
+        dosage,
+        frequency,
+        duration,
+        instructions,
+        diagnosis,
+        patientName,
+        careGuideTemplate,
+      ),
+      provider: 'fallback',
+      reason: 'parse_error',
+      model,
+    };
   } catch (error) {
     logger.error('[generatePatientCareGuide] Error calling Gemini API', {
       error: error instanceof Error ? error.message : String(error)
     });
-    return getClinicalFallbackGuide(medicationName, diagnosis, patientName, careGuideTemplate);
+    return {
+      guide: getClinicalFallbackGuide(
+        medicationName,
+        dosage,
+        frequency,
+        duration,
+        instructions,
+        diagnosis,
+        patientName,
+        careGuideTemplate,
+      ),
+      provider: 'fallback',
+      reason: 'exception',
+      model,
+    };
   }
 }

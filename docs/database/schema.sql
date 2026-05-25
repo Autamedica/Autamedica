@@ -1248,3 +1248,30 @@ CREATE TABLE IF NOT EXISTS public.clinical_ai_lab_analyses (
 
 ALTER TABLE public.clinical_ai_lab_analyses ENABLE ROW LEVEL SECURITY;
 
+-- --------------------------------------------------------------------------
+-- Doctor prescription templates (Added 2026-05-25)
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.doctor_prescription_templates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  doctor_id uuid NOT NULL REFERENCES public.doctors(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  medication_name text NOT NULL,
+  dosage text,
+  frequency text,
+  duration text,
+  instructions text,
+  diagnosis text,
+  notes text,
+  side_effects_warning text,
+  care_guide_tips text,
+  care_guide_forgotten text,
+  care_guide_warnings text,
+  care_guide_lifestyle text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT doctor_prescription_templates_name_not_blank CHECK (length(btrim(name)) > 0),
+  CONSTRAINT doctor_prescription_templates_medication_not_blank CHECK (length(btrim(medication_name)) > 0),
+  CONSTRAINT doctor_prescription_templates_name_unique UNIQUE (doctor_id, name)
+);
+
+ALTER TABLE public.doctor_prescription_templates ENABLE ROW LEVEL SECURITY;

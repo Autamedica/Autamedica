@@ -224,15 +224,17 @@ export function PrescriptionModal({
                 onClick={handleGetSuggestions}
                 className="rounded-lg bg-am-doctor-50 px-3 py-2 text-xs font-medium text-am-doctor-700 transition hover:bg-am-doctor-100"
               >
-                Sugerir con IA
+                Sugerir opciones
               </button>
             </div>
           </div>
 
-          {/* Sugerencias IA */}
+          {/* Sugerencias clínicas */}
           {showSuggestions && aiSuggestions.length > 0 && (
             <div className="rounded-lg border border-am-doctor-200 bg-am-doctor-50 p-3">
-              <p className="text-xs font-medium text-am-doctor-700 mb-2">Sugerencias de IA:</p>
+              <p className="text-xs font-medium text-am-doctor-700 mb-2">
+                Sugerencias clínicas:
+              </p>
               <div className="space-y-1">
                 {aiSuggestions.map((suggestion, idx) => (
                   <p key={idx} className="text-xs text-am-doctor-600">
@@ -347,8 +349,8 @@ export function PrescriptionModal({
 
           {requiresStrictValidation && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-              Metilfenidato y lisdexanfetamina se guardan como borrador clinico hasta emitir soporte
-              electronico verificable. Diagnostico y dosis son obligatorios.
+              Medicación con validación reforzada. Diagnóstico y dosis son obligatorios para
+              continuar.
             </div>
           )}
 

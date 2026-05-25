@@ -118,6 +118,8 @@ export interface ExternalPrescriptionPatient {
   dni?: string;
   cuil?: string;
   address?: string;
+  email?: string;
+  phone?: string;
   birth_date?: string;
   gender?: string;
 }
@@ -148,12 +150,50 @@ async function resolveExternalPrescriptionPatient(
   const dni = normalizeOptionalText(externalPatient.dni);
   const cuil = normalizeOptionalText(externalPatient.cuil);
   const address = normalizeOptionalText(externalPatient.address);
+  const email = normalizeOptionalText(externalPatient.email);
+  const phone = normalizeOptionalText(externalPatient.phone);
 
   if (!dni && !cuil) {
     throw new Error("external_patient_identification_required");
   }
   if (!address) {
     throw new Error("external_patient_address_required");
+  }
+
+  const existingQueries: Array<PromiseLike<{ data: { id: string } | null; error: unknown }>> = [];
+  if (dni) {
+    existingQueries.push(
+      supabase.from("patients").select("id").eq("dni", dni).maybeSingle(),
+    );
+  }
+  if (cuil) {
+    existingQueries.push(
+      supabase.from("patients").select("id").eq("cuil", cuil).maybeSingle(),
+    );
+  }
+
+  for (const query of existingQueries) {
+    const { data, error } = await query;
+    if (error) {
+      logger.error("[doctorPrescriptionBackendService] external patient lookup failed", error);
+      throw error;
+    }
+    if (data?.id) {
+      await supabase
+        .from("patients")
+        .update({
+          active: true,
+          address,
+          medical_history: {
+            source: "doctor_prescription_external_patient",
+            name: externalPatient.name.trim(),
+            email,
+            phone,
+          },
+        })
+        .eq("id", data.id);
+      return data.id as UUID;
+    }
   }
 
   const { data, error } = await supabase
@@ -168,6 +208,8 @@ async function resolveExternalPrescriptionPatient(
       medical_history: {
         source: "doctor_prescription_external_patient",
         name: externalPatient.name.trim(),
+        email,
+        phone,
       },
     })
     .select("id")
@@ -404,6 +446,8 @@ function buildClinicalDataFromPayload(
         dni: normalizeOptionalText(sourceExternalPatient.dni),
         cuil: normalizeOptionalText(sourceExternalPatient.cuil),
         address: normalizeOptionalText(sourceExternalPatient.address),
+        email: normalizeOptionalText(sourceExternalPatient.email),
+        phone: normalizeOptionalText(sourceExternalPatient.phone),
         birth_date: normalizeOptionalText(sourceExternalPatient.birth_date),
         gender: normalizeOptionalText(sourceExternalPatient.gender),
       }

@@ -32,6 +32,27 @@ export async function withAuth(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   locals?: { runtime?: { env?: any } }
 ): Promise<AuthedRequest | Response> {
+  if (import.meta.env.DEV && import.meta.env.AUTH_BYPASS === 'true') {
+    const supabase = createAstroAdminClient(locals?.runtime?.env)
+    const user: User = {
+      id: "7fd7ae56-bdae-4a20-9057-71dfd74e3e28",
+      aud: "authenticated",
+      role: "authenticated",
+      email: "bounced_dr.garcia@autamedica.com",
+      app_metadata: { provider: "email", role: "doctor" },
+      user_metadata: {
+        role: "doctor",
+        first_name: "Carlos",
+        last_name: "Garcia",
+        specialties: ["Medicina General"],
+        medical_license: "MP-DEMO-12345"
+      },
+      created_at: "2026-04-29T16:51:57.095014+00:00",
+      updated_at: "2026-05-24T09:17:38.019784+00:00"
+    }
+    return { user, supabase }
+  }
+
   let supabase: TypedClient
   try {
     supabase = createAstroServerClientFromRequest(request, locals?.runtime?.env)
@@ -105,6 +126,33 @@ export async function withSession(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   locals?: { runtime?: { env?: any } }
 ): Promise<SessionRequest | Response> {
+  if (import.meta.env.DEV && import.meta.env.AUTH_BYPASS === 'true') {
+    const supabase = createAstroAdminClient(locals?.runtime?.env)
+    const session: Session = {
+      access_token: "mock-access-token",
+      token_type: "bearer",
+      expires_in: 3600,
+      refresh_token: "mock-refresh-token",
+      user: {
+        id: "7fd7ae56-bdae-4a20-9057-71dfd74e3e28",
+        aud: "authenticated",
+        role: "authenticated",
+        email: "bounced_dr.garcia@autamedica.com",
+        app_metadata: { provider: "email", role: "doctor" },
+        user_metadata: {
+          role: "doctor",
+          first_name: "Carlos",
+          last_name: "Garcia",
+          specialties: ["Medicina General"],
+          medical_license: "MP-DEMO-12345"
+        },
+        created_at: "2026-04-29T16:51:57.095014+00:00",
+        updated_at: "2026-05-24T09:17:38.019784+00:00"
+      }
+    }
+    return { session, supabase }
+  }
+
   let supabase: TypedClient
   try {
     supabase = createAstroServerClientFromRequest(request, locals?.runtime?.env)

@@ -63,6 +63,8 @@ interface PrescriptionDraftForm {
     dni?: string;
     cuil?: string;
     address?: string;
+    email?: string;
+    phone?: string;
     birth_date?: string;
     gender?: string;
   };

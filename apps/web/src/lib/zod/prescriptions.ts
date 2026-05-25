@@ -15,6 +15,8 @@ export const ExternalPrescriptionPatientSchema = z.object({
   dni: OptionalText(30),
   cuil: OptionalText(30),
   address: OptionalText(300),
+  email: OptionalText(200),
+  phone: OptionalText(80),
   birth_date: z.string().optional(),
   gender: OptionalText(40),
 }).refine((value) => Boolean(value.dni || value.cuil), {

@@ -523,7 +523,7 @@ async function sendTransactionalViaResend(
     method: "POST",
     headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
     body: JSON.stringify({
-      from: `Eduardo Marques <${env.FROM_EMAIL}>`,
+      from: `AutaMedica <${env.FROM_EMAIL}>`,
       to: [recipient],
       subject: email.subject,
       html: email.html,

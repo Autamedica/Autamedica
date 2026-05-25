@@ -1,16 +1,46 @@
 import type { APIRoute } from "astro";
-import { badRequest, forbidden, internalError, jsonOk, unauthorized } from "@/lib/api-helpers";
-import { resolveDoctorContext } from "@/lib/doctors/api/doctor-context";
+import { badRequest, forbidden, internalError, jsonOk } from "@/lib/api-helpers";
+import type { DoctorContext } from "@/lib/doctors/api/doctor-context";
 import { doctorPrescriptionBackendService } from "@/lib/doctors/services/prescription.backend";
+import { DOCTOR_ROLES, isAuthed, withAuthRole } from "@/lib/api-auth";
 import { createAstroAdminClient } from "@/lib/supabase";
 import { validateBody } from "@/lib/validation";
 import { DoctorPrescriptionCreateSchema } from "@/lib/zod/prescriptions";
 import { logger } from "@autamedica/shared";
 import { captureSentryException } from '@/lib/observability/sentry';
 
+async function resolveAuthedDoctorContext(
+  request: Request,
+  locals: App.Locals,
+): Promise<DoctorContext | Response> {
+  const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
+  if (!isAuthed(auth)) return auth;
+
+  const admin = createAstroAdminClient(locals?.runtime?.env);
+  const { data: doctor, error } = await admin
+    .from("doctors")
+    .select("id, active")
+    .eq("user_id", auth.user.id)
+    .maybeSingle();
+
+  if (error) {
+    logger.error("[api/doctors/prescriptions] doctor lookup failed", {
+      userId: auth.user.id,
+      error,
+    });
+    return internalError();
+  }
+
+  if (!doctor?.id || doctor.active !== true) {
+    return forbidden("doctor_profile_required");
+  }
+
+  return { userId: auth.user.id, doctorId: doctor.id };
+}
+
 export const GET: APIRoute = async ({ request, locals }) => {
-  const context = await resolveDoctorContext(request, locals);
-  if (!context) return unauthorized();
+  const context = await resolveAuthedDoctorContext(request, locals);
+  if (context instanceof Response) return context;
 
   const url = new URL(request.url);
   const patientId = url.searchParams.get("patientId");
@@ -54,8 +84,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
 };
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  const context = await resolveDoctorContext(request, locals);
-  if (!context) return unauthorized();
+  const context = await resolveAuthedDoctorContext(request, locals);
+  if (context instanceof Response) return context;
 
   try {
     const body = await request.json();
@@ -84,7 +114,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     if (error instanceof Error && error.message === "strict_prescription_missing_required_fields") {
       return badRequest(
-        "Para metilfenidato o lisdexanfetamina debe informar diagnostico y dosis antes de guardar el borrador clinico.",
+        "Medicación con validación reforzada: debe informar diagnóstico y dosis antes de emitir.",
       );
     }
     captureSentryException(error, {

@@ -633,8 +633,9 @@ export async function generatePrescriptionPdf(
   let py = 50;
 
   // Tarjeta de Fármaco e Información General con colores dinámicos
+  const bannerHeight = input.diagnosis ? 28 : 22;
   doc.setFillColor(careBannerBgColor[0], careBannerBgColor[1], careBannerBgColor[2]);
-  doc.rect(marginLeft, py, contentWidth, 22, 'F');
+  doc.rect(marginLeft, py, contentWidth, bannerHeight, 'F');
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
@@ -646,16 +647,15 @@ export async function generatePrescriptionPdf(
   doc.setTextColor(71, 85, 105); // slate-600
   doc.text(`Esquema prescrito: ${input.medication.instructions}`, marginLeft + 6, py + 14);
   if (input.diagnosis) {
-    doc.text(`Diagnóstico asociado: ${input.diagnosis}`, marginLeft + 100, py + 14);
+    doc.text(`Diagnóstico asociado: ${input.diagnosis}`, marginLeft + 6, py + 20);
   }
 
-  py += 30;
+  py += input.diagnosis ? 36 : 30;
 
-  // Función helper para dibujar cada bloque de cuidado
+  // Función helper para dibujar cada bloque de cuidado (sin emojis para evitar problemas de codificación)
   const drawCareBlock = (
     title: string,
     content: string,
-    iconChar: string,
     bgColor: [number, number, number],
     borderColor: [number, number, number],
     textColor: [number, number, number]
@@ -672,7 +672,7 @@ export async function generatePrescriptionPdf(
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...textColor);
-    doc.text(`${iconChar} ${title}`, marginLeft + 6, py + 6);
+    doc.text(title, marginLeft + 6, py + 6);
 
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
@@ -687,7 +687,6 @@ export async function generatePrescriptionPdf(
   drawCareBlock(
     'CÓMO TOMAR TU MEDICACIÓN',
     careTips,
-    '💡',
     [248, 250, 252], // slate-50
     careBorderLeftColor, // Usa acento dinámico de color
     [15, 23, 42]     // slate-900
@@ -697,7 +696,6 @@ export async function generatePrescriptionPdf(
   drawCareBlock(
     'QUÉ HACER SI TE OLVIDÁS DE UNA TOMA',
     careForgotten,
-    '🔄',
     [254, 243, 199], // amber-100
     [251, 191, 36],  // amber-400
     [180, 83, 9]     // amber-700
@@ -707,7 +705,6 @@ export async function generatePrescriptionPdf(
   drawCareBlock(
     'SÍNTOMAS COMUNES Y ALERTAS DE URGENCIA',
     careWarnings,
-    '⚠️',
     [254, 242, 242], // red-50
     [248, 113, 113], // red-400
     [185, 28, 28]    // red-700
@@ -717,7 +714,6 @@ export async function generatePrescriptionPdf(
   drawCareBlock(
     'BIENESTAR Y RECOMENDACIONES CLÍNICAS',
     careLifestyle,
-    '🥗',
     [240, 253, 244], // green-50
     careBorderLeftColor, // Usa acento dinámico de color
     [21, 128, 61]    // green-700
