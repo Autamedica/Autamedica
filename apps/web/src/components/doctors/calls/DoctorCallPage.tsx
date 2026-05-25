@@ -527,12 +527,13 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   }
 
   const waitingCopy = getWaitingCopy(doctorWaitingState, callSession.waitingRoom.message, callSession.peer?.displayName)
+  const showWaitingRoomOverlay = showDoctorWaitingRoom && doctorWaitingState !== 'waiting'
 
   return (
     <div className="h-screen bg-am-surface-900 overflow-hidden flex">
       {/* Video Call */}
       <div className={`flex-1 min-w-0 transition-all duration-300 relative ${panelCollapsed ? '' : 'mr-0'}`}>
-        {showDoctorWaitingRoom ? (
+        {showWaitingRoomOverlay ? (
           <div className="h-screen flex items-center justify-center px-6">
             <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-am-surface-900 p-8 shadow-sm">
               <div className="flex items-center justify-between gap-4">
@@ -697,8 +698,6 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           voiceNotesAvailable={!showDoctorWaitingRoom && transcriptionState.isSupported}
           liveTranscriptPreview={liveTranscriptPreview}
           onToggleVoiceNotes={handleToggleVoiceNotes}
-          onEmitPrescription={context?.patient?.id ? () => setShowPrescriptionModal(true) : undefined}
-          onEmitStudyOrder={context?.patient?.id ? () => setShowStudyOrderModal(true) : undefined}
         />
       </div>
 
