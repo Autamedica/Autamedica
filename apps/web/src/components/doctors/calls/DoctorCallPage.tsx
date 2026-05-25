@@ -539,22 +539,22 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${
-                    doctorWaitingState === 'waiting' ? 'text-am-doctor-400' : 'text-slate-500/80'
+                    (doctorWaitingState as string) === 'waiting' ? 'text-am-doctor-400' : 'text-slate-500/80'
                   }`}>
-                    {doctorWaitingState === 'waiting' ? 'Videollamada lista' : 'Videollamada finalizada'}
+                    {(doctorWaitingState as string) === 'waiting' ? 'Videollamada lista' : 'Videollamada finalizada'}
                   </p>
                   <h1 className="mt-3 text-3xl font-semibold text-am-surface-50">
                     {waitingCopy.title}
                   </h1>
                 </div>
                 <div className={`rounded-full border px-4 py-2 text-sm font-semibold ${
-                  doctorWaitingState === 'waiting'
+                  (doctorWaitingState as string) === 'waiting'
                     ? 'border-am-doctor-200 bg-am-doctor-50 text-am-doctor-700'
                     : doctorWaitingState === 'canceling'
                       ? 'border-amber-200 bg-amber-50 text-amber-700'
                       : 'border-slate-200 bg-am-surface-900 text-slate-700'
                 }`}>
-                  {doctorWaitingState === 'waiting'
+                  {(doctorWaitingState as string) === 'waiting'
                     ? formatWaitingCountdown(waitSecondsRemaining)
                     : doctorWaitingState === 'canceling'
                       ? 'Procesando'
@@ -571,7 +571,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                   <div>
                     <p className="text-sm font-semibold text-am-surface-50">Estado de invitacion</p>
                     <p className="mt-1 text-sm text-slate-500">
-                      {doctorWaitingState === 'waiting'
+                      {(doctorWaitingState as string) === 'waiting'
                         ? 'El paciente verá la llamada entrante y podrá aceptar desde su portal.'
                         : 'La invitación ya no está activa para esta sala.'}
                     </p>
@@ -590,7 +590,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               )}
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                {doctorWaitingState === 'waiting' || doctorWaitingState === 'canceling' ? (
+                {(doctorWaitingState as string) === 'waiting' || doctorWaitingState === 'canceling' ? (
                   <button
                     type="button"
                     onClick={() => void cancelWaitingCall('doctor_canceled')}
@@ -618,7 +618,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                 </button>
               </div>
 
-              {doctorWaitingState === 'waiting' && (
+              {(doctorWaitingState as string) === 'waiting' && (
                 <GuestLinkButton callId={callSession.callId} />
               )}
             </div>
