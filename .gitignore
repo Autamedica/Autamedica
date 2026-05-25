@@ -181,3 +181,6 @@ dev-server.log
 *.env.bak*
 .env.*.bak
 
+# Scratch files
+scratch/
+apps/web/scratch/

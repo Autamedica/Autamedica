@@ -48,6 +48,16 @@
 - **Pull Requests:** Mandatory use of `pull_request_template.md`. Document Context, Solution, Two-Plane Validation, and Evidence.
 - **Traceability:** Every emergency fix on `main` must be back-documented in a `CHANGELOG_EMERGENCY.md` or a traceability PR.
 - **Pre-flight:** `pnpm lint`, `pnpm build`, and `pnpm test:unit` must pass before pushing.
+- **Clean Working Tree:** NEVER perform a merge, pull, rebase, or manual deployment unless the working tree is completely clean (`git status` is clear). Stash or discard unwanted changes first.
+- **Rebase vs Squash Merge Strategy:**
+  - **Clean Branch Commits (No internal merges):** Perform a **Rebase merge** (or fast-forward).
+  - **Branch with Internal Merges (e.g., `merge branch 'main' into...`):** MUST perform a **Squash merge** to prevent polluting the mainline history with internal merge nodes.
+- **Standard Git Configurations:** Always configure and maintain:
+  ```bash
+  git config --global pull.rebase true
+  git config --global rebase.autoStash true
+  git config --global merge.ff only
+  ```
 
 ## Repo Shape
 
