@@ -4,6 +4,7 @@ import { badRequest, forbidden, internalError, jsonOk } from "@/lib/api-helpers"
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from "@/lib/api-auth";
 import { createAstroAdminClient } from "@/lib/supabase";
 import { logger } from "@autamedica/shared";
+import type { Database } from "@autamedica/types";
 
 const OptionalNullableText = (max: number) => z.string().trim().max(max).nullable().optional();
 
@@ -119,7 +120,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .insert({
         ...payload,
         doctor_id: doctorId,
-      })
+      } as Database["public"]["Tables"]["doctor_prescription_templates"]["Insert"])
       .select(
         "id, name, medication_name, dosage, frequency, duration, instructions, diagnosis, notes, side_effects_warning, care_guide_tips, care_guide_forgotten, care_guide_warnings, care_guide_lifestyle, created_at, updated_at",
       )
