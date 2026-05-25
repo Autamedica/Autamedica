@@ -12,1115 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
-  auth: {
-    Tables: {
-      audit_log_entries: {
-        Row: {
-          created_at: string | null
-          id: string
-          instance_id: string | null
-          ip_address: string
-          payload: Json | null
-        }
-        Insert: {
-          created_at?: string | null
-          id: string
-          instance_id?: string | null
-          ip_address?: string
-          payload?: Json | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          instance_id?: string | null
-          ip_address?: string
-          payload?: Json | null
-        }
-        Relationships: []
-      }
-      custom_oauth_providers: {
-        Row: {
-          acceptable_client_ids: string[]
-          attribute_mapping: Json
-          authorization_params: Json
-          authorization_url: string | null
-          cached_discovery: Json | null
-          client_id: string
-          client_secret: string
-          created_at: string
-          discovery_cached_at: string | null
-          discovery_url: string | null
-          email_optional: boolean
-          enabled: boolean
-          id: string
-          identifier: string
-          issuer: string | null
-          jwks_uri: string | null
-          name: string
-          pkce_enabled: boolean
-          provider_type: string
-          scopes: string[]
-          skip_nonce_check: boolean
-          token_url: string | null
-          updated_at: string
-          userinfo_url: string | null
-        }
-        Insert: {
-          acceptable_client_ids?: string[]
-          attribute_mapping?: Json
-          authorization_params?: Json
-          authorization_url?: string | null
-          cached_discovery?: Json | null
-          client_id: string
-          client_secret: string
-          created_at?: string
-          discovery_cached_at?: string | null
-          discovery_url?: string | null
-          email_optional?: boolean
-          enabled?: boolean
-          id?: string
-          identifier: string
-          issuer?: string | null
-          jwks_uri?: string | null
-          name: string
-          pkce_enabled?: boolean
-          provider_type: string
-          scopes?: string[]
-          skip_nonce_check?: boolean
-          token_url?: string | null
-          updated_at?: string
-          userinfo_url?: string | null
-        }
-        Update: {
-          acceptable_client_ids?: string[]
-          attribute_mapping?: Json
-          authorization_params?: Json
-          authorization_url?: string | null
-          cached_discovery?: Json | null
-          client_id?: string
-          client_secret?: string
-          created_at?: string
-          discovery_cached_at?: string | null
-          discovery_url?: string | null
-          email_optional?: boolean
-          enabled?: boolean
-          id?: string
-          identifier?: string
-          issuer?: string | null
-          jwks_uri?: string | null
-          name?: string
-          pkce_enabled?: boolean
-          provider_type?: string
-          scopes?: string[]
-          skip_nonce_check?: boolean
-          token_url?: string | null
-          updated_at?: string
-          userinfo_url?: string | null
-        }
-        Relationships: []
-      }
-      flow_state: {
-        Row: {
-          auth_code: string | null
-          auth_code_issued_at: string | null
-          authentication_method: string
-          code_challenge: string | null
-          code_challenge_method:
-            | Database["auth"]["Enums"]["code_challenge_method"]
-            | null
-          created_at: string | null
-          email_optional: boolean
-          id: string
-          invite_token: string | null
-          linking_target_id: string | null
-          oauth_client_state_id: string | null
-          provider_access_token: string | null
-          provider_refresh_token: string | null
-          provider_type: string
-          referrer: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          auth_code?: string | null
-          auth_code_issued_at?: string | null
-          authentication_method: string
-          code_challenge?: string | null
-          code_challenge_method?:
-            | Database["auth"]["Enums"]["code_challenge_method"]
-            | null
-          created_at?: string | null
-          email_optional?: boolean
-          id: string
-          invite_token?: string | null
-          linking_target_id?: string | null
-          oauth_client_state_id?: string | null
-          provider_access_token?: string | null
-          provider_refresh_token?: string | null
-          provider_type: string
-          referrer?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          auth_code?: string | null
-          auth_code_issued_at?: string | null
-          authentication_method?: string
-          code_challenge?: string | null
-          code_challenge_method?:
-            | Database["auth"]["Enums"]["code_challenge_method"]
-            | null
-          created_at?: string | null
-          email_optional?: boolean
-          id?: string
-          invite_token?: string | null
-          linking_target_id?: string | null
-          oauth_client_state_id?: string | null
-          provider_access_token?: string | null
-          provider_refresh_token?: string | null
-          provider_type?: string
-          referrer?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      identities: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string
-          identity_data: Json
-          last_sign_in_at: string | null
-          provider: string
-          provider_id: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          identity_data: Json
-          last_sign_in_at?: string | null
-          provider: string
-          provider_id: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          identity_data?: Json
-          last_sign_in_at?: string | null
-          provider?: string
-          provider_id?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "identities_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      instances: {
-        Row: {
-          created_at: string | null
-          id: string
-          raw_base_config: string | null
-          updated_at: string | null
-          uuid: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id: string
-          raw_base_config?: string | null
-          updated_at?: string | null
-          uuid?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          raw_base_config?: string | null
-          updated_at?: string | null
-          uuid?: string | null
-        }
-        Relationships: []
-      }
-      mfa_amr_claims: {
-        Row: {
-          authentication_method: string
-          created_at: string
-          id: string
-          session_id: string
-          updated_at: string
-        }
-        Insert: {
-          authentication_method: string
-          created_at: string
-          id: string
-          session_id: string
-          updated_at: string
-        }
-        Update: {
-          authentication_method?: string
-          created_at?: string
-          id?: string
-          session_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mfa_amr_claims_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      mfa_challenges: {
-        Row: {
-          created_at: string
-          factor_id: string
-          id: string
-          ip_address: unknown
-          otp_code: string | null
-          verified_at: string | null
-          web_authn_session_data: Json | null
-        }
-        Insert: {
-          created_at: string
-          factor_id: string
-          id: string
-          ip_address: unknown
-          otp_code?: string | null
-          verified_at?: string | null
-          web_authn_session_data?: Json | null
-        }
-        Update: {
-          created_at?: string
-          factor_id?: string
-          id?: string
-          ip_address?: unknown
-          otp_code?: string | null
-          verified_at?: string | null
-          web_authn_session_data?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mfa_challenges_auth_factor_id_fkey"
-            columns: ["factor_id"]
-            isOneToOne: false
-            referencedRelation: "mfa_factors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      mfa_factors: {
-        Row: {
-          created_at: string
-          factor_type: Database["auth"]["Enums"]["factor_type"]
-          friendly_name: string | null
-          id: string
-          last_challenged_at: string | null
-          last_webauthn_challenge_data: Json | null
-          phone: string | null
-          secret: string | null
-          status: Database["auth"]["Enums"]["factor_status"]
-          updated_at: string
-          user_id: string
-          web_authn_aaguid: string | null
-          web_authn_credential: Json | null
-        }
-        Insert: {
-          created_at: string
-          factor_type: Database["auth"]["Enums"]["factor_type"]
-          friendly_name?: string | null
-          id: string
-          last_challenged_at?: string | null
-          last_webauthn_challenge_data?: Json | null
-          phone?: string | null
-          secret?: string | null
-          status: Database["auth"]["Enums"]["factor_status"]
-          updated_at: string
-          user_id: string
-          web_authn_aaguid?: string | null
-          web_authn_credential?: Json | null
-        }
-        Update: {
-          created_at?: string
-          factor_type?: Database["auth"]["Enums"]["factor_type"]
-          friendly_name?: string | null
-          id?: string
-          last_challenged_at?: string | null
-          last_webauthn_challenge_data?: Json | null
-          phone?: string | null
-          secret?: string | null
-          status?: Database["auth"]["Enums"]["factor_status"]
-          updated_at?: string
-          user_id?: string
-          web_authn_aaguid?: string | null
-          web_authn_credential?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mfa_factors_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      oauth_authorizations: {
-        Row: {
-          approved_at: string | null
-          authorization_code: string | null
-          authorization_id: string
-          client_id: string
-          code_challenge: string | null
-          code_challenge_method:
-            | Database["auth"]["Enums"]["code_challenge_method"]
-            | null
-          created_at: string
-          expires_at: string
-          id: string
-          nonce: string | null
-          redirect_uri: string
-          resource: string | null
-          response_type: Database["auth"]["Enums"]["oauth_response_type"]
-          scope: string
-          state: string | null
-          status: Database["auth"]["Enums"]["oauth_authorization_status"]
-          user_id: string | null
-        }
-        Insert: {
-          approved_at?: string | null
-          authorization_code?: string | null
-          authorization_id: string
-          client_id: string
-          code_challenge?: string | null
-          code_challenge_method?:
-            | Database["auth"]["Enums"]["code_challenge_method"]
-            | null
-          created_at?: string
-          expires_at?: string
-          id: string
-          nonce?: string | null
-          redirect_uri: string
-          resource?: string | null
-          response_type?: Database["auth"]["Enums"]["oauth_response_type"]
-          scope: string
-          state?: string | null
-          status?: Database["auth"]["Enums"]["oauth_authorization_status"]
-          user_id?: string | null
-        }
-        Update: {
-          approved_at?: string | null
-          authorization_code?: string | null
-          authorization_id?: string
-          client_id?: string
-          code_challenge?: string | null
-          code_challenge_method?:
-            | Database["auth"]["Enums"]["code_challenge_method"]
-            | null
-          created_at?: string
-          expires_at?: string
-          id?: string
-          nonce?: string | null
-          redirect_uri?: string
-          resource?: string | null
-          response_type?: Database["auth"]["Enums"]["oauth_response_type"]
-          scope?: string
-          state?: string | null
-          status?: Database["auth"]["Enums"]["oauth_authorization_status"]
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "oauth_authorizations_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "oauth_clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "oauth_authorizations_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      oauth_client_states: {
-        Row: {
-          code_verifier: string | null
-          created_at: string
-          id: string
-          provider_type: string
-        }
-        Insert: {
-          code_verifier?: string | null
-          created_at: string
-          id: string
-          provider_type: string
-        }
-        Update: {
-          code_verifier?: string | null
-          created_at?: string
-          id?: string
-          provider_type?: string
-        }
-        Relationships: []
-      }
-      oauth_clients: {
-        Row: {
-          client_name: string | null
-          client_secret_hash: string | null
-          client_type: Database["auth"]["Enums"]["oauth_client_type"]
-          client_uri: string | null
-          created_at: string
-          deleted_at: string | null
-          grant_types: string
-          id: string
-          logo_uri: string | null
-          redirect_uris: string
-          registration_type: Database["auth"]["Enums"]["oauth_registration_type"]
-          token_endpoint_auth_method: string
-          updated_at: string
-        }
-        Insert: {
-          client_name?: string | null
-          client_secret_hash?: string | null
-          client_type?: Database["auth"]["Enums"]["oauth_client_type"]
-          client_uri?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          grant_types: string
-          id: string
-          logo_uri?: string | null
-          redirect_uris: string
-          registration_type: Database["auth"]["Enums"]["oauth_registration_type"]
-          token_endpoint_auth_method: string
-          updated_at?: string
-        }
-        Update: {
-          client_name?: string | null
-          client_secret_hash?: string | null
-          client_type?: Database["auth"]["Enums"]["oauth_client_type"]
-          client_uri?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          grant_types?: string
-          id?: string
-          logo_uri?: string | null
-          redirect_uris?: string
-          registration_type?: Database["auth"]["Enums"]["oauth_registration_type"]
-          token_endpoint_auth_method?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      oauth_consents: {
-        Row: {
-          client_id: string
-          granted_at: string
-          id: string
-          revoked_at: string | null
-          scopes: string
-          user_id: string
-        }
-        Insert: {
-          client_id: string
-          granted_at?: string
-          id: string
-          revoked_at?: string | null
-          scopes: string
-          user_id: string
-        }
-        Update: {
-          client_id?: string
-          granted_at?: string
-          id?: string
-          revoked_at?: string | null
-          scopes?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "oauth_consents_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "oauth_clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "oauth_consents_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      one_time_tokens: {
-        Row: {
-          created_at: string
-          id: string
-          relates_to: string
-          token_hash: string
-          token_type: Database["auth"]["Enums"]["one_time_token_type"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          relates_to: string
-          token_hash: string
-          token_type: Database["auth"]["Enums"]["one_time_token_type"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          relates_to?: string
-          token_hash?: string
-          token_type?: Database["auth"]["Enums"]["one_time_token_type"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "one_time_tokens_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      refresh_tokens: {
-        Row: {
-          created_at: string | null
-          id: number
-          instance_id: string | null
-          parent: string | null
-          revoked: boolean | null
-          session_id: string | null
-          token: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: number
-          instance_id?: string | null
-          parent?: string | null
-          revoked?: boolean | null
-          session_id?: string | null
-          token?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: number
-          instance_id?: string | null
-          parent?: string | null
-          revoked?: boolean | null
-          session_id?: string | null
-          token?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "refresh_tokens_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      saml_providers: {
-        Row: {
-          attribute_mapping: Json | null
-          created_at: string | null
-          entity_id: string
-          id: string
-          metadata_url: string | null
-          metadata_xml: string
-          name_id_format: string | null
-          sso_provider_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          attribute_mapping?: Json | null
-          created_at?: string | null
-          entity_id: string
-          id: string
-          metadata_url?: string | null
-          metadata_xml: string
-          name_id_format?: string | null
-          sso_provider_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          attribute_mapping?: Json | null
-          created_at?: string | null
-          entity_id?: string
-          id?: string
-          metadata_url?: string | null
-          metadata_xml?: string
-          name_id_format?: string | null
-          sso_provider_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "saml_providers_sso_provider_id_fkey"
-            columns: ["sso_provider_id"]
-            isOneToOne: false
-            referencedRelation: "sso_providers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      saml_relay_states: {
-        Row: {
-          created_at: string | null
-          flow_state_id: string | null
-          for_email: string | null
-          id: string
-          redirect_to: string | null
-          request_id: string
-          sso_provider_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          flow_state_id?: string | null
-          for_email?: string | null
-          id: string
-          redirect_to?: string | null
-          request_id: string
-          sso_provider_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          flow_state_id?: string | null
-          for_email?: string | null
-          id?: string
-          redirect_to?: string | null
-          request_id?: string
-          sso_provider_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "saml_relay_states_flow_state_id_fkey"
-            columns: ["flow_state_id"]
-            isOneToOne: false
-            referencedRelation: "flow_state"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "saml_relay_states_sso_provider_id_fkey"
-            columns: ["sso_provider_id"]
-            isOneToOne: false
-            referencedRelation: "sso_providers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      schema_migrations: {
-        Row: {
-          version: string
-        }
-        Insert: {
-          version: string
-        }
-        Update: {
-          version?: string
-        }
-        Relationships: []
-      }
-      sessions: {
-        Row: {
-          aal: Database["auth"]["Enums"]["aal_level"] | null
-          created_at: string | null
-          factor_id: string | null
-          id: string
-          ip: unknown
-          not_after: string | null
-          oauth_client_id: string | null
-          refresh_token_counter: number | null
-          refresh_token_hmac_key: string | null
-          refreshed_at: string | null
-          scopes: string | null
-          tag: string | null
-          updated_at: string | null
-          user_agent: string | null
-          user_id: string
-        }
-        Insert: {
-          aal?: Database["auth"]["Enums"]["aal_level"] | null
-          created_at?: string | null
-          factor_id?: string | null
-          id: string
-          ip?: unknown
-          not_after?: string | null
-          oauth_client_id?: string | null
-          refresh_token_counter?: number | null
-          refresh_token_hmac_key?: string | null
-          refreshed_at?: string | null
-          scopes?: string | null
-          tag?: string | null
-          updated_at?: string | null
-          user_agent?: string | null
-          user_id: string
-        }
-        Update: {
-          aal?: Database["auth"]["Enums"]["aal_level"] | null
-          created_at?: string | null
-          factor_id?: string | null
-          id?: string
-          ip?: unknown
-          not_after?: string | null
-          oauth_client_id?: string | null
-          refresh_token_counter?: number | null
-          refresh_token_hmac_key?: string | null
-          refreshed_at?: string | null
-          scopes?: string | null
-          tag?: string | null
-          updated_at?: string | null
-          user_agent?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sessions_oauth_client_id_fkey"
-            columns: ["oauth_client_id"]
-            isOneToOne: false
-            referencedRelation: "oauth_clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sso_domains: {
-        Row: {
-          created_at: string | null
-          domain: string
-          id: string
-          sso_provider_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          domain: string
-          id: string
-          sso_provider_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          domain?: string
-          id?: string
-          sso_provider_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sso_domains_sso_provider_id_fkey"
-            columns: ["sso_provider_id"]
-            isOneToOne: false
-            referencedRelation: "sso_providers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sso_providers: {
-        Row: {
-          created_at: string | null
-          disabled: boolean | null
-          id: string
-          resource_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          disabled?: boolean | null
-          id: string
-          resource_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          disabled?: boolean | null
-          id?: string
-          resource_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      users: {
-        Row: {
-          aud: string | null
-          banned_until: string | null
-          confirmation_sent_at: string | null
-          confirmation_token: string | null
-          confirmed_at: string | null
-          created_at: string | null
-          deleted_at: string | null
-          email: string | null
-          email_change: string | null
-          email_change_confirm_status: number | null
-          email_change_sent_at: string | null
-          email_change_token_current: string | null
-          email_change_token_new: string | null
-          email_confirmed_at: string | null
-          encrypted_password: string | null
-          id: string
-          instance_id: string | null
-          invited_at: string | null
-          is_anonymous: boolean
-          is_sso_user: boolean
-          is_super_admin: boolean | null
-          last_sign_in_at: string | null
-          phone: string | null
-          phone_change: string | null
-          phone_change_sent_at: string | null
-          phone_change_token: string | null
-          phone_confirmed_at: string | null
-          raw_app_meta_data: Json | null
-          raw_user_meta_data: Json | null
-          reauthentication_sent_at: string | null
-          reauthentication_token: string | null
-          recovery_sent_at: string | null
-          recovery_token: string | null
-          role: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          aud?: string | null
-          banned_until?: string | null
-          confirmation_sent_at?: string | null
-          confirmation_token?: string | null
-          confirmed_at?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          email?: string | null
-          email_change?: string | null
-          email_change_confirm_status?: number | null
-          email_change_sent_at?: string | null
-          email_change_token_current?: string | null
-          email_change_token_new?: string | null
-          email_confirmed_at?: string | null
-          encrypted_password?: string | null
-          id: string
-          instance_id?: string | null
-          invited_at?: string | null
-          is_anonymous?: boolean
-          is_sso_user?: boolean
-          is_super_admin?: boolean | null
-          last_sign_in_at?: string | null
-          phone?: string | null
-          phone_change?: string | null
-          phone_change_sent_at?: string | null
-          phone_change_token?: string | null
-          phone_confirmed_at?: string | null
-          raw_app_meta_data?: Json | null
-          raw_user_meta_data?: Json | null
-          reauthentication_sent_at?: string | null
-          reauthentication_token?: string | null
-          recovery_sent_at?: string | null
-          recovery_token?: string | null
-          role?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          aud?: string | null
-          banned_until?: string | null
-          confirmation_sent_at?: string | null
-          confirmation_token?: string | null
-          confirmed_at?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          email?: string | null
-          email_change?: string | null
-          email_change_confirm_status?: number | null
-          email_change_sent_at?: string | null
-          email_change_token_current?: string | null
-          email_change_token_new?: string | null
-          email_confirmed_at?: string | null
-          encrypted_password?: string | null
-          id?: string
-          instance_id?: string | null
-          invited_at?: string | null
-          is_anonymous?: boolean
-          is_sso_user?: boolean
-          is_super_admin?: boolean | null
-          last_sign_in_at?: string | null
-          phone?: string | null
-          phone_change?: string | null
-          phone_change_sent_at?: string | null
-          phone_change_token?: string | null
-          phone_confirmed_at?: string | null
-          raw_app_meta_data?: Json | null
-          raw_user_meta_data?: Json | null
-          reauthentication_sent_at?: string | null
-          reauthentication_token?: string | null
-          recovery_sent_at?: string | null
-          recovery_token?: string | null
-          role?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      webauthn_challenges: {
-        Row: {
-          challenge_type: string
-          created_at: string
-          expires_at: string
-          id: string
-          session_data: Json
-          user_id: string | null
-        }
-        Insert: {
-          challenge_type: string
-          created_at?: string
-          expires_at: string
-          id?: string
-          session_data: Json
-          user_id?: string | null
-        }
-        Update: {
-          challenge_type?: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          session_data?: Json
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "webauthn_challenges_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      webauthn_credentials: {
-        Row: {
-          aaguid: string | null
-          attestation_type: string
-          backed_up: boolean
-          backup_eligible: boolean
-          created_at: string
-          credential_id: string
-          friendly_name: string
-          id: string
-          last_used_at: string | null
-          public_key: string
-          sign_count: number
-          transports: Json
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          aaguid?: string | null
-          attestation_type?: string
-          backed_up?: boolean
-          backup_eligible?: boolean
-          created_at?: string
-          credential_id: string
-          friendly_name?: string
-          id?: string
-          last_used_at?: string | null
-          public_key: string
-          sign_count?: number
-          transports?: Json
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          aaguid?: string | null
-          attestation_type?: string
-          backed_up?: boolean
-          backup_eligible?: boolean
-          created_at?: string
-          credential_id?: string
-          friendly_name?: string
-          id?: string
-          last_used_at?: string | null
-          public_key?: string
-          sign_count?: number
-          transports?: Json
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "webauthn_credentials_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      email: { Args: never; Returns: string }
-      jwt: { Args: never; Returns: Json }
-      role: { Args: never; Returns: string }
-      uid: { Args: never; Returns: string }
-    }
-    Enums: {
-      aal_level: "aal1" | "aal2" | "aal3"
-      code_challenge_method: "s256" | "plain"
-      factor_status: "unverified" | "verified"
-      factor_type: "totp" | "webauthn" | "phone"
-      oauth_authorization_status: "pending" | "approved" | "denied" | "expired"
-      oauth_client_type: "public" | "confidential"
-      oauth_registration_type: "dynamic" | "manual"
-      oauth_response_type: "code"
-      one_time_token_type:
-        | "confirmation_token"
-        | "reauthentication_token"
-        | "recovery_token"
-        | "email_change_token_new"
-        | "email_change_token_current"
-        | "phone_change_token"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       adverse_drug_reactions: {
@@ -1554,6 +445,51 @@ export type Database = {
           },
         ]
       }
+      api_keys: {
+        Row: {
+          belongs_to: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          scopes: string[]
+          updated_at: string
+        }
+        Insert: {
+          belongs_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Update: {
+          belongs_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       appointment_history: {
         Row: {
           action: string
@@ -1654,6 +590,82 @@ export type Database = {
           webhook_result?: Json
         }
         Relationships: []
+      }
+      appointment_payments: {
+        Row: {
+          appointment_id: string
+          checkout_url: string | null
+          created_at: string
+          currency: string
+          doctor_id: string
+          gross_amount: number
+          id: string
+          metadata: Json
+          paid_at: string | null
+          patient_id: string
+          provider: string
+          provider_payment_id: string | null
+          provider_preference_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id: string
+          checkout_url?: string | null
+          created_at?: string
+          currency?: string
+          doctor_id: string
+          gross_amount: number
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          patient_id: string
+          provider?: string
+          provider_payment_id?: string | null
+          provider_preference_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string
+          checkout_url?: string | null
+          created_at?: string
+          currency?: string
+          doctor_id?: string
+          gross_amount?: number
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          patient_id?: string
+          provider?: string
+          provider_payment_id?: string | null
+          provider_preference_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_payments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: true
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_payments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_payments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       appointment_reminders: {
         Row: {
@@ -2052,6 +1064,72 @@ export type Database = {
           },
         ]
       }
+      clinical_ai_lab_analyses: {
+        Row: {
+          clinical_summary: string | null
+          created_at: string
+          error_message: string | null
+          extracted_data_json: Json
+          id: string
+          inbound_message_id: string | null
+          media_type: string
+          patient_profile_id: string
+          red_flags_detected: Json
+          status: Database["public"]["Enums"]["lab_analysis_status"]
+          storage_path: string
+          study_date: string | null
+          study_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          clinical_summary?: string | null
+          created_at?: string
+          error_message?: string | null
+          extracted_data_json?: Json
+          id?: string
+          inbound_message_id?: string | null
+          media_type: string
+          patient_profile_id: string
+          red_flags_detected?: Json
+          status?: Database["public"]["Enums"]["lab_analysis_status"]
+          storage_path: string
+          study_date?: string | null
+          study_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clinical_summary?: string | null
+          created_at?: string
+          error_message?: string | null
+          extracted_data_json?: Json
+          id?: string
+          inbound_message_id?: string | null
+          media_type?: string
+          patient_profile_id?: string
+          red_flags_detected?: Json
+          status?: Database["public"]["Enums"]["lab_analysis_status"]
+          storage_path?: string
+          study_date?: string | null
+          study_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_ai_lab_analyses_inbound_message_id_fkey"
+            columns: ["inbound_message_id"]
+            isOneToOne: false
+            referencedRelation: "appointment_inbound_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_ai_lab_analyses_patient_profile_id_fkey"
+            columns: ["patient_profile_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinical_case_states: {
         Row: {
           acknowledged_at: string | null
@@ -2162,6 +1240,710 @@ export type Database = {
           },
           {
             foreignKeyName: "clinical_case_states_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_concept_maps: {
+        Row: {
+          concept_type: string
+          created_at: string
+          display_name_es: string
+          icd11_code: string | null
+          icd11_display: string | null
+          id: string
+          local_code: string
+          loinc_code: string | null
+          snomed_code: string | null
+          snomed_display: string | null
+        }
+        Insert: {
+          concept_type: string
+          created_at?: string
+          display_name_es: string
+          icd11_code?: string | null
+          icd11_display?: string | null
+          id?: string
+          local_code: string
+          loinc_code?: string | null
+          snomed_code?: string | null
+          snomed_display?: string | null
+        }
+        Update: {
+          concept_type?: string
+          created_at?: string
+          display_name_es?: string
+          icd11_code?: string | null
+          icd11_display?: string | null
+          id?: string
+          local_code?: string
+          loinc_code?: string | null
+          snomed_code?: string | null
+          snomed_display?: string | null
+        }
+        Relationships: []
+      }
+      clinical_incident_events: {
+        Row: {
+          actor_id: string
+          clinical_evidence: Json
+          event_description: string
+          from_status: string
+          id: string
+          incident_id: string
+          timestamp: string
+          to_status: string
+        }
+        Insert: {
+          actor_id: string
+          clinical_evidence: Json
+          event_description: string
+          from_status: string
+          id?: string
+          incident_id: string
+          timestamp?: string
+          to_status: string
+        }
+        Update: {
+          actor_id?: string
+          clinical_evidence?: Json
+          event_description?: string
+          from_status?: string
+          id?: string
+          incident_id?: string
+          timestamp?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_incident_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clinical_incident_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "user_identifiers"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clinical_incident_events_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_incidents: {
+        Row: {
+          closed_by: string | null
+          condition_code: string
+          condition_display: string
+          created_at: string
+          diagnosed_at: string
+          doctor_id: string
+          id: string
+          patient_id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          setting: Database["public"]["Enums"]["clinical_setting"]
+          severity: Database["public"]["Enums"]["incident_severity"]
+          sla_deadline: string
+          snomed_concept_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          closed_by?: string | null
+          condition_code: string
+          condition_display: string
+          created_at?: string
+          diagnosed_at: string
+          doctor_id: string
+          id?: string
+          patient_id: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          setting?: Database["public"]["Enums"]["clinical_setting"]
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          sla_deadline: string
+          snomed_concept_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          closed_by?: string | null
+          condition_code?: string
+          condition_display?: string
+          created_at?: string
+          diagnosed_at?: string
+          doctor_id?: string
+          id?: string
+          patient_id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          setting?: Database["public"]["Enums"]["clinical_setting"]
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          sla_deadline?: string
+          snomed_concept_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_incidents_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clinical_incidents_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "user_identifiers"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clinical_incidents_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_incidents_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_patient_conditions: {
+        Row: {
+          anamnesis_extraction_id: string
+          category: string
+          condition_name: string
+          created_at: string
+          icd11_code: string | null
+          id: string
+          patient_id: string
+          snomed_code: string | null
+        }
+        Insert: {
+          anamnesis_extraction_id: string
+          category: string
+          condition_name: string
+          created_at?: string
+          icd11_code?: string | null
+          id?: string
+          patient_id: string
+          snomed_code?: string | null
+        }
+        Update: {
+          anamnesis_extraction_id?: string
+          category?: string
+          condition_name?: string
+          created_at?: string
+          icd11_code?: string | null
+          id?: string
+          patient_id?: string
+          snomed_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_patient_conditions_anamnesis_extraction_id_fkey"
+            columns: ["anamnesis_extraction_id"]
+            isOneToOne: false
+            referencedRelation: "anamnesis_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_patient_conditions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_red_flags: {
+        Row: {
+          created_at: string | null
+          flag_display: string
+          flag_key: string
+          id: string
+          rule_version_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          flag_display: string
+          flag_key: string
+          id?: string
+          rule_version_id: string
+        }
+        Update: {
+          created_at?: string | null
+          flag_display?: string
+          flag_key?: string
+          id?: string
+          rule_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_red_flags_rule_version_id_fkey"
+            columns: ["rule_version_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_rule_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_required_observations: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_required: boolean
+          loinc_code: string | null
+          parameter_name: string
+          rule_version_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_required?: boolean
+          loinc_code?: string | null
+          parameter_name: string
+          rule_version_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_required?: boolean
+          loinc_code?: string | null
+          parameter_name?: string
+          rule_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_required_observations_rule_version_id_fkey"
+            columns: ["rule_version_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_rule_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_resolution_criteria: {
+        Row: {
+          created_at: string | null
+          id: string
+          operator: string
+          relative_target_pct: number | null
+          required_observation_id: string
+          rule_version_id: string
+          threshold_value: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          operator: string
+          relative_target_pct?: number | null
+          required_observation_id: string
+          rule_version_id: string
+          threshold_value?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          operator?: string
+          relative_target_pct?: number | null
+          required_observation_id?: string
+          rule_version_id?: string
+          threshold_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_resolution_criteria_required_observation_id_fkey"
+            columns: ["required_observation_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_required_observations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_resolution_criteria_rule_version_id_fkey"
+            columns: ["rule_version_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_rule_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_rule_audit_events: {
+        Row: {
+          action_type: string
+          actor_id: string
+          entity_affected: string
+          event_data: Json
+          id: string
+          timestamp: string
+        }
+        Insert: {
+          action_type: string
+          actor_id: string
+          entity_affected: string
+          event_data: Json
+          id?: string
+          timestamp?: string
+        }
+        Update: {
+          action_type?: string
+          actor_id?: string
+          entity_affected?: string
+          event_data?: Json
+          id?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_rule_audit_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clinical_rule_audit_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "user_identifiers"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      clinical_rule_conditions: {
+        Row: {
+          blocks_closure: boolean
+          escalation_action: string
+          id: string
+          requires_override: boolean
+          rule_version_id: string
+          setting: Database["public"]["Enums"]["clinical_setting"]
+          sla_duration: string
+          verification_frequency: string
+        }
+        Insert: {
+          blocks_closure?: boolean
+          escalation_action: string
+          id?: string
+          requires_override?: boolean
+          rule_version_id: string
+          setting: Database["public"]["Enums"]["clinical_setting"]
+          sla_duration: string
+          verification_frequency: string
+        }
+        Update: {
+          blocks_closure?: boolean
+          escalation_action?: string
+          id?: string
+          requires_override?: boolean
+          rule_version_id?: string
+          setting?: Database["public"]["Enums"]["clinical_setting"]
+          sla_duration?: string
+          verification_frequency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_rule_conditions_rule_version_id_fkey"
+            columns: ["rule_version_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_rule_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_rule_executions: {
+        Row: {
+          doctor_id: string
+          evidence_used: Json
+          executed_at: string
+          id: string
+          incident_id: string
+          patient_id: string
+          reason: string | null
+          recommendation: string
+          rule_version_id: string
+        }
+        Insert: {
+          doctor_id: string
+          evidence_used: Json
+          executed_at?: string
+          id?: string
+          incident_id: string
+          patient_id: string
+          reason?: string | null
+          recommendation: string
+          rule_version_id: string
+        }
+        Update: {
+          doctor_id?: string
+          evidence_used?: Json
+          executed_at?: string
+          id?: string
+          incident_id?: string
+          patient_id?: string
+          reason?: string | null
+          recommendation?: string
+          rule_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_rule_executions_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_rule_executions_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_rule_executions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_rule_executions_rule_version_id_fkey"
+            columns: ["rule_version_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_rule_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_rule_overrides: {
+        Row: {
+          authorized_by: string | null
+          doctor_id: string
+          execution_id: string
+          id: string
+          overridden_at: string
+          reason: string
+        }
+        Insert: {
+          authorized_by?: string | null
+          doctor_id: string
+          execution_id: string
+          id?: string
+          overridden_at?: string
+          reason: string
+        }
+        Update: {
+          authorized_by?: string | null
+          doctor_id?: string
+          execution_id?: string
+          id?: string
+          overridden_at?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_rule_overrides_authorized_by_fkey"
+            columns: ["authorized_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clinical_rule_overrides_authorized_by_fkey"
+            columns: ["authorized_by"]
+            isOneToOne: false
+            referencedRelation: "user_identifiers"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clinical_rule_overrides_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_rule_overrides_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_rule_executions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_rule_versions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          rule_id: string
+          status: string
+          version_number: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          rule_id: string
+          status?: string
+          version_number: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          rule_id?: string
+          status?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_rule_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clinical_rule_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identifiers"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clinical_rule_versions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_rules: {
+        Row: {
+          cie10_code: string | null
+          clinical_source: string | null
+          condition_display: string
+          created_at: string | null
+          effective_from: string | null
+          id: string
+          name: string
+          responsible_doctor_id: string | null
+          risk_level: string
+          snomed_concept_id: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          cie10_code?: string | null
+          clinical_source?: string | null
+          condition_display: string
+          created_at?: string | null
+          effective_from?: string | null
+          id?: string
+          name: string
+          responsible_doctor_id?: string | null
+          risk_level: string
+          snomed_concept_id?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          cie10_code?: string | null
+          clinical_source?: string | null
+          condition_display?: string
+          created_at?: string | null
+          effective_from?: string | null
+          id?: string
+          name?: string
+          responsible_doctor_id?: string | null
+          risk_level?: string
+          snomed_concept_id?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_rules_responsible_doctor_id_fkey"
+            columns: ["responsible_doctor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clinical_rules_responsible_doctor_id_fkey"
+            columns: ["responsible_doctor_id"]
+            isOneToOne: false
+            referencedRelation: "user_identifiers"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      clinical_symptom_observations: {
+        Row: {
+          anamnesis_extraction_id: string
+          created_at: string
+          icd11_code: string | null
+          id: string
+          is_primary: boolean
+          is_red_flag: boolean
+          patient_id: string
+          snomed_code: string | null
+          symptom_name: string
+        }
+        Insert: {
+          anamnesis_extraction_id: string
+          created_at?: string
+          icd11_code?: string | null
+          id?: string
+          is_primary?: boolean
+          is_red_flag?: boolean
+          patient_id: string
+          snomed_code?: string | null
+          symptom_name: string
+        }
+        Update: {
+          anamnesis_extraction_id?: string
+          created_at?: string
+          icd11_code?: string | null
+          id?: string
+          is_primary?: boolean
+          is_red_flag?: boolean
+          patient_id?: string
+          snomed_code?: string | null
+          symptom_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_symptom_observations_anamnesis_extraction_id_fkey"
+            columns: ["anamnesis_extraction_id"]
+            isOneToOne: false
+            referencedRelation: "anamnesis_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_symptom_observations_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
@@ -3113,6 +2895,85 @@ export type Database = {
           },
         ]
       }
+      doctor_earnings: {
+        Row: {
+          appointment_id: string
+          appointment_payment_id: string
+          created_at: string
+          currency: string
+          doctor_id: string
+          gross_amount: number
+          id: string
+          metadata: Json
+          net_amount: number
+          paid_at: string | null
+          payout_alias_snapshot: string | null
+          payout_cbu_snapshot: string | null
+          platform_fee_amount: number
+          processor_fee_amount: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id: string
+          appointment_payment_id: string
+          created_at?: string
+          currency?: string
+          doctor_id: string
+          gross_amount: number
+          id?: string
+          metadata?: Json
+          net_amount: number
+          paid_at?: string | null
+          payout_alias_snapshot?: string | null
+          payout_cbu_snapshot?: string | null
+          platform_fee_amount?: number
+          processor_fee_amount?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string
+          appointment_payment_id?: string
+          created_at?: string
+          currency?: string
+          doctor_id?: string
+          gross_amount?: number
+          id?: string
+          metadata?: Json
+          net_amount?: number
+          paid_at?: string | null
+          payout_alias_snapshot?: string | null
+          payout_cbu_snapshot?: string | null
+          platform_fee_amount?: number
+          processor_fee_amount?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_earnings_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: true
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_earnings_appointment_payment_id_fkey"
+            columns: ["appointment_payment_id"]
+            isOneToOne: true
+            referencedRelation: "appointment_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_earnings_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_expense_records: {
         Row: {
           amount: number
@@ -3328,6 +3189,35 @@ export type Database = {
           },
         ]
       }
+      doctor_heartbeats: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_heartbeats_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_income_records: {
         Row: {
           appointment_id: string | null
@@ -3449,6 +3339,74 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_prescription_templates: {
+        Row: {
+          care_guide_forgotten: string | null
+          care_guide_lifestyle: string | null
+          care_guide_tips: string | null
+          care_guide_warnings: string | null
+          created_at: string
+          diagnosis: string | null
+          doctor_id: string
+          dosage: string | null
+          duration: string | null
+          frequency: string | null
+          id: string
+          instructions: string | null
+          medication_name: string
+          name: string
+          notes: string | null
+          side_effects_warning: string | null
+          updated_at: string
+        }
+        Insert: {
+          care_guide_forgotten?: string | null
+          care_guide_lifestyle?: string | null
+          care_guide_tips?: string | null
+          care_guide_warnings?: string | null
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id: string
+          dosage?: string | null
+          duration?: string | null
+          frequency?: string | null
+          id?: string
+          instructions?: string | null
+          medication_name: string
+          name: string
+          notes?: string | null
+          side_effects_warning?: string | null
+          updated_at?: string
+        }
+        Update: {
+          care_guide_forgotten?: string | null
+          care_guide_lifestyle?: string | null
+          care_guide_tips?: string | null
+          care_guide_warnings?: string | null
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id?: string
+          dosage?: string | null
+          duration?: string | null
+          frequency?: string | null
+          id?: string
+          instructions?: string | null
+          medication_name?: string
+          name?: string
+          notes?: string | null
+          side_effects_warning?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_prescription_templates_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
         ]
@@ -3781,6 +3739,7 @@ export type Database = {
           bank_cbu_cvu: string | null
           bank_name: string | null
           bio: string | null
+          care_guide_template: string | null
           certifications: Json | null
           consultation_fee: number | null
           created_at: string | null
@@ -3791,12 +3750,16 @@ export type Database = {
           id: string
           languages: Json | null
           license_number: string
+          payout_alias: string | null
+          payout_cbu: string | null
           professional_address: string | null
           refeps_id: string | null
           schedule: Json | null
           signature_image_url: string | null
+          signature_url: string | null
           specialty: string
           stamp_image_url: string | null
+          stamp_url: string | null
           subspecialty: string | null
           timezone: string
           updated_at: string | null
@@ -3810,6 +3773,7 @@ export type Database = {
           bank_cbu_cvu?: string | null
           bank_name?: string | null
           bio?: string | null
+          care_guide_template?: string | null
           certifications?: Json | null
           consultation_fee?: number | null
           created_at?: string | null
@@ -3820,12 +3784,16 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number: string
+          payout_alias?: string | null
+          payout_cbu?: string | null
           professional_address?: string | null
           refeps_id?: string | null
           schedule?: Json | null
           signature_image_url?: string | null
+          signature_url?: string | null
           specialty: string
           stamp_image_url?: string | null
+          stamp_url?: string | null
           subspecialty?: string | null
           timezone?: string
           updated_at?: string | null
@@ -3839,6 +3807,7 @@ export type Database = {
           bank_cbu_cvu?: string | null
           bank_name?: string | null
           bio?: string | null
+          care_guide_template?: string | null
           certifications?: Json | null
           consultation_fee?: number | null
           created_at?: string | null
@@ -3849,12 +3818,16 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number?: string
+          payout_alias?: string | null
+          payout_cbu?: string | null
           professional_address?: string | null
           refeps_id?: string | null
           schedule?: Json | null
           signature_image_url?: string | null
+          signature_url?: string | null
           specialty?: string
           stamp_image_url?: string | null
+          stamp_url?: string | null
           subspecialty?: string | null
           timezone?: string
           updated_at?: string | null
@@ -3877,6 +3850,217 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      email_events_log: {
+        Row: {
+          created_at: string
+          email: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          provider: string
+          provider_message_id: string | null
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          provider: string
+          provider_message_id?: string | null
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          provider?: string
+          provider_message_id?: string | null
+          subject?: string | null
+        }
+        Relationships: []
+      }
+      equipment_events: {
+        Row: {
+          action_type: string
+          actor_id: string
+          id: string
+          incident_id: string
+          is_resolved: boolean
+          notes: string
+          timestamp: string
+        }
+        Insert: {
+          action_type: string
+          actor_id: string
+          id?: string
+          incident_id: string
+          is_resolved?: boolean
+          notes: string
+          timestamp?: string
+        }
+        Update: {
+          action_type?: string
+          actor_id?: string
+          id?: string
+          incident_id?: string
+          is_resolved?: boolean
+          notes?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "equipment_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "user_identifiers"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "equipment_events_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_incidents: {
+        Row: {
+          assigned_technician_id: string | null
+          calibration_certificate_url: string | null
+          closed_at: string | null
+          equipment_id: string
+          id: string
+          next_verification_due: string | null
+          reported_at: string
+          reporter_id: string
+          resolved_at: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          status: string
+          technical_summary: string | null
+        }
+        Insert: {
+          assigned_technician_id?: string | null
+          calibration_certificate_url?: string | null
+          closed_at?: string | null
+          equipment_id: string
+          id?: string
+          next_verification_due?: string | null
+          reported_at?: string
+          reporter_id: string
+          resolved_at?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          status?: string
+          technical_summary?: string | null
+        }
+        Update: {
+          assigned_technician_id?: string | null
+          calibration_certificate_url?: string | null
+          closed_at?: string | null
+          equipment_id?: string
+          id?: string
+          next_verification_due?: string | null
+          reported_at?: string
+          reporter_id?: string
+          resolved_at?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          status?: string
+          technical_summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_incidents_assigned_technician_id_fkey"
+            columns: ["assigned_technician_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "equipment_incidents_assigned_technician_id_fkey"
+            columns: ["assigned_technician_id"]
+            isOneToOne: false
+            referencedRelation: "user_identifiers"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "equipment_incidents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "medical_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_incidents_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "equipment_incidents_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "user_identifiers"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      geriatric_contacts: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          has_whatsapp: boolean | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          rating: string | null
+          replied_at: string | null
+          sent_at: string | null
+          status: string | null
+          zone: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          has_whatsapp?: boolean | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          rating?: string | null
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          zone?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          has_whatsapp?: boolean | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          rating?: string | null
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          zone?: string | null
+        }
+        Relationships: []
       }
       group_memberships: {
         Row: {
@@ -4263,6 +4447,62 @@ export type Database = {
           },
         ]
       }
+      medical_equipment: {
+        Row: {
+          brand: string
+          current_setting: Database["public"]["Enums"]["clinical_setting"]
+          current_status: Database["public"]["Enums"]["equipment_status"]
+          device_type: string
+          id: string
+          installed_at: string
+          last_calibrated_at: string
+          model_name: string
+          next_calibration_due: string
+          operating_hours: number
+          organization_id: string
+          serial_number: string
+          snomed_device_code: string | null
+        }
+        Insert: {
+          brand: string
+          current_setting?: Database["public"]["Enums"]["clinical_setting"]
+          current_status?: Database["public"]["Enums"]["equipment_status"]
+          device_type: string
+          id?: string
+          installed_at?: string
+          last_calibrated_at: string
+          model_name: string
+          next_calibration_due: string
+          operating_hours?: number
+          organization_id: string
+          serial_number: string
+          snomed_device_code?: string | null
+        }
+        Update: {
+          brand?: string
+          current_setting?: Database["public"]["Enums"]["clinical_setting"]
+          current_status?: Database["public"]["Enums"]["equipment_status"]
+          device_type?: string
+          id?: string
+          installed_at?: string
+          last_calibrated_at?: string
+          model_name?: string
+          next_calibration_due?: string
+          operating_hours?: number
+          organization_id?: string
+          serial_number?: string
+          snomed_device_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_equipment_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_messages: {
         Row: {
           attachment_url: string | null
@@ -4306,6 +4546,89 @@ export type Database = {
             columns: ["chat_id"]
             isOneToOne: false
             referencedRelation: "medical_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_orders: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          cuir: string | null
+          diagnosis: string | null
+          doctor_id: string
+          id: string
+          notes: string | null
+          organization_id: string | null
+          patient_id: string
+          practices: Json
+          qr_code_content: string | null
+          signed_pdf_url: string | null
+          status: string
+          study_type: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          cuir?: string | null
+          diagnosis?: string | null
+          doctor_id: string
+          id?: string
+          notes?: string | null
+          organization_id?: string | null
+          patient_id: string
+          practices: Json
+          qr_code_content?: string | null
+          signed_pdf_url?: string | null
+          status?: string
+          study_type: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          cuir?: string | null
+          diagnosis?: string | null
+          doctor_id?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string | null
+          patient_id?: string
+          practices?: Json
+          qr_code_content?: string | null
+          signed_pdf_url?: string | null
+          status?: string
+          study_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_orders_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_orders_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_orders_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
@@ -4417,6 +4740,81 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_review_orders: {
+        Row: {
+          amount_cents: number
+          assigned_at: string | null
+          created_at: string
+          currency: string
+          doctor_id: string | null
+          id: string
+          metadata: Json
+          paid_at: string | null
+          patient_phone: string
+          payment_provider: string
+          payment_url: string | null
+          preanamnesis_id: string
+          provider_payment_id: string | null
+          provider_preference_id: string | null
+          reviewed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          assigned_at?: string | null
+          created_at?: string
+          currency?: string
+          doctor_id?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          patient_phone: string
+          payment_provider?: string
+          payment_url?: string | null
+          preanamnesis_id: string
+          provider_payment_id?: string | null
+          provider_preference_id?: string | null
+          reviewed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          assigned_at?: string | null
+          created_at?: string
+          currency?: string
+          doctor_id?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          patient_phone?: string
+          payment_provider?: string
+          payment_url?: string | null
+          preanamnesis_id?: string
+          provider_payment_id?: string | null
+          provider_preference_id?: string | null
+          reviewed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_review_orders_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_review_orders_preanamnesis_id_fkey"
+            columns: ["preanamnesis_id"]
+            isOneToOne: true
+            referencedRelation: "preanamnesis_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -5087,6 +5485,66 @@ export type Database = {
           },
         ]
       }
+      patient_triage_results: {
+        Row: {
+          ai_chief_complaint: string | null
+          ai_clinical_narrative: string | null
+          ai_covered_areas: string[] | null
+          ai_missing_areas: string[] | null
+          ai_processed: boolean | null
+          ai_recommendations: string | null
+          ai_safety_flags: string[] | null
+          ai_severity: string | null
+          alerts_detected: string[] | null
+          answers: Json
+          created_at: string
+          id: number
+          patient_id: string | null
+          patient_name: string | null
+          patient_phone: string
+          session_id: string | null
+          source: string
+        }
+        Insert: {
+          ai_chief_complaint?: string | null
+          ai_clinical_narrative?: string | null
+          ai_covered_areas?: string[] | null
+          ai_missing_areas?: string[] | null
+          ai_processed?: boolean | null
+          ai_recommendations?: string | null
+          ai_safety_flags?: string[] | null
+          ai_severity?: string | null
+          alerts_detected?: string[] | null
+          answers?: Json
+          created_at?: string
+          id?: number
+          patient_id?: string | null
+          patient_name?: string | null
+          patient_phone: string
+          session_id?: string | null
+          source?: string
+        }
+        Update: {
+          ai_chief_complaint?: string | null
+          ai_clinical_narrative?: string | null
+          ai_covered_areas?: string[] | null
+          ai_missing_areas?: string[] | null
+          ai_processed?: boolean | null
+          ai_recommendations?: string | null
+          ai_safety_flags?: string[] | null
+          ai_severity?: string | null
+          alerts_detected?: string[] | null
+          answers?: Json
+          created_at?: string
+          id?: number
+          patient_id?: string | null
+          patient_name?: string | null
+          patient_phone?: string
+          session_id?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           active: boolean | null
@@ -5478,11 +5936,57 @@ export type Database = {
           },
         ]
       }
+      preanamnesis_sessions: {
+        Row: {
+          access_mode: string
+          created_at: string
+          extraction_json: Json
+          id: string
+          patient_phone: string
+          pdf_url: string
+          source: string
+          status: string
+          storage_bucket: string
+          storage_path: string
+          transcript: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_mode?: string
+          created_at?: string
+          extraction_json?: Json
+          id: string
+          patient_phone: string
+          pdf_url: string
+          source?: string
+          status?: string
+          storage_bucket?: string
+          storage_path: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_mode?: string
+          created_at?: string
+          extraction_json?: Json
+          id?: string
+          patient_phone?: string
+          pdf_url?: string
+          source?: string
+          status?: string
+          storage_bucket?: string
+          storage_path?: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       prescription_audit_events: {
         Row: {
           event_type: string
           id: string
           ip_address: string | null
+          metadata: Json | null
           prescription_id: string
           signature_hash: string | null
           timestamp: string
@@ -5493,6 +5997,7 @@ export type Database = {
           event_type: string
           id?: string
           ip_address?: string | null
+          metadata?: Json | null
           prescription_id: string
           signature_hash?: string | null
           timestamp?: string
@@ -5503,6 +6008,7 @@ export type Database = {
           event_type?: string
           id?: string
           ip_address?: string | null
+          metadata?: Json | null
           prescription_id?: string
           signature_hash?: string | null
           timestamp?: string
@@ -5682,16 +6188,20 @@ export type Database = {
           deleted_at: string | null
           device_platform: string | null
           email: string | null
+          especialidad_registrada: string | null
           external_id: string | null
           fcm_token: string | null
           first_name: string | null
           last_name: string | null
-          newsletter_subscribed: boolean | null
+          matricula_nacional: string | null
+          newsletter_subscribed: boolean
           numeric_id: number
           onboarding_completed_at: string | null
           onboarding_started_at: string | null
           phone: string | null
           role: string | null
+          sss_last_checked_at: string | null
+          sss_validation_status: string
           updated_at: string | null
           user_id: string
         }
@@ -5702,16 +6212,20 @@ export type Database = {
           deleted_at?: string | null
           device_platform?: string | null
           email?: string | null
+          especialidad_registrada?: string | null
           external_id?: string | null
           fcm_token?: string | null
           first_name?: string | null
           last_name?: string | null
-          newsletter_subscribed?: boolean | null
+          matricula_nacional?: string | null
+          newsletter_subscribed?: boolean
           numeric_id?: number
           onboarding_completed_at?: string | null
           onboarding_started_at?: string | null
           phone?: string | null
           role?: string | null
+          sss_last_checked_at?: string | null
+          sss_validation_status?: string
           updated_at?: string | null
           user_id: string
         }
@@ -5722,16 +6236,20 @@ export type Database = {
           deleted_at?: string | null
           device_platform?: string | null
           email?: string | null
+          especialidad_registrada?: string | null
           external_id?: string | null
           fcm_token?: string | null
           first_name?: string | null
           last_name?: string | null
-          newsletter_subscribed?: boolean | null
+          matricula_nacional?: string | null
+          newsletter_subscribed?: boolean
           numeric_id?: number
           onboarding_completed_at?: string | null
           onboarding_started_at?: string | null
           phone?: string | null
           role?: string | null
+          sss_last_checked_at?: string | null
+          sss_validation_status?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -6417,6 +6935,36 @@ export type Database = {
           },
         ]
       }
+      terminology_code_map: {
+        Row: {
+          concept_name: string
+          created_at: string | null
+          id: string
+          source_code: string
+          system_source: string
+          system_target: string
+          target_code: string
+        }
+        Insert: {
+          concept_name: string
+          created_at?: string | null
+          id?: string
+          source_code: string
+          system_source: string
+          system_target: string
+          target_code: string
+        }
+        Update: {
+          concept_name?: string
+          created_at?: string | null
+          id?: string
+          source_code?: string
+          system_source?: string
+          system_target?: string
+          target_code?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           expires_at: string | null
@@ -6593,8 +7141,224 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_triage_sessions: {
+        Row: {
+          answers: Json
+          created_at: string
+          current_question: number
+          id: number
+          last_activity_at: string
+          patient_name: string
+          patient_phone: string
+          session_id: string
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          current_question?: number
+          id?: number
+          last_activity_at?: string
+          patient_name?: string
+          patient_phone: string
+          session_id: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          current_question?: number
+          id?: number
+          last_activity_at?: string
+          patient_name?: string
+          patient_phone?: string
+          session_id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
+      analytics_appointments: {
+        Row: {
+          appointment_date: string | null
+          appointment_hour: number | null
+          appointment_status: string | null
+          appointment_type: string | null
+          doctor_key: string | null
+          duration_minutes: number | null
+          is_cancelled: boolean | null
+          is_completed: boolean | null
+          is_no_show: boolean | null
+          patient_key: string | null
+        }
+        Insert: {
+          appointment_date?: never
+          appointment_hour?: never
+          appointment_status?: never
+          appointment_type?: never
+          doctor_key?: never
+          duration_minutes?: number | null
+          is_cancelled?: never
+          is_completed?: never
+          is_no_show?: never
+          patient_key?: never
+        }
+        Update: {
+          appointment_date?: never
+          appointment_hour?: never
+          appointment_status?: never
+          appointment_type?: never
+          doctor_key?: never
+          duration_minutes?: number | null
+          is_cancelled?: never
+          is_completed?: never
+          is_no_show?: never
+          patient_key?: never
+        }
+        Relationships: []
+      }
+      analytics_clinical_triage_cases: {
+        Row: {
+          case_created_date: string | null
+          case_intent: string | null
+          case_updated_date: string | null
+          clinical_vertical: string | null
+          conflicted_field_count: number | null
+          has_assigned_doctor: boolean | null
+          integrity_score: number | null
+          integrity_status: string | null
+          locked_field_count: number | null
+          missing_field_count: number | null
+          patient_key: string | null
+          requires_same_day_action: boolean | null
+          resolution_deadline_date: string | null
+          resolved_date: string | null
+          risk_of_interruption: string | null
+          triage_priority: string | null
+          triage_priority_rank: number | null
+          triage_status: string | null
+          workflow_type: string | null
+        }
+        Insert: {
+          case_created_date?: never
+          case_intent?: string | null
+          case_updated_date?: never
+          clinical_vertical?: string | null
+          conflicted_field_count?: number | null
+          has_assigned_doctor?: never
+          integrity_score?: number | null
+          integrity_status?: string | null
+          locked_field_count?: number | null
+          missing_field_count?: number | null
+          patient_key?: never
+          requires_same_day_action?: never
+          resolution_deadline_date?: never
+          resolved_date?: never
+          risk_of_interruption?: never
+          triage_priority?: string | null
+          triage_priority_rank?: number | null
+          triage_status?: string | null
+          workflow_type?: string | null
+        }
+        Update: {
+          case_created_date?: never
+          case_intent?: string | null
+          case_updated_date?: never
+          clinical_vertical?: string | null
+          conflicted_field_count?: number | null
+          has_assigned_doctor?: never
+          integrity_score?: number | null
+          integrity_status?: string | null
+          locked_field_count?: number | null
+          missing_field_count?: number | null
+          patient_key?: never
+          requires_same_day_action?: never
+          resolution_deadline_date?: never
+          resolved_date?: never
+          risk_of_interruption?: never
+          triage_priority?: string | null
+          triage_priority_rank?: number | null
+          triage_status?: string | null
+          workflow_type?: string | null
+        }
+        Relationships: []
+      }
+      analytics_patient_data_quality: {
+        Row: {
+          age_band: string | null
+          expected_demographic_field_count: number | null
+          has_birth_date: boolean | null
+          has_gender: boolean | null
+          has_insurance_info: boolean | null
+          has_phone: boolean | null
+          missing_demographic_field_count: number | null
+          organization_id: string | null
+          patient_created_date: string | null
+          patient_key: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patients_company_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_whatsapp_triage_results: {
+        Row: {
+          ai_processed: boolean | null
+          ai_severity: string | null
+          alert_count: number | null
+          covered_area_count: number | null
+          missing_area_count: number | null
+          patient_key: string | null
+          result_created_date: string | null
+          safety_flag_count: number | null
+          source: string | null
+        }
+        Insert: {
+          ai_processed?: never
+          ai_severity?: never
+          alert_count?: never
+          covered_area_count?: never
+          missing_area_count?: never
+          patient_key?: never
+          result_created_date?: never
+          safety_flag_count?: never
+          source?: string | null
+        }
+        Update: {
+          ai_processed?: never
+          ai_severity?: never
+          alert_count?: never
+          covered_area_count?: never
+          missing_area_count?: never
+          patient_key?: never
+          result_created_date?: never
+          safety_flag_count?: never
+          source?: string | null
+        }
+        Relationships: []
+      }
+      clinical_gold_seasonal_metrics: {
+        Row: {
+          case_count: number | null
+          icd11_code: string | null
+          season: string | null
+          snomed_code: string | null
+          symptom_name: string | null
+        }
+        Relationships: []
+      }
       geography_columns: {
         Row: {
           coord_dimension: number | null
@@ -6717,6 +7481,17 @@ export type Database = {
           storage_buckets: number | null
           tables_with_rls: number | null
           total_policies: number | null
+        }
+        Relationships: []
+      }
+      v_patient_demographics: {
+        Row: {
+          age_group: string | null
+          count: number | null
+          gender: string | null
+          insurance_name: string | null
+          region: string | null
+          total_active_patients: number | null
         }
         Relationships: []
       }
@@ -6860,6 +7635,10 @@ export type Database = {
           }
       auto_delete_expired_recordings: { Args: never; Returns: undefined }
       auto_revoke_expired_authorizations: { Args: never; Returns: undefined }
+      can_access_p2p_chat_session: {
+        Args: { target_session_id: string }
+        Returns: boolean
+      }
       check_orphaned_profiles: {
         Args: never
         Returns: {
@@ -6925,6 +7704,7 @@ export type Database = {
         }
         Returns: string
       }
+      current_doctor_profile_id: { Args: never; Returns: string }
       current_patient_can_access_community_group: {
         Args: { target_group_id: string }
         Returns: boolean
@@ -6935,7 +7715,22 @@ export type Database = {
       }
       current_pharmacist_id: { Args: never; Returns: string }
       current_pharmacist_pharmacy_ids: { Args: never; Returns: string[] }
+      detect_clinical_anomalies: {
+        Args: never
+        Returns: {
+          historical_weekly_avg: number
+          is_outbreak_warning: boolean
+          last_week_count: number
+          percent_increase: number
+          snomed: string
+          symptom: string
+        }[]
+      }
       disablelongtransactions: { Args: never; Returns: string }
+      doctor_can_chat_with_patient: {
+        Args: { target_doctor_id: string; target_patient_id: string }
+        Returns: boolean
+      }
       doctor_has_patient_access: {
         Args: { patient_user_id: string }
         Returns: boolean
@@ -6976,6 +7771,7 @@ export type Database = {
         Args: { target_doctor_id: string }
         Returns: undefined
       }
+      execute_sql_temp: { Args: { sql_query: string }; Returns: Json }
       find_nearby_health_centers: {
         Args: {
           max_results?: number
@@ -7101,6 +7897,15 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_assigned_chat_doctor: {
+        Args: { target_patient_id: string }
+        Returns: {
+          doctor_id: string
+          first_name: string
+          last_name: string
+          specialty: string
+        }[]
+      }
       get_content_mode: { Args: never; Returns: string }
       get_content_pieces_due: {
         Args: never
@@ -7112,9 +7917,37 @@ export type Database = {
           variants: Json
         }[]
       }
+      get_doctor_online_minutes: {
+        Args: { p_doctor_id: string; p_end_date: string; p_start_date: string }
+        Returns: number
+      }
       get_my_doctor_id: { Args: never; Returns: string }
       get_my_patient_id: { Args: never; Returns: string }
       get_next_numeric_id: { Args: never; Returns: number }
+      get_or_create_p2p_chat_session: {
+        Args: {
+          target_case_id?: string
+          target_doctor_id: string
+          target_patient_id: string
+        }
+        Returns: {
+          case_id: string
+          channel: string
+          doctor_id: string | null
+          ended_at: string | null
+          id: string
+          patient_id: string
+          started_at: string
+          status: string
+          workflow_type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conversation_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_recommended_screenings: {
         Args: { include_overdue?: boolean; patient_id_param: string }
         Returns: {
@@ -7938,7 +8771,16 @@ export type Database = {
         | "connecting"
         | "connected"
         | "ended"
+      clinical_setting: "uti" | "guardia" | "ward" | "outpatient"
+      equipment_status:
+        | "active"
+        | "review_required"
+        | "under_maintenance"
+        | "validation_pending"
+        | "decommissioned"
+      incident_severity: "critical" | "high" | "medium" | "low"
       invoice_type: "A" | "B" | "C" | "M" | "E"
+      lab_analysis_status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED"
       monotributo_category:
         | "A"
         | "B"
@@ -7973,456 +8815,6 @@ export type Database = {
         reason: string | null
         location: unknown
       }
-    }
-  }
-  storage: {
-    Tables: {
-      buckets: {
-        Row: {
-          allowed_mime_types: string[] | null
-          avif_autodetection: boolean | null
-          created_at: string | null
-          file_size_limit: number | null
-          id: string
-          name: string
-          owner: string | null
-          owner_id: string | null
-          public: boolean | null
-          type: Database["storage"]["Enums"]["buckettype"]
-          updated_at: string | null
-        }
-        Insert: {
-          allowed_mime_types?: string[] | null
-          avif_autodetection?: boolean | null
-          created_at?: string | null
-          file_size_limit?: number | null
-          id: string
-          name: string
-          owner?: string | null
-          owner_id?: string | null
-          public?: boolean | null
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string | null
-        }
-        Update: {
-          allowed_mime_types?: string[] | null
-          avif_autodetection?: boolean | null
-          created_at?: string | null
-          file_size_limit?: number | null
-          id?: string
-          name?: string
-          owner?: string | null
-          owner_id?: string | null
-          public?: boolean | null
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      buckets_analytics: {
-        Row: {
-          created_at: string
-          deleted_at: string | null
-          format: string
-          id: string
-          name: string
-          type: Database["storage"]["Enums"]["buckettype"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          deleted_at?: string | null
-          format?: string
-          id?: string
-          name: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          deleted_at?: string | null
-          format?: string
-          id?: string
-          name?: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      buckets_vectors: {
-        Row: {
-          created_at: string
-          id: string
-          type: Database["storage"]["Enums"]["buckettype"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      migrations: {
-        Row: {
-          executed_at: string | null
-          hash: string
-          id: number
-          name: string
-        }
-        Insert: {
-          executed_at?: string | null
-          hash: string
-          id: number
-          name: string
-        }
-        Update: {
-          executed_at?: string | null
-          hash?: string
-          id?: number
-          name?: string
-        }
-        Relationships: []
-      }
-      objects: {
-        Row: {
-          bucket_id: string | null
-          created_at: string | null
-          id: string
-          last_accessed_at: string | null
-          metadata: Json | null
-          name: string | null
-          owner: string | null
-          owner_id: string | null
-          path_tokens: string[] | null
-          updated_at: string | null
-          user_metadata: Json | null
-          version: string | null
-        }
-        Insert: {
-          bucket_id?: string | null
-          created_at?: string | null
-          id?: string
-          last_accessed_at?: string | null
-          metadata?: Json | null
-          name?: string | null
-          owner?: string | null
-          owner_id?: string | null
-          path_tokens?: string[] | null
-          updated_at?: string | null
-          user_metadata?: Json | null
-          version?: string | null
-        }
-        Update: {
-          bucket_id?: string | null
-          created_at?: string | null
-          id?: string
-          last_accessed_at?: string | null
-          metadata?: Json | null
-          name?: string | null
-          owner?: string | null
-          owner_id?: string | null
-          path_tokens?: string[] | null
-          updated_at?: string | null
-          user_metadata?: Json | null
-          version?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "objects_bucketId_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      s3_multipart_uploads: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          id: string
-          in_progress_size: number
-          key: string
-          metadata: Json | null
-          owner_id: string | null
-          upload_signature: string
-          user_metadata: Json | null
-          version: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          id: string
-          in_progress_size?: number
-          key: string
-          metadata?: Json | null
-          owner_id?: string | null
-          upload_signature: string
-          user_metadata?: Json | null
-          version: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          id?: string
-          in_progress_size?: number
-          key?: string
-          metadata?: Json | null
-          owner_id?: string | null
-          upload_signature?: string
-          user_metadata?: Json | null
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "s3_multipart_uploads_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      s3_multipart_uploads_parts: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          etag: string
-          id: string
-          key: string
-          owner_id: string | null
-          part_number: number
-          size: number
-          upload_id: string
-          version: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          etag: string
-          id?: string
-          key: string
-          owner_id?: string | null
-          part_number: number
-          size?: number
-          upload_id: string
-          version: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          etag?: string
-          id?: string
-          key?: string
-          owner_id?: string | null
-          part_number?: number
-          size?: number
-          upload_id?: string
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "s3_multipart_uploads_parts_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "s3_multipart_uploads_parts_upload_id_fkey"
-            columns: ["upload_id"]
-            isOneToOne: false
-            referencedRelation: "s3_multipart_uploads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vector_indexes: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          data_type: string
-          dimension: number
-          distance_metric: string
-          id: string
-          metadata_configuration: Json | null
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          data_type: string
-          dimension: number
-          distance_metric: string
-          id?: string
-          metadata_configuration?: Json | null
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          data_type?: string
-          dimension?: number
-          distance_metric?: string
-          id?: string
-          metadata_configuration?: Json | null
-          name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vector_indexes_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets_vectors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      allow_any_operation: {
-        Args: { expected_operations: string[] }
-        Returns: boolean
-      }
-      allow_only_operation: {
-        Args: { expected_operation: string }
-        Returns: boolean
-      }
-      can_insert_object: {
-        Args: { bucketid: string; metadata: Json; name: string; owner: string }
-        Returns: undefined
-      }
-      extension: { Args: { name: string }; Returns: string }
-      filename: { Args: { name: string }; Returns: string }
-      foldername: { Args: { name: string }; Returns: string[] }
-      get_common_prefix: {
-        Args: { p_delimiter: string; p_key: string; p_prefix: string }
-        Returns: string
-      }
-      get_size_by_bucket: {
-        Args: never
-        Returns: {
-          bucket_id: string
-          size: number
-        }[]
-      }
-      list_multipart_uploads_with_delimiter: {
-        Args: {
-          bucket_id: string
-          delimiter_param: string
-          max_keys?: number
-          next_key_token?: string
-          next_upload_token?: string
-          prefix_param: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-        }[]
-      }
-      list_objects_with_delimiter: {
-        Args: {
-          _bucket_id: string
-          delimiter_param: string
-          max_keys?: number
-          next_token?: string
-          prefix_param: string
-          sort_order?: string
-          start_after?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      operation: { Args: never; Returns: string }
-      search: {
-        Args: {
-          bucketname: string
-          levels?: number
-          limits?: number
-          offsets?: number
-          prefix: string
-          search?: string
-          sortcolumn?: string
-          sortorder?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      search_by_timestamp: {
-        Args: {
-          p_bucket_id: string
-          p_level: number
-          p_limit: number
-          p_prefix: string
-          p_sort_column: string
-          p_sort_column_after: string
-          p_sort_order: string
-          p_start_after: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      search_v2: {
-        Args: {
-          bucket_name: string
-          levels?: number
-          limits?: number
-          prefix: string
-          sort_column?: string
-          sort_column_after?: string
-          sort_order?: string
-          start_after?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-    }
-    Enums: {
-      buckettype: "STANDARD" | "ANALYTICS" | "VECTOR"
-    }
-    CompositeTypes: {
-      [_ in never]: never
     }
   }
 }
@@ -8545,26 +8937,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  auth: {
-    Enums: {
-      aal_level: ["aal1", "aal2", "aal3"],
-      code_challenge_method: ["s256", "plain"],
-      factor_status: ["unverified", "verified"],
-      factor_type: ["totp", "webauthn", "phone"],
-      oauth_authorization_status: ["pending", "approved", "denied", "expired"],
-      oauth_client_type: ["public", "confidential"],
-      oauth_registration_type: ["dynamic", "manual"],
-      oauth_response_type: ["code"],
-      one_time_token_type: [
-        "confirmation_token",
-        "reauthentication_token",
-        "recovery_token",
-        "email_change_token_new",
-        "email_change_token_current",
-        "phone_change_token",
-      ],
-    },
-  },
   public: {
     Enums: {
       badge_level: ["bronze", "silver", "gold", "platinum"],
@@ -8588,7 +8960,17 @@ export const Constants = {
         "connected",
         "ended",
       ],
+      clinical_setting: ["uti", "guardia", "ward", "outpatient"],
+      equipment_status: [
+        "active",
+        "review_required",
+        "under_maintenance",
+        "validation_pending",
+        "decommissioned",
+      ],
+      incident_severity: ["critical", "high", "medium", "low"],
       invoice_type: ["A", "B", "C", "M", "E"],
+      lab_analysis_status: ["PENDING", "PROCESSING", "COMPLETED", "FAILED"],
       monotributo_category: [
         "A",
         "B",
@@ -8614,11 +8996,6 @@ export const Constants = {
         "platform_admin",
         "pharmacist",
       ],
-    },
-  },
-  storage: {
-    Enums: {
-      buckettype: ["STANDARD", "ANALYTICS", "VECTOR"],
     },
   },
 } as const

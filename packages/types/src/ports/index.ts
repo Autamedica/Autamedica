@@ -44,3 +44,15 @@ export type {
   ICallGuestInviteRepository,
   CallGuestInviteRecord,
 } from './call-guest-invites.port'
+export type {
+  IClinicalRulesRepository,
+  IRuleExecutionRepository,
+  ClinicalRule,
+  ClinicalRuleVersion,
+  ClinicalRuleCondition,
+  ClinicalRequiredObservation,
+  ClinicalResolutionCriterion,
+  ClinicalRedFlag,
+  ClinicalRuleExecution,
+  ClinicalRuleOverride
+} from './clinical-rules.port'

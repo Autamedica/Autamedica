@@ -2938,6 +2938,33 @@ pnpm docs:validate
 
 ### 📋 Estructura de Base de Datos
 
+- **Total de tablas**: 154
+- **Esquema**: PostgreSQL con extensiones Supabase
+- **Autenticación**: Row Level Security (RLS) habilitado
+- **Auditoría**: Tabla de audit_log para cambios críticos
+
+### 🔧 Comandos de Mantenimiento
+
+```bash
+# Validar sincronización esquema ↔ types
+pnpm db:validate
+
+# Regenerar types desde esquema
+pnpm db:generate
+
+# Validar + regenerar en un comando
+pnpm db:sync
+```
+
+### 🛡️ Protección Automática
+
+El esquema de base de datos está protegido por:
+
+- ✅ Validación automática en CI/CD
+- ✅ Auto-generación de types TypeScript
+- ✅ Sincronización con `@autamedica/types`
+- ✅ Documentación automática en este glosario### 📋 Estructura de Base de Datos
+
 - **Total de tablas**: 19
 - **Esquema**: PostgreSQL con extensiones Supabase
 - **Autenticación**: Row Level Security (RLS) habilitado
@@ -2959,6 +2986,7 @@ pnpm db:sync
 ### 🛡️ Protección Automática
 
 El esquema de base de datos está protegido por:
+
 - ✅ Validación automática en CI/CD
 - ✅ Auto-generación de types TypeScript
 - ✅ Sincronización con `@autamedica/types`

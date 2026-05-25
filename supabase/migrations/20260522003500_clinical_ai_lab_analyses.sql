@@ -3,6 +3,38 @@
 -- Context: Pipeline para Ingesta Visual y Análisis Clínico de Laboratorios vía WhatsApp (OpenClaw)
 
 -- ============================================================================
+-- 0. HELPERS
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.touch_clinical_ai_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.current_doctor_profile_id()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT d.id
+  FROM public.doctors d
+  WHERE d.user_id = auth.uid()
+    AND COALESCE(d.active, true) = true
+  LIMIT 1;
+$$;
+
+REVOKE ALL ON FUNCTION public.current_doctor_profile_id() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.current_doctor_profile_id() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.current_doctor_profile_id() TO service_role;
+
+-- ============================================================================
 -- 1. TABLES
 -- ============================================================================
 
@@ -68,8 +100,8 @@ CREATE POLICY clinical_ai_lab_analyses_doctors_select
     EXISTS (
       SELECT 1
       FROM public.appointments a
-      WHERE a.patient_profile_id = clinical_ai_lab_analyses.patient_profile_id
-        AND a.doctor_profile_id = public.current_doctor_profile_id()
+      WHERE a.patient_id = clinical_ai_lab_analyses.patient_profile_id
+        AND a.doctor_id = public.current_doctor_profile_id()
     )
   );
 
