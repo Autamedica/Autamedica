@@ -177,17 +177,18 @@ export function DoctorsPortalFrame({
     doctorSpecialty?: string;
     avatarUrl?: string | null;
     isValidOrExempt?: boolean;
-  } | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const val = localStorage.getItem("autamedica_doctor_profile_cache");
-        return val ? JSON.parse(val) : null;
-      } catch {
-        return null;
+  } | null>(null);
+
+  useEffect(() => {
+    try {
+      const val = localStorage.getItem("autamedica_doctor_profile_cache");
+      if (val) {
+        setCachedProfile(JSON.parse(val));
       }
+    } catch {
+      // Ignore
     }
-    return null;
-  });
+  }, []);
 
   const currentTime = useClock();
   const currentDate = new Date();
