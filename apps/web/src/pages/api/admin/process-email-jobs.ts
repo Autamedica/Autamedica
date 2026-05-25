@@ -33,6 +33,7 @@ type EmailJobType =
   | 'doctor_anamnesis_ready'
   | 'patient_appointment_cancelled'
   | 'patient_prescription_ready'
+  | 'patient_medical_order_ready'
   | 'nurturing';
 
 type EmailJob = {
@@ -217,6 +218,32 @@ function renderPatientPrescriptionReady(job: EmailJob): RenderedEmail {
   });
 }
 
+function renderPatientMedicalOrderReady(job: EmailJob): RenderedEmail {
+  const data = job.template_data ?? {};
+  const doctorName = stringFromData(data, 'doctor_name') || 'Tu medico';
+  const pdfUrl = stringFromData(data, 'pdf_url');
+  const practicesName = stringFromData(data, 'practices_name') || 'Orden de estudios médicos';
+  const cuir = stringFromData(data, 'cuir');
+  const actionUrl =
+    pdfUrl ||
+    stringFromData(data, 'action_url') ||
+    'https://www.autamedica.com/patients/medical-orders';
+  const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
+
+  return renderAutamedicaEmail('AutaMedica · orden de estudios disponible', {
+    variant: 'transactional',
+    title: `Hola, ${firstName(job)}`,
+    preheader: 'Tenes una orden de estudios médicos disponible en AutaMedica.',
+    paragraphs: [
+      `${doctorName} dejo una orden de estudios disponible para vos.`,
+      practicesName ? `Estudios solicitados: ${practicesName}.` : 'La orden de estudios ya fue emitida digitalmente.',
+      cuir ? `Codigo de verificacion: ${cuir}.` : 'Podes descargar el documento desde el enlace seguro.',
+    ],
+    action: { label: pdfUrl ? 'Descargar PDF' : 'Ver orden', url: actionUrl },
+    unsubscribeUrl,
+  });
+}
+
 function renderJob(job: EmailJob): RenderedEmail {
   const data = job.template_data ?? {};
   const actionUrl = stringFromData(data, 'action_url') || 'https://www.autamedica.com';
@@ -252,6 +279,10 @@ function renderJob(job: EmailJob): RenderedEmail {
 
   if (job.job_type === 'patient_prescription_ready') {
     return renderPatientPrescriptionReady(job);
+  }
+
+  if (job.job_type === 'patient_medical_order_ready') {
+    return renderPatientMedicalOrderReady(job);
   }
 
   if (job.job_type === 'nurturing') {

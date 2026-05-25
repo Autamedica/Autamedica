@@ -91,7 +91,8 @@ interface EmailJob {
     | "doctor_appointment_cancelled"
     | "doctor_anamnesis_ready"
     | "patient_appointment_cancelled"
-    | "patient_prescription_ready";
+    | "patient_prescription_ready"
+    | "patient_medical_order_ready";
   recipient_email: string;
   recipient_name: string | null;
   template_data: Record<string, unknown> | null;
@@ -457,6 +458,26 @@ function renderEmailJob(job: EmailJob): { subject: string; html: string; text: s
       ],
       actionLabel: pdfUrl ? "Descargar PDF" : "Descargar receta",
       actionUrl: prescriptionUrl,
+      unsubscribeUrl,
+    });
+  }
+
+  if (job.job_type === "patient_medical_order_ready") {
+    const doctorName = dataString(data, "doctor_name") || "El médico";
+    const pdfUrl = dataString(data, "pdf_url");
+    const practicesName = dataString(data, "practices_name") || "Orden de estudios médicos";
+    const cuir = dataString(data, "cuir");
+    const orderUrl = pdfUrl || actionUrl;
+    return renderTransactionalEmail("AutaMedica · Tu orden de estudios está lista", {
+      title: `Hola, ${firstName}`,
+      preheader: "Tenés una orden de estudios disponible.",
+      paragraphs: [
+        `${doctorName} emitió una nueva orden de estudios complementarios para vos.`,
+        practicesName ? `Estudios solicitados: ${practicesName}.` : "La orden de estudios ya fue emitida digitalmente.",
+        cuir ? `Código de verificación: ${cuir}.` : "Podés descargar el documento desde el enlace seguro.",
+      ],
+      actionLabel: pdfUrl ? "Descargar PDF" : "Descargar orden",
+      actionUrl: orderUrl,
       unsubscribeUrl,
     });
   }
