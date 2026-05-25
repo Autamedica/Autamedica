@@ -33,11 +33,12 @@ async function resolveAuthedDoctorContext(
     .maybeSingle();
 
   if (error) {
+    const details = error.message || String(error);
     logger.error("[api/doctors/medical-orders] doctor lookup failed", {
       userId: auth.user.id,
       error,
     });
-    return internalError();
+    return internalError('doctor_lookup_failed', details);
   }
 
   if (!doctor?.id || doctor.active !== true) {
@@ -80,8 +81,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     return jsonOk(orders);
   } catch (error) {
+    const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     logger.error("[api/doctors/medical-orders] GET error", error);
-    return internalError();
+    return internalError('medical_orders_get_failed', details);
   }
 };
 
@@ -118,7 +120,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     return jsonOk(created, 201);
   } catch (error) {
+    const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     logger.error("[api/doctors/medical-orders] POST error", error);
-    return internalError();
+    return internalError('medical_orders_post_failed', details);
   }
 };
