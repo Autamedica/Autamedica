@@ -50,7 +50,7 @@ export function CallControlsBar({
     <motion.div
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: showControls ? 0 : 100, opacity: showControls ? 1 : 0 }}
-      className="absolute bottom-6 md:bottom-10 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 md:gap-3 px-4 md:px-6 py-3 md:py-4 rounded-[24px] md:rounded-[28px] bg-am-surface-900/80 border border-white/10 backdrop-blur-3xl shadow-am-xl w-[92%] sm:w-auto justify-center"
+      className="absolute bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] md:bottom-10 left-1/2 z-50 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-am-surface-900/[0.88] px-2 py-2 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-3xl sm:w-auto sm:gap-2 sm:rounded-[24px] sm:px-3 sm:py-3 md:gap-3 md:rounded-[28px] md:px-6 md:py-4"
     >
       <ControlButton
         active={isAudioEnabled}
@@ -68,7 +68,7 @@ export function CallControlsBar({
         variant={isVideoEnabled ? 'glass' : 'danger'}
       />
 
-      <div className="w-px h-6 md:h-8 bg-white/10 mx-1 md:mx-2" />
+      <div className="hidden h-6 w-px bg-white/10 sm:block md:mx-2 md:h-8" />
 
       {/* Screen share usually hidden on small mobiles as it's not supported well */}
       <div className="hidden sm:flex">
@@ -108,15 +108,15 @@ export function CallControlsBar({
         />
       </div>
 
-      <div className="w-px h-6 md:h-8 bg-white/10 mx-1 md:mx-2" />
+      <div className="hidden h-6 w-px bg-white/10 sm:block md:mx-2 md:h-8" />
 
       {auxiliaryActions && (
         <>
-          <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
             {auxiliaryActions}
           </div>
 
-          <div className="w-px h-6 md:h-8 bg-white/10 mx-1 md:mx-2" />
+          <div className="hidden h-6 w-px bg-white/10 sm:block md:mx-2 md:h-8" />
         </>
       )}
 
@@ -124,9 +124,10 @@ export function CallControlsBar({
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onEndCall}
-        className="flex h-12 w-16 md:h-14 md:w-20 items-center justify-center rounded-xl md:rounded-2xl bg-red-600/90 text-white shadow-lg shadow-red-600/20 hover:bg-red-500 transition-colors"
+        aria-label="Finalizar llamada"
+        className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl bg-red-600/95 text-white shadow-lg shadow-red-600/25 transition-colors hover:bg-red-500 sm:h-12 sm:w-16 md:h-14 md:w-20 md:rounded-2xl"
       >
-        <PhoneOff className="w-6 h-6 md:w-7 md:h-7" />
+        <PhoneOff className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7" />
       </motion.button>
     </motion.div>
   )
@@ -150,13 +151,13 @@ export function CallAuxiliaryButton({
         whileTap={disabled ? undefined : { scale: 0.92 }}
         onClick={onClick}
         disabled={disabled}
-        className="relative flex h-11 w-11 md:h-14 md:w-14 items-center justify-center rounded-xl md:rounded-2xl border border-white/5 bg-am-doctor-600 text-white shadow-am-sm transition-all duration-300 hover:bg-am-doctor-700 disabled:cursor-not-allowed disabled:opacity-45"
+        className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-am-doctor-600 text-white shadow-am-sm transition-all duration-300 hover:bg-am-doctor-700 disabled:cursor-not-allowed disabled:opacity-45 sm:h-11 sm:w-11 md:h-14 md:w-14 md:rounded-2xl"
         title={label}
         aria-label={label}
       >
         {icon}
       </motion.button>
-      <span className="hidden sm:block max-w-[4.5rem] text-center text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-am-surface-400/80">
+      <span className="hidden max-w-[4.5rem] text-center text-[9px] font-bold uppercase tracking-widest text-am-surface-400/80 sm:block md:text-[10px]">
         {label}
       </span>
     </div>
@@ -179,9 +180,9 @@ function ControlButton({
   badge?: number
 }) {
   const styles = {
-    glass: 'bg-white/5 text-am-surface-100 hover:bg-white/15 border border-white/5',
-    danger: 'bg-red-500/20 text-red-400 border border-red-500/30',
-    brand: 'bg-am-primary-500 text-white shadow-am-primary/20',
+    glass: 'bg-white/[0.08] text-am-surface-100 hover:bg-white/15 border border-white/10',
+    danger: 'bg-red-500/20 text-red-300 border border-red-400/35',
+    brand: 'bg-am-primary-500 text-white shadow-am-primary/20 border border-white/10',
   }
 
   return (
@@ -191,16 +192,16 @@ function ControlButton({
         whileTap={{ scale: 0.92 }}
         onClick={onClick}
         aria-pressed={active}
-        className={`relative flex h-11 w-11 md:h-14 md:w-14 items-center justify-center rounded-xl md:rounded-2xl transition-all duration-300 ${styles[variant]}`}
+        className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 sm:h-11 sm:w-11 md:h-14 md:w-14 md:rounded-2xl ${styles[variant]}`}
       >
         {icon}
         {badge !== undefined && (
-          <span className="absolute -top-1 -right-1 flex h-4 w-4 md:h-5 md:w-5 items-center justify-center rounded-full bg-am-primary-500 text-[9px] md:text-[10px] font-bold text-white border-2 border-am-surface-900">
+          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-am-surface-900 bg-am-primary-500 text-[9px] font-bold text-white md:h-5 md:w-5 md:text-[10px]">
             {badge}
           </span>
         )}
       </motion.button>
-      <span className="hidden sm:block text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-am-surface-400/80">{label}</span>
+      <span className="hidden text-[9px] font-bold uppercase tracking-widest text-am-surface-400/80 sm:block md:text-[10px]">{label}</span>
     </div>
   )
 }
