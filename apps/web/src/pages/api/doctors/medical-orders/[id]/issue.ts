@@ -45,11 +45,12 @@ async function resolveAuthedDoctorContext(
     .maybeSingle();
 
   if (error) {
+    const details = error.message || String(error);
     logger.error("[api/doctors/medical-orders/[id]/issue] doctor lookup failed", {
       userId: auth.user.id,
       error,
     });
-    return internalError();
+    return internalError('doctor_lookup_failed', details);
   }
 
   if (!doctor?.id || doctor.active !== true) {
@@ -182,10 +183,10 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       logger.warn("[issueMedicalOrder] PAdES signing failed, using electronic_simple", signError);
     }
 
-    // 3. Upload to public storage bucket 'medical-orders'
-    const pdfPath = `${orderId}.pdf`;
+    // 3. Upload to private storage bucket 'medical-documents'
+    const pdfPath = `medical-orders/${orderId}.pdf`;
     const { error: uploadError } = await admin.storage
-      .from("medical-orders")
+      .from("medical-documents")
       .upload(pdfPath, finalPdfBuffer, {
         contentType: "application/pdf",
         upsert: true,
@@ -193,10 +194,20 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
 
     if (uploadError) {
       logger.error("[api/doctors/medical-orders/[id]/issue] PDF upload failed", uploadError);
-      return internalError("pdf_upload_failed");
+      return internalError("pdf_upload_failed", uploadError.message || String(uploadError));
     }
 
-    const signedPdfUrl = `/storage/v1/object/public/medical-orders/${orderId}.pdf`;
+    // Generate a long-term signed URL since medical-documents is private
+    const { data: urlData, error: urlError } = await admin.storage
+      .from("medical-documents")
+      .createSignedUrl(pdfPath, 365 * 24 * 60 * 60);
+
+    if (urlError) {
+      logger.error("[api/doctors/medical-orders/[id]/issue] Signed URL generation failed", urlError);
+      return internalError("signed_url_generation_failed", urlError.message || String(urlError));
+    }
+
+    const signedPdfUrl = urlData?.signedUrl ?? `/storage/v1/object/public/medical-documents/${pdfPath}`;
 
     // 4. Update order state in database
     const { data: updated, error: updateError } = await admin
@@ -221,7 +232,8 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       issuedAt: updated.updated_at,
     });
   } catch (error) {
+    const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     logger.error("[api/doctors/medical-orders/[id]/issue] POST error", { orderId, error });
-    return internalError();
+    return internalError("medical_order_issue_failed", details);
   }
 };
