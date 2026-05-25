@@ -5,7 +5,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Pill, Save, Loader2, Sparkles } from "lucide-react";
+import { X, Pill, Save, Loader2, ClipboardCheck } from "lucide-react";
 import { requiresStrictPrescriptionValidation } from "@/lib/prescriptions/strict-validation";
 import type { Prescription, UUID } from "@/types/medical";
 
@@ -30,11 +30,59 @@ interface ExternalPatientForm {
   dni?: string;
   cuil?: string;
   address?: string;
+  email?: string;
+  phone?: string;
   birth_date?: string;
   gender?: string;
 }
 
 const TODAY = new Date().toISOString().split("T")[0];
+
+function buildDefaultPatientInstructions(form: {
+  medication_name: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  instructions: string;
+  diagnosis: string;
+}) {
+  const medication = form.medication_name.trim() || "el medicamento indicado";
+  const frequency = /^\d+$/.test(form.frequency.trim())
+    ? `cada ${form.frequency.trim()} horas`
+    : form.frequency.trim();
+  const duration = form.duration.trim() ? `durante ${form.duration.trim()}` : "";
+  const dose = [form.dosage.trim(), frequency, duration].filter(Boolean).join(", ");
+  const diagnosis = form.diagnosis.trim();
+
+  return {
+    care_guide_tips: `Tomar ${medication}${dose ? ` (${dose})` : ""} según la indicación médica. ${form.instructions.trim()}`.trim(),
+    care_guide_forgotten:
+      "Si omite una toma, no duplique la dosis. Continúe con el esquema indicado o consulte si tiene dudas.",
+    care_guide_warnings:
+      "Consultar ante reacciones alérgicas, dificultad para respirar, síntomas intensos o cualquier reacción inesperada.",
+    care_guide_lifestyle: diagnosis
+      ? `Mantener las pautas de cuidado indicadas para ${diagnosis}.`
+      : "Mantener las pautas de cuidado indicadas por el profesional.",
+  };
+}
+
+interface CareGuideResponse {
+  consejosToma?: string;
+  queHacerAnteOlvidos?: string;
+  efectosEsperados?: string;
+  recomendacionesClinicas?: string;
+}
+
+function unwrapCareGuideResponse(payload: unknown): CareGuideResponse | null {
+  if (!payload || typeof payload !== "object") return null;
+  const record = payload as Record<string, unknown>;
+  const data = record.success === true && record.data && typeof record.data === "object"
+    ? record.data
+    : payload;
+
+  if (!data || typeof data !== "object") return null;
+  return data as CareGuideResponse;
+}
 
 export function PrescriptionCreateModal({
   patientId,
@@ -50,9 +98,9 @@ export function PrescriptionCreateModal({
 
   const [form, setForm] = useState({
     patient_name: "",
-    patient_dni: "",
-    patient_cuil: "",
+    patient_document: "",
     patient_address: "",
+    patient_contact: "",
     patient_birth_date: "",
     patient_gender: "",
     medication_name: editingPrescription?.medication_name ?? "",
@@ -77,15 +125,29 @@ export function PrescriptionCreateModal({
   const [saving, setSaving] = useState(false);
   const [generatingGuide, setGeneratingGuide] = useState(false);
   const [showGuideSection, setShowGuideSection] = useState(
-    isEditing && (
-      !!editingPrescription?.care_guide_tips ||
-      !!editingPrescription?.care_guide_forgotten ||
-      !!editingPrescription?.care_guide_warnings ||
-      !!editingPrescription?.care_guide_lifestyle
-    )
+    isEditing &&
+      Boolean(
+        editingPrescription?.care_guide_tips ||
+          editingPrescription?.care_guide_forgotten ||
+          editingPrescription?.care_guide_warnings ||
+          editingPrescription?.care_guide_lifestyle,
+      ),
   );
   const [error, setError] = useState<string | null>(null);
   const requiresStrictValidation = requiresStrictPrescriptionValidation(form.medication_name);
+  const normalizedPatientDocument = form.patient_document.replace(/\D/g, "");
+  const externalPatientDni =
+    normalizedPatientDocument.length === 11 ? "" : normalizedPatientDocument || form.patient_document.trim();
+  const externalPatientCuil =
+    normalizedPatientDocument.length === 11 ? normalizedPatientDocument : "";
+  const normalizedPatientContact = form.patient_contact.trim();
+  const externalPatientEmail = normalizedPatientContact.includes("@")
+    ? normalizedPatientContact
+    : undefined;
+  const externalPatientPhone =
+    normalizedPatientContact && !normalizedPatientContact.includes("@")
+      ? normalizedPatientContact
+      : undefined;
 
   const set =
     (key: keyof typeof form) =>
@@ -94,27 +156,33 @@ export function PrescriptionCreateModal({
 
   const handleSuggestCareGuide = async () => {
     if (!form.medication_name.trim()) {
-      setError("Completá al menos el nombre del medicamento para sugerir la guía");
+      setError("Completá el medicamento antes de generar indicaciones.");
       return;
     }
+
     setGeneratingGuide(true);
     setError(null);
     try {
       const response = await fetch("/api/doctors/prescriptions/suggest-care-guide", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           medicationName: form.medication_name,
           dosage: form.dosage,
+          frequency: form.frequency,
+          duration: form.duration,
           instructions: form.instructions,
           diagnosis: form.diagnosis,
           patientName: form.patient_name || undefined,
         }),
       });
-      if (!response.ok) {
-        throw new Error("Error al obtener la sugerencia de la guía de cuidado.");
-      }
-      const data = await response.json();
+
+      if (!response.ok) throw new Error("suggestion_unavailable");
+
+      const data = unwrapCareGuideResponse(await response.json());
+      if (!data) throw new Error("invalid_suggestion_response");
+
       setForm((prev) => ({
         ...prev,
         care_guide_tips: data.consejosToma ?? "",
@@ -123,8 +191,12 @@ export function PrescriptionCreateModal({
         care_guide_lifestyle: data.recomendacionesClinicas ?? "",
       }));
       setShowGuideSection(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al conectar con la IA");
+    } catch {
+      setForm((prev) => ({
+        ...prev,
+        ...buildDefaultPatientInstructions(form),
+      }));
+      setShowGuideSection(true);
     } finally {
       setGeneratingGuide(false);
     }
@@ -136,12 +208,16 @@ export function PrescriptionCreateModal({
       setError("El nombre del medicamento es requerido");
       return;
     }
+    if (requiresStrictValidation && (!form.diagnosis.trim() || !form.dosage.trim())) {
+      setError("Medicación con validación reforzada: diagnóstico y dosis son obligatorios.");
+      return;
+    }
     if (!patientId) {
       if (!form.patient_name.trim()) {
         setError("El nombre del paciente es requerido");
         return;
       }
-      if (!form.patient_dni.trim() && !form.patient_cuil.trim()) {
+      if (!form.patient_document.trim()) {
         setError("Informá DNI o CUIL del paciente");
         return;
       }
@@ -187,9 +263,11 @@ export function PrescriptionCreateModal({
           ...basePayload,
           external_patient: {
             name: form.patient_name.trim(),
-            dni: form.patient_dni.trim() || undefined,
-            cuil: form.patient_cuil.trim() || undefined,
+            dni: externalPatientDni || undefined,
+            cuil: externalPatientCuil || undefined,
             address: form.patient_address.trim() || undefined,
+            email: externalPatientEmail,
+            phone: externalPatientPhone,
             birth_date: form.patient_birth_date || undefined,
             gender: form.patient_gender || undefined,
           },
@@ -270,25 +348,25 @@ export function PrescriptionCreateModal({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-am-surface-700 mb-1.5">
-                      DNI
+                      Documento <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      value={form.patient_dni}
-                      onChange={set("patient_dni")}
-                      placeholder="30123456"
+                      value={form.patient_document}
+                      onChange={set("patient_document")}
+                      placeholder="DNI o CUIL"
                       className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-am-surface-700 mb-1.5">
-                      CUIL
+                      Contacto
                     </label>
                     <input
                       type="text"
-                      value={form.patient_cuil}
-                      onChange={set("patient_cuil")}
-                      placeholder="27301234568"
+                      value={form.patient_contact}
+                      onChange={set("patient_contact")}
+                      placeholder="Email o WhatsApp"
                       className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                     />
                   </div>
@@ -304,34 +382,6 @@ export function PrescriptionCreateModal({
                     placeholder="Av. Corrientes 1234, CABA"
                     className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                   />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-am-surface-700 mb-1.5">
-                      Fecha nacimiento
-                    </label>
-                    <input
-                      type="date"
-                      value={form.patient_birth_date}
-                      onChange={set("patient_birth_date")}
-                      className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-am-surface-700 mb-1.5">
-                      Sexo
-                    </label>
-                    <select
-                      value={form.patient_gender}
-                      onChange={set("patient_gender")}
-                      className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
-                    >
-                      <option value="">Sin especificar</option>
-                      <option value="Femenino">Femenino</option>
-                      <option value="Masculino">Masculino</option>
-                      <option value="Otro">Otro</option>
-                    </select>
-                  </div>
                 </div>
               </div>
             </div>
@@ -353,8 +403,8 @@ export function PrescriptionCreateModal({
 
           {requiresStrictValidation && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              Metilfenidato y lisdexanfetamina quedan como borrador clinico hasta emitir soporte
-              electronico verificable. Diagnostico y dosis son obligatorios.
+              Medicación con validación reforzada. Diagnóstico y dosis son obligatorios para
+              continuar.
             </div>
           )}
 
@@ -471,85 +521,76 @@ export function PrescriptionCreateModal({
             />
           </div>
 
-          {/* Guía de Cuidado Personalizado (IA + Edición del Médico) */}
-          <div className="rounded-xl border border-teal-100 bg-teal-50/50 p-4 space-y-4 transition-all duration-300">
-            <div className="flex items-center justify-between">
+          <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-teal-600 animate-pulse" />
-                <span className="text-xs font-bold uppercase tracking-wider text-teal-800">
-                  Guía de Cuidado (Generada con IA)
+                <ClipboardCheck className="h-4 w-4 text-am-doctor-600" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-am-surface-700">
+                  Indicaciones para el paciente
                 </span>
               </div>
               <button
                 type="button"
                 onClick={handleSuggestCareGuide}
                 disabled={generatingGuide || !form.medication_name.trim()}
-                className="flex items-center gap-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white px-3 py-1.5 text-xs font-semibold shadow-sm transition"
+                className="flex items-center gap-1.5 rounded-lg bg-am-doctor-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-am-doctor-700 disabled:opacity-50"
               >
-                {generatingGuide ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3 w-3" />
-                )}
-                {generatingGuide ? "Generando..." : "Sugerir con IA"}
+                {generatingGuide && <Loader2 className="h-3 w-3 animate-spin" />}
+                {generatingGuide ? "Generando..." : "Generar"}
               </button>
             </div>
 
-            <p className="text-[11px] text-teal-700 leading-relaxed">
-              Basado en el diagnóstico y la droga, la IA estructurará consejos prácticos para el paciente. <strong>Como médico, podés leer y editar el contenido antes de firmar la receta.</strong>
-            </p>
-
             {showGuideSection && (
-              <div className="space-y-3 pt-2 border-t border-teal-100/80 animate-fadeIn">
+              <div className="space-y-3 border-t border-am-surface-200 pt-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-teal-800 mb-1">
-                    1. Consejos de toma (Alimentos, horarios, interacciones)
+                  <label className="block text-[11px] font-semibold text-am-surface-700 mb-1">
+                    Administración
                   </label>
                   <textarea
                     value={form.care_guide_tips}
                     onChange={set("care_guide_tips")}
-                    placeholder="Consejos de toma..."
+                    placeholder="Indicaciones de toma, horarios e interacciones relevantes."
                     rows={3}
-                    className="w-full rounded-lg border border-teal-100 bg-white px-3 py-2 text-xs text-am-surface-900 placeholder:text-am-surface-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"
+                    className="w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2 text-xs text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500 resize-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-teal-800 mb-1">
-                    2. Qué hacer ante olvidos (Instrucciones seguras sin pánico)
+                  <label className="block text-[11px] font-semibold text-am-surface-700 mb-1">
+                    Omisión de dosis
                   </label>
                   <textarea
                     value={form.care_guide_forgotten}
                     onChange={set("care_guide_forgotten")}
-                    placeholder="Qué hacer ante olvidos..."
+                    placeholder="Qué debe hacer el paciente si omite una toma."
                     rows={2}
-                    className="w-full rounded-lg border border-teal-100 bg-white px-3 py-2 text-xs text-am-surface-900 placeholder:text-am-surface-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"
+                    className="w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2 text-xs text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500 resize-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-teal-800 mb-1">
-                    3. Efectos esperados y alertas críticas (Cuándo ir a urgencias)
+                  <label className="block text-[11px] font-semibold text-am-surface-700 mb-1">
+                    Alertas clínicas
                   </label>
                   <textarea
                     value={form.care_guide_warnings}
                     onChange={set("care_guide_warnings")}
-                    placeholder="Efectos esperados y alertas..."
+                    placeholder="Efectos esperados y signos de alarma."
                     rows={3}
-                    className="w-full rounded-lg border border-teal-100 bg-white px-3 py-2 text-xs text-am-surface-900 placeholder:text-am-surface-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"
+                    className="w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2 text-xs text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500 resize-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-teal-800 mb-1">
-                    4. Recomendaciones clínicas y bienestar (Dieta, reposo, hábitos)
+                  <label className="block text-[11px] font-semibold text-am-surface-700 mb-1">
+                    Cuidados asociados
                   </label>
                   <textarea
                     value={form.care_guide_lifestyle}
                     onChange={set("care_guide_lifestyle")}
-                    placeholder="Recomendaciones y hábitos saludables..."
+                    placeholder="Medidas de autocuidado asociadas al diagnóstico."
                     rows={3}
-                    className="w-full rounded-lg border border-teal-100 bg-white px-3 py-2 text-xs text-am-surface-900 placeholder:text-am-surface-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"
+                    className="w-full rounded-lg border border-am-surface-200 bg-white px-3 py-2 text-xs text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500 resize-none"
                   />
                 </div>
               </div>
@@ -570,15 +611,15 @@ export function PrescriptionCreateModal({
             />
           </div>
 
-          {/* Advertencia efectos secundarios */}
+          {/* Alertas clínicas */}
           <div>
             <label className="block text-xs font-semibold text-am-surface-700 mb-1.5">
-              Advertencia efectos secundarios
+              Alertas clínicas
             </label>
             <textarea
               value={form.side_effects_warning}
               onChange={set("side_effects_warning")}
-              placeholder="Ej: Puede causar náuseas, consultar si persisten más de 48h"
+              placeholder="Efectos esperados, signos de alarma o pautas de consulta."
               rows={2}
               className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500 resize-none"
             />

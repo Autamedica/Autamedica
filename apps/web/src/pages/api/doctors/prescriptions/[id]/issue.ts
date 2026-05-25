@@ -14,7 +14,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   if (!prescriptionId) return badRequest('missing_prescription_id');
 
   try {
-    const auth = await withAuthRole(request, DOCTOR_ROLES);
+    const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
     const admin = createAstroAdminClient(locals.runtime?.env);
