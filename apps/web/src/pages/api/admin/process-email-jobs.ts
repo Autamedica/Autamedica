@@ -194,7 +194,13 @@ function renderDoctorAnamnesisReady(job: EmailJob): RenderedEmail {
 function renderPatientPrescriptionReady(job: EmailJob): RenderedEmail {
   const data = job.template_data ?? {};
   const doctorName = stringFromData(data, 'doctor_name') || 'Tu medico';
-  const actionUrl = stringFromData(data, 'action_url') || 'https://www.autamedica.com/patients/prescriptions';
+  const pdfUrl = stringFromData(data, 'pdf_url');
+  const medicationName = stringFromData(data, 'medication_name');
+  const cuir = stringFromData(data, 'cuir');
+  const actionUrl =
+    pdfUrl ||
+    stringFromData(data, 'action_url') ||
+    'https://www.autamedica.com/patients/prescriptions';
   const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
 
   return renderAutamedicaEmail('AutaMedica · receta disponible', {
@@ -203,9 +209,10 @@ function renderPatientPrescriptionReady(job: EmailJob): RenderedEmail {
     preheader: 'Tenes una receta disponible en AutaMedica.',
     paragraphs: [
       `${doctorName} dejo una receta disponible para vos.`,
-      'Podes verla y descargarla desde tu portal.',
+      medicationName ? `Medicamento o indicacion: ${medicationName}.` : 'La receta ya fue emitida digitalmente.',
+      cuir ? `Codigo de verificacion: ${cuir}.` : 'Podes descargar el documento desde el enlace seguro.',
     ],
-    action: { label: 'Ver receta', url: actionUrl },
+    action: { label: pdfUrl ? 'Descargar PDF' : 'Ver receta', url: actionUrl },
     unsubscribeUrl,
   });
 }

@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { X, Pill, Save, Loader2, ClipboardCheck, BookmarkPlus, Trash2 } from "lucide-react";
+import { ApiError } from "@/lib/api-client";
 import { requiresStrictPrescriptionValidation } from "@/lib/prescriptions/strict-validation";
 import type { Prescription, UUID } from "@/types/medical";
 
@@ -87,6 +88,37 @@ function buildDefaultPatientInstructions(form: {
       ? `Mantener las pautas de cuidado indicadas para ${diagnosis}.`
       : "Mantener las pautas de cuidado indicadas por el profesional.",
   };
+}
+
+function prescriptionErrorMessage(error: unknown, phase: "save" | "issue"): string {
+  if (!(error instanceof ApiError)) {
+    return error instanceof Error ? error.message : "Error al guardar la prescripción";
+  }
+
+  const messages: Record<string, string> = {
+    doctor_profile_required: "Tu perfil médico no está completo para emitir recetas.",
+    forbidden_patient_access: "No tenés acceso al paciente seleccionado.",
+    missing_license_number: "Falta tu matrícula profesional en el perfil.",
+    missing_refeps_id: "Falta tu identificador REFEPS en el perfil.",
+    missing_professional_address: "Falta tu domicilio profesional en el perfil.",
+    prescriber_validation_required: "Tu validación profesional aún no permite emitir recetas.",
+    missing_patient_identification: "Falta DNI o CUIL del paciente.",
+    missing_patient_address: "Falta el domicilio del paciente.",
+    no_medication: "Agregá al menos un medicamento antes de emitir.",
+    already_issued: "Esta receta ya fue emitida.",
+    farmalink_missing_config: "Falta configuración de Farmalink para emitir esta receta.",
+    farmalink_mapping_failed: "No pudimos preparar los datos para Farmalink.",
+    farmalink_registration_failed: "Farmalink no registró la receta.",
+    farmalink_rejected: "Farmalink rechazó la receta.",
+    pdf_generation_failed: "La receta se guardó, pero falló la generación del PDF.",
+    update_failed: "La receta se generó, pero no pudimos marcarla como emitida.",
+    internal_error:
+      phase === "issue"
+        ? "La receta se guardó, pero falló la emisión. Reintentá desde recetas."
+        : "No pudimos guardar la receta.",
+  };
+
+  return messages[error.code ?? ""] ?? error.message;
 }
 
 interface CareGuideResponse {
@@ -422,6 +454,7 @@ export function PrescriptionCreateModal({
           },
         };
 
+    let phase: "save" | "issue" = "save";
     try {
       if (isEditing && editingPrescription) {
         await updatePrescription(editingPrescription.id, payload);
@@ -432,13 +465,14 @@ export function PrescriptionCreateModal({
           if (!createdId) {
             throw new Error("No se pudo emitir la receta recién creada.");
           }
+          phase = "issue";
           await issuePrescription(createdId as UUID);
         }
       }
       onSaved();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar la prescripción");
+      setError(prescriptionErrorMessage(err, phase));
     } finally {
       setSaving(false);
     }

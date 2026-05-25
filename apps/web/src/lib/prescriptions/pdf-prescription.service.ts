@@ -536,7 +536,7 @@ export async function generatePrescriptionPdf(
     try {
       const sigResponse = await fetch(input.prescriber.signatureImageUrl);
       const sigArrayBuf = await sigResponse.arrayBuffer();
-      const sigBase64 = Buffer.from(sigArrayBuf).toString('base64');
+      const sigBase64 = arrayBufferToBase64(sigArrayBuf);
       const sigFormat = input.prescriber.signatureImageUrl.includes('.webp') ? 'WEBP' : 'PNG';
       const sigDataUrl = `data:image/${sigFormat.toLowerCase()};base64,${sigBase64}`;
       doc.addImage(sigDataUrl, sigFormat, marginLeft, signatureY, 35, 20);
@@ -552,7 +552,7 @@ export async function generatePrescriptionPdf(
     try {
       const stampResponse = await fetch(input.prescriber.stampImageUrl);
       const stampArrayBuf = await stampResponse.arrayBuffer();
-      const stampBase64 = Buffer.from(stampArrayBuf).toString('base64');
+      const stampBase64 = arrayBufferToBase64(stampArrayBuf);
       const stampFormat = input.prescriber.stampImageUrl.includes('.webp') ? 'WEBP' : 'PNG';
       const stampDataUrl = `data:image/${stampFormat.toLowerCase()};base64,${stampBase64}`;
       doc.addImage(stampDataUrl, stampFormat, marginLeft + 40, signatureY, 35, 20);

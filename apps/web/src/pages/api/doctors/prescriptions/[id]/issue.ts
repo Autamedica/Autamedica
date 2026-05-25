@@ -33,10 +33,16 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     if (code === 'update_failed') {
       return internalError();
     }
+    if (code === 'pdf_generation_failed') {
+      return internalError('pdf_generation_failed');
+    }
 
     return badRequest(code);
   } catch (err) {
-    logger.error('[issue] POST error', err);
+    logger.error('[issue] POST error', {
+      prescriptionId,
+      error: err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err,
+    });
     return internalError();
   }
 };
