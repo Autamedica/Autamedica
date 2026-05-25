@@ -25,7 +25,7 @@ import { PrescriptionCreateModal } from '@/components/doctors/medical/Prescripti
 import { prescriptionService } from '@/lib/doctors/services/prescription.service'
 import { MedicalOrderCreateModal } from '@/components/doctors/medical/MedicalOrderCreateModal'
 import { medicalOrderService } from '@/lib/doctors/services/medical-order.service'
-import type { UUID } from '@/types/medical'
+import type { UUID, Prescription, MedicalOrder } from '@/types/medical'
 
 interface DoctorCallPageProps {
   roomId: string
