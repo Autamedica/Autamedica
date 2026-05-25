@@ -45,10 +45,19 @@ export function getEvidenceValue(evidence: ClinicalEvidence, loincCode: string |
   }
   
   // Custom or fallback from customParameters
-  if (evidence.customParameters?.[normalized] !== undefined) {
-    const customVal = evidence.customParameters[normalized];
-    if (typeof customVal === 'number') {
-      return customVal;
+  if (evidence.customParameters) {
+    if (evidence.customParameters[normalized] !== undefined) {
+      const customVal = evidence.customParameters[normalized];
+      if (typeof customVal === 'number') {
+        return customVal;
+      }
+    }
+    const originalKey = loincCode.trim();
+    if (evidence.customParameters[originalKey] !== undefined) {
+      const customVal = evidence.customParameters[originalKey];
+      if (typeof customVal === 'number') {
+        return customVal;
+      }
     }
   }
   

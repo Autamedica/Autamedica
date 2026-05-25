@@ -1,4 +1,4 @@
-import { Database } from '../database.types';
+import { Database } from '../supabase/database.types';
 
 export type ClinicalRule = Database['public']['Tables']['clinical_rules']['Row'];
 export type ClinicalRuleVersion = Database['public']['Tables']['clinical_rule_versions']['Row'];
