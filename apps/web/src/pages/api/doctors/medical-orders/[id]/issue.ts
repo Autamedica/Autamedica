@@ -3,6 +3,8 @@ import { badRequest, forbidden, internalError, jsonOk, notFound } from "@/lib/ap
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from "@/lib/api-auth";
 import { createAstroAdminClient } from "@/lib/supabase";
 import { logger } from "@autamedica/shared";
+import { generateMedicalOrderPdf } from "@/lib/doctors/services/pdf-medical-order.service";
+import { getActiveCertificate, loadSigningCredentials } from "@/lib/doctors/services/certificate-query.service";
 
 function generateCuir(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -11,6 +13,21 @@ function generateCuir(): string {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
+}
+
+function resolveInsurancePlan(insuranceInfo: unknown): string | undefined {
+  if (!insuranceInfo || typeof insuranceInfo !== "object" || Array.isArray(insuranceInfo)) {
+    return undefined;
+  }
+  const data = insuranceInfo as Record<string, unknown>;
+  const pickString = (keys: string[]): string | undefined => {
+    const value = keys.map((key) => data[key]).find((entry) => typeof entry === "string");
+    return typeof value === "string" ? value : undefined;
+  };
+  const provider = pickString(["provider", "insurance_provider", "obraSocial"]);
+  const plan = pickString(["plan", "insurance_plan", "planName"]);
+
+  return [provider, plan].filter(Boolean).join(" ").trim() || undefined;
 }
 
 async function resolveAuthedDoctorContext(
@@ -55,7 +72,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     // Fetch original order to verify ownership
     const { data: order, error: fetchError } = await admin
       .from("medical_orders")
-      .select("doctor_id, status")
+      .select("doctor_id, patient_id, status, study_type, practices, diagnosis, notes")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -64,10 +81,124 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     if (order.doctor_id !== context.doctorId) return forbidden("forbidden_order_access");
     if (order.status !== "draft") return badRequest("only_draft_orders_can_be_issued");
 
+    // Fetch patient info
+    const { data: patient } = await admin
+      .from("patients")
+      .select("user_id, dni, cuil, address, birth_date, gender, insurance_info")
+      .eq("id", order.patient_id)
+      .maybeSingle();
+
+    let patientName = "Paciente";
+    if (patient?.user_id) {
+      const { data: patientProfile } = await admin
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("user_id", patient.user_id)
+        .maybeSingle();
+      if (patientProfile) {
+        patientName = `${patientProfile.first_name ?? ""} ${patientProfile.last_name ?? ""}`.trim() || "Paciente";
+      }
+    }
+
+    // Fetch doctor info
+    const { data: doctor } = await admin
+      .from("doctors")
+      .select("id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url")
+      .eq("id", order.doctor_id)
+      .maybeSingle();
+
+    let doctorName = "Médico";
+    if (context.userId) {
+      const { data: doctorProfile } = await admin
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      if (doctorProfile) {
+        doctorName = `Dr/Dra. ${doctorProfile.first_name ?? ""} ${doctorProfile.last_name ?? ""}`.trim() || "Médico";
+      }
+    }
+
     const cuir = generateCuir();
     const qrContent = `https://autamedica.com/orders/${cuir}`;
+
+    // 1. Generate core PDF
+    const artifacts = await generateMedicalOrderPdf({
+      orderId,
+      studyType: order.study_type as 'laboratory' | 'imaging' | 'cardiology' | 'other',
+      practices: order.practices as Array<{ name: string }>,
+      diagnosis: order.diagnosis ?? "",
+      notes: order.notes ?? undefined,
+      patient: {
+        name: patientName,
+        dni: patient?.dni ?? undefined,
+        cuil: patient?.cuil ?? undefined,
+        dateOfBirth: patient?.birth_date ?? undefined,
+        sex: patient?.gender ?? undefined,
+        insurancePlan: resolveInsurancePlan(patient?.insurance_info),
+        address: patient?.address ?? undefined,
+      },
+      prescriber: {
+        name: doctorName,
+        license: doctor?.license_number ?? "",
+        licenseJurisdiction: doctor?.enrollment_jurisdiction ?? undefined,
+        licenseEntity: doctor?.enrollment_entity ?? undefined,
+        refeps: doctor?.refeps_id ?? undefined,
+        specialty: doctor?.specialty ?? undefined,
+        professionalAddress: doctor?.professional_address ?? undefined,
+        signatureImageUrl: doctor?.signature_image_url ?? undefined,
+        stampImageUrl: doctor?.stamp_image_url ?? undefined,
+      },
+      issuedAt: new Date().toISOString(),
+      existingCuir: cuir,
+    });
+
+    let finalPdfBuffer = artifacts.pdfBuffer;
+
+    // 2. Attempt PAdES digital signing if doctor has certificate
+    try {
+      if (doctor?.id) {
+        const activeCert = await getActiveCertificate(admin, doctor.id);
+        if (activeCert) {
+          const { p12Buffer, password } = await loadSigningCredentials(
+            admin,
+            doctor.id,
+            activeCert.certFingerprint,
+          );
+          const { signPdfWithP12 } = await import("@/lib/prescriptions/pdf-signer.service");
+          const signResult = await signPdfWithP12({
+            pdfBuffer: artifacts.pdfBuffer,
+            p12Buffer,
+            password,
+            signerName: doctorName,
+            reason: `Orden Medica ${artifacts.cuir} - ${doctorName}`,
+            location: doctor.enrollment_jurisdiction ?? "Argentina",
+          });
+          finalPdfBuffer = signResult.signedPdfBuffer;
+          logger.info("[issueMedicalOrder] PDF signed with PAdES", { cuir: artifacts.cuir });
+        }
+      }
+    } catch (signError) {
+      logger.warn("[issueMedicalOrder] PAdES signing failed, using electronic_simple", signError);
+    }
+
+    // 3. Upload to public storage bucket 'medical-orders'
+    const pdfPath = `${orderId}.pdf`;
+    const { error: uploadError } = await admin.storage
+      .from("medical-orders")
+      .upload(pdfPath, finalPdfBuffer, {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      logger.error("[api/doctors/medical-orders/[id]/issue] PDF upload failed", uploadError);
+      return internalError("pdf_upload_failed");
+    }
+
     const signedPdfUrl = `/storage/v1/object/public/medical-orders/${orderId}.pdf`;
 
+    // 4. Update order state in database
     const { data: updated, error: updateError } = await admin
       .from("medical_orders")
       .update({
