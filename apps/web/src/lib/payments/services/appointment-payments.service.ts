@@ -59,17 +59,17 @@ interface AppointmentWithPaymentContext {
 const MERCADOPAGO_API = 'https://api.mercadopago.com'
 
 function getMercadoPagoToken(): string {
-  const token = getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN') ?? import.meta.env.MERCADOPAGO_ACCESS_TOKEN
+  const token = getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN') ?? import.meta.env?.MERCADOPAGO_ACCESS_TOKEN
   if (!token) throw new Error('payment_access_token_missing')
   return token
 }
 
 function getWebhookSecret(): string {
-  return getRuntimeEnvValue('MERCADOPAGO_WEBHOOK_SECRET') ?? import.meta.env.MERCADOPAGO_WEBHOOK_SECRET ?? ''
+  return getRuntimeEnvValue('MERCADOPAGO_WEBHOOK_SECRET') ?? import.meta.env?.MERCADOPAGO_WEBHOOK_SECRET ?? ''
 }
 
 function getAppUrl(): string {
-  const appUrl = getRuntimeEnvValue('PUBLIC_APP_URL') ?? import.meta.env.PUBLIC_APP_URL
+  const appUrl = getRuntimeEnvValue('PUBLIC_APP_URL') ?? import.meta.env?.PUBLIC_APP_URL
   if (!appUrl) throw new Error('payment_app_url_missing')
   return appUrl.replace(/\/+$/, '')
 }

@@ -117,7 +117,7 @@ function mimeForPdfImageFormat(format: PdfImageFormat): string {
 async function loadLogoImage(): Promise<{ dataUrl: string; format: PdfImageFormat } | null> {
   const appUrl =
     getRuntimeEnvValue('PUBLIC_APP_URL') ??
-    import.meta.env.PUBLIC_APP_URL ??
+    import.meta.env?.PUBLIC_APP_URL ??
     'https://www.autamedica.com';
   const logoUrl = new URL('/logo.png', appUrl).toString();
 

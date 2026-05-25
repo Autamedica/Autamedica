@@ -658,7 +658,8 @@ function getCuir(rx: IssuedPrescription): string | undefined {
 }
 
 function getCreatedAt(rx: IssuedPrescription): string {
-  return String((rx as unknown as Record<string, unknown>).created_at ?? new Date().toISOString());
+  const raw = rx as unknown as Record<string, unknown>;
+  return String(rx.issuedAt || raw.created_at || new Date().toISOString());
 }
 
 function getId(rx: IssuedPrescription): string {
