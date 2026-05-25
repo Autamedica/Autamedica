@@ -64,7 +64,7 @@ function ReportContent({ roomId }: { roomId: string }) {
         setError('Para generar un reporte clínico SOAP, la sala debe estar vinculada a un paciente registrado. Guardá las notas manualmente o creá/vinculá el paciente antes de generar el informe.');
       } else {
         logger.error('[PostConsultationReport] Generate error', err);
-        setError('No pudimos generar el reporte. Verificá que la consulta esté vinculada a un paciente y reintentá.');
+        setError('No pudimos generar el reporte por un error interno. Reintentá en unos segundos; si persiste, las notas quedan disponibles para guardarlas manualmente.');
       }
     } finally {
       setGenerating(false);
