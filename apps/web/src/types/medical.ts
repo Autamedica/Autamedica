@@ -27,4 +27,9 @@ export type {
   UsePrescriptionsResult,
   UseVitalSignsResult,
   UseAIAnalysisResult,
+  MedicalOrderStatus,
+  MedicalOrderStudyType,
+  MedicalOrderPractice,
+  MedicalOrder,
+  MedicalOrderFilters,
 } from '@/lib/doctors/types/medical';

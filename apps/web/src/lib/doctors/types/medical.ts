@@ -316,3 +316,38 @@ export interface UseAIAnalysisResult {
     context?: string;
   }) => Promise<AIAnalysis | null>;
 }
+
+// =============== MEDICAL ORDERS ===============
+
+export type MedicalOrderStatus = "draft" | "signed" | "cancelled" | "expired";
+export type MedicalOrderStudyType = "laboratory" | "imaging" | "cardiology" | "other";
+
+export interface MedicalOrderPractice {
+  name: string;
+  code?: string | null;
+}
+
+export interface MedicalOrder {
+  id: UUID;
+  created_at: ISODateString;
+  updated_at: ISODateString;
+  doctor_id: UUID;
+  patient_id: UUID;
+  appointment_id: UUID | null;
+  cuir: string | null;
+  status: MedicalOrderStatus;
+  study_type: MedicalOrderStudyType;
+  practices: MedicalOrderPractice[];
+  diagnosis: string | null;
+  notes: string | null;
+  qr_code_content: string | null;
+  signed_pdf_url: string | null;
+  organization_id: UUID | null;
+}
+
+export interface MedicalOrderFilters {
+  patient_id?: UUID;
+  status?: MedicalOrderStatus;
+  study_type?: MedicalOrderStudyType;
+}
+

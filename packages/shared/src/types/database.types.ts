@@ -5551,6 +5551,74 @@ export type Database = {
           },
         ]
       }
+      doctor_prescription_templates: {
+        Row: {
+          care_guide_forgotten: string | null
+          care_guide_lifestyle: string | null
+          care_guide_tips: string | null
+          care_guide_warnings: string | null
+          created_at: string
+          diagnosis: string | null
+          doctor_id: string
+          dosage: string | null
+          duration: string | null
+          frequency: string | null
+          id: string
+          instructions: string | null
+          medication_name: string
+          name: string
+          notes: string | null
+          side_effects_warning: string | null
+          updated_at: string
+        }
+        Insert: {
+          care_guide_forgotten?: string | null
+          care_guide_lifestyle?: string | null
+          care_guide_tips?: string | null
+          care_guide_warnings?: string | null
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id: string
+          dosage?: string | null
+          duration?: string | null
+          frequency?: string | null
+          id?: string
+          instructions?: string | null
+          medication_name: string
+          name: string
+          notes?: string | null
+          side_effects_warning?: string | null
+          updated_at?: string
+        }
+        Update: {
+          care_guide_forgotten?: string | null
+          care_guide_lifestyle?: string | null
+          care_guide_tips?: string | null
+          care_guide_warnings?: string | null
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id?: string
+          dosage?: string | null
+          duration?: string | null
+          frequency?: string | null
+          id?: string
+          instructions?: string | null
+          medication_name?: string
+          name?: string
+          notes?: string | null
+          side_effects_warning?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_prescription_templates_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_ranking_metrics: {
         Row: {
           avg_clinical_quality: number
@@ -5879,7 +5947,7 @@ export type Database = {
           bank_cbu_cvu: string | null
           bank_name: string | null
           bio: string | null
-          care_guide_template: 'neutral' | 'female' | 'empathetic' | null
+          care_guide_template: string | null
           certifications: Json | null
           consultation_fee: number | null
           created_at: string | null
@@ -5913,7 +5981,7 @@ export type Database = {
           bank_cbu_cvu?: string | null
           bank_name?: string | null
           bio?: string | null
-          care_guide_template?: 'neutral' | 'female' | 'empathetic' | null
+          care_guide_template?: string | null
           certifications?: Json | null
           consultation_fee?: number | null
           created_at?: string | null
@@ -5947,7 +6015,7 @@ export type Database = {
           bank_cbu_cvu?: string | null
           bank_name?: string | null
           bio?: string | null
-          care_guide_template?: 'neutral' | 'female' | 'empathetic' | null
+          care_guide_template?: string | null
           certifications?: Json | null
           consultation_fee?: number | null
           created_at?: string | null
@@ -6497,6 +6565,89 @@ export type Database = {
             columns: ["chat_id"]
             isOneToOne: false
             referencedRelation: "medical_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_orders: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          cuir: string | null
+          diagnosis: string | null
+          doctor_id: string
+          id: string
+          notes: string | null
+          organization_id: string | null
+          patient_id: string
+          practices: Json
+          qr_code_content: string | null
+          signed_pdf_url: string | null
+          status: string
+          study_type: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          cuir?: string | null
+          diagnosis?: string | null
+          doctor_id: string
+          id?: string
+          notes?: string | null
+          organization_id?: string | null
+          patient_id: string
+          practices: Json
+          qr_code_content?: string | null
+          signed_pdf_url?: string | null
+          status?: string
+          study_type: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          cuir?: string | null
+          diagnosis?: string | null
+          doctor_id?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string | null
+          patient_id?: string
+          practices?: Json
+          qr_code_content?: string | null
+          signed_pdf_url?: string | null
+          status?: string
+          study_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_orders_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_orders_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_orders_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
@@ -7886,74 +8037,6 @@ export type Database = {
             columns: ["prescription_id"]
             isOneToOne: false
             referencedRelation: "prescriptions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      doctor_prescription_templates: {
-        Row: {
-          care_guide_forgotten: string | null
-          care_guide_lifestyle: string | null
-          care_guide_tips: string | null
-          care_guide_warnings: string | null
-          created_at: string
-          diagnosis: string | null
-          doctor_id: string
-          dosage: string | null
-          duration: string | null
-          frequency: string | null
-          id: string
-          instructions: string | null
-          medication_name: string
-          name: string
-          notes: string | null
-          side_effects_warning: string | null
-          updated_at: string
-        }
-        Insert: {
-          care_guide_forgotten?: string | null
-          care_guide_lifestyle?: string | null
-          care_guide_tips?: string | null
-          care_guide_warnings?: string | null
-          created_at?: string
-          diagnosis?: string | null
-          doctor_id: string
-          dosage?: string | null
-          duration?: string | null
-          frequency?: string | null
-          id?: string
-          instructions?: string | null
-          medication_name: string
-          name: string
-          notes?: string | null
-          side_effects_warning?: string | null
-          updated_at?: string
-        }
-        Update: {
-          care_guide_forgotten?: string | null
-          care_guide_lifestyle?: string | null
-          care_guide_tips?: string | null
-          care_guide_warnings?: string | null
-          created_at?: string
-          diagnosis?: string | null
-          doctor_id?: string
-          dosage?: string | null
-          duration?: string | null
-          frequency?: string | null
-          id?: string
-          instructions?: string | null
-          medication_name?: string
-          name?: string
-          notes?: string | null
-          side_effects_warning?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "doctor_prescription_templates_doctor_id_fkey"
-            columns: ["doctor_id"]
-            isOneToOne: false
-            referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
         ]
