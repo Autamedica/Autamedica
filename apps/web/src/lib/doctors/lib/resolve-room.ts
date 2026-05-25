@@ -14,8 +14,9 @@ export async function resolveDoctorId(admin: AdminClient, userId: string): Promi
 }
 
 /**
- * Resolve room participants from telemedicine_sessions (preferred, has appointment_id)
- * with fallback to calls table. Also returns doctorId when available.
+ * Resolve room participants from calls first, then appointments/telemedicine_sessions.
+ * Some call rows are created for guest/bootstrap flows before patient_id is present;
+ * those must not short-circuit richer sources that can still link the room to a patient.
  */
 export async function resolveRoomParticipants(
   admin: AdminClient,
@@ -24,15 +25,35 @@ export async function resolveRoomParticipants(
   // Try calls table first (has doctor_id for P2P calls)
   const { data: callRow, error: callError } = await admin
     .from('calls')
-    .select('patient_id, doctor_id')
+    .select('patient_id, doctor_id, appointment_id')
     .eq('room_id', roomId)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (!callError && callRow) {
-    const call = callRow as { patient_id: string; doctor_id: string };
-    return { patientId: call.patient_id, doctorId: call.doctor_id, appointmentId: null };
+    const call = callRow as { patient_id: string | null; doctor_id: string | null; appointment_id?: string | null };
+    if (call.patient_id) {
+      return { patientId: call.patient_id, doctorId: call.doctor_id, appointmentId: call.appointment_id ?? null };
+    }
+
+    if (call.appointment_id) {
+      const { data: appointmentRow, error: appointmentError } = await admin
+        .from('appointments')
+        .select('patient_id, doctor_id')
+        .eq('id', call.appointment_id)
+        .maybeSingle();
+
+      if (appointmentError) throw appointmentError;
+      const appointment = appointmentRow as { patient_id: string | null; doctor_id: string | null } | null;
+      if (appointment?.patient_id) {
+        return {
+          patientId: appointment.patient_id,
+          doctorId: call.doctor_id ?? appointment.doctor_id,
+          appointmentId: call.appointment_id,
+        };
+      }
+    }
   }
 
   // Fallback to telemedicine_sessions (has appointment_id for richer context)

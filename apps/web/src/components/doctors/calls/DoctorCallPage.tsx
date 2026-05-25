@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
-import { UnifiedVideoCall, createCallProvider, createCallService, useAudioTranscription, useTurnCredentials } from '@autamedica/telemedicine'
+import { UnifiedVideoCall, CallAuxiliaryButton, createCallProvider, createCallService, useAudioTranscription, useTurnCredentials } from '@autamedica/telemedicine'
+import { FileText, Pill } from 'lucide-react'
 import type { TranscriptSegment } from '@autamedica/telemedicine'
 import type { CallStatus } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
@@ -639,6 +640,22 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             runtime={callSession.runtime}
             className="h-screen"
             onLocalAudioLevelChange={handleAudioLevelChange}
+            auxiliaryControls={
+              context?.patient?.id ? (
+                <>
+                  <CallAuxiliaryButton
+                    icon={<Pill className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                    label="Receta"
+                    onClick={() => setShowPrescriptionModal(true)}
+                  />
+                  <CallAuxiliaryButton
+                    icon={<FileText className="h-5 w-5 md:h-5.5 md:w-5.5" />}
+                    label="Estudio"
+                    onClick={() => setShowStudyOrderModal(true)}
+                  />
+                </>
+              ) : null
+            }
           />
         )}
 
@@ -680,8 +697,6 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           voiceNotesAvailable={!showDoctorWaitingRoom && transcriptionState.isSupported}
           liveTranscriptPreview={liveTranscriptPreview}
           onToggleVoiceNotes={handleToggleVoiceNotes}
-          onEmitPrescription={context?.patient?.id ? () => setShowPrescriptionModal(true) : undefined}
-          onEmitStudyOrder={context?.patient?.id ? () => setShowStudyOrderModal(true) : undefined}
         />
       </div>
 

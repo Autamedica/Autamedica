@@ -92,7 +92,7 @@ export function MedicalOrderCreateModal({
         practices,
         diagnosis: diagnosis.trim() || null,
         notes: notes.trim() || null,
-        status: (shouldIssueDirectly ? "signed" : "draft") as MedicalOrderStatus,
+        status: "draft" as MedicalOrderStatus,
       };
 
       if (isEditing && editingMedicalOrder) {
@@ -113,7 +113,11 @@ export function MedicalOrderCreateModal({
     } catch (err) {
       console.error("[MedicalOrderCreateModal] submit error:", err);
       setErrorMessage(
-        err instanceof Error ? err.message : "Error inesperado al guardar la orden médica."
+        err instanceof Error && err.message === "only_draft_orders_can_be_issued"
+          ? "La solicitud debe guardarse como borrador antes de emitirse."
+          : err instanceof Error
+            ? err.message
+            : "Error inesperado al guardar la orden médica."
       );
     } finally {
       setSubmitting(false);
@@ -130,7 +134,7 @@ export function MedicalOrderCreateModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5 bg-gradient-to-br from-slate-50 to-white">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-violet-50 text-violet-700">
+            <div className="p-2 rounded-xl bg-am-doctor-50 text-am-doctor-700">
               <FileText className="h-5 w-5" />
             </div>
             <div>
@@ -172,7 +176,7 @@ export function MedicalOrderCreateModal({
                   onClick={() => setStudyType(type)}
                   className={`py-3 px-2 text-center rounded-2xl border text-xs font-bold transition-all capitalize shadow-sm ${
                     studyType === type
-                      ? "bg-violet-600 border-violet-600 text-white shadow-violet-100"
+                      ? "bg-am-doctor-600 border-am-doctor-600 text-white shadow-am-sm"
                       : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
                   }`}
                 >
@@ -196,7 +200,7 @@ export function MedicalOrderCreateModal({
                 value={practiceInput}
                 onChange={(e) => setPracticeInput(e.target.value)}
                 placeholder="Ej. Hemograma completo, Resonancia lumbar..."
-                className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 shadow-sm"
+                className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:outline-none focus:ring-2 focus:ring-am-doctor-500/20 focus:border-am-doctor-500 shadow-sm"
               />
               <button
                 type="submit"
@@ -246,7 +250,7 @@ export function MedicalOrderCreateModal({
               value={diagnosis}
               onChange={(e) => setDiagnosis(e.target.value)}
               placeholder="Ej. R51 Cefalea / Control evolutivo..."
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 shadow-sm"
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:outline-none focus:ring-2 focus:ring-am-doctor-500/20 focus:border-am-doctor-500 shadow-sm"
             />
             <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
               Requerido por obras sociales y medicinas prepagas para autorizar las prácticas.
@@ -262,7 +266,7 @@ export function MedicalOrderCreateModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Ej. Requiere 12 horas de ayuno / Traer estudios anteriores..."
-              className="w-full h-24 resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 shadow-sm leading-relaxed"
+              className="w-full h-24 resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:outline-none focus:ring-2 focus:ring-am-doctor-500/20 focus:border-am-doctor-500 shadow-sm leading-relaxed"
             />
           </div>
 
@@ -283,7 +287,7 @@ export function MedicalOrderCreateModal({
             type="button"
             onClick={() => handleSubmit(true)}
             disabled={submitting}
-            className="flex-1 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl text-xs font-bold transition-all shadow-md shadow-violet-100 flex items-center justify-center gap-2 disabled:opacity-50"
+            className="flex-1 py-3 bg-am-doctor-600 hover:bg-am-doctor-700 text-white rounded-2xl text-xs font-bold transition-all shadow-md shadow-am-sm flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {submitting ? (
               <>
