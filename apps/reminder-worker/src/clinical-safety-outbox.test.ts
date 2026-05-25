@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   processClinicalOutboxJobs,
   generateAlarmIdempotencyKey,
+  resolveClinicalAlarmPolicy,
 } from './clinical-safety-outbox';
 
 describe('Clinical Safety Outbox Background Worker', () => {
@@ -11,32 +12,92 @@ describe('Clinical Safety Outbox Background Worker', () => {
     vi.clearAllMocks();
 
     mockSupabase = {
-      from: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn(),
+      from: vi.fn(),
     };
   });
 
+  function mockOutboxQueries(events: any[], incidents: any[]) {
+    const incidentQueue = [...incidents];
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'clinical_outbox_events') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue({ data: events, error: null }),
+              }),
+            }),
+          }),
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        };
+      }
+
+      if (table === 'clinical_incidents') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: incidentQueue.shift() ?? null,
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+
+      throw new Error(`Unexpected table: ${table}`);
+    });
+  }
+
   describe('generateAlarmIdempotencyKey', () => {
-    it('should generate a formatted key with hourly window resolution', () => {
+    it('should generate a formatted key with policy window resolution', () => {
       const incidentId = 'inc-123';
       const ruleVersionId = 'rule-ver-456';
       const triggerType = 'safety_rule_evaluated';
+      const now = new Date('2026-05-25T12:00:59.000Z');
 
-      const key = generateAlarmIdempotencyKey(incidentId, ruleVersionId, triggerType);
-      const timeWindow = new Date().toISOString().substring(0, 13);
+      const key = generateAlarmIdempotencyKey(incidentId, ruleVersionId, triggerType, 60_000, now);
+      const timeWindow = Math.floor(now.getTime() / 60_000);
 
       expect(key).toBe(`${incidentId}:${ruleVersionId}:${triggerType}:${timeWindow}`);
     });
   });
 
+  describe('resolveClinicalAlarmPolicy', () => {
+    it('routes critical UTI events to bedside alerts with minute-level dedupe', () => {
+      const policy = resolveClinicalAlarmPolicy('uti', 'critical');
+
+      expect(policy).toEqual({
+        route: 'icu_bedside',
+        priority: 1,
+        dedupeWindowMs: 60_000,
+        expectedActionWindowMinutes: 1,
+      });
+    });
+
+    it('routes critical Guardia events to shockroom with door-to-action SLA', () => {
+      const policy = resolveClinicalAlarmPolicy('guardia', 'critical');
+
+      expect(policy.route).toBe('shockroom');
+      expect(policy.priority).toBe(1);
+      expect(policy.expectedActionWindowMinutes).toBe(10);
+    });
+
+    it('keeps outpatient low-risk alarms in follow-up cadence', () => {
+      const policy = resolveClinicalAlarmPolicy('outpatient', 'low');
+
+      expect(policy.route).toBe('outpatient_followup');
+      expect(policy.priority).toBe(4);
+      expect(policy.expectedActionWindowMinutes).toBe(7 * 24 * 60);
+    });
+  });
+
   describe('processClinicalOutboxJobs', () => {
     it('should return quickly if no pending outbox events exist', async () => {
-      mockSupabase.select.mockResolvedValue({ data: [], error: null });
+      mockOutboxQueries([], []);
 
       const result = await processClinicalOutboxJobs(mockSupabase as any, { dryRun: true });
 
@@ -59,15 +120,10 @@ describe('Clinical Safety Outbox Background Worker', () => {
         retry_count: 0,
       };
 
-      // Mock fetching pending events
-      mockSupabase.select.mockResolvedValueOnce({ data: [mockEvent], error: null });
-      // Mock fetching clinical incident details
-      mockSupabase.maybeSingle.mockResolvedValueOnce({
-        data: { setting: 'uti', severity: 'critical', condition_display: 'IAM' },
-        error: null,
-      });
-      // Mock outbox status update
-      mockSupabase.update.mockResolvedValueOnce({ data: null, error: null });
+      mockOutboxQueries(
+        [mockEvent],
+        [{ setting: 'uti', severity: 'critical', condition_display: 'IAM' }]
+      );
 
       const result = await processClinicalOutboxJobs(mockSupabase as any, { dryRun: true });
 
@@ -103,22 +159,13 @@ describe('Clinical Safety Outbox Background Worker', () => {
         retry_count: 0,
       };
 
-      // Mock fetching pending events (return both)
-      mockSupabase.select.mockResolvedValueOnce({ data: [mockEvent1, mockEvent2], error: null });
-      
-      // Mock fetching clinical incident details twice
-      mockSupabase.maybeSingle
-        .mockResolvedValueOnce({
-          data: { setting: 'uti', severity: 'critical', condition_display: 'IAM' },
-          error: null,
-        })
-        .mockResolvedValueOnce({
-          data: { setting: 'uti', severity: 'critical', condition_display: 'IAM' },
-          error: null,
-        });
-
-      // Mock outbox status updates
-      mockSupabase.update.mockResolvedValue({ data: null, error: null });
+      mockOutboxQueries(
+        [mockEvent1, mockEvent2],
+        [
+          { setting: 'uti', severity: 'critical', condition_display: 'IAM' },
+          { setting: 'uti', severity: 'critical', condition_display: 'IAM' },
+        ]
+      );
 
       const result = await processClinicalOutboxJobs(mockSupabase as any, { dryRun: false });
 

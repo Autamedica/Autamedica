@@ -14,6 +14,15 @@ import { appointmentBackendService } from './appointment.backend';
 
 type AdminClient = SupabaseClient;
 
+export interface ActiveClinicalIncidentForReport {
+  id: string;
+  conditionDisplay: string;
+  setting: string;
+  severity: string;
+  status: string;
+  slaDeadline: string;
+}
+
 function calculateAge(dateOfBirth: string): number {
   const birth = new Date(dateOfBirth);
   const today = new Date();
@@ -59,6 +68,7 @@ export async function generateAndSaveReport(
   followUpRecommendations: string[];
   confidence: number | null;
   provider: string;
+  activeClinicalIncidents: ActiveClinicalIncidentForReport[];
 }> {
   const admin = createAstroAdminClient(runtimeEnv) as unknown as AdminClient;
 
@@ -136,6 +146,24 @@ export async function generateAndSaveReport(
     provider: result.provider,
   });
 
+  const { data: activeClinicalIncidents, error: incidentsError } = await admin
+    .from('clinical_incidents')
+    .select('id, condition_display, setting, severity, status, sla_deadline')
+    .eq('patient_id', patientId)
+    .eq('doctor_id', doctorId)
+    .in('status', ['open', 'escalated'])
+    .order('sla_deadline', { ascending: true })
+    .limit(5);
+
+  if (incidentsError) {
+    logger.warn('[consultation-report] Failed to load active clinical incidents', {
+      roomId,
+      patientId,
+      doctorId,
+      error: incidentsError,
+    });
+  }
+
   return {
     recordId: saved.id,
     patientId,
@@ -145,6 +173,14 @@ export async function generateAndSaveReport(
     followUpRecommendations: result.followUpRecommendations,
     confidence: result.confidence,
     provider: result.provider,
+    activeClinicalIncidents: (activeClinicalIncidents ?? []).map((incident) => ({
+      id: incident.id,
+      conditionDisplay: incident.condition_display,
+      setting: incident.setting,
+      severity: incident.severity,
+      status: incident.status,
+      slaDeadline: incident.sla_deadline,
+    })),
   };
 }
 

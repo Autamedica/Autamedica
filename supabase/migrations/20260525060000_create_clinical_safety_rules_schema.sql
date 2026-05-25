@@ -152,6 +152,11 @@ CREATE TRIGGER trg_clinical_incident_events_audit_immutable
 BEFORE UPDATE OR DELETE ON public.clinical_incident_events
 FOR EACH STATEMENT EXECUTE FUNCTION public.prevent_safety_audit_mutation();
 
+-- Trigger Immutability for equipment_events
+CREATE TRIGGER trg_equipment_events_audit_immutable
+BEFORE UPDATE OR DELETE ON public.equipment_events
+FOR EACH STATEMENT EXECUTE FUNCTION public.prevent_safety_audit_mutation();
+
 -- ============================================================================
 -- 0.2 RULES ENGINE TABLES (Gobernanza & Trazabilidad)
 -- ============================================================================

@@ -14,6 +14,7 @@ export default defineConfig({
       'packages/**/*.test.tsx',
       'apps/web/src/**/*.test.ts',
       'apps/web/src/**/*.test.tsx',
+      'apps/reminder-worker/src/**/*.test.ts',
     ],
     exclude: [
       '**/node_modules/**',
