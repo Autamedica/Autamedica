@@ -217,9 +217,91 @@ export async function processEmailJobs(env: Env) {
       const claimed = await claimEmailJob(env, job);
       if (!claimed) continue;
 
+      if (job.job_type === "patient_prescription_ready") {
+        const data = job.template_data ?? {};
+        const doctorName = dataString(data, "doctor_name") || "Tu medico";
+        const pdfUrl = dataString(data, "pdf_url");
+        const medicationName = dataString(data, "medication_name");
+        const cuir = dataString(data, "cuir");
+        const actionUrl = dataString(data, "action_url") || "https://www.autamedica.com";
+        const prescriptionUrl = pdfUrl || actionUrl;
+
+        if (env.BREVO_API_KEY) {
+          const firstName = job.recipient_name || "como estas";
+          let bodyHtml = `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">Dr. <strong>${doctorName}</strong> emitió una nueva receta o indicación médica para vos.</p>`;
+          bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">Ya está disponible en tu perfil para que puedas descargarla o utilizarla.</p>`;
+          if (medicationName) {
+            bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;"><strong>Medicamento o indicación:</strong> ${medicationName}.</p>`;
+          }
+          if (cuir) {
+            bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;"><strong>Código de verificación:</strong> ${cuir}.</p>`;
+          }
+
+          const params = {
+            subject: "AutaMedica · receta disponible",
+            title: `Hola, ${firstName}`,
+            subtitle: "Lo que la evidencia dice, antes de que lo necesites.",
+            body_html: bodyHtml,
+            cta_url: prescriptionUrl,
+            cta_label: pdfUrl ? "Descargar PDF" : "Descargar receta",
+            secondary_url: prescriptionUrl,
+            secondary_label: "Si el boton no abre, copia este enlace:",
+            signature_name: "Eduardo Marques",
+          };
+
+          const providerMessageId = await sendTransactionalViaBrevo(env, job, params.subject, params);
+          await markEmailJobSent(env, job.id, providerMessageId, "brevo");
+          results.push({ id: job.id, job_type: job.job_type, status: "sent" });
+          continue;
+        } else {
+          console.warn("BREVO_API_KEY no configurada. Fallback a Resend para receta.");
+        }
+      }
+
+      if (job.job_type === "patient_medical_order_ready") {
+        const data = job.template_data ?? {};
+        const doctorName = dataString(data, "doctor_name") || "Tu medico";
+        const pdfUrl = dataString(data, "pdf_url");
+        const practicesName = dataString(data, "practices_name") || "Orden de estudios médicos";
+        const cuir = dataString(data, "cuir");
+        const actionUrl = dataString(data, "action_url") || "https://www.autamedica.com";
+        const orderUrl = pdfUrl || actionUrl;
+
+        if (env.BREVO_API_KEY) {
+          const firstName = job.recipient_name || "como estas";
+          let bodyHtml = `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">Dr. <strong>${doctorName}</strong> emitió una nueva orden de estudios complementarios para vos.</p>`;
+          bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">Ya está disponible en tu perfil para que puedas descargarla o utilizarla.</p>`;
+          if (practicesName) {
+            bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;"><strong>Estudios solicitados:</strong> ${practicesName}.</p>`;
+          }
+          if (cuir) {
+            bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;"><strong>Código de verificación:</strong> ${cuir}.</p>`;
+          }
+
+          const params = {
+            subject: "AutaMedica · orden de estudios disponible",
+            title: `Hola, ${firstName}`,
+            subtitle: "Lo que la evidencia dice, antes de que lo necesites.",
+            body_html: bodyHtml,
+            cta_url: orderUrl,
+            cta_label: pdfUrl ? "Descargar PDF" : "Descargar orden",
+            secondary_url: orderUrl,
+            secondary_label: "Si el boton no abre, copia este enlace:",
+            signature_name: "Eduardo Marques",
+          };
+
+          const providerMessageId = await sendTransactionalViaBrevo(env, job, params.subject, params);
+          await markEmailJobSent(env, job.id, providerMessageId, "brevo");
+          results.push({ id: job.id, job_type: job.job_type, status: "sent" });
+          continue;
+        } else {
+          console.warn("BREVO_API_KEY no configurada. Fallback a Resend para orden de estudios.");
+        }
+      }
+
       const rendered = renderEmailJob(job);
       const providerMessageId = await sendTransactionalViaResend(env, job, rendered);
-      await markEmailJobSent(env, job.id, providerMessageId);
+      await markEmailJobSent(env, job.id, providerMessageId, "resend");
       results.push({ id: job.id, job_type: job.job_type, status: "sent" });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -312,13 +394,13 @@ async function claimEmailJob(env: Env, job: EmailJob): Promise<boolean> {
   return (JSON.parse(body) as unknown[]).length > 0;
 }
 
-async function markEmailJobSent(env: Env, jobId: string, providerMessageId: string): Promise<void> {
+async function markEmailJobSent(env: Env, jobId: string, providerMessageId: string, provider: "resend" | "brevo" = "resend"): Promise<void> {
   const res = await fetch(`${env.SUPABASE_URL}/rest/v1/email_jobs?id=eq.${jobId}`, {
     method: "PATCH",
     headers: supabaseHeaders(env),
     body: JSON.stringify({
       status: "sent",
-      provider: "resend",
+      provider,
       provider_message_id: providerMessageId || null,
       sent_at: new Date().toISOString(),
       last_error: null,
@@ -1236,6 +1318,37 @@ async function sendBrevoSmtp(env: Env, subject: string, html: string, recipient:
     await logPublish(env, { channel: "email_brevo", status: "error", error_message: `smtp ${res.status}: ${body}`, payload: { subject, recipient: recipient.email } });
     throw new Error(`Brevo Fail: ${res.status}: ${body}`);
   }
+  const parsed = safeParseJson(body) as { messageId?: string } | null;
+  return parsed?.messageId ?? "";
+}
+
+async function sendTransactionalViaBrevo(
+  env: Env,
+  job: EmailJob,
+  subject: string,
+  params: Record<string, string>,
+): Promise<string> {
+  if (!env.BREVO_API_KEY) throw new Error("BREVO_API_KEY no configurada");
+
+  console.log(`[Brevo SMTP] Sending transactional email: "${subject}" to ${job.recipient_email} for job type ${job.job_type}`);
+
+  const fromEmail = env.FROM_EMAIL || "contacto@autamedica.com";
+  const fromName = env.FROM_NAME || "AutaMedica";
+
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: { "api-key": env.BREVO_API_KEY, "content-type": "application/json" },
+    body: JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: job.recipient_email, name: job.recipient_name || job.recipient_email }],
+      templateId: 8,
+      params,
+      tags: ["transactional", "autamedica", job.job_type],
+    }),
+  });
+
+  const body = await res.text();
+  if (!res.ok) throw new Error(`Brevo SMTP ${res.status}: ${body}`);
   const parsed = safeParseJson(body) as { messageId?: string } | null;
   return parsed?.messageId ?? "";
 }

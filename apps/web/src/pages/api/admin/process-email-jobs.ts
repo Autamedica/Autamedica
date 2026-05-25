@@ -338,6 +338,42 @@ async function sendViaResend(
   return parsed.id ?? '';
 }
 
+async function sendViaBrevo(
+  runtimeEnv: RuntimeEnv,
+  job: EmailJob,
+  subject: string,
+  params: Record<string, string>,
+): Promise<string> {
+  const apiKey = readEnv(runtimeEnv, 'BREVO_API_KEY');
+  if (!apiKey) throw new Error('BREVO_API_KEY no configurada');
+
+  const fromEmail = readEnv(runtimeEnv, 'FROM_EMAIL') || AUTAMEDICA_FROM.email;
+  const fromName = readEnv(runtimeEnv, 'FROM_NAME') || AUTAMEDICA_FROM.name;
+
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': apiKey,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: job.recipient_email, name: job.recipient_name || job.recipient_email }],
+      templateId: 8,
+      params,
+      tags: ['transactional', 'autamedica', job.job_type],
+    }),
+  });
+
+  const body = await response.text();
+  if (!response.ok) {
+    throw new Error(`Brevo SMTP ${response.status}: ${body}`);
+  }
+
+  const parsed = JSON.parse(body) as { messageId?: string };
+  return parsed.messageId ?? '';
+}
+
 async function enqueueDueReminders(admin: AdminClient, limit: number): Promise<number> {
   const { data, error } = await (admin as any)
     .schema('growth_os')
@@ -384,13 +420,18 @@ async function claimJob(admin: AdminClient, job: EmailJob): Promise<boolean> {
   return Boolean((data as any)?.id);
 }
 
-async function markSent(admin: AdminClient, jobId: string, providerMessageId: string): Promise<void> {
+async function markSent(
+  admin: AdminClient,
+  jobId: string,
+  providerMessageId: string,
+  provider: 'resend' | 'brevo' = 'resend',
+): Promise<void> {
   const { error } = await (admin as any)
     .schema('growth_os')
     .from('email_jobs')
     .update({
       status: 'sent',
-      provider: 'resend',
+      provider,
       provider_message_id: providerMessageId || null,
       sent_at: new Date().toISOString(),
       last_error: null,
@@ -458,9 +499,95 @@ async function handle(request: Request, runtimeEnv: RuntimeEnv, dryRunOverride?:
       const claimed = await claimJob(admin, job);
       if (!claimed) continue;
 
+      if (job.job_type === 'patient_prescription_ready') {
+        const data = job.template_data ?? {};
+        const doctorName = stringFromData(data, 'doctor_name') || 'Tu medico';
+        const pdfUrl = stringFromData(data, 'pdf_url');
+        const medicationName = stringFromData(data, 'medication_name');
+        const cuir = stringFromData(data, 'cuir');
+        const actionUrl =
+          pdfUrl ||
+          stringFromData(data, 'action_url') ||
+          'https://www.autamedica.com/patients/prescriptions';
+
+        const apiKey = readEnv(runtimeEnv, 'BREVO_API_KEY');
+        if (apiKey) {
+          let bodyHtml = `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">Dr. <strong>${doctorName}</strong> emitió una nueva receta o indicación médica para vos.</p>`;
+          bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">Ya está disponible en tu perfil para que puedas descargarla o utilizarla.</p>`;
+          if (medicationName) {
+            bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;"><strong>Medicamento o indicación:</strong> ${medicationName}.</p>`;
+          }
+          if (cuir) {
+            bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;"><strong>Código de verificación:</strong> ${cuir}.</p>`;
+          }
+
+          const params = {
+            subject: 'AutaMedica · receta disponible',
+            title: `Hola, ${firstName(job)}`,
+            subtitle: 'Lo que la evidencia dice, antes de que lo necesites.',
+            body_html: bodyHtml,
+            cta_url: actionUrl,
+            cta_label: pdfUrl ? 'Descargar PDF' : 'Ver receta',
+            secondary_url: actionUrl,
+            secondary_label: 'Si el boton no abre, copia este enlace:',
+            signature_name: 'Eduardo Marques',
+          };
+
+          const providerMessageId = await sendViaBrevo(runtimeEnv, job, params.subject, params);
+          await markSent(admin, job.id, providerMessageId, 'brevo');
+          results.push({ id: job.id, job_type: job.job_type, status: 'sent' });
+          continue;
+        } else {
+          logger.warn('[email-jobs] BREVO_API_KEY no configurada. Fallback a Resend para receta.');
+        }
+      }
+
+      if (job.job_type === 'patient_medical_order_ready') {
+        const data = job.template_data ?? {};
+        const doctorName = stringFromData(data, 'doctor_name') || 'Tu medico';
+        const pdfUrl = stringFromData(data, 'pdf_url');
+        const practicesName = stringFromData(data, 'practices_name') || 'Orden de estudios médicos';
+        const cuir = stringFromData(data, 'cuir');
+        const actionUrl =
+          pdfUrl ||
+          stringFromData(data, 'action_url') ||
+          'https://www.autamedica.com/patients/medical-orders';
+
+        const apiKey = readEnv(runtimeEnv, 'BREVO_API_KEY');
+        if (apiKey) {
+          let bodyHtml = `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">Dr. <strong>${doctorName}</strong> emitió una nueva orden de estudios complementarios para vos.</p>`;
+          bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">Ya está disponible en tu perfil para que puedas descargarla o utilizarla.</p>`;
+          if (practicesName) {
+            bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;"><strong>Estudios solicitados:</strong> ${practicesName}.</p>`;
+          }
+          if (cuir) {
+            bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;"><strong>Código de verificación:</strong> ${cuir}.</p>`;
+          }
+
+          const params = {
+            subject: 'AutaMedica · orden de estudios disponible',
+            title: `Hola, ${firstName(job)}`,
+            subtitle: 'Lo que la evidencia dice, antes de que lo necesites.',
+            body_html: bodyHtml,
+            cta_url: actionUrl,
+            cta_label: pdfUrl ? 'Descargar PDF' : 'Ver orden',
+            secondary_url: actionUrl,
+            secondary_label: 'Si el boton no abre, copia este enlace:',
+            signature_name: 'Eduardo Marques',
+          };
+
+          const providerMessageId = await sendViaBrevo(runtimeEnv, job, params.subject, params);
+          await markSent(admin, job.id, providerMessageId, 'brevo');
+          results.push({ id: job.id, job_type: job.job_type, status: 'sent' });
+          continue;
+        } else {
+          logger.warn('[email-jobs] BREVO_API_KEY no configurada. Fallback a Resend para orden de estudios.');
+        }
+      }
+
       const rendered = renderJob(job);
       const providerMessageId = await sendViaResend(runtimeEnv, job, rendered);
-      await markSent(admin, job.id, providerMessageId);
+      await markSent(admin, job.id, providerMessageId, 'resend');
       results.push({ id: job.id, job_type: job.job_type, status: 'sent' });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

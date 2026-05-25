@@ -953,6 +953,10 @@ export type {
   ClinicalRuleOverride,
   ClinicalEvidence,
   TroponinMeasurement,
+  MedicalEquipment,
+  EquipmentIncident,
+  EquipmentEvent,
+  IEquipmentSafetyRepository,
 } from './ports';
 
 // ==========================================

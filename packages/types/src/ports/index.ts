@@ -56,5 +56,9 @@ export type {
   ClinicalRuleExecution,
   ClinicalRuleOverride,
   ClinicalEvidence,
-  TroponinMeasurement
+  TroponinMeasurement,
+  MedicalEquipment,
+  EquipmentIncident,
+  EquipmentEvent,
+  IEquipmentSafetyRepository
 } from './clinical-rules.port'

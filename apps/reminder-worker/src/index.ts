@@ -21,6 +21,7 @@ import { processReminderCycle, DEFAULT_OPENCLAW_CONFIG } from '@autamedica/sched
 import type { OpenClawConfig } from '@autamedica/scheduling';
 import { getServerEnvOrDefault } from '@autamedica/shared';
 import { processDoctorWhatsAppJobs } from './doctor-whatsapp-notifications';
+import { processClinicalOutboxJobs } from './clinical-safety-outbox';
 
 // Config from env
 const SUPABASE_URL = getServerEnvOrDefault('SUPABASE_URL');
@@ -70,20 +71,25 @@ async function tick() {
       batchSize: 25,
       dryRun: effectiveDryRun,
     });
+    const clinicalOutboxResult = await processClinicalOutboxJobs(supabase, {
+      batchSize: 25,
+      dryRun: effectiveDryRun,
+    });
 
     if (
       result.processed > 0 ||
       result.waitlistOffersSent > 0 ||
       result.waitlistExpired > 0 ||
       result.noShowsMarked > 0 ||
-      doctorWhatsAppResult.processed > 0
+      doctorWhatsAppResult.processed > 0 ||
+      clinicalOutboxResult.processed > 0
     ) {
       console.log(
-        `[${new Date().toISOString()}] Processed: ${result.processed} | Sent: ${result.sent} | Failed: ${result.failed} | Waitlist sent: ${result.waitlistOffersSent} | Waitlist expired: ${result.waitlistExpired} | No-show marked: ${result.noShowsMarked} | Doctor WA sent: ${doctorWhatsAppResult.sent} | Doctor WA failed: ${doctorWhatsAppResult.failed}`,
+        `[${new Date().toISOString()}] Processed: ${result.processed} | Sent: ${result.sent} | Failed: ${result.failed} | Waitlist sent: ${result.waitlistOffersSent} | Waitlist expired: ${result.waitlistExpired} | No-show marked: ${result.noShowsMarked} | Doctor WA sent: ${doctorWhatsAppResult.sent} | Doctor WA failed: ${doctorWhatsAppResult.failed} | Clinical Outbox processed: ${clinicalOutboxResult.processed} | Dispatched: ${clinicalOutboxResult.dispatched} | Skipped: ${clinicalOutboxResult.skipped}`,
       );
     }
 
-    const errors = [...result.errors, ...doctorWhatsAppResult.errors];
+    const errors = [...result.errors, ...doctorWhatsAppResult.errors, ...clinicalOutboxResult.errors];
     if (errors.length > 0) {
       for (const err of errors) {
         console.error(`  ❌ ${err}`);
