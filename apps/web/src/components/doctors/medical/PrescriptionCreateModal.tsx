@@ -4,8 +4,8 @@
  */
 "use client";
 
-import { useState } from "react";
-import { X, Pill, Save, Loader2, ClipboardCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, Pill, Save, Loader2, ClipboardCheck, BookmarkPlus, Trash2 } from "lucide-react";
 import { requiresStrictPrescriptionValidation } from "@/lib/prescriptions/strict-validation";
 import type { Prescription, UUID } from "@/types/medical";
 
@@ -34,6 +34,29 @@ interface ExternalPatientForm {
   phone?: string;
   birth_date?: string;
   gender?: string;
+}
+
+interface PrescriptionTemplate {
+  id: string;
+  name: string;
+  medication_name: string;
+  dosage: string | null;
+  frequency: string | null;
+  duration: string | null;
+  instructions: string | null;
+  diagnosis: string | null;
+  notes: string | null;
+  side_effects_warning: string | null;
+  care_guide_tips: string | null;
+  care_guide_forgotten: string | null;
+  care_guide_warnings: string | null;
+  care_guide_lifestyle: string | null;
+}
+
+interface ApiEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: { message?: string };
 }
 
 const TODAY = new Date().toISOString().split("T")[0];
@@ -124,6 +147,10 @@ export function PrescriptionCreateModal({
 
   const [saving, setSaving] = useState(false);
   const [generatingGuide, setGeneratingGuide] = useState(false);
+  const [templates, setTemplates] = useState<PrescriptionTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [showGuideSection, setShowGuideSection] = useState(
     isEditing &&
       Boolean(
@@ -153,6 +180,128 @@ export function PrescriptionCreateModal({
     (key: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const loadTemplates = async () => {
+    setTemplatesLoading(true);
+    try {
+      const response = await fetch("/api/doctors/prescription-templates", {
+        credentials: "include",
+      });
+      if (!response.ok) return;
+
+      const json = (await response.json()) as ApiEnvelope<PrescriptionTemplate[]>;
+      if (json.success && Array.isArray(json.data)) {
+        setTemplates(json.data);
+      }
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadTemplates();
+  }, []);
+
+  const applyTemplate = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    const template = templates.find((item) => item.id === templateId);
+    if (!template) return;
+
+    setForm((prev) => ({
+      ...prev,
+      medication_name: template.medication_name,
+      dosage: template.dosage ?? "",
+      frequency: template.frequency ?? "",
+      duration: template.duration ?? "",
+      instructions: template.instructions ?? "",
+      diagnosis: template.diagnosis ?? "",
+      notes: template.notes ?? "",
+      side_effects_warning: template.side_effects_warning ?? "",
+      care_guide_tips: template.care_guide_tips ?? "",
+      care_guide_forgotten: template.care_guide_forgotten ?? "",
+      care_guide_warnings: template.care_guide_warnings ?? "",
+      care_guide_lifestyle: template.care_guide_lifestyle ?? "",
+    }));
+    setShowGuideSection(
+      Boolean(
+        template.care_guide_tips ||
+          template.care_guide_forgotten ||
+          template.care_guide_warnings ||
+          template.care_guide_lifestyle,
+      ),
+    );
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!form.medication_name.trim()) {
+      setError("Completá el medicamento antes de guardar la plantilla.");
+      return;
+    }
+    if (templates.length >= 12) {
+      setError("Podés guardar hasta 12 plantillas de recetas.");
+      return;
+    }
+
+    const name = window.prompt("Nombre de la plantilla", form.medication_name.trim());
+    if (!name?.trim()) return;
+
+    setSavingTemplate(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/doctors/prescription-templates", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          medication_name: form.medication_name,
+          dosage: form.dosage,
+          frequency: form.frequency,
+          duration: form.duration,
+          instructions: form.instructions,
+          diagnosis: form.diagnosis,
+          notes: form.notes,
+          side_effects_warning: form.side_effects_warning,
+          care_guide_tips: form.care_guide_tips,
+          care_guide_forgotten: form.care_guide_forgotten,
+          care_guide_warnings: form.care_guide_warnings,
+          care_guide_lifestyle: form.care_guide_lifestyle,
+        }),
+      });
+
+      const json = (await response.json().catch(() => null)) as ApiEnvelope<PrescriptionTemplate> | null;
+      if (!response.ok || !json?.success || !json.data) {
+        const message = json?.error?.message ?? "No se pudo guardar la plantilla.";
+        throw new Error(message);
+      }
+
+      setTemplates((prev) => [json.data as PrescriptionTemplate, ...prev]);
+      setSelectedTemplateId(json.data.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo guardar la plantilla.");
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!selectedTemplateId) return;
+    const template = templates.find((item) => item.id === selectedTemplateId);
+    if (!template) return;
+    if (!window.confirm(`Eliminar plantilla "${template.name}"?`)) return;
+
+    const response = await fetch(`/api/doctors/prescription-templates/${selectedTemplateId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      setError("No se pudo eliminar la plantilla.");
+      return;
+    }
+
+    setTemplates((prev) => prev.filter((item) => item.id !== selectedTemplateId));
+    setSelectedTemplateId("");
+  };
 
   const handleSuggestCareGuide = async () => {
     if (!form.medication_name.trim()) {
@@ -384,6 +533,62 @@ export function PrescriptionCreateModal({
                   />
                 </div>
               </div>
+            </div>
+          )}
+
+          {!isEditing && (
+            <div className="rounded-xl border border-am-surface-200 bg-white p-3">
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-am-surface-700 mb-1.5">
+                    Plantilla
+                  </label>
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(event) => applyTemplate(event.target.value)}
+                    disabled={templatesLoading || templates.length === 0}
+                    className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500 disabled:bg-am-surface-50 disabled:text-am-surface-400"
+                  >
+                    <option value="">
+                      {templatesLoading
+                        ? "Cargando plantillas..."
+                        : templates.length > 0
+                          ? "Seleccionar plantilla"
+                          : "Sin plantillas guardadas"}
+                    </option>
+                    {templates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveTemplate}
+                  disabled={savingTemplate || templates.length >= 12 || !form.medication_name.trim()}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-am-surface-200 text-am-surface-600 transition hover:bg-am-surface-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  title="Guardar como plantilla"
+                >
+                  {savingTemplate ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <BookmarkPlus className="h-4 w-4" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteTemplate}
+                  disabled={!selectedTemplateId}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-am-surface-200 text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  title="Eliminar plantilla"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="mt-2 text-[11px] text-am-surface-500">
+                {templates.length}/12 plantillas guardadas.
+              </p>
             </div>
           )}
 
