@@ -54,5 +54,7 @@ export type {
   ClinicalResolutionCriterion,
   ClinicalRedFlag,
   ClinicalRuleExecution,
-  ClinicalRuleOverride
+  ClinicalRuleOverride,
+  ClinicalEvidence,
+  TroponinMeasurement
 } from './clinical-rules.port'

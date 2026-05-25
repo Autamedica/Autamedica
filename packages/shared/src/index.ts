@@ -179,3 +179,7 @@ export type {
   AnamnesisSummary,
   AnamnesisSummarySection,
 } from './anamnesis';
+
+// Clinical Safety Engine Evaluator
+export { evaluateClinicalSafety, getEvidenceValue } from './services/clinical-safety-evaluator';
+
