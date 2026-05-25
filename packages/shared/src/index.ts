@@ -47,7 +47,7 @@ export {
   getPortalUrlWithPath,
   isCorrectPortal,
   getRoleForPortal
-} from "./env/portals";
+} from "./env-utils/portals";
 
 // User role type
 export type { UserRole } from "./auth/portals";
@@ -70,8 +70,8 @@ export {
 } from "./auth/session";
 
 // App URL helpers (deprecated - use portal system)
-export { getAppUrl, getBaseUrlForRole } from "./env/getAppUrl";
-export type { AppRole } from "./env/getAppUrl";
+export { getAppUrl, getBaseUrlForRole } from "./env-utils/getAppUrl";
+export type { AppRole } from "./env-utils/getAppUrl";
 
 // WebRTC diagnostics and media utils
 export { WebRTCDiagnostics, ICE_SERVERS } from "./webrtc-diagnostics";
@@ -145,7 +145,7 @@ export {
   type AppName,
   type AppEnvironmentConfig,
   type LoginUrlBuilder
-} from './env/app-config';
+} from './env-utils/app-config';
 
 // Feature flags
 export {

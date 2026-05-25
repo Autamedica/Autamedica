@@ -534,7 +534,7 @@ export function ProfileForm() {
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <label htmlFor="refepsId" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-                  Nº de REFEPS (opcional)
+                  Nº de REFEPS (Requerido para emitir recetas)
                 </label>
                 <input
                   type="text"
@@ -548,7 +548,7 @@ export function ProfileForm() {
               </div>
               <div>
                 <label htmlFor="professionalAddress" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-                  Domicilio Profesional (opcional)
+                  Domicilio Profesional (Requerido para emitir recetas)
                 </label>
                 <input
                   type="text"
