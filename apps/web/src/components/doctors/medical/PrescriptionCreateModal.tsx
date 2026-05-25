@@ -566,7 +566,7 @@ export function PrescriptionCreateModal({
                 <button
                   type="button"
                   onClick={handleSaveTemplate}
-                  disabled={savingTemplate || templates.length >= 12 || !form.medication_name.trim()}
+                  disabled={savingTemplate || templates.length >= 12}
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-am-surface-200 text-am-surface-600 transition hover:bg-am-surface-50 disabled:cursor-not-allowed disabled:opacity-40"
                   title="Guardar como plantilla"
                 >
@@ -586,8 +586,13 @@ export function PrescriptionCreateModal({
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-              <p className="mt-2 text-[11px] text-am-surface-500">
+              <p className="mt-2 text-[11px] text-am-surface-500 leading-relaxed">
                 {templates.length}/12 plantillas guardadas.
+                {templates.length === 0 && (
+                  <span className="block mt-1 text-neutral-400 font-normal">
+                    💡 <strong>Cómo guardar:</strong> Rellená el medicamento y dosis abajo, y hacé clic en el marcador de la derecha (icono <span className="inline-block px-1 bg-neutral-100 rounded text-neutral-600">Bookmark</span>) para guardarlo como plantilla.
+                  </span>
+                )}
               </p>
             </div>
           )}
