@@ -181,9 +181,11 @@ Detalle: `docs/ARQUITECTURA.md` sección "Patrones Avanzados".
 - **Filosofía Actual:** "Excelencia Operacional + Migración Progresiva" (Next.js → Astro, app por app).
 - **Regulatorio:** HIPAA, Ley 26.529 (Argentina — derecho del paciente), Ley 25.326 (datos personales).
 
-### Estado Actual (Fase 1: Migración Landing)
+### Estado Actual (Fase 1: Migración Landing & Integración CEEDS)
 
-- `apps/web` (Astro 5): landing migrada. Status: 0 TypeScript errors. Pendiente deploy a producción.
+- **Astro Core & Landing (`apps/web`):** Totalmente migrado y en despliegue activo.
+- **Sistema Clínico CEEDS v2.2:** Integrado y fusionado a `main` mediante el PR #465. Incluye el panel `/admin/clinical` con el `CEEDSDashboard` de React en Astro, endpoints API robustos, el outbox worker deduplicado con directivas de severidad por entorno (UTI/Guardia) y el ciclo de vida de equipamientos con bloqueo de seguridad y gates de calibración ANMAT.
+- **Validación Completa:** Suite local de 433 unit tests y `astro check` en verde (0 errores). CI/CD remoto verificado y aprobado.
 - `apps/web-app` (Next.js): legacy. Mantener estable, no invertir esfuerzo.
 - `apps/auth`, `apps/doctors`, `apps/patients`, `apps/companies`, `apps/admin`: Next.js, en producción.
 - **Regla de migración:** No migrar el siguiente app a Astro sin que el anterior esté deployado y verificado.
