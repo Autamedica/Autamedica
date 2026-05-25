@@ -185,6 +185,44 @@ function buildCode128BValues(value: string): number[] {
   return [104, ...dataValues, checksum, 106];
 }
 
+function drawQrCodeVector(
+  doc: jsPDF,
+  text: string,
+  x: number,
+  y: number,
+  size: number,
+): void {
+  try {
+    const qr = QRCode.create(text, { errorCorrectionLevel: 'M' });
+    const numModules = qr.modules.size;
+    const moduleSize = size / numModules;
+
+    // Draw white background
+    doc.setFillColor(255, 255, 255);
+    doc.rect(x, y, size, size, 'F');
+
+    // Draw black modules
+    doc.setFillColor(0, 0, 0);
+    const marginOffset = 0.005; // tiny overlap to prevent thin white lines in some PDF viewers
+    for (let row = 0; row < numModules; row++) {
+      for (let col = 0; col < numModules; col++) {
+        if (qr.modules.data[row * numModules + col]) {
+          doc.rect(
+            x + col * moduleSize - marginOffset,
+            y + row * moduleSize - marginOffset,
+            moduleSize + 2 * marginOffset,
+            moduleSize + 2 * marginOffset,
+            'F',
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[drawQrCodeVector] Failed to generate QR code vector:', error);
+    throw error;
+  }
+}
+
 function drawCode128Barcode(
   doc: jsPDF,
   value: string,
@@ -244,12 +282,8 @@ export async function generateMedicalOrderPdf(
   const barcodeDisplayLabel = 'CUIR';
   const barcodeLegend = 'Identificador único de orden médica / examen complementario';
 
-  // Generate QR
-  const qrDataUrl = await QRCode.toDataURL(qrContent, {
-    width: 120,
-    margin: 1,
-    errorCorrectionLevel: 'M',
-  });
+  // Generate QR (Bypassed toDataURL to prevent canvas Edge Worker crash - we draw natively with drawQrCodeVector)
+  const qrDataUrl = '';
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = 210;
@@ -295,7 +329,7 @@ export async function generateMedicalOrderPdf(
   doc.text(`Fecha de Emisión: ${formatDate(input.issuedAt)}`, marginLeft, 39);
 
   // QR in header
-  doc.addImage(qrDataUrl, 'PNG', pageWidth - 50, 8, 30, 30);
+  drawQrCodeVector(doc, qrContent, pageWidth - 50, 8, 30);
 
   y = 55;
   doc.setTextColor(30, 41, 59);
