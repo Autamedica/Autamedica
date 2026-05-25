@@ -154,7 +154,9 @@ export function useDoctorWaitingRoom({
       setSecondsRemaining(remaining)
       if (remaining > 0 || timeoutHandledRef.current) return
       timeoutHandledRef.current = true
-      void cancelCall('no_answer_timeout')
+      // Bypass automatic no-answer timeout cancellation on the doctor's frontend.
+      // The doctor can remain in the active room waiting indefinitely.
+      logger.info('[useDoctorWaitingRoom] Waiting room timeout reached, bypassing automatic cancellation')
     }
 
     syncDeadline()
