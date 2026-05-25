@@ -443,15 +443,20 @@ function renderEmailJob(job: EmailJob): { subject: string; html: string; text: s
 
   if (job.job_type === "patient_prescription_ready") {
     const doctorName = dataString(data, "doctor_name") || "El médico";
+    const pdfUrl = dataString(data, "pdf_url");
+    const medicationName = dataString(data, "medication_name");
+    const cuir = dataString(data, "cuir");
+    const prescriptionUrl = pdfUrl || actionUrl;
     return renderTransactionalEmail("AutaMedica · Tu receta está lista", {
       title: `Hola, ${firstName}`,
       preheader: "Tenés un nuevo documento médico disponible.",
       paragraphs: [
         `${doctorName} emitió una nueva receta o indicación médica para vos.`,
-        "Ya está disponible en tu perfil para que puedas descargarla o utilizarla.",
+        medicationName ? `Medicamento o indicación: ${medicationName}.` : "La receta ya fue emitida digitalmente.",
+        cuir ? `Código de verificación: ${cuir}.` : "Podés descargar el documento desde el enlace seguro.",
       ],
-      actionLabel: "Descargar receta",
-      actionUrl,
+      actionLabel: pdfUrl ? "Descargar PDF" : "Descargar receta",
+      actionUrl: prescriptionUrl,
       unsubscribeUrl,
     });
   }
