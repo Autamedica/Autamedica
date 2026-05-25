@@ -134,6 +134,14 @@ export type IssuanceError =
 
 type Result = { ok: true; data: IssuanceResult } | { ok: false; error: IssuanceError };
 
+async function sha256BytesHex(bytes: Uint8Array): Promise<string> {
+  const stableBytes = new Uint8Array(bytes);
+  const digest = await crypto.subtle.digest('SHA-256', stableBytes);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 function fail(error: IssuanceError): Result { return { ok: false, error }; }
 
 function getPrescriptionStoragePath(cuir: string, signedPdfUrl?: string | null): string {
@@ -693,8 +701,7 @@ export async function issuePrescription(
   }
 
   // 9. Audit events (batched)
-  const { createHash } = await import('crypto');
-  const signatureHash = createHash('sha256').update(finalPdfBuffer).digest('hex');
+  const signatureHash = await sha256BytesHex(finalPdfBuffer);
 
   await supabase.from('prescription_audit_events').insert([
     {

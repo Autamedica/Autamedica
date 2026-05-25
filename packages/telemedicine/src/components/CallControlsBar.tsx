@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import type { ReactNode } from 'react'
 import { 
   Video, VideoOff, Mic, MicOff, 
   Monitor, MessageSquare, 
@@ -25,6 +26,7 @@ export interface CallControlsBarProps {
   onToggleChat: () => void
   onTogglePiP: () => void
   onEndCall: () => void
+  auxiliaryActions?: ReactNode
 }
 
 export function CallControlsBar({
@@ -42,6 +44,7 @@ export function CallControlsBar({
   onToggleChat,
   onTogglePiP,
   onEndCall,
+  auxiliaryActions,
 }: CallControlsBarProps) {
   return (
     <motion.div
@@ -107,6 +110,16 @@ export function CallControlsBar({
 
       <div className="w-px h-6 md:h-8 bg-white/10 mx-1 md:mx-2" />
 
+      {auxiliaryActions && (
+        <>
+          <div className="flex items-center gap-2 md:gap-3">
+            {auxiliaryActions}
+          </div>
+
+          <div className="w-px h-6 md:h-8 bg-white/10 mx-1 md:mx-2" />
+        </>
+      )}
+
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
@@ -116,6 +129,37 @@ export function CallControlsBar({
         <PhoneOff className="w-6 h-6 md:w-7 md:h-7" />
       </motion.button>
     </motion.div>
+  )
+}
+
+export function CallAuxiliaryButton({
+  icon,
+  label,
+  onClick,
+  disabled = false,
+}: {
+  icon: ReactNode
+  label: string
+  onClick: () => void
+  disabled?: boolean
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <motion.button
+        whileHover={disabled ? undefined : { y: -2 }}
+        whileTap={disabled ? undefined : { scale: 0.92 }}
+        onClick={onClick}
+        disabled={disabled}
+        className="relative flex h-11 w-11 md:h-14 md:w-14 items-center justify-center rounded-xl md:rounded-2xl border border-white/5 bg-am-doctor-600 text-white shadow-am-sm transition-all duration-300 hover:bg-am-doctor-700 disabled:cursor-not-allowed disabled:opacity-45"
+        title={label}
+        aria-label={label}
+      >
+        {icon}
+      </motion.button>
+      <span className="hidden sm:block max-w-[4.5rem] text-center text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-am-surface-400/80">
+        {label}
+      </span>
+    </div>
   )
 }
 
@@ -146,6 +190,7 @@ function ControlButton({
         whileHover={{ y: -2 }}
         whileTap={{ scale: 0.92 }}
         onClick={onClick}
+        aria-pressed={active}
         className={`relative flex h-11 w-11 md:h-14 md:w-14 items-center justify-center rounded-xl md:rounded-2xl transition-all duration-300 ${styles[variant]}`}
       >
         {icon}

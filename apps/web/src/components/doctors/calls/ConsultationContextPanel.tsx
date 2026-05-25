@@ -5,7 +5,7 @@ import {
   Loader2, Mic, Square, Volume2, ChevronDown, 
   AlertCircle, AlertTriangle, HelpCircle, User, 
   Clipboard, Activity, History, Users, Search,
-  CheckCircle2, Info, Pill, FileText, type LucideIcon
+  CheckCircle2, Info, type LucideIcon
 } from 'lucide-react';
 import type {
   ConsultationContext,
@@ -28,8 +28,6 @@ interface ConsultationContextPanelProps {
   voiceNotesAvailable: boolean;
   liveTranscriptPreview: string | null;
   onToggleVoiceNotes: () => void;
-  onEmitPrescription?: () => void;
-  onEmitStudyOrder?: () => void;
 }
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string; label: string; icon: LucideIcon }> = {
@@ -191,8 +189,6 @@ function LiveNotesSection({
   voiceNotesAvailable,
   liveTranscriptPreview,
   onToggleVoiceNotes,
-  onEmitPrescription,
-  onEmitStudyOrder,
 }: {
   liveNotes: string;
   onLiveNotesChange: (value: string) => void;
@@ -202,8 +198,6 @@ function LiveNotesSection({
   voiceNotesAvailable: boolean;
   liveTranscriptPreview: string | null;
   onToggleVoiceNotes: () => void;
-  onEmitPrescription?: () => void;
-  onEmitStudyOrder?: () => void;
 }) {
   const hasContent = liveNotes.trim().length > 0;
   
@@ -270,27 +264,6 @@ function LiveNotesSection({
             )}
           </button>
 
-          {onEmitPrescription && (
-            <button
-              type="button"
-              onClick={onEmitPrescription}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold transition-all shadow-am-sm active:scale-[0.98] bg-sky-600 text-white hover:bg-sky-700"
-            >
-              <Pill className="h-3.5 w-3.5" />
-              <span>EMITIR RECETA DIGITAL</span>
-            </button>
-          )}
-
-          {onEmitStudyOrder && (
-            <button
-              type="button"
-              onClick={onEmitStudyOrder}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold transition-all shadow-am-sm active:scale-[0.98] bg-violet-600 text-white hover:bg-violet-700 shadow-violet-100/50"
-            >
-              <FileText className="h-3.5 w-3.5" />
-              <span>SOLICITAR ESTUDIO MÉDICO</span>
-            </button>
-          )}
         </div>
 
         {liveTranscriptPreview && (
@@ -329,8 +302,6 @@ export function ConsultationContextPanel({
   voiceNotesAvailable,
   liveTranscriptPreview,
   onToggleVoiceNotes,
-  onEmitPrescription,
-  onEmitStudyOrder,
 }: ConsultationContextPanelProps) {
   // Toggle button
   const toggleButton = (
@@ -404,8 +375,6 @@ export function ConsultationContextPanel({
           voiceNotesAvailable={voiceNotesAvailable}
           liveTranscriptPreview={liveTranscriptPreview}
           onToggleVoiceNotes={onToggleVoiceNotes}
-          onEmitPrescription={onEmitPrescription}
-          onEmitStudyOrder={onEmitStudyOrder}
         />
 
         <div className="py-2">

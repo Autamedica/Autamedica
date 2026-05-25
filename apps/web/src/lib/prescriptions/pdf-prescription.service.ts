@@ -1,7 +1,6 @@
 import { getServerEnvOrDefault } from '@autamedica/shared';
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
-import fs from 'fs';
 import { getRuntimeEnvValue } from '@/lib/runtime-env';
 import { rctaService } from './rcta.service';
 import { getValidityPeriodDays } from './strict-validation';
@@ -83,6 +82,38 @@ function calculateExpiry(issuedAt: string, genericName: string): string {
   const date = new Date(issuedAt);
   date.setDate(date.getDate() + days);
   return date.toISOString();
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 0x8000;
+
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    const chunk = bytes.subarray(offset, offset + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
+}
+
+async function loadLogoDataUrl(): Promise<string | null> {
+  const appUrl =
+    getRuntimeEnvValue('PUBLIC_APP_URL') ??
+    import.meta.env.PUBLIC_APP_URL ??
+    'https://www.autamedica.com';
+  const logoUrl = new URL('/logo.png', appUrl).toString();
+
+  try {
+    const response = await fetch(logoUrl);
+    if (!response.ok) return null;
+
+    const contentType = response.headers.get('content-type') ?? 'image/png';
+    const base64 = arrayBufferToBase64(await response.arrayBuffer());
+    return `data:${contentType};base64,${base64}`;
+  } catch {
+    return null;
+  }
 }
 
 function formatPatientSex(value?: string): string | undefined {
@@ -249,13 +280,9 @@ export async function generatePrescriptionPdf(
   doc.setFont('helvetica', 'bold');
   doc.text('RECETA MÉDICA ELECTRÓNICA', marginLeft, 18);
 
-  // Dibuja el logo de AutaMedica si está disponible en local
-  try {
-    const logoBuffer = fs.readFileSync('apps/web/public/logo.png');
-    const logoBase64 = logoBuffer.toString('base64');
-    doc.addImage(`data:image/png;base64,${logoBase64}`, 'PNG', marginLeft + 115, 10, 9, 9);
-  } catch (err) {
-    // Si falla la lectura local, no interrumpir el flujo
+  const logoDataUrl = await loadLogoDataUrl();
+  if (logoDataUrl) {
+    doc.addImage(logoDataUrl, 'PNG', marginLeft + 115, 10, 9, 9);
   }
 
   doc.setFontSize(9);

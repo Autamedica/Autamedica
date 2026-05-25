@@ -190,7 +190,6 @@
   "dependencies": {
     "@getbrevo/brevo": "^5.0.4",
     "@google/generative-ai": "^0.24.1",
-    "@openai/codex": "^0.39.0",
     "@signpdf/placeholder-plain": "^3.3.0",
     "@signpdf/signer-p12": "^3.3.0",
     "@signpdf/signpdf": "^3.3.0",
