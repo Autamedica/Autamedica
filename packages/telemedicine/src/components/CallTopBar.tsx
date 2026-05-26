@@ -70,9 +70,9 @@ export function CallTopBar({
         >
           <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
 
-          <div className="relative flex min-w-0 items-center justify-between gap-2 px-3 pt-3 sm:px-6 sm:pt-4">
-            <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3">
-              <div className="flex min-w-0 items-center gap-2 rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-xl">
+          <div className="relative flex min-w-0 items-center justify-start gap-2 px-3 pt-3 sm:justify-between sm:px-6 sm:pt-4">
+            <div className="flex min-w-0 max-w-full flex-1 items-center gap-1.5 sm:gap-3">
+              <div className="flex min-w-0 max-w-[calc(100vw-6.75rem)] items-center gap-2 rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-xl sm:max-w-none">
                 <motion.span
                   className={`h-2 w-2 shrink-0 rounded-full ${connectionDotColor}`}
                   animate={shouldPulse ? { scale: [1, 1.4, 1], opacity: [1, 0.5, 1] } : {}}
@@ -105,7 +105,7 @@ export function CallTopBar({
               )}
             </div>
 
-            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="hidden shrink-0 items-center gap-1.5 sm:flex sm:gap-2">
               <AnimatePresence>
                 {isRecording && (
                   <motion.div
@@ -125,7 +125,7 @@ export function CallTopBar({
                 )}
               </AnimatePresence>
               {isConnected && (
-                <div className="hidden items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-xs text-white backdrop-blur-xl min-[380px]:flex">
+                <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-xs text-white backdrop-blur-xl">
                   <Clock className="h-3.5 w-3.5 text-slate-400" />
                   <span className="font-mono tabular-nums">{formattedDuration}</span>
                 </div>
