@@ -59,6 +59,11 @@ function readEnv(runtimeEnv: RuntimeEnv, key: string): string {
 }
 
 function isAuthorized(request: Request, runtimeEnv: RuntimeEnv): boolean {
+  if (import.meta.env.DEV && import.meta.env.AUTH_BYPASS === 'true') {
+    logger.info('[process-email-jobs] Bypassing authorization check due to DEV + AUTH_BYPASS=true');
+    return true;
+  }
+
   const secret = readEnv(runtimeEnv, 'CRON_SECRET') || readEnv(runtimeEnv, 'TRIGGER_KEY');
   if (!secret) return false;
 

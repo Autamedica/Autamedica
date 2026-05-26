@@ -122,10 +122,12 @@ export function sanitizeSentryEvent(event) {
 }
 
 export function getBaseSentryConfig(runtime) {
-  const nodeEnv = process.env.NODE_ENV || 'development';
+  const isServer = typeof process !== 'undefined';
+  const nodeEnv = (isServer ? process.env.NODE_ENV : null) || 'development';
+  const sentryDsn = (isServer ? process.env.PUBLIC_SENTRY_DSN : null) || "https://485f1dbb686db51681cf8159012dcdf1@o4511195725168640.ingest.us.sentry.io/4511195726741504";
 
   return {
-    dsn: process.env.PUBLIC_SENTRY_DSN || "https://485f1dbb686db51681cf8159012dcdf1@o4511195725168640.ingest.us.sentry.io/4511195726741504",
+    dsn: sentryDsn,
     environment: `${runtime}-${nodeEnv}`,
     sendDefaultPii: true,
     enableLogs: true,

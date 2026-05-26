@@ -42,8 +42,8 @@ DECLARE
   v_appt_past_2     UUID := 'aa000007-0000-0000-0000-000000000007';
 
   -- UUIDs de intakes psiquiátricos
-  v_intake_1        UUID := 'ii000001-0000-0000-0000-000000000001'; -- Tomás: TDAH continuidad
-  v_intake_2        UUID := 'ii000002-0000-0000-0000-000000000002'; -- Valentina: primera visita
+  v_intake_1        UUID := '11000001-0000-0000-0000-000000000001'; -- Tomás: TDAH continuidad
+  v_intake_2        UUID := '11000002-0000-0000-0000-000000000002'; -- Valentina: primera visita
 
   -- UUIDs de clinical case states
   v_case_1          UUID := 'cc000001-0000-0000-0000-000000000001'; -- Rodrigo: urgente, triage priority
@@ -66,7 +66,7 @@ BEGIN
   -- PROFILES (identidad de los pacientes)
   -- ==========================================================================
 
-  INSERT INTO public.profiles (id, email, role, first_name, last_name)
+  INSERT INTO public.profiles (user_id, email, role, first_name, last_name)
   VALUES
     (v_profile_1, 'tomas.herrera.demo@mail.com',    'patient', 'Tomás',    'Herrera'),
     (v_profile_2, 'valentina.sosa.demo@mail.com',   'patient', 'Valentina','Sosa'),
@@ -75,11 +75,20 @@ BEGIN
     (v_profile_5, 'federico.castillo.demo@mail.com','patient', 'Federico', 'Castillo'),
     (v_profile_6, 'martina.vidal.demo@mail.com',    'patient', 'Martina',  'Vidal'),
     (v_profile_7, 'santiago.romero.demo@mail.com',  'patient', 'Santiago', 'Romero')
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (user_id) DO NOTHING;
 
   -- ==========================================================================
   -- PATIENTS (extensión médica de cada perfil)
   -- ==========================================================================
+
+  -- Alineamos los ids auto-generados por los triggers de Supabase Auth
+  UPDATE public.patients SET id = v_patient_1 WHERE user_id = v_profile_1;
+  UPDATE public.patients SET id = v_patient_2 WHERE user_id = v_profile_2;
+  UPDATE public.patients SET id = v_patient_3 WHERE user_id = v_profile_3;
+  UPDATE public.patients SET id = v_patient_4 WHERE user_id = v_profile_4;
+  UPDATE public.patients SET id = v_patient_5 WHERE user_id = v_profile_5;
+  UPDATE public.patients SET id = v_patient_6 WHERE user_id = v_profile_6;
+  UPDATE public.patients SET id = v_patient_7 WHERE user_id = v_profile_7;
 
   INSERT INTO public.patients (id, user_id, dni, birth_date, gender, blood_type, height_cm, weight_kg, allergies, medications, active)
   VALUES
@@ -132,7 +141,16 @@ BEGIN
       '[{"name":"fluoxetina","dose":"20mg","frequency":"mañana","since":"2024-06"},{"name":"clonazepam","dose":"1mg","frequency":"noche","since":"2024-06"}]'::jsonb,
       true
     )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    dni = EXCLUDED.dni,
+    birth_date = EXCLUDED.birth_date,
+    gender = EXCLUDED.gender,
+    blood_type = EXCLUDED.blood_type,
+    height_cm = EXCLUDED.height_cm,
+    weight_kg = EXCLUDED.weight_kg,
+    allergies = EXCLUDED.allergies,
+    medications = EXCLUDED.medications,
+    active = EXCLUDED.active;
 
   -- ==========================================================================
   -- DOCTOR_PATIENT (asignación directa médico-paciente)
@@ -147,6 +165,17 @@ BEGIN
     (v_doctor_id, v_patient_5),
     (v_doctor_id, v_patient_6),
     (v_doctor_id, v_patient_7)
+  ON CONFLICT DO NOTHING;
+
+  INSERT INTO public.patient_care_team (patient_id, doctor_id, active)
+  VALUES
+    (v_patient_1, v_doctor_id, true),
+    (v_patient_2, v_doctor_id, true),
+    (v_patient_3, v_doctor_id, true),
+    (v_patient_4, v_doctor_id, true),
+    (v_patient_5, v_doctor_id, true),
+    (v_patient_6, v_doctor_id, true),
+    (v_patient_7, v_doctor_id, true)
   ON CONFLICT DO NOTHING;
 
   -- ==========================================================================
@@ -685,6 +714,139 @@ BEGIN
     'priority',
     'Evaluar ajuste de sertralina por recurrencia de pánico. Valorar exposición cognitivo-conductual.'
   ) ON CONFLICT (case_id) DO NOTHING;
+
+  -- ==========================================================================
+  -- CLINICAL ALERTS & EVENTS (Eventos del Motor Clínico)
+  -- ==========================================================================
+
+  INSERT INTO public.patient_alerts (id, patient_id, source_table, source_record_id, severity, title, message, status, metadata)
+  VALUES
+    (
+      'ea000001-0000-0000-0000-000000000001',
+      v_patient_1,
+      'medication_logs',
+      'ea000001-0000-0000-0000-000000000001',
+      'critical',
+      'Omisión de Dosis Crítica',
+      'El paciente Tomás Herrera omitió tomar metilfenidato 36mg durante 3 días seguidos debido a insomnio nocturno severo.',
+      'open',
+      '{"insomnio_severo": true, "dosis_perdidas": 3}'::jsonb
+    ),
+    (
+      'ea000002-0000-0000-0000-000000000002',
+      v_patient_3,
+      'symptom_reports',
+      'ea000002-0000-0000-0000-000000000002',
+      'high',
+      'Reporte de Crisis de Pánico',
+      'Rodrigo Peralta reportó un episodio agudo de pánico severo a través de chatbot de seguimiento, con taquicardia y sudoración.',
+      'open',
+      '{"ansiedad_escala": 9, "duracion_mins": 25}'::jsonb
+    )
+  ON CONFLICT (id) DO NOTHING;
+
+  -- ==========================================================================
+  -- COMPLEMENTARY EXAMS / LAB RESULTS (Exámenes Complementarios)
+  -- ==========================================================================
+
+  INSERT INTO public.lab_results (id, patient_id, test_type, test_date, laboratory_name, status, notes, reviewed_at)
+  VALUES
+    (
+      'eb000001-0000-0000-0000-000000000001',
+      v_patient_1,
+      'Electrocardiograma Basal (ECG)',
+      (CURRENT_DATE - INTERVAL '10 days')::date,
+      'Centro de Diagnóstico Rossi',
+      'reviewed',
+      'Ritmo sinusal regular. Frecuencia cardíaca: 72 lpm. Intervalo QT dentro de límites normales. Sin contraindicación para estimulantes.',
+      CURRENT_TIMESTAMP
+    ),
+    (
+      'eb000002-0000-0000-0000-000000000002',
+      v_patient_2,
+      'Hemograma y Perfil Tiroideo',
+      (CURRENT_DATE - INTERVAL '2 days')::date,
+      'Laboratorio Swiss Medical',
+      'pending',
+      'Pendiente de firma y revisión. TSH basal y recuento de leucocitos solicitado para inicio de tratamiento.',
+      NULL
+    ),
+    (
+      'eb000003-0000-0000-0000-000000000003',
+      v_patient_3,
+      'Perfil Tiroideo Completo',
+      (CURRENT_DATE - INTERVAL '8 days')::date,
+      'Laboratorios uDoc',
+      'reviewed',
+      'TSH: 1.85 uIU/ml (Normal), T4 Libre: 1.2 ng/dl (Normal). Descarta causa endocrinológica para episodios de pánico.',
+      CURRENT_TIMESTAMP
+    )
+  ON CONFLICT (id) DO NOTHING;
+
+  -- ==========================================================================
+  -- EXPIRING PRESCRIPTIONS (Recetas por Vencer / Anticipar)
+  -- ==========================================================================
+
+  INSERT INTO public.prescriptions (id, doctor_id, patient_id, status, clinical_data, vendor_name, vendor_id, created_at)
+  VALUES
+    (
+      'ec000001-0000-0000-0000-000000000001',
+      v_doctor_id,
+      v_patient_1,
+      'signed',
+      '{"medication": "metilfenidato 36mg", "duration_days": 30, "expiring_in_days": 5, "expiration_date": "2026-05-30"}'::jsonb,
+      'Farmalink',
+      'FL-1002931',
+      (CURRENT_DATE - INTERVAL '25 days')::timestamptz
+    ),
+    (
+      'ec000002-0000-0000-0000-000000000002',
+      v_doctor_id,
+      v_patient_3,
+      'signed',
+      '{"medication": "sertralina 100mg", "duration_days": 30, "expiring_in_days": 3, "expiration_date": "2026-05-28"}'::jsonb,
+      'Farmalink',
+      'FL-1002932',
+      (CURRENT_DATE - INTERVAL '27 days')::timestamptz
+    );
+  -- ==========================================================================
+  -- MEDICAL ORDERS (Estudios Médicos Complementarios)
+  -- ==========================================================================
+
+  INSERT INTO public.medical_orders (
+    id, doctor_id, patient_id, status, study_type, practices, diagnosis, notes, cuir, qr_code_content, signed_pdf_url, created_at, updated_at
+  ) VALUES
+    (
+      'ed000001-0000-0000-0000-000000000001',
+      v_doctor_id,
+      v_patient_1,
+      'draft',
+      'laboratory',
+      '[{"name": "Hemograma completo"}, {"name": "Hepatograma"}, {"name": "TSH, T4 libre"}]'::jsonb,
+      'Seguimiento de TDAH e insomnio',
+      'Ayuno de 8 horas antes de la extracción',
+      NULL,
+      NULL,
+      NULL,
+      (CURRENT_DATE - INTERVAL '1 day')::timestamptz,
+      (CURRENT_DATE - INTERVAL '1 day')::timestamptz
+    ),
+    (
+      'ed000002-0000-0000-0000-000000000002',
+      v_doctor_id,
+      v_patient_3,
+      'signed',
+      'cardiology',
+      '[{"name": "Electrocardiograma (ECG)"}, {"name": "Ergometría de 12 derivaciones"}]'::jsonb,
+      'Palpitaciones y crisis de pánico recurrentes',
+      'Concurrir con ropa cómoda y zapatillas deportivas',
+      'O-X84A3B29',
+      'https://autamedica.com/orders/O-X84A3B29',
+      'https://qxjjrpksmwwrmubhvjew.supabase.co/storage/v1/object/public/medical-documents/medical-orders/ed000002-0000-0000-0000-000000000002.pdf',
+      (CURRENT_DATE - INTERVAL '3 days')::timestamptz,
+      (CURRENT_DATE - INTERVAL '3 days')::timestamptz
+    )
+  ON CONFLICT (id) DO NOTHING;
 
   RAISE NOTICE '=== seed_demo_doctor completado ===';
   RAISE NOTICE 'Doctor ID: %', v_doctor_id;

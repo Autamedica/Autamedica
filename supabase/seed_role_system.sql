@@ -8,14 +8,14 @@ ALTER TABLE public.user_roles DISABLE TRIGGER sync_profile_role_after_user_roles
 
 -- First, create test profiles (these would normally be created via Supabase Auth)
 -- For demo purposes, we'll create them directly
-INSERT INTO public.profiles (id, email, first_name, last_name, role, created_at, updated_at)
+INSERT INTO public.profiles (user_id, email, first_name, last_name, role, created_at, updated_at)
 VALUES 
   ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'admin@clinica-demo.com', 'Admin', 'Clínica Demo', 'admin', NOW(), NOW()),
-  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'company@clinica-demo.com', 'Usuario', 'Empresa', 'company_admin', NOW(), NOW()),
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'company@clinica-demo.com', 'Usuario', 'Empresa', 'company', NOW(), NOW()),
   ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'doctor@clinica-demo.com', 'Juan', 'Pérez', 'doctor', NOW(), NOW()),
   ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'patient@clinica-demo.com', 'María', 'González', 'patient', NOW(), NOW()),
-  ('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'platform@clinica-demo.com', 'Platform', 'Admin', 'platform_admin', NOW(), NOW())
-ON CONFLICT (id) DO UPDATE SET
+  ('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'platform@clinica-demo.com', 'Platform', 'Admin', 'admin', NOW(), NOW())
+ON CONFLICT (user_id) DO UPDATE SET
   email = EXCLUDED.email,
   first_name = EXCLUDED.first_name,
   last_name = EXCLUDED.last_name,
