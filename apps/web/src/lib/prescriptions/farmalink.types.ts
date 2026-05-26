@@ -36,8 +36,12 @@ export interface FarmalinkAfiliadoRq extends FarmalinkPersonDocument {
 export interface FarmalinkMatriculaRq {
   tipo: string;
   provincia: string;
-  numero: string;
-  especialidad?: string;
+  numero: string | number;
+  especialidad?: string | {
+    clasificador?: number;
+    codigo?: string;
+    textoLibre?: string;
+  };
 }
 
 export interface FarmalinkMedicoRq extends FarmalinkPersonDocument {

@@ -21,7 +21,7 @@ Authorization: Basic <base64 basicUser:basicPassword>
 grant_type: PASSWORD
 username: <oauth username>
 password: <oauth password>
-scope: Switch.RecetaElectRestV3
+scope: Switch.RecetaElectRest
 ```
 
 La API de receta usa:
@@ -39,7 +39,7 @@ FARMALINK_BASE_URL=https://test-servicios.farmalink.com.ar
 FARMALINK_TOKEN_PATH=/api/oauth/token/generate
 FARMALINK_RECETA_BASE_PATH=/api/recetaElect/v3
 FARMALINK_GRANT_TYPE=PASSWORD
-FARMALINK_SCOPE=Switch.RecetaElectRestV3
+FARMALINK_SCOPE=Switch.RecetaElectRest
 FARMALINK_OAUTH_USERNAME=
 FARMALINK_OAUTH_PASSWORD=
 FARMALINK_BASIC_USER=

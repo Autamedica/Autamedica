@@ -207,8 +207,12 @@ export function buildFarmalinkAltaRecetaRequest(
           matricula: {
             tipo: assertText(input.prescriber.license.tipo, 'prescriber.license.tipo'),
             provincia: assertText(input.prescriber.license.provincia, 'prescriber.license.provincia'),
-            numero: assertText(input.prescriber.license.numero, 'prescriber.license.numero'),
-            especialidad: optionalText(input.prescriber.license.especialidad),
+            numero: numberFromDigits(input.prescriber.license.numero, 'prescriber.license.numero'),
+            especialidad: input.prescriber.license.especialidad
+              ? (typeof input.prescriber.license.especialidad === 'object'
+                ? input.prescriber.license.especialidad
+                : { textoLibre: assertText(input.prescriber.license.especialidad as string, 'prescriber.license.especialidad') })
+              : undefined,
           },
           ...documentFields(
             input.prescriber.documentType,
