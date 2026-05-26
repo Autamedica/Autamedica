@@ -186,3 +186,23 @@ export function resolvePublicClientEnv(runtimeEnv?: RuntimeEnvRecord): {
     publicSentryDsn: publicSentryDsn ?? '',
   };
 }
+
+export function resolveBusTokenSecret(runtimeEnv?: RuntimeEnvRecord): string | undefined {
+  primeRuntimeEnv(runtimeEnv);
+  return (
+    readFirst(runtimeEnv, ['BUS_INTEROP_TOKEN_SECRET']) ??
+    readCached(['BUS_INTEROP_TOKEN_SECRET']) ??
+    import.meta.env.BUS_INTEROP_TOKEN_SECRET ??
+    readProcess(['BUS_INTEROP_TOKEN_SECRET'])
+  );
+}
+
+export function resolveBusDomainUrl(runtimeEnv?: RuntimeEnvRecord): string | undefined {
+  primeRuntimeEnv(runtimeEnv);
+  return (
+    readFirst(runtimeEnv, ['BUS_INTEROP_DOMAIN_URL']) ??
+    readCached(['BUS_INTEROP_DOMAIN_URL']) ??
+    import.meta.env.BUS_INTEROP_DOMAIN_URL ??
+    readProcess(['BUS_INTEROP_DOMAIN_URL'])
+  );
+}
