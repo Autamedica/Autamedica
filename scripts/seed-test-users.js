@@ -6,8 +6,9 @@
 const { createClient } = require('@supabase/supabase-js');
 
 // Configuración de Supabase
-const SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
-const SUPABASE_SERVICE_KEY = 'REPLACE_WITH_ROTATED_KEY.zETc5W1OzznzfspXwd4zxA-ifW-aCKd9PGRneEs2IOk';
+require('dotenv').config({ path: require('path').resolve(process.cwd(), 'apps/web/.env') });
+const SUPABASE_URL = process.env.PUBLIC_SUPABASE_URL || 'https://qxjjrpksmwwrmubhvjew.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'REPLACE_WITH_ROTATED_KEY.zETc5W1OzznzfspXwd4zxA-ifW-aCKd9PGRneEs2IOk';
 
 // Crear cliente con service key para bypass de RLS
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -74,22 +75,39 @@ async function seedTestUsers() {
         }
       });
 
+      let userId = null;
       if (error) {
-        if (error.message.includes('already registered')) {
+        if (error.message.includes('already') || error.message.includes('registered')) {
           console.log(`⚠️  Usuario ${user.email} ya existe (rol: ${user.role})`);
+          // Buscar el ID del usuario existente
+          const { data: usersData, error: listError } = await supabase.auth.admin.listUsers();
+          if (!listError && usersData && usersData.users) {
+            const foundUser = usersData.users.find(u => u.email === user.email);
+            if (foundUser) {
+              userId = foundUser.id;
+            }
+          }
         } else {
           console.error(`❌ Error creando ${user.email}:`, error.message);
         }
       } else {
         console.log(`✅ Usuario creado: ${user.email} (rol: ${user.role})`);
-        
+        userId = data.user.id;
+      }
+
+      if (userId) {
+        // Map roles to comply with chk_profiles_role CHECK
+        let dbRole = user.role;
+        if (dbRole === 'company_admin') dbRole = 'company';
+        if (dbRole === 'platform_admin') dbRole = 'admin';
+
         // Crear entrada en tabla profiles
         const { error: profileError } = await supabase
           .from('profiles')
           .upsert({
-            id: data.user.id,
+            user_id: userId,
             email: user.email,
-            role: user.role,
+            role: dbRole,
             first_name: user.metadata.first_name,
             last_name: user.metadata.last_name,
             phone: user.metadata.phone || null,
@@ -99,7 +117,7 @@ async function seedTestUsers() {
         if (profileError) {
           console.error(`   ⚠️  Error creando perfil:`, profileError.message);
         } else {
-          console.log(`   ✅ Perfil creado en tabla profiles`);
+          console.log(`   ✅ Perfil creado/actualizado en tabla profiles`);
         }
       }
       

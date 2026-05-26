@@ -207,7 +207,15 @@ function applySecurityHeaders(response: Response): void {
     "Permissions-Policy",
     "camera=(self), microphone=(self), geolocation=()",
   );
-  response.headers.set("Content-Security-Policy", CSP_DIRECTIVES);
+  
+  let csp = CSP_DIRECTIVES;
+  if (import.meta.env.DEV) {
+    csp = csp.replace(
+      "connect-src ",
+      "connect-src http://localhost:54321 http://127.0.0.1:54321 ws://localhost:54321 ws://127.0.0.1:54321 "
+    );
+  }
+  response.headers.set("Content-Security-Policy", csp);
 
   if (import.meta.env.PROD) {
     response.headers.set(

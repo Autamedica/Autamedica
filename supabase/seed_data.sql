@@ -24,21 +24,21 @@ TRUNCATE TABLE public.profiles CASCADE;
 -- ============================================================================
 
 -- Platform Admin
-INSERT INTO public.profiles (id, email, role, first_name, last_name) VALUES
-('11111111-1111-1111-1111-111111111111', 'admin@autamedica.com', 'platform_admin', 'Sistema', 'Administrador');
+INSERT INTO public.profiles (user_id, email, role, first_name, last_name) VALUES
+('11111111-1111-1111-1111-111111111111', 'admin@autamedica.com', 'admin', 'Sistema', 'Administrador');
 
 -- Organization Admin
-INSERT INTO public.profiles (id, email, role, first_name, last_name) VALUES
-('22222222-2222-2222-2222-222222222222', 'empresa@hospitalsanmartin.com', 'organization_admin', 'María', 'Rodriguez');
+INSERT INTO public.profiles (user_id, email, role, first_name, last_name) VALUES
+('22222222-2222-2222-2222-222222222222', 'empresa@hospitalsanmartin.com', 'admin', 'María', 'Rodriguez');
 
 -- Doctors
-INSERT INTO public.profiles (id, email, role, first_name, last_name) VALUES
+INSERT INTO public.profiles (user_id, email, role, first_name, last_name) VALUES
 ('33333333-3333-3333-3333-333333333333', 'dr.garcia@autamedica.com', 'doctor', 'Carlos', 'García'),
 ('44444444-4444-4444-4444-444444444444', 'dra.martinez@autamedica.com', 'doctor', 'Ana', 'Martínez'),
 ('55555555-5555-5555-5555-555555555555', 'dr.lopez@autamedica.com', 'doctor', 'José', 'López');
 
 -- Patients
-INSERT INTO public.profiles (id, email, role, first_name, last_name) VALUES
+INSERT INTO public.profiles (user_id, email, role, first_name, last_name) VALUES
 ('66666666-6666-6666-6666-666666666666', 'juan.perez@gmail.com', 'patient', 'Juan', 'Pérez'),
 ('77777777-7777-7777-7777-777777777777', 'maria.gonzalez@gmail.com', 'patient', 'María', 'González'),
 ('88888888-8888-8888-8888-888888888888', 'carlos.ruiz@empresa.com', 'patient', 'Carlos', 'Ruiz'),
