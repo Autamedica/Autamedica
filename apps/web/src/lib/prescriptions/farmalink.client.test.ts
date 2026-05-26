@@ -16,7 +16,7 @@ const config: FarmalinkClientConfig = {
   oauthPassword: 'app-password',
   basicUser: 'basic-user',
   basicPassword: 'basic-password',
-  scope: 'Switch.RecetaElectRestV3',
+  scope: 'Switch.RecetaElectRest',
   grantType: 'PASSWORD',
 };
 
@@ -107,7 +107,7 @@ describe('FarmalinkClient', () => {
   });
 
   it('generates a token and calls altaReceta with Bearer authorization', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock: any = vi.fn()
       .mockResolvedValueOnce(jsonResponse({
         access_token: 'token-123',
         token_type: 'Bearer',
@@ -146,7 +146,7 @@ describe('FarmalinkClient', () => {
           grant_type: 'PASSWORD',
           username: 'app-user',
           password: 'app-password',
-          scope: 'Switch.RecetaElectRestV3',
+          scope: 'Switch.RecetaElectRest',
         }),
       }),
     );
@@ -165,7 +165,7 @@ describe('FarmalinkClient', () => {
   });
 
   it('caches access tokens until they are near expiration', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock: any = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ access_token: 'token-123', expires_in: 3600 }))
       .mockImplementation(() => Promise.resolve(jsonResponse({
         altaRecetaElectRs: {
@@ -183,7 +183,7 @@ describe('FarmalinkClient', () => {
   });
 
   it('throws a typed HTTP error with the parsed response body', async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ error: 'bad_credentials' }, 401));
+    const fetchMock: any = vi.fn().mockResolvedValueOnce(jsonResponse({ error: 'bad_credentials' }, 401));
     const client = new FarmalinkClient({ ...config, fetch: fetchMock });
 
     await expect(client.generateAccessToken()).rejects.toMatchObject({
@@ -193,7 +193,23 @@ describe('FarmalinkClient', () => {
     } satisfies Partial<FarmalinkHttpError>);
   });
 
-  it('marks AltaReceta as rejected when Farmalink does not return codigo 00', () => {
+  it('marks AltaReceta as approved when Farmalink returns either 00 or 0', () => {
+    expect(extractFarmalinkAltaResult({
+      altaRecetaElectRs: {
+        respuesta: { codigo: '00', descripcion: 'OK' },
+        recElectronica: { nroRecElectronica: '123' },
+      },
+    }).approved).toBe(true);
+
+    expect(extractFarmalinkAltaResult({
+      altaRecetaElectRs: {
+        respuesta: { codigo: '0', descripcion: 'OK' },
+        recElectronica: { nroRecElectronica: '123' },
+      },
+    }).approved).toBe(true);
+  });
+
+  it('marks AltaReceta as rejected when Farmalink does not return approved codes', () => {
     expect(extractFarmalinkAltaResult({
       altaRecetaElectRs: {
         respuesta: {

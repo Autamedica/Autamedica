@@ -105,8 +105,10 @@ describe('Farmalink mapper', () => {
             matricula: {
               tipo: 'MN',
               provincia: 'C',
-              numero: '123456',
-              especialidad: 'Clinica Medica',
+              numero: 123456,
+              especialidad: {
+                textoLibre: 'Clinica Medica',
+              },
             },
           },
           detalleRecElectronica: {

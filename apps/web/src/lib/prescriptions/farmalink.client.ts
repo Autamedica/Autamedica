@@ -51,7 +51,7 @@ export function resolveFarmalinkConfig(runtimeEnv?: RuntimeEnvRecord): Farmalink
     oauthPassword: readEnv(runtimeEnv, 'FARMALINK_OAUTH_PASSWORD'),
     basicUser: readEnv(runtimeEnv, 'FARMALINK_BASIC_USER'),
     basicPassword: readEnv(runtimeEnv, 'FARMALINK_BASIC_PASSWORD'),
-    scope: readEnv(runtimeEnv, 'FARMALINK_SCOPE', 'Switch.RecetaElectRestV3'),
+    scope: readEnv(runtimeEnv, 'FARMALINK_SCOPE', 'Switch.RecetaElectRest'),
     grantType: readEnv(runtimeEnv, 'FARMALINK_GRANT_TYPE', 'PASSWORD'),
   };
 
@@ -109,7 +109,7 @@ export function extractFarmalinkAltaResult(raw: FarmalinkAltaRecetaResponse): Fa
   const nroRecElectronica = response?.recElectronica?.nroRecElectronica?.trim();
 
   return {
-    approved: respuesta?.codigo === '00' && Boolean(nroRecElectronica),
+    approved: (respuesta?.codigo === '00' || respuesta?.codigo === '0') && Boolean(nroRecElectronica),
     responseCode: respuesta?.codigo,
     responseDescription: respuesta?.descripcion,
     reference: respuesta?.referencia,
