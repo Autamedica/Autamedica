@@ -264,6 +264,21 @@ Detalle: `docs/ARQUITECTURA.md` sección "Patrones Avanzados".
    - **Pre-flight:** `pnpm lint`, `pnpm build` y `pnpm test:unit` deben pasar localmente.
    - **CI Monitoring:** Si GitHub Actions falla, la rama es "radioactiva"; prohibido mergear.
 
+4. **Higiene del Working Tree:**
+   - **NUNCA** ejecutar `merge`, `pull`, `rebase` ni despliegues manuales si el working tree no está 100% limpio. Usar `git status` para comprobar, y limpiar/guardar en stash cambios no planeados.
+
+5. **Estrategia de Merge en Main (Rebase vs Squash):**
+   - **Ramas Limpias (Sin merges internos):** Aplicar **Rebase merge** (o fast-forward).
+   - **Ramas con Merges Internos (e.g., `merge branch 'main' into...`):** Aplicar estrictamente **Squash merge** para evitar introducir merge nodes intermedios y mantener la historia de `main` limpia y legible.
+
+6. **Configuración Estándar de Git:**
+   - Todo agente o desarrollador debe mantener activa esta configuración local/global:
+     ```bash
+     git config --global pull.rebase true
+     git config --global rebase.autoStash true
+     git config --global merge.ff only
+     ```
+
 ### Protocolo de Contexto del Agente (Anti-Mezcla)
 
 **Reglas de Foco:**
