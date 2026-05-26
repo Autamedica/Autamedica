@@ -1,0 +1,14 @@
+{
+  "name": "@autamedica/telegram-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs",
+    "dev": "tsx watch index.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
+    "grammy": "^1.22.4"
+  }
+}

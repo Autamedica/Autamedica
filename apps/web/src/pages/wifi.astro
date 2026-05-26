@@ -1,0 +1,282 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const title = "Wi-Fi Gratis | AutaMedica";
+const description = "Conectate a nuestra red Wi-Fi de alta velocidad gratis en segundos registrándote en AutaMedica.";
+---
+
+<Layout title={title} description={description}>
+  <main class="min-h-screen bg-[#FDFCF7] flex flex-col justify-between p-6 font-sans select-none antialiased">
+    <!-- Top Branding -->
+    <div class="flex justify-center pt-4">
+      <div class="flex items-center gap-2.5">
+        <img src="/logo_bioceramic.png" alt="AutaMedica" width="36" height="36" class="brand-logo shadow-sm rounded-xl" />
+        <span class="text-xl font-bold tracking-tight text-neutral-900">
+          Auta<span class="text-[#0ea5e9]">Medica</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Center Card -->
+    <div class="max-w-md w-full mx-auto my-auto flex flex-col gap-6">
+      <div class="bg-white/80 backdrop-blur-md rounded-[2.5rem] border border-neutral-100 p-8 shadow-xl shadow-neutral-100/50 flex flex-col gap-6 relative overflow-hidden transition-all duration-300">
+        
+        <!-- Subtle gradient backdrop element -->
+        <div class="absolute -top-12 -right-12 w-32 h-32 bg-[#e0f2fe] rounded-full blur-2xl opacity-40 pointer-events-none"></div>
+        
+        <!-- Header -->
+        <div class="text-center relative z-10">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-[#f0f9ff] border border-[#e0f2fe] text-[#0284c7] text-[10px] font-bold rounded-full mb-3 uppercase tracking-wider">
+            📶 Acceso Wi-Fi de Alta Velocidad
+          </div>
+          <h2 class="text-2xl font-extrabold text-neutral-950 tracking-tight leading-tight">
+            Navegá gratis cuidando tu salud
+          </h2>
+          <p class="text-sm text-neutral-500 mt-2 max-w-xs mx-auto leading-relaxed">
+            Completá tus datos en 10 segundos para habilitar tu conexión libre en esta sala.
+          </p>
+        </div>
+
+        <!-- Registration & Connect Form -->
+        <form id="wifi-form" class="flex flex-col gap-4 relative z-10">
+          <!-- Hidden inputs for captive portal router params -->
+          <input type="hidden" name="mac" id="input-mac" />
+          <input type="hidden" name="ap" id="input-ap" />
+          <input type="hidden" name="base_grant_url" id="input-base-grant-url" />
+          <input type="hidden" name="user_continue_url" id="input-user-continue-url" />
+
+          <!-- Input Name -->
+          <div class="flex flex-col gap-1.5">
+            <label for="name" class="text-xs font-bold text-neutral-700 uppercase tracking-wider pl-1">
+              Nombre Completo
+            </label>
+            <input 
+              type="text" 
+              name="name" 
+              id="name" 
+              required
+              placeholder="Ej: Juan Pérez" 
+              class="w-full px-5 py-3.5 bg-neutral-50 border border-neutral-100 rounded-2xl text-neutral-950 placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-[#0ea5e9] focus:ring-1 focus:ring-[#0ea5e9] transition-all text-sm font-medium shadow-inner"
+            />
+          </div>
+
+          <!-- Input WhatsApp Phone -->
+          <div class="flex flex-col gap-1.5">
+            <label for="phone" class="text-xs font-bold text-neutral-700 uppercase tracking-wider pl-1 flex items-center justify-between">
+              Teléfono WhatsApp
+              <span class="text-[10px] font-normal text-neutral-400 normal-case">Con código de país (Ej: +54)</span>
+            </label>
+            <input 
+              type="tel" 
+              name="phone" 
+              id="phone" 
+              required
+              placeholder="Ej: +54 9 11 1234 5678" 
+              class="w-full px-5 py-3.5 bg-neutral-50 border border-neutral-100 rounded-2xl text-neutral-950 placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-[#0ea5e9] focus:ring-1 focus:ring-[#0ea5e9] transition-all text-sm font-medium shadow-inner"
+            />
+          </div>
+
+          <!-- Optional Email -->
+          <div class="flex flex-col gap-1.5">
+            <label for="email" class="text-xs font-bold text-neutral-700 uppercase tracking-wider pl-1 flex items-center justify-between">
+              E-mail <span class="text-[10px] font-normal text-neutral-400 normal-case">(Opcional)</span>
+            </label>
+            <input 
+              type="email" 
+              name="email" 
+              id="email" 
+              placeholder="Ej: tu@email.com" 
+              class="w-full px-5 py-3.5 bg-neutral-50 border border-neutral-100 rounded-2xl text-neutral-950 placeholder-neutral-400 focus:outline-none focus:bg-white focus:border-[#0ea5e9] focus:ring-1 focus:ring-[#0ea5e9] transition-all text-sm font-medium shadow-inner"
+            />
+          </div>
+
+          <!-- Legal / Terms Toggles -->
+          <div class="flex items-start gap-3 mt-1.5 px-1">
+            <input 
+              type="checkbox" 
+              name="consent_marketing" 
+              id="consent_marketing" 
+              checked 
+              required
+              class="w-4 h-4 rounded border-neutral-200 text-[#0ea5e9] focus:ring-[#0ea5e9] mt-0.5 accent-[#0ea5e9]" 
+            />
+            <label for="consent_marketing" class="text-[11px] text-neutral-500 leading-tight">
+              Acepto los <a href="/terms" target="_blank" class="text-[#0ea5e9] font-semibold underline">términos de servicio</a> y el contacto de seguimiento de salud por WhatsApp.
+            </label>
+          </div>
+
+          <!-- Submit Button -->
+          <button 
+            type="submit" 
+            id="submit-btn"
+            class="w-full mt-2 bg-[#0ea5e9] hover:bg-[#0284c7] active:scale-[0.98] text-white py-4 rounded-2xl font-bold text-sm tracking-wide shadow-lg shadow-sky-600/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>Conectar a Internet Gratis</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          </button>
+        </form>
+
+        <!-- Loading State Overlay -->
+        <div id="loading-overlay" class="absolute inset-0 bg-white/95 z-20 flex flex-col items-center justify-center gap-4 transition-all duration-300 opacity-0 pointer-events-none rounded-[2.5rem]">
+          <div class="w-12 h-12 rounded-full border-4 border-neutral-100 border-t-[#0ea5e9] animate-spin"></div>
+          <div class="text-center">
+            <h4 class="font-bold text-neutral-900">Verificando tus datos</h4>
+            <p class="text-xs text-neutral-400 mt-1">Autorizando acceso al Wi-Fi de alta velocidad...</p>
+          </div>
+        </div>
+
+        <!-- Success State Overlay -->
+        <div id="success-overlay" class="absolute inset-0 bg-white/98 z-30 flex flex-col items-center justify-center gap-6 transition-all duration-300 opacity-0 pointer-events-none rounded-[2.5rem]">
+          <div class="w-16 h-16 bg-[#f0f9ff] border border-[#e0f2fe] text-[#0284c7] rounded-full flex items-center justify-center shadow-inner relative scale-50 transition-all duration-500" id="success-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-8 h-8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </div>
+          <div class="text-center px-6">
+            <span class="inline-block px-2.5 py-0.5 bg-[#f0f9ff] border border-[#e0f2fe] text-[#0284c7] text-[9px] font-bold rounded-full mb-2 uppercase tracking-widest">
+              Conectado
+            </span>
+            <h3 class="text-xl font-bold text-neutral-950">¡Acceso concedido!</h3>
+            <p class="text-xs text-neutral-400 mt-2 leading-relaxed">
+              Ya podés navegar sin límites. En 2 minutos te mandaremos tu bienvenida a AutaMedica por WhatsApp.
+            </p>
+          </div>
+          <div class="w-full max-w-[200px] bg-neutral-100 h-1 rounded-full overflow-hidden">
+            <div class="h-full bg-[#0ea5e9] transition-all duration-2000 ease-out" style="width: 0%" id="success-progress"></div>
+          </div>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="error-alert" class="hidden flex items-start gap-2.5 p-3.5 bg-red-50 border border-red-100 text-red-700 text-xs rounded-xl relative z-10 transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 mt-0.5 flex-shrink-0">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          <div class="flex-grow font-medium" id="error-message">
+            Ocurrió un error. Por favor intentá nuevamente.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bottom Footer (Compliance & Privacy) -->
+    <div class="text-center pb-4 flex flex-col gap-2">
+      <p class="text-[10px] text-neutral-400">
+        AutaMedica cumple con la Ley de Protección de Datos Personales Nº 25.326.
+      </p>
+      <div class="flex justify-center gap-4 text-[10px] font-medium text-neutral-500">
+        <a href="/privacidad" target="_blank" class="hover:text-neutral-700">Privacidad</a>
+        <span>•</span>
+        <a href="/terms" target="_blank" class="hover:text-neutral-700">Términos</a>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script is:inline>
+  // 1. Extraemos los parámetros de portal cautivo que envían los routers por la URL
+  function getQueryParam(param) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(param);
+  }
+
+  // Identificadores comunes de Portal Cautivo
+  // base_grant_url es el trigger del router de UniFi/Cisco para autorizar el dispositivo
+  const baseGrantUrl = getQueryParam('base_grant_url') || getQueryParam('grant_url') || '';
+  const userContinueUrl = getQueryParam('user_continue_url') || getQueryParam('continue') || 'https://www.autamedica.com';
+  const clientMac = getQueryParam('id') || getQueryParam('mac') || '';
+  const apMac = getQueryParam('ap') || getQueryParam('ap_mac') || '';
+
+  // Inyectamos en inputs ocultos del formulario
+  document.getElementById('input-mac').value = clientMac;
+  document.getElementById('input-ap').value = apMac;
+  document.getElementById('input-base-grant-url').value = baseGrantUrl;
+  document.getElementById('input-user-continue-url').value = userContinueUrl;
+
+  const form = document.getElementById('wifi-form');
+  const loadingOverlay = document.getElementById('loading-overlay');
+  const successOverlay = document.getElementById('success-overlay');
+  const successCircle = document.getElementById('success-circle');
+  const successProgress = document.getElementById('success-progress');
+  const errorAlert = document.getElementById('error-alert');
+  const errorMessage = document.getElementById('error-message');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorAlert.classList.add('hidden');
+
+    // Estado cargando
+    loadingOverlay.classList.remove('opacity-0', 'pointer-events-none');
+    
+    const formData = new FormData(form);
+    const data = {
+      name: formData.get('name'),
+      phone: formData.get('phone'),
+      email: formData.get('email'),
+      vertical: 'wifi',
+      mac: formData.get('mac'),
+      ap: formData.get('ap'),
+      base_grant_url: formData.get('base_grant_url'),
+      user_continue_url: formData.get('user_continue_url')
+    };
+
+    try {
+      const response = await fetch('/api/wifi-register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'registration_failed');
+      }
+
+      // Registro exitoso, pasamos a la pantalla de Conectado
+      loadingOverlay.classList.add('opacity-0', 'pointer-events-none');
+      successOverlay.classList.remove('opacity-0', 'pointer-events-none');
+      
+      // Animamos el check e indicador de progreso
+      setTimeout(() => {
+        successCircle.classList.remove('scale-50');
+        successProgress.style.width = '100%';
+      }, 50);
+
+      // 3. Procesamos el salto del Portal Cautivo para darle Internet Real al usuario
+      setTimeout(() => {
+        if (baseGrantUrl) {
+          // Si el router de UniFi/Cisco requiere GET de autorización
+          // Lo enviamos a: base_grant_url?continue=user_continue_url
+          const redirectUrl = new URL(baseGrantUrl);
+          redirectUrl.searchParams.set('continue', userContinueUrl);
+          window.location.href = redirectUrl.toString();
+        } else {
+          // Si no hay portal cautivo real, redirigimos a la web de AutaMedica
+          window.location.href = userContinueUrl;
+        }
+      }, 2500);
+
+    } catch (err) {
+      // Manejo de errores
+      loadingOverlay.classList.add('opacity-0', 'pointer-events-none');
+      errorAlert.classList.remove('hidden');
+      
+      if (err.message === 'name_required') {
+        errorMessage.innerText = 'Por favor ingresá tu nombre completo.';
+      } else if (err.message === 'phone_or_email_required') {
+        errorMessage.innerText = 'Se requiere un teléfono de WhatsApp para validar el acceso.';
+      } else if (err.message === 'invalid_phone_format') {
+        errorMessage.innerText = 'El formato del teléfono es inválido. Ingresalo con prefijo de país (ej: +54).';
+      } else if (err.message === 'rate_limited') {
+        errorMessage.innerText = 'Muchas conexiones en curso. Esperá unos momentos e intentá nuevamente.';
+      } else {
+        errorMessage.innerText = 'Ocurrió un error inesperado al validar tus datos. Volvé a intentarlo.';
+      }
+    }
+  });
+</script>
