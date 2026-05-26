@@ -327,6 +327,11 @@ export async function generatePrescriptionPdf(
       input.prescriber.license,
       input.patient.dni || 'unknown',
       input.medication.genericName,
+      {
+        jurisdiction: input.prescriber.licenseJurisdiction ?? input.prescriber.license.split('-')[0],
+        groupId: input.prescriptionId,
+        expendioType: '02', // Bajo receta de medicamentos por defecto
+      }
     );
 
   const cuir = registration.cuir;

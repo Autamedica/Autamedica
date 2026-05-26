@@ -12,7 +12,7 @@ describe('generatePrescriptionPdf', () => {
   it('renders a visible barcode block tied to the CUIR', async () => {
     primeRuntimeEnv({ RENAPDIS_RL_NUMBER: 'RL-2026-47574120-APN-SSVEIYES#MS' });
     vi.spyOn(rctaService, 'registerPrescription').mockResolvedValueOnce({
-      cuir: 'AR-20260511-C0EEE620',
+      cuir: '02680042020102000000000000000000000010101',
       evidenceHash: 'test-evidence-hash',
       registrationId: 'rcta_idx_test',
       timestamp: '2026-05-11T12:00:00.000Z',
@@ -52,8 +52,8 @@ describe('generatePrescriptionPdf', () => {
 
     const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
 
-    expect(artifacts.cuir).toBe('AR-20260511-C0EEE620');
-    expect(artifacts.qrContent).toBe('https://www.autamedica.com/verify/AR-20260511-C0EEE620');
+    expect(artifacts.cuir).toBe('02680042020102000000000000000000000010101');
+    expect(artifacts.qrContent).toBe('https://www.autamedica.com/verify/02680042020102000000000000000000000010101');
     expect(pdfText).toContain('CÓDIGO DE BARRAS');
     expect(pdfText).toContain('500mg');
     expect(pdfText).toContain('Comprimidos');
@@ -64,13 +64,13 @@ describe('generatePrescriptionPdf', () => {
     );
     expect(pdfText).toContain('RL-2026-47574120-APN-SSVEIYES#MS');
     expect(pdfText).not.toMatch(/no sustituci[oó]n/i);
-    expect(pdfText).toContain('AR-20260511-C0EEE620');
+    expect(pdfText).toContain('02680042020102000000000000000000000010101');
   });
 
   it('reads RENAPDIS legajo from the Cloudflare runtime env cache', async () => {
     primeRuntimeEnv({ RENAPDIS_RL_NUMBER: 'RL-RUNTIME-RENAPDIS-123' });
     vi.spyOn(rctaService, 'registerPrescription').mockResolvedValueOnce({
-      cuir: 'AR-20260511-RENAPDIS',
+      cuir: '02680042020102000000000000000000000010102',
       evidenceHash: 'test-evidence-hash',
       registrationId: 'rcta_idx_test',
       timestamp: '2026-05-11T12:00:00.000Z',
@@ -116,7 +116,7 @@ describe('generatePrescriptionPdf', () => {
       prescriptionId: 'rx-existing',
       diagnosis: 'Control',
       issuedAt: '2026-05-11',
-      existingCuir: 'AM-3A40CA048B7E',
+      existingCuir: '02680042020102000000000000000000000010103',
       medication: {
         genericName: 'Metilfenidato',
         dosage: '10mg',
@@ -140,15 +140,15 @@ describe('generatePrescriptionPdf', () => {
     const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
 
     expect(registerSpy).not.toHaveBeenCalled();
-    expect(artifacts.cuir).toBe('AM-3A40CA048B7E');
-    expect(artifacts.qrContent).toBe('https://www.autamedica.com/verify/AM-3A40CA048B7E');
+    expect(artifacts.cuir).toBe('02680042020102000000000000000000000010103');
+    expect(artifacts.qrContent).toBe('https://www.autamedica.com/verify/02680042020102000000000000000000000010103');
     expect(pdfText).toContain('CÓDIGO DE BARRAS');
-    expect(pdfText).toContain('AM-3A40CA048B7E');
+    expect(pdfText).toContain('02680042020102000000000000000000000010103');
   });
 
   it('renders the Farmalink prescription number in the barcode when supplied', async () => {
     const registerSpy = vi.spyOn(rctaService, 'registerPrescription').mockResolvedValueOnce({
-      cuir: 'AR-20260518-FARMALINK',
+      cuir: '02680042020102000000000000000000000010104',
       evidenceHash: 'test-evidence-hash',
       registrationId: 'rcta_idx_test',
       timestamp: '2026-05-18T12:00:00.000Z',
@@ -187,15 +187,15 @@ describe('generatePrescriptionPdf', () => {
     const pdfText = Buffer.from(artifacts.pdfBuffer).toString('latin1');
 
     expect(registerSpy).toHaveBeenCalledOnce();
-    expect(artifacts.cuir).toBe('AR-20260518-FARMALINK');
-    expect(pdfText).toContain('CUIR: AR-20260518-FARMALINK');
+    expect(artifacts.cuir).toBe('02680042020102000000000000000000000010104');
+    expect(pdfText).toContain('CUIR: 02680042020102000000000000000000000010104');
     expect(pdfText).toContain('RECETA FARMALINK: 9600000002762');
     expect(pdfText).toContain('Número de receta para validación online en farmacia');
   });
 
   it('generates pdf correctly for female and empathetic aesthetic templates', async () => {
     vi.spyOn(rctaService, 'registerPrescription').mockResolvedValue({
-      cuir: 'AR-20260522-TEMPLATES',
+      cuir: '02680042020102000000000000000000000010105',
       evidenceHash: 'test-evidence-hash',
       registrationId: 'rcta_idx_test',
       timestamp: '2026-05-22T12:00:00.000Z',
@@ -232,8 +232,8 @@ describe('generatePrescriptionPdf', () => {
       template: 'empathetic',
     });
 
-    expect(artifactsFemale.cuir).toBe('AR-20260522-TEMPLATES');
-    expect(artifactsEmpathetic.cuir).toBe('AR-20260522-TEMPLATES');
+    expect(artifactsFemale.cuir).toBe('02680042020102000000000000000000000010105');
+    expect(artifactsEmpathetic.cuir).toBe('02680042020102000000000000000000000010105');
 
     const pdfTextFemale = Buffer.from(artifactsFemale.pdfBuffer).toString('latin1');
     const pdfTextEmpathetic = Buffer.from(artifactsEmpathetic.pdfBuffer).toString('latin1');
