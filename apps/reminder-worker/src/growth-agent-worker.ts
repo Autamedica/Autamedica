@@ -113,6 +113,36 @@ const config: WorkerConfig = {
   intervalMs: Number.isFinite(INTERVAL_MS) ? INTERVAL_MS : 60000,
 };
 
+const TELEGRAM_BOT_TOKEN = getServerEnvOrDefault('GROWTH_TELEGRAM_BOT_TOKEN');
+const TELEGRAM_CHAT_ID = getServerEnvOrDefault('GROWTH_TELEGRAM_CHAT_ID');
+
+async function notifyTelegram(message: string): Promise<void> {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    return;
+  }
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: message,
+        parse_mode: 'Markdown',
+      }),
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      logger.error('Failed to send Telegram growth notification', { status: response.status, error: errText });
+    }
+  } catch (error) {
+    logger.error('Error sending Telegram growth notification', { error });
+  }
+}
+
+
 console.log('🏥 AutaMedica Growth Agent Worker starting...');
 console.log(`   Supabase: ${SUPABASE_URL}`);
 console.log(`   OpenClaw: ${OPENCLAW_URL} (account: ${OPENCLAW_ACCOUNT})`);
@@ -225,6 +255,12 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
 
   if (compliance.verdict === 'block') {
     await updateJob(job.id, 'blocked', 'Compliance blocked outbound message');
+    await notifyTelegram(
+      `⚠️ *ANMAT / Compliance Block*\n` +
+      `Se bloqueó un mensaje saliente para el lead *${lead.name ?? 'Sin nombre'}* (${lead.phone ?? lead.email}) en la vertical *${lead.vertical}*.\n` +
+      `*Motivo:* Coincidencia con patrones de claims prohibidos.\n` +
+      `*Mensaje bloqueado:* "${decision.message}"`
+    );
     return 'blocked';
   }
 
@@ -257,6 +293,13 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
       { ok: true, dryRun: true, capability_authorization: deliveryCapability },
     );
     await updateJob(job.id, 'ready');
+    await notifyTelegram(
+      `🧪 *AutaMedica Growth Agent [DRY RUN]*\n` +
+      `*Lead:* ${lead.name ?? 'Sin nombre'} (${lead.phone ?? lead.email})\n` +
+      `*Vertical:* ${lead.vertical} (Intento: ${lead.intent})\n` +
+      `*Canal:* ${decision.channel}\n` +
+      `*Mensaje:* "${decision.message}"`
+    );
     return 'ready';
   }
 
@@ -271,11 +314,24 @@ async function processOneJob(job: AgentJob, workerConfig: WorkerConfig): Promise
 
   if (!providerResult.ok) {
     await updateJob(job.id, 'failed', providerResult.error ?? 'Provider send failed');
+    await notifyTelegram(
+      `❌ *Error de Envío en Adquisición*\n` +
+      `No se pudo enviar el mensaje para *${lead.name ?? 'Sin nombre'}* (${lead.phone ?? lead.email}).\n` +
+      `*Canal:* ${decision.channel}\n` +
+      `*Error:* ${providerResult.error ?? 'Error desconocido del proveedor'}`
+    );
     return 'failed';
   }
 
   await recordGrowthEvent(lead, 'agent.concierge.sent', job, decision);
   await updateJob(job.id, 'sent');
+  await notifyTelegram(
+    `🚀 *Mensaje de Adquisición Enviado!*\n` +
+    `*Paciente:* ${lead.name ?? 'Sin nombre'} (${lead.phone ?? lead.email})\n` +
+    `*Vertical:* ${lead.vertical} (${lead.intent})\n` +
+    `*Canal:* ${decision.channel}\n` +
+    `*Mensaje:* "${decision.message}"`
+  );
   return 'sent';
 }
 
