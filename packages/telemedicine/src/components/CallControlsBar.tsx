@@ -50,85 +50,93 @@ export function CallControlsBar({
     <motion.div
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: showControls ? 0 : 100, opacity: showControls ? 1 : 0 }}
-      className="absolute bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] md:bottom-10 left-1/2 z-50 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-am-surface-900/[0.88] px-2 py-2 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-3xl sm:w-auto sm:gap-2 sm:rounded-[24px] sm:px-3 sm:py-3 md:gap-3 md:rounded-[28px] md:px-6 md:py-4"
+      className="absolute bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-1/2 z-50 flex w-[min(calc(100vw-1rem),24rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-am-surface-900/[0.88] px-2 py-2 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-3xl sm:w-auto sm:flex-nowrap sm:gap-2 sm:rounded-[24px] sm:px-3 sm:py-3 md:bottom-10 md:gap-3 md:rounded-[28px] md:px-6 md:py-4"
     >
-      <ControlButton
-        active={isAudioEnabled}
-        onClick={onToggleAudio}
-        icon={isAudioEnabled ? <Mic className="w-5 h-5 md:w-5.5 md:h-5.5" /> : <MicOff className="w-5 h-5 md:w-5.5 md:h-5.5" />}
-        label={isAudioEnabled ? 'Silenciar' : 'Activar'}
-        variant={isAudioEnabled ? 'glass' : 'danger'}
-      />
-      
-      <ControlButton
-        active={isVideoEnabled}
-        onClick={onToggleVideo}
-        icon={isVideoEnabled ? <Video className="w-5 h-5 md:w-5.5 md:h-5.5" /> : <VideoOff className="w-5 h-5 md:w-5.5 md:h-5.5" />}
-        label={isVideoEnabled ? 'Apagar' : 'Iniciar'}
-        variant={isVideoEnabled ? 'glass' : 'danger'}
-      />
-
-      <div className="hidden h-6 w-px bg-white/10 sm:block md:mx-2 md:h-8" />
-
-      {/* Screen share usually hidden on small mobiles as it's not supported well */}
-      <div className="hidden sm:flex">
-        <ControlButton
-          active={isScreenSharing}
-          onClick={onToggleScreenShare}
-          icon={<Monitor className="w-5 h-5 md:w-5.5 md:h-5.5" />}
-          label="Presentar"
-          variant={isScreenSharing ? 'brand' : 'glass'}
-        />
-      </div>
-
-      <ControlButton
-        active={isRecording}
-        onClick={onToggleRecording}
-        icon={isRecording ? <CircleDot className="w-5 h-5 md:w-5.5 md:h-5.5 text-red-500 animate-pulse" /> : <CircleDot className="w-5 h-5 md:w-5.5 md:h-5.5" />}
-        label="Grabar"
-        variant={isRecording ? 'brand' : 'glass'}
-      />
-
-      <ControlButton
-        active={isChatPanelOpen}
-        onClick={onToggleChat}
-        icon={<MessageSquare className="w-5 h-5 md:w-5.5 md:h-5.5" />}
-        label="Chat"
-        variant={isChatPanelOpen ? 'brand' : 'glass'}
-        badge={unreadMessages > 0 ? unreadMessages : undefined}
-      />
-
-      <div className="hidden md:flex">
-        <ControlButton
-          active={false}
-          onClick={onTogglePiP}
-          icon={<Maximize className="w-5 h-5 md:w-5.5 md:h-5.5" />}
-          label="PiP"
-          variant="glass"
-        />
-      </div>
-
-      <div className="hidden h-6 w-px bg-white/10 sm:block md:mx-2 md:h-8" />
-
       {auxiliaryActions && (
-        <>
-          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
-            {auxiliaryActions}
-          </div>
-
-          <div className="hidden h-6 w-px bg-white/10 sm:block md:mx-2 md:h-8" />
-        </>
+        <div className="contents sm:hidden">
+          {auxiliaryActions}
+        </div>
       )}
 
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onEndCall}
-        aria-label="Finalizar llamada"
-        className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl bg-red-600/95 text-white shadow-lg shadow-red-600/25 transition-colors hover:bg-red-500 sm:h-12 sm:w-16 md:h-14 md:w-20 md:rounded-2xl"
-      >
-        <PhoneOff className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7" />
-      </motion.button>
+      <div className="contents sm:flex sm:w-auto sm:items-center sm:justify-center sm:gap-2 md:gap-3">
+        <ControlButton
+          active={isAudioEnabled}
+          onClick={onToggleAudio}
+          icon={isAudioEnabled ? <Mic className="w-5 h-5 md:w-5.5 md:h-5.5" /> : <MicOff className="w-5 h-5 md:w-5.5 md:h-5.5" />}
+          label={isAudioEnabled ? 'Silenciar' : 'Activar'}
+          variant={isAudioEnabled ? 'glass' : 'danger'}
+        />
+
+        <ControlButton
+          active={isVideoEnabled}
+          onClick={onToggleVideo}
+          icon={isVideoEnabled ? <Video className="w-5 h-5 md:w-5.5 md:h-5.5" /> : <VideoOff className="w-5 h-5 md:w-5.5 md:h-5.5" />}
+          label={isVideoEnabled ? 'Apagar' : 'Iniciar'}
+          variant={isVideoEnabled ? 'glass' : 'danger'}
+        />
+
+        <div className="hidden h-6 w-px bg-white/10 sm:block md:mx-2 md:h-8" />
+
+        {/* Screen share usually hidden on small mobiles as it's not supported well */}
+        <div className="hidden sm:flex">
+          <ControlButton
+            active={isScreenSharing}
+            onClick={onToggleScreenShare}
+            icon={<Monitor className="w-5 h-5 md:w-5.5 md:h-5.5" />}
+            label="Presentar"
+            variant={isScreenSharing ? 'brand' : 'glass'}
+          />
+        </div>
+
+        <ControlButton
+          active={isRecording}
+          onClick={onToggleRecording}
+          icon={isRecording ? <CircleDot className="w-5 h-5 md:w-5.5 md:h-5.5 text-red-500 animate-pulse" /> : <CircleDot className="w-5 h-5 md:w-5.5 md:h-5.5" />}
+          label="Grabar"
+          variant={isRecording ? 'brand' : 'glass'}
+        />
+
+        <ControlButton
+          active={isChatPanelOpen}
+          onClick={onToggleChat}
+          icon={<MessageSquare className="w-5 h-5 md:w-5.5 md:h-5.5" />}
+          label="Chat"
+          variant={isChatPanelOpen ? 'brand' : 'glass'}
+          badge={unreadMessages > 0 ? unreadMessages : undefined}
+        />
+
+        <div className="hidden md:flex">
+          <ControlButton
+            active={false}
+            onClick={onTogglePiP}
+            icon={<Maximize className="w-5 h-5 md:w-5.5 md:h-5.5" />}
+            label="PiP"
+            variant="glass"
+          />
+        </div>
+
+        <div className="hidden h-6 w-px bg-white/10 sm:block md:mx-2 md:h-8" />
+
+        {auxiliaryActions && (
+          <div className="hidden items-center gap-2 sm:flex md:gap-3">
+            {auxiliaryActions}
+          </div>
+        )}
+
+        {auxiliaryActions && (
+          <div className="hidden h-6 w-px bg-white/10 sm:block md:mx-2 md:h-8" />
+        )}
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onEndCall}
+          aria-label="Finalizar llamada"
+          className="flex h-10 w-11 shrink-0 items-center justify-center rounded-xl bg-red-600/95 text-white shadow-lg shadow-red-600/25 transition-colors hover:bg-red-500 sm:h-12 sm:w-16 md:h-14 md:w-20 md:rounded-2xl"
+        >
+          <PhoneOff className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7" />
+        </motion.button>
+      </div>
     </motion.div>
   )
 }
