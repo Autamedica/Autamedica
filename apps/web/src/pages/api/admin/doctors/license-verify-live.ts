@@ -64,7 +64,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 1. Fetch the target doctor's details from the database
     const doctorQuery = admin
       .from('doctors')
-      .select('id, user_id, license_number, license_province, enrollment_entity, specialty');
+      .select('id, user_id, license_number, enrollment_jurisdiction, enrollment_entity, specialty');
 
     const targetUserId = body.userId?.trim();
     const targetDoctorId = body.doctorId?.trim();
@@ -83,9 +83,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Determine matrícula type (MN vs MP)
     // If the enrollment entity or jurisdiction suggests a provincial registration, it is MP, otherwise MN
-    const isProvincial = isNonEmptyString(doctor.license_province) && doctor.license_province !== 'CABA';
+    const isProvincial = isNonEmptyString(doctor.enrollment_jurisdiction) && doctor.enrollment_jurisdiction !== 'CABA';
     const type: 'MN' | 'MP' = isProvincial ? 'MP' : 'MN';
-    const province = doctor.license_province ?? undefined;
+    const province = doctor.enrollment_jurisdiction ?? undefined;
 
     // 2. Resolve credentials for the Bus de Interoperabilidad
     const tokenSecret = resolveBusTokenSecret(locals.runtime?.env);

@@ -46,7 +46,18 @@ export class LocalRefepsValidator implements IRefepsValidator {
 
       const { data, error } = await this.supabase
         .from('doctors')
-        .select('id, full_name, specialty, license_number, license_province, active')
+        .select(`
+          id,
+          specialty,
+          license_number,
+          enrollment_jurisdiction,
+          active,
+          user_id,
+          profiles (
+            first_name,
+            last_name
+          )
+        `)
         .eq('license_number', matricula)
         .maybeSingle();
 
@@ -64,13 +75,18 @@ export class LocalRefepsValidator implements IRefepsValidator {
 
       logger.info(`[LocalRefepsValidator] Matrícula validated — ${type} ${matricula} → ${registrationStatus}`);
 
+      const profile = data.profiles as { first_name: string | null; last_name: string | null } | null;
+      const resolvedFullName = profile
+        ? `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim()
+        : '';
+
       return {
         isValid: data.active === true,
         matriculaNumber: matricula,
         matriculaType: type,
-        fullName: data.full_name,
+        fullName: resolvedFullName,
         specialty: data.specialty,
-        province: data.license_province ?? province,
+        province: data.enrollment_jurisdiction ?? province,
         registrationStatus,
       };
     } catch (error) {
