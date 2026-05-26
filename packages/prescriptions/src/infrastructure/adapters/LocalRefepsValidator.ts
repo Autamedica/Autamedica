@@ -75,7 +75,8 @@ export class LocalRefepsValidator implements IRefepsValidator {
 
       logger.info(`[LocalRefepsValidator] Matrícula validated — ${type} ${matricula} → ${registrationStatus}`);
 
-      const profile = data.profiles as { first_name: string | null; last_name: string | null } | null;
+      const rawProfiles = data.profiles;
+      const profile = (Array.isArray(rawProfiles) ? rawProfiles[0] : rawProfiles) as unknown as { first_name: string | null; last_name: string | null } | null;
       const resolvedFullName = profile
         ? `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim()
         : '';
