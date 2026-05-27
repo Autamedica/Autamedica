@@ -13,6 +13,7 @@ describe('Clinical AI Orchestrator - Direct Injection', () => {
     // Setup environment
     const testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'clinical-ai-test-'));
     const config: AppConfig = {
+      port: 3001,
       localArtifactRoot: testDir,
       mediaFetchTimeoutMs: 5000,
       sttProviderDefault: 'mock',
@@ -20,6 +21,9 @@ describe('Clinical AI Orchestrator - Direct Injection', () => {
       ffprobeBinary: 'ffprobe',
       corsOrigin: '*',
       enableDebugState: true,
+      skipTwilioSignatureValidation: true,
+      googleSpeechModel: 'latest',
+      doctorBindings: [],
     };
 
     const store = new InMemoryPipelineStore([]);

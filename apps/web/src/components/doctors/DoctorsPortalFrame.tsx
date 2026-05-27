@@ -28,6 +28,7 @@ import {
   Users,
   Pill,
   X,
+  HelpCircle,
 } from "lucide-react";
 import type { ChangeEvent, JSX, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -41,7 +42,8 @@ type ActiveSection =
   | "community"
   | "accounting"
   | "subscription"
-  | "profile";
+  | "profile"
+  | "faq";
 
 type NavigationItem = {
   href: string;
@@ -318,6 +320,12 @@ export function DoctorsPortalFrame({
         label: "Configuración",
         icon: Settings,
         key: "profile",
+      },
+      {
+        href: "/doctors/faq",
+        label: "Ayuda",
+        icon: HelpCircle,
+        key: "faq",
       },
     ],
     [stats?.unreadCommunityCount],

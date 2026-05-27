@@ -6183,6 +6183,62 @@ export type Database = {
           },
         ]
       }
+      doctor_licenses: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          license_number: string
+          license_type: string
+          province: string | null
+          sisa_book: string | null
+          sisa_folio: string | null
+          sisa_record: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          license_number: string
+          license_type: string
+          province?: string | null
+          sisa_book?: string | null
+          sisa_folio?: string | null
+          sisa_record?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          license_number?: string
+          license_type?: string
+          province?: string | null
+          sisa_book?: string | null
+          sisa_folio?: string | null
+          sisa_record?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_licenses_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_patient: {
         Row: {
           assigned_at: string | null
@@ -6467,6 +6523,50 @@ export type Database = {
             foreignKeyName: "doctor_scheduling_config_doctor_id_fkey"
             columns: ["doctor_id"]
             isOneToOne: true
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_specialties: {
+        Row: {
+          certification_entity: string | null
+          certified_at: string | null
+          created_at: string
+          doctor_id: string
+          expires_at: string | null
+          id: string
+          sisa_specialty_code: string | null
+          specialty_name: string
+          updated_at: string
+        }
+        Insert: {
+          certification_entity?: string | null
+          certified_at?: string | null
+          created_at?: string
+          doctor_id: string
+          expires_at?: string | null
+          id?: string
+          sisa_specialty_code?: string | null
+          specialty_name: string
+          updated_at?: string
+        }
+        Update: {
+          certification_entity?: string | null
+          certified_at?: string | null
+          created_at?: string
+          doctor_id?: string
+          expires_at?: string | null
+          id?: string
+          sisa_specialty_code?: string | null
+          specialty_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_specialties_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
             referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
@@ -10052,6 +10152,51 @@ export type Database = {
           session_id?: string
           started_at?: string
           status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wifi_leads: {
+        Row: {
+          converted: boolean
+          converted_at: string | null
+          created_at: string
+          device_info: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          registered_at: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          converted?: boolean
+          converted_at?: string | null
+          created_at?: string
+          device_info?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          registered_at?: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          converted?: boolean
+          converted_at?: string | null
+          created_at?: string
+          device_info?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          registered_at?: string
+          source?: string
           updated_at?: string
         }
         Relationships: []

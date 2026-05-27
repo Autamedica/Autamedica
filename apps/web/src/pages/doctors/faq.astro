@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { DoctorFAQPage } from '@/components/doctors/DoctorFAQPage';
+
+const title = 'Centro de Ayuda | Portal Médico | AutaMedica';
+const description = 'Guía interactiva y preguntas frecuentes para profesionales de la salud';
+---
+
+<Layout title={title} description={description}>
+  <DoctorFAQPage client:load />
+</Layout>
