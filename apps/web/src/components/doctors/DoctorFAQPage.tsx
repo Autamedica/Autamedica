@@ -158,17 +158,17 @@ export function DoctorFAQPage() {
       answer: (
         <div className="space-y-4 text-sm leading-relaxed text-am-surface-600">
           <p>
-            <span className="font-semibold text-am-surface-900">Sí.</span> Cumplimos con la libre elección garantizada por el <span className="font-semibold text-am-surface-900">Decreto Nacional N° 345/2024</span> y la Ley de Derechos del Paciente N° 26.529.
+            <span className="font-semibold text-am-surface-900">Sí, la decisión es siempre del paciente.</span> Respetamos plenamente su derecho a elegir libremente a su profesional. Cada persona es dueña de su salud y puede programar consultas con cualquier especialista de la cartilla cuando lo desee.
           </p>
           <p>
-            El paciente es dueño de su salud y puede decidir atenderse con cualquier otro profesional de la cartilla en el momento que quiera.
+            Nuestra filosofía es acompañar al paciente de la forma más transparente posible, garantizando su libertad de elección bajo la Ley de Derechos del Paciente N° 26.529.
           </p>
           <div className="rounded-xl bg-am-surface-50 border border-am-surface-200 p-4 flex gap-3 items-start">
             <Info className="h-5 w-5 text-am-surface-400 shrink-0 mt-0.5" />
             <div>
               <h6 className="text-xs font-bold text-am-surface-800 uppercase">Seguridad de tu práctica privada</h6>
               <p className="text-xs text-am-surface-500 mt-1 leading-relaxed">
-                Aunque decida consultar a otro colega, tu evolución clínica y notas de consultorio privado no se comparten con el nuevo médico de forma automática. El sistema protege tu criterio profesional y la confidencialidad de tus sesiones.
+                Aunque tu paciente decida consultar a otro colega, tu evolución clínica y notas de consultorio privado no se comparten con el nuevo médico de forma automática. El sistema protege tu criterio profesional y la confidencialidad de tus sesiones bajo estricta reserva.
               </p>
             </div>
           </div>
@@ -183,7 +183,7 @@ export function DoctorFAQPage() {
       answer: (
         <div className="space-y-4">
           <p className="text-sm leading-relaxed text-am-surface-600">
-            La emisión está homologada ante la red nacional de farmacias **Farmalink (IMED)**. Esto asegura que el paciente pueda presentar la receta y obtener sus descuentos en cualquier farmacia física del país de manera instantánea.
+            <span className="font-semibold text-am-surface-900">Es sumamente directo y seguro.</span> Todo el proceso está integrado con la red nacional de farmacias **Farmalink (IMED)**. Esto asegura que cuando emitís una receta, tu paciente pueda presentarse en cualquier farmacia física del país, dar su DNI o el código QR desde su celular, y obtener sus medicamentos y descuentos en el acto.
           </p>
 
           <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-5 space-y-4">
@@ -229,30 +229,28 @@ export function DoctorFAQPage() {
       answer: (
         <div className="space-y-3 text-sm leading-relaxed text-am-surface-600">
           <p>
-            Un **borrador** es una receta guardada de forma temporal en tu panel médico que **aún no ha sido firmada ni emitida oficialmente**.
+            Un **borrador** es un borrador clínico: una indicación pre-cargada que guardás temporalmente para trabajar de forma organizada durante el día, pero que **todavía no tiene validez legal ni ha sido firmada oficialmente**.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-2">
             <div className="p-4 bg-red-50/60 border border-red-100 rounded-xl space-y-1.5 text-red-900">
               <span className="font-bold flex items-center gap-1.5 uppercase tracking-wider text-red-800">
-                <AlertTriangle className="h-4 w-4" /> Lo que un borrador NO hace:
+                <AlertTriangle className="h-4 w-4" /> LO QUE DEBÉS SABER:
               </span>
-              <ul className="list-disc list-inside space-y-1 text-am-surface-600 pl-1">
-                <li>No se envía a la red de farmacias.</li>
-                <li>No le llega al paciente de ninguna manera.</li>
-                <li>No tiene validez legal ni comercial en el mostrador.</li>
-                <li>No consume firmas electrónicas.</li>
+              <ul className="list-disc list-inside space-y-1.5 text-am-surface-600 pl-1">
+                <li>No le llega al paciente ni se envía a las farmacias.</li>
+                <li>No consume firmas digitales de tu cupo profesional.</li>
+                <li>Podés editarla, cambiar la dosis o borrarla libremente sin restricciones.</li>
               </ul>
             </div>
             
             <div className="p-4 bg-emerald-50/60 border border-emerald-100 rounded-xl space-y-1.5 text-emerald-900">
               <span className="font-bold flex items-center gap-1.5 uppercase tracking-wider text-emerald-800">
-                <CheckCircle2 className="h-4 w-4" /> Para qué sirve:
+                <CheckCircle2 className="h-4 w-4" /> TU ALIADA EN LA ORGANIZACIÓN:
               </span>
-              <ul className="list-disc list-inside space-y-1 text-am-surface-600 pl-1">
-                <li><span className="font-bold text-am-surface-700">Pre-carga flexible:</span> Te permite cargar las recetas de tus turnos del día con anticipación.</li>
-                <li><span className="font-bold text-am-surface-700">Edición total:</span> Podés cambiar cualquier dato de la indicación sin límites.</li>
-                <li><span className="font-bold text-am-surface-700">Emisión en vivo:</span> En la videollamada, tras hablar con el paciente, la emitís y firmás en el acto con un solo toque.</li>
+              <ul className="list-disc list-inside space-y-1.5 text-am-surface-600 pl-1">
+                <li><span className="font-semibold text-am-surface-800">Pre-carga inteligente:</span> Podés cargar las recetas de tus turnos programados del día antes de empezar tu jornada.</li>
+                <li><span className="font-semibold text-am-surface-800">Firma en un segundo:</span> Durante la videollamada, tras revisar la evolución del paciente, la firmás y emitís con un solo toque.</li>
               </ul>
             </div>
           </div>
@@ -267,7 +265,7 @@ export function DoctorFAQPage() {
       answer: (
         <div className="space-y-4">
           <p className="text-sm leading-relaxed text-am-surface-600">
-            Al firmar y emitir, AutaMedica genera un PDF oficial con un código QR homologado y firma digital válida. El envío es automático a costo cero para el médico por dos vías:
+            Al momento de firmar y emitir, AutaMedica genera un PDF digital firmado y homologado con su correspondiente código QR. Para tu comodidad, **el sistema se encarga de hacérsela llegar al paciente al instante y de manera 100% gratuita** por dos canales directos:
           </p>
 
           <div className="space-y-3">
@@ -364,23 +362,23 @@ export function DoctorFAQPage() {
       answer: (
         <div className="space-y-3 text-sm leading-relaxed text-am-surface-600">
           <p>
-            AutaMedica funciona bajo un **modelo híbrido** muy beneficioso para tu práctica privada:
+            AutaMedica funciona bajo un **modelo híbrido flexible** diseñado para potenciar tu consultorio:
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
             <div className="rounded-xl border border-am-surface-200 bg-white p-4 shadow-sm space-y-2">
               <span className="h-2 w-12 rounded-full bg-am-surface-900 block" />
-              <h5 className="font-bold text-am-surface-800 text-xs uppercase tracking-wide">1. Tus Pacientes Privados (Gratis)</h5>
+              <h5 className="font-bold text-am-surface-800 text-xs uppercase tracking-wide">1. Tu Consultorio Privado (Sin costo)</h5>
               <p className="text-xs text-am-surface-600 leading-relaxed">
-                Podés mudar tu consultorio privado presencial o virtual a la plataforma compartiendo tu enlace personalizado. Contás con firmas de recetas homologadas y reportes SOAP con IA de forma 100% gratuita para centralizar tu práctica privada.
+                Mudá a tus pacientes habituales compartiendo tu enlace personalizado. Atendelos por videollamada y emitiles recetas con firma oficial homologada de forma 100% gratuita para centralizar tu práctica profesional en un solo lugar.
               </p>
             </div>
 
             <div className="rounded-xl border border-am-doctor-100 bg-am-doctor-50/10 p-4 shadow-sm space-y-2">
               <span className="h-2 w-12 rounded-full bg-am-doctor-500 block" />
-              <h5 className="font-bold text-am-doctor-800 text-xs uppercase tracking-wide">2. Pacientes del Marketplace (Pacientes de la plataforma)</h5>
+              <h5 className="font-bold text-am-doctor-800 text-xs uppercase tracking-wide">2. Nuevos pacientes de la Cartilla</h5>
               <p className="text-xs text-am-surface-600 leading-relaxed">
-                Miles de pacientes ingresan a AutaMedica buscando especialistas todos los días. Si configurás tus horas de disponibilidad pública en la sección **"Citas"** y luego en **"Configurar Horarios"**, aparecerás automáticamente en la cartilla médica del marketplace y los pacientes podrán agendar consultas directamente pagando tus honorarios fijados.
+                Todos los días, miles de personas buscan especialistas en AutaMedica. Si configurás tus horarios de disponibilidad pública en la sección **"Citas" y luego "Configurar Horarios"**, aparecerás automáticamente en la cartilla pública para que nuevos pacientes agenden consultas y abonen tus honorarios particulares de forma directa.
               </p>
             </div>
           </div>
@@ -541,28 +539,28 @@ export function DoctorFAQPage() {
       answer: (
         <div className="space-y-3 text-sm leading-relaxed text-am-surface-600">
           <p>
-            **Sí, la sincronización es en tiempo real.** Cualquier cambio en tu agenda repercute al instante en tu disponibilidad pública.
+            **Sí, la sincronización es inmediata.** Tu tiempo y tu agenda son sagrados: si registrás o bloqueás una hora en tu calendario, ese espacio desaparece automáticamente de tu disponibilidad de turnos para que ningún paciente reserve por error.
           </p>
           
           <div className="rounded-xl border border-am-surface-200 p-4 bg-am-surface-50 space-y-3">
             <h5 className="text-xs font-bold text-am-surface-800 uppercase flex items-center gap-1.5">
               <Calendar className="h-4 w-4 text-am-doctor-600" />
-              ¿Qué es un Evento (Bloqueo de Agenda)?
+              ¿Qué es un bloqueo personal (Evento)?
             </h5>
             <p className="text-xs text-am-surface-600 leading-relaxed">
-              Un **evento** es un bloqueo de tiempo personal o profesional ajeno a AutaMedica que decidís registrar en tu calendario (ej. *"Guardia en Hospital"*, *"Congreso"*, *"Descanso almuerzo"*). A diferencia de un turno clínico, el evento no lleva un paciente asignado.
+              Un **evento** es un bloqueo de tiempo personal o profesional externo a AutaMedica que registrás en tu calendario (ej. *"Guardia hospitalaria"*, *"Congreso"*, *"Trámite personal"*, *"Descanso"*). Al guardarlo, prevenís reservas en horarios comprometidos.
             </p>
             
             <span className="font-bold text-am-surface-800 text-xs block uppercase tracking-wider">Cómo se crea en tu agenda:</span>
             <ol className="list-decimal list-inside text-xs text-am-surface-600 space-y-2 pl-1">
               <li>Dirigite a la sección <span className="font-semibold text-am-surface-900">"Citas"</span> (calendario) en la barra lateral izquierda.</li>
-              <li>Hacá clic y arrastrá sobre el bloque de horas que querés bloquear.</li>
-              <li>En la ventana emergente, seleccioná la opción <span className="font-semibold text-am-surface-900">"Crear Evento / Bloquear Horario"</span>.</li>
-              <li>Escribí un nombre descriptivo y presioná <span className="font-semibold text-am-surface-900">"Guardar"</span>.</li>
+              <li>Hacé clic y arrastrá sobre el bloque de horas que querés reservar o bloquear.</li>
+              <li>En la ventana emergente, elegí la opción <span className="font-semibold text-am-surface-900">"Crear Evento / Bloquear Horario"</span>.</li>
+              <li>Escribí una referencia rápida y presioná <span className="font-semibold text-am-surface-900">"Guardar"</span>.</li>
             </ol>
             
             <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-xl border border-amber-100 leading-relaxed font-semibold">
-              Bloqueo Automático del Marketplace: Al guardar este evento de bloqueo personal, el sistema elimina instantáneamente la disponibilidad de esos turnos de tu perfil de cartilla pública. Esto evita que los pacientes agenden consultas virtuales en momentos donde estarás comprometido, previniendo la molestia de tener que cancelar turnos manualmente.
+              Sincronización automática de cartilla: Al guardar este bloqueo personal, el sistema elimina instantáneamente la disponibilidad de esos turnos de tu perfil de cartilla pública. Esto evita que los pacientes agenden consultas virtuales en momentos donde estarás comprometido, previniendo la molestia de tener que cancelar turnos manualmente.
             </p>
           </div>
         </div>
