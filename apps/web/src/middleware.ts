@@ -759,7 +759,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const isAuthenticated = !!user;
 
     // Redirigir a usuarios logueados que acceden a la landing raíz "/"
-    if (pathname === "/" && isAuthenticated) {
+    // Pero solo si están en el dominio principal (no en los subdominios de portal como doctor.autamedica.com)
+    if (pathname === "/" && isAuthenticated && !portal) {
       const userRole =
         extractRole(user.app_metadata as Record<string, unknown>) ??
         extractRole(user.user_metadata as Record<string, unknown>);
