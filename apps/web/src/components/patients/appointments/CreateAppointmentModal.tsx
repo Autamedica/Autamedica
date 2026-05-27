@@ -35,6 +35,8 @@ interface DoctorOption {
   label: string;
   license_number?: string | null;
   avatar_url?: string | null;
+  overall_score?: number;
+  rank_position?: number | null;
 }
 
 interface SlotData {
@@ -245,26 +247,36 @@ export function CreateAppointmentModal({
       const isAPending = a.license_number?.startsWith('PENDING') || a.license_number === 'PENDING';
       const isADemo = a.license_number?.includes('DEMO');
       const isANoAvailability = a.has_availability === false;
-      const isADisabled = isAPending || isADemo || isANoAvailability;
 
       const isBPending = b.license_number?.startsWith('PENDING') || b.license_number === 'PENDING';
       const isBDemo = b.license_number?.includes('DEMO');
       const isBNoAvailability = b.has_availability === false;
-      const isBDisabled = isBPending || isBDemo || isBNoAvailability;
 
-      // 1. Group disabled/pending doctors at the absolute bottom
-      if (isADisabled && !isBDisabled) return 1;
-      if (!isADisabled && isBDisabled) return -1;
+      // Group: 0 = Active & Available, 1 = Active but no availability, 2 = Inhabilitado
+      const groupA = (isAPending || isADemo) ? 2 : (isANoAvailability ? 1 : 0);
+      const groupB = (isBPending || isBDemo) ? 2 : (isBNoAvailability ? 1 : 0);
 
-      // 2. If both are active, place Eduardo da Rosa (MP006402) at the end of the active section
-      if (!isADisabled && !isBDisabled) {
+      if (groupA !== groupB) {
+        return groupA - groupB;
+      }
+
+      // If both are in the Active & Available group, place Eduardo da Rosa at the absolute end of this group (bypassing merit sorting for him)
+      if (groupA === 0) {
         const isAEduardo = a.license_number === 'MP006402' || a.id === '080fb7ae-92b4-44d4-8941-a6db65004b9f';
         const isBEduardo = b.license_number === 'MP006402' || b.id === '080fb7ae-92b4-44d4-8941-a6db65004b9f';
         if (isAEduardo && !isBEduardo) return 1;
         if (!isAEduardo && isBEduardo) return -1;
       }
 
-      return 0;
+      // Inside the same group, sort by overall_score descending (merit)
+      const scoreA = a.overall_score ?? 0;
+      const scoreB = b.overall_score ?? 0;
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
+      }
+
+      // Fallback to alphabetical order if merit scores are equal
+      return a.label.localeCompare(b.label, 'es');
     });
   }, [doctors]);
 
@@ -424,10 +436,10 @@ export function CreateAppointmentModal({
                                 Inhabilitado (Cuenta de prueba)
                               </span>
                             )}
-                            {!isDisabled && doc.has_availability === false && (
-                              <p className="font-medium text-amber-700">
+                            {!isPending && !isDemo && doc.has_availability === false && (
+                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/10 flex items-center gap-0.5 w-fit">
                                 Sin horarios cargados
-                              </p>
+                              </span>
                             )}
                             {doc.has_active_plan && (
                               <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/10 flex items-center gap-0.5 w-fit">

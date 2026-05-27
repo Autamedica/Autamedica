@@ -19,6 +19,8 @@ export interface DoctorSummary {
   label: string
   license_number: string | null
   avatar_url: string | null
+  overall_score: number
+  rank_position: number | null
 }
 
 interface DoctorRow {
@@ -31,6 +33,13 @@ interface DoctorRow {
     last_name: string | null
     avatar_url: string | null
   } | null
+  doctor_ranking_metrics: {
+    overall_score: number | null
+    rank_position: number | null
+  } | {
+    overall_score: number | null
+    rank_position: number | null
+  }[] | null
 }
 
 export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
@@ -38,7 +47,7 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
     async listActive(): Promise<DoctorSummary[]> {
       const { data, error } = await supabase
         .from('doctors')
-        .select('id, specialty, consultation_fee, license_number, profile:profiles!doctors_user_id_fkey(first_name, last_name, avatar_url)')
+        .select('id, specialty, consultation_fee, license_number, profile:profiles!doctors_user_id_fkey(first_name, last_name, avatar_url), doctor_ranking_metrics(overall_score, rank_position)')
         .eq('active', true)
 
       if (error) {
@@ -107,6 +116,13 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
           const hasAvailability = doctorsWithAvailability.has(row.id)
           const hasActivePlan = doctorsWithActiveSubscription.has(row.id)
 
+          const metrics = Array.isArray(row.doctor_ranking_metrics)
+            ? row.doctor_ranking_metrics[0]
+            : row.doctor_ranking_metrics
+
+          const overallScore = metrics?.overall_score ? Number(metrics.overall_score) : 0
+          const rankPosition = metrics?.rank_position ? Number(metrics.rank_position) : null
+
           return {
             id: row.id,
             specialty: row.specialty,
@@ -118,6 +134,8 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
             label: fullName ? `Dr. ${fullName}` : 'Profesional disponible',
             license_number: row.license_number ?? null,
             avatar_url: row.profile?.avatar_url ?? null,
+            overall_score: overallScore,
+            rank_position: rankPosition,
           }
         })
 
