@@ -93,14 +93,14 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
         })
       }
 
-      // Query active subscriptions to highlight premium plans
+      // Query active subscriptions to highlight premium plans (including trial subscriptions)
       const doctorPlans = new Map<string, string>()
       if (doctorIds.length > 0) {
         const { data: subscriptionRows, error: subscriptionError } = await supabase
           .from('doctor_subscriptions')
           .select('doctor_id, plan:subscription_plans(slug)')
           .in('doctor_id', doctorIds)
-          .eq('status', 'active')
+          .in('status', ['active', 'trialing'])
 
         if (subscriptionError) {
           logger.warn('[doctorsRepo] listActive subscription lookup failed', subscriptionError)
