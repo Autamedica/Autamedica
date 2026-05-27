@@ -31,12 +31,13 @@ interface DoctorOption {
   first_name: string | null;
   last_name: string | null;
   has_availability?: boolean;
-  has_active_plan?: boolean;
+  active_plan?: string | null;
   label: string;
   license_number?: string | null;
   avatar_url?: string | null;
   overall_score?: number;
   rank_position?: number | null;
+  has_prescription_digital?: boolean;
 }
 
 interface SlotData {
@@ -415,6 +416,16 @@ export function CreateAppointmentModal({
                                 <path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12zm-13 5l-4-4 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                               </svg>
                             )}
+                            {!isDisabled && doc.has_prescription_digital && (
+                              <svg className="h-4 w-4 text-sky-600 shrink-0 inline-block align-middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <title>Habilitado para emitir recetas digitales con firma y sello digital</title>
+                                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                                <polyline points="14 2 14 8 20 8" />
+                                <line x1="16" y1="13" x2="8" y2="13" />
+                                <line x1="16" y1="17" x2="8" y2="17" />
+                                <line x1="10" y1="9" x2="8" y2="9" />
+                              </svg>
+                            )}
                           </p>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
                             {doc.specialty && (
@@ -441,9 +452,19 @@ export function CreateAppointmentModal({
                                 Sin horarios cargados
                               </span>
                             )}
-                            {doc.has_active_plan && (
+                            {doc.active_plan === 'basico' && (
+                              <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-700 ring-1 ring-orange-600/10 flex items-center gap-0.5 w-fit">
+                                Básico
+                              </span>
+                            )}
+                            {doc.active_plan === 'pro' && (
+                              <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-700 ring-1 ring-purple-600/10 flex items-center gap-0.5 w-fit">
+                                Pro
+                              </span>
+                            )}
+                            {doc.active_plan === 'premium' && (
                               <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/10 flex items-center gap-0.5 w-fit">
-                                <span className="text-[9px]">★</span> Destacado
+                                <span className="text-[9px]">★</span> Premium
                               </span>
                             )}
                           </div>

@@ -15,12 +15,13 @@ export interface DoctorSummary {
   first_name: string | null
   last_name: string | null
   has_availability: boolean
-  has_active_plan: boolean
+  active_plan: string | null
   label: string
   license_number: string | null
   avatar_url: string | null
   overall_score: number
   rank_position: number | null
+  has_prescription_digital: boolean
 }
 
 interface DoctorRow {
@@ -28,6 +29,8 @@ interface DoctorRow {
   specialty: string | null
   consultation_fee: number | null
   license_number: string | null
+  signature_image_url: string | null
+  stamp_image_url: string | null
   profile: {
     first_name: string | null
     last_name: string | null
@@ -47,7 +50,7 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
     async listActive(): Promise<DoctorSummary[]> {
       const { data, error } = await supabase
         .from('doctors')
-        .select('id, specialty, consultation_fee, license_number, profile:profiles!doctors_user_id_fkey(first_name, last_name, avatar_url), doctor_ranking_metrics(overall_score, rank_position)')
+        .select('id, specialty, consultation_fee, license_number, signature_image_url, stamp_image_url, profile:profiles!doctors_user_id_fkey(first_name, last_name, avatar_url), doctor_ranking_metrics(overall_score, rank_position)')
         .eq('active', true)
 
       if (error) {
@@ -91,11 +94,11 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
       }
 
       // Query active subscriptions to highlight premium plans
-      let doctorsWithActiveSubscription = new Set<string>()
+      const doctorPlans = new Map<string, string>()
       if (doctorIds.length > 0) {
         const { data: subscriptionRows, error: subscriptionError } = await supabase
           .from('doctor_subscriptions')
-          .select('doctor_id')
+          .select('doctor_id, plan:subscription_plans(slug)')
           .in('doctor_id', doctorIds)
           .eq('status', 'active')
 
@@ -103,7 +106,12 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
           logger.warn('[doctorsRepo] listActive subscription lookup failed', subscriptionError)
         } else {
           for (const row of subscriptionRows ?? []) {
-            doctorsWithActiveSubscription.add(row.doctor_id)
+            const planSlug = Array.isArray(row.plan)
+              ? row.plan[0]?.slug
+              : row.plan?.slug;
+            if (planSlug) {
+              doctorPlans.set(row.doctor_id, planSlug)
+            }
           }
         }
       }
@@ -114,7 +122,8 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
           const lastName = row.profile?.last_name ?? ''
           const fullName = [firstName, lastName].filter(Boolean).join(' ')
           const hasAvailability = doctorsWithAvailability.has(row.id)
-          const hasActivePlan = doctorsWithActiveSubscription.has(row.id)
+          const activePlan = doctorPlans.get(row.id) ?? null
+          const hasPrescriptionDigital = !!(row.signature_image_url && row.stamp_image_url)
 
           const metrics = Array.isArray(row.doctor_ranking_metrics)
             ? row.doctor_ranking_metrics[0]
@@ -130,12 +139,13 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
             first_name: row.profile?.first_name ?? null,
             last_name: row.profile?.last_name ?? null,
             has_availability: hasAvailability,
-            has_active_plan: hasActivePlan,
+            active_plan: activePlan,
             label: fullName ? `Dr. ${fullName}` : 'Profesional disponible',
             license_number: row.license_number ?? null,
             avatar_url: row.profile?.avatar_url ?? null,
             overall_score: overallScore,
             rank_position: rankPosition,
+            has_prescription_digital: hasPrescriptionDigital,
           }
         })
 
