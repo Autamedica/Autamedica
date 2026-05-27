@@ -53,12 +53,12 @@ export function DoctorFAQPage() {
     {
       id: "atender-externo",
       category: "patients",
-      question: "¿Cómo hago si quiero atender a un paciente que no está en la plataforma? (Paciente Externo)",
+      question: "¿Cómo hago si quiero atender a un paciente de mi consultorio privado? (Paciente Externo)",
       tags: ["paciente externo", "sin cuenta", "nuevo paciente", "registro", "manual", "formulario"],
       answer: (
         <div className="space-y-4">
           <p className="text-sm leading-relaxed text-am-surface-600">
-            En AutaMedica podés atender a tus pacientes de siempre sin obligarlos a crearse una cuenta antes de la consulta. El sistema registra sus datos mínimos y les envía su receta o solicitud digital en el acto, cumpliendo con la normativa nacional de receta electrónica.
+            En AutaMedica podés atender a tus pacientes de siempre de forma directa, sin obligarlos a registrarse o bajarse aplicaciones antes de la consulta. Completás sus datos básicos y reciben su receta digital firmada al instante para que la usen en cualquier farmacia.
           </p>
 
           <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-5 space-y-4">
@@ -68,18 +68,18 @@ export function DoctorFAQPage() {
             </h5>
             <ol className="list-decimal list-inside text-xs text-am-surface-600 space-y-3 pl-1">
               <li>
-                <span className="font-semibold text-am-surface-900">Botonera Superior:</span> En el menú lateral izquierdo, hacé clic en <span className="font-semibold text-am-doctor-600">"Recetas"</span> y presioná el botón <span className="font-semibold text-am-surface-900">"Nueva Receta"</span> en la esquina superior derecha de la pantalla.
+                <span className="font-semibold text-am-surface-900">Botonera Superior:</span> En el menú lateral izquierdo, hacé clic en <span className="font-semibold text-am-doctor-600">"Mis medicamentos"</span> (Recetas) y presioná el botón <span className="font-semibold text-am-surface-900">"Nueva Receta"</span> arriba a la derecha.
               </li>
               <li>
-                <span className="font-semibold text-am-surface-900">Activación del Formulario:</span> En el buscador de pacientes del modal que aparece, seleccioná la opción <span className="font-semibold text-am-doctor-600">"+ Atender Paciente Externo / Registrar Nuevo Paciente"</span>. Esto desplegará un formulario compacto.
+                <span className="font-semibold text-am-surface-900">Activación del Formulario:</span> En el buscador del modal, elegí la opción <span className="font-semibold text-am-doctor-600">"+ Atender Paciente Externo / Registrar Nuevo Paciente"</span>. Esto desplegará un formulario muy simple.
               </li>
               <li>
-                <span className="font-semibold text-am-surface-900">Datos obligatorios (Exigidos por Ley):</span>
+                <span className="font-semibold text-am-surface-900">Datos para evitar rebotes en farmacia (Garantía de compra):</span>
                 <ul className="list-disc list-inside ml-5 mt-1.5 space-y-1.5 text-am-surface-500">
-                  <li><span className="font-medium text-am-surface-700">Nombre completo:</span> Apellido y nombres completos del paciente.</li>
-                  <li><span className="font-medium text-am-surface-700">DNI o CUIL:</span> Ingresá el número sin puntos ni espacios.</li>
-                  <li><span className="font-medium text-am-surface-700">Domicilio real completo:</span> Requisito legal obligatorio según el <span className="text-am-doctor-600">Decreto 345/2024</span> para que la receta sea válida en la farmacia.</li>
-                  <li><span className="font-medium text-am-surface-700">Contacto de envío:</span> Su celular o su correo electrónico para recibir la notificación de forma inmediata.</li>
+                  <li><span className="font-medium text-am-surface-700">Nombre completo:</span> Tal como figura en su credencial o documento.</li>
+                  <li><span className="font-medium text-am-surface-700">DNI o CUIL:</span> Ingresá el número de corrido, sin puntos ni guiones.</li>
+                  <li><span className="font-medium text-am-surface-700">Domicilio real completo:</span> Indispensable para que la farmacia le acepte la orden y valide su cobertura médica sin contratiempos.</li>
+                  <li><span className="font-medium text-am-surface-700">Contacto de envío:</span> Su número de WhatsApp o correo electrónico para que reciba la receta digital inmediatamente al salir de tu consulta.</li>
                 </ul>
               </li>
               <li>
@@ -125,7 +125,7 @@ export function DoctorFAQPage() {
       answer: (
         <div className="space-y-4 text-sm leading-relaxed text-am-surface-600">
           <p>
-            <span className="font-semibold text-am-surface-900">No.</span> Cumplimos estrictamente con el Secreto Médico y la <span className="font-semibold text-am-surface-900">Ley de Protección de Datos Personales N° 25.326</span>.
+            <span className="font-semibold text-am-surface-900">No.</span> Tu consultorio es sagrado. Respetamos rigurosamente el Secreto Médico y la confidencialidad de tus pacientes.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -134,7 +134,7 @@ export function DoctorFAQPage() {
                 <Lock className="h-4 w-4 text-am-surface-500" /> PRIVACIDAD DE TU CONSULTORIO:
               </span>
               <p className="text-xs text-am-surface-600 leading-relaxed">
-                El paciente que cargues queda enlazado de forma exclusiva a tu perfil médico. Sus datos de contacto, ficha clínica e historial de recetas no aparecen en búsquedas ni pantallas de ningún otro profesional de la plataforma.
+                El paciente que cargues queda enlazado de forma exclusiva a tu perfil médico. Sus datos de contacto, evoluciones, ficha clínica e historial de recetas no aparecen en las búsquedas ni pantallas de ningún otro profesional de la plataforma.
               </p>
             </div>
             
@@ -143,7 +143,7 @@ export function DoctorFAQPage() {
                 <ShieldCheck className="h-4 w-4 text-am-doctor-600" /> PORTAL DEL PACIENTE:
               </span>
               <p className="text-xs text-am-surface-600 leading-relaxed">
-                Si el paciente decide crearse una cuenta global en AutaMedica para gestionar todas sus recetas, podrá buscar y agendar turnos con otros médicos del marketplace. Sin embargo, <span className="font-bold text-am-surface-900">tus notas SOAP, evoluciones e historial de consultas contigo permanecen 100% privados</span> y ocultos para otros profesionales.
+                Si tu paciente decide abrirse una cuenta global en AutaMedica para gestionar sus turnos o consultar a otros especialistas, podrá hacerlo de forma libre. Sin embargo, <span className="font-bold text-am-surface-900">tus notas SOAP, evoluciones e historial de consultas contigo permanecen 100% privados y bajo tu llave</span>, siendo totalmente invisibles para otros médicos.
               </p>
             </div>
           </div>
@@ -395,39 +395,39 @@ export function DoctorFAQPage() {
       answer: (
         <div className="space-y-4">
           <p className="text-sm leading-relaxed text-am-surface-600">
-            El marketplace de AutaMedica posiciona a los profesionales en base al **Clinical Service SLA (Acuerdo de Nivel de Servicio)**. El algoritmo premia de manera orgánica las buenas prácticas del consultorio:
+            La cartilla de AutaMedica posiciona a los profesionales en base a un **Compromiso de confianza mutua**. El sistema premia de manera orgánica tu constancia y las buenas prácticas en la atención de los pacientes:
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
             <div className="rounded-xl border border-am-surface-200 p-4 bg-am-surface-50 flex items-start gap-3">
               <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold text-am-surface-800">Validación de Matrícula (P0)</span>
-                <p className="text-am-surface-500 mt-1 leading-relaxed">Tener tu credencial aprobada y vinculada a SSS/REFEPS. Es obligatorio para figurar activo en el marketplace.</p>
+                <span className="font-bold text-am-surface-800">Matrícula validada y al día</span>
+                <p className="text-am-surface-500 mt-1 leading-relaxed">Tener tu credencial aprobada y conectada a SISA/REFEPS. Es el requisito de ingreso indispensable para aparecer en el listado público.</p>
               </div>
             </div>
             
             <div className="rounded-xl border border-am-surface-200 p-4 bg-am-surface-50 flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-am-doctor-600 shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold text-am-surface-800">Cumplimiento de Citas</span>
-                <p className="text-am-surface-500 mt-1 leading-relaxed">Atender los turnos que tenés programados. Las cancelaciones de tu lado penalizan fuertemente tu ranking.</p>
+                <span className="font-bold text-am-surface-800">Respetar tus citas</span>
+                <p className="text-am-surface-500 mt-1 leading-relaxed">Cuidar los turnos que aceptás. Evitar cancelaciones sobre la hora ayuda a sostener una comunidad responsable.</p>
               </div>
             </div>
             
             <div className="rounded-xl border border-am-surface-200 p-4 bg-am-surface-50 flex items-start gap-3">
               <Clock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold text-am-surface-800">Puntualidad en Sala Virtual</span>
-                <p className="text-am-surface-500 mt-1 leading-relaxed">El sistema mide tu tiempo de ingreso a la sala de videollamada. Conectarte a la hora citada te otorga la puntuación máxima.</p>
+                <span className="font-bold text-am-surface-800">Puntualidad en videollamadas</span>
+                <p className="text-am-surface-500 mt-1 leading-relaxed">Estar a tiempo en la sala virtual. Iniciar la consulta en el horario acordado es clave para mantener tu perfil en los primeros puestos.</p>
               </div>
             </div>
             
             <div className="rounded-xl border border-am-surface-200 p-4 bg-am-surface-50 flex items-start gap-3">
               <Sparkles className="h-5 w-5 text-am-doctor-600 shrink-0 mt-0.5" />
               <div>
-                <span className="font-bold text-am-surface-800">Completitud del SOAP e IA</span>
-                <p className="text-am-surface-500 mt-1 leading-relaxed">Completar el SOAP clínico el mismo día del turno y generar guías de autocuidado con IA para el paciente aumenta tu visibilidad.</p>
+                <span className="font-bold text-am-surface-800">Evolución y pautas de autocuidado</span>
+                <p className="text-am-surface-500 mt-1 leading-relaxed">Guardar tu reporte SOAP al finalizar la consulta y enviarle las guías con IA al paciente para su tranquilidad suma puntos de visibilidad.</p>
               </div>
             </div>
           </div>
@@ -474,35 +474,35 @@ export function DoctorFAQPage() {
     {
       id: "que-escribir-soap",
       category: "calls",
-      question: "¿Qué debo escribir en el SOAP? ¿Cómo funciona la asistencia con IA (Copilot)?",
+      question: "¿Qué debo escribir en el SOAP? ¿Cómo me ayuda el Secretario Clínico con IA?",
       tags: ["soap", "reporte clinico", "copilot", "gemini", "ia", "historia clinica", "notas"],
       answer: (
         <div className="space-y-4">
           <p className="text-sm leading-relaxed text-am-surface-600">
-            El registro de la evolución médica en AutaMedica utiliza el formato **SOAP** (Subjetivo, Objetivo, Análisis, Plan), que es el estándar internacional para documentar historias clínicas:
+            El registro de la evolución clínica en AutaMedica utiliza el formato estándar **SOAP** (Subjetivo, Objetivo, Análisis, Plan). Pero no tenés que perder tiempo de contacto visual redactando en vivo:
           </p>
 
           <div className="rounded-xl border border-am-surface-200 bg-am-surface-50/50 p-4 space-y-3">
             <h6 className="text-xs font-bold text-am-surface-800 uppercase tracking-wide flex items-center gap-1.5">
               <Bookmark className="h-4 w-4 text-am-surface-500" />
-              Estructura del SOAP en AutaMedica:
+              Estructura simplificada del SOAP:
             </h6>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-white border border-am-surface-200 rounded-xl">
-                <span className="font-bold text-blue-600 uppercase text-[10px]">S - Subjetivo</span>
-                <p className="text-am-surface-500 mt-1 leading-relaxed">Lo referido por el paciente: motivo de consulta, síntomas expresados, dolores, antecedentes.</p>
+                <span className="font-bold text-blue-600 uppercase text-[10px]">S - Subjetivo (Lo que refiere tu paciente)</span>
+                <p className="text-am-surface-500 mt-1 leading-relaxed">Su motivo de consulta, síntomas expresados, antecedentes y malestares referidos.</p>
               </div>
               <div className="p-3 bg-white border border-am-surface-200 rounded-xl">
-                <span className="font-bold text-emerald-600 uppercase text-[10px]">O - Objetivo</span>
-                <p className="text-am-surface-500 mt-1 leading-relaxed">Tus observaciones clínicas y datos medibles: signos vitales informados, examen físico visual, estudios previos.</p>
+                <span className="font-bold text-emerald-600 uppercase text-[10px]">O - Objetivo (Lo que observás)</span>
+                <p className="text-am-surface-500 mt-1 leading-relaxed">Tus observaciones visuales clínicas, signos vitales informados o estudios previos.</p>
               </div>
               <div className="p-3 bg-white border border-am-surface-200 rounded-xl">
-                <span className="font-bold text-purple-600 uppercase text-[10px]">A - Análisis / Evaluación</span>
-                <p className="text-am-surface-500 mt-1 leading-relaxed">Tu criterio médico y diagnóstico asociado en CIE-10.</p>
+                <span className="font-bold text-purple-600 uppercase text-[10px]">A - Análisis (Tu diagnóstico)</span>
+                <p className="text-am-surface-500 mt-1 leading-relaxed">Tu criterio profesional y la asociación diagnóstica oficial (CIE-10).</p>
               </div>
               <div className="p-3 bg-white border border-am-surface-200 rounded-xl">
-                <span className="font-bold text-amber-600 uppercase text-[10px]">P - Plan Clínico</span>
-                <p className="text-am-surface-500 mt-1 leading-relaxed">El tratamiento médico: fármacos prescritos, dosis, solicitud de laboratorios y pautas de alarma.</p>
+                <span className="font-bold text-amber-600 uppercase text-[10px]">P - Plan Clínico (El tratamiento)</span>
+                <p className="text-am-surface-500 mt-1 leading-relaxed">La indicación médica: medicamentos, dosis, estudios solicitados y pautas de alarma.</p>
               </div>
             </div>
           </div>
@@ -510,23 +510,23 @@ export function DoctorFAQPage() {
           <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-5 space-y-4">
             <h5 className="text-xs font-bold uppercase tracking-wider text-am-doctor-600 flex items-center gap-1.5">
               <Sparkles className="h-4 w-4 text-am-doctor-500" />
-              ASISTENTE COPILOT CON IA (GEMINI)
+              TU SECRETARIO CLÍNICO CON IA
             </h5>
             <p className="text-xs text-am-surface-600 leading-relaxed">
-              No tenés que perder tiempo escribiendo oraciones formales perfectas en tiempo real durante la consulta. La IA de AutaMedica se encarga de la redacción clínica:
+              AutaMedica cuenta con un transcriptor y redactor asistido por IA para que te concentres por completo en escuchar al paciente en lugar de tipear en el teclado:
             </p>
             <ol className="list-decimal list-inside text-xs text-am-surface-600 space-y-2.5 pl-1">
               <li>
-                <span className="font-semibold text-am-surface-900">Notas Rápidas:</span> Durante la videollamada, en el panel clínico lateral derecho pestaña **"SOAP"**, usá el cuadro de texto **"Notas rápidas del doctor"** para anotar conceptos telegráficos (ej: *"pcte 40a, cefalea frontal, TA 140/90, indico reposo"*).
+                <span className="font-semibold text-am-surface-900">Apuntes Informales (Notas rápidas):</span> Durante la videollamada, usá el cuadro de texto **"Notas rápidas del doctor"** para tipear palabras sueltas, ideas telegráficas o abreviaturas rápidas (ej: *"pcte 40a, dolor de cabeza frontal, TA 140/90, indico reposo"*).
               </li>
               <li>
-                <span className="font-semibold text-am-surface-900">Generar con un clic:</span> Al finalizar la llamada, hacé clic en el botón **"Generar reporte SOAP con IA"** ubicado justo debajo de las notas.
+                <span className="font-semibold text-am-surface-900">Generar con un clic:</span> Al colgar la videollamada, presioná el botón **"Generar reporte SOAP con IA"** justo debajo de tus apuntes.
               </li>
               <li>
-                <span className="font-semibold text-am-surface-900">Completado Automático:</span> El Copilot clínico procesa tus apuntes y la transcripción y pre-llena de forma instantánea las 4 áreas del SOAP con una redacción médica formal impecable.
+                <span className="font-semibold text-am-surface-900">Redacción médica automática:</span> En un segundo, la IA interpreta tu borrador rápido y la consulta y pre-llena de forma impecable las 4 secciones del SOAP con una redacción médica profesional de alta calidad.
               </li>
               <li>
-                <span className="font-semibold text-am-surface-900">Edición final:</span> Revisás cada campo, realizás ajustes si lo considerás necesario y presionás **"Guardar Historia Clínica"** para archivar la orden.
+                <span className="font-semibold text-am-surface-900">Revisión y guardado:</span> Ajustás cualquier detalle del texto generado si lo creés necesario y guardás la historia clínica.
               </li>
             </ol>
           </div>
