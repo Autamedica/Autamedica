@@ -398,9 +398,10 @@ export function CreateAppointmentModal({
                           <p className="text-sm font-semibold text-stone-900 flex items-center gap-1.5">
                             {doc.label}
                             {!isDisabled && doc.has_availability !== false && (
-                              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-50 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-600/10" title="Profesional certificado y verificado">
-                                ✓
-                              </span>
+                              <svg className="h-4 w-4 text-emerald-600 shrink-0 inline-block align-middle" viewBox="0 0 24 24" fill="currentColor">
+                                <title>Profesional verificado en SISA/REFEPS y con agenda activa</title>
+                                <path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12zm-13 5l-4-4 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                              </svg>
                             )}
                           </p>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">

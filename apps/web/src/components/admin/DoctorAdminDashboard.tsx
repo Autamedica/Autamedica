@@ -508,9 +508,10 @@ export function DoctorAdminDashboard() {
                               <div className="font-semibold text-slate-900 flex flex-wrap items-center gap-1.5">
                                 {p.first_name} {p.last_name}
                                 {(p.sss_validation_status === 'valid' || p.sss_validation_status === 'exempt') && doctor.has_availability && (
-                                  <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/10" title="Validado en SISA/REFEPS y con horarios disponibles">
-                                    ✓ Certificado
-                                  </span>
+                                  <svg className="h-4 w-4 text-emerald-600 shrink-0 inline-block align-middle" viewBox="0 0 24 24" fill="currentColor">
+                                    <title>Profesional verificado en SISA/REFEPS y con agenda activa</title>
+                                    <path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12zm-13 5l-4-4 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                                  </svg>
                                 )}
                                 {doctor.has_active_plan && (
                                   <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/10" title="Médico con plan premium activo">
@@ -611,9 +612,10 @@ export function DoctorAdminDashboard() {
                   <h4 className="text-lg font-bold text-slate-900 flex flex-wrap items-center gap-1.5">
                     Dr/a. {selectedDoctor.profile?.first_name} {selectedDoctor.profile?.last_name}
                     {(selectedDoctor.profile?.sss_validation_status === 'valid' || selectedDoctor.profile?.sss_validation_status === 'exempt') && selectedDoctor.has_availability && (
-                      <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/10" title="Validado en SISA/REFEPS y con horarios disponibles">
-                        ✓ Certificado
-                      </span>
+                      <svg className="h-4.5 w-4.5 text-emerald-600 shrink-0 inline-block align-middle" viewBox="0 0 24 24" fill="currentColor">
+                        <title>Profesional verificado en SISA/REFEPS y con agenda activa</title>
+                        <path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12zm-13 5l-4-4 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                      </svg>
                     )}
                     {selectedDoctor.has_active_plan && (
                       <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/10" title="Médico con plan premium activo">
