@@ -58,6 +58,13 @@ interface CreateAppointmentModalProps {
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
+function toLocalYmd(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function getWeekRange(baseDate: Date): { from: string; to: string } {
   const day = baseDate.getDay();
   const diffToMonday = day === 0 ? -6 : 1 - day;
@@ -66,8 +73,8 @@ function getWeekRange(baseDate: Date): { from: string; to: string } {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   return {
-    from: monday.toISOString().split('T')[0],
-    to: sunday.toISOString().split('T')[0],
+    from: toLocalYmd(monday),
+    to: toLocalYmd(sunday),
   };
 }
 
@@ -91,7 +98,7 @@ function getDaysInRange(from: string, to: string): string[] {
   const current = new Date(from + 'T12:00:00');
   const end = new Date(to + 'T12:00:00');
   while (current <= end) {
-    days.push(current.toISOString().split('T')[0]);
+    days.push(toLocalYmd(current));
     current.setDate(current.getDate() + 1);
   }
   return days;
@@ -239,7 +246,7 @@ export function CreateAppointmentModal({
     return grouped;
   }, [days, slots]);
 
-  const isToday = (dateStr: string) => dateStr === new Date().toISOString().split('T')[0];
+  const isToday = (dateStr: string) => dateStr === toLocalYmd(new Date());
   const isPastDate = (dateStr: string) => new Date(dateStr + 'T23:59:59') < new Date();
   const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId);
 
@@ -286,7 +293,7 @@ export function CreateAppointmentModal({
     : [];
 
   const firstAvailableDay = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = toLocalYmd(new Date());
     return (
       days.find((day) => day >= todayStr && (slotsByDay.get(day) ?? []).some((slot) => slot.is_available)) ?? null
     );
@@ -299,7 +306,7 @@ export function CreateAppointmentModal({
       ? (slotsByDay.get(selectedDay) ?? []).some((slot) => slot.is_available)
       : false;
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = toLocalYmd(new Date());
     const isSelectedDayPast = selectedDay ? selectedDay < todayStr : false;
 
     if ((!selectedDayStillHasSlots || isSelectedDayPast) && firstAvailableDay) {
