@@ -41,14 +41,14 @@ interface PatientsHomePageProps {
 }
 
 const SERVICES = [
-  { icon: Video, label: 'Videoconsulta', href: '/patients/appointments?type=telemedicine' },
-  { icon: Calendar, label: 'Mis turnos', href: '/patients/appointments' },
-  { icon: FileText, label: 'Mis recetas', href: '/patients/medical-history' },
-  { icon: Heart, label: 'Historia general', href: '/patients/anamnesis' },
-  { icon: Brain, label: 'Psiquiatría', href: '/patients/psychiatry' },
-  { icon: Shield, label: 'Salud preventiva', href: '/patients/preventive-health' },
-  { icon: Heart, label: 'Salud reproductiva', href: '/patients/reproductive-health' },
-  { icon: Users, label: 'Comunidad', href: '/patients/community' },
+  { icon: Video, label: 'Médico online', href: '/patients/appointments?type=telemedicine' },
+  { icon: Calendar, label: 'Mi agenda', href: '/patients/appointments' },
+  { icon: FileText, label: 'Mis medicamentos', href: '/patients/medical-history' },
+  { icon: Heart, label: 'Mi historial de salud', href: '/patients/anamnesis' },
+  { icon: Brain, label: 'Salud mental', href: '/patients/psychiatry' },
+  { icon: Shield, label: 'Prevención y chequeos', href: '/patients/preventive-health' },
+  { icon: Heart, label: 'Planificación y cuidado', href: '/patients/reproductive-health' },
+  { icon: Users, label: 'Foro de pacientes', href: '/patients/community' },
 ] as const
 
 const BOTTOM_TABS = [
@@ -596,7 +596,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              Servicios
+              ¿Cómo te ayudamos?
             </motion.h3>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">

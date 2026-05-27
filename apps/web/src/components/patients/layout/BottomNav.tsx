@@ -10,10 +10,10 @@ interface BottomNavProps {
 
 const TABS: Array<{ key: PatientTab; label: string; href: string; icon: typeof Home; center?: boolean }> = [
   { key: 'inicio', label: 'Inicio', href: '/?portal=patient', icon: Home },
-  { key: 'agenda', label: 'Agenda', href: '/patients/appointments', icon: Calendar },
-  { key: 'consultar', label: 'Consultar', href: '/patients/appointments?type=telemedicine', icon: Video, center: true },
-  { key: 'historial', label: 'Recetas', href: '/patients/medical-history', icon: Pill },
-  { key: 'comunidad', label: 'Comunidad', href: '/patients/community', icon: MessageCircle },
+  { key: 'agenda', label: 'Mi agenda', href: '/patients/appointments', icon: Calendar },
+  { key: 'consultar', label: 'Médico online', href: '/patients/appointments?type=telemedicine', icon: Video, center: true },
+  { key: 'historial', label: 'Mis medicamentos', href: '/patients/medical-history', icon: Pill },
+  { key: 'comunidad', label: 'Foro de pacientes', href: '/patients/community', icon: MessageCircle },
 ]
 
 export default function BottomNav({ activeTab = 'inicio' }: BottomNavProps) {
