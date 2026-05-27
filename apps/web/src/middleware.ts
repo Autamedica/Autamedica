@@ -230,7 +230,7 @@ function getRoleRedirect(role: string): string {
   if (import.meta.env.PROD) {
     const PROD: Record<string, string> = {
       patient: "https://paciente.autamedica.com",
-      doctor: "https://doctors.autamedica.com",
+      doctor: "https://doctor.autamedica.com",
       company: "https://empresa.autamedica.com",
       company_admin: "https://empresa.autamedica.com",
       organization_admin: "https://admin.autamedica.com",
@@ -759,7 +759,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const isAuthenticated = !!user;
 
     // Redirigir a usuarios logueados que acceden a la landing raíz "/"
-    // Pero solo si están en el dominio principal (no en los subdominios de portal como doctors.autamedica.com)
+    // Pero solo si están en el dominio principal (no en los subdominios de portal como doctor.autamedica.com)
     if (pathname === "/" && isAuthenticated && !portal) {
       const userRole =
         extractRole(user.app_metadata as Record<string, unknown>) ??
