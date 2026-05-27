@@ -150,6 +150,8 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     opacity: 0.6;
     pointer-events: none;
     z-index: 0;
+    transform: scale(1.25); /* Zoom para ocultar destellos/marcas de agua de los bordes */
+    transform-origin: center center;
   }
 
   .hero-overlay {
