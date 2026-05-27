@@ -439,6 +439,24 @@ export function CreateAppointmentModal({
                                 <line x1="10" y1="9" x2="8" y2="9" />
                               </svg>
                             )}
+                            {!isPending && !isDemo && doc.active_plan === 'basico' && (
+                              <svg className="h-4 w-4 text-orange-600 shrink-0 inline-block align-middle" viewBox="0 0 24 24" fill="currentColor">
+                                <title>Suscripción Básica activa</title>
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                              </svg>
+                            )}
+                            {!isPending && !isDemo && doc.active_plan === 'pro' && (
+                              <svg className="h-4 w-4 text-purple-600 shrink-0 inline-block align-middle" viewBox="0 0 24 24" fill="currentColor">
+                                <title>Suscripción Pro activa</title>
+                                <path d="M12 2L2 12l10 10 10-10L12 2z" />
+                              </svg>
+                            )}
+                            {!isPending && !isDemo && doc.active_plan === 'premium' && (
+                              <svg className="h-4 w-4 text-amber-500 shrink-0 inline-block align-middle" viewBox="0 0 24 24" fill="currentColor">
+                                <title>Suscripción Premium activa</title>
+                                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                              </svg>
+                            )}
                           </p>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
                             {doc.specialty && (
@@ -463,21 +481,6 @@ export function CreateAppointmentModal({
                             {!isPending && !isDemo && doc.has_availability === false && (
                               <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/10 flex items-center gap-0.5 w-fit">
                                 Sin horarios disponibles
-                              </span>
-                            )}
-                            {doc.active_plan === 'basico' && (
-                              <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-700 ring-1 ring-orange-600/10 flex items-center gap-0.5 w-fit">
-                                Básico
-                              </span>
-                            )}
-                            {doc.active_plan === 'pro' && (
-                              <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-700 ring-1 ring-purple-600/10 flex items-center gap-0.5 w-fit">
-                                Pro
-                              </span>
-                            )}
-                            {doc.active_plan === 'premium' && (
-                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/10 flex items-center gap-0.5 w-fit">
-                                <span className="text-[9px]">★</span> Premium
                               </span>
                             )}
                           </div>
