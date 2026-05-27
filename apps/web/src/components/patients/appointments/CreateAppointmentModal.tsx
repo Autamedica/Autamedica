@@ -285,9 +285,12 @@ export function CreateAppointmentModal({
     ? (slotsByDay.get(selectedDay) ?? []).filter((s) => s.is_available)
     : [];
 
-  const firstAvailableDay = useMemo(() => (
-    days.find((day) => (slotsByDay.get(day) ?? []).some((slot) => slot.is_available)) ?? null
-  ), [days, slotsByDay]);
+  const firstAvailableDay = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return (
+      days.find((day) => day >= todayStr && (slotsByDay.get(day) ?? []).some((slot) => slot.is_available)) ?? null
+    );
+  }, [days, slotsByDay]);
 
   useEffect(() => {
     if (!selectedDoctorId) return;
@@ -296,7 +299,10 @@ export function CreateAppointmentModal({
       ? (slotsByDay.get(selectedDay) ?? []).some((slot) => slot.is_available)
       : false;
 
-    if (!selectedDayStillHasSlots && firstAvailableDay) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isSelectedDayPast = selectedDay ? selectedDay < todayStr : false;
+
+    if ((!selectedDayStillHasSlots || isSelectedDayPast) && firstAvailableDay) {
       setSelectedDay(firstAvailableDay);
       setSelectedSlot(null);
     }
