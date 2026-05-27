@@ -31,6 +31,7 @@ interface DoctorOption {
   first_name: string | null;
   last_name: string | null;
   has_availability?: boolean;
+  has_active_plan?: boolean;
   label: string;
   license_number?: string | null;
   avatar_url?: string | null;
@@ -243,11 +244,13 @@ export function CreateAppointmentModal({
     return [...doctors].sort((a, b) => {
       const isAPending = a.license_number?.startsWith('PENDING') || a.license_number === 'PENDING';
       const isADemo = a.license_number?.includes('DEMO');
-      const isADisabled = isAPending || isADemo;
+      const isANoAvailability = a.has_availability === false;
+      const isADisabled = isAPending || isADemo || isANoAvailability;
 
       const isBPending = b.license_number?.startsWith('PENDING') || b.license_number === 'PENDING';
       const isBDemo = b.license_number?.includes('DEMO');
-      const isBDisabled = isBPending || isBDemo;
+      const isBNoAvailability = b.has_availability === false;
+      const isBDisabled = isBPending || isBDemo || isBNoAvailability;
 
       // 1. Group disabled/pending doctors at the absolute bottom
       if (isADisabled && !isBDisabled) return 1;
@@ -362,7 +365,8 @@ export function CreateAppointmentModal({
                     const isSelected = selectedDoctorId === doc.id;
                     const isPending = doc.license_number?.startsWith('PENDING') || doc.license_number === 'PENDING';
                     const isDemo = doc.license_number?.includes('DEMO');
-                    const isDisabled = isPending || isDemo;
+                    const isNoAvailability = doc.has_availability === false;
+                    const isDisabled = isPending || isDemo || isNoAvailability;
                     return (
                       <button
                         key={doc.id}
@@ -416,6 +420,21 @@ export function CreateAppointmentModal({
                               <p className="font-medium text-amber-700">
                                 Sin horarios cargados
                               </p>
+                            )}
+                            {!isDisabled && doc.has_availability !== false && (
+                              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-600/10 flex items-center gap-0.5 w-fit">
+                                <span className="text-[9px]">✓</span> Certificado
+                              </span>
+                            )}
+                            {doc.has_active_plan && (
+                              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/10 flex items-center gap-0.5 w-fit">
+                                <span className="text-[9px]">★</span> Destacado
+                              </span>
+                            )}
+                            {!isDisabled && doc.has_availability !== false && (
+                              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-600/10 flex items-center gap-0.5 w-fit">
+                                <span className="text-[9px]">✓</span> Certificado
+                              </span>
                             )}
                           </div>
                         </div>

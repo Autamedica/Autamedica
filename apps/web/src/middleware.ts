@@ -639,9 +639,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname === route);
 
   // Public routes that are NOT auth routes — skip auth entirely
+  // Si es la raíz y tiene cookies de sesión, no saltamos para poder redirigirlo.
+  const isRootWithSession = pathname === "/" && authCookieDebug.hasAuthCookies;
+
   if (
     !isAuthRoute &&
     !isPortalHostRoot &&
+    !isRootWithSession &&
     PUBLIC_ROUTES.some(
       (route) => pathname === route || pathname.startsWith(`${route}/`),
     )
@@ -753,6 +757,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
     context.locals.supabase = supabase;
 
     const isAuthenticated = !!user;
+
+    // Redirigir a usuarios logueados que acceden a la landing raíz "/"
+    if (pathname === "/" && isAuthenticated) {
+      const userRole =
+        extractRole(user.app_metadata as Record<string, unknown>) ??
+        extractRole(user.user_metadata as Record<string, unknown>);
+      if (userRole) {
+        const roleRedirect = getRoleRedirect(userRole);
+        return context.redirect(roleRedirect);
+      }
+    }
 
     // Auth routes: redirect authenticated users to their dashboard
     if (isAuthRoute) {

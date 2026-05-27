@@ -92,7 +92,60 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     if (error) throw error;
 
-    return jsonOk(doctors || []);
+    const doctorIds = (doctors || []).map((doc) => doc.id);
+    const doctorsWithAvailability = new Set<string>();
+    const doctorsWithActiveSubscription = new Set<string>();
+
+    if (doctorIds.length > 0) {
+      const [availRes, subRes] = await Promise.all([
+        admin
+          .from('doctor_availability')
+          .select('doctor_id, start_time, end_time')
+          .in('doctor_id', doctorIds)
+          .eq('is_active', true),
+        admin
+          .from('doctor_subscriptions')
+          .select('doctor_id')
+          .in('doctor_id', doctorIds)
+          .eq('status', 'active')
+      ]);
+
+      if (availRes.error) {
+        logger.warn('[api/admin/doctors] availability lookup failed', availRes.error);
+      } else {
+        const availByDoctor = new Map<string, Array<{ start_time: string; end_time: string }>>();
+        for (const row of availRes.data ?? []) {
+          const list = availByDoctor.get(row.doctor_id) ?? [];
+          list.push({ start_time: row.start_time, end_time: row.end_time });
+          availByDoctor.set(row.doctor_id, list);
+        }
+
+        availByDoctor.forEach((slots, doctorId) => {
+          const isFakePreset = slots.length >= 7 && slots.every(
+            (s) => s.start_time === '00:00:00' && s.end_time === '23:59:00',
+          );
+          if (!isFakePreset && slots.length > 0) {
+            doctorsWithAvailability.add(doctorId);
+          }
+        });
+      }
+
+      if (subRes.error) {
+        logger.warn('[api/admin/doctors] subscription lookup failed', subRes.error);
+      } else {
+        for (const row of subRes.data ?? []) {
+          doctorsWithActiveSubscription.add(row.doctor_id);
+        }
+      }
+    }
+
+    const enrichedDoctors = (doctors || []).map((doc) => ({
+      ...doc,
+      has_availability: doctorsWithAvailability.has(doc.id),
+      has_active_plan: doctorsWithActiveSubscription.has(doc.id),
+    }));
+
+    return jsonOk(enrichedDoctors);
   } catch (err) {
     logger.error('[api/admin/doctors] GET failed', err);
     return internalError(err instanceof Error ? err.message : 'failed to fetch doctors');

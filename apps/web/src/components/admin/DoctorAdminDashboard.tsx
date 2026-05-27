@@ -37,6 +37,8 @@ type Doctor = {
   created_at: string;
   updated_at: string;
   profile: Profile;
+  has_availability?: boolean;
+  has_active_plan?: boolean;
 };
 
 type DeleteDoctorResponse = {
@@ -503,8 +505,27 @@ export function DoctorAdminDashboard() {
                               )}
                             </div>
                             <div>
-                              <div className="font-semibold text-slate-900">
+                              <div className="font-semibold text-slate-900 flex flex-wrap items-center gap-1.5">
                                 {p.first_name} {p.last_name}
+                                {(p.sss_validation_status === 'valid' || p.sss_validation_status === 'exempt') && doctor.has_availability && (
+                                  <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/10" title="Validado en SISA/REFEPS y con horarios disponibles">
+                                    ✓ Certificado
+                                  </span>
+                                )}
+                                {doctor.has_active_plan && (
+                                  <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/10" title="Médico con plan premium activo">
+                                    ★ Destacado
+                                  </span>
+                                )}
+                                {doctor.signature_image_url && doctor.stamp_image_url ? (
+                                  <span className="inline-flex items-center rounded-md bg-sky-50 px-1.5 py-0.5 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-600/10" title="Firma y Sello digital cargados correctamente para emitir recetas">
+                                    ✓ Receta
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center rounded-md bg-rose-50 px-1.5 py-0.5 text-xs font-semibold text-rose-700 ring-1 ring-inset ring-rose-600/10" title="Falta subir firma y/o sello digital para habilitar emisión de recetas">
+                                    ⚠ Sin Firma
+                                  </span>
+                                )}
                               </div>
                               <div className="text-xs text-slate-500">{p.email}</div>
                             </div>
@@ -587,8 +608,27 @@ export function DoctorAdminDashboard() {
                   )}
                 </div>
                 <div>
-                  <h4 className="text-lg font-bold text-slate-900">
+                  <h4 className="text-lg font-bold text-slate-900 flex flex-wrap items-center gap-1.5">
                     Dr/a. {selectedDoctor.profile?.first_name} {selectedDoctor.profile?.last_name}
+                    {(selectedDoctor.profile?.sss_validation_status === 'valid' || selectedDoctor.profile?.sss_validation_status === 'exempt') && selectedDoctor.has_availability && (
+                      <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/10" title="Validado en SISA/REFEPS y con horarios disponibles">
+                        ✓ Certificado
+                      </span>
+                    )}
+                    {selectedDoctor.has_active_plan && (
+                      <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/10" title="Médico con plan premium activo">
+                        ★ Destacado
+                      </span>
+                    )}
+                    {selectedDoctor.signature_image_url && selectedDoctor.stamp_image_url ? (
+                      <span className="inline-flex items-center rounded-md bg-sky-50 px-1.5 py-0.5 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-600/10" title="Firma y Sello digital cargados correctamente para emitir recetas">
+                        ✓ Receta Digital
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-md bg-rose-50 px-1.5 py-0.5 text-xs font-semibold text-rose-700 ring-1 ring-inset ring-rose-600/10" title="Falta subir firma y/o sello digital para habilitar emisión de recetas">
+                        ⚠ Sin Firma/Sello
+                      </span>
+                    )}
                   </h4>
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                     ID: {selectedDoctor.id.slice(0, 8)} | Rol: {selectedDoctor.profile?.role}

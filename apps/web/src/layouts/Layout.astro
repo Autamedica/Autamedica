@@ -13,6 +13,8 @@ import { SentryInit } from '../components/SentryInit';
 import { getI18n } from '../i18n/index';
 import { resolvePublicClientEnv } from '../lib/runtime-env';
 import { SessionSync as PatientSessionSync } from '../components/patients/SessionSync';
+import PWAUpdatePrompt from '../components/PWAUpdatePrompt.astro';
+
 
 interface Props {
   title?: string;
@@ -114,8 +116,52 @@ const activeTabDoctor =
     <link rel="icon" href="/images/brand/logo_bioceramic.png" type="image/png" />
     <link rel="manifest" href="/manifest.json" />
     <StructuredData />
-    <meta name="view-transition" content="same-origin" />
     <GoogleTag />
+    <script is:inline>
+      function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('[PWA] Service Worker registrado exitosamente:', registration.scope);
+
+              // Escuchar actualizaciones del Service Worker
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      console.log('[PWA] Nueva versión disponible, notificando a la UI');
+                      window.dispatchEvent(new CustomEvent('pwa:update-available', { detail: registration }));
+                    }
+                  });
+                }
+              });
+            })
+            .catch((error) => {
+              console.error('[PWA] Error registrando el Service Worker:', error);
+            });
+
+          // Detectar si el Service Worker tomó el control
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+              refreshing = true;
+              console.log('[PWA] Service Worker actualizado, recargando ventana');
+              window.location.reload();
+            }
+          });
+        }
+      }
+
+      // Registrar inmediatamente
+      if (document.readyState === 'complete') {
+        registerServiceWorker();
+      } else {
+        window.addEventListener('load', registerServiceWorker);
+      }
+
+      document.addEventListener('astro:after-swap', registerServiceWorker);
+    </script>
   </head>
   <body class="antialiased">
     <SentryInit client:load />
@@ -123,7 +169,9 @@ const activeTabDoctor =
     <ScrollProgress />
     <slot />
     <OfflineBanner />
+    <PWAUpdatePrompt />
     <CookieBanner />
+
     <FadeInObserver />
 
     {isPatientHost && <PatientSessionSync client:load />}

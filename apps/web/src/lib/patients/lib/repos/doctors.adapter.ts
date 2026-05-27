@@ -15,6 +15,7 @@ export interface DoctorSummary {
   first_name: string | null
   last_name: string | null
   has_availability: boolean
+  has_active_plan: boolean
   label: string
   license_number: string | null
   avatar_url: string | null
@@ -80,13 +81,31 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
         })
       }
 
+      // Query active subscriptions to highlight premium plans
+      let doctorsWithActiveSubscription = new Set<string>()
+      if (doctorIds.length > 0) {
+        const { data: subscriptionRows, error: subscriptionError } = await supabase
+          .from('doctor_subscriptions')
+          .select('doctor_id')
+          .in('doctor_id', doctorIds)
+          .eq('status', 'active')
+
+        if (subscriptionError) {
+          logger.warn('[doctorsRepo] listActive subscription lookup failed', subscriptionError)
+        } else {
+          for (const row of subscriptionRows ?? []) {
+            doctorsWithActiveSubscription.add(row.doctor_id)
+          }
+        }
+      }
+
       const doctors = doctorRows
-        // Only show doctors who explicitly configured real availability
-        .filter((row) => doctorsWithAvailability.has(row.id))
         .map((row) => {
           const firstName = row.profile?.first_name ?? ''
           const lastName = row.profile?.last_name ?? ''
           const fullName = [firstName, lastName].filter(Boolean).join(' ')
+          const hasAvailability = doctorsWithAvailability.has(row.id)
+          const hasActivePlan = doctorsWithActiveSubscription.has(row.id)
 
           return {
             id: row.id,
@@ -94,7 +113,8 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
             consultation_fee: row.consultation_fee ?? null,
             first_name: row.profile?.first_name ?? null,
             last_name: row.profile?.last_name ?? null,
-            has_availability: true,
+            has_availability: hasAvailability,
+            has_active_plan: hasActivePlan,
             label: fullName ? `Dr. ${fullName}` : 'Profesional disponible',
             license_number: row.license_number ?? null,
             avatar_url: row.profile?.avatar_url ?? null,
