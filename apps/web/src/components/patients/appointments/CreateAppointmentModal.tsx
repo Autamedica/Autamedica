@@ -395,7 +395,14 @@ export function CreateAppointmentModal({
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-stone-900">{doc.label}</p>
+                          <p className="text-sm font-semibold text-stone-900 flex items-center gap-1.5">
+                            {doc.label}
+                            {!isDisabled && doc.has_availability !== false && (
+                              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-50 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-600/10" title="Profesional certificado y verificado">
+                                ✓
+                              </span>
+                            )}
+                          </p>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
                             {doc.specialty && (
                               <p className="flex items-center gap-1">
@@ -421,19 +428,9 @@ export function CreateAppointmentModal({
                                 Sin horarios cargados
                               </p>
                             )}
-                            {!isDisabled && doc.has_availability !== false && (
-                              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-600/10 flex items-center gap-0.5 w-fit">
-                                <span className="text-[9px]">✓</span> Certificado
-                              </span>
-                            )}
                             {doc.has_active_plan && (
                               <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/10 flex items-center gap-0.5 w-fit">
                                 <span className="text-[9px]">★</span> Destacado
-                              </span>
-                            )}
-                            {!isDisabled && doc.has_availability !== false && (
-                              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-600/10 flex items-center gap-0.5 w-fit">
-                                <span className="text-[9px]">✓</span> Certificado
                               </span>
                             )}
                           </div>
