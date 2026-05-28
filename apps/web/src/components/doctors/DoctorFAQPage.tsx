@@ -575,7 +575,7 @@ export function DoctorFAQPage() {
       answer: (
         <div className="space-y-4">
           <p className="text-sm leading-relaxed text-am-surface-600">
-            Cobrar tus honorarios en AutaMedica es sumamente simple y transparente. Todo el dinero de las consultas de pacientes del marketplace va directamente a tu billetera personal sin intermediarios.
+            Cobrar tus honorarios de videoconsultas en AutaMedica es sumamente ordenado. Las transacciones se procesan de forma segura a través de tu cuenta vinculada de MercadoPago, permitiéndote centralizar tus ingresos profesionales.
           </p>
 
           <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-5 space-y-4">
@@ -596,8 +596,8 @@ export function DoctorFAQPage() {
             </ol>
           </div>
 
-          <p className="text-xs text-emerald-700 bg-emerald-50/60 p-4 rounded-xl border border-emerald-100 leading-relaxed font-semibold">
-            Acreditación en el acto: Una vez que finalizás la videollamada clínica con el paciente particular, el cobro se procesa automáticamente y los honorarios se acreditan de forma inmediata en tu cuenta de MercadoPago, listos para ser transferidos a tu banco o utilizados.
+          <p className="text-xs text-am-doctor-700 bg-am-doctor-50/30 p-4 rounded-xl border border-am-doctor-100 leading-relaxed font-semibold">
+            Procesamiento y liberación: Al completarse la consulta, el pago del paciente se procesa a través de la plataforma. La disponibilidad final del dinero en tu cuenta de MercadoPago dependerá de los plazos estándar de clearing y liberación que tengas configurados en tu perfil de MercadoPago.
           </p>
         </div>
       )
@@ -610,14 +610,14 @@ export function DoctorFAQPage() {
       answer: (
         <div className="space-y-3 text-sm leading-relaxed text-am-surface-600">
           <p>
-            <span className="font-semibold text-am-surface-900">No, tu trabajo es tuyo.</span> En AutaMedica no retenemos ninguna comisión sobre tus honorarios médicos. El 100% del valor que fijás por tu consulta particular es tuyo y se acredita de forma directa.
+            <span className="font-semibold text-am-surface-900">Sí.</span> Para sostener la orquestación del Consultorio Virtual, la infraestructura de seguridad clínica, la asistencia de IA y el soporte médico constante, <span className="font-semibold text-am-surface-900">AutaMedica retiene una comisión del 15% por cada videoconsulta realizada</span> en el marketplace.
           </p>
           <div className="rounded-xl bg-am-surface-50 border border-am-surface-200 p-4 flex gap-3 items-start mt-2">
             <Info className="h-5 w-5 text-am-surface-400 shrink-0 mt-0.5" />
             <div>
-              <h6 className="text-xs font-bold text-am-surface-800 uppercase">Nota sobre aranceles de procesamiento financiero</h6>
+              <h6 className="text-xs font-bold text-am-surface-800 uppercase">Aranceles de la pasarela de pagos (MercadoPago)</h6>
               <p className="text-xs text-am-surface-500 mt-1 leading-relaxed">
-                Al realizarse cobros con tarjetas de crédito o débito a través de internet, la pasarela de MercadoPago aplica su comisión estándar por procesamiento financiero (según las tasas vigentes y los plazos de liberación que tengas configurados en tu perfil de vendedor de MercadoPago). Esta tasa es ajena a AutaMedica y se descuenta directamente de la transacción.
+                Adicionalmente, por cada cobro con tarjeta, MercadoPago aplica una tasa fija de procesamiento financiero del <span className="font-semibold text-am-surface-700">4%</span> sobre la transacción. Esto cubre el costo del procesamiento seguro de cobro bancario de la tarjeta del paciente.
               </p>
             </div>
           </div>
