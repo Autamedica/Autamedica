@@ -11,7 +11,8 @@ import {
   Brain,
   Calendar,
   Info,
-  ChevronRight
+  ChevronRight,
+  Clock
 } from "lucide-react";
 
 export interface FAQItem {
