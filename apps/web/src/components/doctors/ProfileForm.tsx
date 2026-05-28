@@ -259,7 +259,7 @@ export function ProfileForm() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-am-surface-50 py-8 px-4">
+    <div className="w-full bg-am-surface-50 py-4 px-2 sm:py-8 sm:px-4 pb-28 sm:pb-8">
       <div className="mx-auto w-full max-w-lg">
         <a
           href="/doctors"
@@ -269,7 +269,7 @@ export function ProfileForm() {
           Volver al portal
         </a>
 
-        <div className="rounded-2xl border border-am-surface-200 bg-white p-6 shadow-am-sm">
+        <div className="rounded-2xl border border-am-surface-200 bg-white p-4 sm:p-6 shadow-am-sm">
           <h1 className="text-xl font-semibold text-am-surface-900">Completa tu perfil profesional</h1>
           <p className="mt-1 text-sm text-am-surface-500">
             Revisá y completá tus datos de identidad profesional.
@@ -497,7 +497,7 @@ export function ProfileForm() {
                         type="button"
                         onClick={handleVerifyLicense}
                         disabled={!canVerifyLicense}
-                        className="inline-flex h-11 items-center justify-center rounded-xl bg-am-doctor-500 px-4 text-sm font-medium text-white shadow-am-sm transition-all hover:bg-am-doctor-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl bg-am-doctor-500 px-4 text-sm font-medium text-white shadow-am-sm transition-all hover:bg-am-doctor-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isVerifyingLicense ? (
                           <span className="inline-flex items-center gap-2">
