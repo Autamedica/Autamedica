@@ -301,7 +301,7 @@ export function DoctorFAQPage() {
     {
       id: "llamada-telemedicina",
       category: "calls",
-      question: "¿Cómo hago una llamada de telemedicina? (Uso del Cockpit y Controles)",
+      question: "¿Cómo hago una llamada de telemedicina? (Uso del Consultorio Virtual y Controles)",
       tags: ["llamada", "video", "sala", "entrar a consulta", "adhoc", "instantanea", "controles"],
       answer: (
         <div className="space-y-4">
@@ -595,7 +595,7 @@ export function DoctorFAQPage() {
               ¿Cómo te ayudamos hoy, <span className="font-semibold text-am-doctor-400">Doctor/a</span>?
             </h1>
             <p className="text-sm text-am-surface-300 leading-relaxed font-light">
-              Respuestas claras sobre el uso del Cockpit de telemedicina, flujo legal de recetas electrónicas en farmacias, protección de datos personales e integración de la asistencia clínica con IA.
+              Respuestas claras sobre el uso del Consultorio Virtual de telemedicina, flujo legal de recetas electrónicas en farmacias, protección de datos personales e integración de la asistencia clínica con IA.
             </p>
           </div>
         </div>
