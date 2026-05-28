@@ -12,7 +12,6 @@ import {
   Pill,
   Video,
   Calendar,
-  Sparkles,
   ShieldCheck,
   CheckCircle2,
   FileText,
@@ -25,7 +24,8 @@ import {
   Compass,
   Bookmark,
   Info,
-  CreditCard
+  CreditCard,
+  Brain
 } from "lucide-react";
 
 interface FAQItem {
@@ -423,7 +423,7 @@ export function DoctorFAQPage() {
             </div>
             
             <div className="rounded-xl border border-am-surface-200 p-4 bg-am-surface-50 flex items-start gap-3">
-              <Sparkles className="h-5 w-5 text-am-doctor-600 shrink-0 mt-0.5" />
+              <FileText className="h-5 w-5 text-am-doctor-600 shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold text-am-surface-800">Evolución y pautas de autocuidado</span>
                 <p className="text-am-surface-500 mt-1 leading-relaxed">Guardar tu reporte SOAP al finalizar la consulta y enviarle las guías con IA al paciente para su tranquilidad suma puntos de visibilidad.</p>
@@ -508,7 +508,7 @@ export function DoctorFAQPage() {
 
           <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-5 space-y-4">
             <h5 className="text-xs font-bold uppercase tracking-wider text-am-doctor-600 flex items-center gap-1.5">
-              <Sparkles className="h-4 w-4 text-am-doctor-500" />
+              <Brain className="h-4 w-4 text-am-doctor-500" />
               TU SECRETARIO CLÍNICO CON IA
             </h5>
             <p className="text-xs text-am-surface-600 leading-relaxed">
@@ -677,7 +677,7 @@ export function DoctorFAQPage() {
         <div className="relative overflow-hidden rounded-xl bg-am-surface-900 px-6 py-12 shadow-xl sm:px-12 text-white">
           <div className="relative z-10 max-w-2xl space-y-4">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-am-doctor-500/10 px-3 py-1 text-xs font-bold text-am-doctor-400 border border-am-doctor-500/20">
-              <Sparkles className="h-3.5 w-3.5" />
+              <Activity className="h-3.5 w-3.5" />
               Instructivo Clínico Operativo
             </span>
             <h1 className="text-2xl sm:text-3xl font-light tracking-tight text-white leading-tight">
