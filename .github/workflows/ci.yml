@@ -19,7 +19,8 @@ env:
   NODE_VERSION: "22"
   PNPM_VERSION: "9.15.2"
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_API: ${{ vars.TURBO_API }}
 
 jobs:
   build-gate:
