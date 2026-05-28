@@ -446,7 +446,7 @@ export const faqItems: FAQItem[] = [
     id: "que-escribir-soap",
     category: "calls",
     question: "¿Qué debo escribir en el SOAP? ¿Cómo me ayuda el Secretario Clínico con IA?",
-    tags: ["soap", "reporte clinico", "copilot", "gemini", "ia", "historia clinica", "notas"],
+    tags: ["soap", "reporte clinico", "copilot", "gemini", "ia", "evolucion clinica", "notas"],
     answer: (
       <div className="space-y-4">
         <p className="text-sm leading-relaxed text-am-surface-600">
