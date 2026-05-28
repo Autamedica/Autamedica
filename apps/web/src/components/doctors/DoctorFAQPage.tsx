@@ -18,7 +18,7 @@ import {
   Activity,
   CreditCard
 } from "lucide-react";
-import { type FAQItem, faqItems } from "./DoctorFAQData";
+import { faqItems } from "./DoctorFAQData";
 
 export function DoctorFAQPage() {
   const [searchQuery, setSearchQuery] = useState("");
