@@ -4,7 +4,6 @@
  */
 "use client";
 
-import React, { useState, useMemo } from "react";
 import {
   Search,
   HelpCircle,
@@ -25,12 +24,13 @@ import {
   Activity,
   Compass,
   Bookmark,
-  Info
+  Info,
+  CreditCard
 } from "lucide-react";
 
 interface FAQItem {
   id: string;
-  category: "patients" | "prescriptions" | "calls" | "agenda";
+  category: "patients" | "prescriptions" | "calls" | "agenda" | "billing";
   question: string;
   answer: React.ReactNode;
   tags: string[];
@@ -38,7 +38,7 @@ interface FAQItem {
 
 export function DoctorFAQPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<"all" | "patients" | "prescriptions" | "calls" | "agenda">("all");
+  const [activeCategory, setActiveCategory] = useState<"all" | "patients" | "prescriptions" | "calls" | "agenda" | "billing">("all");
   const [openItem, setOpenItem] = useState<string | null>("atender-externo");
 
   const categories = [
@@ -47,6 +47,7 @@ export function DoctorFAQPage() {
     { id: "prescriptions", label: "Recetas", icon: Pill },
     { id: "calls", label: "Consultas", icon: Video },
     { id: "agenda", label: "Agenda", icon: Calendar },
+    { id: "billing", label: "Cobros y Planes", icon: CreditCard },
   ];
 
   const faqItems = useMemo<FAQItem[]>(() => [
@@ -565,6 +566,94 @@ export function DoctorFAQPage() {
           </div>
         </div>
       )
+    },
+    {
+      id: "vincular-mercadopago",
+      category: "billing",
+      question: "¿Cómo cobro mis consultas particulares y cómo vinculo MercadoPago?",
+      tags: ["mercadopago", "cobros", "honorarios", "billetera", "vincular", "cuenta", "pagos"],
+      answer: (
+        <div className="space-y-4">
+          <p className="text-sm leading-relaxed text-am-surface-600">
+            Cobrar tus honorarios en AutaMedica es sumamente simple y transparente. Todo el dinero de las consultas de pacientes del marketplace va directamente a tu billetera personal sin intermediarios.
+          </p>
+
+          <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-5 space-y-4">
+            <h5 className="text-xs font-bold uppercase tracking-wider text-am-doctor-600 flex items-center gap-1.5">
+              <Compass className="h-4 w-4 text-am-doctor-500" />
+              PASO A PASO PARA VINCULAR TU CUENTA
+            </h5>
+            <ol className="list-decimal list-inside text-xs text-am-surface-600 space-y-3 pl-1">
+              <li>
+                <span className="font-semibold text-am-surface-900">Sección de Facturación:</span> En tu Dashboard de Doctor, dirigite a <span className="font-semibold text-am-surface-900">"Mi Cuenta"</span> (arriba a la derecha) y seleccioná la pestaña <span className="font-semibold text-am-doctor-600">"Facturación"</span>.
+              </li>
+              <li>
+                <span className="font-semibold text-am-surface-900">Conexión Segura:</span> Hacé clic en el botón principal <span className="font-semibold text-am-surface-900">"Vincular cuenta de MercadoPago"</span>.
+              </li>
+              <li>
+                <span className="font-semibold text-am-surface-900">Autorización:</span> El sistema te redirigirá automáticamente al portal seguro de MercadoPago para ingresar tus credenciales y autorizar la sincronización en un solo clic. ¡Y listo!
+              </li>
+            </ol>
+          </div>
+
+          <p className="text-xs text-emerald-700 bg-emerald-50/60 p-4 rounded-xl border border-emerald-100 leading-relaxed font-semibold">
+            Acreditación en el acto: Una vez que finalizás la videollamada clínica con el paciente particular, el cobro se procesa automáticamente y los honorarios se acreditan de forma inmediata en tu cuenta de MercadoPago, listos para ser transferidos a tu banco o utilizados.
+          </p>
+        </div>
+      )
+    },
+    {
+      id: "comisiones-plataforma",
+      category: "billing",
+      question: "¿AutaMedica me cobra comisiones sobre mis consultas particulares?",
+      tags: ["comisiones", "cobros", "honorarios", "costo", "mercadopago", "descuentos"],
+      answer: (
+        <div className="space-y-3 text-sm leading-relaxed text-am-surface-600">
+          <p>
+            <span className="font-semibold text-am-surface-900">No, tu trabajo es tuyo.</span> En AutaMedica no retenemos ninguna comisión sobre tus honorarios médicos. El 100% del valor que fijás por tu consulta particular es tuyo y se acredita de forma directa.
+          </p>
+          <div className="rounded-xl bg-am-surface-50 border border-am-surface-200 p-4 flex gap-3 items-start mt-2">
+            <Info className="h-5 w-5 text-am-surface-400 shrink-0 mt-0.5" />
+            <div>
+              <h6 className="text-xs font-bold text-am-surface-800 uppercase">Nota sobre aranceles de procesamiento financiero</h6>
+              <p className="text-xs text-am-surface-500 mt-1 leading-relaxed">
+                Al realizarse cobros con tarjetas de crédito o débito a través de internet, la pasarela de MercadoPago aplica su comisión estándar por procesamiento financiero (según las tasas vigentes y los plazos de liberación que tengas configurados en tu perfil de vendedor de MercadoPago). Esta tasa es ajena a AutaMedica y se descuenta directamente de la transacción.
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: "suscripciones-planes",
+      category: "billing",
+      question: "¿Cómo funcionan las suscripciones de planes (Pro y Premium)?",
+      tags: ["suscripción", "planes", "pago", "debito", "pro", "premium", "ia", "copilot", "badges"],
+      answer: (
+        <div className="space-y-4">
+          <p className="text-sm leading-relaxed text-am-surface-600">
+            El uso básico de AutaMedica para atender a tus pacientes privados de siempre y emitir recetas digitales es **100% gratuito**. Sin embargo, si querés potenciar tu consulta, podés suscribirte a nuestros planes avanzados:
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-am-surface-200 bg-white p-4 shadow-sm space-y-2">
+              <span className="h-2 w-12 rounded-full bg-am-doctor-500 block" />
+              <h5 className="font-bold text-am-surface-800 text-xs uppercase tracking-wide">Planes Destacados (Pro / Premium)</h5>
+              <p className="text-xs text-am-surface-500 leading-relaxed">
+                Habilitan el uso ilimitado de nuestro **Secretario Clínico con IA** (transcripciones completas de SOAP y generación automática de pautas de autocuidado), priorizan tu perfil en la cartilla pública con badges destacados (estrellas/escudos) e incrementan tu exposición en las búsquedas de los pacientes.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-am-surface-200 bg-white p-4 shadow-sm space-y-2">
+              <span className="h-2 w-12 rounded-full bg-am-surface-900 block" />
+              <h5 className="font-bold text-am-surface-800 text-xs uppercase tracking-wide">Pago Recurrente Seguro</h5>
+              <p className="text-xs text-am-surface-500 leading-relaxed">
+                Las suscripciones se abonan de forma mensualizada mediante débito automático en tu tarjeta a través de la pasarela segura de MercadoPago. Podés pausar, cambiar de plan o volver al plan gratuito cuando quieras, sin contratos de permanencia ni cobros ocultos.
+              </p>
+            </div>
+          </div>
+        </div>
+      )
     }
   ], []);
 
@@ -631,7 +720,7 @@ export function DoctorFAQPage() {
               <button
                 key={cat.id}
                 onClick={() => {
-                  setActiveCategory(cat.id as "all" | "patients" | "prescriptions" | "calls" | "agenda");
+                  setActiveCategory(cat.id as "all" | "patients" | "prescriptions" | "calls" | "agenda" | "billing");
                   setOpenItem(null);
                 }}
                 className={`flex items-center gap-2 rounded-xl py-3 px-4 text-xs font-bold transition-all shadow-sm ${
@@ -673,7 +762,8 @@ export function DoctorFAQPage() {
                       <span className={`flex h-2 w-2 rounded-full shrink-0 ${
                         item.category === "patients" ? "bg-blue-500" :
                         item.category === "prescriptions" ? "bg-emerald-500" :
-                        item.category === "calls" ? "bg-purple-500" : "bg-amber-500"
+                        item.category === "calls" ? "bg-purple-500" :
+                        item.category === "agenda" ? "bg-amber-500" : "bg-sky-500"
                       }`} />
                       {item.question}
                     </span>
