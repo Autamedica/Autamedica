@@ -112,6 +112,23 @@ export function CreateAppointmentModal({
     [form.type],
   )
 
+  const hasSelectedPatient = !!form.patientId || !!form.guestName
+
+  const selectedPatient = useMemo(() => {
+    if (!form.patientId) return null
+    return patients.find((p) => p.id === form.patientId)
+  }, [patients, form.patientId])
+
+  const selectedPatientName = useMemo(() => {
+    if (selectedPatient) {
+      return getDisplayName(selectedPatient.profile).name
+    }
+    if (form.guestName) {
+      return `${form.guestName} (Invitado)`
+    }
+    return ''
+  }, [selectedPatient, form.guestName])
+
   const handleChange = <K extends keyof DoctorAppointmentFormValues>(
     key: K,
     value: DoctorAppointmentFormValues[K],
@@ -176,7 +193,9 @@ export function CreateAppointmentModal({
         </div>
 
         <form onSubmit={handleSubmit} className="grid flex-1 gap-0 overflow-hidden md:grid-cols-[1.15fr_0.85fr]">
-          <section className="flex min-h-0 flex-col border-b border-am-surface-200 md:border-b-0 md:border-r">
+          <section className={`flex min-h-0 flex-col border-b border-am-surface-200 md:border-b-0 md:border-r ${
+            hasSelectedPatient ? 'hidden md:flex' : 'flex'
+          }`}>
             {!isGuestMode ? (
               <>
                 <div className="border-b border-am-surface-100 px-5 py-4 sm:px-6">
@@ -296,7 +315,36 @@ export function CreateAppointmentModal({
             )}
           </section>
 
-          <section className="min-h-0 overflow-auto px-5 py-5 sm:px-6">
+          <section className={`min-h-0 overflow-auto px-5 py-5 sm:px-6 ${
+            hasSelectedPatient ? 'block' : 'hidden md:block'
+          }`}>
+            {hasSelectedPatient && (
+              <div className="md:hidden mb-4 rounded-2xl border border-am-primary-100 bg-am-primary-50 p-4 transition-all">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-white p-2 text-am-primary-700 shadow-sm">
+                      <UserRound className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-am-primary-700">Paciente seleccionado</p>
+                      <p className="text-sm font-bold text-am-surface-900">{selectedPatientName}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleChange('patientId', '')
+                      handleChange('guestName', '')
+                      setSearch('')
+                      setIsGuestMode(false)
+                    }}
+                    className="text-xs font-bold text-am-primary-700 hover:text-am-primary-800 transition"
+                  >
+                    Cambiar
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="space-y-5">
               <div className={`rounded-2xl border px-4 py-3 ${isGuestMode ? 'bg-sky-50 border-sky-100' : 'bg-am-primary-50 border-am-primary-100'}`}>
                 <p className={`text-xs font-medium uppercase tracking-[0.16em] ${isGuestMode ? 'text-sky-700' : 'text-am-primary-700'}`}>Tipo seleccionado</p>
