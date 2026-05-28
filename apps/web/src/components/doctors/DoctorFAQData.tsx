@@ -32,7 +32,7 @@ export const faqItems: FAQItem[] = [
     answer: (
       <div className="space-y-4">
         <p className="text-sm leading-relaxed text-am-surface-600">
-          En AutaMedica podés atender a tus pacientes de siempre de forma directa, sin obligarlos a registrarse o bajarse aplicaciones antes de la consulta. Completás sus datos básicos y reciben su receta digital firmada al instante para que la usen en cualquier farmacia.
+          Para atender a un paciente que no está previamente registrado en la plataforma, podés cargarlo directamente en el sistema de manera rápida. Esto te permite registrar sus datos esenciales al instante y despachar sus recetas y órdenes sin obligarlo a crear una cuenta antes de la consulta.
         </p>
 
         <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-5 space-y-4">
@@ -42,22 +42,22 @@ export const faqItems: FAQItem[] = [
           </h5>
           <ol className="list-decimal list-inside text-xs text-am-surface-600 space-y-3 pl-1">
             <li>
-              <span className="font-semibold text-am-surface-900">Botonera Superior:</span> En el menú lateral izquierdo, hacé clic en <span className="font-semibold text-am-doctor-600">"Mis medicamentos"</span> (Recetas) y presioná el botón <span className="font-semibold text-am-surface-900">"Nueva Receta"</span> arriba a la derecha.
+              <span className="font-semibold text-am-surface-900">Menú lateral izquierdo:</span> Hacé clic en la opción <span className="font-semibold text-am-doctor-600">"Recetas"</span> (icono de Píldora) y presioná el botón <span className="font-semibold text-am-surface-900">"Nueva Receta"</span> ubicado en la esquina superior derecha.
             </li>
             <li>
-              <span className="font-semibold text-am-surface-900">Activación del Formulario:</span> En el buscador del modal, elegí la opción <span className="font-semibold text-am-doctor-600">"+ Atender Paciente Externo / Registrar Nuevo Paciente"</span>. Esto desplegará un formulario muy simple.
+              <span className="font-semibold text-am-surface-900">Activación del formulario:</span> Dentro del buscador del modal que aparece, seleccioná la opción <span className="font-semibold text-am-doctor-600">"+ Atender Paciente Externo / Registrar Nuevo Paciente"</span>. Esto desplegará un formulario compacto.
             </li>
             <li>
-              <span className="font-semibold text-am-surface-900">Datos para evitar rebotes en farmacia (Garantía de compra):</span>
+              <span className="font-semibold text-am-surface-900">Datos obligatorios para la receta:</span>
               <ul className="list-disc list-inside ml-5 mt-1.5 space-y-1.5 text-am-surface-500">
-                <li><span className="font-medium text-am-surface-700">Nombre completo:</span> Tal como figura en su credencial o documento.</li>
-                <li><span className="font-medium text-am-surface-700">DNI o CUIL:</span> Ingresá el número de corrido, sin puntos ni guiones.</li>
-                <li><span className="font-medium text-am-surface-700">Domicilio real completo:</span> Indispensable para que la farmacia le acepte la orden y valide su cobertura médica sin contratiempos.</li>
-                <li><span className="font-medium text-am-surface-700">Contacto de envío:</span> Su número de WhatsApp o correo electrónico para que reciba la receta digital inmediatamente al salir de tu consulta.</li>
+                <li><span className="font-medium text-am-surface-700">Nombre y Apellido completo:</span> Tal como figura en su credencial o documento.</li>
+                <li><span className="font-medium text-am-surface-700">DNI o CUIL:</span> Ingresá el número de corrido, sin puntos ni espacios intermedios.</li>
+                <li><span className="font-medium text-am-surface-700">Domicilio real completo:</span> Requisito legal obligatorio según la normativa de receta digital para que la farmacia apruebe su expendio.</li>
+                <li><span className="font-medium text-am-surface-700">Contacto de envío:</span> Su celular (WhatsApp) o dirección de correo electrónico para notificarle la orden en el acto.</li>
               </ul>
             </li>
             <li>
-              <span className="font-semibold text-am-surface-900">Firma de Emisión:</span> Completá el medicamento o el examen, y hacé clic en el botón principal inferior <span className="font-semibold text-am-doctor-600">"Firmar y Emitir"</span>. El sistema hace el resto.
+              <span className="font-semibold text-am-surface-900">Emisión y despacho:</span> Completá el medicamento o la práctica requerida y presioná el botón inferior <span className="font-semibold text-am-doctor-600">"Firmar y Emitir"</span>.
             </li>
           </ol>
         </div>
@@ -68,23 +68,23 @@ export const faqItems: FAQItem[] = [
             <div className="w-full sm:w-1/3 rounded-xl border border-am-surface-200 bg-white p-3 shadow-sm">
               <span className="flex h-5 w-5 mx-auto items-center justify-center rounded-full bg-am-surface-100 text-am-surface-600 text-xs font-bold mb-1">1</span>
               <p className="text-[11px] font-bold text-am-surface-800 uppercase">Carga de Datos</p>
-              <p className="text-[10px] text-am-surface-500 mt-1">Ingresás DNI/Domicilio en el modal</p>
+              <p className="text-[10px] text-am-surface-500 mt-1">Completás DNI, domicilio y contacto</p>
             </div>
             <div className="hidden sm:block text-am-surface-300">
               <ChevronRight className="h-5 w-5" strokeWidth={1.5} />
             </div>
             <div className="w-full sm:w-1/3 rounded-xl border border-am-surface-200 bg-white p-3 shadow-sm">
               <span className="flex h-5 w-5 mx-auto items-center justify-center rounded-full bg-am-surface-100 text-am-surface-600 text-xs font-bold mb-1">2</span>
-              <p className="text-[11px] font-bold text-am-surface-800 uppercase">Registro Seguro</p>
-              <p className="text-[10px] text-am-surface-500 mt-1">Se da de alta al paciente de forma privada</p>
+              <p className="text-[11px] font-bold text-am-surface-800 uppercase">Firma Digital</p>
+              <p className="text-[10px] text-am-surface-500 mt-1">El sistema estampa tu firma validada</p>
             </div>
             <div className="hidden sm:block text-am-surface-300">
               <ChevronRight className="h-5 w-5" strokeWidth={1.5} />
             </div>
             <div className="w-full sm:w-1/3 rounded-xl border border-am-doctor-100 bg-am-doctor-50/30 p-3 shadow-sm">
               <span className="flex h-5 w-5 mx-auto items-center justify-center rounded-full bg-am-doctor-100 text-am-doctor-700 text-xs font-bold mb-1">3</span>
-              <p className="text-[11px] font-bold text-am-doctor-700 uppercase">Envío al Paciente</p>
-              <p className="text-[10px] text-am-doctor-600 mt-1">Recibe su receta por WhatsApp / Email</p>
+              <p className="text-[11px] font-bold text-am-doctor-700 uppercase">Envío Directo</p>
+              <p className="text-[10px] text-am-doctor-600 mt-1">El paciente recibe la receta por WhatsApp/Email</p>
             </div>
           </div>
         </div>
@@ -99,25 +99,25 @@ export const faqItems: FAQItem[] = [
     answer: (
       <div className="space-y-4 text-sm leading-relaxed text-am-surface-600">
         <p>
-          <span className="font-semibold text-am-surface-900">No.</span> Tu consultorio es sagrado. Respetamos rigurosamente el Secreto Médico y la confidencialidad de tus pacientes.
+          <span className="font-semibold text-am-surface-900">No.</span> Los datos clínicos y de contacto de tus pacientes privados están completamente protegidos bajo secreto profesional y en conformidad con la Ley de Protección de Datos Personales N° 25.326.
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4 space-y-2">
             <span className="font-bold text-am-surface-800 text-xs flex items-center gap-1">
-              <Lock className="h-4 w-4 text-am-surface-500" strokeWidth={1.5} /> PRIVACIDAD DE TU CONSULTORIO:
+              <Lock className="h-4 w-4 text-am-surface-500" strokeWidth={1.5} /> SEGMENTACIÓN DEL CONSULTORIO:
             </span>
             <p className="text-xs text-am-surface-600 leading-relaxed">
-              El paciente que cargues queda enlazado de forma exclusiva a tu perfil médico. Sus datos de contacto, evoluciones, ficha clínica e historial de recetas no aparecen en las búsquedas ni pantallas de ningún otro profesional de la plataforma.
+              El paciente que cargues queda vinculado exclusivamente a tu perfil clínico profesional. Su ficha, historial de recetas y datos de contacto no aparecerán en búsquedas ni en listados de ningún otro médico de la plataforma.
             </p>
           </div>
           
           <div className="rounded-xl border border-am-doctor-100 bg-am-doctor-50/40 p-4 space-y-2">
             <span className="font-bold text-am-doctor-700 text-xs flex items-center gap-1">
-              <ShieldCheck className="h-4 w-4 text-am-doctor-600" strokeWidth={1.5} /> PORTAL DEL PACIENTE:
+              <ShieldCheck className="h-4 w-4 text-am-doctor-600" strokeWidth={1.5} /> INDEPENDENCIA DE REGISTROS:
             </span>
             <p className="text-xs text-am-surface-600 leading-relaxed">
-              Si tu paciente decide abrirse una cuenta global en AutaMedica para gestionar sus turnos o consultar a otros especialistas, podrá hacerlo de forma libre. Sin embargo, <span className="font-bold text-am-surface-900">tus notas SOAP, evoluciones e historial de consultas contigo permanecen 100% privados y bajo tu llave</span>, siendo totalmente invisibles para otros médicos.
+              Si tu paciente decide registrarse de forma autónoma en la plataforma para sacar turnos o ver recetas emitidas por otros profesionales, podrá hacerlo libremente. Sin embargo, <span className="font-bold text-am-surface-900">tus notas SOAP, evoluciones clínicas e historial de sesiones privadas contigo permanecen encriptados</span> y completamente inaccesibles para el resto de los médicos.
             </p>
           </div>
         </div>
@@ -132,17 +132,14 @@ export const faqItems: FAQItem[] = [
     answer: (
       <div className="space-y-4 text-sm leading-relaxed text-am-surface-600">
         <p>
-          <span className="font-semibold text-am-surface-900">Sí, la decisión es siempre del paciente.</span> Respetamos plenamente su derecho a elegir libremente a su profesional. Cada persona es dueña de su salud y puede programar consultas con cualquier especialista de la cartilla cuando lo desee.
-        </p>
-        <p>
-          Nuestra filosofía es acompañar al paciente de la forma más transparente posible, garantizando su libertad de elección bajo la Ley de Derechos del Paciente N° 26.529.
+          <span className="font-semibold text-am-surface-900">Sí.</span> La legislación de salud digital y la Ley de Derechos del Paciente N° 26.529 garantizan la libre elección. El paciente es el único dueño de su salud y puede programar consultas con cualquier médico disponible en la cartilla general cuando lo decida.
         </p>
         <div className="rounded-xl bg-am-surface-50 border border-am-surface-200 p-4 flex gap-3 items-start">
           <Info className="h-5 w-5 text-am-surface-400 shrink-0 mt-0.5" strokeWidth={1.5} />
           <div>
-            <h6 className="text-xs font-bold text-am-surface-800 uppercase">Seguridad de tu práctica privada</h6>
+            <h6 className="text-xs font-bold text-am-surface-800 uppercase">Confidencialidad de evoluciones</h6>
             <p className="text-xs text-am-surface-500 mt-1 leading-relaxed">
-              Aunque tu paciente decida consultar a otro colega, tu evolución clínica y notas de consultorio privado no se comparten con el nuevo médico de forma automática. El sistema protege tu criterio profesional y la confidencialidad de tus sesiones bajo estricta reserva.
+              Incluso si el paciente decide programar un turno con otro colega, tus diagnósticos, evoluciones y anotaciones privadas de consultorio no se comparten automáticamente ni son visibles para el nuevo profesional, resguardando tu práctica y criterio profesional.
             </p>
           </div>
         </div>
@@ -157,7 +154,7 @@ export const faqItems: FAQItem[] = [
     answer: (
       <div className="space-y-4">
         <p className="text-sm leading-relaxed text-am-surface-600">
-          <span className="font-semibold text-am-surface-900">Es sumamente directo y seguro.</span> Todo el proceso está integrado con la red nacional de farmacias **Farmalink (IMED)**. Esto asegura que cuando emitís una receta, tu paciente pueda presentarse en cualquier farmacia física del país, dar su DNI o el código QR desde su celular, y obtener sus medicamentos y descuentos en el acto.
+          La emisión está homologada con la red nacional de validación farmacéutica **Farmalink (IMED)**. Al firmar el documento, la receta se registra en tiempo real en los sistemas nacionales para que el paciente pueda retirarla en cualquier farmacia física del país brindando únicamente su DNI o mostrando el código QR desde su celular.
         </p>
 
         <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-5 space-y-4">
@@ -167,28 +164,28 @@ export const faqItems: FAQItem[] = [
           </h5>
           <ol className="list-decimal list-inside text-xs text-am-surface-600 space-y-3.5 pl-1">
             <li>
-              <span className="font-semibold text-am-surface-900">Botón Nueva Receta:</span> Hacé clic en <span className="font-semibold text-am-doctor-600">"Recetas"</span> en la barra lateral izquierda y luego presioná el botón <span className="font-semibold text-am-surface-900">"Nueva Receta"</span> arriba a la derecha. (Si estás en una videollamada, la pestaña de recetas está en el panel derecho de la pantalla).
+              <span className="font-semibold text-am-surface-900">Acceso al formulario:</span> En la barra lateral izquierda, hacé clic en la opción <span className="font-semibold text-am-doctor-600">"Recetas"</span> y presioná el botón <span className="font-semibold text-am-surface-900">"Nueva Receta"</span> (arriba a la derecha). *Nota: Si estás dentro de una consulta por videollamada, podés emitir la receta sin salir del video, usando la pestaña de recetas en el panel lateral derecho.*
             </li>
             <li>
-              <span className="font-semibold text-am-surface-900">Buscador de Medicamentos (Vadémecum):</span> En el campo **"Fármaco / Principio Activo"**, escribí las primeras letras y seleccioná la sugerencia automática del vademécum nacional oficial.
+              <span className="font-semibold text-am-surface-900">Buscador de vademécum:</span> En el campo **"Fármaco / Principio Activo"**, escribí el nombre del medicamento y seleccioná la opción correspondiente sugerida automáticamente por el listado oficial de Farmalink.
             </li>
             <li>
-              <span className="font-semibold text-am-surface-900">Campos de Dosificación Obligatorios:</span>
+              <span className="font-semibold text-am-surface-900">Campos obligatorios de dosificación:</span>
               <ul className="list-disc list-inside ml-5 mt-1 space-y-1 text-am-surface-500">
-                <li><span className="font-medium text-am-surface-700">Dosis / Concentración:</span> ej. 500 mg.</li>
-                <li><span className="font-medium text-am-surface-700">Frecuencia de toma:</span> ej. cada 8 horas.</li>
-                <li><span className="font-medium text-am-surface-700">Duración del tratamiento:</span> ej. 7 días.</li>
-                <li><span className="font-medium text-am-surface-700">Cantidad de cajas / unidades:</span> ej. 1 caja.</li>
+                <li><span className="font-medium text-am-surface-700">Dosis / Concentración:</span> ej. "500 mg".</li>
+                <li><span className="font-medium text-am-surface-700">Frecuencia de toma:</span> ej. "cada 8 horas".</li>
+                <li><span className="font-medium text-am-surface-700">Duración del tratamiento:</span> ej. "7 días".</li>
+                <li><span className="font-medium text-am-surface-700">Cantidad de unidades/cajas:</span> ej. "1 caja".</li>
               </ul>
             </li>
             <li>
-              <span className="font-semibold text-am-surface-900">Diagnóstico Asociado (CIE-10):</span> Buscá y asociá el código o diagnóstico en el campo correspondiente. Es obligatorio para que las obras sociales aprueben la cobertura.
+              <span className="font-semibold text-am-surface-900">Asociación diagnóstica (CIE-10):</span> Buscá y vinculá el diagnóstico o patología en el campo correspondiente. Es un requisito obligatorio para asegurar la aprobación de la cobertura médica del paciente.
             </li>
             <li>
-              <span className="font-semibold text-am-surface-900">Asistencia con IA (Guía para el Paciente):</span> Hacé clic en el botón **"Generar guía con IA"** para que Gemini redacte de forma automática pautas de autocuidado sencillas y advertencias útiles para el paciente.
+              <span className="font-semibold text-am-surface-900">Asistencia en la Redacción de Indicaciones (Opcional):</span> Completá las indicaciones de toma de forma manual, o hacé clic en **"Sugerir Pautas de Autocuidado"** para pre-llenar de forma inmediata indicaciones de alarma y consejos clínicos estandarizados basados en el diagnóstico.
             </li>
             <li>
-              <span className="font-semibold text-am-surface-900">Firma de Emisión:</span> Presioná **"Firmar y Emitir"**. El sistema valida tu matrícula contra REFEPS/SISA, firma digitalmente la receta y la envía al instante.
+              <span className="font-semibold text-am-surface-900">Firma y Emisión:</span> Hacé clic en **"Firmar y Emitir"**. El sistema validará tu matrícula vigente en REFEPS/SISA, aplicará tu firma digital certificada y despachará la receta al instante.
             </li>
           </ol>
         </div>
@@ -203,28 +200,29 @@ export const faqItems: FAQItem[] = [
     answer: (
       <div className="space-y-3 text-sm leading-relaxed text-am-surface-600">
         <p>
-          Un **borrador** es un borrador clínico: una indicación pre-cargada que guardás temporalmente para trabajar de forma organizada durante el día, pero que **todavía no tiene validez legal ni ha sido firmada oficialmente**.
+          Un **borrador** es una indicación pre-cargada y guardada temporalmente en tu historial médico personal que **todavía no ha sido firmada digitalmente ni despachada al sistema de farmacias**.
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-2">
           <div className="p-4 bg-am-danger-light/60 border border-am-danger-light rounded-xl space-y-1.5 text-am-danger-dark">
             <span className="font-bold flex items-center gap-1.5 uppercase tracking-wider text-am-danger-dark">
-              <AlertTriangle className="h-4 w-4" strokeWidth={1.5} /> LO QUE DEBÉS SABER:
+              <AlertTriangle className="h-4 w-4" strokeWidth={1.5} /> ALCANCE Y LIMITACIONES:
             </span>
             <ul className="list-disc list-inside space-y-1.5 text-am-surface-600 pl-1">
-              <li>No le llega al paciente ni se envía a las farmacias.</li>
-              <li>No consume firmas digitales de tu cupo profesional.</li>
-              <li>Podés editarla, cambiar la dosis o borrarla libremente sin restricciones.</li>
+              <li>No le llega al paciente ni se registra en las farmacias.</li>
+              <li>No tiene validez legal ni comercial en el mostrador.</li>
+              <li>No consume tu cupo o firmas de recetas digitales.</li>
+              <li>Permite edición total, cambio de fármaco o eliminación sin límites.</li>
             </ul>
           </div>
           
           <div className="p-4 bg-am-success-light/60 border border-am-success-light rounded-xl space-y-1.5 text-am-success-dark">
             <span className="font-bold flex items-center gap-1.5 uppercase tracking-wider text-am-success-dark">
-              <CheckCircle2 className="h-4 w-4" strokeWidth={1.5} /> TU ALIADA EN LA ORGANIZACIÓN:
+              <CheckCircle2 className="h-4 w-4" strokeWidth={1.5} /> BENEFICIOS OPERATIVOS:
             </span>
             <ul className="list-disc list-inside space-y-1.5 text-am-surface-600 pl-1">
-              <li><span className="font-semibold text-am-surface-800">Pre-carga inteligente:</span> Podés cargar las recetas de tus turnos programados del día antes de empezar tu jornada.</li>
-              <li><span className="font-semibold text-am-surface-800">Firma en un segundo:</span> Durante la videollamada, tras revisar la evolución del paciente, la firmás y emitís con un solo toque.</li>
+              <li><span className="font-semibold text-am-surface-800">Carga anticipada:</span> Te permite pre-cargar las indicaciones y fármacos de tus turnos programados antes de iniciar el día.</li>
+              <li><span className="font-semibold text-am-surface-800">Firma instantánea:</span> Durante la videoconsulta, tras evaluar la evolución del paciente en vivo, firmás y emitís la orden guardada con un solo toque.</li>
             </ul>
           </div>
         </div>
@@ -239,7 +237,7 @@ export const faqItems: FAQItem[] = [
     answer: (
       <div className="space-y-4">
         <p className="text-sm leading-relaxed text-am-surface-600">
-          Al momento de firmar y emitir, AutaMedica genera un PDF digital firmado y homologado con su correspondiente código QR. Para tu comodidad, **el sistema se encarga de hacérsela llegar al paciente al instante y de manera 100% gratuita** por dos canales directos:
+          Al presionar "Firmar y Emitir", AutaMedica genera automáticamente un documento PDF firmado digitalmente con su correspondiente código QR homologado. El envío al paciente está automatizado y se despacha sin costo a través de dos canales inmediatos:
         </p>
 
         <div className="space-y-3">
@@ -252,7 +250,7 @@ export const faqItems: FAQItem[] = [
             <div>
               <h5 className="text-xs font-bold text-am-surface-800 uppercase tracking-wide">WhatsApp Oficial de AutaMedica</h5>
               <p className="text-xs text-am-surface-500 leading-relaxed mt-1">
-                El paciente recibe un WhatsApp inmediato desde nuestra línea oficial verificada. Contiene el enlace directo y seguro para descargar el PDF clínico y presentar el código QR en la farmacia, junto con la Guía de Autocuidado con IA redactada con términos claros y amigables.
+                El paciente recibe un mensaje de WhatsApp inmediato desde la línea oficial verificada. Contiene un enlace directo y protegido para que descargue el PDF clínico, presente el código QR directamente desde su celular en la farmacia y consulte la guía de indicaciones en formato de lectura ágil.
               </p>
             </div>
           </div>
@@ -264,7 +262,7 @@ export const faqItems: FAQItem[] = [
             <div>
               <h5 className="text-xs font-bold text-am-surface-800 uppercase tracking-wide">Correo Electrónico</h5>
               <p className="text-xs text-am-surface-500 leading-relaxed mt-1">
-                Si registraste un email, le llega un correo institucional desde contacto@autamedica.com con el PDF digital firmado adjunto, listo para imprimir o validar legalmente.
+                Si el paciente tiene un email registrado, se le envía un correo institucional desde `contacto@autamedica.com` con el PDF firmado digitalmente adjunto, listo para almacenar, imprimir o presentar ante las entidades médicas.
               </p>
             </div>
           </div>
@@ -275,12 +273,12 @@ export const faqItems: FAQItem[] = [
   {
     id: "llamada-telemedicina",
     category: "calls",
-    question: "¿Cómo hago una llamada de telemedicina? (Uso del Consultorio Virtual y Controles)",
+    question: "¿Cómo hago una llamada de videoconsulta? (Uso de la sala virtual y controles)",
     tags: ["llamada", "video", "sala", "entrar a consulta", "adhoc", "instantanea", "controles"],
     answer: (
       <div className="space-y-4">
         <p className="text-sm leading-relaxed text-am-surface-600">
-          Podés realizar videollamadas seguras de forma muy simple a través de tu Dashboard:
+          Podés iniciar videollamadas con tus pacientes por dos vías según la situación del turno:
         </p>
 
         <div className="space-y-3">
@@ -290,7 +288,7 @@ export const faqItems: FAQItem[] = [
               Para Turnos de tu Agenda (Programados):
             </h5>
             <p className="text-xs text-am-surface-600 leading-relaxed mt-1.5">
-              <span className="font-semibold text-am-surface-900">Ubicación:</span> En el centro de tu Dashboard de Doctor, verás la sección **"Turnos de Hoy"**. Al llegar la hora acordada, aparecerá un botón que dice **"Entrar a Consulta"**. Al pulsarlo, ingresás a la sala y le llega un WhatsApp al paciente avisándole que ya estás listo.
+              <span className="font-semibold text-am-surface-900">Ubicación:</span> En tu pantalla de inicio (Dashboard), ubicá la sección **"Turnos de Hoy"**. Al llegar la hora del turno, se habilitará un botón verde que dice **"Entrar a Consulta"**. Al pulsarlo, ingresás a la sala virtual de atención y el sistema le envía automáticamente un mensaje de WhatsApp al paciente con el link de acceso para que se conecte.
             </p>
           </div>
 
@@ -300,7 +298,7 @@ export const faqItems: FAQItem[] = [
               Videollamada Instantánea (Ad-Hoc - Sin Turno Previo):
             </h5>
             <p className="text-xs text-am-surface-600 leading-relaxed mt-1.5">
-              <span className="font-semibold text-am-surface-900">Ubicación:</span> Arriba a la derecha en tu Dashboard, ubicá el panel **"Consulta Instantánea / Iniciar Videollamada Ad-Hoc"**. Seleccioná al paciente de la lista y presioná el botón **"Iniciar videollamada"**. El sistema le envía un WhatsApp inmediato con el link para conectarse al instante con un toque.
+              <span className="font-semibold text-am-surface-900">Ubicación:</span> Arriba a la derecha en tu Dashboard, ubicá el panel **"Consulta Instantánea / Iniciar Videollamada Ad-Hoc"**. Seleccioná al paciente de tu listado y presioná el botón **"Iniciar videollamada"**. El sistema abrirá la sala y le enviará un WhatsApp inmediato al paciente con el enlace para conectarse al instante.
             </p>
           </div>
         </div>
@@ -311,16 +309,16 @@ export const faqItems: FAQItem[] = [
             PANTALLA DE VIDEOLLAMADA Y CONTROLES CLÍNICOS
           </h5>
           <p className="text-xs text-am-surface-600 leading-relaxed">
-            La videollamada está pensada para que atiendas al paciente sin perder contacto visual mientras completás los datos médicos:
+            La sala de consulta virtual divide la pantalla para que atiendas al paciente sin perder contacto visual mientras completás los registros médicos:
           </p>
           <ul className="list-disc list-inside space-y-2 text-xs text-am-surface-500 pl-1">
-            <li><span className="font-semibold text-am-surface-800">Panel Izquierdo (Pantalla de Video):</span> Imagen en vivo del paciente y barra flotante con botones para silenciar micrófono, apagar cámara, compartir pantalla y colgar.</li>
-            <li><span className="font-semibold text-am-surface-800">Panel Derecho (Historia Clínica):</span> Pestañas integradas para evolucionar sin cerrar el video:
+            <li><span className="font-semibold text-am-surface-800">Lado Izquierdo (Pantalla de Video):</span> Imagen del paciente en tiempo real y barra flotante de controles para silenciar micrófono, apagar cámara, compartir tu pantalla o colgar llamada.</li>
+            <li><span className="font-semibold text-am-surface-800">Lado Derecho (Ficha clínica integrada):</span> Panel con pestañas operativas para cargar datos clínicos sin cerrar el video:
               <ul className="list-disc list-inside ml-5 mt-1 space-y-1 text-am-surface-500">
-                <li><span className="font-medium text-am-surface-700">SOAP:</span> Carga de notas clínicas y asistencia con IA.</li>
-                <li><span className="font-medium text-am-surface-700">Recetas:</span> Emisión y vademécum de recetas en el acto.</li>
-                <li><span className="font-medium text-am-surface-700">Estudios:</span> Petición de laboratorios e imágenes clínicas.</li>
-                <li><span className="font-medium text-am-surface-700">Historial:</span> Consulta ágil de antecedentes médicos.</li>
+                <li><span className="font-medium text-am-surface-700">SOAP:</span> Carga estructurada de la evolución clínica del paciente.</li>
+                <li><span className="font-medium text-am-surface-700">Recetas:</span> Búsqueda en vademécum y emisión de recetas en el acto.</li>
+                <li><span className="font-medium text-am-surface-700">Estudios:</span> Petición de laboratorios o exámenes diagnósticos.</li>
+                <li><span className="font-medium text-am-surface-700">Historial:</span> Consulta rápida de antecedentes clínicos.</li>
               </ul>
             </li>
           </ul>
@@ -367,7 +365,7 @@ export const faqItems: FAQItem[] = [
     answer: (
       <div className="space-y-4">
         <p className="text-sm leading-relaxed text-am-surface-600">
-          La cartilla de AutaMedica posiciona a los profesionales en base a un **Compromiso de confianza mutua**. El sistema premia de manera orgánica tu constancia y las buenas prácticas en la atención de los pacientes:
+          La cartilla de AutaMedica posiciona a los profesionales en base a la calidad y constancia de su servicio. El sistema evalúa y premia los siguientes procesos de tu consultorio de manera orgánica:
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
@@ -375,15 +373,15 @@ export const faqItems: FAQItem[] = [
             <ShieldCheck className="h-5 w-5 text-am-success shrink-0 mt-0.5" strokeWidth={1.5} />
             <div>
               <span className="font-bold text-am-surface-800">Matrícula validada y al día</span>
-              <p className="text-am-surface-500 mt-1 leading-relaxed">Tener tu credencial aprobada y conectada a SISA/REFEPS. Es el requisito de ingreso indispensable para aparecer en el listado público.</p>
+              <p className="text-am-surface-500 mt-1 leading-relaxed">Tener tu matrícula nacional o provincial aprobada y conectada a SISA/REFEPS. Es el requisito de ingreso indispensable para aparecer en el listado público.</p>
             </div>
           </div>
           
           <div className="rounded-xl border border-am-surface-200 p-4 bg-am-surface-50 flex items-start gap-3">
             <CheckCircle2 className="h-5 w-5 text-am-doctor-600 shrink-0 mt-0.5" strokeWidth={1.5} />
             <div>
-              <span className="font-bold text-am-surface-800">Respetar tus citas</span>
-              <p className="text-am-surface-500 mt-1 leading-relaxed">Cuidar los turnos que aceptás. Evitar cancelaciones sobre la hora ayuda a sostener una comunidad responsable.</p>
+              <span className="font-bold text-am-surface-800">Asistencia a turnos</span>
+              <p className="text-am-surface-500 mt-1 leading-relaxed">Cumplir con los turnos que aceptás. Reducir cancelaciones sobre la hora mantiene tu reputación en los niveles más altos.</p>
             </div>
           </div>
           
@@ -398,8 +396,8 @@ export const faqItems: FAQItem[] = [
           <div className="rounded-xl border border-am-surface-200 p-4 bg-am-surface-50 flex items-start gap-3">
             <FileText className="h-5 w-5 text-am-doctor-600 shrink-0 mt-0.5" strokeWidth={1.5} />
             <div>
-              <span className="font-bold text-am-surface-800">Evolución y pautas de autocuidado</span>
-              <p className="text-am-surface-500 mt-1 leading-relaxed">Guardar tu reporte SOAP al finalizar la consulta y enviarle las guías con IA al paciente para su tranquilidad suma puntos de visibilidad.</p>
+              <span className="font-bold text-am-surface-800">Evolución y pautas médicas</span>
+              <p className="text-am-surface-500 mt-1 leading-relaxed">Completar la ficha SOAP al finalizar la consulta y guardar las indicaciones médicas del paciente con pautas de alarma suma puntos de posicionamiento.</p>
             </div>
           </div>
         </div>
@@ -420,7 +418,7 @@ export const faqItems: FAQItem[] = [
         <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-5 space-y-4">
           <h5 className="text-xs font-bold uppercase tracking-wider text-am-doctor-600 flex items-center gap-1.5">
             <Compass className="h-4 w-4 text-am-doctor-500" strokeWidth={1.5} />
-            PASO A PASE EN LA INTERFAZ PARA EMITIR UNA SOLICITUD DE ESTUDIO
+            PASO A PASO EN LA INTERFAZ PARA EMITIR UNA SOLICITUD DE ESTUDIO
           </h5>
           <ol className="list-decimal list-inside text-xs text-am-surface-600 space-y-3 pl-1">
             <li>
@@ -446,12 +444,12 @@ export const faqItems: FAQItem[] = [
   {
     id: "que-escribir-soap",
     category: "calls",
-    question: "¿Qué debo escribir en el SOAP? ¿Cómo me ayuda el Secretario Clínico con IA?",
-    tags: ["soap", "reporte clinico", "copilot", "gemini", "ia", "evolucion clinica", "notas"],
+    question: "¿Qué debo escribir en el SOAP? ¿Cómo funciona la asistencia para la redacción de notas?",
+    tags: ["soap", "reporte clinico", "evolucion clinica", "notas", "autocompletado", "formateo", "notas rapidas", "organizacion"],
     answer: (
       <div className="space-y-4">
         <p className="text-sm leading-relaxed text-am-surface-600">
-          El registro de la evolución clínica en AutaMedica utiliza el formato estándar **SOAP** (Subjetivo, Objetivo, Análisis, Plan). Pero no tenés que perder tiempo de contacto visual redactando en vivo:
+          El registro de la evolución clínica en AutaMedica utiliza el formato estándar **SOAP** (Subjetivo, Objetivo, Análisis, Plan), que es el estándar internacional para documentar historias clínicas. El sistema te permite redactarlo de forma prolija sin perder contacto visual con el paciente:
         </p>
 
         <div className="rounded-xl border border-am-surface-200 bg-am-surface-50/50 p-4 space-y-3">
@@ -482,23 +480,23 @@ export const faqItems: FAQItem[] = [
         <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-5 space-y-4">
           <h5 className="text-xs font-bold uppercase tracking-wider text-am-doctor-600 flex items-center gap-1.5">
             <Brain className="h-4 w-4 text-am-doctor-500" strokeWidth={1.5} />
-            TU SECRETARIO CLÍNICO CON IA
+            HERRAMIENTAS DE FORMATEO Y REDACCIÓN RÁPIDA
           </h5>
           <p className="text-xs text-am-surface-600 leading-relaxed">
-            AutaMedica cuenta con un transcriptor y redactor asistido por IA para que te concentres por completo en escuchar al paciente en lugar de tipear en el teclado:
+            El sistema incluye una función de autocompletado y estructuración que te permite ordenar tus anotaciones crudas en formato clínico formal en pocos segundos:
           </p>
           <ol className="list-decimal list-inside text-xs text-am-surface-600 space-y-2.5 pl-1">
             <li>
-              <span className="font-semibold text-am-surface-900">Apuntes Informales (Notas rápidas):</span> Durante la videollamada, usá el cuadro de texto **"Notas rápidas del doctor"** para tipear palabras sueltas, ideas telegráficas o abreviaturas rápidas (ej: *"pcte 40a, dolor de cabeza frontal, TA 140/90, indico reposo"*).
+              <span className="font-semibold text-am-surface-900">Anotaciones rápidas:</span> Durante la videollamada, podés usar el bloque **"Notas rápidas del doctor"** en el panel derecho para anotar palabras sueltas, abreviaciones o datos crudos (ej: *"pcte 40a, cefalea, TA 140/90, indico reposo"*).
             </li>
             <li>
-              <span className="font-semibold text-am-surface-900">Generar con un clic:</span> Al colgar la videollamada, presioná el botón **"Generar reporte SOAP con IA"** justo debajo de tus apuntes.
+              <span className="font-semibold text-am-surface-900">Estructuración con un clic:</span> Al finalizar la videoconsulta, presioná el botón **"Estructurar Notas SOAP"** ubicado justo debajo del cuadro de notas.
             </li>
             <li>
-              <span className="font-semibold text-am-surface-900">Redacción médica automática:</span> En un segundo, la IA interpreta tu borrador rápido y la consulta y pre-llena de forma impecable las 4 secciones del SOAP con una redacción médica profesional de alta calidad.
+              <span className="font-semibold text-am-surface-900">Pre-llenado de campos:</span> El sistema analiza tus palabras clave y las organiza de forma prolija en los 4 campos de la historia clínica (S, O, A, P) con la terminología médica formal correspondiente.
             </li>
             <li>
-              <span className="font-semibold text-am-surface-900">Revisión y guardado:</span> Ajustás cualquier detalle del texto generado si lo creés necesario y guardás la historia clínica.
+              <span className="font-semibold text-am-surface-900">Edición y guardado:</span> Podés corregir o complementar el texto pre-llenado de cada área de forma manual antes de presionar **"Guardar Historia Clínica"**.
             </li>
           </ol>
         </div>
@@ -513,24 +511,24 @@ export const faqItems: FAQItem[] = [
     answer: (
       <div className="space-y-3 text-sm leading-relaxed text-am-surface-600">
         <p>
-          **Sí, la sincronización es inmediata.** Tu tiempo y tu agenda son sagrados: si registrás o bloqueás una hora en tu calendario, ese espacio desaparece automáticamente de tu disponibilidad de turnos para que ningún paciente reserve por error.
+          **Sí, la sincronización es inmediata.** Tu tiempo y tu agenda son fundamentales: si bloqueás un horario en tu calendario, ese espacio desaparece automáticamente de tu disponibilidad pública para que ningún paciente reserve por error.
         </p>
         
         <div className="rounded-xl border border-am-surface-200 p-4 bg-am-surface-50 space-y-3">
           <h5 className="text-xs font-bold text-am-surface-800 uppercase flex items-center gap-1.5">
             <Calendar className="h-4 w-4 text-am-doctor-600" strokeWidth={1.5} />
-            ¿Qué es un bloqueo personal (Evento)?
+            ¿Qué es un bloqueo de horario (Evento)?
           </h5>
           <p className="text-xs text-am-surface-600 leading-relaxed">
-            Un **evento** es un bloqueo de tiempo personal o profesional externo a AutaMedica que registrás en tu calendario (ej. *"Guardia hospitalaria"*, *"Congreso"*, *"Trámite personal"*, *"Descanso"*). Al guardarlo, prevenís reservas en horarios comprometidos.
+            Un **evento** es un bloqueo de tiempo personal o profesional externo a AutaMedica que registrás en tu calendario (ej. *"Guardia hospitalaria"*, *"Congreso"*, *"Descanso"* o *"Trámite personal"*). Al guardarlo, prevenís reservas en horarios comprometidos.
           </p>
           
           <span className="font-bold text-am-surface-800 text-xs block uppercase tracking-wider">Cómo se crea en tu agenda:</span>
           <ol className="list-decimal list-inside text-xs text-am-surface-600 space-y-2 pl-1">
             <li>Dirigite a la sección <span className="font-semibold text-am-surface-900">"Citas"</span> (calendario) en la barra lateral izquierda.</li>
-            <li>Hacé clic y arrastrá sobre el bloque de horas que querés reservar o bloquear.</li>
-            <li>En la ventana emergente, elegí la opción <span className="font-semibold text-am-surface-900">"Crear Evento / Bloquear Horario"</span>.</li>
-            <li>Escribí una referencia rápida y presioná <span className="font-semibold text-am-surface-900">"Guardar"</span>.</li>
+            <li>Hacé clic y arrastrá el cursor sobre el bloque de horas que querés bloquear en la grilla horaria.</li>
+            <li>En la ventana emergente que aparece, elegí la opción <span className="font-semibold text-am-surface-900">"Crear Evento / Bloquear Horario"</span>.</li>
+            <li>Escribí una referencia descriptiva rápida y presioná <span className="font-semibold text-am-surface-900">"Guardar"</span>.</li>
           </ol>
           
           <p className="text-xs text-am-warning-dark bg-am-warning-light p-3 rounded-xl border border-am-warning-light leading-relaxed font-semibold">
@@ -548,7 +546,7 @@ export const faqItems: FAQItem[] = [
     answer: (
       <div className="space-y-4">
         <p className="text-sm leading-relaxed text-am-surface-600">
-          Cobrar tus honorarios de videoconsultas en AutaMedica es sumamente ordenado. Las transacciones se procesan de forma segura a través de tu cuenta vinculada de MercadoPago, permitiéndote centralizar tus ingresos profesionales.
+          Los honorarios de tus videoconsultas particulares se acreditan directamente en tu cuenta de MercadoPago. Para habilitar los cobros:
         </p>
 
         <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-5 space-y-4">
@@ -564,7 +562,7 @@ export const faqItems: FAQItem[] = [
               <span className="font-semibold text-am-surface-900">Conexión Segura:</span> Hacé clic en el botón principal <span className="font-semibold text-am-surface-900">"Vincular cuenta de MercadoPago"</span>.
             </li>
             <li>
-              <span className="font-semibold text-am-surface-900">Autorización:</span> El sistema te redirigirá automáticamente al portal seguro de MercadoPago para ingresar tus credenciales y autorizar la sincronización en un solo clic. ¡Y listo!
+              <span className="font-semibold text-am-surface-900">Autorización:</span> El sistema te redirigirá automáticamente al portal seguro de MercadoPago para ingresar tus credenciales y autorizar la sincronización en un solo clic.
             </li>
           </ol>
         </div>
@@ -583,7 +581,7 @@ export const faqItems: FAQItem[] = [
     answer: (
       <div className="space-y-3 text-sm leading-relaxed text-am-surface-600">
         <p>
-          <span className="font-semibold text-am-surface-900">Sí.</span> Para sostener la orquestación del Consultorio Virtual, la infraestructura de seguridad clínica, la asistencia de IA y el soporte médico constante, <span className="font-semibold text-am-surface-900">AutaMedica retiene una comisión del 15% por cada videoconsulta realizada</span> en el marketplace.
+          <span className="font-semibold text-am-surface-900">Sí.</span> Para sostener la infraestructura de videollamadas, la red de recetas firmadas y el soporte del sistema, <span className="font-semibold text-am-surface-900">AutaMedica retiene una comisión del 15% por cada videoconsulta realizada</span> en la cartilla pública.
         </p>
         <div className="rounded-xl bg-am-surface-50 border border-am-surface-200 p-4 flex gap-3 items-start mt-2">
           <Info className="h-5 w-5 text-am-surface-400 shrink-0 mt-0.5" strokeWidth={1.5} />
@@ -601,19 +599,19 @@ export const faqItems: FAQItem[] = [
     id: "suscripciones-planes",
     category: "billing",
     question: "¿Cómo funcionan las suscripciones de planes (Pro y Premium)?",
-    tags: ["suscripción", "planes", "pago", "debito", "pro", "premium", "ia", "copilot", "badges"],
+    tags: ["suscripción", "planes", "pago", "debito", "pro", "premium", "badges"],
     answer: (
       <div className="space-y-4">
         <p className="text-sm leading-relaxed text-am-surface-600">
-          El uso básico de AutaMedica para atender a tus pacientes privados de siempre y emitir recetas digitales es **100% gratuito**. Sin embargo, si querés potenciar tu consulta, podés suscribirte a nuestros planes avanzados:
+          El uso básico de AutaMedica para atender a tus pacientes privados de siempre y emitir recetas digitales es **100% gratuito**. Sin embargo, si querés incorporar funciones operativas avanzadas, podés suscribirte a nuestros planes mensuales adicionales:
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="rounded-xl border border-am-surface-200 bg-white p-4 shadow-sm space-y-2">
             <span className="h-2 w-12 rounded-full bg-am-doctor-500 block" />
-            <h5 className="font-bold text-am-surface-800 text-xs uppercase tracking-wide">Planes Destacados (Pro / Premium)</h5>
+            <h5 className="font-bold text-am-surface-800 text-xs uppercase tracking-wide">Herramientas Avanzadas (Planes Pro / Premium)</h5>
             <p className="text-xs text-am-surface-500 leading-relaxed">
-              Habilitan el uso ilimitado de nuestro **Secretario Clínico con IA** (transcripciones completas de SOAP y generación automática de pautas de autocuidado), priorizan tu perfil en la cartilla pública con badges destacados (estrellas/escudos) e incrementan tu exposición en las búsquedas de los pacientes.
+              Habilitan el uso ilimitado de la función de autocompletado y estructuración de notas SOAP, el pre-llenado de pautas de autocuidado para pacientes, destacan tu perfil con distintivos de verificación en la cartilla pública y priorizan tu visibilidad en las búsquedas del marketplace.
             </p>
           </div>
 

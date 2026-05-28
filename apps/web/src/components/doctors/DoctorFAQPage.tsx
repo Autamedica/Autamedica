@@ -67,13 +67,13 @@ export function DoctorFAQPage() {
           <div className="relative z-10 max-w-2xl space-y-4">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-am-doctor-500/10 px-3 py-1 text-xs font-bold text-am-doctor-400 border border-am-doctor-500/20">
               <Activity className="h-3.5 w-3.5" strokeWidth={1.5} />
-              Instructivo Clínico Operativo
+              Procesos del Consultorio
             </span>
             <h1 className="text-2xl sm:text-3xl font-light tracking-tight text-white leading-tight">
               ¿Cómo te ayudamos hoy, <span className="font-semibold text-am-doctor-400">Doctor/a</span>?
             </h1>
             <p className="text-sm text-am-surface-300 leading-relaxed font-light">
-              Respuestas claras sobre el uso del Consultorio Virtual de telemedicina, flujo legal de recetas electrónicas en farmacias, protección de datos personales e integración de la asistencia clínica con IA.
+              Respuestas claras sobre el uso del Consultorio Virtual, la emisión de recetas oficiales, la protección de datos de tus pacientes y el funcionamiento del autocompletado de historias clínicas.
             </p>
           </div>
         </div>
