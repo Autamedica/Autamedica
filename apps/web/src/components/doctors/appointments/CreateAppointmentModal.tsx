@@ -74,6 +74,7 @@ export function CreateAppointmentModal({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isGuestMode, setIsGuestMode] = useState(false)
+  const [guestConfirmed, setGuestConfirmed] = useState(false)
   
   const [form, setForm] = useState<DoctorAppointmentFormValues>({
     patientId: appointment?.patient_id ?? '',
@@ -81,7 +82,7 @@ export function CreateAppointmentModal({
     date: getInitialDate(appointment?.start_time),
     time: getInitialTime(appointment?.start_time),
     durationMinutes: appointment?.duration_minutes ?? 30,
-    type: (appointment?.type as DoctorAppointmentType) ?? 'consultation',
+    type: (appointment?.type as DoctorAppointmentType) ?? 'telemedicine',
     notes: appointment?.notes ?? '',
     location: appointment?.location ?? '',
   })
@@ -112,7 +113,7 @@ export function CreateAppointmentModal({
     [form.type],
   )
 
-  const hasSelectedPatient = !!form.patientId || !!form.guestName
+  const hasSelectedPatient = !!form.patientId || (isGuestMode && guestConfirmed)
 
   const selectedPatient = useMemo(() => {
     if (!form.patientId) return null
@@ -307,9 +308,28 @@ export function CreateAppointmentModal({
                       placeholder="Ej: Juan Pérez"
                       value={form.guestName}
                       onChange={(e) => handleChange('guestName', e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          if (form.guestName.trim().length >= 2) {
+                            setGuestConfirmed(true)
+                          }
+                        }
+                      }}
                       className="w-full rounded-2xl border border-am-surface-200 bg-white py-3 px-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-400 transition border-sky-200"
                     />
                   </label>
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      disabled={form.guestName.trim().length < 2}
+                      onClick={() => setGuestConfirmed(true)}
+                      className="w-full rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 px-4 text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Continuar
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -337,6 +357,7 @@ export function CreateAppointmentModal({
                       handleChange('guestName', '')
                       setSearch('')
                       setIsGuestMode(false)
+                      setGuestConfirmed(false)
                     }}
                     className="text-xs font-bold text-am-primary-700 hover:text-am-primary-800 transition"
                   >
