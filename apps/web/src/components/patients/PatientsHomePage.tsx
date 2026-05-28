@@ -17,6 +17,7 @@ import {
 } from '@/lib/patients/lib/telemedicine-entry'
 import type { Locale } from '@/i18n/index'
 import { PatientDoctorChat } from '@/components/patients/chat/PatientDoctorChat'
+import { PreconsultationVoiceAssistant } from '@/components/patients/PreconsultationVoiceAssistant'
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -71,6 +72,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
   const [showMenu, setShowMenu] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [isPreconsultationOpen, setIsPreconsultationOpen] = useState(false)
   const [hasHydrated, setHasHydrated] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -604,7 +606,13 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 <motion.a
                   key={action.label}
                   href={action.href}
-                  className="group p-8 text-left border border-neutral-200 rounded-2xl hover:border-neutral-900 hover:bg-neutral-50 transition-all"
+                  onClick={(e) => {
+                    if (action.label === 'Médico online') {
+                      e.preventDefault()
+                      setIsPreconsultationOpen(true)
+                    }
+                  }}
+                  className="group p-8 text-left border border-neutral-200 rounded-2xl hover:border-neutral-900 hover:bg-neutral-50 transition-all cursor-pointer"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -631,7 +639,13 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <motion.a
               key={tab.label}
               href={tab.href}
-              className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-neutral-100 transition-colors min-w-[60px]"
+              onClick={(e) => {
+                if (tab.label === 'Consultar') {
+                  e.preventDefault()
+                  setIsPreconsultationOpen(true)
+                }
+              }}
+              className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-neutral-100 transition-colors min-w-[60px] cursor-pointer"
               whileTap={{ scale: 0.95 }}
             >
               <tab.icon className="size-5 text-neutral-600" />
@@ -643,6 +657,16 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
       {/* Floating P2P Chat */}
       <PatientDoctorChat />
+
+      <PreconsultationVoiceAssistant
+        isOpen={isPreconsultationOpen}
+        onClose={() => setIsPreconsultationOpen(false)}
+        onComplete={(_summary) => {
+          setIsPreconsultationOpen(false)
+          // Redirigir a la sala de espera virtual o appointments con el resumen guardado
+          window.location.href = '/patients/appointments?type=telemedicine&preconsultation=completed'
+        }}
+      />
     </div>
   )
 }
