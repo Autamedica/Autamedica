@@ -1,0 +1,12 @@
+name = "autamedica-turbo-cache"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[vars]
+# Variable de entorno de ejemplo. Recuerda configurar AUTH_TOKEN como un secreto usando `wrangler secret put AUTH_TOKEN`
+# AUTH_TOKEN = "un_token_secreto_muy_seguro"
+
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "autamedica-turbo-cache"
+preview_bucket_name = "autamedica-turbo-cache-preview"
