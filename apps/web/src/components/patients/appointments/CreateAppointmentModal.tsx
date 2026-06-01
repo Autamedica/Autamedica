@@ -648,7 +648,7 @@ export function CreateAppointmentModal({
                               Pago seguro
                             </p>
                             <p className="mt-1 text-sm font-semibold text-stone-950">
-                              Confirmá tu consulta con MercadoPago
+                              Consulta AutaMedica
                             </p>
                           </div>
                           <p className="rounded-full bg-stone-950 px-3 py-1 text-sm font-bold text-white">
@@ -656,12 +656,12 @@ export function CreateAppointmentModal({
                           </p>
                         </div>
                         <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                          La reserva queda pendiente hasta que MercadoPago acredite el pago. Después habilitamos la sala y el turno queda confirmado.
+                          La reserva queda pendiente hasta que MercadoPago acredite el pago. Si tu caso necesita una revisión de cierre, ya está incluida.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-medium text-slate-600">
                           <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 ring-1 ring-sky-100">
                             <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                            Checkout protegido
+                            Revisión de cierre incluida
                           </span>
                           <span className="rounded-full bg-white px-2.5 py-1 ring-1 ring-sky-100">
                             Tarjeta, dinero en cuenta o medios disponibles

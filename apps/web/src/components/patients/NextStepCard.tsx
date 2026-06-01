@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowRight, Brain, Calendar, CheckCircle2, ClipboardList, Clock, Video } from 'lucide-react'
+import { ArrowRight, Brain, Calendar, CheckCircle2, ClipboardList, Clock, ShieldCheck, Video } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
 import type { AppointmentWithDoctor } from '@/lib/patients/types/appointment'
 
@@ -14,6 +14,11 @@ interface ContinuityStatusResponse {
   request: { id: string; intent: string; triageStatus: string } | null
 }
 
+interface ClinicalClosureStatusResponse {
+  status: string
+  episode: { id: string; label: string; incidents: Array<{ id: string; status: string }> } | null
+}
+
 interface NextStepCardProps {
   anamnesisProgress: number
   upcomingAppointment: AppointmentWithDoctor | null
@@ -24,6 +29,7 @@ type Step =
   | { type: 'anamnesis' }
   | { type: 'psychiatry' }
   | { type: 'appointment' }
+  | { type: 'clinicalClosure' }
   | { type: 'continuity' }
   | { type: 'upcoming'; appointment: AppointmentWithDoctor; hoursUntil: number }
 
@@ -35,11 +41,13 @@ function deriveStep(
   anamnesisProgress: number,
   psychiatryCompleted: boolean,
   continuityPending: boolean,
+  clinicalClosurePending: boolean,
   upcomingAppointment: AppointmentWithDoctor | null,
 ): Step {
   if (upcomingAppointment) {
     return { type: 'upcoming', appointment: upcomingAppointment, hoursUntil: hoursUntil(upcomingAppointment.start_time) }
   }
+  if (clinicalClosurePending) return { type: 'clinicalClosure' }
   if (continuityPending) return { type: 'continuity' }
   if (anamnesisProgress < 80) return { type: 'anamnesis' }
   if (!psychiatryCompleted) return { type: 'psychiatry' }
@@ -87,17 +95,29 @@ const STEP_CONFIG = {
     href: '/patients/psychiatry/continuity',
     ctaStyle: 'bg-violet-500 hover:bg-violet-600 text-white',
   },
+  clinicalClosure: {
+    icon: ShieldCheck,
+    iconBg: 'bg-emerald-50',
+    iconColor: 'text-emerald-600',
+    title: 'Tu caso está en revisión',
+    description: 'Tu médico está revisando si ya podés cerrar esta consulta. Esta revisión ya está incluida.',
+    cta: 'Ver estado',
+    href: '/patients/appointments',
+    ctaStyle: 'bg-emerald-500 hover:bg-emerald-600 text-white',
+  },
 } as const
 
 export default function NextStepCard({ anamnesisProgress, upcomingAppointment, dateLocale }: NextStepCardProps) {
   const [psychiatryCompleted, setPsychiatryCompleted] = useState(false)
   const [continuityPending, setContinuityPending] = useState(false)
+  const [clinicalClosurePending, setClinicalClosurePending] = useState(false)
   const [ready, setReady] = useState(false)
 
   const fetchStatuses = useCallback(async () => {
-    const [psychiatryRes, continuityRes] = await Promise.allSettled([
+    const [psychiatryRes, continuityRes, clinicalClosureRes] = await Promise.allSettled([
       fetchApi<PsychiatryStatusResponse>('/api/patients/psychiatry-intake'),
       fetchApi<ContinuityStatusResponse>('/api/patients/psychiatry/continuity-request'),
+      fetchApi<ClinicalClosureStatusResponse>('/api/patients/clinical-closure/status'),
     ])
 
     if (psychiatryRes.status === 'fulfilled') {
@@ -116,6 +136,10 @@ export default function NextStepCard({ anamnesisProgress, upcomingAppointment, d
       )
     }
 
+    if (clinicalClosureRes.status === 'fulfilled') {
+      setClinicalClosurePending(clinicalClosureRes.value.status === 'medical_validation_pending')
+    }
+
     setReady(true)
   }, [])
 
@@ -123,7 +147,7 @@ export default function NextStepCard({ anamnesisProgress, upcomingAppointment, d
 
   if (!ready) return null
 
-  const step = deriveStep(anamnesisProgress, psychiatryCompleted, continuityPending, upcomingAppointment)
+  const step = deriveStep(anamnesisProgress, psychiatryCompleted, continuityPending, clinicalClosurePending, upcomingAppointment)
 
   if (step.type === 'upcoming') {
     const { appointment, hoursUntil: hours } = step

@@ -11,6 +11,7 @@ import {
   calculatePlatformFeeAmount,
 } from '@/lib/payments/constants'
 import { centsToMajorUnit, majorUnitToCents } from '@/lib/payments/money'
+import { careEpisodesService } from '@/lib/clinical-safety/services/care-episodes.service'
 
 type Db = SupabaseClient<Database>
 
@@ -273,7 +274,7 @@ export const appointmentPaymentsService = {
       body: JSON.stringify({
         items: [{
           title: 'AutaMedica - Consulta medica',
-          description: `Consulta ${appointment.type ?? 'consultation'}`,
+          description: `Consulta ${appointment.type ?? 'consultation'} con revision de cierre incluida si el caso lo requiere`,
           quantity: 1,
           unit_price: amount,
           currency_id: APPOINTMENT_PAYMENT_CURRENCY,
@@ -291,6 +292,8 @@ export const appointmentPaymentsService = {
           appointment_id: appointment.id,
           patient_id: appointment.patient_id,
           doctor_id: appointment.doctor_id,
+          care_model: 'episode_safe_closure',
+          ceeds_closure_included: true,
         },
       }),
     })
@@ -312,6 +315,9 @@ export const appointmentPaymentsService = {
           doctor_id: appointment.doctor_id,
           patient_id: appointment.patient_id,
           commission_bps: APPOINTMENT_PAYMENT_COMMISSION_BPS,
+          care_model: 'episode_safe_closure',
+          ceeds_closure_included: true,
+          patient_billable_ceeds_review: false,
         }),
         updated_at: new Date().toISOString(),
       } as never, {
@@ -458,6 +464,7 @@ export const appointmentPaymentsService = {
 
     if (status === 'approved') {
       await updateAppointmentStatus(supabase, appointment.id, 'confirmed')
+      await careEpisodesService.upsertForPaidAppointment(supabase, appointment.id)
     }
   },
 
@@ -483,6 +490,8 @@ export const appointmentPaymentsService = {
     if (!payment) {
       return
     }
+
+    await careEpisodesService.upsertForPaidAppointment(supabase, appointmentId)
 
     const platformFeeAmount = calculatePlatformFeeAmount(payment.gross_amount)
     const processorFeeAmount = 0
