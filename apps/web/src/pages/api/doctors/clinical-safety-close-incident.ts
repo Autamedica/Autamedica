@@ -7,6 +7,7 @@ import { badRequest, forbidden, internalError, jsonFail, jsonOk, notFound } from
 import { resolveDoctorContext } from '@/lib/doctors/api/doctor-context';
 import { createClinicalRulesAdapter } from '@/lib/clinical-safety/repos/clinical-rules.adapter';
 import { evaluateClinicalSafetyUseCase } from '@/lib/clinical-safety/usecases/evaluate-clinical-safety.usecase';
+import { careEpisodesService } from '@/lib/clinical-safety/services/care-episodes.service';
 import { logger } from '@autamedica/shared';
 
 export const prerender = false;
@@ -77,6 +78,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
 
     if (!evaluation.success || evaluation.recommendation !== 'allow_closure') {
+      await careEpisodesService.recordClosureReviewForIncident(admin, {
+        incidentId: parsed.data.incidentId,
+        doctorUserId: context.userId,
+        resolutionAllowed: false,
+        overrideUsed: Boolean(parsed.data.overrideReason),
+      });
+
       return jsonFail(
         'CONFLICT',
         'clinical_safety_blocks_closure',
@@ -112,6 +120,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
 
     if (eventError) throw eventError;
+
+    await careEpisodesService.recordClosureReviewForIncident(admin, {
+      incidentId: parsed.data.incidentId,
+      doctorUserId: context.userId,
+      resolutionAllowed: true,
+      overrideUsed: Boolean(parsed.data.overrideReason),
+    });
 
     return jsonOk({
       closed: true,

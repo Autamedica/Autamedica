@@ -352,7 +352,7 @@ export default function AppointmentsPage({
                   )}
                   {payingAppointmentId === pendingPaymentTelemedicineAppointment.id
                     ? 'Abriendo pago...'
-                    : 'Pagar y confirmar'}
+                    : 'Pagar consulta segura'}
                 </button>
               ) : (
                 <button
@@ -414,10 +414,10 @@ export default function AppointmentsPage({
                         Pago pendiente
                       </p>
                       <h3 className="mt-1 text-lg font-bold text-stone-950">
-                        Confirmá el pago para habilitar la sala
+                        Confirmá tu consulta AutaMedica
                       </h3>
                       <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
-                        MercadoPago procesa el cobro y AutaMedica confirma el turno cuando recibimos la acreditación segura.
+                        MercadoPago procesa el cobro y AutaMedica confirma el turno. Si tu caso necesita una revisión de cierre, ya está incluida.
                       </p>
                     </div>
                   </div>

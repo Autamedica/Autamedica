@@ -3507,6 +3507,95 @@ export type Database = {
           },
         ]
       }
+      care_episodes: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          doctor_id: string
+          funding_source: string
+          id: string
+          included_ceeds_reviews: number
+          metadata: Json
+          opened_at: string
+          patient_id: string
+          patient_visible_label: string
+          pricing_model: string
+          source_appointment_id: string
+          source_payment_id: string | null
+          status: string
+          updated_at: string
+          used_ceeds_reviews: number
+          valid_until: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          doctor_id: string
+          funding_source?: string
+          id?: string
+          included_ceeds_reviews?: number
+          metadata?: Json
+          opened_at?: string
+          patient_id: string
+          patient_visible_label?: string
+          pricing_model?: string
+          source_appointment_id: string
+          source_payment_id?: string | null
+          status?: string
+          updated_at?: string
+          used_ceeds_reviews?: number
+          valid_until?: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          doctor_id?: string
+          funding_source?: string
+          id?: string
+          included_ceeds_reviews?: number
+          metadata?: Json
+          opened_at?: string
+          patient_id?: string
+          patient_visible_label?: string
+          pricing_model?: string
+          source_appointment_id?: string
+          source_payment_id?: string | null
+          status?: string
+          updated_at?: string
+          used_ceeds_reviews?: number
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_episodes_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_episodes_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_episodes_source_appointment_id_fkey"
+            columns: ["source_appointment_id"]
+            isOneToOne: true
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "care_episodes_source_payment_id_fkey"
+            columns: ["source_payment_id"]
+            isOneToOne: false
+            referencedRelation: "appointment_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointment_reminders: {
         Row: {
           appointment_id: string
@@ -4183,6 +4272,7 @@ export type Database = {
       }
       clinical_incidents: {
         Row: {
+          care_episode_id: string | null
           closed_by: string | null
           condition_code: string
           condition_display: string
@@ -4197,10 +4287,12 @@ export type Database = {
           severity: Database["public"]["Enums"]["incident_severity"]
           sla_deadline: string
           snomed_concept_id: string
+          source_appointment_id: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          care_episode_id?: string | null
           closed_by?: string | null
           condition_code: string
           condition_display: string
@@ -4215,10 +4307,12 @@ export type Database = {
           severity?: Database["public"]["Enums"]["incident_severity"]
           sla_deadline: string
           snomed_concept_id: string
+          source_appointment_id?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          care_episode_id?: string | null
           closed_by?: string | null
           condition_code?: string
           condition_display?: string
@@ -4233,10 +4327,18 @@ export type Database = {
           severity?: Database["public"]["Enums"]["incident_severity"]
           sla_deadline?: string
           snomed_concept_id?: string
+          source_appointment_id?: string | null
           status?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "clinical_incidents_care_episode_id_fkey"
+            columns: ["care_episode_id"]
+            isOneToOne: false
+            referencedRelation: "care_episodes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clinical_incidents_closed_by_fkey"
             columns: ["closed_by"]
@@ -4263,6 +4365,13 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_incidents_source_appointment_id_fkey"
+            columns: ["source_appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
         ]
@@ -5843,6 +5952,102 @@ export type Database = {
             columns: ["doctor_id"]
             isOneToOne: false
             referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_clinical_work_units: {
+        Row: {
+          care_episode_id: string | null
+          clinical_incident_id: string | null
+          created_at: string
+          currency: string
+          doctor_id: string
+          funded_by: string
+          gross_internal_amount: number
+          id: string
+          metadata: Json
+          minutes_estimated: number
+          patient_billable: boolean
+          patient_id: string
+          performed_at: string | null
+          source_appointment_id: string | null
+          status: string
+          updated_at: string
+          work_type: string
+        }
+        Insert: {
+          care_episode_id?: string | null
+          clinical_incident_id?: string | null
+          created_at?: string
+          currency?: string
+          doctor_id: string
+          funded_by?: string
+          gross_internal_amount?: number
+          id?: string
+          metadata?: Json
+          minutes_estimated?: number
+          patient_billable?: boolean
+          patient_id: string
+          performed_at?: string | null
+          source_appointment_id?: string | null
+          status?: string
+          updated_at?: string
+          work_type: string
+        }
+        Update: {
+          care_episode_id?: string | null
+          clinical_incident_id?: string | null
+          created_at?: string
+          currency?: string
+          doctor_id?: string
+          funded_by?: string
+          gross_internal_amount?: number
+          id?: string
+          metadata?: Json
+          minutes_estimated?: number
+          patient_billable?: boolean
+          patient_id?: string
+          performed_at?: string | null
+          source_appointment_id?: string | null
+          status?: string
+          updated_at?: string
+          work_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_clinical_work_units_care_episode_id_fkey"
+            columns: ["care_episode_id"]
+            isOneToOne: false
+            referencedRelation: "care_episodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_clinical_work_units_clinical_incident_id_fkey"
+            columns: ["clinical_incident_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_clinical_work_units_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_clinical_work_units_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_clinical_work_units_source_appointment_id_fkey"
+            columns: ["source_appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
         ]
@@ -12064,3 +12269,4 @@ export const Constants = {
     },
   },
 } as const
+// Preconsultation migration updated

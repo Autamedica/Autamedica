@@ -15,6 +15,7 @@ import {
   isJoinableTelemedicineAppointment,
   isTelemedicineAppointment,
 } from '@/lib/patients/lib/telemedicine-entry'
+import NextStepCard from '@/components/patients/NextStepCard'
 import type { Locale } from '@/i18n/index'
 import { PatientDoctorChat } from '@/components/patients/chat/PatientDoctorChat'
 import { PreconsultationVoiceAssistant } from '@/components/patients/PreconsultationVoiceAssistant'
@@ -313,6 +314,11 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         style={{ y: contentY }}
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-24 lg:py-32 space-y-32">
+          <NextStepCard
+            anamnesisProgress={anamnesisProgress}
+            upcomingAppointment={upcomingAppointment}
+            dateLocale={dateLocale}
+          />
 
           {/* Status Section */}
           <motion.section

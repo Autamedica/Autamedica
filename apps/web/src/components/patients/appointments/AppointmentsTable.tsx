@@ -198,7 +198,7 @@ export function AppointmentsTable({
                             : 'Valor a confirmar'}
                         </p>
                         <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-600">
-                          Al acreditarse en MercadoPago, el turno cambia a confirmado y se habilita el acceso correspondiente.
+                          Al acreditarse en MercadoPago, el turno queda confirmado. Si tu caso necesita una revisión de cierre, ya está incluida.
                         </p>
                       </div>
                     </div>
@@ -209,7 +209,7 @@ export function AppointmentsTable({
                       className="inline-flex items-center justify-center gap-2 rounded-xl bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-stone-800 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98]"
                     >
                       {isPaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                      {isPaying ? 'Abriendo MercadoPago...' : 'Pagar seguro'}
+                      {isPaying ? 'Abriendo MercadoPago...' : 'Pagar consulta'}
                     </button>
                   </div>
                 </div>
