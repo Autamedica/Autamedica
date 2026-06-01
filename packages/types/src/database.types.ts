@@ -792,6 +792,64 @@ export type Database = {
           },
         ]
       }
+      appointment_preconsultations: {
+        Row: {
+          appointment_id: string | null
+          audio_log_urls: string[] | null
+          clinical_state: Json
+          created_at: string
+          extraction_summary: Json | null
+          id: string
+          patient_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          audio_log_urls?: string[] | null
+          clinical_state?: Json
+          created_at?: string
+          extraction_summary?: Json | null
+          id?: string
+          patient_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          audio_log_urls?: string[] | null
+          clinical_state?: Json
+          created_at?: string
+          extraction_summary?: Json | null
+          id?: string
+          patient_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_preconsultations_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_preconsultations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "appointment_preconsultations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "user_identifiers"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           created_at: string | null

@@ -177,7 +177,7 @@ export default function NextStepCard({ anamnesisProgress, upcomingAppointment, d
             </p>
             <a
               href="/patients/appointments"
-              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-sky-600 transition-colors"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-sky-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-sky-600 transition-colors"
             >
               <Video className="h-3.5 w-3.5" />
               Entrar a la videollamada
@@ -203,7 +203,7 @@ export default function NextStepCard({ anamnesisProgress, upcomingAppointment, d
           <p className="mt-0.5 text-sm text-gray-500">{config.description}</p>
           <a
             href={config.href}
-            className={`mt-3 inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors ${config.ctaStyle}`}
+            className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold transition-colors ${config.ctaStyle}`}
           >
             {config.cta}
             <ArrowRight className="h-3.5 w-3.5" />

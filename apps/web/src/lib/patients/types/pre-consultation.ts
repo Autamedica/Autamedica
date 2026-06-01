@@ -1,18 +1,25 @@
 import type { ClinicalCaseState } from '../clinical-state/types'
-import type { AnamnesisExtractionResult } from './anamnesis-extraction'
+import type { ISODateString, PatientId, UUID } from '@autamedica/types'
 
 export type PreconsultationStatus = 'in_progress' | 'completed' | 'abandoned'
 
+export interface PreconsultationSummary {
+  clinicalNarrative: string
+  safetyFlags: string[]
+  redFlags: string[]
+  clinicianQuestions: string[]
+}
+
 export interface Preconsultation {
-  id: string
-  patientId: string
-  appointmentId: string | null
+  id: UUID
+  patientId: PatientId
+  appointmentId: UUID | null
   status: PreconsultationStatus
   clinicalState: ClinicalCaseState
-  extractionSummary: AnamnesisExtractionResult | null
+  extractionSummary: PreconsultationSummary | null
   audioLogUrls: string[]
-  createdAt: string
-  updatedAt: string
+  createdAt: ISODateString
+  updatedAt: ISODateString
 }
 
 export interface PreconsultationTurnResponse {
@@ -21,4 +28,5 @@ export interface PreconsultationTurnResponse {
   extractedTranscript: string
   nextQuestion: string
   safetyAlert: string | null
+  summary?: PreconsultationSummary | null
 }

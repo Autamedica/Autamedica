@@ -5,111 +5,27 @@ import { logger } from '@autamedica/shared';
 import { fetchApi } from '@/lib/api-client';
 import {
   X,
-  Clock,
   ChevronLeft,
   ChevronRight,
   UserRound,
   Stethoscope,
-  Video,
-  MapPin,
   MessageSquare,
-  ArrowRight,
   Check,
   CreditCard,
   ShieldCheck,
 } from 'lucide-react';
-import type { CreateAppointmentInput, AppointmentType } from '@/lib/patients/types/appointment';
+import type { AppointmentType } from '@/lib/patients/types/appointment';
 import { useModalAccessibility } from '@/hooks/patients/useModalAccessibility';
 import { formatArsFromCents } from '@/lib/payments/money';
-
-/* ── Types ───────────────────────────────────────────────── */
-
-interface DoctorOption {
-  id: string;
-  specialty: string | null;
-  consultation_fee: number | null;
-  first_name: string | null;
-  last_name: string | null;
-  has_availability?: boolean;
-  active_plan?: string | null;
-  label: string;
-  license_number?: string | null;
-  avatar_url?: string | null;
-  overall_score?: number;
-  rank_position?: number | null;
-  has_prescription_digital?: boolean;
-}
-
-interface SlotData {
-  doctor_id: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  duration_minutes: number;
-  location: string | null;
-  is_available: boolean;
-}
-
-interface CreateAppointmentModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: CreateAppointmentInput) => Promise<void>;
-}
-
-/* ── Helpers ─────────────────────────────────────────────── */
-
-function toLocalYmd(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function getWeekRange(baseDate: Date): { from: string; to: string } {
-  const day = baseDate.getDay();
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  const monday = new Date(baseDate);
-  monday.setDate(baseDate.getDate() + diffToMonday);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return {
-    from: toLocalYmd(monday),
-    to: toLocalYmd(sunday),
-  };
-}
-
-function formatDayShort(dateStr: string): { weekday: string; day: string } {
-  const d = new Date(dateStr + 'T12:00:00');
-  return {
-    weekday: d.toLocaleDateString('es-AR', { weekday: 'short' }).replace('.', ''),
-    day: d.toLocaleDateString('es-AR', { day: 'numeric' }),
-  };
-}
-
-function formatTime(isoString: string): string {
-  return new Date(isoString).toLocaleTimeString('es-AR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function getDaysInRange(from: string, to: string): string[] {
-  const days: string[] = [];
-  const current = new Date(from + 'T12:00:00');
-  const end = new Date(to + 'T12:00:00');
-  while (current <= end) {
-    days.push(toLocalYmd(current));
-    current.setDate(current.getDate() + 1);
-  }
-  return days;
-}
-
-const APPOINTMENT_TYPES: { value: AppointmentType; label: string; icon: typeof Video; desc: string }[] = [
-  { value: 'telemedicine', label: 'Telemedicina', icon: Video, desc: 'Consulta por videollamada' },
-  { value: 'consultation', label: 'Presencial', icon: MapPin, desc: 'Consulta en consultorio' },
-  { value: 'follow_up', label: 'Control de continuidad', icon: ArrowRight, desc: 'Revisión y renovación' },
-  { value: 'emergency', label: 'Urgencia', icon: Clock, desc: 'Atención prioritaria' },
-];
+import type { CreateAppointmentModalProps, DoctorOption, SlotData } from './appointment-modal.types';
+import {
+  APPOINTMENT_TYPES,
+  formatDayShort,
+  formatTime,
+  getDaysInRange,
+  getWeekRange,
+  toLocalYmd,
+} from './appointment-booking-utils';
 
 /* ── Component ───────────────────────────────────────────── */
 
@@ -750,7 +666,7 @@ export function CreateAppointmentModal({
             <button
               type="submit"
               disabled={loading || !selectedSlot || !selectedDoctorId}
-              className="flex-1 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-stone-800 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 rounded-full bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-stone-800 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? 'Abriendo checkout...' : 'Continuar al pago'}
             </button>

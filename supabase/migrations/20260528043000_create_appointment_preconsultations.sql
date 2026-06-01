@@ -3,8 +3,8 @@
 
 CREATE TABLE IF NOT EXISTS public.appointment_preconsultations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    appointment_id UUID REFERENCES public.bookings(id) ON DELETE SET NULL,
+    patient_id UUID NOT NULL REFERENCES public.profiles(user_id) ON DELETE CASCADE,
+    appointment_id UUID REFERENCES public.appointments(id) ON DELETE SET NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'in_progress', -- 'in_progress', 'completed', 'abandoned'
     clinical_state JSONB NOT NULL DEFAULT '{}'::jsonb, -- ClinicalCaseState acumulativo
     extraction_summary JSONB DEFAULT '{}'::jsonb, -- Resultado final estructurado por Álvarez (ALICIADO + Red Flags)
@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS public.appointment_preconsultations (
 ALTER TABLE public.appointment_preconsultations ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de Seguridad RLS
+DROP POLICY IF EXISTS "Users can view and edit own preconsultations"
+    ON public.appointment_preconsultations;
+
 CREATE POLICY "Users can view and edit own preconsultations"
     ON public.appointment_preconsultations
     FOR ALL

@@ -327,7 +327,7 @@ export default function AppointmentsPage({
                   type="button"
                   onClick={() => void handleJoinTelemedicine(featuredTelemedicineAppointment)}
                   disabled={joiningAppointmentId === featuredTelemedicineAppointment.id}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-wait disabled:opacity-70"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-wait disabled:opacity-70"
                 >
                   {joiningAppointmentId === featuredTelemedicineAppointment.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -343,7 +343,7 @@ export default function AppointmentsPage({
                   type="button"
                   onClick={() => void handlePayAppointment(pendingPaymentTelemedicineAppointment)}
                   disabled={payingAppointmentId === pendingPaymentTelemedicineAppointment.id}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-wait disabled:opacity-70"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-wait disabled:opacity-70"
                 >
                   {payingAppointmentId === pendingPaymentTelemedicineAppointment.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -358,7 +358,7 @@ export default function AppointmentsPage({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(true)}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
                 >
                   <Plus className="h-4 w-4" />
                   Agendar videoconsulta
@@ -496,7 +496,7 @@ export default function AppointmentsPage({
             </p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-sky-500/20 transition-all hover:bg-sky-600 active:scale-[0.98]"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-sky-500/20 transition-all hover:bg-sky-600 active:scale-[0.98]"
             >
               <Plus className="h-4 w-4" />
               {isTelemedicineView ? 'Agendar videoconsulta' : 'Agendar cita'}

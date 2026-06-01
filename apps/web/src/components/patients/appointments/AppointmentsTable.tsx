@@ -206,7 +206,7 @@ export function AppointmentsTable({
                       type="button"
                       onClick={() => onPayAppointment(appointment)}
                       disabled={isPaying}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-stone-800 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98]"
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-stone-800 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98]"
                     >
                       {isPaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                       {isPaying ? 'Abriendo MercadoPago...' : 'Pagar consulta'}
@@ -222,7 +222,7 @@ export function AppointmentsTable({
                     type="button"
                     onClick={() => onJoinTelemedicine(appointment)}
                     disabled={isJoining}
-                    className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-stone-800 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98]"
+                    className="inline-flex items-center gap-2 rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-stone-800 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98]"
                   >
                     {isJoining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
                     {isJoining ? 'Abriendo sala...' : 'Entrar a la videollamada'}
@@ -231,7 +231,7 @@ export function AppointmentsTable({
                 {isTelemedicine && isActive && !onJoinTelemedicine && (
                   <a
                     href={entryUrl}
-                    className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-stone-800 active:scale-[0.98]"
+                    className="inline-flex items-center gap-2 rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-stone-800 active:scale-[0.98]"
                   >
                     <Video className="h-4 w-4" />
                     Entrar a la videollamada
