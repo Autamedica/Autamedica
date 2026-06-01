@@ -464,7 +464,14 @@ export const appointmentPaymentsService = {
 
     if (status === 'approved') {
       await updateAppointmentStatus(supabase, appointment.id, 'confirmed')
-      await careEpisodesService.upsertForPaidAppointment(supabase, appointment.id)
+      try {
+        await careEpisodesService.upsertForPaidAppointment(supabase, appointment.id)
+      } catch (episodeError) {
+        logger.error('[appointment-payments] episode creation failed after confirmation', {
+          appointmentId: appointment.id,
+          error: episodeError instanceof Error ? episodeError.message : String(episodeError),
+        })
+      }
     }
   },
 

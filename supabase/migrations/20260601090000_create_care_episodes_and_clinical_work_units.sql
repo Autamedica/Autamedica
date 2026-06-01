@@ -63,6 +63,10 @@ CREATE TABLE IF NOT EXISTS public.doctor_clinical_work_units (
   UNIQUE (care_episode_id, clinical_incident_id, work_type)
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS uq_doctor_work_units_episode_work_type_no_incident
+  ON public.doctor_clinical_work_units(care_episode_id, work_type)
+  WHERE clinical_incident_id IS NULL;
+
 CREATE INDEX IF NOT EXISTS idx_doctor_clinical_work_units_doctor_status
   ON public.doctor_clinical_work_units(doctor_id, status, created_at DESC);
 

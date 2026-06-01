@@ -1,13 +1,22 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { APIRoute } from 'astro'
+import type { Json } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { resolveServerEnv } from '@/lib/patients/server/ai-provider'
+import type { PreconsultationSummary } from '@/lib/patients/types/pre-consultation'
 
 interface TurnHistoryItem {
   question: string
   answer: string
+}
+
+interface GeminiGenerateResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{ text?: string }>
+    }
+  }>
 }
 
 function json(data: Record<string, unknown>, status = 200) {
@@ -23,7 +32,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     const raw = await request.json().catch(() => ({}))
-    const { preconsultationId, turnIndex = 0, transcript = '', history = [] } = raw as {
+    let { preconsultationId } = raw as { preconsultationId?: string }
+    const { turnIndex = 0, transcript = '', history = [] } = raw as {
       preconsultationId?: string
       turnIndex: number
       transcript: string
@@ -46,27 +56,42 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     let nextQuestion = ''
     let status = 'in_progress'
-    let summary: Record<string, unknown> | null = null
+    let summary: PreconsultationSummary | null = null
 
     if (isLastTurn) {
       status = 'completed'
       summary = await generateArgenteSummary(geminiKey, currentHistory)
-      
-      // Si tenemos preconsultationId, guardamos el resultado en la base de datos
-      if (preconsultationId) {
-        try {
+
+      try {
+        const payload = {
+          status: 'completed',
+          clinical_state: { history: currentHistory } as unknown as Json,
+          extraction_summary: summary as unknown as Json,
+          updated_at: new Date().toISOString(),
+        }
+
+        if (preconsultationId?.trim()) {
           const { error: updateError } = await admin
-            .from('appointment_preconsultations' as never)
-            .update({
-              status: 'completed',
-              extraction_summary: summary as any,
-              updated_at: new Date().toISOString()
-            } as never)
+            .from('appointment_preconsultations')
+            .update(payload)
             .eq('id', preconsultationId)
           if (updateError) throw updateError
-        } catch (err) {
-          logger.error('[pre-consultation/turn] Failed to save completed preconsultation', err)
+        } else {
+          const { data: created, error: insertError } = await admin
+            .from('appointment_preconsultations')
+            .insert({
+              patient_id: context.userId,
+              appointment_id: null,
+              ...payload,
+            })
+            .select('id')
+            .single()
+
+          if (insertError) throw insertError
+          preconsultationId = created.id
         }
+      } catch (err) {
+        logger.error('[pre-consultation/turn] Failed to save completed preconsultation', err)
       }
     } else {
       nextQuestion = await getNextSemiologicalQuestion(geminiKey, currentHistory)
@@ -109,6 +134,27 @@ function detectCriticalRedFlags(text: string): boolean {
   return criticalTerms.some(term => normalized.includes(term))
 }
 
+async function fetchGemini(apiKey: string, prompt: string, generationConfig: Record<string, unknown>): Promise<GeminiGenerateResponse> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig,
+      }),
+    })
+
+    return await response.json() as GeminiGenerateResponse
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
 async function getNextSemiologicalQuestion(apiKey: string | undefined, history: TurnHistoryItem[]): Promise<string> {
   if (!apiKey) {
     // Fallback si no hay API Key de Gemini
@@ -131,16 +177,7 @@ async function getNextSemiologicalQuestion(apiKey: string | undefined, history: 
     - Ejemplo: "¿El dolor se extiende hacia la espalda o el brazo?" o "¿Cuándo empezó exactamente este malestar?".
     `
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3 }
-      })
-    })
-
-    const data = await response.json()
+    const data = await fetchGemini(apiKey, prompt, { temperature: 0.3 })
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
     return text || '¿Podrías contarme un poco más sobre la intensidad de este dolor?'
   } catch (err) {
@@ -149,7 +186,21 @@ async function getNextSemiologicalQuestion(apiKey: string | undefined, history: 
   }
 }
 
-async function generateArgenteSummary(apiKey: string | undefined, history: TurnHistoryItem[]): Promise<Record<string, unknown>> {
+function isValidSummary(value: unknown): value is PreconsultationSummary {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return (
+    typeof candidate.clinicalNarrative === 'string' &&
+    Array.isArray(candidate.safetyFlags) &&
+    candidate.safetyFlags.every((item) => typeof item === 'string') &&
+    Array.isArray(candidate.redFlags) &&
+    candidate.redFlags.every((item) => typeof item === 'string') &&
+    Array.isArray(candidate.clinicianQuestions) &&
+    candidate.clinicianQuestions.every((item) => typeof item === 'string')
+  )
+}
+
+async function generateArgenteSummary(apiKey: string | undefined, history: TurnHistoryItem[]): Promise<PreconsultationSummary> {
   const fallbackSummary = {
     clinicalNarrative: history.map(h => h.answer).join(' '),
     safetyFlags: [],
@@ -177,19 +228,14 @@ async function generateArgenteSummary(apiKey: string | undefined, history: TurnH
     }
     `
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.1 }
-      })
-    })
-
-    const data = await response.json()
+    const data = await fetchGemini(apiKey, prompt, { responseMimeType: 'application/json', temperature: 0.1 })
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
     if (rawText) {
-      return JSON.parse(rawText)
+      const parsed = JSON.parse(rawText)
+      if (isValidSummary(parsed)) return parsed
+      logger.warn('[pre-consultation/turn] Gemini summary missing expected fields, using fallback', {
+        rawText,
+      })
     }
     return fallbackSummary
   } catch (err) {

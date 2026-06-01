@@ -78,12 +78,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
 
     if (!evaluation.success || evaluation.recommendation !== 'allow_closure') {
-      await careEpisodesService.recordClosureReviewForIncident(admin, {
-        incidentId: parsed.data.incidentId,
-        doctorUserId: context.userId,
-        resolutionAllowed: false,
-        overrideUsed: Boolean(parsed.data.overrideReason),
-      });
+      try {
+        await careEpisodesService.recordClosureReviewForIncident(admin, {
+          incidentId: parsed.data.incidentId,
+          doctorUserId: context.userId,
+          resolutionAllowed: false,
+          overrideUsed: Boolean(parsed.data.overrideReason),
+        });
+      } catch (recordError) {
+        logger.error('[clinical-safety-close-incident] failed to record blocked closure review', {
+          incidentId: parsed.data.incidentId,
+          doctorUserId: context.userId,
+          error: recordError instanceof Error ? recordError.message : String(recordError),
+        });
+      }
 
       return jsonFail(
         'CONFLICT',
@@ -121,12 +129,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (eventError) throw eventError;
 
-    await careEpisodesService.recordClosureReviewForIncident(admin, {
-      incidentId: parsed.data.incidentId,
-      doctorUserId: context.userId,
-      resolutionAllowed: true,
-      overrideUsed: Boolean(parsed.data.overrideReason),
-    });
+    try {
+      await careEpisodesService.recordClosureReviewForIncident(admin, {
+        incidentId: parsed.data.incidentId,
+        doctorUserId: context.userId,
+        resolutionAllowed: true,
+        overrideUsed: Boolean(parsed.data.overrideReason),
+      });
+    } catch (recordError) {
+      logger.error('[clinical-safety-close-incident] failed to record allowed closure review', {
+        incidentId: parsed.data.incidentId,
+        doctorUserId: context.userId,
+        error: recordError instanceof Error ? recordError.message : String(recordError),
+      });
+    }
 
     return jsonOk({
       closed: true,

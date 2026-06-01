@@ -19,6 +19,7 @@ import NextStepCard from '@/components/patients/NextStepCard'
 import type { Locale } from '@/i18n/index'
 import { PatientDoctorChat } from '@/components/patients/chat/PatientDoctorChat'
 import { PreconsultationVoiceAssistant } from '@/components/patients/PreconsultationVoiceAssistant'
+import type { PreconsultationSummary } from '@/lib/patients/types/pre-consultation'
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -667,10 +668,18 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       <PreconsultationVoiceAssistant
         isOpen={isPreconsultationOpen}
         onClose={() => setIsPreconsultationOpen(false)}
-        onComplete={(_summary) => {
+        onComplete={(summary: PreconsultationSummary | null, preconsultationId?: string) => {
+          if (summary || preconsultationId) {
+            sessionStorage.setItem('autamedica:preconsultation', JSON.stringify({
+              summary,
+              preconsultationId,
+              savedAt: new Date().toISOString(),
+            }))
+          }
           setIsPreconsultationOpen(false)
-          // Redirigir a la sala de espera virtual o appointments con el resumen guardado
-          window.location.href = '/patients/appointments?type=telemedicine&preconsultation=completed'
+          const params = new URLSearchParams({ type: 'telemedicine', preconsultation: 'completed' })
+          if (preconsultationId) params.set('preconsultationId', preconsultationId)
+          window.location.href = `/patients/appointments?${params.toString()}`
         }}
       />
     </div>
