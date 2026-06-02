@@ -613,7 +613,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               </motion.h3>
 
               <div className="grid lg:grid-cols-2 gap-4">
-                {checklistItems.map((item, i) => (
+                {incompleteItems.map((item, i) => (
                   <motion.a
                     key={item.id}
                     href={item.link}
@@ -624,21 +624,11 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                     transition={{ delay: i * 0.08 }}
                     whileHover={{ y: -4 }}
                   >
-                    <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                      item.completed
-                        ? 'bg-neutral-900 border-neutral-900'
-                        : 'border-neutral-300 group-hover:border-neutral-900'
-                    }`}>
-                      {item.completed && <Check className="size-4 text-white" />}
-                    </div>
-                    <span className={`flex-1 transition-colors ${
-                      item.completed ? 'text-neutral-400 line-through' : 'text-neutral-900'
-                    }`}>
+                    <div className="size-6 rounded-full border-2 border-neutral-300 group-hover:border-neutral-900 flex items-center justify-center shrink-0 transition-colors" />
+                    <span className="flex-1 text-neutral-900 transition-colors">
                       {item.label}
                     </span>
-                    {!item.completed && (
-                      <ArrowRight className="size-5 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-1 transition-all" />
-                    )}
+                    <ArrowRight className="size-5 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-1 transition-all" />
                   </motion.a>
                 ))}
               </div>
