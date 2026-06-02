@@ -196,16 +196,20 @@ function isValidSummary(value: unknown): value is PreconsultationSummary {
     Array.isArray(candidate.redFlags) &&
     candidate.redFlags.every((item) => typeof item === 'string') &&
     Array.isArray(candidate.clinicianQuestions) &&
-    candidate.clinicianQuestions.every((item) => typeof item === 'string')
+    candidate.clinicianQuestions.every((item) => typeof item === 'string') &&
+    typeof candidate.requiresCertificate === 'boolean' &&
+    typeof candidate.requiresPrescriptionRenewal === 'boolean'
   )
 }
 
 async function generateArgenteSummary(apiKey: string | undefined, history: TurnHistoryItem[]): Promise<PreconsultationSummary> {
-  const fallbackSummary = {
+  const fallbackSummary: PreconsultationSummary = {
     clinicalNarrative: history.map(h => h.answer).join(' '),
     safetyFlags: [],
     redFlags: [],
-    clinicianQuestions: ['¿Cuándo comenzó exactamente el dolor?', '¿Existen antecedentes cardíacos familiares?']
+    clinicianQuestions: ['¿Cuándo comenzó exactamente el dolor?', '¿Existen antecedentes cardíacos familiares?'],
+    requiresCertificate: false,
+    requiresPrescriptionRenewal: false
   }
 
   if (!apiKey) return fallbackSummary
@@ -213,18 +217,25 @@ async function generateArgenteSummary(apiKey: string | undefined, history: TurnH
   try {
     const formattedHistory = history.map(h => `Pregunta: ${h.question}\nRespuesta: ${h.answer}`).join('\n\n')
     const prompt = `
-    Rol: Residente avanzado R4 de medicina interna realizando una extracción semiológica de preconsulta para el médico clínico de guardia.
-    Misión: Sintetizar el relato del paciente en un formato estructurado de semiología senior basada en Argente-Álvarez.
+    Rol: Residente avanzado R4 de medicina interna realizando una extracción semiológica y administrativa de preconsulta para el médico clínico de guardia.
+    Misión: Sintetizar el relato del paciente en un formato estructurado de semiología senior basada en Argente-Álvarez, y clasificar de forma precisa las intenciones o necesidades administrativas del paciente.
     
     Diálogo con el paciente:
     ${formattedHistory}
     
+    Analizá el diálogo del paciente y prestá especial atención si solicita:
+    1. Un atestado médico / certificado médico (ej. justificativo escolar, laboral, aptitud física, certificado de reposo).
+    2. La renovación de una receta médica / prescripción recurrente o prolongación de tratamiento.
+
     Generá una respuesta en formato JSON estricto que cumpla exactamente con esta estructura:
     {
       "clinicalNarrative": "Frase marco de 2 a 3 líneas en español con el ALICIADO semiológico detallado de forma profesional.",
       "safetyFlags": ["Alertas críticas si las hay, por ejemplo alergias o automedicación severa. Si no hay, devolver array vacío."],
       "redFlags": ["Signos de alarma detectados en base a la evidencia. Si no hay, devolver array vacío."],
-      "clinicianQuestions": ["2 preguntas clave y dirigidas de razonamiento clínico para que el médico le haga al paciente en la consulta."]
+      "clinicianQuestions": ["2 preguntas clave y dirigidas de razonamiento clínico para que el médico le haga al paciente en la consulta."],
+      "requiresCertificate": true_o_false,
+      "requiresPrescriptionRenewal": true_o_false,
+      "administrativeNotes": "Detalles administrativos adicionales si solicita atestado/recetas (ej: 'Solicita certificado de aptitud física' o 'Desea renovar receta de levotiroxina 100mcg'). Si no hay detalles, omitir o devolver string vacío."
     }
     `
 
@@ -233,6 +244,21 @@ async function generateArgenteSummary(apiKey: string | undefined, history: TurnH
     if (rawText) {
       const parsed = JSON.parse(rawText)
       if (isValidSummary(parsed)) return parsed
+      
+      // Intentar una corrección parcial si faltan campos pero es un objeto válido
+      if (typeof parsed === 'object' && parsed !== null) {
+        const structuralFix: PreconsultationSummary = {
+          clinicalNarrative: typeof parsed.clinicalNarrative === 'string' ? parsed.clinicalNarrative : fallbackSummary.clinicalNarrative,
+          safetyFlags: Array.isArray(parsed.safetyFlags) ? parsed.safetyFlags : [],
+          redFlags: Array.isArray(parsed.redFlags) ? parsed.redFlags : [],
+          clinicianQuestions: Array.isArray(parsed.clinicianQuestions) ? parsed.clinicianQuestions : fallbackSummary.clinicianQuestions,
+          requiresCertificate: typeof parsed.requiresCertificate === 'boolean' ? parsed.requiresCertificate : false,
+          requiresPrescriptionRenewal: typeof parsed.requiresPrescriptionRenewal === 'boolean' ? parsed.requiresPrescriptionRenewal : false,
+          administrativeNotes: typeof parsed.administrativeNotes === 'string' ? parsed.administrativeNotes : ''
+        }
+        return structuralFix
+      }
+
       logger.warn('[pre-consultation/turn] Gemini summary missing expected fields, using fallback', {
         rawText,
       })

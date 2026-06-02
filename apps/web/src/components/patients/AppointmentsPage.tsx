@@ -69,6 +69,10 @@ export default function AppointmentsPage({
   const [walletSummary, setWalletSummary] = useState<PatientWalletSummary | null>(null)
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null)
   const [payingAppointmentId, setPayingAppointmentId] = useState<string | null>(null)
+  const [isTopupModalOpen, setIsTopupModalOpen] = useState(false)
+  const [topupAmount, setTopupAmount] = useState('')
+  const [topupLoading, setTopupLoading] = useState(false)
+  const [topupError, setTopupError] = useState<string | null>(null)
   const {
     appointments,
     loading,
@@ -115,6 +119,22 @@ export default function AppointmentsPage({
 
     return () => {
       cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const params = new URLSearchParams(window.location.search)
+    const preconsultationStatus = params.get('preconsultation')
+
+    if (preconsultationStatus === 'completed') {
+      setIsModalOpen(true)
+      params.delete('preconsultation')
+      const nextUrl = params.toString()
+        ? `${window.location.pathname}?${params.toString()}`
+        : window.location.pathname
+      window.history.replaceState({}, '', nextUrl)
     }
   }, [])
 
@@ -291,6 +311,31 @@ export default function AppointmentsPage({
     }
   }
 
+  const handleTopup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const amount = parseFloat(topupAmount)
+    if (isNaN(amount) || amount <= 0) {
+      setTopupError('Ingresá un monto válido mayor a 0.')
+      return
+    }
+    setTopupLoading(true)
+    setTopupError(null)
+    try {
+      const response = await fetchApi<{ checkoutUrl: string }>('/api/patients/wallet/topup', {
+        body: { amount }
+      })
+      if (response?.checkoutUrl) {
+        window.location.href = response.checkoutUrl
+      } else {
+        throw new Error('No se pudo generar el link de pago de MercadoPago.')
+      }
+    } catch (err) {
+      setTopupError(err instanceof Error ? err.message : 'Error al iniciar la carga.')
+    } finally {
+      setTopupLoading(false)
+    }
+  }
+
   return (
     <ErrorBoundary>
     <div className="min-h-screen bg-white">
@@ -336,32 +381,78 @@ export default function AppointmentsPage({
           </section>
         )}
 
-        {walletSummary && walletSummary.balance.available_credit_cents > 0 && !isTelemedicineView && (
-          <section className="mb-6 overflow-hidden rounded-2xl border border-emerald-100/60 bg-gradient-to-br from-white via-white to-emerald-50/20 p-5 shadow-sm shadow-emerald-500/[0.02]">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3.5">
-                <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100/50">
-                  <ShieldCheck className="h-5 w-5" />
+        {walletSummary && !isTelemedicineView && (
+          (() => {
+            const hasBalance = walletSummary.balance.available_credit_cents > 0;
+            if (hasBalance) {
+              return (
+                <section className="mb-6 overflow-hidden rounded-2xl border border-emerald-100/60 bg-gradient-to-br from-white via-white to-emerald-50/20 p-5 shadow-sm shadow-emerald-500/[0.02]">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3.5">
+                      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100/50">
+                        <ShieldCheck className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                          Saldo AutaMedica
+                        </p>
+                        <h3 className="mt-1 text-xl font-bold tracking-tight text-neutral-900">
+                          {formatArsFromCents(walletSummary.balance.available_credit_cents)} disponibles
+                        </h3>
+                        <p className="mt-1 max-w-xl text-sm leading-relaxed text-neutral-500">
+                          Disponés de saldo a favor para cubrir de forma inmediata tu próxima consulta médica elegible.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100/60">
+                        Se aplica automáticamente
+                      </span>
+                      <button
+                        onClick={() => setIsTopupModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-stone-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-stone-800"
+                      >
+                        <Plus className="size-3.5" />
+                        Cargar más
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              );
+            }
+
+            return (
+              <section className="mb-6 overflow-hidden rounded-2xl border border-sky-100/60 bg-gradient-to-br from-white via-white to-sky-50/20 p-5 shadow-sm shadow-sky-500/[0.01]">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3.5">
+                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100/50">
+                      <CreditCard className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-sky-600">
+                        Saldo AutaMedica
+                      </p>
+                      <h3 className="mt-1 text-xl font-bold tracking-tight text-neutral-900">
+                        $0,00 disponibles
+                      </h3>
+                      <p className="mt-1 max-w-xl text-sm leading-relaxed text-neutral-500">
+                        No disponés de saldo cargado en tu billetera. Podés cargar saldo con MercadoPago o tarjetas para agendar turnos al instante.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    <button
+                      onClick={() => setIsTopupModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-stone-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-stone-800 shadow-sm"
+                    >
+                      <Plus className="size-3.5" />
+                      Cargar Saldo
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
-                    Saldo AutaMedica
-                  </p>
-                  <h3 className="mt-1 text-xl font-bold tracking-tight text-neutral-900">
-                    {formatArsFromCents(walletSummary.balance.available_credit_cents)} disponibles
-                  </h3>
-                  <p className="mt-1 max-w-xl text-sm leading-relaxed text-neutral-500">
-                    Disponés de saldo a favor para cubrir de forma inmediata tu próxima consulta médica elegible.
-                  </p>
-                </div>
-              </div>
-              <div className="shrink-0">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100/60">
-                  Se aplica automáticamente al confirmar
-                </span>
-              </div>
-            </div>
-          </section>
+              </section>
+            );
+          })()
         )}
 
         {isTelemedicineView && (
@@ -589,6 +680,79 @@ export default function AppointmentsPage({
           submitting={reviewSubmitting}
           error={reviewError}
         />
+      )}
+
+      {isTopupModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            onClick={() => { if (!topupLoading) setIsTopupModalOpen(false) }}
+            className="absolute inset-0 bg-neutral-950/40 backdrop-blur-sm transition-opacity"
+          />
+
+          {/* Modal Content */}
+          <div className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-neutral-100 bg-white p-6 shadow-2xl transition-all">
+            <h3 className="text-xl font-bold tracking-tight text-neutral-900 mb-2">
+              Cargar Saldo AutaMedica
+            </h3>
+            <p className="text-sm text-neutral-500 mb-6">
+              Ingresá el monto que deseas cargar. Serás redirigido a MercadoPago para abonar con saldo de cuenta, transferencia o tarjetas.
+            </p>
+
+            <form onSubmit={handleTopup} className="space-y-4">
+              <div>
+                <label htmlFor="topupAmount" className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-2">
+                  Monto a cargar (ARS)
+                </label>
+                <div className="relative rounded-2xl border border-neutral-200 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 overflow-hidden bg-stone-50/50">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold">$</span>
+                  <input
+                    type="number"
+                    id="topupAmount"
+                    value={topupAmount}
+                    onChange={(e) => setTopupAmount(e.target.value)}
+                    placeholder="Monto"
+                    min="1"
+                    required
+                    disabled={topupLoading}
+                    className="w-full pl-8 pr-4 py-3 bg-transparent text-stone-900 placeholder-neutral-400 focus:outline-none font-semibold text-lg"
+                  />
+                </div>
+              </div>
+
+              {topupError && (
+                <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-600">
+                  {topupError}
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTopupModalOpen(false)}
+                  disabled={topupLoading}
+                  className="flex-1 rounded-full border border-neutral-200 py-3 text-sm font-semibold text-stone-600 hover:bg-stone-50 disabled:opacity-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={topupLoading}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 py-3 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-70 active:scale-[0.98] transition-all shadow-sm"
+                >
+                  {topupLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Iniciando...
+                    </>
+                  ) : (
+                    'Cargar'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
     </ErrorBoundary>
