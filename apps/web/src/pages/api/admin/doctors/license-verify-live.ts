@@ -13,13 +13,31 @@ import { badRequest, internalError, jsonOk, unauthorized } from '@/lib/api-helpe
 type RequestBody = {
   doctorId?: string;
   userId?: string;
+  persist?: boolean;
 };
 
 // Validates that the caller has administrative privileges
 async function assertAdmin(
   request: Request,
   admin: ReturnType<typeof createAstroAdminClient>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  locals?: any,
 ): Promise<{ ok: boolean; userId?: string }> {
+  // 1. Try Astro's server-side verified locals session
+  if (locals?.session?.user) {
+    const userId = locals.session.user.id;
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (profile?.role && ['admin', 'platform_admin', 'organization_admin'].includes(profile.role)) {
+      return { ok: true, userId };
+    }
+  }
+
+  // 2. Fallback to Authorization Header token
   const authHeader = request.headers.get('authorization') ?? '';
   const token = authHeader.replace(/^Bearer\s+/i, '');
   if (!token) return { ok: false };
@@ -46,7 +64,7 @@ function isNonEmptyString(value: unknown): value is string {
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const admin = createAstroAdminClient(locals.runtime?.env);
-  const auth = await assertAdmin(request, admin);
+  const auth = await assertAdmin(request, admin, locals);
   if (!auth.ok || !auth.userId) return unauthorized('admin role required');
 
   let body: RequestBody;
@@ -97,6 +115,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       type,
       province,
       hasLiveCredentials: !!tokenSecret && !!domainUrl,
+      persist: body.persist !== false,
     });
 
     // 3. Initialize validators (with local DB check as a fallback)
@@ -120,16 +139,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
       finalStatus = 'rejected';
     }
 
-    // 5. Update the doctor's profile status in the database
-    const { error: updateError } = await admin
-      .from('profiles')
-      .update({
-        sss_validation_status: finalStatus,
-        sss_last_checked_at: checkedAt,
-      })
-      .eq('user_id', doctor.user_id);
+    const persist = body.persist !== false;
 
-    if (updateError) throw updateError;
+    // 5. Update the doctor's profile status in the database
+    if (persist) {
+      const { error: updateError } = await admin
+        .from('profiles')
+        .update({
+          sss_validation_status: finalStatus,
+          sss_last_checked_at: checkedAt,
+        })
+        .eq('user_id', doctor.user_id);
+
+      if (updateError) throw updateError;
+    }
 
     logger.info('[license-verify-live] Completed verification', {
       doctorId: doctor.id,
