@@ -5,6 +5,12 @@ export interface RefepsValidationResult {
   fullName?: string;
   specialty?: string;
   province?: string;
+  source?: 'national_refeps_api' | 'local_database_fallback' | 'offline_mock';
+  practitionerId?: string;
+  qualifications?: Array<{
+    text?: string;
+    identifiers?: Array<{ system?: string; value?: string }>;
+  }>;
   registrationStatus: 'active' | 'suspended' | 'revoked' | 'not_found';
 }
 

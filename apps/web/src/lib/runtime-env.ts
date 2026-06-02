@@ -206,3 +206,33 @@ export function resolveBusDomainUrl(runtimeEnv?: RuntimeEnvRecord): string | und
     readProcess(['BUS_INTEROP_DOMAIN_URL'])
   );
 }
+
+export function resolveBusNonFhirDomainCode(runtimeEnv?: RuntimeEnvRecord): string | undefined {
+  primeRuntimeEnv(runtimeEnv);
+  return (
+    readFirst(runtimeEnv, ['BUS_INTEROP_NON_FHIR_DOMAIN_CODE']) ??
+    readCached(['BUS_INTEROP_NON_FHIR_DOMAIN_CODE']) ??
+    import.meta.env.BUS_INTEROP_NON_FHIR_DOMAIN_CODE ??
+    readProcess(['BUS_INTEROP_NON_FHIR_DOMAIN_CODE'])
+  );
+}
+
+export function resolveBusNonFhirApplicationName(runtimeEnv?: RuntimeEnvRecord): string | undefined {
+  primeRuntimeEnv(runtimeEnv);
+  return (
+    readFirst(runtimeEnv, ['BUS_INTEROP_NON_FHIR_APPLICATION_NAME']) ??
+    readCached(['BUS_INTEROP_NON_FHIR_APPLICATION_NAME']) ??
+    import.meta.env.BUS_INTEROP_NON_FHIR_APPLICATION_NAME ??
+    readProcess(['BUS_INTEROP_NON_FHIR_APPLICATION_NAME'])
+  );
+}
+
+export function resolveBusNonFhirPassword(runtimeEnv?: RuntimeEnvRecord): string | undefined {
+  primeRuntimeEnv(runtimeEnv);
+  return (
+    readFirst(runtimeEnv, ['BUS_INTEROP_NON_FHIR_PASSWORD']) ??
+    readCached(['BUS_INTEROP_NON_FHIR_PASSWORD']) ??
+    import.meta.env.BUS_INTEROP_NON_FHIR_PASSWORD ??
+    readProcess(['BUS_INTEROP_NON_FHIR_PASSWORD'])
+  );
+}

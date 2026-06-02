@@ -62,6 +62,15 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
 }
 
+function firstText(...values: Array<unknown>): string | null {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
 export const POST: APIRoute = async ({ request, locals }) => {
   const admin = createAstroAdminClient(locals.runtime?.env);
   const auth = await assertAdmin(request, admin, locals);
@@ -121,7 +130,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 3. Initialize validators (with local DB check as a fallback)
     const localValidator = new LocalRefepsValidator(admin);
     const validator = new RefepsApiValidator({
-      baseUrl: 'https://bus-test.msal.gob.ar', // Default sandbox url (can be overridden)
+      baseUrl: 'https://bus.msal.gob.ar',
       domainTokenSecret: tokenSecret,
       domainUrl: domainUrl,
       fallbackValidator: localValidator,
@@ -140,18 +149,77 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const persist = body.persist !== false;
+    const source = verification.source ?? (tokenSecret && domainUrl ? 'national_refeps_api' : 'local_database_fallback');
+    const registeredSpecialty = firstText(verification.specialty);
+    const practitionerId = firstText(verification.practitionerId);
+    const validatedLicense = firstText(
+      verification.matriculaNumber,
+      verification.qualifications?.flatMap((qualification) => qualification.identifiers ?? [])
+        .find((identifier) => identifier.value)?.value,
+    );
 
     // 5. Update the doctor's profile status in the database
     if (persist) {
+      const profileUpdates: Record<string, string | null> = {
+        sss_validation_status: finalStatus,
+        sss_last_checked_at: checkedAt,
+      };
+
+      if (registeredSpecialty) profileUpdates.especialidad_registrada = registeredSpecialty;
+      if (validatedLicense) profileUpdates.matricula_nacional = validatedLicense;
+
       const { error: updateError } = await admin
         .from('profiles')
-        .update({
-          sss_validation_status: finalStatus,
-          sss_last_checked_at: checkedAt,
-        })
+        .update(profileUpdates)
         .eq('user_id', doctor.user_id);
 
       if (updateError) throw updateError;
+
+      if (practitionerId) {
+        const { error: doctorUpdateError } = await admin
+          .from('doctors')
+          .update({
+            refeps_id: practitionerId,
+          })
+          .eq('id', doctor.id);
+
+        if (doctorUpdateError) throw doctorUpdateError;
+      }
+
+      const { error: licenseError } = await admin
+        .from('doctor_licenses')
+        .upsert(
+          {
+            doctor_id: doctor.id,
+            license_number: matricula,
+            license_type: type,
+            province: province ?? null,
+            status: verification.registrationStatus === 'suspended' ? 'suspended' : finalStatus === 'valid' ? 'active' : 'inactive',
+            issued_by: doctor.enrollment_entity ?? null,
+          },
+          { onConflict: 'doctor_id,province,license_number' },
+        );
+
+      if (licenseError) {
+        logger.warn('[license-verify-live] structured license upsert skipped', licenseError);
+      }
+
+      if (registeredSpecialty) {
+        const { error: specialtyError } = await admin
+          .from('doctor_specialties')
+          .upsert(
+            {
+              doctor_id: doctor.id,
+              specialty_name: registeredSpecialty,
+              certification_entity: source,
+            },
+            { onConflict: 'doctor_id,specialty_name' },
+          );
+
+        if (specialtyError) {
+          logger.warn('[license-verify-live] structured specialty upsert skipped', specialtyError);
+        }
+      }
     }
 
     logger.info('[license-verify-live] Completed verification', {
@@ -171,7 +239,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       isValid: verification.isValid,
       status: finalStatus,
       checkedAt,
-      source: tokenSecret && domainUrl ? 'national_refeps_api' : 'local_database_fallback',
+      source,
+      practitionerId,
+      registeredSpecialty,
+      registrationStatus: verification.registrationStatus,
+      qualifications: verification.qualifications ?? [],
     });
   } catch (err) {
     logger.error('[license-verify-live] Critical failure', err);
