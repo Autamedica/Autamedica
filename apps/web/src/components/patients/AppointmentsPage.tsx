@@ -21,6 +21,15 @@ import type { AppointmentType } from '@/lib/patients/types/appointment'
 
 type AppointmentsPageMode = 'all' | 'telemedicine'
 
+type PatientWalletSummary = {
+  balance: {
+    available_credit_cents: number
+    locked_credit_cents: number
+    total_credit_cents: number
+    currency: string
+  }
+}
+
 function StatCard({
   icon: Icon,
   label,
@@ -57,6 +66,7 @@ export default function AppointmentsPage({
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [reviewTarget, setReviewTarget] = useState<AppointmentWithDoctor | null>(null)
   const [_patientProfileId, setPatientProfileId] = useState<string | null>(null)
+  const [walletSummary, setWalletSummary] = useState<PatientWalletSummary | null>(null)
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null)
   const [payingAppointmentId, setPayingAppointmentId] = useState<string | null>(null)
   const {
@@ -83,21 +93,25 @@ export default function AppointmentsPage({
   useEffect(() => {
     let cancelled = false
 
-    const loadPatientProfileId = async () => {
+    const loadPatientContext = async () => {
       try {
-        const data = await fetchApi<{ role?: string; _patientProfileId?: string } | null>('/api/auth/me')
+        const [data, wallet] = await Promise.all([
+          fetchApi<{ role?: string; _patientProfileId?: string } | null>('/api/auth/me'),
+          fetchApi<PatientWalletSummary>('/api/patients/wallet'),
+        ])
 
         if (cancelled || data?.role !== 'patient') {
           return
         }
 
         setPatientProfileId(data._patientProfileId ?? null)
+        setWalletSummary(wallet)
       } catch {
         // Non-blocking enhancement only.
       }
     }
 
-    void loadPatientProfileId()
+    void loadPatientContext()
 
     return () => {
       cancelled = true
@@ -238,6 +252,14 @@ export default function AppointmentsPage({
       setIsModalOpen(false)
       await refreshAppointments()
       const payment = await createAppointmentPayment(newAppointment.id)
+      if (payment?.status === 'covered_by_credit') {
+        await refreshAppointments()
+        setPaymentMessage('Tu saldo AutaMedica cubrió la consulta. El turno ya quedó confirmado.')
+        void fetchApi<PatientWalletSummary>('/api/patients/wallet')
+          .then(setWalletSummary)
+          .catch(() => {})
+        return
+      }
       if (payment?.checkoutUrl) {
         window.location.href = payment.checkoutUrl
         return
@@ -251,6 +273,14 @@ export default function AppointmentsPage({
     setPaymentMessage(null)
     try {
       const payment = await createAppointmentPayment(appointment.id)
+      if (payment?.status === 'covered_by_credit') {
+        await refreshAppointments()
+        setPaymentMessage('Tu saldo AutaMedica cubrió la consulta. El turno ya quedó confirmado.')
+        void fetchApi<PatientWalletSummary>('/api/patients/wallet')
+          .then(setWalletSummary)
+          .catch(() => {})
+        return
+      }
       if (payment?.checkoutUrl) {
         window.location.href = payment.checkoutUrl
         return
@@ -301,6 +331,34 @@ export default function AppointmentsPage({
               <div>
                 <p className="font-semibold text-stone-950">Estado del pago</p>
                 <p className="mt-1 leading-relaxed">{paymentMessage}</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {walletSummary && walletSummary.balance.available_credit_cents > 0 && !isTelemedicineView && (
+          <section className="mb-6 overflow-hidden rounded-2xl border border-emerald-100/60 bg-gradient-to-br from-white via-white to-emerald-50/20 p-5 shadow-sm shadow-emerald-500/[0.02]">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3.5">
+                <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100/50">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                    Saldo AutaMedica
+                  </p>
+                  <h3 className="mt-1 text-xl font-bold tracking-tight text-neutral-900">
+                    {formatArsFromCents(walletSummary.balance.available_credit_cents)} disponibles
+                  </h3>
+                  <p className="mt-1 max-w-xl text-sm leading-relaxed text-neutral-500">
+                    Disponés de saldo a favor para cubrir de forma inmediata tu próxima consulta médica elegible.
+                  </p>
+                </div>
+              </div>
+              <div className="shrink-0">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100/60">
+                  Se aplica automáticamente al confirmar
+                </span>
               </div>
             </div>
           </section>
@@ -511,6 +569,7 @@ export default function AppointmentsPage({
             onPayAppointment={(appointment) => void handlePayAppointment(appointment)}
             payingAppointmentId={payingAppointmentId}
             joiningAppointmentId={joiningAppointmentId}
+            walletSummary={walletSummary}
           />
         )}
       </div>
