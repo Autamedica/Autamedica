@@ -28,6 +28,19 @@ type ExistingAppointmentPayment = {
   doctor_id: string
 }
 
+type PatientWalletBalance = {
+  available_credit_cents: number | null
+}
+
+type PatientWalletPaymentResult = {
+  success: boolean
+  message: string
+  appointment_payment_id: string | null
+  ledger_id: string | null
+  amount_cents: number
+  new_available_credit_cents: number | null
+}
+
 interface MercadoPagoPreferenceResponse {
   id: string
   init_point: string
@@ -36,10 +49,14 @@ interface MercadoPagoPreferenceResponse {
 interface MercadoPagoPaymentDetail {
   id: number | string
   status: string
+  status_detail?: string | null
   transaction_amount: number
   currency_id: string
   payment_method_id?: string | null
   external_reference?: string | null
+  date_approved?: string | null
+  date_last_updated?: string | null
+  transaction_details?: Record<string, unknown> | null
   metadata?: Record<string, unknown> | null
 }
 
@@ -47,6 +64,7 @@ interface AppointmentWithPaymentContext {
   id: string
   patient_id: string | null
   doctor_id: string | null
+  start_time: string | null
   type: string | null
   status: string | null
   doctor: {
@@ -121,8 +139,23 @@ function mapMercadoPagoStatus(status: string): AppointmentPaymentStatus {
   return mapping[status] ?? 'pending'
 }
 
+function resolveAppointmentPaymentStatus(payment: MercadoPagoPaymentDetail): AppointmentPaymentStatus {
+  const mapped = mapMercadoPagoStatus(payment.status)
+
+  if (mapped === 'pending' && payment.date_approved) {
+    return 'approved'
+  }
+
+  return mapped
+}
+
 function serializeMetadata(input: Record<string, unknown>): Json {
   return input as Json
+}
+
+function normalizeWhatsappPhone(value?: string | null): string | null {
+  const phone = value?.replace(/[^0-9]/g, '') ?? ''
+  return phone.length >= 8 ? phone : null
 }
 
 function constantTimeEqual(left: string, right: string): boolean {
@@ -172,7 +205,7 @@ async function findAppointmentWithDoctor(
 ): Promise<AppointmentWithPaymentContext | null> {
   const { data, error } = await supabase
     .from('appointments')
-    .select('id, patient_id, doctor_id, type, status, doctor:doctors!appointments_doctor_id_fkey(id, consultation_fee, payout_cbu, payout_alias)')
+    .select('id, patient_id, doctor_id, start_time, type, status, doctor:doctors!appointments_doctor_id_fkey(id, consultation_fee, payout_cbu, payout_alias)')
     .eq('id', appointmentId)
     .maybeSingle()
 
@@ -207,6 +240,104 @@ async function updateAppointmentStatus(
   }
 }
 
+async function ensureDoctorWhatsAppJobForConfirmedAppointment(
+  supabase: Db,
+  appointment: AppointmentWithPaymentContext,
+): Promise<void> {
+  if (!appointment.doctor_id || !appointment.patient_id || !appointment.start_time) return
+
+  const { data: doctor, error: doctorError } = await supabase
+    .from('doctors')
+    .select('user_id')
+    .eq('id', appointment.doctor_id)
+    .maybeSingle()
+
+  if (doctorError || !doctor?.user_id) {
+    logger.error('[appointment-payments] doctor profile owner lookup failed', {
+      appointmentId: appointment.id,
+      doctorId: appointment.doctor_id,
+      error: doctorError,
+    })
+    return
+  }
+
+  const { data: doctorProfile, error: doctorProfileError } = await supabase
+    .from('profiles')
+    .select('first_name, phone')
+    .eq('user_id', doctor.user_id)
+    .maybeSingle()
+
+  if (doctorProfileError) {
+    logger.error('[appointment-payments] doctor profile lookup failed', {
+      appointmentId: appointment.id,
+      doctorId: appointment.doctor_id,
+      error: doctorProfileError,
+    })
+    return
+  }
+
+  const doctorPhone = normalizeWhatsappPhone(doctorProfile?.phone)
+  if (!doctorPhone) {
+    logger.warn('[appointment-payments] doctor WhatsApp phone missing', {
+      appointmentId: appointment.id,
+      doctorId: appointment.doctor_id,
+    })
+    return
+  }
+
+  const { data: patient } = await supabase
+    .from('patients')
+    .select('user_id')
+    .eq('id', appointment.patient_id)
+    .maybeSingle()
+
+  const { data: patientProfile } = patient?.user_id
+    ? await supabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('user_id', patient.user_id)
+      .maybeSingle()
+    : { data: null }
+
+  const patientName = [patientProfile?.first_name, patientProfile?.last_name].filter(Boolean).join(' ').trim() || 'Un paciente'
+  const start = new Date(appointment.start_time).toLocaleString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  const message = [
+    'AutaMedica - nueva consulta confirmada',
+    `Paciente: ${patientName}`,
+    `Fecha y hora: ${start}`,
+    `Tipo de atención: ${appointment.type || 'Consulta médica'}`,
+    'Revisá la agenda y el contexto clínico antes del turno.',
+    'Agenda médica: https://doctor.autamedica.com/doctors/appointments',
+  ].join('\n')
+
+  const { error } = await supabase
+    .schema('growth_os')
+    .from('doctor_whatsapp_jobs')
+    .insert({
+      appointment_id: appointment.id,
+      doctor_id: appointment.doctor_id,
+      user_id: doctor.user_id,
+      recipient_phone: doctorPhone,
+      message,
+      dedupe_key: `doctor_whatsapp:appointment_confirmed:${appointment.id}`,
+    } as never)
+
+  if (error && error.code !== '23505') {
+    logger.error('[appointment-payments] doctor WhatsApp job fallback failed', {
+      appointmentId: appointment.id,
+      doctorId: appointment.doctor_id,
+      error,
+    })
+  }
+}
+
 export const appointmentPaymentsService = {
   async createCheckoutPreference(
     supabase: Db,
@@ -216,10 +347,14 @@ export const appointmentPaymentsService = {
     },
   ): Promise<{
     appointmentPaymentId: string
-    checkoutUrl: string
-    preferenceId: string
+    checkoutUrl: string | null
+    preferenceId: string | null
     amount: number
     currency: string
+    paymentSource: 'mercadopago' | 'patient_wallet'
+    status: 'checkout_required' | 'covered_by_credit'
+    walletLedgerId?: string | null
+    remainingCreditCents?: number | null
   }> {
     const appointment = await findAppointmentWithDoctor(supabase, input.appointmentId)
     if (!appointment) throw new Error('appointment_not_found')
@@ -243,18 +378,20 @@ export const appointmentPaymentsService = {
       throw existing.error
     }
 
-    if (existing.data?.status === 'approved' && existing.data.checkout_url && existing.data.provider_preference_id) {
+    if (existing.data?.status === 'approved') {
       const existingPayment = existing.data as ExistingAppointmentPayment
+      const isWalletPayment = existingPayment.provider_preference_id === null
+        && existingPayment.checkout_url === null
       return {
         appointmentPaymentId: existingPayment.id,
-        checkoutUrl: existingPayment.checkout_url,
-        preferenceId: existingPayment.provider_preference_id,
+        checkoutUrl: existingPayment.checkout_url ?? null,
+        preferenceId: existingPayment.provider_preference_id ?? null,
         amount: existingPayment.gross_amount,
         currency: existingPayment.currency,
+        paymentSource: isWalletPayment ? 'patient_wallet' : 'mercadopago',
+        status: isWalletPayment ? 'covered_by_credit' : 'checkout_required',
       }
     }
-
-    assertWebhookRuntimeConfigured()
 
     if (existing.data?.status === 'pending' && existing.data.checkout_url && existing.data.provider_preference_id) {
       const existingPayment = existing.data as ExistingAppointmentPayment
@@ -264,8 +401,77 @@ export const appointmentPaymentsService = {
         preferenceId: existingPayment.provider_preference_id,
         amount: existingPayment.gross_amount,
         currency: existingPayment.currency,
+        paymentSource: 'mercadopago',
+        status: 'checkout_required',
       }
     }
+
+    const { data: walletRows, error: walletError } = await (supabase as unknown as SupabaseClient)
+      .rpc('patient_wallet_get_balance', { p_patient_id: input.patientId })
+
+    if (walletError) {
+      logger.error('[appointment-payments] patient wallet balance lookup failed', {
+        appointmentId: appointment.id,
+        patientId: input.patientId,
+        error: walletError,
+      })
+      throw walletError
+    }
+
+    const walletBalance = Array.isArray(walletRows)
+      ? walletRows[0] as PatientWalletBalance | undefined
+      : null
+    const availableCreditCents = Number(walletBalance?.available_credit_cents ?? 0)
+
+    if (availableCreditCents >= amountCents) {
+      const { data: walletPaymentRows, error: walletPaymentError } = await (supabase as unknown as SupabaseClient)
+        .rpc('pay_appointment_with_patient_wallet', {
+          p_appointment_id: appointment.id,
+          p_patient_id: input.patientId,
+          p_idempotency_key: `patient_wallet_payment:${appointment.id}`,
+        })
+
+      if (walletPaymentError) {
+        logger.error('[appointment-payments] patient wallet payment failed', {
+          appointmentId: appointment.id,
+          patientId: input.patientId,
+          error: walletPaymentError,
+        })
+        throw walletPaymentError
+      }
+
+      const walletPayment = Array.isArray(walletPaymentRows)
+        ? walletPaymentRows[0] as PatientWalletPaymentResult | undefined
+        : null
+
+      if (!walletPayment?.success || !walletPayment.appointment_payment_id) {
+        throw new Error(walletPayment?.message || 'patient_wallet_payment_failed')
+      }
+
+      await ensureDoctorWhatsAppJobForConfirmedAppointment(supabase, appointment)
+      try {
+        await careEpisodesService.upsertForPaidAppointment(supabase, appointment.id)
+      } catch (episodeError) {
+        logger.error('[appointment-payments] episode creation failed after wallet confirmation', {
+          appointmentId: appointment.id,
+          error: episodeError instanceof Error ? episodeError.message : String(episodeError),
+        })
+      }
+
+      return {
+        appointmentPaymentId: walletPayment.appointment_payment_id,
+        checkoutUrl: null,
+        preferenceId: null,
+        amount: walletPayment.amount_cents,
+        currency: APPOINTMENT_PAYMENT_CURRENCY,
+        paymentSource: 'patient_wallet',
+        status: 'covered_by_credit',
+        walletLedgerId: walletPayment.ledger_id,
+        remainingCreditCents: walletPayment.new_available_credit_cents,
+      }
+    }
+
+    assertWebhookRuntimeConfigured()
 
     const appUrl = getAppUrl()
     const amount = centsToMajorUnit(amountCents)
@@ -344,6 +550,8 @@ export const appointmentPaymentsService = {
       preferenceId: mpResponse.id,
       amount: amountCents,
       currency: APPOINTMENT_PAYMENT_CURRENCY,
+      paymentSource: 'mercadopago',
+      status: 'checkout_required',
     }
   },
 
@@ -395,7 +603,7 @@ export const appointmentPaymentsService = {
       return
     }
 
-    const status = mapMercadoPagoStatus(payment.status)
+    const status = resolveAppointmentPaymentStatus(payment)
     const amountCents = majorUnitToCents(payment.transaction_amount)
     const currency = payment.currency_id || APPOINTMENT_PAYMENT_CURRENCY
 
@@ -443,9 +651,14 @@ export const appointmentPaymentsService = {
         status,
         provider: APPOINTMENT_PAYMENT_PROVIDER,
         provider_payment_id: String(payment.id),
-        paid_at: status === 'approved' ? new Date().toISOString() : null,
+        paid_at: status === 'approved' ? payment.date_approved ?? new Date().toISOString() : null,
         metadata: serializeMetadata({
           ...(payment.metadata ?? {}),
+          mp_status: payment.status,
+          mp_status_detail: payment.status_detail ?? null,
+          mp_date_approved: payment.date_approved ?? null,
+          mp_date_last_updated: payment.date_last_updated ?? null,
+          mp_transaction_details: payment.transaction_details ?? null,
           payment_method_id: payment.payment_method_id ?? null,
         }),
         updated_at: new Date().toISOString(),
@@ -464,6 +677,7 @@ export const appointmentPaymentsService = {
 
     if (status === 'approved') {
       await updateAppointmentStatus(supabase, appointment.id, 'confirmed')
+      await ensureDoctorWhatsAppJobForConfirmedAppointment(supabase, appointment)
       try {
         await careEpisodesService.upsertForPaidAppointment(supabase, appointment.id)
       } catch (episodeError) {

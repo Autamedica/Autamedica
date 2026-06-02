@@ -29,6 +29,14 @@ interface AppointmentsTableProps {
   onPayAppointment?: (appointment: AppointmentWithDoctor) => void;
   payingAppointmentId?: string | null;
   joiningAppointmentId?: string | null;
+  walletSummary?: {
+    balance: {
+      available_credit_cents: number;
+      locked_credit_cents: number;
+      total_credit_cents: number;
+      currency: string;
+    };
+  } | null;
 }
 
 const statusConfig: Record<string, { label: string; dot: string; bg: string }> = {
@@ -73,6 +81,7 @@ export function AppointmentsTable({
   onPayAppointment,
   payingAppointmentId,
   joiningAppointmentId,
+  walletSummary,
 }: AppointmentsTableProps) {
   const intlLocale = locale === 'pt' ? 'pt-BR' : 'es-AR';
 
@@ -182,37 +191,79 @@ export function AppointmentsTable({
               )}
 
               {appointment.status === 'payment_pending' && onPayAppointment && (
-                <div className="mb-4 rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-sky-50 p-4 shadow-sm shadow-amber-500/5">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-amber-700 shadow-sm ring-1 ring-amber-100">
-                        <CreditCard className="h-5 w-5" />
+                (() => {
+                  const fee = appointment.doctor?.consultation_fee ?? 0;
+                  const availableCredit = walletSummary?.balance.available_credit_cents ?? 0;
+                  const canPayWithWallet = availableCredit >= fee && fee > 0;
+
+                  if (canPayWithWallet) {
+                    return (
+                      <div className="mb-4 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/30 via-white to-emerald-50/10 p-4 shadow-sm shadow-emerald-500/[0.02]">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100/50 shadow-sm">
+                              <ShieldCheck className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
+                                Pago con Saldo AutaMedica
+                              </p>
+                              <p className="mt-1 text-base font-bold text-stone-950">
+                                {formatArsFromCents(fee)}
+                              </p>
+                              <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-600">
+                                Disponés de saldo a favor suficiente en tu billetera AutaMedica para confirmar esta consulta de forma inmediata.
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => onPayAppointment(appointment)}
+                            disabled={isPaying}
+                            className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98] shadow-sm shadow-emerald-600/10 shrink-0"
+                          >
+                            {isPaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                            {isPaying ? 'Confirmando...' : 'Confirmar con Saldo'}
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-                          Falta confirmar el pago
-                        </p>
-                        <p className="mt-1 text-sm font-semibold text-stone-950">
-                          {appointment.doctor?.consultation_fee != null
-                            ? formatArsFromCents(appointment.doctor.consultation_fee)
-                            : 'Valor a confirmar'}
-                        </p>
-                        <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-600">
-                          Al acreditarse en MercadoPago, el turno queda confirmado. Si tu caso necesita una revisión de cierre, ya está incluida.
-                        </p>
+                    );
+                  }
+
+                  return (
+                    <div className="mb-4 rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-sky-50 p-4 shadow-sm shadow-amber-500/5">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-amber-700 shadow-sm ring-1 ring-amber-100">
+                            <CreditCard className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+                              Falta confirmar el pago
+                            </p>
+                            <p className="mt-1 text-base font-bold text-stone-950">
+                              {appointment.doctor?.consultation_fee != null
+                                ? formatArsFromCents(appointment.doctor.consultation_fee)
+                                : 'Valor a confirmar'}
+                            </p>
+                            <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-600">
+                              Al acreditarse en MercadoPago, el turno queda confirmado. Si tu caso necesita una revisión de cierre, ya está incluida.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onPayAppointment(appointment)}
+                          disabled={isPaying}
+                          className="inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-stone-800 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98] shrink-0"
+                        >
+                          {isPaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                          {isPaying ? 'Abriendo MercadoPago...' : 'Pagar consulta'}
+                        </button>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => onPayAppointment(appointment)}
-                      disabled={isPaying}
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-stone-800 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98]"
-                    >
-                      {isPaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                      {isPaying ? 'Abriendo MercadoPago...' : 'Pagar consulta'}
-                    </button>
-                  </div>
-                </div>
+                  );
+                })()
               )}
 
               {/* Actions */}

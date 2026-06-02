@@ -16,10 +16,14 @@ interface UseAppointmentsResult {
   createAppointment: (data: CreateAppointmentInput) => Promise<AppointmentWithDoctor | null>;
   createAppointmentPayment: (id: string) => Promise<{
     appointmentPaymentId: string;
-    checkoutUrl: string;
-    preferenceId: string;
+    checkoutUrl: string | null;
+    preferenceId: string | null;
     amount: number;
     currency: string;
+    paymentSource: 'mercadopago' | 'patient_wallet';
+    status: 'checkout_required' | 'covered_by_credit';
+    walletLedgerId?: string | null;
+    remainingCreditCents?: number | null;
   } | null>;
   updateAppointment: (id: string, data: UpdateAppointmentInput) => Promise<AppointmentWithDoctor | null>;
   cancelAppointment: (id: string) => Promise<boolean>;
@@ -69,10 +73,14 @@ export function useAppointments(): UseAppointmentsResult {
     try {
       return await fetchApi<{
         appointmentPaymentId: string;
-        checkoutUrl: string;
-        preferenceId: string;
+        checkoutUrl: string | null;
+        preferenceId: string | null;
         amount: number;
         currency: string;
+        paymentSource: 'mercadopago' | 'patient_wallet';
+        status: 'checkout_required' | 'covered_by_credit';
+        walletLedgerId?: string | null;
+        remainingCreditCents?: number | null;
       }>(`/api/patients/appointments/${id}/payment`, { method: 'POST' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar el pago');
