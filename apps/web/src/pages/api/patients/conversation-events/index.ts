@@ -3,7 +3,18 @@ import { createAstroAdminClient } from '@/lib/supabase';
 import { createConversationLedgerAdapter } from '@/lib/patients/lib/repos/conversation-ledger.adapter';
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'unknown_error';
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null) {
+    const candidate = error as Record<string, unknown>;
+    if (typeof candidate.message === 'string') return candidate.message;
+    if (typeof candidate.error === 'string') return candidate.error;
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error || 'unknown_error');
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
