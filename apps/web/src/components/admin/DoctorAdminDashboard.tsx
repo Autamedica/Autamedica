@@ -62,6 +62,7 @@ export function DoctorAdminDashboard() {
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isVerifyingSisa, setIsVerifyingSisa] = useState(false);
 
   // Form states for New / Edit doctor
   const [editForm, setEditForm] = useState<Partial<Doctor & Profile & {
@@ -219,6 +220,92 @@ export function DoctorAdminDashboard() {
       setError(err instanceof Error ? err.message : 'Error al guardar los cambios.');
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  // Perform live verification against national SISA/REFEPS registry
+  async function handleVerifyLiveLicense(persist: boolean = true) {
+    if (!selectedDoctor) return;
+
+    setIsVerifyingSisa(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const data = await fetchApi<{
+        doctorId: string;
+        userId: string;
+        matricula: string;
+        fullName: string;
+        isValid: boolean;
+        status: 'valid' | 'rejected' | 'pending_review';
+        checkedAt: string;
+        source: string;
+      }>('/api/admin/doctors/license-verify-live', {
+        method: 'POST',
+        body: {
+          doctorId: selectedDoctor.id,
+          persist,
+        },
+      });
+
+      setSuccessMessage(
+        persist
+          ? `Verificación y aprobación finalizada: ${
+              data.isValid ? 'Matrícula activa en REFEPS y guardada' : 'Matrícula no encontrada/suspendida y guardada'
+            }.`
+          : `Consulta SISA completada: ${
+              data.isValid ? 'Matrícula activa en REFEPS' : 'Matrícula no encontrada o suspendida'
+            }. Se cargaron los datos en el formulario (debes Guardar la Ficha).`
+      );
+
+      // Update local form state (always needed for both flows to hydrate inputs)
+      setEditForm((prev) => ({
+        ...prev,
+        sssValidationStatus: data.status,
+        matriculaNacional: data.matricula,
+        especialidadRegistrada: data.fullName,
+      }));
+
+      if (persist) {
+        // Update in doctors list
+        setDoctors((prev) =>
+          prev.map((d) =>
+            d.id === selectedDoctor.id
+              ? {
+                  ...d,
+                  profile: {
+                    ...d.profile,
+                    sss_validation_status: data.status,
+                    sss_last_checked_at: data.checkedAt,
+                    matricula_nacional: data.matricula,
+                    especialidad_registrada: data.fullName,
+                  },
+                }
+              : d
+          )
+        );
+
+        // Refresh selection
+        setSelectedDoctor((prev) =>
+          prev
+            ? {
+                ...prev,
+                profile: {
+                  ...prev.profile,
+                  sss_validation_status: data.status,
+                  sss_last_checked_at: data.checkedAt,
+                  matricula_nacional: data.matricula,
+                  especialidad_registrada: data.fullName,
+                },
+              }
+            : null
+        );
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Fallo en la verificación live contra SISA.');
+    } finally {
+      setIsVerifyingSisa(false);
     }
   }
 
@@ -770,6 +857,25 @@ export function DoctorAdminDashboard() {
                       <option value="rejected">Rechazado (Rejected)</option>
                       <option value="exempt">Exceptuado (Exempt)</option>
                     </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled={isVerifyingSisa || isSaving || !editForm.license_number}
+                      onClick={() => handleVerifyLiveLicense(false)}
+                      className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {isVerifyingSisa ? 'Consultando...' : 'Solo Verificar'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isVerifyingSisa || isSaving || !editForm.license_number}
+                      onClick={() => handleVerifyLiveLicense(true)}
+                      className="inline-flex h-9 items-center justify-center rounded-lg border border-sky-300 bg-sky-50 px-3 text-xs font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100 disabled:opacity-50"
+                    >
+                      {isVerifyingSisa ? 'Verificando...' : 'Verificar y Autoguardar'}
+                    </button>
                   </div>
 
                   <div>
