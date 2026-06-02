@@ -50,13 +50,13 @@ export class RefepsApiValidator implements IRefepsValidator {
     baseUrl?: string
   ) {
     if (typeof configOrApiKey === 'object') {
-      this._baseUrl = configOrApiKey.baseUrl || 'https://bus-test.msal.gob.ar';
+      this._baseUrl = configOrApiKey.baseUrl || 'https://bus.msal.gob.ar';
       this._domainTokenSecret = configOrApiKey.domainTokenSecret;
       this._domainUrl = configOrApiKey.domainUrl;
       this._fallback = configOrApiKey.fallbackValidator;
     } else {
       // Support old signature for backward compatibility with existing tests
-      this._baseUrl = baseUrl || 'https://bus-test.msal.gob.ar';
+      this._baseUrl = baseUrl || 'https://bus.msal.gob.ar';
     }
   }
 
@@ -109,6 +109,7 @@ export class RefepsApiValidator implements IRefepsValidator {
         matriculaNumber: matricula,
         matriculaType: type,
         fullName: 'Profesional Simulado (Bus Offline)',
+        source: 'offline_mock',
         registrationStatus: 'active',
       };
     }
@@ -176,6 +177,14 @@ export class RefepsApiValidator implements IRefepsValidator {
       const familyName = practitioner.name?.[0]?.family || '';
       const fullName = practitioner.name?.[0]?.text || `${givenName} ${familyName}`.trim();
       const isActive = practitioner.active !== false;
+      const qualifications = practitioner.qualification?.map((qualification) => ({
+        text: qualification.code?.text,
+        identifiers: qualification.identifier?.map((identifier) => ({
+          system: identifier.system,
+          value: identifier.value,
+        })),
+      })) ?? [];
+      const specialty = qualifications.map((item) => item.text).find(Boolean);
 
       logger.info(`[RefepsApiValidator] Verified practitioner ${fullName} against national REFEPS.`);
 
@@ -184,6 +193,10 @@ export class RefepsApiValidator implements IRefepsValidator {
         matriculaNumber: matricula,
         matriculaType: type,
         fullName,
+        specialty,
+        practitionerId: practitioner.id,
+        qualifications,
+        source: 'national_refeps_api',
         registrationStatus: isActive ? 'active' : 'suspended',
       };
     } catch (error) {

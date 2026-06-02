@@ -88,6 +88,7 @@ export class LocalRefepsValidator implements IRefepsValidator {
         fullName: resolvedFullName,
         specialty: data.specialty,
         province: data.enrollment_jurisdiction ?? province,
+        source: 'local_database_fallback',
         registrationStatus,
       };
     } catch (error) {
