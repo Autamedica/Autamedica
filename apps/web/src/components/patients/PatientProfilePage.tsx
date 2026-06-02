@@ -44,9 +44,13 @@ function AuthenticatedPatientProfilePage({
     form,
     setField,
     resetForm,
+    lookupOfficialIdentity,
     saveProfile,
     isSaving,
+    isLookingUpIdentity,
     secondaryError,
+    identityLookupError,
+    identityLookupSuccess,
     saveError,
     saveSuccess,
     displayName,
@@ -249,7 +253,54 @@ function AuthenticatedPatientProfilePage({
                   <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-400">
                     Identidad y contacto
                   </h3>
+                  <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-sky-950">
+                          Completar con datos oficiales
+                        </p>
+                        <p className="mt-1 max-w-2xl text-sm leading-6 text-sky-800">
+                          Ingresá tu DNI y sexo registral. AutaMedica completa los datos necesarios
+                          para recetas y documentación clínica con fuente oficial.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={lookupOfficialIdentity}
+                        disabled={isLookingUpIdentity || !form.dni.trim() || !form.gender}
+                        className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-200"
+                      >
+                        {isLookingUpIdentity ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <BadgeCheck className="h-4 w-4" />
+                        )}
+                        {isLookingUpIdentity ? 'Consultando...' : 'Completar datos'}
+                      </button>
+                    </div>
+                    {identityLookupSuccess ? (
+                      <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-emerald-700">
+                        <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0" />
+                        {identityLookupSuccess}
+                      </p>
+                    ) : null}
+                    {identityLookupError ? (
+                      <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-rose-700">
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                        {identityLookupError}
+                      </p>
+                    ) : null}
+                  </div>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <Field
+                      label="DNI"
+                      value={form.dni}
+                      onChange={(event) => setField('dni', event.target.value)}
+                      placeholder="Tu número de documento"
+                      hint={session.patient?.dni ? 'El DNI no puede ser modificado una vez establecido.' : 'Se usa para completar datos oficiales y preparar recetas.'}
+                      icon={<Hash className="h-4 w-4" />}
+                      disabled={!!session.patient?.dni}
+                    />
                     <Field
                       label="Nombre"
                       value={form.firstName}
@@ -283,15 +334,15 @@ function AuthenticatedPatientProfilePage({
                       value={form.cuil}
                       onChange={(event) => setField('cuil', event.target.value)}
                       placeholder="20-XXXXXXXX-9"
-                      hint="Obligatorio para la validez legal de la receta (RCTA)."
+                      hint="Si RENAPER no lo informa, podés completarlo manualmente."
                       icon={<Hash className="h-4 w-4" />}
                     />
                     <Field
-                      label="Domicilio Real"
+                      label="Domicilio"
                       value={form.address}
                       onChange={(event) => setField('address', event.target.value)}
                       placeholder="Calle 123, Depto 4B, CABA"
-                      hint="Requerido por Res. 2214/2025."
+                      hint="Puede completarse desde datos oficiales y editarse si corresponde."
                       icon={<MapPin className="h-4 w-4" />}
                     />
                   </div>
@@ -314,6 +365,8 @@ function AuthenticatedPatientProfilePage({
                       value={form.gender}
                       onChange={(event) => setField('gender', event.target.value as typeof form.gender)}
                       icon={<UserCircle2 className="h-4 w-4" />}
+                      disabled={!!session.patient?.gender}
+                      hint={session.patient?.gender ? 'El sexo registral no puede ser modificado una vez establecido.' : undefined}
                     >
                       {GENDER_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>

@@ -1,6 +1,7 @@
 'use client';
 
 import { computeAgeFromIso, normalizeGender } from '@/lib/patients/lib/demographics';
+import { fetchApi } from '@/lib/api-client';
 import {
   buildFormState,
   buildMissingFields,
@@ -35,9 +36,13 @@ export interface UsePatientProfilePageReturn {
     value: PatientProfileFormState[K],
   ) => void;
   resetForm: () => void;
+  lookupOfficialIdentity: () => Promise<boolean>;
   saveProfile: () => Promise<boolean>;
   isSaving: boolean;
+  isLookingUpIdentity: boolean;
   secondaryError: string | null;
+  identityLookupError: string | null;
+  identityLookupSuccess: string | null;
   saveError: string | null;
   saveSuccess: boolean;
   displayName: string;
@@ -109,6 +114,9 @@ export function usePatientProfilePage(
 
   const [form, setForm] = useState<PatientProfileFormState>(EMPTY_FORM);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [identityLookupError, setIdentityLookupError] = useState<string | null>(null);
+  const [identityLookupSuccess, setIdentityLookupSuccess] = useState<string | null>(null);
+  const [isLookingUpIdentity, setIsLookingUpIdentity] = useState(false);
 
   useEffect(() => {
     setForm(
@@ -121,10 +129,14 @@ export function usePatientProfilePage(
       }),
     );
     setSaveError(null);
+    setIdentityLookupError(null);
+    setIdentityLookupSuccess(null);
   }, [accountFullName, anamnesisBirthDate, patient, profile, user?.email]);
 
   const setField = useCallback<UsePatientProfilePageReturn['setField']>((field, value) => {
     resetStatus();
+    setIdentityLookupError(null);
+    setIdentityLookupSuccess(null);
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -142,8 +154,83 @@ export function usePatientProfilePage(
       }),
     );
     setSaveError(null);
+    setIdentityLookupError(null);
+    setIdentityLookupSuccess(null);
     resetStatus();
   }, [accountFullName, anamnesisBirthDate, patient, profile, resetStatus, user?.email]);
+
+  const lookupOfficialIdentity = useCallback(async (): Promise<boolean> => {
+    const dni = form.dni.replace(/\D/g, '');
+    if (!dni) {
+      setIdentityLookupError('Ingresá tu DNI para buscar tus datos oficiales.');
+      return false;
+    }
+
+    const sexId = form.gender === 'female' ? 1 : form.gender === 'male' ? 2 : form.gender === 'other' ? 3 : null;
+    if (!sexId) {
+      setIdentityLookupError('Seleccioná tu sexo registral antes de consultar datos oficiales.');
+      return false;
+    }
+
+    try {
+      setIsLookingUpIdentity(true);
+      setIdentityLookupError(null);
+      setIdentityLookupSuccess(null);
+
+      const data = await fetchApi<{
+        hasPaid: boolean;
+        form: Partial<PatientProfileFormState>;
+        coverage: {
+          rnos: string | null;
+          name: string | null;
+          source: string | null;
+          checkedAt: string | null;
+        } | null;
+      }>('/api/patients/identity/renaper', {
+        method: 'POST',
+        body: { dni, sexId },
+      });
+
+      if (data.hasPaid) {
+        setForm((current) => ({
+          ...current,
+          dni: data.form.dni || current.dni,
+          firstName: data.form.firstName || current.firstName,
+          lastName: data.form.lastName || current.lastName,
+          birthDate: data.form.birthDate || current.birthDate,
+          gender: data.form.gender || current.gender,
+          cuil: data.form.cuil || current.cuil,
+          address: data.form.address || current.address,
+        }));
+        setIdentityLookupSuccess(
+          data.coverage?.name
+            ? `Datos oficiales encontrados e incorporados. Cobertura: ${data.coverage.name}.`
+            : 'Datos oficiales encontrados e incorporados. Sin cobertura informada en PUCO.',
+        );
+      } else {
+        setForm((current) => ({
+          ...current,
+          dni: data.form.dni || current.dni,
+          gender: data.form.gender || current.gender,
+        }));
+        setIdentityLookupSuccess(
+          'Identidad verificada con RENAPER. Para poder desbloquear y visualizar los datos oficiales en tu perfil y recetas, necesitás realizar tu primer pago en la plataforma.'
+        );
+      }
+
+      await refresh();
+      return true;
+    } catch (error) {
+      setIdentityLookupError(
+        error instanceof Error && error.message
+          ? error.message
+          : 'No pudimos consultar RENAPER en este momento.',
+      );
+      return false;
+    } finally {
+      setIsLookingUpIdentity(false);
+    }
+  }, [form.dni, form.gender]);
 
   const saveProfile = useCallback(async (): Promise<boolean> => {
     if (!user) {
@@ -153,6 +240,12 @@ export function usePatientProfilePage(
 
     if (form.phone.trim() && form.phone.trim().length < 6) {
       setSaveError('El teléfono debe tener al menos 6 caracteres.');
+      return false;
+    }
+
+    const dniDigits = form.dni.replace(/\D/g, '');
+    if (form.dni.trim() && (dniDigits.length < 6 || dniDigits.length > 12)) {
+      setSaveError('El DNI debe tener entre 6 y 12 números.');
       return false;
     }
 
@@ -343,9 +436,13 @@ export function usePatientProfilePage(
     form,
     setField,
     resetForm,
+    lookupOfficialIdentity,
     saveProfile,
     isSaving,
+    isLookingUpIdentity,
     secondaryError,
+    identityLookupError,
+    identityLookupSuccess,
     saveError: saveError ?? mutationError,
     saveSuccess: success,
     displayName,

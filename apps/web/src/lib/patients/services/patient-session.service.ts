@@ -220,6 +220,25 @@ async function fetchOrCreatePatientImpl(supabase: Db, userId: string): Promise<P
     }
   }
 
+  if (patientRow) {
+    const { data: payment } = await db
+      .from('appointment_payments')
+      .select('id')
+      .eq('patient_id', patientRow.id as string)
+      .eq('status', 'approved')
+      .maybeSingle()
+
+    const hasPaid = !!payment
+    const insuranceInfo = (patientRow.insurance_info && typeof patientRow.insurance_info === 'object')
+      ? patientRow.insurance_info as Record<string, unknown>
+      : {}
+
+    patientRow.insurance_info = {
+      ...insuranceInfo,
+      has_paid: hasPaid,
+    }
+  }
+
   return patientRow ? parsePatient(patientRow) : null
 }
 

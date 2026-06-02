@@ -48,6 +48,25 @@ export function createProfileAdapter(supabase: Db): IProfileRepository {
       userId: string,
       payload: Partial<PatientUpdate>,
     ): Promise<unknown> {
+      const { data: existingPatient } = await supabase
+        .from('patients')
+        .select('dni, gender')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (existingPatient) {
+        if (existingPatient.dni && payload.dni && payload.dni !== existingPatient.dni) {
+          throw Object.assign(new Error('El DNI no puede ser modificado una vez establecido.'), {
+            code: 'PROFILE_UPDATE_FAILED',
+          })
+        }
+        if (existingPatient.gender && payload.gender && payload.gender !== existingPatient.gender) {
+          throw Object.assign(new Error('El sexo registral no puede ser modificado una vez establecido.'), {
+            code: 'PROFILE_UPDATE_FAILED',
+          })
+        }
+      }
+
       const upd = await supabase
         .from('patients')
         .update(payload as unknown as PatientUpdate)

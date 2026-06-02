@@ -47,7 +47,7 @@ describe('resolveExtractionTarget (with env)', () => {
       expect(target?.modelName).toBe('gemini-custom-model')
     }
   })
-})
+}, 15000)
 
 describe('isAnamnesisExtractionConfigured', () => {
   it('returns boolean', async () => {

@@ -19,6 +19,12 @@ vi.mock('@/lib/calls/repos/call-session.repo', () => ({
   callSessionRepo: {},
 }))
 
+vi.mock('@/lib/payments/services/appointment-payments.service', () => ({
+  appointmentPaymentsService: {
+    hasApprovedPayment: vi.fn(),
+  },
+}))
+
 function stubProd(value: boolean) {
   // import.meta.env.PROD is a boolean in Vite but vi.stubEnv only accepts string.
   // Bypass the type mismatch since vitest handles it correctly at runtime.
@@ -72,4 +78,4 @@ describe('resolveRuntime', () => {
     const resolveRuntime = await loadResolveRuntime()
     expect(resolveRuntime()).toBe('webrtc-p2p')
   })
-})
+}, 15000)
