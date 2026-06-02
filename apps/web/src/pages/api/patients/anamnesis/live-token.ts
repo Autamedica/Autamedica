@@ -160,26 +160,34 @@ async function issueLiveTokenInner(request: Request, locals?: AstroLocals) {
   }
 
   // Generate ephemeral token via REST — works in Workers (no SDK Node.js deps).
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 8000)
+
   try {
     const expireTime = new Date(now + 30 * 60 * 1000).toISOString()
     const newSessionExpireTime = new Date(now + 2 * 60 * 1000).toISOString()
 
-    const tokenRes = await fetch(
-      'https://generativelanguage.googleapis.com/v1alpha/auth_tokens',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
+    let tokenRes: Response
+    try {
+      tokenRes = await fetch(
+        'https://generativelanguage.googleapis.com/v1alpha/auth_tokens',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
+          body: JSON.stringify({
+            uses: 1,
+            expire_time: expireTime,
+            new_session_expire_time: newSessionExpireTime,
+          }),
+          signal: controller.signal,
         },
-        body: JSON.stringify({
-          uses: 1,
-          expire_time: expireTime,
-          new_session_expire_time: newSessionExpireTime,
-        }),
-        signal: AbortSignal.timeout(8000),
-      },
-    )
+      )
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
     if (!tokenRes.ok) {
       const errText = await tokenRes.text().catch(() => 'unknown')

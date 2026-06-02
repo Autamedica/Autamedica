@@ -8,6 +8,9 @@ export interface PreconsultationSummary {
   safetyFlags: string[]
   redFlags: string[]
   clinicianQuestions: string[]
+  requiresCertificate: boolean
+  requiresPrescriptionRenewal: boolean
+  administrativeNotes?: string
 }
 
 export interface Preconsultation {
