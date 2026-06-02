@@ -56,6 +56,7 @@ export function safeParsePatient(raw: unknown): Patient | null {
 }
 
 export const PatientProfileUpdateSchema = z.object({
+  dni: z.string().nullable().optional(),
   birthDate: z
     .string()
     .regex(/^(\d{4})-(\d{2})-(\d{2})$/, 'Formato esperado YYYY-MM-DD')
@@ -76,6 +77,7 @@ export const PatientProfileUpdateSchema = z.object({
     .optional(),
   cuil: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
+  insuranceInfo: z.unknown().optional(),
   emergencyContact: EmergencyContactSchema.optional(),
 });
 

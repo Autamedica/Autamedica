@@ -9,6 +9,7 @@ export interface PatientProfileFormState {
   lastName: string;
   email: string;
   phone: string;
+  dni: string;
   birthDate: string;
   gender: FormGender;
   bloodType: FormBloodType;
@@ -16,6 +17,7 @@ export interface PatientProfileFormState {
   weightKg: string;
   cuil: string;
   address: string;
+  insuranceInfo: unknown | null;
   emergencyContactName: string;
   emergencyContactRelationship: string;
   emergencyContactPhone: string;
@@ -33,6 +35,7 @@ export const EMPTY_FORM: PatientProfileFormState = {
   lastName: '',
   email: '',
   phone: '',
+  dni: '',
   birthDate: '',
   gender: '',
   bloodType: '',
@@ -40,6 +43,7 @@ export const EMPTY_FORM: PatientProfileFormState = {
   weightKg: '',
   cuil: '',
   address: '',
+  insuranceInfo: null,
   emergencyContactName: '',
   emergencyContactRelationship: '',
   emergencyContactPhone: '',
@@ -89,6 +93,7 @@ export function buildFormState(input: {
     phone?: string | null;
   } | null;
   patient?: {
+    dni?: string | null;
     birthDate?: string | null;
     gender?: string | null;
     bloodType?: string | null;
@@ -96,6 +101,7 @@ export function buildFormState(input: {
     weightKg?: number | null;
     cuil?: string | null;
     address?: string | null;
+    insuranceInfo?: unknown | null;
     emergencyContact?: {
       name?: string | null;
       relationship?: string | null;
@@ -104,24 +110,43 @@ export function buildFormState(input: {
     } | null;
   } | null;
 }): PatientProfileFormState {
+  const insurance = input.patient?.insuranceInfo && typeof input.patient.insuranceInfo === 'object'
+    ? input.patient.insuranceInfo as Record<string, unknown>
+    : null;
+
+  const hasPaid = !!insurance?.has_paid;
+  const official = (insurance?.official_data && hasPaid)
+    ? insurance.official_data as {
+        dni?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+        birthDate?: string | null;
+        gender?: string | null;
+        cuil?: string | null;
+        address?: string | null;
+      }
+    : null;
+
   const emergency = input.patient?.emergencyContact ?? null;
   const derivedName = splitFullName(input.accountFullName);
-  const firstName = asText(input.profile?.firstName) || derivedName.firstName;
-  const lastName = asText(input.profile?.lastName) || derivedName.lastName;
-  const birthDate = asText(input.patient?.birthDate) || asText(input.anamnesisBirthDate);
+  const firstName = official?.firstName ?? (asText(input.profile?.firstName) || derivedName.firstName);
+  const lastName = official?.lastName ?? (asText(input.profile?.lastName) || derivedName.lastName);
+  const birthDate = official?.birthDate ?? (asText(input.patient?.birthDate) || asText(input.anamnesisBirthDate));
+  const rawGender = official?.gender ?? input.patient?.gender;
 
   return {
     firstName,
     lastName,
     email: asText(input.email ?? input.profile?.email),
     phone: asText(input.profile?.phone),
+    dni: official?.dni ?? asText(input.patient?.dni),
     birthDate,
     gender:
-      input.patient?.gender === 'male' ||
-      input.patient?.gender === 'female' ||
-      input.patient?.gender === 'other' ||
-      input.patient?.gender === 'prefer_not_to_say'
-        ? input.patient.gender
+      rawGender === 'male' ||
+      rawGender === 'female' ||
+      rawGender === 'other' ||
+      rawGender === 'prefer_not_to_say'
+        ? rawGender
         : '',
     bloodType:
       input.patient?.bloodType === 'A+' ||
@@ -136,8 +161,9 @@ export function buildFormState(input: {
         : '',
     heightCm: asMetric(input.patient?.heightCm),
     weightKg: asMetric(input.patient?.weightKg),
-    cuil: asText(input.patient?.cuil),
-    address: asText(input.patient?.address),
+    cuil: official?.cuil ?? asText(input.patient?.cuil),
+    address: official?.address ?? asText(input.patient?.address),
+    insuranceInfo: input.patient?.insuranceInfo ?? null,
     emergencyContactName: asText(emergency?.name),
     emergencyContactRelationship: asText(emergency?.relationship),
     emergencyContactPhone: asText(emergency?.phone),
@@ -155,6 +181,11 @@ export function toNullableNumber(value: string): number | null {
   if (!trimmed) return null;
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function toNullableDigits(value: string): string | null {
+  const digits = value.replace(/\D/g, '');
+  return digits.length > 0 ? digits : null;
 }
 
 export function computeBmi(heightCm: string, weightKg: string): number | null {
@@ -207,11 +238,19 @@ export function buildMissingFields(form: PatientProfileFormState): MissingProfil
     });
   }
 
+  if (!form.dni.trim()) {
+    checks.push({
+      id: 'dni',
+      label: 'DNI',
+      reason: 'identifica al paciente para recetas, turnos y validación oficial',
+    });
+  }
+
   if (!form.cuil.trim()) {
     checks.push({
       id: 'cuil',
       label: 'CUIL',
-      reason: 'obligatorio para registro nacional RCTA y trazabilidad legal de recetas (Argentina)',
+      reason: 'mejora la identificación administrativa y la trazabilidad de recetas',
     });
   }
 
@@ -219,7 +258,7 @@ export function buildMissingFields(form: PatientProfileFormState): MissingProfil
     checks.push({
       id: 'address',
       label: 'Domicilio',
-      reason: 'requerido por Res. 2214/2025 para la validez de la receta electrónica',
+      reason: 'se usa como dato de respaldo en documentos clínicos y recetas',
     });
   }
 
@@ -266,6 +305,7 @@ export function buildProfileCompletion(form: PatientProfileFormState): number {
     form.address.trim().length > 0,
     form.email.trim().length > 0,
     form.phone.trim().length > 0,
+    form.dni.trim().length > 0,
     form.birthDate.trim().length > 0,
     form.gender.trim().length > 0,
     form.emergencyContactPhone.trim().length > 0,
@@ -286,6 +326,7 @@ export function buildPayload(form: PatientProfileFormState): {
       phone: toNullableString(form.phone),
     },
     patient: {
+      dni: toNullableDigits(form.dni),
       birthDate: form.birthDate.trim() ? form.birthDate.trim() : null,
       gender: form.gender || null,
       bloodType: form.bloodType || null,
@@ -293,6 +334,7 @@ export function buildPayload(form: PatientProfileFormState): {
       weightKg: toNullableNumber(form.weightKg),
       cuil: toNullableString(form.cuil),
       address: toNullableString(form.address),
+      insuranceInfo: form.insuranceInfo ?? undefined,
       emergencyContact: {
         name: toNullableString(form.emergencyContactName) ?? null,
         relationship: toNullableString(form.emergencyContactRelationship) ?? null,
