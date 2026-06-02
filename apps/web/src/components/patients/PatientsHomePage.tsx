@@ -1,13 +1,16 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import {
   Bell, Menu, Video, Calendar, FileText, Brain,
   Heart, Shield, Users,
   Check, AlertCircle, ArrowRight,
   LogOut, Settings, User,
+  Wallet, Plus, Loader2,
 } from 'lucide-react'
+import { fetchApi } from '@/lib/api-client'
+import { formatArsFromCents } from '@/lib/payments/money'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { useAppointments } from '@/hooks/patients/useAppointments'
 import { useJoinTelemedicineAppointment } from '@/hooks/patients/useJoinTelemedicineAppointment'
@@ -37,6 +40,15 @@ function getFirstName(
   const fullName = typeof metadata?.full_name === 'string' ? metadata.full_name : undefined
   if (fullName) return fullName.split(' ')[0]
   return user?.email?.split('@')[0] ?? 'Paciente'
+}
+
+type PatientWalletSummary = {
+  balance: {
+    available_credit_cents: number
+    locked_credit_cents: number
+    total_credit_cents: number
+    currency: string
+  }
 }
 
 interface PatientsHomePageProps {
@@ -76,6 +88,12 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const [signingOut, setSigningOut] = useState(false)
   const [isPreconsultationOpen, setIsPreconsultationOpen] = useState(false)
   const [hasHydrated, setHasHydrated] = useState(false)
+  const [walletSummary, setWalletSummary] = useState<PatientWalletSummary | null>(null)
+  const [isWalletPopoverOpen, setIsWalletPopoverOpen] = useState(false)
+  const [isTopupModalOpen, setIsTopupModalOpen] = useState(false)
+  const [topupAmount, setTopupAmount] = useState('')
+  const [topupLoading, setTopupLoading] = useState(false)
+  const [topupError, setTopupError] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const { scrollY } = useScroll()
@@ -87,6 +105,14 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const contentY = useTransform(scrollY, [0, 300], [0, -50])
 
   useEffect(() => { setHasHydrated(true) }, [])
+
+  useEffect(() => {
+    if (hasHydrated && user) {
+      fetchApi<PatientWalletSummary>('/api/patients/wallet')
+        .then(setWalletSummary)
+        .catch(err => console.error('Error fetching wallet balance:', err))
+    }
+  }, [hasHydrated, user])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -105,6 +131,33 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       setSigningOut(false)
     }
   }, [signOut])
+
+  const handleTopup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const parsed = parseFloat(topupAmount)
+    if (isNaN(parsed) || parsed <= 0) return
+
+    setTopupLoading(true)
+    setTopupError(null)
+
+    try {
+      const response = await fetchApi<{ checkoutUrl: string }>('/api/patients/wallet/topup', {
+        method: 'POST',
+        body: JSON.stringify({ amountArs: parsed }),
+      })
+
+      if (response.checkoutUrl) {
+         window.location.href = response.checkoutUrl
+      } else {
+         throw new Error('No se recibió la URL de checkout')
+      }
+    } catch (err) {
+      console.error('Topup request error:', err)
+      setTopupError(err instanceof Error ? err.message : 'Error al procesar la recarga')
+    } finally {
+      setTopupLoading(false)
+    }
+  }
 
   const firstName = getFirstName(profile, user)
   const freeConsults = patient?.freeConsultationsRemaining ?? 0
@@ -662,8 +715,148 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         </div>
       </nav>
 
+      {/* Floating Wallet Button & Popover */}
+      {walletSummary && (
+        <div className="fixed bottom-24 right-20 z-50 sm:right-24">
+          <AnimatePresence>
+            {isWalletPopoverOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute bottom-16 right-0 w-64 overflow-hidden rounded-2xl border border-neutral-100 bg-white p-4 shadow-2xl"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                    <Wallet className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                      Mi Saldo AutaMedica
+                    </p>
+                    <p className="text-base font-bold text-neutral-900">
+                      {formatArsFromCents(walletSummary.balance.available_credit_cents)}
+                    </p>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-neutral-500 mb-4 leading-relaxed">
+                  Usá tu saldo para pagar consultas al instante sin usar tarjetas.
+                </p>
+
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      setIsWalletPopoverOpen(false);
+                      setIsTopupModalOpen(true);
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-stone-950 py-2.5 text-xs font-semibold text-white transition hover:bg-stone-800"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Cargar Saldo
+                  </button>
+                  <a
+                    href="/patients/appointments"
+                    className="w-full inline-flex items-center justify-center rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-600 transition hover:bg-neutral-50"
+                  >
+                    Mis turnos
+                  </a>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            onClick={() => setIsWalletPopoverOpen(!isWalletPopoverOpen)}
+            className="flex h-14 items-center gap-2.5 rounded-full bg-stone-900 px-4 text-white shadow-2xl transition-all hover:bg-stone-800 border border-white/10 active:scale-[0.98]"
+          >
+            <Wallet className="h-5 w-5 text-emerald-400" />
+            <span className="text-sm font-bold tracking-tight pr-1">
+              {formatArsFromCents(walletSummary.balance.available_credit_cents).split(',')[0]}
+            </span>
+          </motion.button>
+        </div>
+      )}
+
       {/* Floating P2P Chat */}
       <PatientDoctorChat />
+
+      {/* Topup Modal */}
+      {isTopupModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            onClick={() => { if (!topupLoading) setIsTopupModalOpen(false) }}
+            className="absolute inset-0 bg-neutral-950/40 backdrop-blur-sm transition-opacity"
+          />
+
+          {/* Modal Content */}
+          <div className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-neutral-100 bg-white p-6 shadow-2xl transition-all">
+            <h3 className="text-xl font-bold tracking-tight text-neutral-900 mb-2">
+              Cargar Saldo AutaMedica
+            </h3>
+            <p className="text-sm text-neutral-500 mb-6">
+              Ingresá el monto que deseas cargar. Serás redirigido a MercadoPago para abonar con saldo de cuenta, transferencia o tarjetas.
+            </p>
+
+            <form onSubmit={handleTopup} className="space-y-4">
+              <div>
+                <label htmlFor="topupAmount" className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-2">
+                  Monto a cargar (ARS)
+                </label>
+                <div className="relative rounded-2xl border border-neutral-200 focus-within:border-sky-500 focus-within:ring-1 focus-within:ring-sky-500 overflow-hidden bg-stone-50/50">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-semibold">$</span>
+                  <input
+                    type="number"
+                    id="topupAmount"
+                    value={topupAmount}
+                    onChange={(e) => setTopupAmount(e.target.value)}
+                    placeholder="Monto"
+                    min="1"
+                    required
+                    disabled={topupLoading}
+                    className="w-full pl-8 pr-4 py-3 bg-transparent text-stone-900 placeholder-neutral-400 focus:outline-none font-semibold text-lg"
+                  />
+                </div>
+              </div>
+
+              {topupError && (
+                <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-600">
+                  {topupError}
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTopupModalOpen(false)}
+                  disabled={topupLoading}
+                  className="flex-1 rounded-full border border-neutral-200 py-3 text-sm font-semibold text-stone-600 hover:bg-stone-50 disabled:opacity-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={topupLoading}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 py-3 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-70 active:scale-[0.98] transition-all shadow-sm"
+                >
+                  {topupLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Iniciando...
+                    </>
+                  ) : (
+                    'Cargar'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <PreconsultationVoiceAssistant
         isOpen={isPreconsultationOpen}
