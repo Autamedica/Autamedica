@@ -7,10 +7,9 @@ import {
   Heart, Shield, Users,
   Check, AlertCircle, ArrowRight,
   LogOut, Settings, User,
-  Wallet, Plus, Loader2,
+  Wallet, Plus, Loader2, CreditCard, Gift,
 } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
-import { formatArsFromCents } from '@/lib/payments/money'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { useAppointments } from '@/hooks/patients/useAppointments'
 import { useJoinTelemedicineAppointment } from '@/hooks/patients/useJoinTelemedicineAppointment'
@@ -48,6 +47,15 @@ type PatientWalletSummary = {
     total_credit_cents: number
     currency: string
   }
+}
+
+function formatWalletBalance(cents: number | null | undefined): string {
+  const amount = cents ? cents / 100 : 0
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(amount)
 }
 
 interface PatientsHomePageProps {
@@ -160,6 +168,13 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
   const firstName = getFirstName(profile, user)
   const freeConsults = patient?.freeConsultationsRemaining ?? 0
+  const getWalletFabText = () => {
+    if (freeConsults > 0) {
+      return `${freeConsults} ${freeConsults === 1 ? 'consulta gratis' : 'consultas gratis'}`
+    }
+    const balanceCents = walletSummary?.balance.available_credit_cents ?? 0
+    return formatWalletBalance(balanceCents)
+  }
   const dateLocale = locale === 'pt' ? 'pt-BR' : 'es-AR'
 
   const completedCount = useMemo(() => {
@@ -709,24 +724,53 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 12, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
-                className="absolute bottom-16 right-0 w-64 overflow-hidden rounded-2xl border border-neutral-100 bg-white p-4 shadow-2xl"
+                className="absolute bottom-16 right-0 w-72 overflow-hidden rounded-3xl border border-neutral-100 bg-white p-5 shadow-2xl"
               >
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                    <Wallet className="h-4 w-4" />
+                <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-neutral-50">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100/50">
+                    <Wallet className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
-                      Mi Saldo AutaMedica
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-sky-600">
+                      Mi Billetera AutaMedica
                     </p>
-                    <p className="text-base font-bold text-neutral-900">
-                      {formatArsFromCents(walletSummary.balance.available_credit_cents)}
+                    <p className="text-xs text-neutral-400 font-medium">
+                      Tus recursos y créditos
                     </p>
                   </div>
                 </div>
-                
-                <p className="text-xs text-neutral-500 mb-4 leading-relaxed">
-                  Usá tu saldo para pagar consultas al instante sin usar tarjetas.
+
+                {/* Wallet Balance Info Grid */}
+                <div className="space-y-3 mb-4">
+                  {/* Cash Balance Row */}
+                  <div className="flex items-center justify-between p-2.5 rounded-2xl bg-stone-50/50 border border-stone-100">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-stone-400" />
+                      <span className="text-xs font-semibold text-stone-600">Saldo a favor</span>
+                    </div>
+                    <span className="text-sm font-bold text-stone-900">
+                      {formatWalletBalance(walletSummary.balance.available_credit_cents)}
+                    </span>
+                  </div>
+
+                  {/* Free Consults Row */}
+                  <div className={`flex items-center justify-between p-2.5 rounded-2xl border ${
+                    freeConsults > 0
+                      ? 'bg-sky-50/40 border-sky-100/70'
+                      : 'bg-stone-50/20 border-stone-100/60 opacity-60'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <Gift className={`h-4 w-4 ${freeConsults > 0 ? 'text-sky-500' : 'text-stone-400'}`} />
+                      <span className="text-xs font-semibold text-stone-600">Consultas de regalo</span>
+                    </div>
+                    <span className={`text-sm font-bold ${freeConsults > 0 ? 'text-sky-600' : 'text-stone-400'}`}>
+                      {freeConsults > 0 ? `${freeConsults} disp.` : 'Ninguna'}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-neutral-400 leading-relaxed mb-4">
+                  Usá tu saldo o tus consultas de regalo para agendar turnos al instante sin usar tarjetas.
                 </p>
 
                 <div className="flex flex-col gap-2">
@@ -735,14 +779,14 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                       setIsWalletPopoverOpen(false);
                       setIsTopupModalOpen(true);
                     }}
-                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-stone-950 py-2.5 text-xs font-semibold text-white transition hover:bg-stone-800"
+                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-stone-950 py-3 text-xs font-semibold text-white transition hover:bg-stone-800"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Cargar Saldo
                   </button>
                   <a
                     href="/patients/appointments"
-                    className="w-full inline-flex items-center justify-center rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-600 transition hover:bg-neutral-50"
+                    className="w-full inline-flex items-center justify-center rounded-2xl border border-neutral-200 py-3 text-xs font-semibold text-neutral-600 transition hover:bg-neutral-50"
                   >
                     Mis turnos
                   </a>
@@ -757,9 +801,9 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             onClick={() => setIsWalletPopoverOpen(!isWalletPopoverOpen)}
             className="flex h-14 items-center gap-2.5 rounded-full bg-stone-900 px-4 text-white shadow-2xl transition-all hover:bg-stone-800 border border-white/10 active:scale-[0.98]"
           >
-            <Wallet className="h-5 w-5 text-emerald-400" />
+            <Wallet className="h-5 w-5 text-sky-400" />
             <span className="text-sm font-bold tracking-tight pr-1">
-              {formatArsFromCents(walletSummary.balance.available_credit_cents).split(',')[0]}
+              {getWalletFabText()}
             </span>
           </motion.button>
         </div>
