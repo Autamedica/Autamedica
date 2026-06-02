@@ -153,8 +153,8 @@
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
     "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/browser": "^4.1.0",
-    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/browser": "^4.1.6",
+    "@vitest/coverage-v8": "^4.1.6",
     "change-case": "^5.4.4",
     "concurrently": "^9.2.1",
     "dependency-cruiser": "^17.3.8",
@@ -185,7 +185,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "5.9.2",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.6"
   },
   "dependencies": {
     "@getbrevo/brevo": "^5.0.4",
@@ -226,7 +226,7 @@
       "@types/react-dom": "19.1.0",
       "react": "19.0.0",
       "react-dom": "19.0.0",
-      "vitest": "^4.1.0",
+      "vitest": "^4.1.6",
       "devalue": ">=5.8.1",
       "h3": ">=1.15.6",
       "rollup": ">=4.59.0",

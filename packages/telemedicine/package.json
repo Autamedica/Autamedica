@@ -42,7 +42,7 @@
     "@vitejs/plugin-react": "^5.0.4",
     "rimraf": "^5.0.0",
     "typescript": "^5.9.2",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.6"
   },
   "peerDependencies": {
     "@supabase/supabase-js": "^2.98.0",
