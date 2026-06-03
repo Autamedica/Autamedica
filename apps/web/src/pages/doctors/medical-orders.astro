@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { DoctorsMedicalOrdersPage } from '@/components/doctors/DoctorsMedicalOrdersPage';
+
+const title = 'Exámenes | Portal Médico | AutaMedica';
+const description = 'Solicitudes de estudios y exámenes complementarios';
+---
+
+<Layout title={title} description={description}>
+  <DoctorsMedicalOrdersPage client:load />
+</Layout>
