@@ -300,7 +300,7 @@ export function DoctorsPrescriptionsPage() {
     <DoctorsPortalFrame
       title="Recetas Médicas"
       description="Gestión completa de recetas y prescripciones médicas"
-      activeSection="consultations"
+      activeSection="prescriptions"
       hideDefaultHeader
       hideRightSidebar
     >
@@ -553,26 +553,44 @@ export function DoctorsPrescriptionsPage() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => viewPrescription(rx)}
-                                disabled={!viewUrl}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 hover:border-neutral-300"
-                                title={viewUrl ? "Abrir receta digital" : "La receta todavia no tiene PDF/verificador"}
-                              >
-                                <Eye className="h-3.5 w-3.5" />
-                                Ver
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => printPrescription(rx)}
-                                disabled={!viewUrl}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 hover:border-neutral-300 disabled:cursor-not-allowed disabled:opacity-40"
-                                title={viewUrl ? "Abrir receta para imprimir" : "La receta todavia no tiene PDF/verificador"}
-                              >
-                                <Printer className="h-3.5 w-3.5" />
-                                Imprimir
-                              </button>
+                              {!cuir ? (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      await issuePrescription(getId(rx));
+                                    } catch (err) {
+                                      alert(err instanceof Error ? err.message : "Error al emitir");
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700 transition hover:bg-teal-100 hover:border-teal-300"
+                                >
+                                  Emitir
+                                </button>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => viewPrescription(rx)}
+                                    disabled={!viewUrl}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 hover:border-neutral-300"
+                                    title={viewUrl ? "Abrir receta digital" : "La receta todavia no tiene PDF/verificador"}
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                    Ver
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => printPrescription(rx)}
+                                    disabled={!viewUrl}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 hover:border-neutral-300 disabled:cursor-not-allowed disabled:opacity-40"
+                                    title={viewUrl ? "Abrir receta para imprimir" : "La receta todavia no tiene PDF/verificador"}
+                                  >
+                                    <Printer className="h-3.5 w-3.5" />
+                                    Imprimir
+                                  </button>
+                                </>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => inspectPrescription(rx)}

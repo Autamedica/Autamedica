@@ -178,6 +178,7 @@ export function PrescriptionCreateModal({
   });
 
   const [saving, setSaving] = useState(false);
+  const [shouldIssue, setShouldIssue] = useState(true);
   const [generatingGuide, setGeneratingGuide] = useState(false);
   const [templates, setTemplates] = useState<PrescriptionTemplate[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
@@ -460,7 +461,7 @@ export function PrescriptionCreateModal({
         await updatePrescription(editingPrescription.id, payload);
       } else {
         const created = await addPrescription(payload);
-        if (issuePrescription) {
+        if (shouldIssue && issuePrescription) {
           const createdId = created?.id;
           if (!createdId) {
             throw new Error("No se pudo emitir la receta recién creada.");
@@ -877,17 +878,29 @@ export function PrescriptionCreateModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-am-surface-200 px-4 py-2.5 text-sm font-medium text-am-surface-700 hover:bg-am-surface-100 transition"
+              className="rounded-lg border border-am-surface-200 px-4 py-2.5 text-sm font-medium text-am-surface-700 hover:bg-am-surface-100 transition"
             >
               Cancelar
             </button>
+            {!isEditing && (
+              <button
+                type="submit"
+                onClick={() => setShouldIssue(false)}
+                disabled={saving}
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-teal-600 text-teal-700 px-4 py-2.5 text-sm font-medium hover:bg-teal-50 disabled:opacity-60 transition"
+              >
+                {saving && !shouldIssue ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Guardar Borrador
+              </button>
+            )}
             <button
               type="submit"
+              onClick={() => setShouldIssue(true)}
               disabled={saving}
               className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-am-doctor-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-am-doctor-700 disabled:opacity-60 transition"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {saving ? "Guardando..." : submitLabel ?? (isEditing ? "Actualizar" : "Guardar receta")}
+              {saving && shouldIssue ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saving ? "Guardando..." : (isEditing ? (submitLabel ?? "Actualizar") : "Emitir Receta")}
             </button>
           </div>
         </form>
