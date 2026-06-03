@@ -80,6 +80,26 @@ interface SendResult {
   count?: number;
 }
 
+type CentralizedEmailJobsResult = Record<string, unknown>;
+
+type XmlRecord = Record<string, unknown>;
+
+type GeminiSummaryResponse = {
+  skip?: boolean;
+  headline?: string;
+  body?: string;
+};
+
+type GeminiApiResponse = {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{ text?: string }>;
+    };
+  }>;
+};
+
+type PublishLogEntry = Record<string, unknown>;
+
 interface EmailJob {
   id: string;
   job_type: 
@@ -186,17 +206,20 @@ async function handleFetch(req: Request, env: Env): Promise<Response> {
 }
 
 export async function processEmailJobs(env: Env) {
-  // 1. Centralized Growth OS Logic: Trigger Astro App if URL is defined
-  if (env.AUTAMEDICA_EMAIL_JOBS_URL) {
+  const centralizedEmailJobsUrl = env.AUTAMEDICA_EMAIL_JOBS_URL;
+  const shouldDelegateEmailJobs = Boolean(centralizedEmailJobsUrl) && !env.BREVO_API_KEY;
+
+  // 1. Centralized Growth OS Logic: Trigger Astro App if URL is defined and Brevo is not configured here.
+  if (shouldDelegateEmailJobs && centralizedEmailJobsUrl) {
     try {
-      const res = await fetch(env.AUTAMEDICA_EMAIL_JOBS_URL, {
+      const res = await fetch(centralizedEmailJobsUrl, {
         headers: { 
           "x-trigger-key": env.TRIGGER_KEY,
           "Authorization": `Bearer ${env.TRIGGER_KEY}`
         },
       });
       if (res.ok) {
-        const result = await res.json() as any;
+        const result = await res.json() as CentralizedEmailJobsResult;
         console.log("Centralized Growth OS processing successful", result);
         return result;
       }
@@ -204,6 +227,8 @@ export async function processEmailJobs(env: Env) {
     } catch (error) {
       console.error("Centralized Growth OS processing error", error);
     }
+  } else if (env.AUTAMEDICA_EMAIL_JOBS_URL && env.BREVO_API_KEY) {
+    console.log("Skipping centralized Growth OS processing because BREVO_API_KEY is configured; processing locally via Brevo.");
   }
 
   // 2. Fallback: Legacy local processing for basic transactional jobs
@@ -1044,17 +1069,22 @@ async function fetchAllFeeds(feeds: string[]): Promise<NewsItem[]> {
       const sourceTitle = channel?.title ?? new URL(url).hostname;
       const rawItems = channel?.item ?? channel?.entry ?? [];
       const arr = Array.isArray(rawItems) ? rawItems : [rawItems];
-      return arr.slice(0, MAX_ITEMS_PER_FEED).map((it: any) => normalizeItem(it, sourceTitle as string));
+      return arr.slice(0, MAX_ITEMS_PER_FEED).map((item: unknown) => normalizeItem(asXmlRecord(item), sourceTitle as string));
     }),
   );
   return results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
 }
 
-function normalizeItem(it: Record<string, unknown>, source: string): NewsItem {
-  const link = typeof it.link === "string" ? it.link : (it.link as any)?.["@_href"] ?? "";
+function asXmlRecord(value: unknown): XmlRecord {
+  return value && typeof value === "object" ? value as XmlRecord : {};
+}
+
+function normalizeItem(it: XmlRecord, source: string): NewsItem {
+  const rawLink = it.link;
+  const link = typeof rawLink === "string" ? rawLink : asXmlRecord(rawLink)["@_href"] ?? "";
   return {
     title: stripTags(String(it.title ?? "")),
-    link,
+    link: String(link),
     description: stripTags(String(it.description ?? it.summary ?? "")).slice(0, 600),
     pubDate: String(it.pubDate ?? it.published ?? it.updated ?? ""),
     source,
@@ -1109,7 +1139,7 @@ o bien si es una noticia sobre crisis/muerte o no aporta nada clínico: {"skip":
   return { headline: parsed.headline, body: parsed.body, link: item.link, source: item.source, originalTitle: item.title };
 }
 
-async function callGemini(env: Env, prompt: string): Promise<any> {
+async function callGemini(env: Env, prompt: string): Promise<GeminiSummaryResponse | null> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`;
   const res = await fetch(url, {
     method: "POST",
@@ -1120,16 +1150,22 @@ async function callGemini(env: Env, prompt: string): Promise<any> {
     }),
   });
   if (!res.ok) return null;
-  const data: any = await res.json();
+  const data = await res.json() as GeminiApiResponse;
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  return safeParseJson(text);
+  const parsed = safeParseJson(text);
+  return isGeminiSummaryResponse(parsed) ? parsed : null;
 }
 
-function safeParseJson(text: string): any {
+function safeParseJson(text: string | undefined): unknown {
+  if (!text) return null;
   try { return JSON.parse(text); } catch {
     const match = text.match(/\{[\s\S]*\}/);
     return match ? JSON.parse(match[0]) : null;
   }
+}
+
+function isGeminiSummaryResponse(value: unknown): value is GeminiSummaryResponse {
+  return Boolean(value) && typeof value === "object";
 }
 
 function renderHtml(summaries: Summary[], env: Env): string {
@@ -1384,12 +1420,12 @@ async function checkKillswitch(env: Env, channel: string): Promise<boolean> {
     const res = await fetch(`${env.SUPABASE_URL}/rest/v1/killswitch_state?channel=eq.${channel}&select=enabled`, {
       headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, "accept-profile": "growth_os" },
     });
-    const rows = await res.json() as any[];
+    const rows = await res.json() as Array<{ enabled?: boolean }>;
     return rows.length === 0 || rows[0].enabled === true;
   } catch { return true; }
 }
 
-async function logPublish(env: Env, entry: any): Promise<void> {
+async function logPublish(env: Env, entry: PublishLogEntry): Promise<void> {
   try {
     await fetch(`${env.SUPABASE_URL}/rest/v1/publish_log`, {
       method: "POST",
