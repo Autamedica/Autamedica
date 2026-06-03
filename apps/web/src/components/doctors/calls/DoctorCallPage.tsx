@@ -393,6 +393,18 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         return
       }
 
+      // Si el médico finaliza la videollamada mientras está esperando a que el paciente acepte (ringing),
+      // cancelamos la llamada en lugar de finalizarla para respetar la máquina de estados de la base de datos
+      if (status === 'ended' && (doctorWaitingState as string) === 'waiting') {
+        try {
+          await cancelWaitingCall('doctor_canceled')
+          return
+        } catch (err) {
+          logger.error('[DoctorCallPage] Failed to cancel waiting call via hook', err)
+          return
+        }
+      }
+
       if (status !== 'connecting' && status !== 'connected' && status !== 'ended') {
         return
       }
@@ -406,7 +418,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         logger.warn('[DoctorCallPage] Failed to persist call status', { status, error: err })
       }
     },
-    [callSession, doctorWaitingState]
+    [callSession, doctorWaitingState, cancelWaitingCall]
   )
 
   const { userId, userName } = useMemo(() => {
