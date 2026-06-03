@@ -16,6 +16,7 @@ import {
   Calendar,
   Check,
   CheckCircle2,
+  ClipboardList,
   CreditCard,
   FileText,
   Home,
@@ -39,6 +40,7 @@ type ActiveSection =
   | "appointments"
   | "consultations"
   | "prescriptions"
+  | "medical-orders"
   | "community"
   | "accounting"
   | "subscription"
@@ -287,6 +289,12 @@ export function DoctorsPortalFrame({
         label: "Recetas",
         icon: Pill,
         key: "prescriptions",
+      },
+      {
+        href: "/doctors/medical-orders",
+        label: "Exámenes",
+        icon: ClipboardList,
+        key: "medical-orders",
       },
     ],
     [stats?.todayCount],
