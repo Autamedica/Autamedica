@@ -5,14 +5,14 @@ import time
 from playwright.sync_api import sync_playwright
 
 # Configuración
-HOST = os.environ.get("AUTAMEDICA_HOST", "https://doctor.autamedica.com")
+HOST = os.environ.get("AUTAMEDICA_HOST", "https://autamedica.com")
 USER_DATA_DIR = os.path.expanduser("~/.config/google-chrome-automation")
 CHROME_PATH = "/usr/bin/google-chrome"
 
 def run_demo():
     print("=" * 60)
-    print("🚀 Iniciando automatización de demostración de AutaMedica")
-    print(f"🔗 URL: {HOST}")
+    print("🚀 Iniciando demostración interactiva de AutaMedica")
+    print(f"🔗 URL Inicial: {HOST}")
     print(f"📂 Perfil de Chrome: {USER_DATA_DIR}")
     print("=" * 60)
 
@@ -20,7 +20,6 @@ def run_demo():
     os.makedirs(USER_DATA_DIR, exist_ok=True)
 
     with sync_playwright() as p:
-        # Lanzar Chrome persistente
         print("🌐 Iniciando Google Chrome...")
         try:
             context = p.chromium.launch_persistent_context(
@@ -41,102 +40,122 @@ def run_demo():
 
         page = context.pages[0] if context.pages else context.new_page()
 
-        # 1. Navegar a la página de login
-        print(f"🔍 Navegando a la página de inicio/login: {HOST}/auth/login")
-        page.goto(f"{HOST}/auth/login")
-
-        # Esperar a que la página se cargue
+        # 1. Comenzar en la página inicial autamedica.com
+        print(f"🔍 Navegando a la página inicial: {HOST}")
+        page.goto(HOST)
         page.wait_for_load_state("load")
+        page.wait_for_timeout(2000)
 
-        # 2. Control de Login
+        # 2. Hacer click en "Acceder" en el Navbar para abrir el menú dropdown
+        print("🖱️ Haciendo clic en 'Acceder' en el Navbar...")
+        try:
+            acceso_btn = page.locator('button:has-text("Acceder"), button:has-text("Access"), button:has-text("Acceso")')
+            if acceso_btn.count() > 0:
+                acceso_btn.first.click()
+                page.wait_for_timeout(1000)
+                
+                # Clic en "Paciente" o "Ingresar como Paciente"
+                print("👉 Seleccionando 'Paciente' en el menú...")
+                paciente_link = page.locator('a:has-text("Paciente"), a:has-text("Ingresar como Paciente"), a[href*="patient"]')
+                if paciente_link.count() > 0:
+                    paciente_link.first.click()
+                else:
+                    # Fallback si no encuentra el link del menú, va directo
+                    page.goto(f"{HOST}/auth/login?role=patient")
+            else:
+                # Fallback directo al login si no encuentra el botón en el navbar
+                page.goto(f"{HOST}/auth/login?role=patient")
+        except Exception as e:
+            print(f"⚠️ Error al interactuar con el Navbar: {e}. Navegando directo al login...")
+            page.goto(f"{HOST}/auth/login?role=patient")
+
+        # 3. Esperar a la página de login y hacer ZOOM IN en la tarjeta de login
+        page.wait_for_load_state("load")
+        print("🔍 ZOOM IN: Enfocando y agrandando la tarjeta de Login...")
+        try:
+            page.wait_for_selector('button:has-text("Google"), button:has-text("Continuar")', timeout=8000)
+            
+            # Inyectamos el zoom en la tarjeta de login
+            page.evaluate("""() => {
+                const card = document.querySelector('.bg-white.shadow-2xl') || document.querySelector('form') || document.querySelector('.relative.z-10');
+                if (card) {
+                    card.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+                    card.style.transformOrigin = 'center center';
+                    card.style.transform = 'scale(1.25)';
+                }
+            }""")
+            page.wait_for_timeout(2000)
+        except Exception as e:
+            print(f"⚠️ No se pudo aplicar zoom a la tarjeta de login: {e}")
+
+        # 4. Login con Google
         current_url = page.url
-        if "/auth/login" in current_url:
-            print("👤 Detectada página de Login. Buscando botón de Google...")
+        if "/auth/" in current_url or "/login" in current_url:
+            print("👤 Haciendo clic en el botón de login con Google...")
             try:
-                # Buscar el botón de Google
-                google_button = page.locator('button:has-text("Google"), button:has-text("Continuar con Google"), button:has-text("Continuar com Google")')
+                google_button = page.locator('button:has-text("Google"), button:has-text("Continuar con Google")')
                 if google_button.count() > 0:
-                    print("👉 Haciendo clic en 'Continuar con Google'...")
                     google_button.first.click()
-                    
-                    # Esperar navegación o interactividad
                     page.wait_for_timeout(3000)
                     
-                    # Si redirige a Google, dar tiempo al usuario para autenticarse si es la primera vez
                     if "accounts.google.com" in page.url:
-                        print("🔑 Redirigido a la página de Google.")
-                        print("⚠️ POR FAVOR: Si es necesario, ingresa tus credenciales manualmente en la ventana del navegador.")
-                        print("⏳ Esperando hasta 90 segundos a que finalice el inicio de sesión y redirija...")
-                        
-                        # Esperar a que la URL vuelva a ser del dominio de Autamedica y salga de login/google
+                        print("🔑 Esperando que completes el inicio de sesión con Google de forma manual en el navegador (max 90 segundos)...")
                         for _ in range(90):
                             if HOST in page.url and "/auth/" not in page.url:
                                 print("✅ Login exitoso detectado!")
                                 break
                             time.sleep(1)
-                        else:
-                            print("⚠️ Tiempo de espera agotado. Continuando proceso por si ya estás logueado...")
             except Exception as e:
-                print(f"⚠️ Nota sobre el click de login: {e}")
+                print(f"⚠️ Error durante el clic de login con Google: {e}")
         else:
-            print("✅ Ya se detectó una sesión activa (omitido paso de login).")
+            print("✅ Ya estabas logueado.")
 
-        # 3. Navegar a la sección de recetas
-        recetas_url = f"{HOST}/doctors/prescriptions"
-        print(f"📂 Navegando directamente a Recetas: {recetas_url}")
-        page.goto(recetas_url)
+        # 5. Navegar a /patients/appointments
+        print("📂 Navegando a la sección de Citas...")
+        page.goto(f"{HOST}/patients/appointments")
         page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(1000)
 
-        # 4. Esperar y hacer click sobre la primera receta
-        print("⏳ Esperando que carguen las recetas...")
+        # 6. Click en "Nueva cita" o "Nueva videoconsulta"
+        print("🖱️ Haciendo clic en 'Nueva cita'...")
         try:
-            # Esperar a que aparezcan los botones de Detalle
-            page.wait_for_selector('button:has-text("Detalle")', timeout=15000)
-            detalle_buttons = page.locator('button:has-text("Detalle")')
-            
-            if detalle_buttons.count() > 0:
-                print(f"📦 Recetas encontradas: {detalle_buttons.count()}.")
-                print("🖱️ Haciendo clic en 'Detalle' de la primera receta para abrir vista...")
+            nueva_cita_btn = page.locator('button:has-text("Nueva cita"), button:has-text("Nueva videoconsulta"), button:has-text("Agendar")')
+            if nueva_cita_btn.count() > 0:
+                nueva_cita_btn.first.click()
+                # Esperar que abra el modal
+                page.wait_for_selector('button[type="button"]:has-text("Dr."), button[type="button"]:has-text("Dra.")', timeout=8000)
+                page.wait_for_timeout(1000)
                 
-                # Clic en el primer botón de Detalle
-                detalle_buttons.first.click()
-                
-                # Esperar a que el modal del detalle se renderice
-                page.wait_for_selector('.bg-white.shadow-2xl', timeout=5000)
-                page.wait_for_timeout(1000) # Dejar que termine la animación inicial de Framer Motion
-
-                # 5. Efecto de ZOOM en la receta
-                print("🔍 Aplicando zoom suave del 1.5x en el modal de la receta...")
-                page.evaluate("""() => {
-                    const modal = document.querySelector('.bg-white.shadow-2xl');
-                    if (modal) {
-                        modal.style.transition = 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
-                        modal.style.transformOrigin = 'center center';
-                        modal.style.transform = 'scale(1.5)';
-                        
-                        // Opcional: oscurecer más el fondo para resaltar la receta
-                        const backdrop = modal.previousElementSibling;
-                        if (backdrop) {
-                            backdrop.style.transition = 'background-color 0.8s ease';
-                            backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                # 7. Seleccionar médicos y hacer ZOOM IN sobre la tarjeta del médico
+                print("👉 Seleccionando al primer médico disponible en la lista...")
+                medico_buttons = page.locator('button[type="button"]:has-text("Dr."), button[type="button"]:has-text("Dra.")')
+                if medico_buttons.count() > 0:
+                    first_medico = medico_buttons.first
+                    first_medico.click()
+                    print("🔍 ZOOM IN: Resaltando y agrandando la tarjeta del médico seleccionado...")
+                    page.wait_for_timeout(800)
+                    
+                    # Inyectar zoom en el médico seleccionado
+                    page.evaluate("""() => {
+                        // Buscar el botón que tiene el borde de seleccionado (border-stone-900)
+                        const activeDoc = document.querySelector('button.border-stone-900.bg-stone-50') || document.querySelector('button[type="button"]');
+                        if (activeDoc) {
+                            activeDoc.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+                            activeDoc.style.transformOrigin = 'center center';
+                            activeDoc.style.transform = 'scale(1.15)';
+                            activeDoc.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
                         }
-                    } else {
-                        // Si no encuentra el modal específico, hace zoom general a la página
-                        document.body.style.transition = 'transform 0.8s ease';
-                        document.body.style.transformOrigin = 'center top';
-                        document.body.style.transform = 'scale(1.3)';
-                    }
-                }""")
-                print("✨ Zoom completado con éxito.")
+                    }""")
+                    page.wait_for_timeout(2000)
+                else:
+                    print("❌ No se encontraron botones de médicos en el modal.")
             else:
-                print("❌ No se encontraron recetas en la lista para hacer clic.")
+                print("❌ No se encontró el botón para agendar 'Nueva cita'.")
         except Exception as e:
-            print(f"⚠️ Error al interactuar con las recetas: {e}")
+            print(f"⚠️ Error en el flujo de selección de médicos: {e}")
 
-        print("\n🟢 Demostración lista. Presiona ENTER en esta terminal para cerrar el navegador...")
+        print("\n🟢 Demostración completada. Presioná ENTER en la terminal del script para cerrar...")
         input()
-        
-        print("Closing browser...")
         context.close()
 
 if __name__ == "__main__":
