@@ -50,7 +50,7 @@ function on_event(event)
                 obs.blog(obs.LOG_INFO, "[AutaMedica] Escena cambiada a '" .. name .. "'. Lanzando script en segundo plano...")
                 
                 -- Se ejecuta en background usando '&' para no trabar el renderizado de OBS
-                local cmd = "AUTAMEDICA_HOST='" .. host_url .. "' python3 '" .. script_to_run .. "' &"
+                local cmd = "AUTAMEDICA_HOST='" .. host_url .. "' python3 '" .. script_to_run .. "' > /tmp/demo_recetas.log 2>&1 &"
                 local success = os.execute(cmd)
                 
                 if success then
