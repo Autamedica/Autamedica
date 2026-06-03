@@ -3,7 +3,7 @@ obs = obslua
 -- Configuración por defecto
 target_scene = "2. Presentacion Completa"
 script_to_run = "/home/edu/Autamedica/scripts/demo_recetas.py"
-host_url = "https://doctor.autamedica.com"
+host_url = "https://autamedica.com"
 
 function script_description()
     return "<b>AutaMedica OBS Automator (Lua)</b><br/><br/>" ..
