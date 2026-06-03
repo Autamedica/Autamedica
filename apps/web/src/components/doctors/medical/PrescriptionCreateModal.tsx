@@ -139,6 +139,27 @@ function unwrapCareGuideResponse(payload: unknown): CareGuideResponse | null {
   return data as CareGuideResponse;
 }
 
+function buildTemplateName(
+  form: { medication_name: string; dosage: string; frequency: string },
+  templates: PrescriptionTemplate[],
+): string {
+  const baseName = [form.medication_name, form.dosage, form.frequency]
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(" · ")
+    .slice(0, 110);
+  const existingNames = new Set(templates.map((template) => template.name.toLowerCase()));
+
+  if (!existingNames.has(baseName.toLowerCase())) return baseName;
+
+  for (let index = 2; index <= 12; index += 1) {
+    const candidate = `${baseName} ${index}`.slice(0, 120);
+    if (!existingNames.has(candidate.toLowerCase())) return candidate;
+  }
+
+  return `${form.medication_name.trim()} ${Date.now()}`.slice(0, 120);
+}
+
 export function PrescriptionCreateModal({
   patientId,
   onClose,
@@ -275,8 +296,7 @@ export function PrescriptionCreateModal({
       return;
     }
 
-    const name = window.prompt("Nombre de la plantilla", form.medication_name.trim());
-    if (!name?.trim()) return;
+    const name = buildTemplateName(form, templates);
 
     setSavingTemplate(true);
     setError(null);
@@ -286,7 +306,7 @@ export function PrescriptionCreateModal({
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim(),
+          name,
           medication_name: form.medication_name,
           dosage: form.dosage,
           frequency: form.frequency,
@@ -602,14 +622,15 @@ export function PrescriptionCreateModal({
                   type="button"
                   onClick={handleSaveTemplate}
                   disabled={savingTemplate || templates.length >= 12 || !form.medication_name.trim()}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-am-surface-200 text-am-surface-600 transition hover:bg-am-surface-50 disabled:cursor-not-allowed disabled:opacity-40"
-                  title="Guardar como plantilla"
+                  className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-am-surface-200 px-3 text-xs font-semibold text-am-surface-700 transition hover:bg-am-surface-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  title="Agregar plantilla"
                 >
                   {savingTemplate ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <BookmarkPlus className="h-4 w-4" />
                   )}
+                  <span>Agregar</span>
                 </button>
                 <button
                   type="button"
