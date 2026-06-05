@@ -113,6 +113,9 @@ jobs:
           PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BUS_INTEROP_NON_FHIR_APPLICATION_NAME: ${{ secrets.BUS_INTEROP_NON_FHIR_APPLICATION_NAME }}
+          BUS_INTEROP_NON_FHIR_PASSWORD: ${{ secrets.BUS_INTEROP_NON_FHIR_PASSWORD }}
+          BUS_INTEROP_NON_FHIR_DOMAIN_CODE: ${{ secrets.BUS_INTEROP_NON_FHIR_DOMAIN_CODE }}
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
         run: |
           missing=0
@@ -123,6 +126,9 @@ jobs:
             PUBLIC_APP_URL \
             CLOUDFLARE_API_TOKEN \
             CLOUDFLARE_ACCOUNT_ID \
+            BUS_INTEROP_NON_FHIR_APPLICATION_NAME \
+            BUS_INTEROP_NON_FHIR_PASSWORD \
+            BUS_INTEROP_NON_FHIR_DOMAIN_CODE \
             RENAPDIS_RL_NUMBER
           do
             if [[ -z "${!key}" ]]; then
@@ -150,7 +156,33 @@ jobs:
           PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.PUBLIC_GOOGLE_MAPS_API_KEY }}
           CLOUDFLARE_CALLS_TURN_KEY_ID: ${{ secrets.CLOUDFLARE_CALLS_TURN_KEY_ID }}
           CLOUDFLARE_CALLS_TURN_TOKEN: ${{ secrets.CLOUDFLARE_CALLS_TURN_TOKEN }}
+          BUS_INTEROP_NON_FHIR_APPLICATION_NAME: ${{ secrets.BUS_INTEROP_NON_FHIR_APPLICATION_NAME }}
+          BUS_INTEROP_NON_FHIR_PASSWORD: ${{ secrets.BUS_INTEROP_NON_FHIR_PASSWORD }}
+          BUS_INTEROP_NON_FHIR_DOMAIN_CODE: ${{ secrets.BUS_INTEROP_NON_FHIR_DOMAIN_CODE }}
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
+
+      - name: Sync Cloudflare Pages runtime secrets
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BUS_INTEROP_NON_FHIR_APPLICATION_NAME: ${{ secrets.BUS_INTEROP_NON_FHIR_APPLICATION_NAME }}
+          BUS_INTEROP_NON_FHIR_PASSWORD: ${{ secrets.BUS_INTEROP_NON_FHIR_PASSWORD }}
+          BUS_INTEROP_NON_FHIR_DOMAIN_CODE: ${{ secrets.BUS_INTEROP_NON_FHIR_DOMAIN_CODE }}
+        run: |
+          projects=(
+            autamedica-web
+            autamedica-doctors
+            autamedica-patients
+            autamedica-companies
+            autamedica-admin
+          )
+
+          for project in "${projects[@]}"; do
+            printf '%s' "$BUS_INTEROP_NON_FHIR_APPLICATION_NAME" | pnpm dlx wrangler pages secret put BUS_INTEROP_NON_FHIR_APPLICATION_NAME --project-name="$project"
+            printf '%s' "$BUS_INTEROP_NON_FHIR_PASSWORD" | pnpm dlx wrangler pages secret put BUS_INTEROP_NON_FHIR_PASSWORD --project-name="$project"
+            printf '%s' "$BUS_INTEROP_NON_FHIR_DOMAIN_CODE" | pnpm dlx wrangler pages secret put BUS_INTEROP_NON_FHIR_DOMAIN_CODE --project-name="$project"
+          done
 
       - name: Snapshot current deployment
         id: snapshot
