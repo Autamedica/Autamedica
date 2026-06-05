@@ -360,8 +360,9 @@ export async function hardDelete<Table extends TableName>(
   table: Table,
   id: string
 ): Promise<void> {
-  const { error } = await supabase
-    .from(table as TableName)
+  const db = supabase as unknown as GenericDb;
+  const { error } = await db
+    .from(table)
     .delete()
     .eq('id', id);
 
