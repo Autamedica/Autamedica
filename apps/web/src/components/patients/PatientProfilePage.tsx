@@ -7,7 +7,6 @@ import {
   Activity,
   AlertCircle,
   BadgeCheck,
-  CalendarClock,
 
   ClipboardList,
   Droplets,
@@ -15,7 +14,6 @@ import {
   HeartPulse,
   Loader2,
   Mail,
-  MapPin,
   Phone,
   RefreshCcw,
   Save,
@@ -75,6 +73,20 @@ function AuthenticatedPatientProfilePage({
     screeningsStats,
     screeningsHighlights,
   } = usePatientProfilePage(session);
+  const insuranceInfo = form.insuranceInfo && typeof form.insuranceInfo === 'object'
+    ? form.insuranceInfo as Record<string, unknown>
+    : null;
+  const hasOfficialIdentity =
+    form.dni.trim().length > 0 &&
+    form.gender.trim().length > 0 &&
+    !!insuranceInfo?.official_data;
+  const officialIdentityRows = [
+    { label: 'Nombre legal', value: [form.firstName, form.lastName].filter(Boolean).join(' ') },
+    { label: 'Fecha de nacimiento', value: form.birthDate },
+    { label: 'Sexo registral', value: form.gender ? genderLabel : '' },
+    { label: 'CUIL', value: form.cuil },
+    { label: 'Domicilio', value: form.address },
+  ];
 
   return (
     <main className="min-h-screen bg-white text-neutral-900">
@@ -257,11 +269,11 @@ function AuthenticatedPatientProfilePage({
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <p className="text-sm font-semibold text-sky-950">
-                          Completar con datos oficiales
+                          Verificación oficial
                         </p>
                         <p className="mt-1 max-w-2xl text-sm leading-6 text-sky-800">
-                          Ingresá tu DNI y sexo registral. AutaMedica completa los datos necesarios
-                          para recetas y documentación clínica con fuente oficial.
+                          Con DNI y sexo registral consultamos RENAPER y completamos identidad,
+                          nacimiento, CUIL y domicilio cuando el organismo los informa.
                         </p>
                       </div>
                       <button
@@ -278,6 +290,31 @@ function AuthenticatedPatientProfilePage({
                         {isLookingUpIdentity ? 'Consultando...' : 'Completar datos'}
                       </button>
                     </div>
+                    <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.75fr)]">
+                      <Field
+                        label="DNI"
+                        value={form.dni}
+                        onChange={(event) => setField('dni', event.target.value)}
+                        placeholder="Tu número de documento"
+                        hint={session.patient?.dni ? 'Documento verificado.' : 'Primer dato requerido para consultar RENAPER.'}
+                        icon={<Hash className="h-4 w-4" />}
+                        disabled={!!session.patient?.dni}
+                      />
+                      <SelectField
+                        label="Sexo registral"
+                        value={form.gender}
+                        onChange={(event) => setField('gender', event.target.value as typeof form.gender)}
+                        icon={<UserCircle2 className="h-4 w-4" />}
+                        disabled={!!session.patient?.gender}
+                        hint={session.patient?.gender ? 'Sexo registral verificado.' : 'Segundo dato requerido para consultar RENAPER.'}
+                      >
+                        {GENDER_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </SelectField>
+                    </div>
                     {identityLookupSuccess ? (
                       <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-emerald-700">
                         <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0" />
@@ -291,30 +328,39 @@ function AuthenticatedPatientProfilePage({
                       </p>
                     ) : null}
                   </div>
+
+                  <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-950">Datos oficiales recuperados</p>
+                        <p className="mt-1 text-sm leading-6 text-gray-600">
+                          Estos campos quedan como fuente canónica para recetas, turnos y documentación.
+                        </p>
+                      </div>
+                      <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${hasOfficialIdentity ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-100'}`}>
+                        {hasOfficialIdentity ? (
+                          <BadgeCheck className="h-3.5 w-3.5" />
+                        ) : (
+                          <AlertCircle className="h-3.5 w-3.5" />
+                        )}
+                        {hasOfficialIdentity ? 'Verificado' : 'Pendiente de consulta'}
+                      </span>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      {officialIdentityRows.map((row) => (
+                        <div key={row.label} className="rounded-2xl bg-sky-50/70 px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                            {row.label}
+                          </p>
+                          <p className="mt-2 min-h-5 text-sm font-semibold text-gray-950">
+                            {row.value || 'Se completa con RENAPER'}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <Field
-                      label="DNI"
-                      value={form.dni}
-                      onChange={(event) => setField('dni', event.target.value)}
-                      placeholder="Tu número de documento"
-                      hint={session.patient?.dni ? 'El DNI no puede ser modificado una vez establecido.' : 'Se usa para completar datos oficiales y preparar recetas.'}
-                      icon={<Hash className="h-4 w-4" />}
-                      disabled={!!session.patient?.dni}
-                    />
-                    <Field
-                      label="Nombre"
-                      value={form.firstName}
-                      onChange={(event) => setField('firstName', event.target.value)}
-                      placeholder="Tu nombre"
-                      icon={<UserCircle2 className="h-4 w-4" />}
-                    />
-                    <Field
-                      label="Apellido"
-                      value={form.lastName}
-                      onChange={(event) => setField('lastName', event.target.value)}
-                      placeholder="Tu apellido"
-                      icon={<UserCircle2 className="h-4 w-4" />}
-                    />
                     <Field
                       label="Email de acceso"
                       value={form.email}
@@ -329,22 +375,6 @@ function AuthenticatedPatientProfilePage({
                       placeholder="+54 11 5555 5555"
                       icon={<Phone className="h-4 w-4" />}
                     />
-                    <Field
-                      label="CUIL"
-                      value={form.cuil}
-                      onChange={(event) => setField('cuil', event.target.value)}
-                      placeholder="20-XXXXXXXX-9"
-                      hint="Si RENAPER no lo informa, podés completarlo manualmente."
-                      icon={<Hash className="h-4 w-4" />}
-                    />
-                    <Field
-                      label="Domicilio"
-                      value={form.address}
-                      onChange={(event) => setField('address', event.target.value)}
-                      placeholder="Calle 123, Depto 4B, CABA"
-                      hint="Puede completarse desde datos oficiales y editarse si corresponde."
-                      icon={<MapPin className="h-4 w-4" />}
-                    />
                   </div>
                 </div>
 
@@ -353,27 +383,6 @@ function AuthenticatedPatientProfilePage({
                     Datos clínicos base
                   </h3>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <Field
-                      label="Fecha de nacimiento"
-                      type="date"
-                      value={form.birthDate}
-                      onChange={(event) => setField('birthDate', event.target.value)}
-                      icon={<CalendarClock className="h-4 w-4" />}
-                    />
-                    <SelectField
-                      label="Género"
-                      value={form.gender}
-                      onChange={(event) => setField('gender', event.target.value as typeof form.gender)}
-                      icon={<UserCircle2 className="h-4 w-4" />}
-                      disabled={!!session.patient?.gender}
-                      hint={session.patient?.gender ? 'El sexo registral no puede ser modificado una vez establecido.' : undefined}
-                    >
-                      {GENDER_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </SelectField>
                     <SelectField
                       label="Grupo sanguíneo"
                       value={form.bloodType}
