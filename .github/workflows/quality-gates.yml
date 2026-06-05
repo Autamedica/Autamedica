@@ -130,7 +130,8 @@ jobs:
       - name: Deno check
         run: |
           status=0
-          for fn in supabase/functions/*/index.ts; do
+          cd supabase/functions
+          for fn in */index.ts; do
             [[ ! -f "$fn" ]] && continue
             deno check --no-lock "$fn" || status=1
           done
