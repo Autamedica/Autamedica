@@ -63,6 +63,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
         status,
         provider,
         provider_payment_id,
+        metadata,
         paid_at,
         created_at,
         patient:patients(
@@ -121,6 +122,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
         status: p.status,
         provider: p.provider,
         providerPaymentId: p.provider_payment_id || 'N/A',
+        providerStatus: typeof p.metadata?.mp_status === 'string' ? p.metadata.mp_status : null,
+        providerStatusDetail: typeof p.metadata?.mp_status_detail === 'string' ? p.metadata.mp_status_detail : null,
         paidAt: p.paid_at,
         createdAt: p.created_at,
         patient: {

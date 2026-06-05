@@ -341,7 +341,7 @@ export function CreateAppointmentModal({
                             {doc.label}
                             {!isPending && !isDemo && (
                               <svg className="h-4 w-4 text-emerald-600 shrink-0 inline-block align-middle" viewBox="0 0 24 24" fill="currentColor">
-                                <title>Profesional verificado en SISA/REFEPS</title>
+                                <title>Profesional verificado</title>
                                 <path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12zm-13 5l-4-4 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                               </svg>
                             )}
@@ -567,14 +567,14 @@ export function CreateAppointmentModal({
                               Consulta AutaMedica
                             </p>
                           </div>
-                          <p className="rounded-full bg-stone-950 px-3 py-1 text-sm font-bold text-white">
-                            {formatArsFromCents(selectedDoctor.consultation_fee)}
-                          </p>
-                        </div>
-                        <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                          La reserva queda pendiente hasta que MercadoPago acredite el pago. Si tu caso necesita una revisión de cierre, ya está incluida.
+                        <p className="rounded-full bg-stone-950 px-3 py-1 text-sm font-bold text-white">
+                          {formatArsFromCents(selectedDoctor.consultation_fee)}
                         </p>
-                        <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-medium text-slate-600">
+                      </div>
+                      <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                        Confirmás el turno al completar el pago. La revisión de cierre ya está incluida.
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-medium text-slate-600">
                           <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 ring-1 ring-sky-100">
                             <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
                             Revisión de cierre incluida

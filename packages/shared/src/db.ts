@@ -361,8 +361,7 @@ export async function hardDelete<Table extends TableName>(
   id: string
 ): Promise<void> {
   const db = supabase as unknown as GenericDb;
-  const { error } = await db
-    .from(table)
+  const { error } = await db.from(table)
     .delete()
     .eq('id', id);
 

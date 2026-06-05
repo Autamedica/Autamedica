@@ -50,6 +50,24 @@ interface Summary {
   originalTitle?: string;
 }
 
+type GeminiSummaryResponse = {
+  skip?: boolean;
+  headline?: string;
+  body?: string;
+};
+
+type PublishLogEntry = {
+  channel: string;
+  platform?: string;
+  external_id?: string;
+  url?: string;
+  title?: string;
+  status?: string;
+  error_message?: string;
+  payload?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+};
+
 interface NewsletterBuild {
   subject: string;
   html: string;
@@ -134,6 +152,10 @@ interface ResendContact {
   first_name?: string | null;
   last_name?: string | null;
   unsubscribed?: boolean;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
 
 export default {
@@ -265,13 +287,13 @@ export async function processEmailJobs(env: Env) {
           const params = {
             subject: "AutaMedica · receta disponible",
             title: `Hola, ${firstName}`,
-            subtitle: "Lo que la evidencia dice, antes de que lo necesites.",
+            subtitle: "",
             body_html: bodyHtml,
             cta_url: prescriptionUrl,
             cta_label: pdfUrl ? "Descargar PDF" : "Descargar receta",
             secondary_url: prescriptionUrl,
             secondary_label: "Si el boton no abre, copia este enlace:",
-            signature_name: "Eduardo Marques",
+            signature_name: "AutaMedica",
           };
 
           const providerMessageId = await sendTransactionalViaBrevo(env, job, params.subject, params);
@@ -306,13 +328,13 @@ export async function processEmailJobs(env: Env) {
           const params = {
             subject: "AutaMedica · orden de estudios disponible",
             title: `Hola, ${firstName}`,
-            subtitle: "Lo que la evidencia dice, antes de que lo necesites.",
+            subtitle: "",
             body_html: bodyHtml,
             cta_url: orderUrl,
             cta_label: pdfUrl ? "Descargar PDF" : "Descargar orden",
             secondary_url: orderUrl,
             secondary_label: "Si el boton no abre, copia este enlace:",
-            signature_name: "Eduardo Marques",
+            signature_name: "AutaMedica",
           };
 
           const providerMessageId = await sendTransactionalViaBrevo(env, job, params.subject, params);
@@ -626,7 +648,7 @@ function renderTransactionalEmail(
   const unsubscribe = input.unsubscribeUrl
     ? `<a href="${escapeAttr(input.unsubscribeUrl)}" style="font-size:12px;">Darse de baja</a>`
     : "";
-  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHtml(subject)}</title><style>body{margin:0;padding:0;background-color:#F8FAFC;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0F172A}.email-container{max-width:600px;margin:40px auto;background-color:#FFFFFF;border-radius:28px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 20px 40px rgba(15,23,42,.06)}.content{padding:44px 46px 42px;line-height:1.75}h1{font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.18;font-weight:700;color:#020617;margin:0 0 8px;letter-spacing:0}p{font-size:16px;margin:0 0 24px;color:#475569}.button{background-color:#020617;color:#FFFFFF!important;padding:15px 30px;text-decoration:none;border-radius:9999px;font-weight:700;display:inline-block;font-size:15px}.footer{padding:32px 40px 38px;text-align:center;font-size:13px;color:#64748B;border-top:1px solid #F1F5F9}.footer a{color:#64748B}@media(max-width:640px){.email-container{margin:0;border-radius:0}.content{padding:34px 24px 36px}h1{font-size:27px}}</style></head><body><div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(input.preheader)}</div><div class="email-container"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td background="${escapeAttr(AUTAMEDICA_BRAND_GIF_URL)}" bgcolor="#EAF6FF" width="600" height="220" style="background-image:url('${escapeAttr(AUTAMEDICA_BRAND_GIF_URL)}');background-repeat:no-repeat;background-position:center;background-size:contain;height:220px;border-bottom:1px solid #F1F5F9;"></td></tr></table><div class="content"><h1>${escapeHtml(input.title)}</h1><p style="font-family:Georgia,serif;font-size:18px;font-style:italic;color:#94A3B8;margin:0 0 40px 0;letter-spacing:0.3px;">Lo que la evidencia dice, antes de que lo necesites.</p>${paragraphs}<div style="text-align:center;margin-top:38px;"><a href="${escapeAttr(input.actionUrl)}" class="button">${escapeHtml(input.actionLabel)}</a></div><p style="font-size:13px;color:#64748B;text-align:center;margin-top:18px;">Si el boton no abre, copia este enlace:<br><a href="${escapeAttr(input.actionUrl)}" style="color:#0F172A;word-break:break-word;">${escapeHtml(input.actionUrl)}</a></p><div style="margin-top:38px;"><p style="margin:0 0 4px;color:#475569;">Saludos,</p><p style="margin:0;color:#111827;"><strong>Eduardo Marques</strong><br>Fundador · AutaMedica</p></div></div><div class="footer"><p style="font-size:13px;margin:0 0 10px;">AutaMedica · contacto@autamedica.com</p><p style="font-size:12px;margin:0 0 18px;">Salud digital, continuidad de cuidado y tecnología clínica.</p>${unsubscribe}</div></div></body></html>`;
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHtml(subject)}</title><style>body{margin:0;padding:0;background-color:#F8FAFC;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0F172A}.email-container{max-width:600px;margin:40px auto;background-color:#FFFFFF;border-radius:28px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 20px 40px rgba(15,23,42,.06)}.content{padding:44px 46px 42px;line-height:1.75}h1{font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.18;font-weight:700;color:#020617;margin:0 0 8px;letter-spacing:0}p{font-size:16px;margin:0 0 24px;color:#475569}.button{background-color:#020617;color:#FFFFFF!important;padding:15px 30px;text-decoration:none;border-radius:9999px;font-weight:700;display:inline-block;font-size:15px}.footer{padding:32px 40px 38px;text-align:center;font-size:13px;color:#64748B;border-top:1px solid #F1F5F9}.footer a{color:#64748B}@media(max-width:640px){.email-container{margin:0;border-radius:0}.content{padding:34px 24px 36px}h1{font-size:27px}}</style></head><body><div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(input.preheader)}</div><div class="email-container"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td background="${escapeAttr(AUTAMEDICA_BRAND_GIF_URL)}" bgcolor="#EAF6FF" width="600" height="220" style="background-image:url('${escapeAttr(AUTAMEDICA_BRAND_GIF_URL)}');background-repeat:no-repeat;background-position:center;background-size:contain;height:220px;border-bottom:1px solid #F1F5F9;"></td></tr></table><div class="content"><h1>${escapeHtml(input.title)}</h1>${paragraphs}<div style="text-align:center;margin-top:38px;"><a href="${escapeAttr(input.actionUrl)}" class="button">${escapeHtml(input.actionLabel)}</a></div><p style="font-size:13px;color:#64748B;text-align:center;margin-top:18px;">Si el boton no abre, copia este enlace:<br><a href="${escapeAttr(input.actionUrl)}" style="color:#0F172A;word-break:break-word;">${escapeHtml(input.actionUrl)}</a></p><div style="margin-top:38px;"><p style="margin:0 0 4px;color:#475569;">Saludos,</p><p style="margin:0;color:#111827;"><strong>Equipo AutaMedica</strong><br>AutaMedica</p></div></div><div class="footer"><p style="font-size:13px;margin:0 0 10px;">AutaMedica · contacto@autamedica.com</p><p style="font-size:12px;margin:0 0 18px;">Salud digital, continuidad de cuidado y tecnología clínica.</p>${unsubscribe}</div></div></body></html>`;
   const text = [
     input.title,
     "",
@@ -634,8 +656,8 @@ function renderTransactionalEmail(
     "",
     `${input.actionLabel}: ${input.actionUrl}`,
     "",
-    "Eduardo Marques",
-    "Fundador · AutaMedica",
+    "Equipo AutaMedica",
+    "AutaMedica",
     "contacto@autamedica.com",
     input.unsubscribeUrl ? `Darse de baja: ${input.unsubscribeUrl}` : "",
   ].filter(Boolean).join("\n");
@@ -1064,10 +1086,12 @@ async function fetchAllFeeds(feeds: string[]): Promise<NewsItem[]> {
       const res = await fetch(url, { headers: { "user-agent": "AutaMedicaNewsletterBot/1.0" } });
       if (!res.ok) throw new Error(`${url} ${res.status}`);
       const xml = await res.text();
-      const parsed = parser.parse(xml);
-      const channel = parsed?.rss?.channel ?? parsed?.feed;
-      const sourceTitle = channel?.title ?? new URL(url).hostname;
-      const rawItems = channel?.item ?? channel?.entry ?? [];
+      const parsed = asRecord(parser.parse(xml));
+      const rss = asRecord(parsed.rss);
+      const rssChannel = asRecord(rss.channel);
+      const channel = Object.keys(rssChannel).length > 0 ? rssChannel : asRecord(parsed.feed);
+      const sourceTitle = typeof channel.title === "string" ? channel.title : new URL(url).hostname;
+      const rawItems = channel.item ?? channel.entry ?? [];
       const arr = Array.isArray(rawItems) ? rawItems : [rawItems];
       return arr.slice(0, MAX_ITEMS_PER_FEED).map((item: unknown) => normalizeItem(asXmlRecord(item), sourceTitle as string));
     }),
@@ -1227,12 +1251,12 @@ function renderHtml(summaries: Summary[], env: Env): string {
 
     <div class="content">
       <p class="eyebrow">Salud Digital · ${escapeHtml(date)}</p>
-      <h1>Lo que la evidencia dice, antes de que lo necesites.</h1>
+      <h1>Novedades Clínicas</h1>
       ${articleHtml || emptyState}
 
       <div style="margin-top:38px;">
         <p style="margin:0 0 4px;color:#475569;">Saludos,</p>
-        <p style="margin:0;color:#111827;"><strong>Eduardo Marques</strong><br>Fundador · AutaMedica</p>
+        <p style="margin:0;color:#111827;"><strong>Equipo AutaMedica</strong><br>AutaMedica</p>
       </div>
     </div>
 

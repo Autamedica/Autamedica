@@ -465,11 +465,11 @@ export function ProfileForm() {
                               : 'Pendiente'}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs leading-relaxed text-am-surface-500">
-                    {licenseValidationStatus === 'exempt'
-                      ? 'Este perfil está exceptuado de la validación nacional automática.'
-                      : 'Usamos la matrícula cargada en tu perfil y tu DNI profesional para cruzar datos con el registro nacional.'}
-                  </p>
+                    <p className="mt-1 text-xs leading-relaxed text-am-surface-500">
+                      {licenseValidationStatus === 'exempt'
+                        ? 'Este perfil no requiere validación automática.'
+                        : 'Usamos tu matrícula y DNI profesional para validar el perfil.'}
+                    </p>
                   {!licenseMatchesSavedProfile && licenseValidationStatus !== 'exempt' && (
                     <p className="mt-2 text-xs leading-relaxed text-amber-700">
                       Guardá el perfil antes de validar si modificaste la matrícula.

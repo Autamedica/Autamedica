@@ -21,6 +21,8 @@ type Transaction = {
   status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'refunded';
   provider: string;
   providerPaymentId: string;
+  providerStatus: string | null;
+  providerStatusDetail: string | null;
   paidAt: string | null;
   createdAt: string;
   patient: {
@@ -71,6 +73,26 @@ export function FinanceAdminDashboard() {
 
   const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   const bypassParam = isDev ? '?dev_admin=1' : '';
+
+  const getChargeStatusLabel = (transaction: Transaction): string => {
+    if (transaction.status === 'approved' && transaction.providerStatus === 'in_mediation') return 'En mediación';
+    if (transaction.status === 'approved') return 'Aprobado';
+    if (transaction.status === 'refunded') return 'Reembolsado';
+    if (transaction.status === 'pending') return 'Pendiente';
+    if (transaction.status === 'rejected') return 'Rechazado';
+    if (transaction.status === 'cancelled') return 'Cancelado';
+    return transaction.status;
+  };
+
+  const getChargeStatusClassName = (transaction: Transaction): string => {
+    if (transaction.status === 'approved' && transaction.providerStatus === 'in_mediation') {
+      return 'bg-sky-50 text-sky-700 border border-sky-200';
+    }
+    if (transaction.status === 'approved') return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+    if (transaction.status === 'refunded') return 'bg-rose-50 text-rose-700 border border-rose-200';
+    if (transaction.status === 'pending') return 'bg-amber-50 text-amber-700 border border-amber-200';
+    return 'bg-stone-50 text-stone-600 border border-stone-200';
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -328,15 +350,8 @@ export function FinanceAdminDashboard() {
                         {t.earning ? formatMoney(t.earning.netAmount) : '$0,00'}
                       </td>
                       <td className="px-5 py-3.5 text-center">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-3xs font-semibold leading-5 ${
-                          t.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                          t.status === 'refunded' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
-                          t.status === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                          'bg-stone-50 text-stone-600 border border-stone-200'
-                        }`}>
-                          {t.status === 'approved' ? 'Aprobado' :
-                           t.status === 'refunded' ? 'Reembolsado' :
-                           t.status === 'pending' ? 'Pendiente' : t.status}
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-3xs font-semibold leading-5 ${getChargeStatusClassName(t)}`}>
+                          {getChargeStatusLabel(t)}
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-center">

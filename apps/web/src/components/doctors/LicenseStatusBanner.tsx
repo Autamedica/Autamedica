@@ -52,13 +52,13 @@ export function LicenseStatusBanner({ doctor: providedDoctor }: { doctor?: Docto
                 ? "Matricula en revision"
                 : "Validacion de matricula pendiente"}
           </h3>
-          <p className="mb-4 text-sm leading-relaxed text-amber-800/80">
-            {isRejected
-              ? "La revision manual no aprobo la matricula cargada. Revisala desde tu perfil profesional."
-              : needsReview
-                ? "No pudimos validarla automaticamente. El equipo debe revisarla con evidencia SISA o documentacion profesional."
-              : "Tu matricula debe cruzarse con registros nacionales para habilitar credenciales clinicas y emision segura de recetas electronicas."}
-          </p>
+            <p className="mb-4 text-sm leading-relaxed text-amber-800/80">
+              {isRejected
+                ? "No pudimos aprobar la matricula cargada. Revisala desde tu perfil profesional."
+                : needsReview
+                  ? "No pudimos validarla automaticamente. El equipo la va a revisar con tu documentacion profesional."
+                  : "Validá tu matrícula para habilitar credenciales clínicas y recetas electrónicas."}
+            </p>
           <div className="flex gap-3">
             <a href="/doctors/perfil#license-verification" className="inline-flex items-center justify-center rounded-full bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700">
               {isRejected || needsReview ? "Revisar datos" : "Validar matricula ahora"}
