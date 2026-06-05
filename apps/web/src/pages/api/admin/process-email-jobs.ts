@@ -34,7 +34,9 @@ type EmailJobType =
   | 'patient_appointment_cancelled'
   | 'patient_prescription_ready'
   | 'patient_medical_order_ready'
-  | 'nurturing';
+  | 'nurturing'
+  | 'community_new_topic'
+  | 'community_new_comment';
 
 type EmailJob = {
   id: string;
@@ -303,6 +305,56 @@ function renderJob(job: EmailJob): RenderedEmail {
     return buildNurturingEmail(templateKey, firstName(job), actionUrl, unsubscribeUrl);
   }
 
+  if (job.job_type === 'community_new_topic') {
+    const data = job.template_data ?? {};
+    const topicTitle = stringFromData(data, 'topic_title');
+    const topicExcerpt = stringFromData(data, 'topic_excerpt');
+    const authorName = stringFromData(data, 'author_name');
+    const groupName = stringFromData(data, 'group_name');
+    const actionUrl = stringFromData(data, 'action_url');
+    const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
+
+    return renderAutamedicaEmail(`Nuevo tema en la comunidad: ${topicTitle}`, {
+      variant: 'transactional',
+      title: 'Nuevo tema en la comunidad',
+      preheader: `${authorName} creó un nuevo tema en el grupo ${groupName}.`,
+      paragraphs: [
+        `Hola, ${firstName(job)}.`,
+        `**${authorName}** creó un nuevo tema en el grupo **${groupName}**:`,
+        `**"${topicTitle}"**`,
+        `_"${topicExcerpt}"_`,
+        'Ingresá a la plataforma para leer la publicación completa y participar de la conversación.'
+      ],
+      action: { label: 'Ver publicación', url: actionUrl },
+      unsubscribeUrl,
+    });
+  }
+
+  if (job.job_type === 'community_new_comment') {
+    const data = job.template_data ?? {};
+    const topicTitle = stringFromData(data, 'topic_title');
+    const commentExcerpt = stringFromData(data, 'comment_excerpt');
+    const authorName = stringFromData(data, 'author_name');
+    const groupName = stringFromData(data, 'group_name');
+    const actionUrl = stringFromData(data, 'action_url');
+    const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
+
+    return renderAutamedicaEmail(`Nuevo comentario en: ${topicTitle}`, {
+      variant: 'transactional',
+      title: 'Nuevo comentario en la comunidad',
+      preheader: `${authorName} comentó en el tema "${topicTitle}".`,
+      paragraphs: [
+        `Hola, ${firstName(job)}.`,
+        `**${authorName}** comentó en el tema **"${topicTitle}"** del grupo **${groupName}**:`,
+        `_"${commentExcerpt}"_`,
+        'Ingresá a la plataforma para leer el comentario completo y responder en el hilo.'
+      ],
+      action: { label: 'Ver comentario', url: actionUrl },
+      unsubscribeUrl,
+    });
+  }
+
+
   if (job.job_type === 'newsletter') {
     const rawParagraphs = data.paragraphs;
     let paragraphs: string[] = [];
@@ -502,6 +554,37 @@ function getBrevoParamsForJob(job: EmailJob): {
     }
     ctaLabel = 'Completar anamnesis';
     ctaUrl = actionUrl;
+  } else if (job.job_type === 'community_new_topic') {
+    const topicTitle = stringFromData(data, 'topic_title');
+    const topicExcerpt = stringFromData(data, 'topic_excerpt');
+    const authorName = stringFromData(data, 'author_name');
+    const groupName = stringFromData(data, 'group_name');
+    subject = `Nuevo tema en la comunidad: ${topicTitle}`;
+    title = 'Nuevo tema en la comunidad';
+    subtitle = `${authorName} creó un nuevo tema en el grupo ${groupName}.`;
+    paragraphs = [
+      `<strong>${authorName}</strong> creó un nuevo tema en el grupo <strong>${groupName}</strong>:`,
+      `<strong>"${topicTitle}"</strong>`,
+      `<em>"${topicExcerpt}"</em>`,
+      'Ingresá a la plataforma para leer la publicación completa y participar de la conversación.'
+    ];
+    ctaLabel = 'Ver publicación';
+    ctaUrl = actionUrl || 'https://www.autamedica.com';
+  } else if (job.job_type === 'community_new_comment') {
+    const topicTitle = stringFromData(data, 'topic_title');
+    const commentExcerpt = stringFromData(data, 'comment_excerpt');
+    const authorName = stringFromData(data, 'author_name');
+    const groupName = stringFromData(data, 'group_name');
+    subject = `Nuevo comentario en: ${topicTitle}`;
+    title = 'Nuevo comentario en la comunidad';
+    subtitle = `${authorName} comentó en el tema "${topicTitle}".`;
+    paragraphs = [
+      `<strong>${authorName}</strong> comentó en el tema <strong>"${topicTitle}"</strong> del grupo <strong>${groupName}</strong>:`,
+      `<em>"${commentExcerpt}"</em>`,
+      'Ingresá a la plataforma para leer el comentario completo y responder en el hilo.'
+    ];
+    ctaLabel = 'Ver comentario';
+    ctaUrl = actionUrl || 'https://www.autamedica.com';
   } else if (job.job_type === 'newsletter') {
     subject = stringFromData(data, 'subject') || 'Novedades de AutaMedica';
     title = stringFromData(data, 'title') || 'Estimado/a Colega,';
@@ -597,6 +680,7 @@ async function sendViaBrevo(
       sender: { name: fromName, email: fromEmail },
       to: [{ email: job.recipient_email, name: job.recipient_name || job.recipient_email }],
       templateId: 8,
+      subject,
       params,
       tags: ['transactional', 'autamedica', job.job_type],
     }),
