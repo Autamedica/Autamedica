@@ -110,7 +110,8 @@ interface EmailJob {
     | "doctor_anamnesis_ready"
     | "patient_appointment_cancelled"
     | "patient_prescription_ready"
-    | "patient_medical_order_ready";
+    | "patient_medical_order_ready"
+    | "nurturing";
   recipient_email: string;
   recipient_name: string | null;
   template_data: Record<string, unknown> | null;
@@ -541,7 +542,7 @@ function getBrevoParamsForJob(job: EmailJob): {
 } {
   const data = job.template_data ?? {};
   const actionUrl = dataString(data, "action_url");
-  const recipientName = getFirstName(job);
+  const recipientName = escapeHtml(getFirstName(job));
 
   let subject = "AutaMedica";
   let title = `Hola, ${recipientName}`;
@@ -569,7 +570,7 @@ function getBrevoParamsForJob(job: EmailJob): {
     ctaLabel = "Continuar";
     ctaUrl = actionUrl || "https://www.autamedica.com/patients/anamnesis";
   } else if (job.job_type === "appointment_reminder") {
-    const appointmentTime = dataString(data, "appointment_time");
+    const appointmentTime = escapeHtml(dataString(data, "appointment_time"));
     subject = "AutaMedica · recordatorio de consulta";
     title = `Hola, ${recipientName}`;
     paragraphs = [
@@ -581,8 +582,8 @@ function getBrevoParamsForJob(job: EmailJob): {
     ctaLabel = "Ver consulta";
     ctaUrl = actionUrl || "https://www.autamedica.com/patients/appointments";
   } else if (job.job_type === "doctor_new_appointment") {
-    const appointmentTime = dataString(data, "appointment_time");
-    const patientName = dataString(data, "patient_name") || "Un paciente";
+    const appointmentTime = escapeHtml(dataString(data, "appointment_time"));
+    const patientName = escapeHtml(dataString(data, "patient_name") || "Un paciente");
     subject = "AutaMedica · consulta pagada y confirmada";
     title = "Consulta pagada y confirmada";
     paragraphs = [
@@ -594,8 +595,8 @@ function getBrevoParamsForJob(job: EmailJob): {
     ctaLabel = "Ver agenda";
     ctaUrl = actionUrl || "https://doctor.autamedica.com/doctors/appointments";
   } else if (job.job_type === "doctor_appointment_cancelled") {
-    const appointmentTime = dataString(data, "appointment_time");
-    const patientName = dataString(data, "patient_name") || "Un paciente";
+    const appointmentTime = escapeHtml(dataString(data, "appointment_time"));
+    const patientName = escapeHtml(dataString(data, "patient_name") || "Un paciente");
     subject = "AutaMedica · cita cancelada";
     title = `Hola, ${recipientName}`;
     paragraphs = [
@@ -607,8 +608,8 @@ function getBrevoParamsForJob(job: EmailJob): {
     ctaLabel = "Ver agenda";
     ctaUrl = actionUrl || "https://doctor.autamedica.com/doctors/appointments";
   } else if (job.job_type === "patient_appointment_cancelled") {
-    const appointmentTime = dataString(data, "appointment_time");
-    const doctorName = dataString(data, "doctor_name") || "Tu medico";
+    const appointmentTime = escapeHtml(dataString(data, "appointment_time"));
+    const doctorName = escapeHtml(dataString(data, "doctor_name") || "Tu medico");
     subject = "AutaMedica · cita cancelada";
     title = `Hola, ${recipientName}`;
     paragraphs = [
@@ -620,7 +621,7 @@ function getBrevoParamsForJob(job: EmailJob): {
     ctaLabel = "Ver turnos";
     ctaUrl = actionUrl || "https://www.autamedica.com/patients/appointments";
   } else if (job.job_type === "doctor_anamnesis_ready") {
-    const patientName = dataString(data, "patient_name") || "Un paciente";
+    const patientName = escapeHtml(dataString(data, "patient_name") || "Un paciente");
     subject = "AutaMedica · anamnesis disponible";
     title = `Hola, ${recipientName}`;
     paragraphs = [
@@ -630,10 +631,10 @@ function getBrevoParamsForJob(job: EmailJob): {
     ctaLabel = "Ver paciente";
     ctaUrl = actionUrl || "https://doctor.autamedica.com/doctors/patients";
   } else if (job.job_type === "patient_prescription_ready") {
-    const doctorName = dataString(data, "doctor_name") || "Tu medico";
+    const doctorName = escapeHtml(dataString(data, "doctor_name") || "Tu medico");
     const pdfUrl = dataString(data, "pdf_url");
-    const medicationName = dataString(data, "medication_name");
-    const cuir = dataString(data, "cuir");
+    const medicationName = escapeHtml(dataString(data, "medication_name"));
+    const cuir = escapeHtml(dataString(data, "cuir"));
 
     subject = "AutaMedica Recetas · receta digital enviada con éxito";
     title = "Receta digital enviada con éxito";
@@ -652,10 +653,10 @@ function getBrevoParamsForJob(job: EmailJob): {
     ctaLabel = pdfUrl ? "Descargar receta" : "Ver receta";
     ctaUrl = pdfUrl || actionUrl || "https://www.autamedica.com/patients/prescriptions";
   } else if (job.job_type === "patient_medical_order_ready") {
-    const doctorName = dataString(data, "doctor_name") || "Tu medico";
+    const doctorName = escapeHtml(dataString(data, "doctor_name") || "Tu medico");
     const pdfUrl = dataString(data, "pdf_url");
-    const practicesName = dataString(data, "practices_name") || "Orden de estudios médicos";
-    const cuir = dataString(data, "cuir");
+    const practicesName = escapeHtml(dataString(data, "practices_name") || "Orden de estudios médicos");
+    const cuir = escapeHtml(dataString(data, "cuir"));
 
     subject = "AutaMedica · orden de estudios disponible";
     title = `Hola, ${recipientName}`;
@@ -671,21 +672,45 @@ function getBrevoParamsForJob(job: EmailJob): {
     }
     ctaLabel = pdfUrl ? "Descargar PDF" : "Ver orden";
     ctaUrl = pdfUrl || actionUrl || "https://www.autamedica.com/patients/medical-orders";
+  } else if (job.job_type === "nurturing") {
+    const templateKey = escapeHtml(dataString(data, "template_key"));
+    ctaUrl = dataString(data, "action_url") || "https://www.autamedica.com/patients/anamnesis";
+    subject = "AutaMedica";
+    title = `Hola, ${recipientName}`;
+    if (templateKey === "science_backed") {
+      subject = "AutaMedica · la evidencia detras de tu salud";
+      paragraphs = [
+        "En AutaMedica nos basamos en la mejor evidencia cientifica disponible.",
+        "Completar tu anamnesis nos ayuda a entender mejor tu historial y ofrecerte recomendaciones personalizadas.",
+      ];
+    } else if (templateKey === "time_efficiency") {
+      subject = "AutaMedica · optimiza tu tiempo de consulta";
+      paragraphs = [
+        "Sabemos que tu tiempo es valioso.",
+        "Al completar tu anamnesis con anticipacion, tu consulta medica es mucho mas eficiente y enfocada.",
+      ];
+    } else {
+      paragraphs = [
+        "Te invitamos a continuar con tu proceso en AutaMedica.",
+        "Tus respuestas estan seguras y encriptadas bajo los mas altos estandares de privacidad.",
+      ];
+    }
+    ctaLabel = "Completar anamnesis";
   } else if (job.job_type === "newsletter") {
-    subject = dataString(data, "subject") || "Novedades de AutaMedica";
-    title = dataString(data, "title") || "Estimado/a Colega,";
-    subtitle = dataString(data, "subtitle") || "";
+    subject = escapeHtml(dataString(data, "subject") || "Novedades de AutaMedica");
+    title = escapeHtml(dataString(data, "title") || "Estimado/a Colega,");
+    subtitle = escapeHtml(dataString(data, "subtitle") || "");
     const rawParagraphs = data["paragraphs"];
     if (Array.isArray(rawParagraphs)) {
-      paragraphs = rawParagraphs.map((p) => String(p));
+      paragraphs = rawParagraphs.map((p) => escapeHtml(String(p)));
     } else {
       paragraphs = ["Te compartimos novedades de AutaMedica."];
     }
-    ctaLabel = dataString(data, "action_label") || "Ver mas";
+    ctaLabel = escapeHtml(dataString(data, "action_label") || "Ver mas");
     ctaUrl = actionUrl || "https://www.autamedica.com";
   } else {
-    subject = dataString(data, "subject") || "AutaMedica";
-    title = dataString(data, "title") || `Hola, ${recipientName}`;
+    subject = escapeHtml(dataString(data, "subject") || "AutaMedica");
+    title = escapeHtml(dataString(data, "title") || `Hola, ${recipientName}`);
     paragraphs = ["Te compartimos una actualización de AutaMedica."];
     ctaLabel = "Abrir AutaMedica";
     ctaUrl = actionUrl || "https://www.autamedica.com";
