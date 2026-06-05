@@ -239,92 +239,17 @@ export async function processEmailJobs(env: Env) {
       const claimed = await claimEmailJob(env, job);
       if (!claimed) continue;
 
-      if (job.job_type === "patient_prescription_ready") {
-        const data = job.template_data ?? {};
-        const doctorName = dataString(data, "doctor_name") || "Tu medico";
-        const pdfUrl = dataString(data, "pdf_url");
-        const medicationName = dataString(data, "medication_name");
-        const cuir = dataString(data, "cuir");
-        const actionUrl = dataString(data, "action_url") || "https://www.autamedica.com";
-        const prescriptionUrl = pdfUrl || actionUrl;
-
-        if (env.BREVO_API_KEY) {
-          const firstName = job.recipient_name || "como estas";
-          let bodyHtml = `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">Dr. <strong>${doctorName}</strong> emitió una nueva receta o indicación médica para vos.</p>`;
-          bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">Ya está disponible en tu perfil para que puedas descargarla o utilizarla.</p>`;
-          if (medicationName) {
-            bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;"><strong>Medicamento o indicación:</strong> ${medicationName}.</p>`;
-          }
-          if (cuir) {
-            bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;"><strong>Código de verificación:</strong> ${cuir}.</p>`;
-          }
-
-          const params = {
-            subject: "AutaMedica · receta disponible",
-            title: `Hola, ${firstName}`,
-            subtitle: "",
-            body_html: bodyHtml,
-            cta_url: prescriptionUrl,
-            cta_label: pdfUrl ? "Descargar PDF" : "Descargar receta",
-            secondary_url: prescriptionUrl,
-            secondary_label: "Si el boton no abre, copia este enlace:",
-            signature_name: "AutaMedica",
-          };
-
-          const providerMessageId = await sendTransactionalViaBrevo(env, job, params.subject, params);
-          await markEmailJobSent(env, job.id, providerMessageId, "brevo");
-          results.push({ id: job.id, job_type: job.job_type, status: "sent" });
-          continue;
-        } else {
-          console.warn("BREVO_API_KEY no configurada. Fallback a Resend para receta.");
-        }
+      if (env.BREVO_API_KEY) {
+        const params = getBrevoParamsForJob(job);
+        const providerMessageId = await sendTransactionalViaBrevo(env, job, params.subject, params);
+        await markEmailJobSent(env, job.id, providerMessageId, "brevo");
+        results.push({ id: job.id, job_type: job.job_type, status: "sent" });
+      } else {
+        const rendered = renderEmailJob(job);
+        const providerMessageId = await sendTransactionalViaResend(env, job, rendered);
+        await markEmailJobSent(env, job.id, providerMessageId, "resend");
+        results.push({ id: job.id, job_type: job.job_type, status: "sent" });
       }
-
-      if (job.job_type === "patient_medical_order_ready") {
-        const data = job.template_data ?? {};
-        const doctorName = dataString(data, "doctor_name") || "Tu medico";
-        const pdfUrl = dataString(data, "pdf_url");
-        const practicesName = dataString(data, "practices_name") || "Orden de estudios médicos";
-        const cuir = dataString(data, "cuir");
-        const actionUrl = dataString(data, "action_url") || "https://www.autamedica.com";
-        const orderUrl = pdfUrl || actionUrl;
-
-        if (env.BREVO_API_KEY) {
-          const firstName = job.recipient_name || "como estas";
-          let bodyHtml = `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">Dr. <strong>${doctorName}</strong> emitió una nueva orden de estudios complementarios para vos.</p>`;
-          bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">Ya está disponible en tu perfil para que puedas descargarla o utilizarla.</p>`;
-          if (practicesName) {
-            bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;"><strong>Estudios solicitados:</strong> ${practicesName}.</p>`;
-          }
-          if (cuir) {
-            bodyHtml += `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;"><strong>Código de verificación:</strong> ${cuir}.</p>`;
-          }
-
-          const params = {
-            subject: "AutaMedica · orden de estudios disponible",
-            title: `Hola, ${firstName}`,
-            subtitle: "",
-            body_html: bodyHtml,
-            cta_url: orderUrl,
-            cta_label: pdfUrl ? "Descargar PDF" : "Descargar orden",
-            secondary_url: orderUrl,
-            secondary_label: "Si el boton no abre, copia este enlace:",
-            signature_name: "AutaMedica",
-          };
-
-          const providerMessageId = await sendTransactionalViaBrevo(env, job, params.subject, params);
-          await markEmailJobSent(env, job.id, providerMessageId, "brevo");
-          results.push({ id: job.id, job_type: job.job_type, status: "sent" });
-          continue;
-        } else {
-          console.warn("BREVO_API_KEY no configurada. Fallback a Resend para orden de estudios.");
-        }
-      }
-
-      const rendered = renderEmailJob(job);
-      const providerMessageId = await sendTransactionalViaResend(env, job, rendered);
-      await markEmailJobSent(env, job.id, providerMessageId, "resend");
-      results.push({ id: job.id, job_type: job.job_type, status: "sent" });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error("processEmailJobs job error", job.id, message);
@@ -597,6 +522,190 @@ function renderEmailJob(job: EmailJob): { subject: string; html: string; text: s
     actionUrl,
     unsubscribeUrl,
   });
+}
+
+function getFirstName(job: EmailJob): string {
+  return job.recipient_name || "como estas";
+}
+
+function getBrevoParamsForJob(job: EmailJob): {
+  subject: string;
+  title: string;
+  subtitle: string;
+  body_html: string;
+  cta_url?: string;
+  cta_label?: string;
+  secondary_url?: string;
+  secondary_label?: string;
+  signature_name: string;
+} {
+  const data = job.template_data ?? {};
+  const actionUrl = dataString(data, "action_url");
+  const recipientName = getFirstName(job);
+
+  let subject = "AutaMedica";
+  let title = `Hola, ${recipientName}`;
+  let subtitle = "";
+  let paragraphs: string[] = [];
+  let ctaLabel = "";
+  let ctaUrl = actionUrl;
+
+  if (job.job_type === "welcome") {
+    subject = "Bienvenido a AutaMedica";
+    title = `Hola, ${recipientName}`;
+    paragraphs = [
+      "Tu cuenta en AutaMedica ya esta lista.",
+      "Desde aca podes completar tu anamnesis, ordenar tu informacion clinica y preparar una consulta con mas contexto para el profesional.",
+    ];
+    ctaLabel = "Completar anamnesis";
+    ctaUrl = actionUrl || "https://www.autamedica.com/patients/anamnesis";
+  } else if (job.job_type === "anamnesis_reminder") {
+    subject = "AutaMedica · recordatorio";
+    title = `Hola, ${recipientName}`;
+    paragraphs = [
+      "Te escribo para que puedas continuar el proceso que quedo pendiente.",
+      "Completar tus datos antes de la consulta ayuda a que el medico entre con contexto, sin empezar desde cero.",
+    ];
+    ctaLabel = "Continuar";
+    ctaUrl = actionUrl || "https://www.autamedica.com/patients/anamnesis";
+  } else if (job.job_type === "appointment_reminder") {
+    const appointmentTime = dataString(data, "appointment_time");
+    subject = "AutaMedica · recordatorio de consulta";
+    title = `Hola, ${recipientName}`;
+    paragraphs = [
+      appointmentTime
+        ? `Tu consulta esta agendada para el ${appointmentTime} hs.`
+        : "Tenes una consulta agendada en AutaMedica.",
+      "Te dejamos el acceso a tu agenda para revisar el horario y entrar a la videoconsulta cuando corresponda.",
+    ];
+    ctaLabel = "Ver consulta";
+    ctaUrl = actionUrl || "https://www.autamedica.com/patients/appointments";
+  } else if (job.job_type === "doctor_new_appointment") {
+    const appointmentTime = dataString(data, "appointment_time");
+    const patientName = dataString(data, "patient_name") || "Un paciente";
+    subject = "AutaMedica · consulta pagada y confirmada";
+    title = "Consulta pagada y confirmada";
+    paragraphs = [
+      appointmentTime
+        ? `${patientName} confirmo el pago de una consulta para el ${appointmentTime}.`
+        : `${patientName} confirmo el pago de una consulta.`,
+      "Ya podes revisar los detalles desde tu agenda medica.",
+    ];
+    ctaLabel = "Ver agenda";
+    ctaUrl = actionUrl || "https://doctor.autamedica.com/doctors/appointments";
+  } else if (job.job_type === "doctor_appointment_cancelled") {
+    const appointmentTime = dataString(data, "appointment_time");
+    const patientName = dataString(data, "patient_name") || "Un paciente";
+    subject = "AutaMedica · cita cancelada";
+    title = `Hola, ${recipientName}`;
+    paragraphs = [
+      appointmentTime
+        ? `${patientName} cancelo la consulta del ${appointmentTime} hs.`
+        : `${patientName} cancelo una consulta.`,
+      "Tu agenda ya refleja el cambio.",
+    ];
+    ctaLabel = "Ver agenda";
+    ctaUrl = actionUrl || "https://doctor.autamedica.com/doctors/appointments";
+  } else if (job.job_type === "patient_appointment_cancelled") {
+    const appointmentTime = dataString(data, "appointment_time");
+    const doctorName = dataString(data, "doctor_name") || "Tu medico";
+    subject = "AutaMedica · cita cancelada";
+    title = `Hola, ${recipientName}`;
+    paragraphs = [
+      appointmentTime
+        ? `${doctorName} cancelo la consulta del ${appointmentTime} hs.`
+        : `${doctorName} cancelo una consulta.`,
+      "Podes revisar tus turnos y agendar uno nuevo desde tu portal.",
+    ];
+    ctaLabel = "Ver turnos";
+    ctaUrl = actionUrl || "https://www.autamedica.com/patients/appointments";
+  } else if (job.job_type === "doctor_anamnesis_ready") {
+    const patientName = dataString(data, "patient_name") || "Un paciente";
+    subject = "AutaMedica · anamnesis disponible";
+    title = `Hola, ${recipientName}`;
+    paragraphs = [
+      `${patientName} completo su anamnesis preconsulta.`,
+      "Ya podes revisarla desde el panel medico.",
+    ];
+    ctaLabel = "Ver paciente";
+    ctaUrl = actionUrl || "https://doctor.autamedica.com/doctors/patients";
+  } else if (job.job_type === "patient_prescription_ready") {
+    const doctorName = dataString(data, "doctor_name") || "Tu medico";
+    const pdfUrl = dataString(data, "pdf_url");
+    const medicationName = dataString(data, "medication_name");
+    const cuir = dataString(data, "cuir");
+
+    subject = "AutaMedica Recetas · receta digital enviada con éxito";
+    title = "Receta digital enviada con éxito";
+    subtitle = `Hola, ${recipientName}. Tu receta digital de AutaMedica ya está disponible para descargar.`;
+    paragraphs = [
+      `${doctorName} emitió una receta digital para vos.`,
+    ];
+    if (medicationName) {
+      paragraphs.push(`<strong>Medicamento o indicación:</strong> ${medicationName}.`);
+    }
+    if (cuir) {
+      paragraphs.push(`<strong>Código de receta:</strong> ${cuir}.`);
+    }
+    paragraphs.push("Presentá la receta en la farmacia o guardala para tu seguimiento médico.");
+    paragraphs.push("Seguí la indicación médica recibida. Si tenés dudas sobre el uso del medicamento, síntomas nuevos o una urgencia, consultá con un profesional de salud.");
+    ctaLabel = pdfUrl ? "Descargar receta" : "Ver receta";
+    ctaUrl = pdfUrl || actionUrl || "https://www.autamedica.com/patients/prescriptions";
+  } else if (job.job_type === "patient_medical_order_ready") {
+    const doctorName = dataString(data, "doctor_name") || "Tu medico";
+    const pdfUrl = dataString(data, "pdf_url");
+    const practicesName = dataString(data, "practices_name") || "Orden de estudios médicos";
+    const cuir = dataString(data, "cuir");
+
+    subject = "AutaMedica · orden de estudios disponible";
+    title = `Hola, ${recipientName}`;
+    paragraphs = [
+      `Dr. <strong>${doctorName}</strong> emitió una nueva orden de estudios complementarios para vos.`,
+      "Ya está disponible en tu perfil para que puedas descargarla o utilizarla.",
+    ];
+    if (practicesName) {
+      paragraphs.push(`<strong>Estudios solicitados:</strong> ${practicesName}.`);
+    }
+    if (cuir) {
+      paragraphs.push(`<strong>Código de verificación:</strong> ${cuir}.`);
+    }
+    ctaLabel = pdfUrl ? "Descargar PDF" : "Ver orden";
+    ctaUrl = pdfUrl || actionUrl || "https://www.autamedica.com/patients/medical-orders";
+  } else if (job.job_type === "newsletter") {
+    subject = dataString(data, "subject") || "Novedades de AutaMedica";
+    title = dataString(data, "title") || "Estimado/a Colega,";
+    subtitle = dataString(data, "subtitle") || "";
+    const rawParagraphs = data["paragraphs"];
+    if (Array.isArray(rawParagraphs)) {
+      paragraphs = rawParagraphs.map((p) => String(p));
+    } else {
+      paragraphs = ["Te compartimos novedades de AutaMedica."];
+    }
+    ctaLabel = dataString(data, "action_label") || "Ver mas";
+    ctaUrl = actionUrl || "https://www.autamedica.com";
+  } else {
+    subject = dataString(data, "subject") || "AutaMedica";
+    title = dataString(data, "title") || `Hola, ${recipientName}`;
+    paragraphs = ["Te compartimos una actualización de AutaMedica."];
+    ctaLabel = "Abrir AutaMedica";
+    ctaUrl = actionUrl || "https://www.autamedica.com";
+  }
+
+  const bodyHtml = paragraphs
+    .map((p) => `<p style="font-size: 16px; line-height: 1.6; color: #475569; margin: 0 0 16px;">${p}</p>`)
+    .join("");
+
+  return {
+    subject,
+    title,
+    subtitle,
+    body_html: bodyHtml,
+    cta_url: ctaUrl,
+    cta_label: ctaLabel,
+    secondary_url: ctaUrl,
+    secondary_label: "Si el boton no abre, copia este enlace:",
+    signature_name: "AutaMedica",
+  };
 }
 
 function renderTransactionalEmail(
