@@ -3,6 +3,7 @@ import { sendMessageWithFallback, type OpenClawConfig } from '@autamedica/schedu
 
 type DoctorWhatsAppJob = {
   id: string;
+  appointment_id: string;
   recipient_phone: string;
   message: string;
   attempts: number;
@@ -17,6 +18,7 @@ type ProcessDoctorWhatsAppOptions = {
 type ProcessDoctorWhatsAppResult = {
   processed: number;
   sent: number;
+  skipped: number;
   failed: number;
   errors: string[];
 };
@@ -28,6 +30,7 @@ export async function processDoctorWhatsAppJobs(
   const result: ProcessDoctorWhatsAppResult = {
     processed: 0,
     sent: 0,
+    skipped: 0,
     failed: 0,
     errors: [],
   };
@@ -35,7 +38,7 @@ export async function processDoctorWhatsAppJobs(
   const { data: jobs, error } = await supabase
     .schema('growth_os')
     .from('doctor_whatsapp_jobs')
-    .select('id, recipient_phone, message, attempts')
+    .select('id, appointment_id, recipient_phone, message, attempts')
     .eq('status', 'pending')
     .lte('scheduled_for', new Date().toISOString())
     .order('scheduled_for', { ascending: true })
@@ -48,6 +51,26 @@ export async function processDoctorWhatsAppJobs(
 
   for (const job of (jobs ?? []) as DoctorWhatsAppJob[]) {
     result.processed += 1;
+
+    const staleReason = await getStaleAppointmentReason(supabase, job.appointment_id);
+    if (staleReason) {
+      const { error: updateError } = await supabase
+        .schema('growth_os')
+        .from('doctor_whatsapp_jobs')
+        .update({
+          status: 'failed',
+          attempts: job.attempts + 1,
+          last_error: staleReason,
+        })
+        .eq('id', job.id);
+
+      if (updateError) {
+        result.errors.push(`doctor_whatsapp_jobs ${job.id} stale update failed: ${updateError.message}`);
+      }
+
+      result.skipped += 1;
+      continue;
+    }
 
     if (options.dryRun) {
       console.log(`[DOCTOR-WA DRYRUN] Would send to ${job.recipient_phone}:\n${job.message}`);
@@ -102,4 +125,39 @@ export async function processDoctorWhatsAppJobs(
   }
 
   return result;
+}
+
+async function getStaleAppointmentReason(
+  supabase: SupabaseClient,
+  appointmentId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('appointments')
+    .select('id, start_time, status')
+    .eq('id', appointmentId)
+    .single();
+
+  if (error || !data) {
+    return `Skipped doctor WhatsApp: appointment ${appointmentId} not found`;
+  }
+
+  const appointment = data as { start_time: string | null; status: string | null };
+  if (appointment.status && ['cancelled', 'completed', 'no_show'].includes(appointment.status)) {
+    return `Skipped doctor WhatsApp: appointment status is ${appointment.status}`;
+  }
+
+  if (!appointment.start_time) {
+    return `Skipped doctor WhatsApp: appointment ${appointmentId} has no start_time`;
+  }
+
+  const startTime = new Date(appointment.start_time);
+  if (Number.isNaN(startTime.getTime())) {
+    return `Skipped doctor WhatsApp: invalid appointment start_time ${appointment.start_time}`;
+  }
+
+  if (startTime.getTime() <= Date.now()) {
+    return `Skipped doctor WhatsApp: appointment started at ${appointment.start_time}`;
+  }
+
+  return null;
 }

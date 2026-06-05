@@ -15,7 +15,7 @@
 import type { SupabaseLike } from './supabase';
 import type { AppointmentReminder } from '@autamedica/types';
 import { logger } from '@autamedica/shared';
-import { getPendingReminders, markReminderForRetry, markReminderSent } from './reminders';
+import { getPendingReminders, markReminderFailed, markReminderForRetry, markReminderSent } from './reminders';
 import { expireStaleOffers } from './waitlist';
 import { markOverdueAppointmentsNoShow } from './no-show-reaper';
 import {
@@ -39,6 +39,7 @@ interface WorkerConfig {
 interface WorkerResult {
   processed: number;
   sent: number;
+  skipped: number;
   failed: number;
   waitlistOffersSent: number;
   waitlistExpired: number;
@@ -58,6 +59,7 @@ export async function processReminderCycle(
   const result: WorkerResult = {
     processed: 0,
     sent: 0,
+    skipped: 0,
     failed: 0,
     waitlistOffersSent: 0,
     waitlistExpired: 0,
@@ -74,8 +76,12 @@ export async function processReminderCycle(
     // 2. Process each reminder
     for (const reminder of reminders) {
       try {
-        await processOneReminder(supabase, reminder, config);
-        result.sent++;
+        const status = await processOneReminder(supabase, reminder, config);
+        if (status === 'sent') {
+          result.sent++;
+        } else {
+          result.skipped++;
+        }
       } catch (err) {
         result.failed++;
         const msg = err instanceof Error ? err.message : 'Unknown error';
@@ -111,7 +117,7 @@ async function processOneReminder(
   supabase: SupabaseLike,
   reminder: AppointmentReminder,
   config: WorkerConfig,
-): Promise<void> {
+): Promise<'sent' | 'skipped'> {
   // Fetch appointment + patient + doctor data
   const { data: appt, error: apptErr } = await supabase
     .from('appointments')
@@ -130,7 +136,22 @@ async function processOneReminder(
   // Skip if appointment is already cancelled
   if (appt.status === 'cancelled' || appt.status === 'no_show') {
     await markReminderSent(supabase, reminder.id);
-    return;
+    return 'skipped';
+  }
+
+  const startTime = new Date(appt.start_time);
+  if (Number.isNaN(startTime.getTime())) {
+    await markReminderFailed(supabase, reminder.id, `Invalid appointment start_time: ${appt.start_time}`);
+    return 'skipped';
+  }
+
+  if (startTime.getTime() <= Date.now()) {
+    await markReminderFailed(
+      supabase,
+      reminder.id,
+      `Skipped stale reminder: appointment started at ${appt.start_time}`,
+    );
+    return 'skipped';
   }
 
   const patient = appt.patients;
@@ -143,7 +164,6 @@ async function processOneReminder(
   }
 
   // Determine which reminder template to use
-  const startTime = new Date(appt.start_time);
   const now = new Date();
   const hoursUntil = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
@@ -170,7 +190,7 @@ async function processOneReminder(
   if (config.dryRun) {
     logger.info(`[DRY RUN] Would send to ${patientProfile.phone}:\n${message}`);
     await markReminderSent(supabase, reminder.id);
-    return;
+    return 'sent';
   }
 
   // Send via OpenClaw (webhook HTTP first, CLI fallback)
@@ -185,4 +205,5 @@ async function processOneReminder(
   }
 
   await markReminderSent(supabase, reminder.id);
+  return 'sent';
 }

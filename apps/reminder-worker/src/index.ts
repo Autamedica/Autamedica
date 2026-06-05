@@ -31,6 +31,7 @@ const OPENCLAW_TOKEN = getServerEnvOrDefault('OPENCLAW_TOKEN') ?? '';
 const OPENCLAW_ACCOUNT = getServerEnvOrDefault('OPENCLAW_ACCOUNT') ?? 'autamedica';
 const DRY_RUN = getServerEnvOrDefault('REMINDER_DRY_RUN') === 'true';
 const INTERVAL_MS = parseInt(getServerEnvOrDefault('REMINDER_INTERVAL_MS') ?? '60000', 10);
+const RUN_ONCE = getServerEnvOrDefault('REMINDER_RUN_ONCE') === 'true' || process.argv.includes('--once');
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
@@ -38,7 +39,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 }
 
 if (!OPENCLAW_TOKEN && !DRY_RUN) {
-  console.warn('⚠️  OPENCLAW_TOKEN not set. Running in DRY_RUN mode.');
+  console.warn('⚠️  OPENCLAW_TOKEN not set. Continuing with OpenClaw CLI delivery.');
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -50,13 +51,14 @@ const openclawConfig: OpenClawConfig = {
   accountId: OPENCLAW_ACCOUNT,
 };
 
-const effectiveDryRun = DRY_RUN || !OPENCLAW_TOKEN;
+const effectiveDryRun = DRY_RUN;
 
 console.log('🏥 MediAgenda Reminder Worker starting...');
 console.log(`   Supabase: ${SUPABASE_URL}`);
 console.log(`   OpenClaw: ${OPENCLAW_URL} (account: ${OPENCLAW_ACCOUNT})`);
 console.log(`   Dry Run: ${effectiveDryRun}`);
 console.log(`   Interval: ${INTERVAL_MS}ms`);
+console.log(`   Run once: ${RUN_ONCE}`);
 console.log('');
 
 async function tick() {
@@ -85,7 +87,7 @@ async function tick() {
       clinicalOutboxResult.processed > 0
     ) {
       console.log(
-        `[${new Date().toISOString()}] Processed: ${result.processed} | Sent: ${result.sent} | Failed: ${result.failed} | Waitlist sent: ${result.waitlistOffersSent} | Waitlist expired: ${result.waitlistExpired} | No-show marked: ${result.noShowsMarked} | Doctor WA sent: ${doctorWhatsAppResult.sent} | Doctor WA failed: ${doctorWhatsAppResult.failed} | Clinical Outbox processed: ${clinicalOutboxResult.processed} | Dispatched: ${clinicalOutboxResult.dispatched} | Skipped: ${clinicalOutboxResult.skipped}`,
+        `[${new Date().toISOString()}] Processed: ${result.processed} | Sent: ${result.sent} | Skipped: ${result.skipped} | Failed: ${result.failed} | Waitlist sent: ${result.waitlistOffersSent} | Waitlist expired: ${result.waitlistExpired} | No-show marked: ${result.noShowsMarked} | Doctor WA sent: ${doctorWhatsAppResult.sent} | Doctor WA skipped: ${doctorWhatsAppResult.skipped} | Doctor WA failed: ${doctorWhatsAppResult.failed} | Clinical Outbox processed: ${clinicalOutboxResult.processed} | Dispatched: ${clinicalOutboxResult.dispatched} | Skipped: ${clinicalOutboxResult.skipped}`,
       );
     }
 
@@ -101,7 +103,11 @@ async function tick() {
 }
 
 // Initial run
-tick();
+await tick();
+
+if (RUN_ONCE) {
+  process.exit(0);
+}
 
 // Periodic execution
 setInterval(tick, INTERVAL_MS);

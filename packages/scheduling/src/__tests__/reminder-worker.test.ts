@@ -71,6 +71,56 @@ describe('processReminderCycle', () => {
 
     expect(result.processed).toBe(1);
     expect(result.sent).toBe(1);
+    expect(result.skipped).toBe(0);
+    expect(result.failed).toBe(0);
+  });
+
+  it('skips stale reminders for appointments that already started', async () => {
+    const mockReminder = {
+      id: 'r-stale',
+      appointment_id: 'appt-stale',
+      channel: 'whatsapp',
+      scheduled_for: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+      sent_at: null,
+      status: 'pending',
+      response: null,
+      retry_count: 0,
+      next_retry_at: null,
+      last_error: null,
+      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    };
+
+    const mockAppointment = {
+      id: 'appt-stale',
+      start_time: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+      end_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      type: 'consultation',
+      status: 'scheduled',
+      location: null,
+      meeting_url: null,
+      patients: {
+        id: 'p-1',
+        user_id: 'u-1',
+        profiles: { first_name: 'Juan', last_name: 'Pérez', phone: '+5491155551234' },
+      },
+      doctors: {
+        id: 'd-1',
+        user_id: 'u-2',
+        profiles: { first_name: 'María', last_name: 'García' },
+      },
+    };
+
+    const sb = createMockSupabase({
+      appointment_reminders: { data: [mockReminder], error: null },
+      appointments: { data: mockAppointment, error: null },
+      appointment_waitlist: { data: [], error: null },
+    });
+
+    const result = await processReminderCycle(sb, workerConfig);
+
+    expect(result.processed).toBe(1);
+    expect(result.sent).toBe(0);
+    expect(result.skipped).toBe(1);
     expect(result.failed).toBe(0);
   });
 
@@ -99,6 +149,7 @@ describe('processReminderCycle', () => {
 
     expect(result.processed).toBe(1);
     expect(result.sent).toBe(0);
+    expect(result.skipped).toBe(0);
     expect(result.failed).toBe(1);
     expect(result.errors.length).toBeGreaterThan(0);
   });
