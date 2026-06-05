@@ -224,12 +224,16 @@ export function VoiceAnamnesis({
   const summaryTextRef = useRef('')
   useEffect(() => { extractedFieldsRef.current = extractedFields }, [extractedFields])
   useEffect(() => { summaryTextRef.current = summaryText }, [summaryText])
-  const [vadThreshold, setVadThreshold] = useState(0.015)
-  const triggerHaptic = (pattern: number | number[]) => {
-    if (typeof navigator !== "undefined" && navigator.vibrate) {
-      if (typeof navigator !== "undefined" && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) { console.log("Haptic blocked by browser policy"); } }
-    }
-  };
+	  const [vadThreshold, setVadThreshold] = useState(0.015)
+	  const triggerHaptic = (pattern: number | number[]) => {
+	    if (typeof navigator !== "undefined" && navigator.vibrate) {
+	      try {
+	        navigator.vibrate(pattern);
+	      } catch {
+	        // Ignore browser/device haptic restrictions.
+	      }
+	    }
+	  };
 
   const vadActiveRef = useRef(false)
   const lastAudioTimeRef = useRef<number>(0)
@@ -1235,11 +1239,11 @@ export function VoiceAnamnesis({
           <h3 className="text-lg font-bold text-stone-900 mb-2">
             {isGuidedCheckpoint ? 'Preparando voz' : 'Anamnesis por voz'}
           </h3>
-          <p className="text-sm text-stone-500 mb-5">
-            {isGuidedCheckpoint
-              ? 'Te vamos a hacer preguntas puntuales sobre lo pendiente y registrar tus respuestas por voz.'
-              : 'Hablá naturalmente. El asistente te hace ~8 preguntas y cierra solo.'}
-          </p>
+	          <p className="text-sm text-stone-500 mb-5">
+	            {isGuidedCheckpoint
+	              ? 'Respondé por voz las preguntas que faltan.'
+	              : 'Hablá naturalmente y avanzá paso a paso.'}
+	          </p>
           {isGuidedCheckpoint ? (
             <div className="space-y-3">
               <p className="text-xs text-stone-400">

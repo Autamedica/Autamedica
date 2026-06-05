@@ -134,7 +134,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   if (!sexId) {
-    return badRequest('Seleccioná el sexo registral para consultar datos oficiales.');
+    return badRequest('Seleccioná el sexo para completar la verificación.');
   }
 
   try {

@@ -714,7 +714,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         </div>
       </nav>
 
-      {/* Floating Wallet Button & Popover */}
+      {/* Floating balance button and popover */}
       {walletSummary && (
         <div className="fixed bottom-24 right-20 z-50 sm:right-24">
           <AnimatePresence>
@@ -732,10 +732,10 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-sky-600">
-                      Mi Billetera AutaMedica
+                      Saldo AutaMedica
                     </p>
                     <p className="text-xs text-neutral-400 font-medium">
-                      Tus recursos y créditos
+                      Tu saldo para consultas
                     </p>
                   </div>
                 </div>
@@ -826,9 +826,9 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <h3 className="text-xl font-bold tracking-tight text-neutral-900 mb-2">
               Cargar Saldo AutaMedica
             </h3>
-            <p className="text-sm text-neutral-500 mb-6">
-              Ingresá el monto que deseas cargar. Serás redirigido a MercadoPago para abonar con saldo de cuenta, transferencia o tarjetas.
-            </p>
+	            <p className="text-sm text-neutral-500 mb-6">
+	              Ingresá el monto y elegí el medio de pago en el siguiente paso.
+	            </p>
 
             <form onSubmit={handleTopup} className="space-y-4">
               <div>

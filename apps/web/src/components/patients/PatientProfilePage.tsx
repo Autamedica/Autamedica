@@ -82,7 +82,7 @@ function AuthenticatedPatientProfilePage({
   const officialIdentityRows = [
     { label: 'Nombre legal', value: [form.firstName, form.lastName].filter(Boolean).join(' ') },
     { label: 'Fecha de nacimiento', value: form.birthDate },
-    { label: 'Sexo registral', value: form.gender ? genderLabel : '' },
+    { label: 'Sexo', value: form.gender ? genderLabel : '' },
     { label: 'CUIL', value: form.cuil },
     { label: 'Domicilio', value: form.address },
   ];

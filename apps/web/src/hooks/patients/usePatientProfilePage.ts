@@ -159,16 +159,16 @@ export function usePatientProfilePage(
     resetStatus();
   }, [accountFullName, anamnesisBirthDate, patient, profile, resetStatus, user?.email]);
 
-  const lookupOfficialIdentity = useCallback(async (): Promise<boolean> => {
-    const dni = form.dni.replace(/\D/g, '');
+	  const lookupOfficialIdentity = useCallback(async (): Promise<boolean> => {
+	    const dni = form.dni.replace(/\D/g, '');
     if (!dni) {
-      setIdentityLookupError('Ingresá tu DNI para buscar tus datos oficiales.');
+      setIdentityLookupError('Ingresá tu DNI para completar la verificación.');
       return false;
     }
 
     const sexId = form.gender === 'female' ? 1 : form.gender === 'male' ? 2 : form.gender === 'other' ? 3 : null;
     if (!sexId) {
-      setIdentityLookupError('Seleccioná tu sexo registral antes de consultar datos oficiales.');
+      setIdentityLookupError('Seleccioná tu sexo para completar la verificación.');
       return false;
     }
 
@@ -201,36 +201,36 @@ export function usePatientProfilePage(
           gender: data.form.gender || current.gender,
           cuil: data.form.cuil || current.cuil,
           address: data.form.address || current.address,
-        }));
-        setIdentityLookupSuccess(
-          data.coverage?.name
-            ? `Datos oficiales encontrados e incorporados. Cobertura: ${data.coverage.name}.`
-            : 'Datos oficiales encontrados e incorporados. Sin cobertura informada en PUCO.',
-        );
-      } else {
+	        }));
+	        setIdentityLookupSuccess(
+	          data.coverage?.name
+	            ? `Perfil actualizado. Cobertura: ${data.coverage.name}.`
+	            : 'Perfil actualizado.',
+	        );
+	      } else {
         setForm((current) => ({
           ...current,
           dni: data.form.dni || current.dni,
           gender: data.form.gender || current.gender,
-        }));
-        setIdentityLookupSuccess(
-          'Identidad verificada con RENAPER. Para poder desbloquear y visualizar los datos oficiales en tu perfil y recetas, necesitás realizar tu primer pago en la plataforma.'
-        );
-      }
+	        }));
+	        setIdentityLookupSuccess(
+	          'Verificación lista. Para completar el perfil y las recetas, activá tu primera consulta.'
+	        );
+	      }
 
       await refresh();
       return true;
-    } catch (error) {
-      setIdentityLookupError(
-        error instanceof Error && error.message
-          ? error.message
-          : 'No pudimos consultar RENAPER en este momento.',
-      );
-      return false;
-    } finally {
-      setIsLookingUpIdentity(false);
-    }
-  }, [form.dni, form.gender]);
+	    } catch (error) {
+	      setIdentityLookupError(
+	        error instanceof Error && error.message
+	          ? error.message
+	          : 'No pudimos completar la verificación en este momento.',
+	      );
+	      return false;
+	    } finally {
+	      setIsLookingUpIdentity(false);
+	    }
+	  }, [form.dni, form.gender, refresh]);
 
   const saveProfile = useCallback(async (): Promise<boolean> => {
     if (!user) {
