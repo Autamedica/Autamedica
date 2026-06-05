@@ -46,10 +46,10 @@ apps/web/src/lib/email/autamedica-template.ts
 Exporta:
 
 ```ts
-renderAutamedicaEmail()
-buildWelcomeEmail()
-buildReminderEmail()
-buildNewsletterEmail()
+renderAutamedicaEmail();
+buildWelcomeEmail();
+buildReminderEmail();
+buildNewsletterEmail();
 ```
 
 Regla operativa: todos los correos de AutaMedica deben salir usando este modulo o una extension directa del mismo. El GIF va como `background` en tabla, no como `<img>`, para evitar el boton de descarga de Gmail.
@@ -57,6 +57,5 @@ Regla operativa: todos los correos de AutaMedica deben salir usando este modulo 
 Remitente canonico:
 
 ```text
-Eduardo Marques <contacto@autamedica.com>
+AutaMedica <contacto@autamedica.com>
 ```
-
