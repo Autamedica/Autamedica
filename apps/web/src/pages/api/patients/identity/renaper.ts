@@ -172,9 +172,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       insurance_info: newInsuranceInfo,
       dni: officialDni,
       gender: officialGender ?? patient.gender ?? null,
-      birth_date: person.fechaNacimiento ?? null,
     };
 
+    if (person.fechaNacimiento) patientPatch.birth_date = person.fechaNacimiento;
     if (officialCuil) patientPatch.cuil = officialCuil;
     if (address) patientPatch.address = address;
 
@@ -251,7 +251,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   } catch (error) {
     const code = error instanceof Error ? (error as Error & { code?: string }).code : null;
-    if (code === 'BUS_NON_FHIR_CREDENTIALS_MISSING') {
+    if (code === 'BUS_NON_FHIR_CREDENTIALS_MISSING' || code === 'BUS_NON_FHIR_SUPABASE_CREDENTIALS_MISSING') {
       logger.error('[patients/identity/renaper] missing credentials', error);
       return serviceUnavailable('La verificación automática todavía no está configurada.');
     }

@@ -35,15 +35,18 @@ function normalizeSexId(value: unknown): RenaperSexId | null {
   return parsed === 1 || parsed === 2 || parsed === 3 ? parsed : null;
 }
 
-function hasServiceRoleAuthorization(req: Request): boolean {
+function checkServiceRoleAuthorization(req: Request): { authorized: boolean; error?: 'MISSING_ENV_KEY' | 'UNAUTHORIZED' } {
   const serviceRoleKey = Deno.env.get(['SUPABASE', 'SERVICE', 'ROLE', 'KEY'].join('_'));
-  const authorization = req.headers.get('Authorization');
+  if (!serviceRoleKey) {
+    return { authorized: false, error: 'MISSING_ENV_KEY' };
+  }
 
-  return Boolean(
-    serviceRoleKey &&
-      authorization &&
-      authorization === `Bearer ${serviceRoleKey}`,
-  );
+  const authorization = req.headers.get('Authorization');
+  if (!authorization || authorization !== `Bearer ${serviceRoleKey}`) {
+    return { authorized: false, error: 'UNAUTHORIZED' };
+  }
+
+  return { authorized: true };
 }
 
 async function readJsonOrNull(response: Response): Promise<unknown> {
@@ -112,32 +115,48 @@ async function getAccessToken(): Promise<{ token: string; domainCode: string }> 
     });
   }
 
-  const response = await fetch(`${BUS_BASE_URL}/usuarios/aplicacion/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      nombre: applicationName,
-      clave: password,
-      codDominio: domainCode,
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
-  const payload = await readJsonOrNull(response);
-  if (!response.ok || !payload || typeof payload !== 'object') {
-    throw Object.assign(new Error('bus_non_fhir_login_failed'), {
-      code: 'BUS_NON_FHIR_LOGIN_FAILED',
-      status: response.status,
+  try {
+    const response = await fetch(`${BUS_BASE_URL}/usuarios/aplicacion/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: applicationName,
+        clave: password,
+        codDominio: domainCode,
+      }),
+      signal: controller.signal,
     });
-  }
 
-  const token = asText((payload as Record<string, unknown>).token);
-  if (!token) {
-    throw Object.assign(new Error('bus_non_fhir_token_missing'), {
-      code: 'BUS_NON_FHIR_TOKEN_MISSING',
-    });
-  }
+    clearTimeout(timer);
 
-  return { token, domainCode };
+    const payload = await readJsonOrNull(response);
+    if (!response.ok || !payload || typeof payload !== 'object') {
+      throw Object.assign(new Error('bus_non_fhir_login_failed'), {
+        code: 'BUS_NON_FHIR_LOGIN_FAILED',
+        status: response.status,
+      });
+    }
+
+    const token = asText((payload as Record<string, unknown>).token);
+    if (!token) {
+      throw Object.assign(new Error('bus_non_fhir_token_missing'), {
+        code: 'BUS_NON_FHIR_TOKEN_MISSING',
+      });
+    }
+
+    return { token, domainCode };
+  } catch (error) {
+    clearTimeout(timer);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw Object.assign(new Error('bus_non_fhir_login_timeout'), {
+        code: 'BUS_NON_FHIR_LOGIN_TIMEOUT',
+      });
+    }
+    throw error;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -145,7 +164,11 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: false, code: 'METHOD_NOT_ALLOWED' }, 405);
   }
 
-  if (!hasServiceRoleAuthorization(req)) {
+  const auth = checkServiceRoleAuthorization(req);
+  if (!auth.authorized) {
+    if (auth.error === 'MISSING_ENV_KEY') {
+      return jsonResponse({ success: false, code: 'SUPABASE_SERVICE_ROLE_KEY_MISSING' }, 500);
+    }
     return jsonResponse({ success: false, code: 'UNAUTHORIZED' }, 401);
   }
 
@@ -198,6 +221,10 @@ Deno.serve(async (req) => {
 
     if (code === 'BUS_NON_FHIR_CREDENTIALS_MISSING') {
       return jsonResponse({ success: false, code }, 503);
+    }
+
+    if (code === 'BUS_NON_FHIR_LOGIN_TIMEOUT') {
+      return jsonResponse({ success: false, code }, 504);
     }
 
     return jsonResponse({ success: false, code: code ?? 'INTERNAL' }, 500);

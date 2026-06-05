@@ -231,8 +231,8 @@ async function fetchOfficialIdentityViaSupabase(input: {
   const serviceRoleKey = resolveServiceRoleKey(input.runtimeEnv);
 
   if (!publicSupabaseUrl || !serviceRoleKey) {
-    throw Object.assign(new Error('bus_non_fhir_credentials_missing'), {
-      code: 'BUS_NON_FHIR_CREDENTIALS_MISSING',
+    throw Object.assign(new Error('bus_non_fhir_supabase_credentials_missing'), {
+      code: 'BUS_NON_FHIR_SUPABASE_CREDENTIALS_MISSING',
     });
   }
 
