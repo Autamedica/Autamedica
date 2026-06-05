@@ -7,15 +7,12 @@ import {
   Activity,
   AlertCircle,
   BadgeCheck,
-  CalendarClock,
 
-  ClipboardList,
   Droplets,
   Hash,
   HeartPulse,
   Loader2,
   Mail,
-  MapPin,
   Phone,
   RefreshCcw,
   Save,
@@ -75,6 +72,20 @@ function AuthenticatedPatientProfilePage({
     screeningsStats,
     screeningsHighlights,
   } = usePatientProfilePage(session);
+  const insuranceInfo = form.insuranceInfo && typeof form.insuranceInfo === 'object'
+    ? form.insuranceInfo as Record<string, unknown>
+    : null;
+  const hasOfficialIdentity =
+    form.dni.trim().length > 0 &&
+    form.gender.trim().length > 0 &&
+    !!insuranceInfo?.official_data;
+  const officialIdentityRows = [
+    { label: 'Nombre legal', value: [form.firstName, form.lastName].filter(Boolean).join(' ') },
+    { label: 'Fecha de nacimiento', value: form.birthDate },
+    { label: 'Sexo', value: form.gender ? genderLabel : '' },
+    { label: 'CUIL', value: form.cuil },
+    { label: 'Domicilio', value: form.address },
+  ];
 
   return (
     <main className="min-h-screen bg-white text-neutral-900">
@@ -97,13 +108,8 @@ function AuthenticatedPatientProfilePage({
               <h2 className="text-2xl font-bold text-neutral-900 mb-3">
                 Información personal
               </h2>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-gray-600">
-                Este perfil concentra solo la información canónica de identidad y contexto clínico
-                base. La anamnesis, el historial y la prevención leen estos mismos datos para evitar
-                duplicaciones y mantener consistencia.
-              </p>
 
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-4 flex flex-wrap gap-3">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-gray-700 ring-1 ring-sky-100">
                   <Mail className="h-4 w-4 text-sky-600" />
                   {form.email || 'Sin email'}
@@ -129,7 +135,7 @@ function AuthenticatedPatientProfilePage({
               <div className="mt-6 grid gap-3 md:grid-cols-2">
                 <div className="rounded-[1.5rem] border border-sky-100 bg-white/90 p-4 shadow-am-card">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-                    Agenda conectada
+                    Agenda
                   </p>
                   <p className="mt-3 text-lg font-semibold text-gray-950">
                     {appointmentsLoading
@@ -140,7 +146,7 @@ function AuthenticatedPatientProfilePage({
                   </p>
                   <p className="mt-2 text-sm leading-6 text-gray-600">
                     {appointmentsLoading
-                      ? 'Cruzando próximos turnos y consultas previas.'
+                      ? 'Sincronizando...'
                       : upcomingAppointment?.specialty
                         ? `${upcomingAppointment.specialty}. ${appointmentsCount} turno(s) activos y ${completedConsultations} consulta(s) realizadas.`
                         : `${appointmentsCount} turno(s) activos y ${completedConsultations} consulta(s) realizadas.`}
@@ -149,7 +155,7 @@ function AuthenticatedPatientProfilePage({
 
                 <div className="rounded-[1.5rem] border border-sky-100 bg-white/90 p-4 shadow-am-card">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-                    Informes reutilizables
+                    Informes
                   </p>
                   <p className="mt-3 text-lg font-semibold text-gray-950">
                     {reportsLoading
@@ -160,10 +166,10 @@ function AuthenticatedPatientProfilePage({
                   </p>
                   <p className="mt-2 text-sm leading-6 text-gray-600">
                     {reportsLoading
-                      ? 'Leyendo reportes clínicos disponibles.'
+                      ? 'Sincronizando...'
                       : reportsCount > 0
                         ? `${reportsCount} informe(s), ${aiGeneratedReportsCount} generado(s) con IA. Último: ${formatCompactDate(latestReport?.dateRecorded ?? null)}.`
-                        : 'Cuando existan informes o SOAPs, aparecerán acá sin duplicar carga manual.'}
+                        : 'Sin informes cargados.'}
                   </p>
                 </div>
               </div>
@@ -225,8 +231,7 @@ function AuthenticatedPatientProfilePage({
           <div className="flex items-start gap-3 rounded-3xl border border-sky-100 bg-sky-50 px-5 py-4 text-sky-900">
             <Stethoscope className="mt-0.5 h-5 w-5 shrink-0" />
             <p className="text-sm leading-6">
-              Parte del contexto clínico complementario todavía no cargó. Podés seguir editando el
-              perfil base mientras se sincronizan esos módulos.
+              Algunos datos clínicos todavía no cargaron.
             </p>
           </div>
         ) : null}
@@ -236,34 +241,18 @@ function AuthenticatedPatientProfilePage({
             <div className="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-am-card-lg sm:p-8">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <h2 className="font-heading text-3xl text-gray-950">Datos canónicos del perfil</h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-                    Editá solo lo que es fuente de verdad en `profiles` y `patients`. La medicación,
-                    alergias, diagnósticos y secciones extensas siguen viviendo en sus módulos dueños.
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-sky-50 px-4 py-3 text-sm text-sky-700">
-                  <strong className="block font-semibold text-sky-900">Sin duplicar datos</strong>
-                  Todo lo demás se muestra como resumen o link al módulo correspondiente.
+                  <h2 className="font-heading text-3xl text-gray-950">Perfil</h2>
                 </div>
               </div>
 
-              <div className="mt-8 space-y-8">
+              <div className="mt-6 space-y-8">
                 <div>
                   <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-gray-400">
                     Identidad y contacto
                   </h3>
                   <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold text-sky-950">
-                          Completar con datos oficiales
-                        </p>
-                        <p className="mt-1 max-w-2xl text-sm leading-6 text-sky-800">
-                          Ingresá tu DNI y sexo registral. AutaMedica completa los datos necesarios
-                          para recetas y documentación clínica con fuente oficial.
-                        </p>
-                      </div>
+                      <p className="text-sm font-semibold text-sky-950">Identidad oficial</p>
                       <button
                         type="button"
                         onClick={lookupOfficialIdentity}
@@ -275,8 +264,31 @@ function AuthenticatedPatientProfilePage({
                         ) : (
                           <BadgeCheck className="h-4 w-4" />
                         )}
-                        {isLookingUpIdentity ? 'Consultando...' : 'Completar datos'}
+                        {isLookingUpIdentity ? 'Consultando...' : 'Completar'}
                       </button>
+                    </div>
+                    <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.75fr)]">
+                      <Field
+                        label="DNI"
+                        value={form.dni}
+                        onChange={(event) => setField('dni', event.target.value)}
+                        placeholder="Número de documento"
+                        icon={<Hash className="h-4 w-4" />}
+                        disabled={!!session.patient?.dni}
+                      />
+                      <SelectField
+                        label="Sexo"
+                        value={form.gender}
+                        onChange={(event) => setField('gender', event.target.value as typeof form.gender)}
+                        icon={<UserCircle2 className="h-4 w-4" />}
+                        disabled={!!session.patient?.gender}
+                      >
+                        {GENDER_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </SelectField>
                     </div>
                     {identityLookupSuccess ? (
                       <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-emerald-700">
@@ -291,35 +303,40 @@ function AuthenticatedPatientProfilePage({
                       </p>
                     ) : null}
                   </div>
+
+                  <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-950">Resultado</p>
+                      </div>
+                      <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${hasOfficialIdentity ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-100'}`}>
+                        {hasOfficialIdentity ? (
+                          <BadgeCheck className="h-3.5 w-3.5" />
+                        ) : (
+                          <AlertCircle className="h-3.5 w-3.5" />
+                        )}
+                        {hasOfficialIdentity ? 'Verificado' : 'Pendiente de consulta'}
+                      </span>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      {officialIdentityRows.map((row) => (
+                        <div key={row.label} className="rounded-2xl bg-sky-50/70 px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">
+                            {row.label}
+                          </p>
+                          <p className="mt-2 min-h-5 text-sm font-semibold text-gray-950">
+                            {row.value || 'Pendiente'}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <Field
-                      label="DNI"
-                      value={form.dni}
-                      onChange={(event) => setField('dni', event.target.value)}
-                      placeholder="Tu número de documento"
-                      hint={session.patient?.dni ? 'El DNI no puede ser modificado una vez establecido.' : 'Se usa para completar datos oficiales y preparar recetas.'}
-                      icon={<Hash className="h-4 w-4" />}
-                      disabled={!!session.patient?.dni}
-                    />
-                    <Field
-                      label="Nombre"
-                      value={form.firstName}
-                      onChange={(event) => setField('firstName', event.target.value)}
-                      placeholder="Tu nombre"
-                      icon={<UserCircle2 className="h-4 w-4" />}
-                    />
-                    <Field
-                      label="Apellido"
-                      value={form.lastName}
-                      onChange={(event) => setField('lastName', event.target.value)}
-                      placeholder="Tu apellido"
-                      icon={<UserCircle2 className="h-4 w-4" />}
-                    />
                     <Field
                       label="Email de acceso"
                       value={form.email}
                       disabled
-                      hint="Se muestra como referencia y se reutiliza para autenticación."
                       icon={<Mail className="h-4 w-4" />}
                     />
                     <Field
@@ -329,22 +346,6 @@ function AuthenticatedPatientProfilePage({
                       placeholder="+54 11 5555 5555"
                       icon={<Phone className="h-4 w-4" />}
                     />
-                    <Field
-                      label="CUIL"
-                      value={form.cuil}
-                      onChange={(event) => setField('cuil', event.target.value)}
-                      placeholder="20-XXXXXXXX-9"
-                      hint="Si RENAPER no lo informa, podés completarlo manualmente."
-                      icon={<Hash className="h-4 w-4" />}
-                    />
-                    <Field
-                      label="Domicilio"
-                      value={form.address}
-                      onChange={(event) => setField('address', event.target.value)}
-                      placeholder="Calle 123, Depto 4B, CABA"
-                      hint="Puede completarse desde datos oficiales y editarse si corresponde."
-                      icon={<MapPin className="h-4 w-4" />}
-                    />
                   </div>
                 </div>
 
@@ -353,27 +354,6 @@ function AuthenticatedPatientProfilePage({
                     Datos clínicos base
                   </h3>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <Field
-                      label="Fecha de nacimiento"
-                      type="date"
-                      value={form.birthDate}
-                      onChange={(event) => setField('birthDate', event.target.value)}
-                      icon={<CalendarClock className="h-4 w-4" />}
-                    />
-                    <SelectField
-                      label="Género"
-                      value={form.gender}
-                      onChange={(event) => setField('gender', event.target.value as typeof form.gender)}
-                      icon={<UserCircle2 className="h-4 w-4" />}
-                      disabled={!!session.patient?.gender}
-                      hint={session.patient?.gender ? 'El sexo registral no puede ser modificado una vez establecido.' : undefined}
-                    >
-                      {GENDER_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </SelectField>
                     <SelectField
                       label="Grupo sanguíneo"
                       value={form.bloodType}
@@ -453,9 +433,7 @@ function AuthenticatedPatientProfilePage({
               ) : null}
 
               <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-sky-100 pt-6">
-                <div className="text-sm text-gray-500">
-                  Este guardado impacta en identificación, preventivos y contexto clínico básico.
-                </div>
+                <div />
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
@@ -507,7 +485,7 @@ function AuthenticatedPatientProfilePage({
           <aside className="space-y-6">
             <CrossModuleCard
               title="Anamnesis"
-              description="La fecha de nacimiento, el género y el contexto base completan el circuito clínico y evitan pedirte lo mismo varias veces."
+              description="Historia inicial."
               href="/patients/anamnesis"
               stats={[
                 { label: 'Progreso', value: `${anamnesisCompletion}%` },
@@ -526,8 +504,8 @@ function AuthenticatedPatientProfilePage({
             />
 
             <CrossModuleCard
-              title="Historial médico"
-              description="Alergias, condiciones y medicación siguen siendo dueñas del historial. Acá solo mostramos el resumen para no duplicar edición."
+              title="Historial"
+              description="Resumen."
               href="/patients/medical-history"
               stats={[
                 {
@@ -553,7 +531,7 @@ function AuthenticatedPatientProfilePage({
 
             <CrossModuleCard
               title="Agenda"
-              description="El perfil aprovecha turnos y consultas para mostrar continuidad asistencial sin replicar datos administrativos."
+              description="Turnos."
               href="/patients/appointments"
               stats={[
                 {
@@ -577,7 +555,7 @@ function AuthenticatedPatientProfilePage({
 
             <CrossModuleCard
               title="Informes"
-              description="Los reportes de consulta y documentos clínicos se leen desde su módulo origen y se resumen acá como contexto reutilizable."
+              description="Documentos."
               href="/patients/reports"
               stats={[
                 {
@@ -601,7 +579,7 @@ function AuthenticatedPatientProfilePage({
 
             <CrossModuleCard
               title="Prevención"
-              description="Las recomendaciones preventivas usan edad y género del perfil para priorizar controles sin volver a pedir esos datos."
+              description="Controles."
               stats={[
                 { label: 'Al día', value: String(screeningsStats.upToDate) },
                 { label: 'Por coordinar', value: String(screeningsStats.dueSoon) },
@@ -610,10 +588,7 @@ function AuthenticatedPatientProfilePage({
             />
 
             <div className="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-am-card-xl">
-              <h2 className="font-heading text-2xl text-gray-950">Pendientes críticos</h2>
-              <p className="mt-2 text-sm leading-6 text-gray-600">
-                Completá primero los campos que destraban más reutilización clínica.
-              </p>
+              <h2 className="font-heading text-2xl text-gray-950">Falta completar</h2>
               {missingFields.length > 0 ? (
                 <div className="mt-5 space-y-3">
                   {missingFields.map((field) => (
@@ -622,7 +597,6 @@ function AuthenticatedPatientProfilePage({
                       className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3"
                     >
                       <p className="text-sm font-semibold text-amber-900">{field.label}</p>
-                      <p className="mt-1 text-sm leading-6 text-amber-800">{field.reason}</p>
                     </div>
                   ))}
                 </div>
@@ -630,10 +604,7 @@ function AuthenticatedPatientProfilePage({
                 <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
                   <div className="flex items-start gap-3">
                     <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0" />
-                    <p>
-                      El núcleo del perfil está completo. El resto del circuito ya puede reutilizar
-                      esta base sin pedirte información repetida.
-                    </p>
+                    <p>Perfil completo.</p>
                   </div>
                 </div>
               )}
@@ -662,7 +633,7 @@ function AuthenticatedPatientProfilePage({
                   <p className="mt-2 text-sm leading-6 text-gray-700">
                     {medicalSummary?.chronic_conditions?.length
                       ? medicalSummary.chronic_conditions.slice(0, 3).join(' · ')
-                      : 'Todavía no hay condiciones activas resumidas en historial.'}
+                      : 'Sin condiciones activas.'}
                   </p>
                 </div>
 
@@ -673,18 +644,7 @@ function AuthenticatedPatientProfilePage({
                   <p className="mt-2 text-sm leading-6 text-gray-700">
                     {medicalSummary?.current_medications?.length
                       ? medicalSummary.current_medications.slice(0, 3).join(' · ')
-                      : 'Sin medicación activa resumida en este momento.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-4">
-                <div className="flex items-start gap-3">
-                  <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-                  <p className="text-sm leading-6 text-sky-900">
-                    Si necesitás editar alergias, diagnósticos, hábitos o antecedentes detallados,
-                    hacelo desde anamnesis o historial médico. Este perfil mantiene solo la base
-                    compartida para que no existan dos versiones del mismo dato.
+                      : 'Sin medicación activa.'}
                   </p>
                 </div>
               </div>

@@ -277,21 +277,21 @@ export function usePatientCommunityPage() {
       });
     }
 
-    if (reportsState.reports.length > 0) {
-      const latest = reportsState.reports[0];
-      areas.push({
-        id: 'reports',
-        label: latest.title,
-        description: 'Tu último informe puede convertirse en mejores preguntas, no en duplicación de datos.',
-      });
-    }
+      if (reportsState.reports.length > 0) {
+        const latest = reportsState.reports[0];
+        areas.push({
+          id: 'reports',
+          label: latest.title,
+          description: 'Usamos tu último informe para orientar mejor las preguntas.',
+        });
+      }
 
     if (areas.length === 0) {
-      areas.push({
-        id: 'general',
-        label: 'Comunidad guiada',
-        description: 'Explorá apoyo entre pares sin mezclar la conversación social con tu registro clínico.',
-      });
+        areas.push({
+          id: 'general',
+          label: 'Comunidad guiada',
+          description: 'Explorá apoyo entre pares con orientación clínica.',
+        });
     }
 
     return areas.slice(0, 4);

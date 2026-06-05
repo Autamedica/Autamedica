@@ -114,8 +114,7 @@ export function buildFormState(input: {
     ? input.patient.insuranceInfo as Record<string, unknown>
     : null;
 
-  const hasPaid = !!insurance?.has_paid;
-  const official = (insurance?.official_data && hasPaid)
+  const official = insurance?.official_data
     ? insurance.official_data as {
         dni?: string | null;
         firstName?: string | null;
@@ -219,46 +218,40 @@ export function getGenderLabel(value: PatientProfileFormState['gender']): string
   }
 }
 
+function hasOfficialIdentityData(form: PatientProfileFormState): boolean {
+  const insurance = form.insuranceInfo && typeof form.insuranceInfo === 'object'
+    ? form.insuranceInfo as Record<string, unknown>
+    : null;
+
+  return !!insurance?.official_data;
+}
+
 export function buildMissingFields(form: PatientProfileFormState): MissingProfileField[] {
   const checks: MissingProfileField[] = [];
-
-  if (!form.firstName.trim()) {
-    checks.push({
-      id: 'firstName',
-      label: 'Nombre',
-      reason: 'se usa para identificarte en turnos, reportes y teleconsultas',
-    });
-  }
-
-  if (!form.lastName.trim()) {
-    checks.push({
-      id: 'lastName',
-      label: 'Apellido',
-      reason: 'evita ambiguedades en agenda, historia y documentación clínica',
-    });
-  }
+  const hasIdentitySeed = form.dni.trim().length > 0 && form.gender.trim().length > 0;
+  const hasOfficialIdentity = hasIdentitySeed && hasOfficialIdentityData(form);
 
   if (!form.dni.trim()) {
     checks.push({
       id: 'dni',
       label: 'DNI',
-      reason: 'identifica al paciente para recetas, turnos y validación oficial',
+      reason: 'requerido',
     });
   }
 
-  if (!form.cuil.trim()) {
+  if (!form.gender.trim()) {
     checks.push({
-      id: 'cuil',
-      label: 'CUIL',
-      reason: 'mejora la identificación administrativa y la trazabilidad de recetas',
+      id: 'gender',
+      label: 'Sexo',
+      reason: 'requerido',
     });
   }
 
-  if (!form.address.trim()) {
+  if (hasIdentitySeed && !hasOfficialIdentity) {
     checks.push({
-      id: 'address',
-      label: 'Domicilio',
-      reason: 'se usa como dato de respaldo en documentos clínicos y recetas',
+      id: 'officialIdentity',
+      label: 'Identidad oficial',
+      reason: 'pendiente',
     });
   }
 
@@ -266,23 +259,7 @@ export function buildMissingFields(form: PatientProfileFormState): MissingProfil
     checks.push({
       id: 'phone',
       label: 'Teléfono',
-      reason: 'se reutiliza en confirmaciones y contacto asistencial',
-    });
-  }
-
-  if (!form.birthDate.trim()) {
-    checks.push({
-      id: 'birthDate',
-      label: 'Fecha de nacimiento',
-      reason: 'alimenta edad clínica y recomendaciones preventivas',
-    });
-  }
-
-  if (!form.gender.trim()) {
-    checks.push({
-      id: 'gender',
-      label: 'Género',
-      reason: 'mejora la personalización de screenings y contexto médico',
+      reason: 'requerido',
     });
   }
 
@@ -290,7 +267,7 @@ export function buildMissingFields(form: PatientProfileFormState): MissingProfil
     checks.push({
       id: 'emergencyContactPhone',
       label: 'Teléfono de emergencia',
-      reason: 'es el dato crítico si hay que escalar un contacto urgente',
+      reason: 'requerido',
     });
   }
 
@@ -298,16 +275,15 @@ export function buildMissingFields(form: PatientProfileFormState): MissingProfil
 }
 
 export function buildProfileCompletion(form: PatientProfileFormState): number {
+  const identitySeedComplete = form.dni.trim().length > 0 && form.gender.trim().length > 0;
+  const officialIdentityComplete = identitySeedComplete && hasOfficialIdentityData(form);
+
   const checks = [
-    form.firstName.trim().length > 0,
-    form.lastName.trim().length > 0,
-    form.cuil.trim().length > 0,
-    form.address.trim().length > 0,
+    officialIdentityComplete || identitySeedComplete,
     form.email.trim().length > 0,
     form.phone.trim().length > 0,
-    form.dni.trim().length > 0,
-    form.birthDate.trim().length > 0,
-    form.gender.trim().length > 0,
+    form.bloodType.trim().length > 0,
+    form.heightCm.trim().length > 0 && form.weightKg.trim().length > 0,
     form.emergencyContactPhone.trim().length > 0,
   ];
 
