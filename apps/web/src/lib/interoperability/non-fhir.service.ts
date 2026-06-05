@@ -1,7 +1,9 @@
 import {
+  resolvePublicSupabaseEnv,
   resolveBusNonFhirApplicationName,
   resolveBusNonFhirDomainCode,
   resolveBusNonFhirPassword,
+  resolveServiceRoleKey,
 } from '@/lib/runtime-env';
 
 type RuntimeEnvRecord = Record<string, unknown> | null | undefined;
@@ -130,6 +132,14 @@ function requireConfig(runtimeEnv?: RuntimeEnvRecord): {
   return { applicationName, password, domainCode };
 }
 
+function hasDirectBusConfig(runtimeEnv?: RuntimeEnvRecord): boolean {
+  return Boolean(
+    resolveBusNonFhirApplicationName(runtimeEnv) &&
+      resolveBusNonFhirPassword(runtimeEnv) &&
+      resolveBusNonFhirDomainCode(runtimeEnv),
+  );
+}
+
 async function readJsonOrNull(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return null;
@@ -174,6 +184,10 @@ export async function fetchOfficialIdentity(input: {
   sexId: RenaperSexId;
   runtimeEnv?: RuntimeEnvRecord;
 }): Promise<OfficialIdentityResult> {
+  if (!hasDirectBusConfig(input.runtimeEnv)) {
+    return fetchOfficialIdentityViaSupabase(input);
+  }
+
   const { token, domainCode } = await getNonFhirAccessToken(input.runtimeEnv);
   const query = `nroDocumento=${encodeURIComponent(input.dni)}&idSexo=${input.sexId}`;
   const headers = {
@@ -205,5 +219,55 @@ export async function fetchOfficialIdentity(input: {
   return {
     person: normalizePerson(personPayload),
     coverages,
+  };
+}
+
+async function fetchOfficialIdentityViaSupabase(input: {
+  dni: string;
+  sexId: RenaperSexId;
+  runtimeEnv?: RuntimeEnvRecord;
+}): Promise<OfficialIdentityResult> {
+  const { publicSupabaseUrl } = resolvePublicSupabaseEnv(input.runtimeEnv);
+  const serviceRoleKey = resolveServiceRoleKey(input.runtimeEnv);
+
+  if (!publicSupabaseUrl || !serviceRoleKey) {
+    throw Object.assign(new Error('bus_non_fhir_credentials_missing'), {
+      code: 'BUS_NON_FHIR_CREDENTIALS_MISSING',
+    });
+  }
+
+  const response = await fetch(`${publicSupabaseUrl}/functions/v1/patient-identity-renaper`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${serviceRoleKey}`,
+      apikey: serviceRoleKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      dni: input.dni,
+      sexId: input.sexId,
+    }),
+  });
+
+  const payload = await readJsonOrNull(response);
+  const value = payload && typeof payload === 'object'
+    ? payload as Record<string, unknown>
+    : {};
+
+  if (!response.ok || value.success !== true) {
+    const code = typeof value.code === 'string' ? value.code : 'RENAPER_LOOKUP_FAILED';
+    throw Object.assign(new Error(code.toLowerCase()), {
+      code,
+      status: response.status,
+    });
+  }
+
+  const data = value.data && typeof value.data === 'object'
+    ? value.data as Record<string, unknown>
+    : {};
+
+  return {
+    person: normalizePerson(data.person),
+    coverages: normalizeCoverages(data.coverages),
   };
 }
