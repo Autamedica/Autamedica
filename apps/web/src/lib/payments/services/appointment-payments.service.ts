@@ -582,6 +582,43 @@ export const appointmentPaymentsService = {
     }
 
     const payment = await mpFetch<MercadoPagoPaymentDetail>(`/v1/payments/${dataId}`)
+
+    const isWalletTopup = payment.metadata?.type === 'wallet_topup'
+    if (isWalletTopup) {
+      const patientId = payment.metadata?.patient_id
+      const amountCents = majorUnitToCents(payment.transaction_amount)
+      const status = resolveAppointmentPaymentStatus(payment)
+
+      if (status === 'approved' && patientId && amountCents > 0) {
+        const reason = `Carga de Saldo vía Mercado Pago (Pago ID: ${payment.id})`
+        const idempotencyKey = `wallet_topup:${payment.id}`
+
+        const { error } = await supabase.rpc('grant_patient_wallet_credit' as never, {
+          p_patient_id: patientId,
+          p_amount_cents: amountCents,
+          p_reason: reason,
+          p_idempotency_key: idempotencyKey,
+        } as never)
+
+        if (error) {
+          logger.error('[appointment-payments] Webhook wallet topup failed to grant credit', {
+            paymentId: payment.id,
+            patientId,
+            amountCents,
+            error,
+          })
+          throw error
+        }
+
+        logger.info('[appointment-payments] Webhook wallet topup credited successfully', {
+          paymentId: payment.id,
+          patientId,
+          amountCents,
+        })
+      }
+      return
+    }
+
     const appointmentId =
       typeof payment.metadata?.appointment_id === 'string'
         ? payment.metadata.appointment_id
@@ -747,6 +784,54 @@ export const appointmentPaymentsService = {
         error,
       })
       throw error
+    }
+  },
+
+  async createWalletTopupPreference(
+    _supabase: Db,
+    patientId: string,
+    amountCents: number,
+    patientEmail: string,
+  ): Promise<{
+    preferenceId: string
+    checkoutUrl: string
+  }> {
+    assertWebhookRuntimeConfigured()
+
+    const appUrl = getAppUrl()
+    const amount = centsToMajorUnit(amountCents)
+    const mpResponse = await mpFetch<MercadoPagoPreferenceResponse>('/checkout/preferences', {
+      method: 'POST',
+      body: JSON.stringify({
+        items: [{
+          title: 'AutaMedica - Carga de Saldo',
+          description: `Carga de credito virtual en billetera para consultas medicas en AutaMedica`,
+          quantity: 1,
+          unit_price: amount,
+          currency_id: APPOINTMENT_PAYMENT_CURRENCY,
+        }],
+        payer: {
+          email: patientEmail,
+        },
+        back_urls: {
+          success: `${appUrl}/patients/appointments?payment=success&type=wallet_topup`,
+          failure: `${appUrl}/patients/appointments?payment=failure&type=wallet_topup`,
+          pending: `${appUrl}/patients/appointments?payment=pending&type=wallet_topup`,
+        },
+        auto_return: 'approved',
+        statement_descriptor: MERCADOPAGO_STATEMENT_DESCRIPTOR,
+        notification_url: `${appUrl}/api/payments/mercadopago/webhook`,
+        metadata: {
+          type: 'wallet_topup',
+          patient_id: patientId,
+          amount_cents: amountCents,
+        },
+      }),
+    })
+
+    return {
+      preferenceId: mpResponse.id,
+      checkoutUrl: mpResponse.init_point,
     }
   },
 

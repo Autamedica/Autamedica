@@ -212,7 +212,7 @@ export function AppointmentsTable({
                                 {formatArsFromCents(fee)}
                               </p>
                               <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-600">
-                                Disponés de saldo a favor suficiente en tu billetera AutaMedica para confirmar esta consulta de forma inmediata.
+                                Disponés de saldo AutaMedica suficiente para confirmar esta consulta de forma inmediata.
                               </p>
                             </div>
                           </div>
@@ -247,7 +247,7 @@ export function AppointmentsTable({
                                 : 'Valor a confirmar'}
                             </p>
                             <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-600">
-                              Al acreditarse en MercadoPago, el turno queda confirmado. Si tu caso necesita una revisión de cierre, ya está incluida.
+                              Completá el pago para confirmar el turno. La revisión de cierre ya está incluida.
                             </p>
                           </div>
                         </div>
@@ -258,7 +258,7 @@ export function AppointmentsTable({
                           className="inline-flex items-center justify-center gap-2 rounded-full bg-stone-950 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-stone-800 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98] shrink-0"
                         >
                           {isPaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                          {isPaying ? 'Abriendo MercadoPago...' : 'Pagar consulta'}
+                          {isPaying ? 'Abriendo pago...' : 'Pagar consulta'}
                         </button>
                       </div>
                     </div>

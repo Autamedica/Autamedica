@@ -147,7 +147,7 @@ export default function AppointmentsPage({
     if (!paymentStatus) return
 
     if (paymentStatus === 'success') {
-      setPaymentMessage('Volvimos de MercadoPago. Estamos verificando la acreditación; la consulta queda confirmada cuando impacta el webhook.')
+      setPaymentMessage('Estamos confirmando tu pago. El turno se actualiza en unos segundos.')
       void refreshAppointments()
     } else if (paymentStatus === 'pending') {
       setPaymentMessage('Tu pago quedó pendiente. Apenas se acredite, la consulta se confirma.')
@@ -327,10 +327,10 @@ export default function AppointmentsPage({
       if (response?.checkoutUrl) {
         window.location.href = response.checkoutUrl
       } else {
-        throw new Error('No se pudo generar el link de pago de MercadoPago.')
+        throw new Error('No pudimos iniciar el pago.')
       }
     } catch (err) {
-      setTopupError(err instanceof Error ? err.message : 'Error al iniciar la carga.')
+      setTopupError(err instanceof Error ? err.message : 'No pudimos iniciar la carga.')
     } finally {
       setTopupLoading(false)
     }
@@ -436,7 +436,7 @@ export default function AppointmentsPage({
                         $0,00 disponibles
                       </h3>
                       <p className="mt-1 max-w-xl text-sm leading-relaxed text-neutral-500">
-                        No disponés de saldo cargado en tu billetera. Podés cargar saldo con MercadoPago o tarjetas para agendar turnos al instante.
+                        Cargá saldo para agendar turnos al instante.
                       </p>
                     </div>
                   </div>
@@ -463,11 +463,10 @@ export default function AppointmentsPage({
                   Acceso directo
                 </p>
                 <h2 className="font-heading mt-2 text-2xl font-bold tracking-tight">
-                  Entrá a tu videoconsulta sin copiar links ni room IDs
+                  Entrá a tu videoconsulta desde acá
                 </h2>
                 <p className="mt-3 text-sm text-slate-500">
-                  La sala se resuelve desde tu turno real. Si ya existe una llamada activa, te conecta
-                  a esa misma sesión; si no existe, la prepara antes de abrir el video.
+                  Cuando llegue el horario, abrimos la sala correcta para tu turno.
                 </p>
               </div>
 
@@ -566,7 +565,7 @@ export default function AppointmentsPage({
                         Confirmá tu consulta AutaMedica
                       </h3>
                       <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
-                        MercadoPago procesa el cobro y AutaMedica confirma el turno. Si tu caso necesita una revisión de cierre, ya está incluida.
+                        Completá el pago para confirmar el turno. La revisión de cierre ya está incluida.
                       </p>
                     </div>
                   </div>
@@ -696,7 +695,7 @@ export default function AppointmentsPage({
               Cargar Saldo AutaMedica
             </h3>
             <p className="text-sm text-neutral-500 mb-6">
-              Ingresá el monto que deseas cargar. Serás redirigido a MercadoPago para abonar con saldo de cuenta, transferencia o tarjetas.
+              Ingresá el monto y elegí el medio de pago en el siguiente paso.
             </p>
 
             <form onSubmit={handleTopup} className="space-y-4">
