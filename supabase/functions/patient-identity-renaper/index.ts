@@ -35,6 +35,17 @@ function normalizeSexId(value: unknown): RenaperSexId | null {
   return parsed === 1 || parsed === 2 || parsed === 3 ? parsed : null;
 }
 
+function hasServiceRoleAuthorization(req: Request): boolean {
+  const serviceRoleKey = Deno.env.get(['SUPABASE', 'SERVICE', 'ROLE', 'KEY'].join('_'));
+  const authorization = req.headers.get('Authorization');
+
+  return Boolean(
+    serviceRoleKey &&
+      authorization &&
+      authorization === `Bearer ${serviceRoleKey}`,
+  );
+}
+
 async function readJsonOrNull(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return null;
@@ -132,6 +143,10 @@ async function getAccessToken(): Promise<{ token: string; domainCode: string }> 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return jsonResponse({ success: false, code: 'METHOD_NOT_ALLOWED' }, 405);
+  }
+
+  if (!hasServiceRoleAuthorization(req)) {
+    return jsonResponse({ success: false, code: 'UNAUTHORIZED' }, 401);
   }
 
   const body = await req.json().catch(() => ({})) as IdentityRequest;
