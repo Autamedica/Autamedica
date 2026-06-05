@@ -111,7 +111,9 @@ interface EmailJob {
     | "patient_appointment_cancelled"
     | "patient_prescription_ready"
     | "patient_medical_order_ready"
-    | "nurturing";
+    | "nurturing"
+    | "community_new_topic"
+    | "community_new_comment";
   recipient_email: string;
   recipient_name: string | null;
   template_data: Record<string, unknown> | null;
@@ -508,6 +510,47 @@ function renderEmailJob(job: EmailJob): { subject: string; html: string; text: s
       ],
       actionLabel: pdfUrl ? "Descargar PDF" : "Descargar orden",
       actionUrl: orderUrl,
+      unsubscribeUrl,
+    });
+  }
+
+  if (job.job_type === "community_new_topic") {
+    const topicTitle = dataString(data, "topic_title");
+    const topicExcerpt = dataString(data, "topic_excerpt");
+    const authorName = dataString(data, "author_name");
+    const groupName = dataString(data, "group_name");
+    return renderTransactionalEmail(`Nuevo tema en la comunidad: ${topicTitle}`, {
+      title: "Nuevo tema en la comunidad",
+      preheader: `${authorName} creó un nuevo tema en el grupo ${groupName}.`,
+      paragraphs: [
+        `Hola, ${firstName}.`,
+        `**${authorName}** creó un nuevo tema en el grupo **${groupName}**:`,
+        `**"${topicTitle}"**`,
+        `_"${topicExcerpt}"_`,
+        "Ingresá a la plataforma para leer la publicación completa y participar de la conversación."
+      ],
+      actionLabel: "Ver publicación",
+      actionUrl,
+      unsubscribeUrl,
+    });
+  }
+
+  if (job.job_type === "community_new_comment") {
+    const topicTitle = dataString(data, "topic_title");
+    const commentExcerpt = dataString(data, "comment_excerpt");
+    const authorName = dataString(data, "author_name");
+    const groupName = dataString(data, "group_name");
+    return renderTransactionalEmail(`Nuevo comentario en: ${topicTitle}`, {
+      title: "Nuevo comentario en la comunidad",
+      preheader: `${authorName} comentó en el tema "${topicTitle}".`,
+      paragraphs: [
+        `Hola, ${firstName}.`,
+        `**${authorName}** comentó en el tema **"${topicTitle}"** del grupo **${groupName}**:`,
+        `_"${commentExcerpt}"_`,
+        "Ingresá a la plataforma para leer el comentario completo y responder en el hilo."
+      ],
+      actionLabel: "Ver comentario",
+      actionUrl,
       unsubscribeUrl,
     });
   }
