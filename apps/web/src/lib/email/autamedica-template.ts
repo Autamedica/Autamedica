@@ -61,8 +61,8 @@ function textFromInput(input: AutamedicaEmailTemplateInput): string {
     input.action ? `${input.action.label}: ${input.action.url}` : '',
     input.secondaryLink ? `${input.secondaryLink.label}: ${input.secondaryLink.url}` : '',
     '',
-    input.showPersonalSignature === false ? '' : input.closingName ?? 'Eduardo Marques',
-    input.showPersonalSignature === false ? '' : input.closingRole ?? 'Fundador: Eduardo Marques',
+    input.showPersonalSignature === false ? '' : input.closingName ?? 'Equipo AutaMedica',
+    input.showPersonalSignature === false ? '' : input.closingRole ?? 'AutaMedica',
     'contacto@autamedica.com',
   ].filter(Boolean);
 
@@ -145,13 +145,13 @@ export function renderAutamedicaEmail(
           ? ''
           : `<div style="margin-top:38px;">
         <p style="margin:0 0 4px;color:#475569;">Saludos,</p>
-        <p style="margin:0;color:#111827;"><strong>${escapeHtml(input.closingName ?? 'Eduardo Marques')}</strong><br>${escapeHtml(input.closingRole ?? 'Fundador: Eduardo Marques')}</p>
+        <p style="margin:0;color:#111827;"><strong>${escapeHtml(input.closingName ?? 'Equipo AutaMedica')}</strong><br>${escapeHtml(input.closingRole ?? 'AutaMedica')}</p>
       </div>`
       }
     </div>
 
     <div class="footer">
-      <p style="font-size:13px;margin:0 0 10px;">AutaMedica · contacto@autamedica.com</p>
+      <p style="font-size:13px;margin:0 0 10px;">AutaMedica · <a href="mailto:contacto@autamedica.com" style="text-decoration:none;">contacto@autamedica.com</a> · <a href="https://wa.me/5491168261552" style="text-decoration:none;font-weight:700;">WhatsApp</a></p>
       <p style="font-size:12px;margin:0 0 18px;">${escapeHtml(input.footerText ?? 'Salud digital, continuidad de cuidado y tecnologia clinica.')}</p>
       ${unsubscribeHtml}
     </div>
