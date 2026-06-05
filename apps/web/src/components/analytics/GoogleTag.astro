@@ -11,6 +11,7 @@ const GOOGLE_ADS_ID = import.meta.env.PUBLIC_GOOGLE_ADS_ID?.trim() || 'AW-181685
     const CONTROLLER_KEY = '__autamedicaGoogleTagControllerReady';
     const LOADED_KEY = '__autamedicaGoogleTagLoaded';
     const LOAD_KEY = '__autamedicaLoadGoogleTag';
+    const SCHEDULED_KEY = '__autamedicaGoogleTagScheduled';
 
     if (window[CONTROLLER_KEY]) {
       window[LOAD_KEY]?.();
@@ -25,7 +26,8 @@ const GOOGLE_ADS_ID = import.meta.env.PUBLIC_GOOGLE_ADS_ID?.trim() || 'AW-181685
       }
     }
 
-    function loadGoogleTag() {
+    function injectGoogleTag() {
+      window[SCHEDULED_KEY] = false;
       if (!hasCookieConsent() || window[LOADED_KEY]) return;
 
       window[LOADED_KEY] = true;
@@ -48,6 +50,18 @@ const GOOGLE_ADS_ID = import.meta.env.PUBLIC_GOOGLE_ADS_ID?.trim() || 'AW-181685
         GOOGLE_ADS_ID,
       )}`;
       document.head.appendChild(script);
+    }
+
+    function loadGoogleTag() {
+      if (!hasCookieConsent() || window[LOADED_KEY] || window[SCHEDULED_KEY]) return;
+
+      window[SCHEDULED_KEY] = true;
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(injectGoogleTag, { timeout: 2500 });
+        return;
+      }
+
+      window.setTimeout(injectGoogleTag, 1200);
     }
 
     window[CONTROLLER_KEY] = true;

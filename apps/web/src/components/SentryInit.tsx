@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { initClientSentry } from '@/lib/observability/sentry'
 
 const CHUNK_RELOAD_FLAG = '__autamedica_chunk_reload__'
+const CHUNK_RELOAD_COOLDOWN_MS = 60_000
 const CHUNK_ERROR_PATTERNS = [
   'Failed to fetch dynamically imported module',
   'Importing a module script failed',
@@ -16,16 +17,51 @@ function isChunkLoadError(message: unknown): boolean {
   return CHUNK_ERROR_PATTERNS.some((pattern) => message.includes(pattern))
 }
 
-function handleStaleChunk(source: string, detail: unknown) {
+function getChunkReloadTimestamp(): number | null {
+  try {
+    const storedValue = window.sessionStorage.getItem(CHUNK_RELOAD_FLAG)
+    if (!storedValue) return null
+
+    const timestamp = Number(storedValue)
+    return Number.isFinite(timestamp) ? timestamp : Date.now()
+  } catch {
+    return null
+  }
+}
+
+async function clearServiceWorkerCaches(): Promise<void> {
+  const cacheKeys = typeof caches === 'undefined' ? [] : await caches.keys()
+  await Promise.all(
+    cacheKeys
+      .filter((key) => key.startsWith('autamedica-'))
+      .map((key) => caches.delete(key)),
+  )
+
+  if ('serviceWorker' in navigator) {
+    const registration = await navigator.serviceWorker.getRegistration()
+    registration?.active?.postMessage({ type: 'CLEAR_RUNTIME_CACHES' })
+    await registration?.update()
+  }
+}
+
+function reloadAfterCacheRefresh(): void {
+  const cacheRefresh = clearServiceWorkerCaches().catch((error: unknown) => {
+    console.warn('[SentryInit] Could not clear stale runtime caches', error)
+  })
+  const timeout = new Promise<void>((resolve) => window.setTimeout(resolve, 800))
+
+  Promise.race([cacheRefresh, timeout]).finally(() => {
+    window.location.reload()
+  })
+}
+
+function handleStaleChunk(source: string, detail: unknown): void {
   if (typeof window === 'undefined') return
 
   // Evita loops: si ya recargamos en esta sesion, no insistir
-  let alreadyReloaded = false
-  try {
-    alreadyReloaded = window.sessionStorage.getItem(CHUNK_RELOAD_FLAG) === '1'
-  } catch {
-    // sessionStorage puede fallar en modo privado; seguimos igual
-  }
+  const lastReloadAt = getChunkReloadTimestamp()
+  const alreadyReloaded =
+    lastReloadAt !== null && Date.now() - lastReloadAt < CHUNK_RELOAD_COOLDOWN_MS
 
   console.warn('[SentryInit] Stale dynamic chunk detected', {
     source,
@@ -36,26 +72,26 @@ function handleStaleChunk(source: string, detail: unknown) {
   if (alreadyReloaded) return
 
   try {
-    window.sessionStorage.setItem(CHUNK_RELOAD_FLAG, '1')
+    window.sessionStorage.setItem(CHUNK_RELOAD_FLAG, String(Date.now()))
   } catch {
     // sin sessionStorage hacemos best-effort: igual recargamos una vez
   }
 
   // Pequeño delay para dejar que Sentry envie el breadcrumb antes del reload
-  window.setTimeout(() => {
-    window.location.reload()
-  }, 150)
+  window.setTimeout(reloadAfterCacheRefresh, 150)
 }
 
 export function SentryInit() {
   useEffect(() => {
     initClientSentry(window.__ENV)
 
-    // Limpia el flag de reload cuando la pagina cargo bien con los chunks nuevos
-    try {
-      window.sessionStorage.removeItem(CHUNK_RELOAD_FLAG)
-    } catch {
-      // ignore
+    const lastReloadAt = getChunkReloadTimestamp()
+    if (lastReloadAt !== null && Date.now() - lastReloadAt >= CHUNK_RELOAD_COOLDOWN_MS) {
+      try {
+        window.sessionStorage.removeItem(CHUNK_RELOAD_FLAG)
+      } catch {
+        // ignore
+      }
     }
 
     const onError = (event: ErrorEvent) => {

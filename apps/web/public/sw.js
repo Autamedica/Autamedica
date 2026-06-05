@@ -1,14 +1,12 @@
-const CACHE_NAME = 'autamedica-static-v1';
-const DYNAMIC_CACHE_NAME = 'autamedica-dynamic-v1';
+const CACHE_NAME = 'autamedica-static-v2';
+const DYNAMIC_CACHE_NAME = 'autamedica-dynamic-v2';
 
 // Recursos esenciales a pre-cachear durante la instalación
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/favicon.ico',
   '/logo.png',
   '/images/brand/logo_bioceramic.png',
-  '/font-demo.html',
   '/robots.txt'
 ];
 
@@ -42,6 +40,17 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+    return;
+  }
+
+  if (event.data && event.data.type === 'CLEAR_RUNTIME_CACHES') {
+    event.waitUntil(
+      caches.keys().then((keys) => {
+        return Promise.all(
+          keys.filter((key) => key.startsWith('autamedica-')).map((key) => caches.delete(key))
+        );
+      })
+    );
   }
 });
 
@@ -56,8 +65,15 @@ self.addEventListener('fetch', (event) => {
     request.method !== 'GET' ||
     url.pathname.includes('/api/auth') ||
     url.pathname.includes('/realtime/') ||
+    url.hostname.includes('googletagmanager.com') ||
     url.hostname.includes('google-analytics.com')
   ) {
+    return;
+  }
+
+  const isAstroBuildAsset = url.origin === self.location.origin && url.pathname.startsWith('/_astro/');
+  if (isAstroBuildAsset) {
+    event.respondWith(fetch(request));
     return;
   }
 
