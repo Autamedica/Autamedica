@@ -235,23 +235,23 @@ export function buildMissingFields(form: PatientProfileFormState): MissingProfil
     checks.push({
       id: 'dni',
       label: 'DNI',
-      reason: 'es uno de los dos datos necesarios para consultar identidad oficial',
+      reason: 'requerido',
     });
   }
 
   if (!form.gender.trim()) {
     checks.push({
       id: 'gender',
-      label: 'Sexo registral',
-      reason: 'es el segundo dato necesario para consultar RENAPER',
+      label: 'Sexo',
+      reason: 'requerido',
     });
   }
 
   if (hasIdentitySeed && !hasOfficialIdentity) {
     checks.push({
       id: 'officialIdentity',
-      label: 'Verificación oficial',
-      reason: 'tocá Completar datos para que RENAPER complete nombre, nacimiento y documentación',
+      label: 'Identidad oficial',
+      reason: 'pendiente',
     });
   }
 
@@ -259,7 +259,7 @@ export function buildMissingFields(form: PatientProfileFormState): MissingProfil
     checks.push({
       id: 'phone',
       label: 'Teléfono',
-      reason: 'se reutiliza en confirmaciones y contacto asistencial',
+      reason: 'requerido',
     });
   }
 
@@ -267,7 +267,7 @@ export function buildMissingFields(form: PatientProfileFormState): MissingProfil
     checks.push({
       id: 'emergencyContactPhone',
       label: 'Teléfono de emergencia',
-      reason: 'es el dato crítico si hay que escalar un contacto urgente',
+      reason: 'requerido',
     });
   }
 

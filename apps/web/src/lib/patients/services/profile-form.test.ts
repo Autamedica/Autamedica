@@ -16,7 +16,7 @@ function makeForm(overrides: Partial<PatientProfileFormState>): PatientProfileFo
 }
 
 describe('profile-form official identity requirements', () => {
-  it('asks only for the two RENAPER seed fields before official lookup', () => {
+  it('asks only for the two official identity seed fields before lookup', () => {
     const missing = buildMissingFields(makeForm({}));
 
     expect(missing.map((field) => field.id)).toEqual([
@@ -26,7 +26,7 @@ describe('profile-form official identity requirements', () => {
     ]);
   });
 
-  it('does not ask for RENAPER-owned fields as manual pending data', () => {
+  it('does not ask for official-source fields as manual pending data', () => {
     const form = makeForm({
       dni: '95466020',
       gender: 'male',

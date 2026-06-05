@@ -79,7 +79,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!isAllowed) {
     return jsonFail(
       'RATE_LIMITED',
-      'Excediste el límite diario de consultas de identidad. Intentá mañana.',
+      'No pudimos completar la verificación automática. Contactá soporte para revisarlo.',
       429,
     );
   }
@@ -106,7 +106,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (lookupCount >= 3) {
     return jsonFail(
       'RATE_LIMITED',
-      'Excediste el límite de 3 consultas de identidad permitidas por cuenta.',
+      'No pudimos completar la verificación automática. Contactá soporte para revisarlo.',
       403,
     );
   }
@@ -253,13 +253,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const code = error instanceof Error ? (error as Error & { code?: string }).code : null;
     if (code === 'BUS_NON_FHIR_CREDENTIALS_MISSING') {
       logger.error('[patients/identity/renaper] missing credentials', error);
-      return serviceUnavailable('La consulta oficial todavía no está configurada.');
+      return serviceUnavailable('La verificación automática todavía no está configurada.');
     }
     if (code === 'RENAPER_PERSON_NOT_FOUND') {
-      return badRequest('No encontramos datos oficiales para ese DNI y sexo registral.');
+      return badRequest('No pudimos verificar esos datos. Revisá DNI y sexo.');
     }
 
     logger.error('[patients/identity/renaper] lookup failed', error);
-    return internalError('No pudimos consultar los datos oficiales en este momento.');
+    return internalError('No pudimos completar la verificación automática en este momento.');
   }
 };
