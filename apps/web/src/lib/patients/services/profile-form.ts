@@ -279,7 +279,7 @@ export function buildProfileCompletion(form: PatientProfileFormState): number {
   const officialIdentityComplete = identitySeedComplete && hasOfficialIdentityData(form);
 
   const checks = [
-    officialIdentityComplete || identitySeedComplete,
+    officialIdentityComplete,
     form.email.trim().length > 0,
     form.phone.trim().length > 0,
     form.bloodType.trim().length > 0,

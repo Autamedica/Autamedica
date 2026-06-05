@@ -65,4 +65,18 @@ describe('profile-form official identity requirements', () => {
     expect(buildMissingFields(form)).toEqual([]);
     expect(buildProfileCompletion(form)).toBe(100);
   });
+
+  it('seed-only identity does not count as complete in profile completion', () => {
+    const form = makeForm({
+      dni: '95466020',
+      gender: 'male',
+      bloodType: 'O+',
+      heightCm: '170',
+      weightKg: '72.5',
+      emergencyContactPhone: '+5491111111111',
+    });
+
+    // 5 of 6 fields complete (identity seed present but no official data)
+    expect(buildProfileCompletion(form)).toBe(83);
+  });
 });
