@@ -312,17 +312,14 @@ function SingleFieldStep({ flow, isContinuity }: { flow: ReturnType<typeof usePs
         </button>
       </div>
 
-      {flow.currentVoiceContext && (
-        <div className="rounded-2xl border border-sky-100 bg-sky-50/40 p-4">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-sky-600">Contexto para voz</p>
-          <p className="mt-2 text-sm text-slate-700">
-            La sesión arranca con {flow.currentVoiceContext.knownFacts.length} datos ya conocidos, {flow.currentVoiceContext.missing.length} pendientes y {flow.currentVoiceContext.conflicts.length} puntos a revisar.
-          </p>
-          {flow.currentVoiceContext.doNotAsk.length > 0 && (
-            <p className="mt-2 text-xs text-slate-500">No volver a preguntar: {flow.currentVoiceContext.doNotAsk.slice(0, 4).join(', ')}.</p>
-          )}
-        </div>
-      )}
+        {flow.currentVoiceContext && (
+          <div className="rounded-2xl border border-sky-100 bg-sky-50/40 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-sky-600">Listo para continuar</p>
+            <p className="mt-2 text-sm text-slate-700">
+              Vamos a enfocarnos solo en lo que falta revisar antes de tu consulta.
+            </p>
+          </div>
+        )}
 
       <div className="rounded-2xl border border-slate-100 p-5">
         {flow.voiceMode ? (

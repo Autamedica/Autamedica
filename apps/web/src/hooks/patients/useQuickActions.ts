@@ -5,13 +5,15 @@ import { useSupabase } from '@autamedica/auth/react';
 import { quickActionsService } from '@/lib/patients/services/quick-actions.service';
 import { logger } from '@autamedica/shared';
 
+const SESSION_UNAVAILABLE_MESSAGE = 'Necesitás iniciar sesión para guardar esta información.';
+
 export function useVitalSigns() {
   const supabase = useSupabase();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const recordBloodPressure = async (systolic: number, diastolic: number, notes?: string) => {
-    if (!supabase) return { success: false, error: 'Supabase no disponible' } as const;
+    if (!supabase) return { success: false, error: SESSION_UNAVAILABLE_MESSAGE } as const;
     try {
       setLoading(true);
       setError(null);
@@ -23,7 +25,7 @@ export function useVitalSigns() {
       });
       return { success: true } as const;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al registrar presión arterial';
+      const message = 'No pudimos registrar la presión arterial.';
       logger.error('[useVitalSigns]', err);
       setError(message);
       return { success: false, error: message } as const;
@@ -46,7 +48,7 @@ export function useMedicationLog() {
     notes?: string,
     status: 'taken' | 'skipped' | 'late' = 'taken',
   ) => {
-    if (!supabase) return { success: false, error: 'Supabase no disponible' } as const;
+    if (!supabase) return { success: false, error: SESSION_UNAVAILABLE_MESSAGE } as const;
     try {
       setLoading(true);
       setError(null);
@@ -59,7 +61,7 @@ export function useMedicationLog() {
       });
       return { success: true } as const;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al confirmar medicamento';
+      const message = 'No pudimos confirmar el medicamento.';
       logger.error('[useMedicationLog]', err);
       setError(message);
       return { success: false, error: message } as const;
@@ -86,7 +88,7 @@ export function useSymptomReport() {
     isUrgent?: boolean;
     bodyLocation?: string;
   }) => {
-    if (!supabase) return { success: false, error: 'Supabase no disponible' } as const;
+    if (!supabase) return { success: false, error: SESSION_UNAVAILABLE_MESSAGE } as const;
     try {
       setLoading(true);
       setError(null);
@@ -103,7 +105,7 @@ export function useSymptomReport() {
       });
       return { success: true } as const;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al reportar síntoma';
+      const message = 'No pudimos guardar el síntoma.';
       logger.error('[useSymptomReport]', err);
       setError(message);
       return { success: false, error: message } as const;
@@ -128,7 +130,7 @@ export function useLabResults() {
     fileType?: string;
     notes?: string;
   }) => {
-    if (!supabase) return { success: false, error: 'Supabase no disponible' } as const;
+    if (!supabase) return { success: false, error: SESSION_UNAVAILABLE_MESSAGE } as const;
     try {
       setLoading(true);
       setError(null);
@@ -143,7 +145,7 @@ export function useLabResults() {
       });
       return { success: true } as const;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al subir resultado';
+      const message = 'No pudimos guardar el resultado.';
       logger.error('[useLabResults]', err);
       setError(message);
       return { success: false, error: message } as const;
@@ -167,7 +169,7 @@ export function useCommunityPost() {
     isAnonymous?: boolean;
     tags?: string[];
   }) => {
-    if (!supabase) return { success: false, error: 'Supabase no disponible' } as const;
+    if (!supabase) return { success: false, error: SESSION_UNAVAILABLE_MESSAGE } as const;
     try {
       setLoading(true);
       setError(null);
@@ -181,7 +183,7 @@ export function useCommunityPost() {
       });
       return { success: true } as const;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al crear publicación';
+      const message = 'No pudimos crear la publicación.';
       logger.error('[useCommunityPost]', err);
       setError(message);
       return { success: false, error: message } as const;

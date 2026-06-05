@@ -93,13 +93,13 @@ export function usePatientSession(): UsePatientSessionResult {
       const profile = await fetchOrCreateProfile(user);
 
       if (profile.role && profile.role !== 'patient') {
-        safeSetState(() => ({
-          user,
-          profile,
-          patient: null,
-          loading: false,
-          error: 'Tu cuenta no tiene acceso al portal de pacientes.',
-        }));
+          safeSetState(() => ({
+            user,
+            profile,
+            patient: null,
+            loading: false,
+            error: 'Esta cuenta corresponde a otro portal. Cambiá de acceso o contactá soporte.',
+          }));
         return;
       }
 
