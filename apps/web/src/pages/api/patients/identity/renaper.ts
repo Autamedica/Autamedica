@@ -149,29 +149,57 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const lastName = person.apellido ?? '';
     const address = buildAddress(person);
     const coverage = result.coverages[0] ?? null;
+    const officialDni = person.numeroDocumento ?? dni;
+    const officialGender = mapSexToGender(person.sexo);
+    const officialCuil = person.cuil && person.cuil !== '0' ? person.cuil : '';
 
     const newCount = lookupCount + 1;
     const newInsuranceInfo = {
       ...insuranceInfo,
       identity_lookup_count: newCount,
       official_data: {
-        dni: person.numeroDocumento ?? dni,
+        dni: officialDni,
         firstName,
         lastName,
         birthDate: person.fechaNacimiento ?? '',
-        gender: mapSexToGender(person.sexo) ?? '',
-        cuil: person.cuil && person.cuil !== '0' ? person.cuil : '',
+        gender: officialGender ?? '',
+        cuil: officialCuil,
         address: address ?? '',
       }
     };
 
+    const patientPatch: Record<string, string | Record<string, unknown> | null> = {
+      insurance_info: newInsuranceInfo,
+      dni: officialDni,
+      gender: officialGender ?? patient.gender ?? null,
+      birth_date: person.fechaNacimiento ?? null,
+    };
+
+    if (officialCuil) patientPatch.cuil = officialCuil;
+    if (address) patientPatch.address = address;
+
     const { error: updateErr } = await supabase
       .from('patients')
-      .update({ insurance_info: newInsuranceInfo })
+      .update(patientPatch)
       .eq('id', patient.id);
 
     if (updateErr) {
-      logger.error('[renaper] failed to update insurance_info lookup count', updateErr);
+      logger.error('[renaper] failed to update canonical patient identity', updateErr);
+    }
+
+    const profilePatch: Record<string, string> = {};
+    if (firstName) profilePatch.first_name = firstName;
+    if (lastName) profilePatch.last_name = lastName;
+
+    if (Object.keys(profilePatch).length > 0) {
+      const { error: profileUpdateErr } = await supabase
+        .from('profiles')
+        .update(profilePatch)
+        .eq('user_id', userId);
+
+      if (profileUpdateErr) {
+        logger.error('[renaper] failed to update canonical profile identity', profileUpdateErr);
+      }
     }
 
     if (hasPaid) {
@@ -180,12 +208,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
         checkedAt: new Date().toISOString(),
         hasPaid: true,
         form: {
-          dni: person.numeroDocumento ?? dni,
+          dni: officialDni,
           firstName,
           lastName,
           birthDate: person.fechaNacimiento ?? '',
-          gender: mapSexToGender(person.sexo) ?? '',
-          cuil: person.cuil && person.cuil !== '0' ? person.cuil : '',
+          gender: officialGender ?? '',
+          cuil: officialCuil,
           address: address ?? '',
         },
         coverage: coverage
@@ -204,12 +232,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       checkedAt: new Date().toISOString(),
       hasPaid: false,
       form: {
-        dni: person.numeroDocumento ?? dni,
+        dni: officialDni,
         firstName: maskText(firstName, 1),
         lastName: maskText(lastName, 1),
         birthDate: maskDate(person.fechaNacimiento ?? ''),
-        gender: mapSexToGender(person.sexo) ?? '',
-        cuil: maskCuil(person.cuil && person.cuil !== '0' ? person.cuil : ''),
+        gender: officialGender ?? '',
+        cuil: maskCuil(officialCuil),
         address: maskAddress(address ?? ''),
       },
       coverage: coverage
