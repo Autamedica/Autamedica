@@ -373,20 +373,21 @@ export class HIPAAClassifier {
 
     for (const rule of this.classificationRules) {
       let isMatch = false;
+      const pattern = new RegExp(rule.pattern.replace(/^\(\?i\)/, ''), 'i');
 
       switch (rule.pattern_type) {
         case 'COLUMN_NAME':
-          isMatch = new RegExp(rule.pattern, 'i').test(column.column_name);
+          isMatch = pattern.test(column.column_name);
           break;
         case 'TABLE_NAME':
-          isMatch = new RegExp(rule.pattern, 'i').test(table.table_name);
+          isMatch = pattern.test(table.table_name);
           break;
         case 'DATA_TYPE':
-          isMatch = new RegExp(rule.pattern, 'i').test(column.data_type);
+          isMatch = pattern.test(column.data_type);
           break;
         case 'COMMENT': {
           const comment = column.column_comment || table.table_comment || '';
-          isMatch = new RegExp(rule.pattern, 'i').test(comment);
+          isMatch = pattern.test(comment);
           break;
         }
       }
