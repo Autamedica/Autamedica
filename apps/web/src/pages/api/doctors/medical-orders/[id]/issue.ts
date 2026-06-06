@@ -202,12 +202,15 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       .from("medical-documents")
       .createSignedUrl(pdfPath, 365 * 24 * 60 * 60);
 
-    if (urlError) {
+    if (urlError || !urlData?.signedUrl) {
       logger.error("[api/doctors/medical-orders/[id]/issue] Signed URL generation failed", urlError);
-      return internalError("signed_url_generation_failed", urlError.message || String(urlError));
+      return internalError(
+        "signed_url_generation_failed",
+        urlError?.message || "signed_pdf_url_missing",
+      );
     }
 
-    const signedPdfUrl = urlData?.signedUrl ?? `/storage/v1/object/public/medical-documents/${pdfPath}`;
+    const signedPdfUrl = urlData.signedUrl;
 
     // 4. Update order state in database
     const { data: updated, error: updateError } = await admin
