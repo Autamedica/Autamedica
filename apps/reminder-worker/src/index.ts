@@ -21,6 +21,7 @@ import { processReminderCycle, DEFAULT_OPENCLAW_CONFIG } from '@autamedica/sched
 import type { OpenClawConfig } from '@autamedica/scheduling';
 import { getServerEnvOrDefault } from '@autamedica/shared';
 import { processDoctorWhatsAppJobs } from './doctor-whatsapp-notifications';
+import { processPatientWhatsAppJobs } from './patient-whatsapp-notifications';
 import { processClinicalOutboxJobs } from './clinical-safety-outbox';
 
 // Config from env
@@ -32,6 +33,8 @@ const OPENCLAW_ACCOUNT = getServerEnvOrDefault('OPENCLAW_ACCOUNT') ?? 'autamedic
 const DRY_RUN = getServerEnvOrDefault('REMINDER_DRY_RUN') === 'true';
 const INTERVAL_MS = parseInt(getServerEnvOrDefault('REMINDER_INTERVAL_MS') ?? '60000', 10);
 const RUN_ONCE = getServerEnvOrDefault('REMINDER_RUN_ONCE') === 'true' || process.argv.includes('--once');
+const EVENT_RELAY_URL = getServerEnvOrDefault('OPENCLAW_EVENT_RELAY_URL') ?? 'http://127.0.0.1:18791';
+const EVENT_RELAY_API_KEY = getServerEnvOrDefault('OPENCLAW_EVENT_RELAY_API_KEY') ?? '';
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
@@ -73,6 +76,14 @@ async function tick() {
       batchSize: 25,
       dryRun: effectiveDryRun,
     });
+    const patientWhatsAppResult = EVENT_RELAY_API_KEY
+      ? await processPatientWhatsAppJobs(supabase, {
+          relayUrl: EVENT_RELAY_URL,
+          apiKey: EVENT_RELAY_API_KEY,
+          batchSize: 25,
+          dryRun: effectiveDryRun,
+        })
+      : { processed: 0, sent: 0, failed: 0, errors: ['OPENCLAW_EVENT_RELAY_API_KEY is missing'] };
     const clinicalOutboxResult = await processClinicalOutboxJobs(supabase, {
       batchSize: 25,
       dryRun: effectiveDryRun,
@@ -84,14 +95,15 @@ async function tick() {
       result.waitlistExpired > 0 ||
       result.noShowsMarked > 0 ||
       doctorWhatsAppResult.processed > 0 ||
+      patientWhatsAppResult.processed > 0 ||
       clinicalOutboxResult.processed > 0
     ) {
       console.log(
-        `[${new Date().toISOString()}] Processed: ${result.processed} | Sent: ${result.sent} | Skipped: ${result.skipped} | Failed: ${result.failed} | Waitlist sent: ${result.waitlistOffersSent} | Waitlist expired: ${result.waitlistExpired} | No-show marked: ${result.noShowsMarked} | Doctor WA sent: ${doctorWhatsAppResult.sent} | Doctor WA skipped: ${doctorWhatsAppResult.skipped} | Doctor WA failed: ${doctorWhatsAppResult.failed} | Clinical Outbox processed: ${clinicalOutboxResult.processed} | Dispatched: ${clinicalOutboxResult.dispatched} | Skipped: ${clinicalOutboxResult.skipped}`,
+        `[${new Date().toISOString()}] Processed: ${result.processed} | Sent: ${result.sent} | Skipped: ${result.skipped} | Failed: ${result.failed} | Waitlist sent: ${result.waitlistOffersSent} | Waitlist expired: ${result.waitlistExpired} | No-show marked: ${result.noShowsMarked} | Doctor WA sent: ${doctorWhatsAppResult.sent} | Doctor WA skipped: ${doctorWhatsAppResult.skipped} | Doctor WA failed: ${doctorWhatsAppResult.failed} | Patient WA sent: ${patientWhatsAppResult.sent} | Patient WA failed: ${patientWhatsAppResult.failed} | Clinical Outbox processed: ${clinicalOutboxResult.processed} | Dispatched: ${clinicalOutboxResult.dispatched} | Skipped: ${clinicalOutboxResult.skipped}`,
       );
     }
 
-    const errors = [...result.errors, ...doctorWhatsAppResult.errors, ...clinicalOutboxResult.errors];
+    const errors = [...result.errors, ...doctorWhatsAppResult.errors, ...patientWhatsAppResult.errors, ...clinicalOutboxResult.errors];
     if (errors.length > 0) {
       for (const err of errors) {
         console.error(`  ❌ ${err}`);

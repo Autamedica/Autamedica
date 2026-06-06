@@ -1,6 +1,6 @@
 # OpenClaw Event Relay
 
-Relay HTTP local para enviar WhatsApp desde la VM Oracle usando OpenClaw.
+Relay HTTP autenticado para enviar WhatsApp desde la VM Oracle mediante la sesión Baileys directa.
 
 El relay no acepta un token plano propio. Cada request debe traer `X-API-Key`; el relay valida esa key contra AutaMedica en `/api/openclaw/authorize` y exige el scope `openclaw:send`.
 
@@ -12,7 +12,8 @@ OPENCLAW_EVENT_RELAY_PORT=18791
 AUTAMEDICA_OPENCLAW_AUTHORIZE_URL=https://doctor.autamedica.com/api/openclaw/authorize
 OPENCLAW_ACCOUNT=autamedica
 OPENCLAW_CHANNEL=whatsapp
-OPENCLAW_CLI_PATH=/usr/local/bin/openclaw
+WHATSAPP_DIRECT_API_URL=http://127.0.0.1:18792
+WHATSAPP_DIRECT_API_TOKEN=<secreto-compartido-local>
 ```
 
 ## Ejecutar
@@ -47,7 +48,7 @@ curl -X POST http://127.0.0.1:18791/send \
 ```ini
 [Unit]
 Description=AutaMedica OpenClaw Event Relay
-After=network-online.target openclaw-gateway.service
+After=network-online.target autamedica-whatsapp-direct-menu.service
 Wants=network-online.target
 
 [Service]
@@ -58,7 +59,8 @@ Environment=OPENCLAW_EVENT_RELAY_PORT=18791
 Environment=AUTAMEDICA_OPENCLAW_AUTHORIZE_URL=https://doctor.autamedica.com/api/openclaw/authorize
 Environment=OPENCLAW_ACCOUNT=autamedica
 Environment=OPENCLAW_CHANNEL=whatsapp
-Environment=OPENCLAW_CLI_PATH=/usr/local/bin/openclaw
+Environment=WHATSAPP_DIRECT_API_URL=http://127.0.0.1:18792
+EnvironmentFile=/etc/autamedica/whatsapp-direct.env
 ExecStart=/usr/bin/node /opt/autamedica/openclaw-event-relay.mjs
 Restart=always
 RestartSec=5
