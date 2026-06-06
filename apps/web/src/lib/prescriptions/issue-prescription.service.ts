@@ -679,14 +679,25 @@ export async function issuePrescription(
       upsert: true,
     });
 
-  let signedPdfUrl: string | null = null;
-  if (!uploadError) {
-    const { data: urlData } = await supabase.storage
-      .from('medical-documents')
-      .createSignedUrl(pdfPath, 365 * 24 * 60 * 60);
-    signedPdfUrl = urlData?.signedUrl ?? null;
-  } else {
-    logger.warn('[issuePrescription] PDF upload failed', uploadError);
+  if (uploadError) {
+    logger.error('[issuePrescription] PDF upload failed', uploadError);
+    return fail({
+      code: 'pdf_upload_failed',
+      details: uploadError.message || String(uploadError),
+    });
+  }
+
+  const { data: urlData, error: signedUrlError } = await supabase.storage
+    .from('medical-documents')
+    .createSignedUrl(pdfPath, 365 * 24 * 60 * 60);
+  const signedPdfUrl = urlData?.signedUrl ?? null;
+
+  if (signedUrlError || !signedPdfUrl) {
+    logger.error('[issuePrescription] Signed PDF URL creation failed', signedUrlError);
+    return fail({
+      code: 'pdf_upload_failed',
+      details: signedUrlError?.message || 'signed_pdf_url_missing',
+    });
   }
 
   // 8. Update prescription record
