@@ -1,4 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
+import { composeWelcomeEmail } from "./welcome-email";
 
 export interface Env {
   GEMINI_API_KEY: string;
@@ -383,15 +384,13 @@ function renderEmailJob(job: EmailJob): { subject: string; html: string; text: s
   const unsubscribeUrl = dataString(data, "unsubscribe_url") || undefined;
 
   if (job.job_type === "welcome") {
+    const welcome = composeWelcomeEmail(dataString(data, "recipient_role"), actionUrl);
     return renderTransactionalEmail("Bienvenido a AutaMedica", {
       title: `Hola, ${firstName}`,
       preheader: "Tu cuenta en AutaMedica ya esta lista.",
-      paragraphs: [
-        "Tu cuenta en AutaMedica ya esta lista.",
-        "Desde aca podes completar tu anamnesis, ordenar tu informacion clinica y preparar una consulta con mas contexto para el profesional.",
-      ],
-      actionLabel: "Completar anamnesis",
-      actionUrl,
+      paragraphs: welcome.paragraphs,
+      actionLabel: welcome.actionLabel,
+      actionUrl: welcome.actionUrl,
       unsubscribeUrl,
     });
   }
@@ -595,14 +594,12 @@ function getBrevoParamsForJob(job: EmailJob): {
   let ctaUrl = actionUrl;
 
   if (job.job_type === "welcome") {
+    const welcome = composeWelcomeEmail(dataString(data, "recipient_role"), actionUrl);
     subject = "Bienvenido a AutaMedica";
     title = `Hola, ${recipientName}`;
-    paragraphs = [
-      "Tu cuenta en AutaMedica ya esta lista.",
-      "Desde aca podes completar tu anamnesis, ordenar tu informacion clinica y preparar una consulta con mas contexto para el profesional.",
-    ];
-    ctaLabel = "Completar anamnesis";
-    ctaUrl = actionUrl || "https://www.autamedica.com/patients/anamnesis";
+    paragraphs = welcome.paragraphs;
+    ctaLabel = welcome.actionLabel;
+    ctaUrl = welcome.actionUrl;
   } else if (job.job_type === "anamnesis_reminder") {
     subject = "AutaMedica · recordatorio";
     title = `Hola, ${recipientName}`;

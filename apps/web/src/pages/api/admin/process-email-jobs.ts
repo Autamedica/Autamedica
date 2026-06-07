@@ -262,7 +262,8 @@ function renderJob(job: EmailJob): RenderedEmail {
   const unsubscribeUrl = stringFromData(data, 'unsubscribe_url') || undefined;
 
   if (job.job_type === 'welcome') {
-    return buildWelcomeEmail(firstName(job), actionUrl, unsubscribeUrl);
+    const recipientRole = stringFromData(data, 'recipient_role') === 'doctor' ? 'doctor' : 'patient';
+    return buildWelcomeEmail(firstName(job), actionUrl, unsubscribeUrl, recipientRole);
   }
 
   if (job.job_type === 'anamnesis_reminder') {
@@ -409,14 +410,22 @@ function getBrevoParamsForJob(job: EmailJob): {
   let ctaUrl = actionUrl;
 
   if (job.job_type === 'welcome') {
+    const isDoctor = stringFromData(data, 'recipient_role') === 'doctor';
     subject = 'Bienvenido a AutaMedica';
     title = `Hola, ${recipientName}`;
-    paragraphs = [
-      'Tu cuenta en AutaMedica ya esta lista.',
-      'Desde aca podes completar tu anamnesis, ordenar tu informacion clinica y preparar una consulta con mas contexto para el profesional.',
-    ];
-    ctaLabel = 'Completar anamnesis';
-    ctaUrl = actionUrl || 'https://www.autamedica.com/patients/anamnesis';
+    paragraphs = isDoctor
+      ? [
+          'Tu cuenta profesional en AutaMedica ya esta lista.',
+          'Completa tu perfil y validacion profesional para preparar tu agenda, atender pacientes y emitir documentacion clinica desde un mismo lugar.',
+        ]
+      : [
+          'Tu cuenta en AutaMedica ya esta lista.',
+          'Completa tu anamnesis, ordena tu informacion clinica y prepara una consulta con mas contexto para el profesional.',
+        ];
+    ctaLabel = isDoctor ? 'Completar perfil profesional' : 'Completar anamnesis';
+    ctaUrl = actionUrl || (isDoctor
+      ? 'https://doctor.autamedica.com/doctors/perfil'
+      : 'https://patients.autamedica.com/patients/anamnesis');
   } else if (job.job_type === 'anamnesis_reminder') {
     subject = 'AutaMedica · recordatorio';
     title = `Hola, ${recipientName}`;
