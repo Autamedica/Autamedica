@@ -166,16 +166,31 @@ export function renderAutamedicaEmail(
   };
 }
 
-export function buildWelcomeEmail(firstName: string, actionUrl: string, unsubscribeUrl?: string): RenderedEmail {
+export function buildWelcomeEmail(
+  firstName: string,
+  actionUrl: string,
+  unsubscribeUrl?: string,
+  recipientRole: 'patient' | 'doctor' = 'patient',
+): RenderedEmail {
+  const isDoctor = recipientRole === 'doctor';
+
   return renderAutamedicaEmail('Bienvenido a AutaMedica', {
     variant: 'welcome',
     title: `Hola, ${firstName || 'como estas'}`,
     preheader: 'Tu cuenta en AutaMedica ya esta lista.',
-    paragraphs: [
-      'Tu cuenta en AutaMedica ya esta lista.',
-      'Desde aca podes completar tu anamnesis, ordenar tu informacion clinica y preparar una consulta con mas contexto para el profesional.',
-    ],
-    action: { label: 'Completar anamnesis', url: actionUrl },
+    paragraphs: isDoctor
+      ? [
+          'Tu cuenta profesional en AutaMedica ya esta lista.',
+          'Completa tu perfil y validacion profesional para preparar tu agenda, atender pacientes y emitir documentacion clinica desde un mismo lugar.',
+        ]
+      : [
+          'Tu cuenta en AutaMedica ya esta lista.',
+          'Completa tu anamnesis, ordena tu informacion clinica y prepara una consulta con mas contexto para el profesional.',
+        ],
+    action: {
+      label: isDoctor ? 'Completar perfil profesional' : 'Completar anamnesis',
+      url: actionUrl,
+    },
     unsubscribeUrl,
   });
 }

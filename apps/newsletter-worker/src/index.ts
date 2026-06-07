@@ -616,7 +616,7 @@ function getBrevoParamsForJob(job: EmailJob): {
     ctaLabel = isDoctor ? "Completar perfil profesional" : "Completar anamnesis";
     ctaUrl = actionUrl || (isDoctor
       ? "https://doctor.autamedica.com/doctors/perfil"
-      : "https://patient.autamedica.com/patients/anamnesis");
+      : "https://patients.autamedica.com/patients/anamnesis");
   } else if (job.job_type === "anamnesis_reminder") {
     subject = "AutaMedica · recordatorio";
     title = `Hola, ${recipientName}`;
