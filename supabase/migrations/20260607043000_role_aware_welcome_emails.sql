@@ -15,14 +15,16 @@ DECLARE
   v_role text;
   v_user_key text;
   v_action_url text;
+  v_email text;
 BEGIN
   IF NEW.email IS NULL OR btrim(NEW.email) = '' THEN
     RETURN NEW;
   END IF;
 
+  v_email := lower(btrim(NEW.email));
   v_name := nullif(btrim(coalesce(NEW.first_name, '')), '');
   v_role := CASE WHEN NEW.role = 'doctor' THEN 'doctor' ELSE 'patient' END;
-  v_user_key := coalesce(NEW.user_id::text, lower(NEW.email));
+  v_user_key := coalesce(NEW.user_id::text, v_email);
   v_action_url := CASE
     WHEN v_role = 'doctor' THEN 'https://doctor.autamedica.com/doctors/perfil?utm_source=email&utm_medium=welcome&utm_campaign=doctor_welcome'
     ELSE 'https://patients.autamedica.com/patients/anamnesis?utm_source=email&utm_medium=welcome&utm_campaign=patient_welcome'
@@ -38,7 +40,7 @@ BEGIN
   )
   VALUES (
     'welcome',
-    lower(NEW.email),
+    v_email,
     v_name,
     NEW.user_id,
     'welcome:' || v_user_key,
