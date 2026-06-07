@@ -1,4 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
+import { composeWelcomeEmail } from "./welcome-email";
 
 export interface Env {
   GEMINI_API_KEY: string;
@@ -383,21 +384,13 @@ function renderEmailJob(job: EmailJob): { subject: string; html: string; text: s
   const unsubscribeUrl = dataString(data, "unsubscribe_url") || undefined;
 
   if (job.job_type === "welcome") {
-    const isDoctor = dataString(data, "recipient_role") === "doctor";
+    const welcome = composeWelcomeEmail(dataString(data, "recipient_role"), actionUrl);
     return renderTransactionalEmail("Bienvenido a AutaMedica", {
       title: `Hola, ${firstName}`,
       preheader: "Tu cuenta en AutaMedica ya esta lista.",
-      paragraphs: isDoctor
-        ? [
-            "Tu cuenta profesional en AutaMedica ya esta lista.",
-            "Completa tu perfil y validacion profesional para preparar tu agenda, atender pacientes y emitir documentacion clinica desde un mismo lugar.",
-          ]
-        : [
-            "Tu cuenta en AutaMedica ya esta lista.",
-            "Completa tu anamnesis, ordena tu informacion clinica y prepara una consulta con mas contexto para el profesional.",
-          ],
-      actionLabel: isDoctor ? "Completar perfil profesional" : "Completar anamnesis",
-      actionUrl,
+      paragraphs: welcome.paragraphs,
+      actionLabel: welcome.actionLabel,
+      actionUrl: welcome.actionUrl,
       unsubscribeUrl,
     });
   }
@@ -601,22 +594,12 @@ function getBrevoParamsForJob(job: EmailJob): {
   let ctaUrl = actionUrl;
 
   if (job.job_type === "welcome") {
-    const isDoctor = dataString(data, "recipient_role") === "doctor";
+    const welcome = composeWelcomeEmail(dataString(data, "recipient_role"), actionUrl);
     subject = "Bienvenido a AutaMedica";
     title = `Hola, ${recipientName}`;
-    paragraphs = isDoctor
-      ? [
-          "Tu cuenta profesional en AutaMedica ya esta lista.",
-          "Completa tu perfil y validacion profesional para preparar tu agenda, atender pacientes y emitir documentacion clinica desde un mismo lugar.",
-        ]
-      : [
-          "Tu cuenta en AutaMedica ya esta lista.",
-          "Completa tu anamnesis, ordena tu informacion clinica y prepara una consulta con mas contexto para el profesional.",
-        ];
-    ctaLabel = isDoctor ? "Completar perfil profesional" : "Completar anamnesis";
-    ctaUrl = actionUrl || (isDoctor
-      ? "https://doctor.autamedica.com/doctors/perfil"
-      : "https://patients.autamedica.com/patients/anamnesis");
+    paragraphs = welcome.paragraphs;
+    ctaLabel = welcome.actionLabel;
+    ctaUrl = welcome.actionUrl;
   } else if (job.job_type === "anamnesis_reminder") {
     subject = "AutaMedica · recordatorio";
     title = `Hola, ${recipientName}`;
