@@ -25,7 +25,7 @@ BEGIN
   v_user_key := coalesce(NEW.user_id::text, lower(NEW.email));
   v_action_url := CASE
     WHEN v_role = 'doctor' THEN 'https://doctor.autamedica.com/doctors/perfil?utm_source=email&utm_medium=welcome&utm_campaign=doctor_welcome'
-    ELSE 'https://patient.autamedica.com/patients/anamnesis?utm_source=email&utm_medium=welcome&utm_campaign=patient_welcome'
+    ELSE 'https://patients.autamedica.com/patients/anamnesis?utm_source=email&utm_medium=welcome&utm_campaign=patient_welcome'
   END;
 
   INSERT INTO growth_os.email_jobs (
