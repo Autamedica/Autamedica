@@ -10,7 +10,10 @@ from google.oauth2.credentials import Credentials
 
 CLIENT_SECRETS_FILE = "/home/edu/client_secrets.json"
 CREDENTIALS_FILE = "/home/edu/.youtube-credentials.json"
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.readonly"
+]
 
 
 def get_authenticated_service():
@@ -21,25 +24,34 @@ def get_authenticated_service():
         try:
             with open(CREDENTIALS_FILE, 'r') as f:
                 creds_data = json.load(f)
-                try:
-                    credentials = Credentials.from_authorized_user_info(creds_data, SCOPES)
-                except ValueError:
-                    # Fallback to manual creation if refresh_token is missing but token is still valid
-                    if "token" in creds_data:
-                        credentials = Credentials(
-                            token=creds_data["token"],
-                            refresh_token=creds_data.get("refresh_token"),
-                            token_uri=creds_data.get("token_uri"),
-                            client_id=creds_data.get("client_id"),
-                            client_secret=creds_data.get("client_secret"),
-                            scopes=SCOPES
-                        )
-                        # Set expiry if present
-                        if "expiry" in creds_data:
-                            from google.auth._helpers import parse_expiry
-                            credentials.expiry = parse_expiry(creds_data["expiry"])
-                    else:
-                        raise
+                
+                # Verify if the saved credentials have all requested scopes
+                saved_scopes = creds_data.get("scopes", [])
+                if not all(scope in saved_scopes for scope in SCOPES):
+                    print("⚠️ Saved credentials are missing required scopes. Triggering re-authentication...")
+                else:
+                    try:
+                        credentials = Credentials.from_authorized_user_info(creds_data, SCOPES)
+                    except ValueError:
+                        # Fallback to manual creation if refresh_token is missing but token is still valid
+                        if "token" in creds_data:
+                            credentials = Credentials(
+                                token=creds_data["token"],
+                                refresh_token=creds_data.get("refresh_token"),
+                                token_uri=creds_data.get("token_uri"),
+                                client_id=creds_data.get("client_id"),
+                                client_secret=creds_data.get("client_secret"),
+                                scopes=SCOPES
+                            )
+                            # Set expiry if present
+                            if "expiry" in creds_data:
+                                try:
+                                    from datetime import datetime
+                                    credentials.expiry = datetime.fromisoformat(creds_data["expiry"][:19])
+                                except Exception:
+                                    pass
+                        else:
+                            raise
         except Exception as e:
             print(f"⚠️ Warning: Failed to load saved credentials: {e}")
             
@@ -124,8 +136,43 @@ def get_authenticated_service():
                     code = pasted_url
                     
                 print(f"Exchanging code for token (using redirect_uri: {flow.redirect_uri})...")
-                flow.fetch_token(code=code)
-                credentials = flow.credentials
+                try:
+                    flow.fetch_token(code=code)
+                    credentials = flow.credentials
+                except Exception as ex:
+                    print(f"⚠️ Standard exchange failed: {ex}. Attempting manual exchange without code_verifier...")
+                    import requests
+                    
+                    client_id = flow.client_config['client_id']
+                    client_secret = flow.client_config['client_secret']
+                    token_url = flow.client_config.get('token_uri', 'https://oauth2.googleapis.com/token')
+                    
+                    data = {
+                        'code': code,
+                        'client_id': client_id,
+                        'client_secret': client_secret,
+                        'redirect_uri': flow.redirect_uri,
+                        'grant_type': 'authorization_code'
+                    }
+                    
+                    resp = requests.post(token_url, data=data)
+                    if resp.status_code == 200:
+                        token_data = resp.json()
+                        print("✓ Manual exchange succeeded!")
+                        credentials = Credentials(
+                            token=token_data["access_token"],
+                            refresh_token=token_data.get("refresh_token"),
+                            token_uri=token_url,
+                            client_id=client_id,
+                            client_secret=client_secret,
+                            scopes=token_data.get("scope", "").split()
+                        )
+                        # Set expiry
+                        if "expires_in" in token_data:
+                            from datetime import datetime, timedelta
+                            credentials.expiry = datetime.utcnow() + timedelta(seconds=token_data["expires_in"])
+                    else:
+                        raise Exception(f"Manual exchange failed: {resp.status_code} - {resp.text}")
             except Exception as ex:
                 sys.exit(f"❌ Authentication failed: {ex}")
                 
