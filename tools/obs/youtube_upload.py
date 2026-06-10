@@ -8,7 +8,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 
-CLIENT_SECRETS_FILE = "/home/edu/client_secrets.json"
+CLIENT_SECRETS_FILE = "/home/edu/.gmail-mcp/gcp-oauth.keys.json"
 CREDENTIALS_FILE = "/home/edu/.youtube-credentials.json"
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
@@ -48,40 +48,35 @@ def get_authenticated_service():
                 scopes=SCOPES
             )
             
-            # Try running the local server on port 8080
+            # Force redirect_uri to http://localhost:3000/oauth2callback (which is registered in gcp-oauth.keys.json)
             try:
-                credentials = flow.run_local_server(port=8080, prompt='select_account')
-            except Exception as e:
-                print(f"⚠️ Port 8080 is in use ({e}). Falling back to manual authorization code entry.")
-                try:
-                    # Force redirect_uri to http://localhost:8080/ (which is registered in Google Console)
-                    flow.redirect_uri = 'http://localhost:8080/'
-                    auth_url, _ = flow.authorization_url(prompt='select_account', access_type='offline')
+                flow.redirect_uri = 'http://localhost:3000/oauth2callback'
+                auth_url, _ = flow.authorization_url(prompt='select_account', access_type='offline')
+                
+                print("\n1. Open the following URL in your browser to authorize the app:")
+                print(f"\n   {auth_url}\n")
+                print("2. Sign in and authorize the application.")
+                print("3. Your browser will redirect to http://localhost:3000/oauth2callback?code=...")
+                print("   (The page may show an error or remain blank, this is normal!)")
+                print("4. Copy the entire URL from the browser's address bar and paste it below.")
+                
+                # Prompt user to input the redirect URL
+                pasted_url = input("\n👉 Paste the redirect URL (or code) here: ").strip()
+                
+                # Extract code parameter
+                if "code=" in pasted_url:
+                    from urllib.parse import urlparse, parse_qs
+                    parsed = urlparse(pasted_url)
+                    query = parse_qs(parsed.query)
+                    code = query["code"][0]
+                else:
+                    code = pasted_url
                     
-                    print("\n1. Open the following URL in your browser to authorize the app:")
-                    print(f"\n   {auth_url}\n")
-                    print("2. Sign in and authorize the application.")
-                    print("3. Your browser will redirect to http://localhost:8080/?code=...")
-                    print("   (The page may show an error or remain blank, this is normal!)")
-                    print("4. Copy the entire URL from the browser's address bar and paste it below.")
-                    
-                    # Prompt user to input the redirect URL
-                    pasted_url = input("\n👉 Paste the redirect URL (or code) here: ").strip()
-                    
-                    # Extract code parameter
-                    if "code=" in pasted_url:
-                        from urllib.parse import urlparse, parse_qs
-                        parsed = urlparse(pasted_url)
-                        query = parse_qs(parsed.query)
-                        code = query["code"][0]
-                    else:
-                        code = pasted_url
-                        
-                    print("Exchanging code for token...")
-                    flow.fetch_token(code=code)
-                    credentials = flow.credentials
-                except Exception as ex:
-                    sys.exit(f"❌ Authentication failed: {ex}")
+                print("Exchanging code for token...")
+                flow.fetch_token(code=code)
+                credentials = flow.credentials
+            except Exception as ex:
+                sys.exit(f"❌ Authentication failed: {ex}")
                 
         # Save credentials for future runs
         try:
