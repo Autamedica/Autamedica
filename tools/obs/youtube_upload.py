@@ -8,9 +8,10 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 
-CLIENT_SECRETS_FILE = "/home/edu/.gmail-mcp/gcp-oauth.keys.json"
+CLIENT_SECRETS_FILE = "/home/edu/client_secrets.json"
 CREDENTIALS_FILE = "/home/edu/.youtube-credentials.json"
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+
 
 def get_authenticated_service():
     credentials = None
@@ -20,7 +21,25 @@ def get_authenticated_service():
         try:
             with open(CREDENTIALS_FILE, 'r') as f:
                 creds_data = json.load(f)
-                credentials = Credentials.from_authorized_user_info(creds_data, SCOPES)
+                try:
+                    credentials = Credentials.from_authorized_user_info(creds_data, SCOPES)
+                except ValueError:
+                    # Fallback to manual creation if refresh_token is missing but token is still valid
+                    if "token" in creds_data:
+                        credentials = Credentials(
+                            token=creds_data["token"],
+                            refresh_token=creds_data.get("refresh_token"),
+                            token_uri=creds_data.get("token_uri"),
+                            client_id=creds_data.get("client_id"),
+                            client_secret=creds_data.get("client_secret"),
+                            scopes=SCOPES
+                        )
+                        # Set expiry if present
+                        if "expiry" in creds_data:
+                            from google.auth._helpers import parse_expiry
+                            credentials.expiry = parse_expiry(creds_data["expiry"])
+                    else:
+                        raise
         except Exception as e:
             print(f"⚠️ Warning: Failed to load saved credentials: {e}")
             
@@ -48,21 +67,53 @@ def get_authenticated_service():
                 scopes=SCOPES
             )
             
-            # Force redirect_uri to http://localhost:3000/oauth2callback (which is registered in gcp-oauth.keys.json)
+            # Force redirect_uri dynamically by trying different options registered in client_secrets.json
             try:
-                flow.redirect_uri = 'http://localhost:3000/oauth2callback'
-                auth_url, _ = flow.authorization_url(prompt='select_account', access_type='offline')
+                # Generate auth URLs for the different possibilities
+                flow.redirect_uri = 'http://localhost:8080/'
+                auth_url_1, _ = flow.authorization_url(prompt='consent', access_type='offline')
                 
-                print("\n1. Open the following URL in your browser to authorize the app:")
-                print(f"\n   {auth_url}\n")
+                flow.redirect_uri = 'http://localhost:8080'
+                auth_url_2, _ = flow.authorization_url(prompt='consent', access_type='offline')
+
+                flow.redirect_uri = 'http://localhost:8081/'
+                auth_url_3, _ = flow.authorization_url(prompt='consent', access_type='offline')
+                
+                flow.redirect_uri = 'http://localhost:8081'
+                auth_url_4, _ = flow.authorization_url(prompt='consent', access_type='offline')
+
+                flow.redirect_uri = 'https://ewpsepaieakqbywxnidu.supabase.co/auth/v1/callback'
+                auth_url_5, _ = flow.authorization_url(prompt='consent', access_type='offline')
+                
+                print("\nLet's try different registered redirect URIs to bypass redirect_uri_mismatch:")
+                print(f"\nOption 1 (http://localhost:8080/):\n   {auth_url_1}")
+                print(f"\nOption 2 (http://localhost:8080):\n   {auth_url_2}")
+                print(f"\nOption 3 (http://localhost:8081/):\n   {auth_url_3}")
+                print(f"\nOption 4 (http://localhost:8081):\n   {auth_url_4}")
+                print(f"\nOption 5 (Supabase Prod Callback):\n   {auth_url_5}")
+                print("\nInstructions:")
+                print("1. Try the options above in order. One of them will load the Google authorization page successfully.")
                 print("2. Sign in and authorize the application.")
-                print("3. Your browser will redirect to http://localhost:3000/oauth2callback?code=...")
-                print("   (The page may show an error or remain blank, this is normal!)")
-                print("4. Copy the entire URL from the browser's address bar and paste it below.")
+                print("3. Copy the entire URL of the page you are redirected to (even if it shows an error/blank page) and paste it below.")
                 
                 # Prompt user to input the redirect URL
                 pasted_url = input("\n👉 Paste the redirect URL (or code) here: ").strip()
                 
+                # Detect redirect_uri used
+                if "localhost:8080/" in pasted_url:
+                    flow.redirect_uri = 'http://localhost:8080/'
+                elif "localhost:8080" in pasted_url:
+                    flow.redirect_uri = 'http://localhost:8080'
+                elif "localhost:8081/" in pasted_url:
+                    flow.redirect_uri = 'http://localhost:8081/'
+                elif "localhost:8081" in pasted_url:
+                    flow.redirect_uri = 'http://localhost:8081'
+                elif "ewpsepaieakqbywxnidu.supabase.co" in pasted_url:
+                    flow.redirect_uri = 'https://ewpsepaieakqbywxnidu.supabase.co/auth/v1/callback'
+                else:
+                    # Fallback to Option 1
+                    flow.redirect_uri = 'http://localhost:8080/'
+                    
                 # Extract code parameter
                 if "code=" in pasted_url:
                     from urllib.parse import urlparse, parse_qs
@@ -72,7 +123,7 @@ def get_authenticated_service():
                 else:
                     code = pasted_url
                     
-                print("Exchanging code for token...")
+                print(f"Exchanging code for token (using redirect_uri: {flow.redirect_uri})...")
                 flow.fetch_token(code=code)
                 credentials = flow.credentials
             except Exception as ex:
