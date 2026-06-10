@@ -152,7 +152,6 @@ supabase/README.md
 tests/e2e/doctor-login-videocall-flow.spec.ts
 
 # Android credentials
-apps/android/gradle.properties
 
 # Large media — use CDN, not git
 *.mp4
