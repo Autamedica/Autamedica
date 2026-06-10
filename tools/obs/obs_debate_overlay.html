@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutaMedica vs CHAT - OBS Overlay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-transparent: rgba(0, 0, 0, 0);
+      --card-bg-chat: rgba(239, 68, 68, 0.08);
+      --card-border-chat: rgba(239, 68, 68, 0.4);
+      --card-shadow-chat: rgba(239, 68, 68, 0.2);
+      
+      --card-bg-auta: rgba(20, 184, 166, 0.08);
+      --card-border-auta: rgba(20, 184, 166, 0.4);
+      --card-shadow-auta: rgba(20, 184, 166, 0.2);
+      
+      --text-primary: #F3F4F6;
+      --text-secondary: #9CA3AF;
+      --text-accent-chat: #FCA5A5;
+      --text-accent-auta: #99F6E4;
+      
+      --font-title: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-transparent);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 60px 80px;
+    }
+
+    /* Top Header Bar */
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 15, 17, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 18px 40px;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .brand-title {
+      font-family: var(--font-title);
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #FFF 60%, #94A3B8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-title span {
+      color: #14B8A6;
+      -webkit-text-fill-color: #14B8A6;
+    }
+
+    .versus-badge {
+      background: linear-gradient(90deg, #EF4444 0%, #14B8A6 100%);
+      padding: 6px 18px;
+      border-radius: 50px;
+      font-family: var(--font-title);
+      font-weight: 800;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 0 20px rgba(20, 184, 166, 0.3);
+    }
+
+    .topic-badge {
+      font-family: var(--font-title);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 6px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Main Debate Layout */
+    .debate-container {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+      flex-grow: 1;
+      justify-content: center;
+      margin-top: 40px;
+      margin-bottom: 40px;
+    }
+
+    /* Question Box */
+    .question-box {
+      background: rgba(15, 15, 17, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-left: 6px solid #14B8A6;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      border-right: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 30px 40px;
+      border-radius: 20px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+      animation: fadeIn 0.8s ease out;
+    }
+
+    .question-label {
+      font-family: var(--font-title);
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: #14B8A6;
+      margin-bottom: 10px;
+    }
+
+    .question-text {
+      font-family: var(--font-title);
+      font-size: 36px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--text-primary);
+    }
+
+    /* VS Grid */
+    .vs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      align-items: stretch;
+    }
+
+    /* Cards */
+    .debate-card {
+      background: rgba(15, 15, 17, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 28px;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .debate-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+    }
+
+    /* Chat Card Specifics */
+    .card-chat {
+      border: 1px solid var(--card-border-chat);
+      box-shadow: 0 0 30px var(--card-shadow-chat), inset 0 0 15px rgba(239, 68, 68, 0.05);
+      animation: slideLeftIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .card-chat::before {
+      background: linear-gradient(90deg, #EF4444, #F87171);
+    }
+
+    .card-chat .card-role {
+      color: var(--text-accent-chat);
+      font-family: var(--font-title);
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-chat .card-role::before {
+      content: '●';
+      color: #EF4444;
+      animation: pulse 1.5s infinite;
+    }
+
+    .card-chat .quote-container {
+      font-size: 26px;
+      line-height: 1.5;
+      font-weight: 500;
+      color: #FCA5A5;
+      font-style: italic;
+    }
+
+    /* AutaMedica Card Specifics */
+    .card-auta {
+      border: 1px solid var(--card-border-auta);
+      box-shadow: 0 0 30px var(--card-shadow-auta), inset 0 0 15px rgba(20, 184, 166, 0.05);
+      animation: slideRightIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .card-auta::before {
+      background: linear-gradient(90deg, #14B8A6, #2DD4BF);
+    }
+
+    .card-auta .card-role {
+      color: var(--text-accent-auta);
+      font-family: var(--font-title);
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-auta .card-role::before {
+      content: '✓';
+      color: #14B8A6;
+      font-weight: 900;
+    }
+
+    .card-auta .quote-container {
+      font-size: 24px;
+      line-height: 1.5;
+      font-weight: 500;
+      color: #E5E7EB;
+    }
+
+    /* Footer & Controls Info */
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(10, 10, 12, 0.8);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 15px 40px;
+      border-radius: 20px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .keyboard-tips {
+      display: flex;
+      gap: 20px;
+    }
+
+    .key-badge {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-family: monospace;
+      font-weight: bold;
+    }
+
+    .page-indicator {
+      font-family: var(--font-title);
+      font-weight: bold;
+      color: #14B8A6;
+      font-size: 18px;
+    }
+
+    .end-button {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #FCA5A5;
+      padding: 6px 16px;
+      border-radius: 12px;
+      font-family: var(--font-title);
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
+    }
+
+    .end-button:hover {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: #EF4444;
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .end-button:active {
+      transform: translateY(0);
+    }
+
+    /* Animations */
+    @keyframes slideDown {
+      from { transform: translateY(-50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeInUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes slideLeftIn {
+      from { transform: translateX(-80px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideRightIn {
+      from { transform: translateX(80px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+
+    /* Transition classes for switching rounds */
+    .transition-out {
+      opacity: 0;
+      transform: scale(0.95);
+      filter: blur(10px);
+      transition: all 0.4s ease-in;
+    }
+    
+    .transition-in {
+      opacity: 0;
+      transform: scale(1.05);
+      filter: blur(5px);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <div class="header-bar">
+    <div class="brand-title">Auta<span>Medica</span></div>
+    <div class="versus-badge">AUTAMEDICA vs CHAT</div>
+    <div class="topic-badge" id="topic-badge">Ronda 1/5: Introducción</div>
+  </div>
+
+  <!-- Debate Content -->
+  <div class="debate-container">
+    
+    <!-- Question Card -->
+    <div class="question-box" id="question-box">
+      <div class="question-label">Pregunta en debate</div>
+      <div class="question-text" id="question-text">¿Por qué aumenta el consumo de leche cruda si hay alertas sanitarias por Gripe Aviar?</div>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="vs-grid">
+      <!-- Left Card (Chat/Mito) -->
+      <div class="debate-card card-chat" id="card-chat">
+        <div class="card-role">El CHAT dice (Mitos y Rumores)</div>
+        <div class="quote-container" id="text-chat">
+          "Es más natural y saludable. La alerta de gripe aviar es solo miedo metido por el gobierno para obligarnos a tomar leche industrial procesada."
+        </div>
+      </div>
+
+      <!-- Right Card (AutaMedica/Evidence) -->
+      <div class="debate-card card-auta" id="card-auta">
+        <div class="card-role">AutaMedica (Evidencia Médica)</div>
+        <div class="quote-container" id="text-auta">
+          La desconfianza no borra el riesgo biológico. Las ventas subieron de 21% a 65% tras confirmarse H5N1, vendiendo peligro bajo una falsa estética de libertad. La pasteurización no es conspiración: es una barrera básica de seguridad sanitaria.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer Info / Control Bar -->
+  <div class="footer-bar">
+    <div class="keyboard-tips">
+      <span>Controles: <span class="key-badge">Espacio</span> o <span class="key-badge">→</span> Siguiente | <span class="key-badge">←</span> Anterior | <span class="key-badge">1</span> a <span class="key-badge">5</span> Rondas | <span class="key-badge">End</span> Muuu!</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <button class="end-button" id="end-button" onclick="playCowSound()">🐄 END</button>
+      <div class="page-indicator" id="page-indicator">1 / 5</div>
+    </div>
+  </div>
+
+  <script>
+    // Debate Data
+    const debateRounds = [
+      {
+        id: 1,
+        topic: "Ronda 1/5: La Paradoja de Ventas",
+        question: "¿Por qué aumenta el consumo de leche cruda si hay alertas sanitarias por Gripe Aviar H5N1?",
+        chat: "\"Es más natural y saludable. La alerta de gripe aviar es solo miedo metido por el gobierno para controlarnos y obligarnos a tomar leche industrial procesada.\"",
+        auta: "La desconfianza no borra el riesgo biológico. Las ventas de leche cruda subieron hasta un 65% tras confirmarse H5N1, vendiendo peligro como si fuera libertad. La pasteurización no es control: es una barrera sanitaria indispensable."
+      },
+      {
+        id: 2,
+        topic: "Ronda 2/5: Mitos de la Pasteurización",
+        question: "¿Es cierto que la pasteurización le quita valor nutricional a la leche y la vuelve 'artificial'?",
+        chat: "\"La pasteurización 'cocina' la leche, mata todas las enzimas beneficiosas naturales y destruye el calcio y los nutrientes esenciales.\"",
+        auta: "Falso. La pasteurización es un choque térmico controlado (ej. 72°C por 15 seg). La FDA confirma que inactiva bacterias peligrosas (E. coli, Listeria, Salmonella) sin alterar de manera significativa la calidad nutricional del alimento."
+      },
+      {
+        id: 3,
+        topic: "Ronda 3/5: El Mito de la Granja Limpia",
+        question: "\"Si la leche viene de vacas sanas en una granja limpia e higiénica, ¿sigue habiendo riesgo?\"",
+        chat: "\"Si la granja es de confianza y las vacas están limpias, no hay bacterias. La contaminación solo ocurre en la granjas industriales masivas.\"",
+        auta: "La contaminación biológica es microscópica e invisible. No altera el olor, sabor ni aspecto de la leche. Incluso granjas con excelentes controles de higiene reportan brotes debido a la carga patógena natural de las ubres."
+      },
+      {
+        id: 4,
+        topic: "Ronda 4/5: Gripe Aviar (H5N1) en Ganado",
+        question: "¿Hay un riesgo real de Gripe Aviar H5N1 en la leche comercial hoy?",
+        chat: "\"La gripe aviar en vacas es una exageración mediática. Quieren prohibir la leche directa del campo para beneficiar a las grandes corporaciones.\"",
+        auta: "El brote de H5N1 en vacas lecheras de EE.UU. es real. La FDA demostró que la pasteurización comercial inactiva por completo el virus H5N1, haciendo la leche de supermercado 100% segura. Consumir leche cruda es una ruleta rusa viral."
+      },
+      {
+        id: 5,
+        topic: "Ronda 5/5: Lactosa y Digestión",
+        question: "¿La leche cruda ayuda con la intolerancia a la lactosa porque contiene lactasa?",
+        chat: "\"La leche cruda viene con lactasa activa que te ayuda a digerirla de forma natural. Al pasteurizarla, destruyen esa enzima y te volvés intolerante.\"",
+        auta: "Mito absoluto desmontado por la FDA. La leche cruda tiene la misma cantidad de lactosa y no contiene lactasa utilizable en el cuerpo humano. No previene ni cura la intolerancia; solo le añade el riesgo de gastroenteritis grave."
+      }
+    ];
+
+    let currentRoundIndex = 0;
+
+    // DOM Elements
+    const topicBadge = document.getElementById('topic-badge');
+    const questionBox = document.getElementById('question-box');
+    const questionText = document.getElementById('question-text');
+    const cardChat = document.getElementById('card-chat');
+    const textChat = document.getElementById('text-chat');
+    const cardAuta = document.getElementById('card-auta');
+    const textAuta = document.getElementById('text-auta');
+    const pageIndicator = document.getElementById('page-indicator');
+
+    function updateOverlay(index) {
+      if (index < 0 || index >= debateRounds.length) return;
+      currentRoundIndex = index;
+      
+      const round = debateRounds[currentRoundIndex];
+
+      // Add fade out class
+      questionBox.classList.add('transition-out');
+      cardChat.classList.add('transition-out');
+      cardAuta.classList.add('transition-out');
+
+      setTimeout(() => {
+        // Update Content
+        topicBadge.textContent = round.topic;
+        questionText.textContent = round.question;
+        textChat.textContent = round.chat;
+        textAuta.textContent = round.auta;
+        pageIndicator.textContent = `${round.id} / ${debateRounds.length}`;
+
+        // Prepare for fade-in
+        questionBox.classList.remove('transition-out');
+        cardChat.classList.remove('transition-out');
+        cardAuta.classList.remove('transition-out');
+        
+        questionBox.classList.add('transition-in');
+        cardChat.classList.add('transition-in');
+        cardAuta.classList.add('transition-in');
+        
+        // Trigger reflow to restart animation
+        void questionBox.offsetWidth;
+        
+        questionBox.classList.remove('transition-in');
+        cardChat.classList.remove('transition-in');
+        cardAuta.classList.remove('transition-in');
+
+      }, 400);
+    }
+
+    // Audio cow sound
+    const cowAudio = new Audio('assets/cow_moo.mp3');
+    function playCowSound() {
+      cowAudio.currentTime = 0;
+      cowAudio.play().catch(err => console.log("Audio play failed:", err));
+    }
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+        let nextIndex = (currentRoundIndex + 1) % debateRounds.length;
+        updateOverlay(nextIndex);
+      } else if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
+        let prevIndex = (currentRoundIndex - 1 + debateRounds.length) % debateRounds.length;
+        updateOverlay(prevIndex);
+      } else if (e.key >= '1' && e.key <= '5') {
+        updateOverlay(parseInt(e.key) - 1);
+      } else if (e.key === 'End') {
+        playCowSound();
+      }
+    });
+
+    // Initialize with first round
+    updateOverlay(0);
+  </script>
+</body>
+</html>

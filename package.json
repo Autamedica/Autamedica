@@ -37,7 +37,7 @@
     "arch:v2:check": "node scripts/ci/check-architecture-v2.mjs",
     "arch:v2:changed": "node scripts/ci/check-architecture-v2.mjs --changed",
     "arch:v2:imports:changed": "node scripts/ci/check-architecture-v2-imports.mjs --changed",
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --concurrency=20",
     "dev:videoconsulta": "turbo run dev --filter=@autamedica/signaling-server --filter=@autamedica/web --parallel",
     "lint": "NODE_OPTIONS=\"--max-old-space-size=4096\" eslint .",
     "lint:fix": "eslint . --fix",

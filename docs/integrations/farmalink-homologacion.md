@@ -10,7 +10,8 @@
 - Precondicion de emision: el prescriptor debe tener validacion profesional
   aceptada en AutaMedica (`profiles.sss_validation_status` `valid` o `exempt`).
 - Emision AutaMedica: cuando `FARMALINK_ENABLED=true`, el servicio de emision intenta `altaReceta` antes de generar el PDF. Si Farmalink aprueba, guarda `vendor_name = "farmalink"` y `vendor_id = nroRecElectronica`, y el PDF imprime `RECETA FARMALINK` en el codigo de barras.
-- Bloqueo actual: faltan credenciales OAuth/aplicacion de Farmalink Seguridad.
+- Estado de homologacion: completada. AutaMedica esta homologada para emitir recetas electronicas mediante Farmalink (IMED).
+- Las credenciales OAuth y de aplicacion se mantienen exclusivamente en secretos de runtime y no deben documentarse ni versionarse.
 
 ## Contrato OAuth
 
@@ -99,13 +100,12 @@ Campos minimos para que `FARMALINK_ENABLED=true` no bloquee la emision:
 - `apps/web/src/lib/prescriptions/pdf-prescription.service.ts`
 - `apps/web/src/lib/prescriptions/issue-prescription.service.ts`
 
-## Checklist cuando Farmalink entregue credenciales
+## Checklist operativo posterior a la homologacion
 
-1. Cargar variables OAuth en el entorno de staging, no en el repo.
-2. Validar `generateAccessToken()` contra test.
-3. Ejecutar `altaReceta` con los datos de homologacion recibidos por correo.
-4. Confirmar que `nroRecElectronica` queda guardado como `vendor_id`.
-5. Regenerar/emitir PDF y verificar que el codigo de barras muestre `RECETA FARMALINK`.
-6. Ejecutar `consultaReceta` con `codEntidad`, `pan` y `nroRecElectronica`.
-7. Ejecutar `bajaReceta` solo sobre una receta de prueba acordada.
-8. Enviar a Farmalink evidencias: request/response sanitizados, PDF y numero de receta.
+1. Mantener las variables OAuth en secretos del entorno, nunca en el repo.
+2. Monitorear la generacion de tokens sin registrar credenciales ni datos sensibles.
+3. Confirmar que cada `altaReceta` aprobada guarda `nroRecElectronica` como `vendor_id`.
+4. Verificar que el PDF muestre el identificador Farmalink correspondiente.
+5. Usar `consultaReceta` para conciliacion y soporte operativo cuando corresponda.
+6. Ejecutar `bajaReceta` solo mediante el flujo autorizado y con auditoria.
+7. Conservar request/response sanitizados como evidencia tecnica, sin exponer PII.
