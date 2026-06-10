@@ -1,0 +1,405 @@
+---
+import twitchSchedule from '../../../../tools/obs/twitch_schedule.json';
+
+const locale = Astro.locals.locale ?? 'es';
+
+// Text translations based on locale
+const content = {
+  es: {
+    title: 'Streams y Debates en Vivo',
+    subtitle: 'Acompañanos en Twitch para debates de salud, demostraciones de producto y live coding de la plataforma.',
+    upcomingTitle: 'Próximos streams programados',
+    noStreams: 'No hay streams programados actualmente. ¡Seguinos en Twitch para enterarte de la próxima transmisión!',
+    viewOnTwitch: 'Ir al Canal de Twitch',
+    weeklyBadge: 'Transmisión Semanal',
+    categoryLabel: 'Categoría',
+    timeLabel: 'Horario',
+    monday: 'Lunes',
+    justChatting: 'Charla general',
+  },
+  pt: {
+    title: 'Transmissões e Debates ao Vivo',
+    subtitle: 'Junte-se a nós na Twitch para debates de saúde, demonstrações de produtos e live coding da plataforma.',
+    upcomingTitle: 'Próximas transmissões agendadas',
+    noStreams: 'Não há transmissões agendadas no momento. Siga-nos na Twitch para saber da próxima transmissão!',
+    viewOnTwitch: 'Ir para o Canal da Twitch',
+    weeklyBadge: 'Transmissão Semanal',
+    categoryLabel: 'Categoria',
+    timeLabel: 'Horário',
+    monday: 'Segunda-feira',
+    justChatting: 'Conversa geral',
+  }
+};
+
+const texts = content[locale as 'es' | 'pt'] || content.es;
+
+// Helpers to format day and time
+const getDayName = (recurrence: string) => {
+  if (recurrence.includes('BYDAY=MO')) return texts.monday;
+  return 'Mondays';
+};
+
+const formatTime = (timeStr: string) => {
+  // Format string '20260615T120000' to '12:00'
+  if (timeStr && timeStr.includes('T')) {
+    const timePart = timeStr.split('T')[1];
+    return `${timePart.slice(0, 2)}:${timePart.slice(2, 4)} hs`;
+  }
+  return timeStr;
+};
+
+const events = twitchSchedule.events || [];
+---
+
+<section class="upcoming-streams" id="comunidad" aria-label="Transmisiones en vivo de Autamedica">
+  <div class="streams-inner">
+    <div class="streams-header animate-on-scroll">
+      <div class="live-indicator-wrapper">
+        <span class="live-pulse"></span>
+        <span class="live-badge">TWITCH LIVE</span>
+      </div>
+      <h2 class="streams-title">{texts.title}</h2>
+      <p class="streams-subtitle">{texts.subtitle}</p>
+    </div>
+
+    {events.length > 0 ? (
+      <div class="streams-grid">
+        {events.map((event) => {
+          const dayName = getDayName(event.recurrence);
+          const startTime = formatTime(event.start);
+          const endTime = formatTime(event.end);
+          
+          return (
+            <div class="stream-card animate-on-scroll">
+              <div class="stream-card-glow"></div>
+              <div class="stream-card-content">
+                <span class="stream-badge">{texts.weeklyBadge}</span>
+                <h3 class="stream-topic">
+                  {event.description === 'Just Chatting.' ? texts.justChatting : event.description}
+                </h3>
+                
+                <div class="stream-meta">
+                  <div class="meta-item">
+                    <span class="meta-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </span>
+                    <span class="meta-text"><strong>{dayName}</strong></span>
+                  </div>
+                  
+                  <div class="meta-item">
+                    <span class="meta-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                    </span>
+                    <span class="meta-text">{texts.timeLabel}: <strong>{startTime} - {endTime} (ARG)</strong></span>
+                  </div>
+                  
+                  <div class="meta-item">
+                    <span class="meta-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                      </svg>
+                    </span>
+                    <span class="meta-text">{texts.categoryLabel}: <strong>{event.categories.join(', ')}</strong></span>
+                  </div>
+                </div>
+                
+                <a href="https://twitch.tv/autamedica" target="_blank" rel="noopener noreferrer" class="twitch-btn">
+                  <span>{texts.viewOnTwitch}</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </a>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="no-streams-card animate-on-scroll">
+        <p>{texts.noStreams}</p>
+        <a href="https://twitch.tv/autamedica" target="_blank" rel="noopener noreferrer" class="twitch-btn">
+          <span>{texts.viewOnTwitch}</span>
+        </a>
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .upcoming-streams {
+    padding: var(--section-py) var(--section-px);
+    background: var(--au-bg);
+    border-top: 1px solid var(--au-glass-border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upcoming-streams::before {
+    content: '';
+    position: absolute;
+    top: -10%;
+    left: 80%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(147, 51, 234, 0.08) 0%, transparent 70%);
+    border-radius: var(--radius-full);
+    pointer-events: none;
+  }
+
+  .streams-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+  }
+
+  .streams-header {
+    text-align: center;
+    margin-bottom: var(--space-12);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .live-indicator-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: rgba(147, 51, 234, 0.1);
+    border: 1px solid rgba(147, 51, 234, 0.3);
+    padding: var(--space-1.5) var(--space-4);
+    border-radius: var(--radius-full);
+    margin-bottom: var(--space-4);
+  }
+
+  .live-pulse {
+    width: 8px;
+    height: 8px;
+    background-color: #A855F7;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7);
+    animation: pulse 1.8s infinite;
+  }
+
+  .live-badge {
+    font-size: var(--text-xs);
+    font-weight: var(--font-bold);
+    color: #C084FC;
+    letter-spacing: 0.15em;
+  }
+
+  .streams-title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-extrabold);
+    color: var(--au-text-primary);
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.03em;
+    font-family: var(--font-title, 'Outfit', sans-serif);
+  }
+
+  .streams-subtitle {
+    font-size: var(--text-lg);
+    color: var(--au-text-secondary);
+    max-width: 650px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .streams-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-6);
+    justify-content: center;
+  }
+
+  .stream-card {
+    position: relative;
+    border-radius: var(--radius-xl);
+    background: var(--au-glass-bg);
+    border: 1px solid var(--au-glass-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    overflow: hidden;
+    transition: all var(--au-transition-smooth);
+  }
+
+  .stream-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(168, 85, 247, 0.4);
+    box-shadow: 0 15px 30px rgba(168, 85, 247, 0.05);
+  }
+
+  .stream-card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(800px circle at var(--x, 0) var(--y, 0), rgba(168, 85, 247, 0.06), transparent 40%);
+    opacity: 0;
+    transition: opacity var(--au-transition-smooth);
+    pointer-events: none;
+  }
+
+  .stream-card:hover .stream-card-glow {
+    opacity: 1;
+  }
+
+  .stream-card-content {
+    padding: var(--space-8);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .stream-badge {
+    align-self: flex-start;
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: #C084FC;
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    margin-bottom: var(--space-5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .stream-topic {
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-primary);
+    margin-bottom: var(--space-6);
+    line-height: 1.4;
+    font-family: var(--font-title, 'Outfit', sans-serif);
+  }
+
+  .stream-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3.5);
+    margin-bottom: var(--space-8);
+    flex-grow: 1;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--au-text-secondary);
+  }
+
+  .meta-icon {
+    display: flex;
+    align-items: center;
+    color: #A855F7;
+    opacity: 0.85;
+  }
+
+  .meta-text {
+    line-height: 1;
+  }
+
+  .twitch-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    background: #6441a5;
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+    font-weight: var(--font-bold);
+    font-size: var(--text-sm);
+    text-decoration: none;
+    transition: all var(--au-transition-smooth);
+    box-shadow: 0 4px 14px rgba(100, 65, 165, 0.3);
+  }
+
+  .twitch-btn:hover {
+    background: #7d5bbe;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(100, 65, 165, 0.4);
+  }
+
+  .twitch-btn:active {
+    transform: translateY(0);
+  }
+
+  .no-streams-card {
+    text-align: center;
+    padding: var(--space-10) var(--space-6);
+    background: var(--au-glass-bg);
+    border: 1px solid var(--au-glass-border);
+    border-radius: var(--radius-xl);
+    max-width: 500px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-6);
+  }
+
+  .no-streams-card p {
+    color: var(--au-text-secondary);
+    font-size: var(--text-md);
+    line-height: 1.6;
+  }
+
+  .no-streams-card .twitch-btn {
+    width: auto;
+    padding: var(--space-3) var(--space-6);
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7);
+    }
+    70% {
+      transform: scale(1);
+      box-shadow: 0 0 0 10px rgba(168, 85, 247, 0);
+    }
+    100% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(168, 85, 247, 0);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .stream-card-content {
+      padding: var(--space-6);
+    }
+  }
+</style>
+
+<script>
+  // Dynamic glow effect following mouse
+  const cards = document.querySelectorAll('.stream-card');
+  cards.forEach((card) => {
+    if (card instanceof HTMLElement) {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--x', `${x}px`);
+        card.style.setProperty('--y', `${y}px`);
+      });
+    }
+  });
+</script>
