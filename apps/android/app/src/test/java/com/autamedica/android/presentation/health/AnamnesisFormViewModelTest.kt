@@ -41,6 +41,9 @@ private class FakeHealthRepository : HealthRepository {
 
     override suspend fun getAnamnesisSummary(): Result<AnamnesisSummary?> = Result.success(summary)
 
+    override suspend fun getPreventiveProfile(): Result<com.autamedica.android.domain.model.PatientPreventiveProfile> =
+        Result.success(com.autamedica.android.domain.model.PatientPreventiveProfile(patientId = "patient-1", birthDate = "1996-06-10", gender = "male"))
+
     override suspend fun getOrCreateAnamnesis(): Result<AnamnesisSummary> = Result.success(summary)
 
     override suspend fun getAnamnesisSections(anamnesisId: String): Result<List<AnamnesisSection>> =
