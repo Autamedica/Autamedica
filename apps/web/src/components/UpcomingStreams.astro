@@ -11,10 +11,17 @@ const content = {
     upcomingTitle: 'Próximos streams programados',
     noStreams: 'No hay streams programados actualmente. ¡Seguinos en Twitch para enterarte de la próxima transmisión!',
     viewOnTwitch: 'Ir al Canal de Twitch',
-    weeklyBadge: 'Transmisión Semanal',
+    weeklyBadge: 'Transmisión Programada',
     categoryLabel: 'Categoría',
     timeLabel: 'Horario',
+    daily: 'Todos los días',
     monday: 'Lunes',
+    tuesday: 'Martes',
+    wednesday: 'Miércoles',
+    thursday: 'Jueves',
+    friday: 'Viernes',
+    saturday: 'Sábado',
+    sunday: 'Domingo',
     justChatting: 'Charla general',
   },
   pt: {
@@ -23,10 +30,17 @@ const content = {
     upcomingTitle: 'Próximas transmissões agendadas',
     noStreams: 'Não há transmissões agendadas no momento. Siga-nos na Twitch para saber da próxima transmissão!',
     viewOnTwitch: 'Ir para o Canal da Twitch',
-    weeklyBadge: 'Transmissão Semanal',
+    weeklyBadge: 'Transmissão Agendada',
     categoryLabel: 'Categoria',
     timeLabel: 'Horário',
+    daily: 'Todos os dias',
     monday: 'Segunda-feira',
+    tuesday: 'Terça-feira',
+    wednesday: 'Quarta-feira',
+    thursday: 'Quinta-feira',
+    friday: 'Sexta-feira',
+    saturday: 'Sábado',
+    sunday: 'Domingo',
     justChatting: 'Conversa geral',
   }
 };
@@ -35,8 +49,16 @@ const texts = content[locale as 'es' | 'pt'] || content.es;
 
 // Helpers to format day and time
 const getDayName = (recurrence: string) => {
-  if (recurrence.includes('BYDAY=MO')) return texts.monday;
-  return 'Mondays';
+  const rec = recurrence.toUpperCase();
+  if (rec.includes('FREQ=DAILY')) return texts.daily;
+  if (rec.includes('BYDAY=MO')) return texts.monday;
+  if (rec.includes('BYDAY=TU')) return texts.tuesday;
+  if (rec.includes('BYDAY=WE')) return texts.wednesday;
+  if (rec.includes('BYDAY=TH')) return texts.thursday;
+  if (rec.includes('BYDAY=FR')) return texts.friday;
+  if (rec.includes('BYDAY=SA')) return texts.saturday;
+  if (rec.includes('BYDAY=SU')) return texts.sunday;
+  return texts.daily; // Fallback to daily
 };
 
 const formatTime = (timeStr: string) => {

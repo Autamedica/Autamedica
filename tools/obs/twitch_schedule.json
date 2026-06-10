@@ -1,17 +1,17 @@
 {
   "broadcaster_id": "1374917529",
-  "last_updated": "2026-06-10T06:30:50.540667+00:00",
+  "last_updated": "2026-06-10T08:34:26.505642+00:00",
   "events": [
     {
       "uid": "7a3e51ad-568d-4bfa-9b0d-c20eb0d7fc93",
-      "start": "20260615T120000",
+      "start": "20260610T120000",
       "start_tz": "/America/Buenos_Aires",
-      "end": "20260615T160000",
+      "end": "20260610T160000",
       "end_tz": "/America/Buenos_Aires",
-      "title": "",
-      "description": "Just Chatting.",
-      "categories": ["Just Chatting"],
-      "recurrence": "FREQ=WEEKLY;BYDAY=MO"
+      "title": "Debates y Live Coding de Salud",
+      "description": "Acompañanos para debates de salud digital, prevención, e inteligencia artificial con criterio clínico.",
+      "categories": ["Just Chatting", "Science & Technology"],
+      "recurrence": "FREQ=DAILY"
     }
   ]
 }
