@@ -186,3 +186,7 @@ dev-server.log
 # Scratch files
 scratch/
 apps/web/scratch/
+
+# YouTube tool scraping cache and pycache
+tools/obs/scraped_videos.json
+tools/obs/__pycache__/
