@@ -6,7 +6,7 @@ interface SignalingClient {
     val messages: SharedFlow<ServerSignalingMessage>
     val connectionState: SharedFlow<SignalingConnectionState>
 
-    fun connect(roomId: String)
+    fun connect(roomId: String, signalingUrl: String? = null)
     fun send(message: ClientSignalingMessage)
     fun disconnect()
 }
