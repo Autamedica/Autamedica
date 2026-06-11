@@ -413,7 +413,7 @@ export default function PatologiaCrossword() {
           <div className="flex flex-wrap gap-3 p-4 bg-zinc-900/40 border border-zinc-800 rounded-xl">
             <button
               onClick={verifyAnswers}
-              className="flex-1 min-w-[120px] px-4 py-2.5 bg-amber-500 text-black font-semibold rounded-lg text-sm hover:bg-amber-400 transition-colors shadow-md shadow-amber-500/15"
+              className="flex-1 min-w-[120px] px-4 py-2.5 bg-amber-500 text-black font-semibold rounded-full text-sm hover:bg-amber-400 transition-colors shadow-md shadow-amber-500/15"
             >
               Verificar
             </button>

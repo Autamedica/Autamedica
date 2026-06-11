@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Spotify OBS Widget</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent;
+      font-family: 'Outfit', sans-serif;
+    }
+    
+    .widget-container {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 10px 20px 10px 14px;
+      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6),
+                  inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      opacity: 0;
+      transform: scale(0.9) translateY(15px);
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      max-width: 480px;
+    }
+    
+    .widget-container.active {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+    
+    /* Equalizer Animation */
+    .equalizer {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      width: 18px;
+      height: 16px;
+      margin-right: 14px;
+      margin-left: 4px;
+    }
+    
+    .equalizer-bar {
+      width: 3.5px;
+      height: 100%;
+      background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
+      border-radius: 2px;
+      transform-origin: bottom;
+      animation: bounce 1s ease-in-out infinite alternate;
+    }
+    
+    .equalizer-bar:nth-child(1) {
+      animation-delay: 0.1s;
+      animation-duration: 0.8s;
+    }
+    
+    .equalizer-bar:nth-child(2) {
+      animation-delay: 0.3s;
+      animation-duration: 1.1s;
+    }
+    
+    .equalizer-bar:nth-child(3) {
+      animation-delay: 0.5s;
+      animation-duration: 0.9s;
+    }
+    
+    @keyframes bounce {
+      0% { transform: scaleY(0.15); }
+      100% { transform: scaleY(1.0); }
+    }
+    
+    /* Text Styles */
+    .text-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 380px;
+    }
+    
+    .title {
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: 0.1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .artist {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 11.5px;
+      font-weight: 400;
+      margin-top: 2px;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="widget" class="widget-container">
+    <div class="equalizer">
+      <div class="equalizer-bar"></div>
+      <div class="equalizer-bar"></div>
+      <div class="equalizer-bar"></div>
+    </div>
+    <div class="text-container">
+      <div id="title" class="title">Cargando...</div>
+      <div id="artist" class="artist">Spotify</div>
+    </div>
+  </div>
+
+  <script>
+    const widget = document.getElementById('widget');
+    const titleEl = document.getElementById('title');
+    const artistEl = document.getElementById('artist');
+    let lastText = '';
+
+    async function checkSong() {
+      try {
+        // Fetch local text file (using a cache buster parameter)
+        const response = await fetch('SpotifyCurrentSong.txt?t=' + Date.now());
+        if (response.ok) {
+          let text = await response.text();
+          text = text.trim();
+          
+          if (text !== lastText) {
+            lastText = text;
+            
+            if (text) {
+              // Strip emoji prefix if present
+              let cleanText = text;
+              if (cleanText.startsWith('🎵')) {
+                cleanText = cleanText.substring(2).trim();
+              }
+              
+              // Split into Artist and Title
+              let artist = 'REPRODUCIENDO';
+              let title = cleanText;
+              
+              const splitIndex = cleanText.indexOf(' - ');
+              if (splitIndex !== -1) {
+                artist = cleanText.substring(0, splitIndex).trim();
+                title = cleanText.substring(splitIndex + 3).trim();
+              }
+              
+              titleEl.textContent = title;
+              artistEl.textContent = artist;
+              
+              widget.classList.add('active');
+            } else {
+              widget.classList.remove('active');
+            }
+          }
+        }
+      } catch (error) {
+        // Silent catch for local file errors before first write
+      }
+    }
+
+    // Poll every 1 second
+    setInterval(checkSong, 1000);
+    // Run immediately
+    checkSong();
+  </script>
+</body>
+</html>

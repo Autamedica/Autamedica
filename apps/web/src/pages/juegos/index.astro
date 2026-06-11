@@ -1,0 +1,268 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import { createAstroAdminClient } from '../../lib/supabase';
+
+const canonicalUrl = 'https://www.autamedica.com/juegos';
+
+// Obtener sesión de usuario del middleware
+const session = Astro.locals.session;
+const user = session?.user;
+
+let message = '';
+let isError = false;
+let currentTwitch = '';
+
+const supabase = createAstroAdminClient(Astro.locals.runtime?.env);
+
+// Procesar formulario de vinculación si se envió vía POST
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    const twitchUsername = data.get('twitch_username')?.toString().trim();
+
+    if (!user) {
+      message = 'Debes iniciar sesión para vincular tu cuenta.';
+      isError = true;
+    } else if (!twitchUsername) {
+      message = 'El nombre de usuario de Twitch no puede estar vacío.';
+      isError = true;
+    } else {
+      // Remover @ si el usuario lo ingresó
+      const cleanTwitch = twitchUsername.startsWith('@') ? twitchUsername.slice(1) : twitchUsername;
+
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({ twitch_username: cleanTwitch })
+        .eq('user_id', user.id);
+
+      if (error) {
+        if (error.code === '23505') {
+          message = 'Este usuario de Twitch ya está vinculado a otra cuenta de AutaMedica.';
+        } else {
+          message = `Error al vincular la cuenta: ${error.message}`;
+        }
+        isError = true;
+      } else {
+        message = '¡Cuenta de Twitch vinculada con éxito!';
+      }
+    }
+  } catch (err: any) {
+    message = `Error inesperado: ${err.message || err}`;
+    isError = true;
+  }
+}
+
+// Cargar la vinculación actual del usuario
+if (user) {
+  try {
+    const { data: profile } = await (supabase as any)
+      .from('profiles')
+      .select('twitch_username')
+      .eq('user_id', user.id)
+      .single() as { data: { twitch_username: string | null } | null, error: any };
+
+    if (profile?.twitch_username) {
+      currentTwitch = profile.twitch_username;
+    }
+  } catch (err) {
+    console.error('[load-twitch-username-error]', err);
+  }
+}
+---
+
+<Layout
+  title="Juegos Interactivos y Desafíos Clínicos | AutaMedica"
+  description="Explora los desafíos médicos de AutaMedica. Participa en la Trivia de Twitch, Palabras Cruzadas y más para ganar videoconsultas de salud gratuitas."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow"
+>
+  <Navbar />
+
+  <main class="bg-zinc-950 min-h-screen text-white pt-24 pb-16">
+    <div class="max-w-6xl mx-auto px-6">
+      
+      {/* Breadcrumbs */}
+      <nav class="flex items-center gap-2 text-sm text-zinc-500 mb-8">
+        <a href="/" class="hover:text-white transition-colors">Inicio</a>
+        <span>/</span>
+        <span class="text-zinc-300">Juegos</span>
+      </nav>
+
+      {/* Header */}
+      <div class="text-center mb-16">
+        <div class="inline-flex items-center justify-center p-3 bg-cyan-950/40 border border-cyan-800/60 rounded-full mb-4">
+          <span class="text-3xl">🎮</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold font-serif tracking-tight text-white mb-3">
+          Juegos y <span class="text-cyan-400">Desafíos Médicos</span>
+        </h1>
+        <p class="text-zinc-400 max-w-2xl mx-auto text-sm md:text-base">
+          Poné a prueba tu conocimiento clínico con nuestros desafíos lúdicos. Participá en vivo en las transmisiones de Twitch y ganá videoconsultas de salud gratuitas.
+        </p>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-8 items-start">
+        {/* Games Catalog Grid - Column Span 2 on large screens */}
+        <div class="lg:col-span-2 space-y-6">
+          <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-500"></span> Catálogo de Juegos
+          </h2>
+          
+          {/* Card: Trivia Twitch */}
+          <div class="bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-6 hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.08)] transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div class="space-y-2">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                📺 Stream en Vivo
+              </span>
+              <h3 class="text-lg font-bold text-white">Trivia Médica en Twitch</h3>
+              <p class="text-zinc-400 text-sm max-w-lg leading-relaxed">
+                Respondé en el chat de nuestro stream en vivo. Los tres mejores del mes ganan videoconsultas de salud 100% bonificadas.
+              </p>
+            </div>
+            <a 
+              href="/juegos/trivia" 
+              class="w-full md:w-auto text-center px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-cyan-900/20"
+            >
+              Ver Tabla de Posiciones 🏆
+            </a>
+          </div>
+
+          {/* Card: TDAH Crossword */}
+          <div class="bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-6 hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.08)] transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div class="space-y-2">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                🧠 Neurodesarrollo
+              </span>
+              <h3 class="text-lg font-bold text-white">Crucigrama: TDAH Clínico</h3>
+              <p class="text-zinc-400 text-sm max-w-lg leading-relaxed">
+                Desafío interactivo sobre diagnóstico y lineamientos terapéuticos para el Trastorno por Déficit de Atención e Hiperactividad.
+              </p>
+            </div>
+            <a 
+              href="/juegos/tdah" 
+              class="w-full md:w-auto text-center px-5 py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white rounded-xl text-sm font-semibold transition-all"
+            >
+              Jugar Crucigrama 🧩
+            </a>
+          </div>
+
+          {/* Card: Pathology Crossword */}
+          <div class="bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-6 hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.08)] transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div class="space-y-2">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                🔬 Patología Especial
+              </span>
+              <h3 class="text-lg font-bold text-white">Crucigrama: Patología Especial</h3>
+              <p class="text-zinc-400 text-sm max-w-lg leading-relaxed">
+                Apropiado para estudiantes de medicina de la UBA y profesionales de la salud que quieran repasar patología sistémica.
+              </p>
+            </div>
+            <a 
+              href="/juegos/patologia-especial" 
+              class="w-full md:w-auto text-center px-5 py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white rounded-xl text-sm font-semibold transition-all"
+            >
+              Jugar Crucigrama 🧩
+            </a>
+          </div>
+        </div>
+
+        {/* Twitch Account Link Section */}
+        <div class="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-6 md:p-8 backdrop-blur shadow-2xl relative overflow-hidden">
+          {/* Top accent bar */}
+          <div class="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-purple-500 to-cyan-500 shadow-[0_1px_15px_rgba(168,85,247,0.4)]"></div>
+
+          <h2 class="text-xl font-bold text-white mb-2 flex items-center gap-2">
+            Twitch Link 🔗
+          </h2>
+          <p class="text-zinc-400 text-xs leading-relaxed mb-6">
+            Vinculá tu cuenta de Twitch con tu perfil de AutaMedica para canjear de forma automática tus puntos mensuales por videoconsultas de salud gratuitas en nuestra plataforma.
+          </p>
+
+          {user ? (
+            <div class="space-y-4">
+              {message && (
+                <div class={`p-3.5 rounded-xl text-xs font-medium border ${
+                  isError 
+                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
+                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                }`}>
+                  {message}
+                </div>
+              )}
+
+              {currentTwitch ? (
+                <div class="bg-zinc-950/60 border border-zinc-800 p-4 rounded-xl space-y-1 mb-4">
+                  <span class="text-zinc-500 text-xxs uppercase tracking-wider block">Cuenta vinculada</span>
+                  <span class="text-white font-medium flex items-center gap-1.5">
+                    <span class="text-purple-400">@</span>{currentTwitch}
+                  </span>
+                </div>
+              ) : (
+                <div class="bg-yellow-500/5 border border-yellow-500/15 p-4 rounded-xl space-y-1 mb-4">
+                  <span class="text-yellow-500 text-xxs uppercase tracking-wider block font-bold">⚠️ Sin vinculación</span>
+                  <span class="text-zinc-400 text-xs leading-relaxed block">
+                    Aún no vinculaste tu cuenta. Ingresá tu nombre de usuario de Twitch abajo.
+                  </span>
+                </div>
+              )}
+
+              <form method="POST" class="space-y-4">
+                <div class="space-y-2">
+                  <label for="twitch_username" class="text-zinc-400 text-xs font-medium block">
+                    Usuario de Twitch
+                  </label>
+                  <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-purple-400 font-semibold font-mono text-sm">@</span>
+                    <input
+                      type="text"
+                      id="twitch_username"
+                      name="twitch_username"
+                      required
+                      placeholder="tu_usuario"
+                      value={currentTwitch}
+                      class="w-full bg-zinc-950/80 border border-zinc-800 rounded-xl py-2.5 pl-7 pr-4 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 transition-all font-medium"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-purple-900/20 transition-all"
+                >
+                  {currentTwitch ? 'Actualizar Vinculación' : 'Vincular Cuenta'}
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div class="space-y-6 text-center py-4">
+              <div class="p-4 bg-zinc-950/60 border border-zinc-800/80 rounded-xl text-left">
+                <p class="text-zinc-400 text-xs leading-relaxed">
+                  Para poder registrar tu usuario de Twitch, primero debés iniciar sesión o registrar una cuenta en AutaMedica.
+                </p>
+              </div>
+              <div class="flex flex-col gap-3">
+                <a
+                  href={`/auth/login?returnTo=${encodeURIComponent(Astro.url.pathname)}`}
+                  class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-semibold transition-all"
+                >
+                  Iniciar Sesión
+                </a>
+                <a
+                  href={`/auth/register?returnTo=${encodeURIComponent(Astro.url.pathname)}`}
+                  class="w-full py-2.5 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 rounded-xl text-xs font-semibold transition-all"
+                >
+                  Registrarse
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>

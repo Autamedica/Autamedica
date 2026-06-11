@@ -155,7 +155,7 @@ def get_authenticated_service():
                         'grant_type': 'authorization_code'
                     }
                     
-                    resp = requests.post(token_url, data=data)
+                    resp = requests.post(token_url, data=data, timeout=30)
                     if resp.status_code == 200:
                         token_data = resp.json()
                         print("✓ Manual exchange succeeded!")
@@ -237,7 +237,7 @@ def upload_video(youtube, video_path, title, description, privacy_status="privat
     return response
 
 def main():
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 4:
         print("Usage:")
         print("  python3 youtube_upload.py [video_path] [title] [description_file_or_text] [optional_privacy]")
         print("\nExample:")

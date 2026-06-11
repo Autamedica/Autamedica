@@ -1,0 +1,74 @@
+name: Scheduled WebRTC E2E Tests
+
+on:
+  schedule:
+    # Run every day at 03:00 UTC (00:00 Argentina time)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: 'Environment to run tests against'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - test
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
+  NODE_VERSION: '22'
+  PNPM_VERSION: '9.15.2'
+
+jobs:
+  webrtc-e2e-tests:
+    name: WebRTC Videocall Flow
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Node and PNPM
+        uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
+          build-core: 'false'
+
+      - name: Install Playwright Chromium dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run WebRTC Videocall E2E Tests
+        run: |
+          npx playwright test tests/e2e/doctor-video-call-flow.spec.ts \
+            --config=tests/e2e/playwright.doctor-videocall.config.ts \
+            --reporter=github
+        env:
+          # Target URLs based on environment
+          BASE_URL: ${{ github.event.inputs.target_environment == 'test' && 'https://test.autamedica.com' || 'https://www.autamedica.com' }}
+          DOCTORS_URL: ${{ github.event.inputs.target_environment == 'test' && 'https://test-doctor.autamedica.com' || 'https://doctor.autamedica.com' }}
+          PATIENTS_URL: ${{ github.event.inputs.target_environment == 'test' && 'https://test-paciente.autamedica.com' || 'https://paciente.autamedica.com' }}
+          
+          # Supabase & Signaling configurations
+          SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          SIGNALING_URL: ${{ secrets.PUBLIC_SIGNALING_URL }}
+          
+          # Test credentials (fallback to demo credentials if secrets are not defined)
+          DOCTOR_DEMO_EMAIL: ${{ secrets.DOCTOR_DEMO_EMAIL || 'doctor.demo@autamedica.com' }}
+          DOCTOR_DEMO_PASSWORD: ${{ secrets.DOCTOR_DEMO_PASSWORD || 'Demo1234' }}
+          
+          # Protocol compatibility
+          RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
+
+      - name: Upload Playwright Report on Failure
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: failure()
+        with:
+          name: webrtc-e2e-report
+          path: playwright-report/
+          retention-days: 7

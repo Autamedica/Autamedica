@@ -64,7 +64,7 @@ class SignalingWebSocket(
         if (isConnected) return
 
         currentRoomId = roomId
-        activeSignalingUrl = signalingUrl ?: this.signalingUrl
+        activeSignalingUrl = signalingUrl?.trim()?.takeIf { it.isNotEmpty() } ?: this.signalingUrl
         intentionalDisconnect = false
         reconnectAttempt = 0
         connectInternal(roomId)
@@ -74,7 +74,8 @@ class SignalingWebSocket(
         val encodedRoomId = URLEncoder.encode(roomId, "UTF-8")
         val baseTargetUrl = activeSignalingUrl ?: this.signalingUrl
         val url = "$baseTargetUrl?roomId=$encodedRoomId"
-        SecureLog.info("[Signaling] Connecting to $baseTargetUrl")
+        val safeHost = runCatching { java.net.URI(baseTargetUrl).host }.getOrNull() ?: "unknown"
+        SecureLog.info("[Signaling] Connecting to signaling host=$safeHost")
 
         val request = Request.Builder().url(url).build()
         webSocket = client.newWebSocket(request, SignalingListener())
