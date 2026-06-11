@@ -1,17 +1,246 @@
 {
   "broadcaster_id": "1374917529",
-  "last_updated": "2026-06-10T08:34:26.505642+00:00",
+  "last_updated": "2026-06-10T14:11:55.274390+00:00",
   "events": [
     {
-      "uid": "7a3e51ad-568d-4bfa-9b0d-c20eb0d7fc93",
-      "start": "20260610T120000",
-      "start_tz": "/America/Buenos_Aires",
-      "end": "20260610T160000",
-      "end_tz": "/America/Buenos_Aires",
-      "title": "Debates y Live Coding de Salud",
-      "description": "Acompañanos para debates de salud digital, prevención, e inteligencia artificial con criterio clínico.",
-      "categories": ["Just Chatting", "Science & Technology"],
-      "recurrence": "FREQ=DAILY"
+      "uid": "eyJzZWdtZW50SUQiOiIzNDQyNmU0MC1kOTA1LTQ0MGItYWY5ZS02MjNhYWUwYzcyOWYiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyNH0=",
+      "start": "2026-06-11T22:00:00Z",
+      "end": "2026-06-12T00:00:00Z",
+      "title": "Live Coding: Supabase ⚡",
+      "description": "Desarrollo en vivo y discusión de arquitectura: Seguridad de datos médicos y RLS en Supabase.",
+      "categories": [
+        "Software and Game Development"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TH",
+      "weekday": "TH"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiJmNTRmMjQ1Ni1jY2UzLTRjOWQtOGYzNS0xYzVjZGYzMDcwNTEiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyNH0=",
+      "start": "2026-06-13T18:00:00Z",
+      "end": "2026-06-13T20:00:00Z",
+      "title": "Demo & Feedback Clínico 🍊",
+      "description": "Presentación abierta de la plataforma y feedback sin filtros de médicos y profesionales de la salud.",
+      "categories": [
+        "Just Chatting"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=SA",
+      "weekday": "SA"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiI5NTc5NDY3OC0zZjE2LTRlNTAtYTM2ZS0zODM3ZWJiY2Q4YTQiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyNX0=",
+      "start": "2026-06-16T22:00:00Z",
+      "end": "2026-06-17T00:00:00Z",
+      "title": "Debate: Receta Digital 🏥",
+      "description": "¿Hacia dónde va la receta electrónica? Análisis de la Ley 27.553 y homologación oficial.",
+      "categories": [
+        "Science & Technology"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TU",
+      "weekday": "TU"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiIzNDQyNmU0MC1kOTA1LTQ0MGItYWY5ZS02MjNhYWUwYzcyOWYiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyNX0=",
+      "start": "2026-06-18T22:00:00Z",
+      "end": "2026-06-19T00:00:00Z",
+      "title": "Live Coding: Supabase ⚡",
+      "description": "Desarrollo en vivo y discusión de arquitectura: Seguridad de datos médicos y RLS en Supabase.",
+      "categories": [
+        "Software and Game Development"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TH",
+      "weekday": "TH"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiJmNTRmMjQ1Ni1jY2UzLTRjOWQtOGYzNS0xYzVjZGYzMDcwNTEiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyNX0=",
+      "start": "2026-06-20T18:00:00Z",
+      "end": "2026-06-20T20:00:00Z",
+      "title": "Demo & Feedback Clínico 🍊",
+      "description": "Presentación abierta de la plataforma y feedback sin filtros de médicos y profesionales de la salud.",
+      "categories": [
+        "Just Chatting"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=SA",
+      "weekday": "SA"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiI5NTc5NDY3OC0zZjE2LTRlNTAtYTM2ZS0zODM3ZWJiY2Q4YTQiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyNn0=",
+      "start": "2026-06-23T22:00:00Z",
+      "end": "2026-06-24T00:00:00Z",
+      "title": "Debate: Receta Digital 🏥",
+      "description": "¿Hacia dónde va la receta electrónica? Análisis de la Ley 27.553 y homologación oficial.",
+      "categories": [
+        "Science & Technology"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TU",
+      "weekday": "TU"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiIzNDQyNmU0MC1kOTA1LTQ0MGItYWY5ZS02MjNhYWUwYzcyOWYiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyNn0=",
+      "start": "2026-06-25T22:00:00Z",
+      "end": "2026-06-26T00:00:00Z",
+      "title": "Live Coding: Supabase ⚡",
+      "description": "Desarrollo en vivo y discusión de arquitectura: Seguridad de datos médicos y RLS en Supabase.",
+      "categories": [
+        "Software and Game Development"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TH",
+      "weekday": "TH"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiJmNTRmMjQ1Ni1jY2UzLTRjOWQtOGYzNS0xYzVjZGYzMDcwNTEiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyNn0=",
+      "start": "2026-06-27T18:00:00Z",
+      "end": "2026-06-27T20:00:00Z",
+      "title": "Demo & Feedback Clínico 🍊",
+      "description": "Presentación abierta de la plataforma y feedback sin filtros de médicos y profesionales de la salud.",
+      "categories": [
+        "Just Chatting"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=SA",
+      "weekday": "SA"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiI5NTc5NDY3OC0zZjE2LTRlNTAtYTM2ZS0zODM3ZWJiY2Q4YTQiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyN30=",
+      "start": "2026-06-30T22:00:00Z",
+      "end": "2026-07-01T00:00:00Z",
+      "title": "Debate: Receta Digital 🏥",
+      "description": "¿Hacia dónde va la receta electrónica? Análisis de la Ley 27.553 y homologación oficial.",
+      "categories": [
+        "Science & Technology"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TU",
+      "weekday": "TU"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiIzNDQyNmU0MC1kOTA1LTQ0MGItYWY5ZS02MjNhYWUwYzcyOWYiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyN30=",
+      "start": "2026-07-02T22:00:00Z",
+      "end": "2026-07-03T00:00:00Z",
+      "title": "Live Coding: Supabase ⚡",
+      "description": "Desarrollo en vivo y discusión de arquitectura: Seguridad de datos médicos y RLS en Supabase.",
+      "categories": [
+        "Software and Game Development"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TH",
+      "weekday": "TH"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiJmNTRmMjQ1Ni1jY2UzLTRjOWQtOGYzNS0xYzVjZGYzMDcwNTEiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyN30=",
+      "start": "2026-07-04T18:00:00Z",
+      "end": "2026-07-04T20:00:00Z",
+      "title": "Demo & Feedback Clínico 🍊",
+      "description": "Presentación abierta de la plataforma y feedback sin filtros de médicos y profesionales de la salud.",
+      "categories": [
+        "Just Chatting"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=SA",
+      "weekday": "SA"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiI5NTc5NDY3OC0zZjE2LTRlNTAtYTM2ZS0zODM3ZWJiY2Q4YTQiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyOH0=",
+      "start": "2026-07-07T22:00:00Z",
+      "end": "2026-07-08T00:00:00Z",
+      "title": "Debate: Receta Digital 🏥",
+      "description": "¿Hacia dónde va la receta electrónica? Análisis de la Ley 27.553 y homologación oficial.",
+      "categories": [
+        "Science & Technology"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TU",
+      "weekday": "TU"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiIzNDQyNmU0MC1kOTA1LTQ0MGItYWY5ZS02MjNhYWUwYzcyOWYiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyOH0=",
+      "start": "2026-07-09T22:00:00Z",
+      "end": "2026-07-10T00:00:00Z",
+      "title": "Live Coding: Supabase ⚡",
+      "description": "Desarrollo en vivo y discusión de arquitectura: Seguridad de datos médicos y RLS en Supabase.",
+      "categories": [
+        "Software and Game Development"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TH",
+      "weekday": "TH"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiJmNTRmMjQ1Ni1jY2UzLTRjOWQtOGYzNS0xYzVjZGYzMDcwNTEiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyOH0=",
+      "start": "2026-07-11T18:00:00Z",
+      "end": "2026-07-11T20:00:00Z",
+      "title": "Demo & Feedback Clínico 🍊",
+      "description": "Presentación abierta de la plataforma y feedback sin filtros de médicos y profesionales de la salud.",
+      "categories": [
+        "Just Chatting"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=SA",
+      "weekday": "SA"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiI5NTc5NDY3OC0zZjE2LTRlNTAtYTM2ZS0zODM3ZWJiY2Q4YTQiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyOX0=",
+      "start": "2026-07-14T22:00:00Z",
+      "end": "2026-07-15T00:00:00Z",
+      "title": "Debate: Receta Digital 🏥",
+      "description": "¿Hacia dónde va la receta electrónica? Análisis de la Ley 27.553 y homologación oficial.",
+      "categories": [
+        "Science & Technology"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TU",
+      "weekday": "TU"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiIzNDQyNmU0MC1kOTA1LTQ0MGItYWY5ZS02MjNhYWUwYzcyOWYiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyOX0=",
+      "start": "2026-07-16T22:00:00Z",
+      "end": "2026-07-17T00:00:00Z",
+      "title": "Live Coding: Supabase ⚡",
+      "description": "Desarrollo en vivo y discusión de arquitectura: Seguridad de datos médicos y RLS en Supabase.",
+      "categories": [
+        "Software and Game Development"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TH",
+      "weekday": "TH"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiJmNTRmMjQ1Ni1jY2UzLTRjOWQtOGYzNS0xYzVjZGYzMDcwNTEiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjoyOX0=",
+      "start": "2026-07-18T18:00:00Z",
+      "end": "2026-07-18T20:00:00Z",
+      "title": "Demo & Feedback Clínico 🍊",
+      "description": "Presentación abierta de la plataforma y feedback sin filtros de médicos y profesionales de la salud.",
+      "categories": [
+        "Just Chatting"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=SA",
+      "weekday": "SA"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiI5NTc5NDY3OC0zZjE2LTRlNTAtYTM2ZS0zODM3ZWJiY2Q4YTQiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjozMH0=",
+      "start": "2026-07-21T22:00:00Z",
+      "end": "2026-07-22T00:00:00Z",
+      "title": "Debate: Receta Digital 🏥",
+      "description": "¿Hacia dónde va la receta electrónica? Análisis de la Ley 27.553 y homologación oficial.",
+      "categories": [
+        "Science & Technology"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TU",
+      "weekday": "TU"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiIzNDQyNmU0MC1kOTA1LTQ0MGItYWY5ZS02MjNhYWUwYzcyOWYiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjozMH0=",
+      "start": "2026-07-23T22:00:00Z",
+      "end": "2026-07-24T00:00:00Z",
+      "title": "Live Coding: Supabase ⚡",
+      "description": "Desarrollo en vivo y discusión de arquitectura: Seguridad de datos médicos y RLS en Supabase.",
+      "categories": [
+        "Software and Game Development"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=TH",
+      "weekday": "TH"
+    },
+    {
+      "uid": "eyJzZWdtZW50SUQiOiJmNTRmMjQ1Ni1jY2UzLTRjOWQtOGYzNS0xYzVjZGYzMDcwNTEiLCJpc29ZZWFyIjoyMDI2LCJpc29XZWVrIjozMH0=",
+      "start": "2026-07-25T18:00:00Z",
+      "end": "2026-07-25T20:00:00Z",
+      "title": "Demo & Feedback Clínico 🍊",
+      "description": "Presentación abierta de la plataforma y feedback sin filtros de médicos y profesionales de la salud.",
+      "categories": [
+        "Just Chatting"
+      ],
+      "recurrence": "FREQ=WEEKLY;BYDAY=SA",
+      "weekday": "SA"
     }
   ]
 }

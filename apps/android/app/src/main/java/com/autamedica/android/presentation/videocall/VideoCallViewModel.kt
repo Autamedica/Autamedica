@@ -374,10 +374,8 @@ class VideoCallViewModel @Inject constructor(
 
                 val dynamicIce = sessionInfo.iceServers.map { it.toPeerConnectionIceServer() }
                 if (dynamicIce.isNotEmpty()) {
-                    engine.initialize(
-                        engine.config.copy(
-                            iceServers = dynamicIce
-                        )
+                    engine.config = engine.config.copy(
+                        iceServers = dynamicIce
                     )
                 }
 

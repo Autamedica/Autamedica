@@ -1,0 +1,77 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import TdahCrossword from '../../components/juegos/TdahCrossword';
+
+const canonicalUrl = 'https://www.autamedica.com/juegos/tdah';
+---
+
+<Layout
+  title="Palabras Cruzadas: TDAH | AutaMedica"
+  description="Poné a prueba tus conocimientos clínicos sobre el Trastorno por Déficit de Atención con Hiperactividad (TDAH) en este palabras cruzadas interactivo para profesionales y estudiantes."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow"
+>
+  <Navbar />
+  
+  <main class="bg-zinc-950 min-h-screen text-white pt-24 pb-16">
+    <div class="max-w-6xl mx-auto px-6">
+      <nav class="flex items-center gap-2 text-sm text-zinc-500 mb-8">
+        <a href="/" class="hover:text-white transition-colors">Inicio</a>
+        <span>/</span>
+        <span class="text-zinc-400">Juegos</span>
+        <span>/</span>
+        <span class="text-zinc-300">TDAH</span>
+      </nav>
+
+      {/* RENDER THE CROSSWORD COMPONENT */}
+      <TdahCrossword client:load />
+
+      {/* INFORMATIONAL BLOCK */}
+      <div class="mt-16 border-t border-zinc-900 pt-12 max-w-4xl mx-auto text-zinc-400 space-y-6">
+        <h3 class="text-lg font-semibold text-white font-serif">Sobre el TDAH y el Diagnóstico Clínico</h3>
+        <p class="text-sm leading-relaxed">
+          El Trastorno por Déficit de Atención con Hiperactividad (TDAH) es una condición neurobiológica que afecta tanto a niños como a adultos, caracterizada por patrones persistentes de inatención, hiperactividad e impulsividad. En AutaMedica impulsamos herramientas digitales que ayuden a simplificar la práctica clínica diaria, incluyendo el diagnóstico riguroso de condiciones de salud mental y neurodesarrollo.
+        </p>
+        <p class="text-sm leading-relaxed">
+          Nuestra plataforma permite emitir recetas seguras y realizar seguimientos terapéuticos para tratamientos crónicos (como estimulantes o no estimulantes regulados por leyes nacionales) con validación automática de matrículas médicas y normativas vigentes, garantizando siempre la máxima seguridad y confidencialidad.
+        </p>
+        <div class="flex flex-wrap gap-4 pt-4">
+          <a 
+            href="/doctors" 
+            class="px-5 py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-lg text-sm hover:bg-zinc-800 hover:text-white transition-all font-medium"
+          >
+            Sección para Médicos
+          </a>
+          <a 
+            href="/ley-27553-telemedicina" 
+            class="px-5 py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-lg text-sm hover:bg-zinc-800 hover:text-white transition-all font-medium"
+          >
+            Regulación de Recetas Digitales
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style is:global>
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+</style>

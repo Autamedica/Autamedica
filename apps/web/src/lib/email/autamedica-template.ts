@@ -20,6 +20,7 @@ export interface AutamedicaEmailTemplateInput {
   closingName?: string;
   closingRole?: string;
   showPersonalSignature?: boolean;
+  imageUrls?: string[];
 }
 
 export interface RenderedEmail {
@@ -97,6 +98,14 @@ export function renderAutamedicaEmail(
     ? `<a href="${escapeHtml(input.unsubscribeUrl)}" style="font-size:12px;">Darse de baja</a>`
     : '';
 
+  const imagesHtml = input.imageUrls && input.imageUrls.length > 0
+    ? input.imageUrls.map(url => `
+      <div style="margin:24px 0;text-align:center;">
+        <img src="${escapeHtml(url)}" style="max-width:100%;height:auto;border-radius:16px;border:1px solid #E2E8F0;box-shadow:0 4px 12px rgba(15,23,42,0.03);" alt="Previsualización de la transmisión" />
+      </div>
+    `).join('\n')
+    : '';
+
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -140,6 +149,7 @@ export function renderAutamedicaEmail(
       <h1>${escapeHtml(input.title)}</h1>
       ${input.intro ? `<p>${escapeHtml(input.intro)}</p>` : ''}
       ${paragraphHtml(input.paragraphs)}
+      ${imagesHtml}
       ${input.note ? `<div class="note"><p style="margin:0;">${escapeHtml(input.note)}</p></div>` : ''}
       ${actionHtml}
       ${secondaryHtml}
@@ -381,3 +391,28 @@ export function buildPatientPrescriptionBenefitsEmail(
     unsubscribeUrl,
   });
 }
+
+export function buildStreamingAnnouncementEmail(
+  recipientName: string,
+  actionUrl: string,
+  unsubscribeUrl?: string,
+): RenderedEmail {
+  return renderAutamedicaEmail('🎥 Primer Stream en Vivo de AutaMedica: Hablá con profesionales de salud', {
+    variant: 'newsletter',
+    title: `Hola, ${recipientName || 'cómo estás'}`,
+    preheader: 'Unite a nuestro primer stream de salud y conversá directo con profesionales del equipo.',
+    paragraphs: [
+      'Queremos contarte algo nuevo: en AutaMedica creemos que la salud digital debe ser abierta, interactiva y transparente. Por eso, inauguramos nuestro canal de streaming para debatir en vivo y responder dudas en tiempo real.',
+      'Este no será un espacio de consultas médicas individuales o diagnóstico, sino un punto de encuentro semanal para hablar de prevención, derribar mitos médicos, debatir sobre nuevas regulaciones de recetas digitales y mostrar el detrás de escena del desarrollo de nuestra plataforma.',
+      'Lo más importante: el chat estará abierto para que puedas hacer preguntas generales en vivo y conversar de manera directa con médicos y especialistas del equipo.',
+      'Transmitiremos en simultáneo por Twitch y YouTube. ¡Sumate a la comunidad para construir juntos una salud más informada!',
+    ],
+    imageUrls: [
+      'https://qxjjrpksmwwrmubhvjew.supabase.co/storage/v1/object/public/public_assets/stream-preview-twitch.png',
+      'https://qxjjrpksmwwrmubhvjew.supabase.co/storage/v1/object/public/public_assets/stream-preview-youtube.png'
+    ],
+    action: { label: 'Ver Agenda y Canales', url: actionUrl },
+    unsubscribeUrl,
+  });
+}
+
