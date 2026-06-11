@@ -572,6 +572,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (
     import.meta.env.PROD &&
     (requestUrl.hostname === "autamedica.com" ||
+      requestUrl.hostname === "auth.autamedica.com" ||
       requestUrl.hostname === "autamedica-web.pages.dev")
   ) {
     const canonicalUrl = new URL(requestUrl.toString());
