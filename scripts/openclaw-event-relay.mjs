@@ -1,20 +1,16 @@
 #!/usr/bin/env node
 import http from 'node:http'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
-
-const execFileAsync = promisify(execFile)
-
 const HOST = process.env.OPENCLAW_EVENT_RELAY_HOST || '127.0.0.1'
 const PORT = Number(process.env.OPENCLAW_EVENT_RELAY_PORT || '18791')
 const AUTHORIZE_URL =
   process.env.AUTAMEDICA_OPENCLAW_AUTHORIZE_URL ||
   'https://doctor.autamedica.com/api/openclaw/authorize'
-const OPENCLAW_BIN = process.env.OPENCLAW_CLI_PATH || 'openclaw'
 const DEFAULT_ACCOUNT = process.env.OPENCLAW_ACCOUNT || 'autamedica'
 const DEFAULT_CHANNEL = process.env.OPENCLAW_CHANNEL || 'whatsapp'
 const REQUIRED_SCOPE = process.env.OPENCLAW_REQUIRED_SCOPE || 'openclaw:send'
 const RELAY_USER_AGENT = process.env.OPENCLAW_EVENT_RELAY_USER_AGENT || 'AutaMedica-OpenClaw-Relay/1.0'
+const DIRECT_API_URL = process.env.WHATSAPP_DIRECT_API_URL || 'http://127.0.0.1:18792'
+const DIRECT_API_TOKEN = process.env.WHATSAPP_DIRECT_API_TOKEN || ''
 
 const MAX_BODY_BYTES = Number(process.env.OPENCLAW_EVENT_RELAY_MAX_BODY_BYTES || '32768')
 const MAX_MESSAGE_CHARS = Number(process.env.OPENCLAW_EVENT_RELAY_MAX_MESSAGE_CHARS || '4000')
@@ -92,35 +88,34 @@ async function authorize(apiKey) {
   }
 }
 
-async function sendViaOpenClaw({ to, message, channel, accountId }) {
-  const args = [
-    'message',
-    'send',
-    '--channel',
-    channel,
-    '--target',
-    to,
-    '--message',
-    message,
-    '--account',
-    accountId,
-    '--json',
-  ]
-
-  const { stdout, stderr } = await execFileAsync(OPENCLAW_BIN, args, { timeout: SEND_TIMEOUT_MS })
-  if (stderr?.toLowerCase().includes('error')) {
-    throw new Error(stderr.trim())
+async function sendViaDirectWhatsApp({ to, message }) {
+  if (!DIRECT_API_TOKEN) throw new Error('missing_direct_api_token')
+  const response = await fetch(`${DIRECT_API_URL}/send`, {
+    method: 'POST',
+    headers: {
+      'authorization': `Bearer ${DIRECT_API_TOKEN}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ to, message }),
+    signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok || !payload?.ok) {
+    throw new Error(String(payload?.error || `direct_api_http_${response.status}`))
   }
+  return payload
+}
 
+async function directWhatsAppHealth() {
   try {
-    const payload = JSON.parse(stdout)
-    if (payload?.error) throw new Error(String(payload.error))
-  } catch (error) {
-    if (error instanceof SyntaxError) return { raw: stdout }
-    throw error
+    const response = await fetch(`${DIRECT_API_URL}/health`, {
+      signal: AbortSignal.timeout(3000),
+    })
+    const payload = await response.json().catch(() => ({}))
+    return { ok: response.ok && payload?.ok === true, payload }
+  } catch {
+    return { ok: false, payload: { error: 'direct_api_unreachable' } }
   }
-
-  return { raw: stdout }
 }
 
 async function handleSend(req, res) {
@@ -159,8 +154,8 @@ async function handleSend(req, res) {
   if (!message || message.length > MAX_MESSAGE_CHARS) return json(res, 400, { ok: false, error: 'invalid_message' })
 
   try {
-    const result = await sendViaOpenClaw({ to, message, channel, accountId })
-    return json(res, 200, { ok: true, event, to, raw: result.raw })
+    const result = await sendViaDirectWhatsApp({ to, message })
+    return json(res, 200, { ok: true, event, to, messageId: result.messageId || null })
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'send_failed'
     console.error('[openclaw-event-relay] send failed', { event, to, detail })
@@ -172,7 +167,12 @@ const server = http.createServer((req, res) => {
   Promise.resolve()
     .then(async () => {
       if (req.method === 'GET' && req.url === '/health') {
-        return json(res, 200, { ok: true, service: 'openclaw-event-relay' })
+        const provider = await directWhatsAppHealth()
+        return json(res, provider.ok ? 200 : 503, {
+          ok: provider.ok,
+          service: 'openclaw-event-relay',
+          provider: provider.payload,
+        })
       }
       if (req.method === 'POST' && req.url === '/send') {
         return handleSend(req, res)

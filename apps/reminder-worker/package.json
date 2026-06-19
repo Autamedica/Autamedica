@@ -8,6 +8,7 @@
     "start:growth-agent": "bun src/growth-agent-worker.ts",
     "start:inbound": "bun src/inbound-watcher.ts",
     "start:adherence": "bun src/adherence-reminder.ts",
+    "start:patient-whatsapp": "bun src/patient-whatsapp-worker.ts",
     "start:all": "bun src/index.ts & bun src/inbound-watcher.ts & bun src/adherence-reminder.ts & bun src/growth-agent-worker.ts",
     "dev": "bun --watch src/index.ts",
     "dev:growth-agent": "bun --watch src/growth-agent-worker.ts",

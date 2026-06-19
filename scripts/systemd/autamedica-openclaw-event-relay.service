@@ -1,0 +1,23 @@
+[Unit]
+Description=AutaMedica authenticated WhatsApp event relay
+After=network-online.target autamedica-whatsapp-direct-menu.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=openclaw
+Group=openclaw
+Environment=HOME=/opt/openclaw
+Environment=OPENCLAW_EVENT_RELAY_HOST=127.0.0.1
+Environment=OPENCLAW_EVENT_RELAY_PORT=18791
+Environment=AUTAMEDICA_OPENCLAW_AUTHORIZE_URL=https://doctor.autamedica.com/api/openclaw/authorize
+Environment=OPENCLAW_ACCOUNT=autamedica
+Environment=OPENCLAW_CHANNEL=whatsapp
+Environment=WHATSAPP_DIRECT_API_URL=http://127.0.0.1:18792
+EnvironmentFile=/etc/autamedica/whatsapp-direct.env
+ExecStart=/usr/bin/node /opt/autamedica/openclaw-event-relay.mjs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

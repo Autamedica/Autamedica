@@ -752,6 +752,9 @@ importers:
       '@autamedica/types':
         specifier: workspace:*
         version: link:../types
+      '@supabase/supabase-js':
+        specifier: ^2.98.0
+        version: 2.98.0
       consola:
         specifier: ^3.4.2
         version: 3.4.2

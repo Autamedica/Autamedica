@@ -1363,6 +1363,60 @@ export type Database = {
           },
         ]
       }
+      patient_whatsapp_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          dedupe_key: string
+          id: string
+          last_error: string | null
+          message: string
+          patient_id: string
+          prescription_id: string
+          provider_message_id: string | null
+          recipient_phone: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          dedupe_key: string
+          id?: string
+          last_error?: string | null
+          message: string
+          patient_id: string
+          prescription_id: string
+          provider_message_id?: string | null
+          recipient_phone: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          dedupe_key?: string
+          id?: string
+          last_error?: string | null
+          message?: string
+          patient_id?: string
+          prescription_id?: string
+          provider_message_id?: string | null
+          recipient_phone?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_events: {
         Row: {
           broadcast_id: string | null
@@ -11313,4 +11367,3 @@ export const Constants = {
     },
   },
 } as const
-

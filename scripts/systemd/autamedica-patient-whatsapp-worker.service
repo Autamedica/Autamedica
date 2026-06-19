@@ -1,0 +1,21 @@
+[Unit]
+Description=AutaMedica patient prescription WhatsApp worker
+After=network-online.target autamedica-openclaw-event-relay.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=openclaw
+Group=openclaw
+WorkingDirectory=/opt/autamedica/antigravity
+Environment=HOME=/opt/openclaw
+Environment=NODE_ENV=production
+Environment=OPENCLAW_EVENT_RELAY_URL=http://127.0.0.1:18791
+Environment=PATIENT_WHATSAPP_INTERVAL_MS=30000
+EnvironmentFile=/etc/autamedica/patient-whatsapp-worker.env
+ExecStart=/opt/nodejs/bin/npx tsx apps/reminder-worker/src/patient-whatsapp-worker.ts
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

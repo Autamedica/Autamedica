@@ -1,0 +1,19 @@
+[Unit]
+Description=AutaMedica direct deterministic WhatsApp menu
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=openclaw
+Group=openclaw
+WorkingDirectory=/opt/autamedica
+Environment=HOME=/opt/openclaw
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/autamedica/whatsapp-direct.env
+ExecStart=/usr/bin/node /opt/autamedica/whatsapp-direct-menu.mjs
+Restart=always
+RestartSec=8
+
+[Install]
+WantedBy=multi-user.target

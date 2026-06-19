@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@autamedica/types": "workspace:*",
+    "@supabase/supabase-js": "^2.98.0",
     "consola": "^3.4.2",
     "jose": "^6.1.0"
   }
