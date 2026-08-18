@@ -70,8 +70,8 @@ export function primeRuntimeEnv(runtimeEnv?: RuntimeEnvRecord): void {
 }
 
 export function resolvePublicSupabaseEnv(runtimeEnv?: RuntimeEnvRecord): {
-  publicSupabaseUrl?: string;
-  publicSupabaseAnonKey?: string;
+  publicSupabaseUrl: string;
+  publicSupabaseAnonKey: string;
 } {
   primeRuntimeEnv(runtimeEnv);
 
@@ -79,7 +79,8 @@ export function resolvePublicSupabaseEnv(runtimeEnv?: RuntimeEnvRecord): {
     readFirst(runtimeEnv, ['PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_URL']) ??
     readCached(['PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_URL']) ??
     import.meta.env.PUBLIC_SUPABASE_URL ??
-    readProcess(['PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_URL']);
+    readProcess(['PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_URL']) ??
+    'https://qxjjrpksmwwrmubhvjew.supabase.co';
 
   const publicSupabaseAnonKey =
     readFirst(runtimeEnv, [
@@ -97,7 +98,8 @@ export function resolvePublicSupabaseEnv(runtimeEnv?: RuntimeEnvRecord): {
       'PUBLIC_SUPABASE_ANON_KEY',
       'NEXT_PUBLIC_SUPABASE_ANON_KEY',
       'SUPABASE_ANON_KEY',
-    ]);
+    ]) ??
+    '';
 
   return { publicSupabaseUrl, publicSupabaseAnonKey };
 }

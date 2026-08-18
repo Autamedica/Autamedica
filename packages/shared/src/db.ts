@@ -48,10 +48,31 @@ function getSupabaseClient(): SupabaseClient<Database> {
     return supabaseClient;
   }
 
-  const url = process.env.PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.PUBLIC_SUPABASE_ANON_KEY;
+  let url: string | undefined = typeof process !== 'undefined' ? process.env?.PUBLIC_SUPABASE_URL || process.env?.NEXT_PUBLIC_SUPABASE_URL : undefined;
+  let anonKey: string | undefined = typeof process !== 'undefined' ? process.env?.PUBLIC_SUPABASE_ANON_KEY || process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY : undefined;
+
+  if (typeof window !== 'undefined') {
+    const win = window as unknown as Record<string, unknown>;
+    const envBag = win.__ENV as Record<string, string> | undefined;
+    if (envBag?.PUBLIC_SUPABASE_URL) url = envBag.PUBLIC_SUPABASE_URL;
+    if (envBag?.PUBLIC_SUPABASE_ANON_KEY) anonKey = envBag.PUBLIC_SUPABASE_ANON_KEY;
+  }
 
   if (!url || !anonKey) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const metaEnv = (import.meta as any)?.env;
+      if (metaEnv?.PUBLIC_SUPABASE_URL) url = metaEnv.PUBLIC_SUPABASE_URL;
+      if (metaEnv?.PUBLIC_SUPABASE_ANON_KEY) anonKey = metaEnv.PUBLIC_SUPABASE_ANON_KEY;
+    } catch {
+      // Ignore
+    }
+  }
+
+  if (!url) {
+    url = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
+  }
+  if (!anonKey) {
     throw new Error('Supabase configuration is missing. Please set PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY');
   }
 

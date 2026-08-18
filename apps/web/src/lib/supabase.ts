@@ -61,8 +61,18 @@ export function createSupabaseServerClient(
       return parseCookieHeader(request);
     },
     setAll(cookiesToSet) {
+      const reqHostname = new URL(request.url).hostname;
+      const isProd = import.meta.env.PROD === true;
+      const useDomainOverride = isProd && (reqHostname === 'autamedica.com' || reqHostname.endsWith('.autamedica.com'));
+      const domainOverride = useDomainOverride ? '.autamedica.com' : undefined;
       for (const { name, value, options } of cookiesToSet) {
-        cookies.set(name, value, options as AstroCookieSetOptions);
+        cookies.set(name, value, {
+          ...options,
+          domain: domainOverride,
+          path: '/',
+          sameSite: 'lax',
+          secure: isProd,
+        } as AstroCookieSetOptions);
       }
     },
   };

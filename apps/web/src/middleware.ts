@@ -187,16 +187,16 @@ function checkAbuse(ip: string): "allowed" | "blocked" {
 // ── SECURITY HEADERS ──────────────────────────────────────────────────────────
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://platform.linkedin.com https://badges.linkedin.com https://badges.linkedin-ei.com https://www.googletagmanager.com https://www.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://platform.linkedin.com https://badges.linkedin.com https://badges.linkedin-ei.com https://www.googletagmanager.com https://www.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://*.doubleclick.net https://ad.doubleclick.net https://accounts.google.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://static.licdn.com",
   "img-src 'self' data: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co wss://*.workers.dev https://*.workers.dev https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://www.google-analytics.com https://analytics.google.com https://www.google.com https://stats.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co wss://*.workers.dev https://*.workers.dev https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://www.google-analytics.com https://analytics.google.com https://google.com https://*.google.com https://www.google.com https://stats.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net https://*.doubleclick.net https://ad.doubleclick.net https://accounts.google.com https://*.googleapis.com",
   "media-src 'self' blob:",
-  "frame-src 'self' https://www.linkedin.com https://platform.linkedin.com https://badges.linkedin.com https://badges.linkedin-ei.com",
+  "frame-src 'self' https://www.linkedin.com https://platform.linkedin.com https://badges.linkedin.com https://badges.linkedin-ei.com https://accounts.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  "form-action 'self' https://accounts.google.com https://*.supabase.co",
 ].join("; ");
 
 function applySecurityHeaders(response: Response): void {
@@ -257,6 +257,12 @@ function getRoleRedirect(role: string): string {
 // Unified legacy redirects: handles both exact match (/empresa → /companies)
 // and prefix+subpath (/empresa/foo → /companies/foo) in a single loop.
 const LEGACY_REDIRECTS: Record<string, string> = {
+  "/login": "/auth/login",
+  "/signin": "/auth/login",
+  "/ingresar": "/auth/login",
+  "/register": "/auth/register",
+  "/registro": "/auth/register",
+  "/signup": "/auth/register",
   "/app": "/platform",
   "/web-app": "/platform",
   "/webapp": "/platform",
@@ -596,15 +602,26 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   // Intercept OAuth redirects that land outside /auth/callback
-  // Require both `code` and `state` params (OAuth standard) to avoid false positives
+  // Captura cualquier retorno OAuth con `code` que haya aterrizado en la raíz u otra ruta
   if (
     pathname !== "/auth/callback" &&
-    requestUrl.searchParams.has("code") &&
-    requestUrl.searchParams.has("state")
+    requestUrl.searchParams.has("code")
   ) {
     const callbackUrl = new URL("/auth/callback", context.request.url);
     callbackUrl.search = requestUrl.search;
     return context.redirect(callbackUrl.toString(), 302);
+  }
+
+  // Intercept OAuth error redirects from Supabase landing on root (SITE_URL)
+  if (
+    pathname === "/" &&
+    (requestUrl.searchParams.has("error") ||
+      requestUrl.searchParams.has("error_code") ||
+      requestUrl.searchParams.has("error_description"))
+  ) {
+    const loginErrorUrl = new URL("/auth/login", context.request.url);
+    loginErrorUrl.search = requestUrl.search;
+    return context.redirect(loginErrorUrl.toString(), 302);
   }
 
   // Skip auth for static assets
@@ -828,7 +845,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       const loginUrl = new URL("/auth/login", context.request.url);
       loginUrl.searchParams.set(
         "returnTo",
-        isPortalHostRoot ? "/" : pathname + requestUrl.search,
+        isPortalHostRoot ? requestUrl.origin + "/" : pathname + requestUrl.search,
       );
       loginUrl.searchParams.set("portal", loginPortal);
 
@@ -908,7 +925,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       const loginUrl = new URL("/auth/login", context.request.url);
       loginUrl.searchParams.set(
         "returnTo",
-        isPortalHostRoot ? "/" : pathname + requestUrl.search,
+        isPortalHostRoot ? requestUrl.origin + "/" : pathname + requestUrl.search,
       );
       loginUrl.searchParams.set("portal", loginPortal);
       return context.redirect(loginUrl.toString());

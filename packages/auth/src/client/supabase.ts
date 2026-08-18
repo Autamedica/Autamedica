@@ -104,7 +104,7 @@ export function createBrowserClient(): SupabaseClient<Database> {
   // The cookieOptions.domain enables cross-subdomain SSO (.autamedica.com).
   supabaseClient = createSupabaseBrowserClient<Database>(url, anonKey, {
     cookieOptions: {
-      domain: domainConfig.cookie,
+      domain: domainConfig.cookie || undefined,
       secure: window.location.protocol === 'https:',
       sameSite: 'lax',
       path: '/',

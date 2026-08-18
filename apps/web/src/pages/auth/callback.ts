@@ -135,8 +135,9 @@ function getSafeRedirect(
   parsedReturnTo: { absolute: URL | null; relativePath: string | null },
   requestUrl: URL,
 ): string {
+  const requestHostname = requestUrl.hostname;
   if (isAdminRole(resolvedRole)) {
-    return getRolePath(resolvedRole);
+    return getRolePath(resolvedRole, requestHostname);
   }
 
   if (parsedReturnTo.absolute) {
@@ -149,20 +150,32 @@ function getSafeRedirect(
   }
 
   if (parsedReturnTo.relativePath) {
+    if (parsedReturnTo.relativePath === '/') {
+      return getRolePath(resolvedRole ?? '', requestHostname);
+    }
+    const base = getRolePath(resolvedRole ?? '', requestHostname);
+    if (base.startsWith('http')) {
+      try {
+        return new URL(parsedReturnTo.relativePath, base).toString();
+      } catch {
+        return parsedReturnTo.relativePath;
+      }
+    }
     return parsedReturnTo.relativePath;
   }
 
-  return getRolePath(resolvedRole ?? '');
+  return getRolePath(resolvedRole ?? '', requestHostname);
 }
 
 /** Map role to redirect path — uses DomainConfig URLs in prod/staging, query param in dev */
-function getRolePath(role: string): string {
-  const env = getEnvironment();
+function getRolePath(role: string, requestHostname?: string): string {
+  const env = getEnvironment(requestHostname);
 
   if (env === 'development') {
     const DEV_PORTALS: Record<string, string> = {
       patient: 'patient',
       doctor: 'doctor',
+      pharmacist: 'pharmacy',
       company: 'company',
       company_admin: 'company',
       admin: 'admin',
@@ -173,10 +186,11 @@ function getRolePath(role: string): string {
     return portal ? `/?portal=${portal}` : '/auth/select-role';
   }
 
-  const config = getDomainConfig();
+  const config = getDomainConfig(requestHostname);
   const ROLE_TO_APP: Record<string, keyof typeof config.apps> = {
     patient: 'patients',
     doctor: 'doctors',
+    pharmacist: 'pharmacy',
     company: 'companies',
     company_admin: 'companies',
     organization_admin: 'admin',
@@ -193,6 +207,18 @@ export const GET: APIRoute = async ({ request, cookies, redirect, locals }) => {
   const returnTo = requestUrl.searchParams.get('returnTo');
   const roleHint = requestUrl.searchParams.get('role');
   const parsedReturnTo = parseReturnToParam(returnTo);
+
+  // If redirected with OAuth error params and no code, forward to login page
+  if (
+    !code &&
+    (requestUrl.searchParams.has('error') ||
+      requestUrl.searchParams.has('error_code') ||
+      requestUrl.searchParams.has('error_description'))
+  ) {
+    const loginErrorUrl = new URL('/auth/login', request.url);
+    loginErrorUrl.search = requestUrl.search;
+    return redirect(loginErrorUrl.toString());
+  }
 
   const supabase = buildSupabaseClient(request, cookies, locals.runtime?.env);
 
@@ -227,10 +253,10 @@ export const GET: APIRoute = async ({ request, cookies, redirect, locals }) => {
         return redirect(`/auth/login?${loginParams.toString()}`);
       }
 
-      // Only allow self-assignable roles via URL param (prevent privilege escalation)
+      // Only assign self-assignable role on first login if user does not already have a role
       if (roleHint && SELF_ASSIGNABLE_ROLES.has(roleHint) && isValidRole(roleHint) && data.user) {
         const existingRole = data.user.user_metadata?.role;
-        if (existingRole !== roleHint) {
+        if (!existingRole) {
           await supabase.auth.updateUser({ data: { role: roleHint } });
         }
       }
