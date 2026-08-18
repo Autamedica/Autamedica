@@ -74,6 +74,7 @@ async function clearLocalSession(
   reason: string,
   error?: unknown,
 ): Promise<void> {
+  resetAuthCircuitBreaker()
   const message = getAuthErrorMessage(error)
   const status = getAuthErrorStatus(error)
 
@@ -101,6 +102,32 @@ async function clearLocalSession(
       errorMessage: getAuthErrorMessage(cleanupError) || String(cleanupError),
       errorStatus: getAuthErrorStatus(cleanupError) ?? undefined,
     })
+  } finally {
+    resetAuthCircuitBreaker()
+    if (typeof window !== 'undefined') {
+      try {
+        const authKeys = ['sb-', 'supabase', 'autamedica']
+        const toRemoveLocal: string[] = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && authKeys.some((prefix) => key.includes(prefix))) {
+            toRemoveLocal.push(key)
+          }
+        }
+        toRemoveLocal.forEach((k) => localStorage.removeItem(k))
+
+        const toRemoveSession: string[] = []
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i)
+          if (key && authKeys.some((prefix) => key.includes(prefix))) {
+            toRemoveSession.push(key)
+          }
+        }
+        toRemoveSession.forEach((k) => sessionStorage.removeItem(k))
+      } catch {
+        // Ignore storage clearance errors
+      }
+    }
   }
 }
 
@@ -141,6 +168,7 @@ export async function signInWithOAuth(
   redirectTo: string,
   queryParams?: Record<string, string>
 ): Promise<SignInResult> {
+  resetAuthCircuitBreaker()
   const supabase = createBrowserClient()
 
   // Limpiar estado previo para evitar conflictos con el nuevo PKCE code_verifier.
@@ -252,6 +280,7 @@ export async function signUp(
   password: string,
   options?: SignUpOptions
 ): Promise<SignInResult> {
+  resetAuthCircuitBreaker()
   const supabase = createBrowserClient()
 
   const { error } = await supabase.auth.signUp({
@@ -278,6 +307,7 @@ export async function resetPasswordForEmail(
   email: string,
   redirectTo: string
 ): Promise<SignInResult> {
+  resetAuthCircuitBreaker()
   const supabase = createBrowserClient()
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })

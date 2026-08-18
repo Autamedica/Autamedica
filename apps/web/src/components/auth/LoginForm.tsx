@@ -203,12 +203,15 @@ export function LoginForm({ locale = "es" }: { locale?: Locale }) {
         setIsSubmitting(false);
       }
     } catch (err) {
+      const errorMessage = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      const errorStack = err instanceof Error ? err.stack : undefined;
       logger.error("[LoginForm] signInWithOAuth threw unexpectedly", {
-        err: String(err),
+        err: errorMessage,
+        stack: errorStack,
         provider: "google",
         role,
       });
-      setError(t("auth.googleErrorUnexpected"));
+      setError(err instanceof Error && err.message ? err.message : t("auth.googleErrorUnexpected"));
       setIsSubmitting(false);
     }
   }, [role, returnTo, t]);

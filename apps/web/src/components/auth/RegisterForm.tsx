@@ -112,8 +112,9 @@ export function RegisterForm({ locale = 'es' }: { locale?: Locale }) {
         setError(result.errorMessage || t('auth.googleError'));
         setIsLoading(false);
       }
-    } catch {
-      setError(t('auth.googleErrorUnexpected'));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      setError(errorMessage || t('auth.googleErrorUnexpected'));
       setIsLoading(false);
     }
   };

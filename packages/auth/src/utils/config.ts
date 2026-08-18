@@ -9,16 +9,28 @@ import type { DomainConfig, Environment, SessionConfig } from '../types'
  * In the browser, process.env is undefined so we detect from hostname.
  * On the server (Node/Deno), we use process.env as usual.
  */
-export function getEnvironment(): Environment {
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname
+export function getEnvironment(explicitHostname?: string): Environment {
+  const hostname = explicitHostname || (typeof window !== 'undefined' ? window.location.hostname : undefined)
+  if (hostname) {
     if (hostname.endsWith('.autamedica.com') || hostname === 'autamedica.com') {
       return 'production'
     }
     if (hostname.endsWith('.pages.dev')) {
       return 'staging'
     }
-    return 'development'
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'development'
+    }
+  }
+
+  // Check import.meta.env.PROD when executed inside Astro SSR / Vite
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((import.meta as any)?.env?.PROD) {
+      return 'production'
+    }
+  } catch {
+    // Ignore error
   }
 
   const proc = typeof process !== 'undefined' ? process.env : undefined
@@ -32,8 +44,8 @@ export function getEnvironment(): Environment {
 /**
  * Get domain configuration for the current environment
  */
-export function getDomainConfig(): DomainConfig {
-  const env = getEnvironment()
+export function getDomainConfig(explicitHostname?: string): DomainConfig {
+  const env = getEnvironment(explicitHostname)
 
   const configs: Record<Environment, DomainConfig> = {
     production: {
@@ -64,7 +76,7 @@ export function getDomainConfig(): DomainConfig {
     },
     development: {
       base: 'localhost',
-      cookie: 'localhost',
+      cookie: '',
       apps: {
         web: 'http://localhost:3000',
         auth: 'http://localhost:3000',
@@ -116,10 +128,24 @@ function resolveEnv(name: string): string | undefined {
     if (envBag?.[name]) return envBag[name]
   }
 
-  // 3. NEXT_PUBLIC_ alias (used by @autamedica/shared compat layer)
+  // 3. import.meta.env (Vite / Astro)
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const metaEnv = (import.meta as any)?.env
+    if (metaEnv?.[name]) return metaEnv[name]
+  } catch {
+    // Ignore import.meta access errors
+  }
+
+  // 4. NEXT_PUBLIC_ alias (used by @autamedica/shared compat layer)
   const nextName = name.replace(/^PUBLIC_/, 'NEXT_PUBLIC_')
   if (typeof process !== 'undefined' && process.env?.[nextName]) {
     return process.env[nextName]
+  }
+
+  // 5. Fallback canónico de AutaMedica Supabase URL si no fue provista
+  if (name === 'PUBLIC_SUPABASE_URL' || name === 'NEXT_PUBLIC_SUPABASE_URL' || name === 'SUPABASE_URL') {
+    return 'https://qxjjrpksmwwrmubhvjew.supabase.co'
   }
 
   return undefined
