@@ -54,6 +54,9 @@ const PUBLIC_ROUTES = [
   "/api/health",
   "/verify",
   "/doctors/pricing",
+  "/reserva-saude",
+  "/planos",
+  "/api/reserva-saude",
   "/call/join",
   // External webhooks: validated via their own secret (HMAC/Bearer) inside the handler.
   // They do NOT carry Supabase session cookies, so passing them through the Supabase
@@ -578,7 +581,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (
     import.meta.env.PROD &&
     (requestUrl.hostname === "autamedica.com" ||
-      requestUrl.hostname === "auth.autamedica.com" ||
       requestUrl.hostname === "autamedica-web.pages.dev")
   ) {
     const canonicalUrl = new URL(requestUrl.toString());

@@ -1,0 +1,17 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Navbar from '@/components/Navbar.astro';
+import Footer from '@/components/Footer.astro';
+import ReservaSaudePublicPage from '@/components/public/ReservaSaudePublicPage';
+
+const title = 'Planos e Preços | AutaMedica';
+const description = 'Conheça o Plano Free e o Plano Cuidado com Reserva de Saúde acumulativa.';
+---
+
+<Layout title={title} description={description}>
+  <Navbar />
+  <main class="min-h-screen bg-neutral-50">
+    <ReservaSaudePublicPage client:load />
+  </main>
+  <Footer />
+</Layout>

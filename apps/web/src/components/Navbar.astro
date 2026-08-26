@@ -15,76 +15,79 @@ type MegaNavItem = {
   }[];
 };
 
+const isPt = locale === "pt";
+
 const megaNav: MegaNavItem[] = [
   {
-    label: "Especialidades",
+    label: isPt ? "Especialidades" : "Especialidades",
     columns: [
       {
-        title: "Salud Mental",
+        title: isPt ? "Saúde Mental" : "Salud Mental",
         links: [
-          { href: "/tdah", label: "Evaluación de TDAH" },
-          { href: "/insomnio", label: "Tratamiento de Insomnio" },
-          { href: "/psicologo-online", label: "Psicólogo Online" },
+          { href: "/tdah", label: isPt ? "Avaliação de TDAH" : "Evaluación de TDAH" },
+          { href: "/insomnio", label: isPt ? "Tratamento de Insônia" : "Tratamiento de Insomnio" },
+          { href: "/psicologo-online", label: isPt ? "Psicólogo Online" : "Psicólogo Online" },
         ]
       },
       {
-        title: "Atención Inmediata",
+        title: isPt ? "Atendimento Imediato" : "Atención Inmediata",
         links: [
-          { href: "/medico-online", label: "Médico Clínico" },
-          { href: "/fiebre-en-adultos", label: "Fiebre en Adultos" },
-          { href: "/dolor-de-pecho", label: "Dolor de Pecho" },
+          { href: "/medico-online", label: isPt ? "Médico Clínico" : "Médico Clínico" },
+          { href: "/fiebre-en-adultos", label: isPt ? "Febre em Adultos" : "Fiebre en Adultos" },
+          { href: "/dolor-de-pecho", label: isPt ? "Dor no Peito" : "Dolor de Pecho" },
         ]
       },
       {
-        title: "Especialistas",
+        title: isPt ? "Especialistas" : "Especialistas",
         links: [
-          { href: "/cardiologo-online", label: "Cardiología" },
-          { href: "/dermatologo-online", label: "Dermatología" },
+          { href: "/cardiologo-online", label: isPt ? "Cardiologia" : "Cardiología" },
+          { href: "/dermatologo-online", label: isPt ? "Dermatologia" : "Dermatología" },
         ]
       }
     ]
   },
   {
-    label: "Servicios",
+    label: isPt ? "Serviços" : "Servicios",
     columns: [
       {
-        title: "Para Pacientes",
+        title: isPt ? "Para Pacientes" : "Para Pacientes",
         links: [
-          { href: "/consulta-medica-online", label: "Consulta Médica Online" },
-          { href: "/receta-electronica", label: "Receta Electrónica" },
+          { href: "/reserva-saude", label: isPt ? "Reserva de Saúde & Planos" : "Reserva de Saúde & Planos" },
+          { href: "/consulta-medica-online", label: isPt ? "Consulta Médica Online" : "Consulta Médica Online" },
+          { href: "/receta-electronica", label: isPt ? "Receita Digital" : "Receta Electrónica" },
         ]
       },
       {
-        title: "Para Profesionales",
+        title: isPt ? "Para Profissionais" : "Para Profesionales",
         links: [
-          { href: "/doctors", label: t("navbar.professionals") },
+          { href: "/doctors", label: isPt ? "Médicos & Especialistas" : t("navbar.professionals") },
         ]
       },
       {
-        title: "Para Empresas",
+        title: isPt ? "Para Empresas" : "Para Empresas",
         links: [
-          { href: "/companies", label: "Soluciones Corporativas" },
+          { href: "/companies", label: isPt ? "Soluções Corporativas" : "Soluciones Corporativas" },
         ]
       }
     ]
   },
   {
-    label: "Telemedicina",
+    label: isPt ? "Telemedicina" : "Telemedicina",
     columns: [
       {
-        title: "Plataforma & Legal",
+        title: isPt ? "Plataforma & Legal" : "Plataforma & Legal",
         links: [
-          { href: "/telemedicina-argentina", label: "Telemedicina en Argentina" },
-          { href: "/ley-27553-telemedicina", label: "Ley 27.553 de Telemedicina" },
-          { href: "/platform", label: "La Plataforma" },
+          { href: "/telemedicina-argentina", label: isPt ? "Telemedicina & CFM" : "Telemedicina en Argentina" },
+          { href: "/ley-27553-telemedicina", label: isPt ? "Legislação em Saúde" : "Ley 27.553 de Telemedicina" },
+          { href: "/platform", label: isPt ? "A Plataforma" : "La Plataforma" },
         ]
       },
       {
-        title: "Institucional",
+        title: isPt ? "Institucional" : "Institucional",
         links: [
-          { href: "/nosotros", label: "Sobre Nosotros" },
-          { href: "/privacidad", label: "Privacidad" },
-          { href: "/terms", label: "Términos de Uso" },
+          { href: "/nosotros", label: isPt ? "Sobre Nós" : "Sobre Nosotros" },
+          { href: "/privacidad", label: isPt ? "Privacidade" : "Privacidad" },
+          { href: "/terms", label: isPt ? "Termos de Uso" : "Términos de Uso" },
         ]
       }
     ]
@@ -93,22 +96,26 @@ const megaNav: MegaNavItem[] = [
     label: "Blog",
     columns: [
       {
-        title: "Guías Médicas",
+        title: isPt ? "Guias Médicos" : "Guías Médicas",
         links: [
-          { href: "/blog/guia-consulta-medica-online", label: "Guía de Consulta Online" },
-          { href: "/blog/ansiedad-cronica-herramientas", label: "Herramientas para la Ansiedad" },
-          { href: "/blog/5-senales-alerta-cardiaca", label: "Señales de Alerta Cardíaca" },
+          { href: "/blog/guia-consulta-medica-online", label: isPt ? "Guia de Consulta Online" : "Guía de Consulta Online" },
+          { href: "/blog/ansiedad-cronica-herramientas", label: isPt ? "Ferramentas para Ansiedade" : "Herramientas para la Ansiedad" },
+          { href: "/blog/5-senales-alerta-cardiaca", label: isPt ? "Sinais de Alerta Cardíaco" : "Señales de Alerta Cardíaca" },
         ]
       },
       {
-        title: "Salud Digital",
+        title: isPt ? "Saúde Digital" : "Salud Digital",
         links: [
-          { href: "/blog/telemedicina-revolucion-salud", label: "Revolución de la Telemedicina" },
-          { href: "/blog/historia-clinica-digital", label: "Historia Clínica Digital" },
-          { href: "/blog", label: "Ver todos los artículos →" },
+          { href: "/blog/telemedicina-revolucion-salud", label: isPt ? "Revolução da Telemedicina" : "Revolución de la Telemedicina" },
+          { href: "/blog/historia-clinica-digital", label: isPt ? "Prontuário Digital" : "Historia Clínica Digital" },
+          { href: "/blog", label: isPt ? "Ver todos os artigos →" : "Ver todos los artículos →" },
         ]
       }
     ]
+  },
+  {
+    label: isPt ? "Planos" : "Planes",
+    href: "/reserva-saude",
   }
 ];
 ---

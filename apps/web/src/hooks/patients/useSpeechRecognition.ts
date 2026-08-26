@@ -32,7 +32,7 @@ type SpeechWindow = Window & {
   webkitSpeechRecognition?: SpeechRecognitionConstructor
 }
 
-export function useSpeechRecognition() {
+export function useSpeechRecognition(lang?: string) {
   const [transcript, setTranscript] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -46,7 +46,12 @@ export function useSpeechRecognition() {
     const recognition = new SpeechRecognition()
     recognition.continuous = false
     recognition.interimResults = false
-    recognition.lang = 'es-AR'
+    
+    // Auto-detect Portuguese or use provided lang
+    const defaultLang = typeof document !== 'undefined' && document.documentElement.lang?.startsWith('pt') 
+      ? 'pt-BR' 
+      : 'es-AR'
+    recognition.lang = lang ?? defaultLang
 
     recognition.onstart = () => {
       setIsListening(true)

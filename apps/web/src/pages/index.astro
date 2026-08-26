@@ -18,6 +18,7 @@ import NewsletterCapture from '../components/NewsletterCapture.astro';
 import CTAFinal from '../components/CTAFinal.astro';
 import Footer from '../components/Footer.astro';
 import ValueProps from '../components/ValueProps.astro';
+import PlansSection from '../components/PlansSection.astro';
 import PortalLanding from '../components/portal/PortalLanding.astro';
 import { resolveLandingCopy } from '../lib/landing-copy';
 import { buildRoleAuthPath } from '../lib/auth-flow';
@@ -133,6 +134,7 @@ const seoCopy = landingCopy?.seo ?? {
       <PremiumNarrative />
       <ValueProps />
       <ProductShowcase />
+      <PlansSection />
       <DoctorDirectory />
       <IntentLinks />
 
