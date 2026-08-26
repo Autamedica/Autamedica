@@ -45,6 +45,7 @@ export async function generateSelfSignedCertificate(identity: DoctorIdentity, pa
   validFrom: Date;
   validUntil: Date;
 }> {
+  // @ts-ignore - node-forge dynamic import without types
   const forge = (await import('node-forge')).default;
   const keys = forge.pki.rsa.generateKeyPair(2048);
   const cert = forge.pki.createCertificate();
@@ -130,6 +131,7 @@ export async function provisionDoctorCertificate(
   identity: DoctorIdentity,
 ): Promise<CertificateInfo> {
   // Generate a strong random password for the P12
+  // @ts-ignore - node-forge dynamic import without types
   const forge = (await import('node-forge')).default;
   const password = forge.util.bytesToHex(forge.random.getBytesSync(16));
 

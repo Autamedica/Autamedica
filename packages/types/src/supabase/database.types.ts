@@ -2039,6 +2039,264 @@ export type Database = {
   }
   public: {
     Tables: {
+      benefit_catalog_items: {
+        Row: {
+          id: string
+          category: string
+          name: string
+          description: string | null
+          market_reference_price_cents: number
+          redemption_credits: number
+          partner_name: string
+          partner_service_code: string | null
+          is_active: boolean
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          category: string
+          name: string
+          description?: string | null
+          market_reference_price_cents: number
+          redemption_credits: number
+          partner_name: string
+          partner_service_code?: string | null
+          is_active?: boolean
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          category?: string
+          name?: string
+          description?: string | null
+          market_reference_price_cents?: number
+          redemption_credits?: number
+          partner_name?: string
+          partner_service_code?: string | null
+          is_active?: boolean
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      benefit_vouchers: {
+        Row: {
+          id: string
+          patient_id: string
+          catalog_item_id: string
+          voucher_code: string
+          status: string
+          credits_cost: number
+          expires_at: string
+          redeemed_at: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          catalog_item_id: string
+          voucher_code: string
+          status?: string
+          credits_cost: number
+          expires_at: string
+          redeemed_at?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          catalog_item_id?: string
+          voucher_code?: string
+          status?: string
+          credits_cost?: number
+          expires_at?: string
+          redeemed_at?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      partner_settlements: {
+        Row: {
+          id: string
+          partner_name: string
+          period_start: string
+          period_end: string
+          vouchers_count: number
+          total_settlement_cents: number
+          status: string
+          paid_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          partner_name: string
+          period_start: string
+          period_end: string
+          vouchers_count?: number
+          total_settlement_cents: number
+          status?: string
+          paid_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          partner_name?: string
+          period_start?: string
+          period_end?: string
+          vouchers_count?: number
+          total_settlement_cents?: number
+          status?: string
+          paid_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      patient_health_reserves: {
+        Row: {
+          id: string
+          patient_id: string
+          subscription_id: string | null
+          balance_credits: number
+          max_cap_credits: number
+          total_accrued_credits: number
+          total_redeemed_credits: number
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          subscription_id?: string | null
+          balance_credits?: number
+          max_cap_credits?: number
+          total_accrued_credits?: number
+          total_redeemed_credits?: number
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          subscription_id?: string | null
+          balance_credits?: number
+          max_cap_credits?: number
+          total_accrued_credits?: number
+          total_redeemed_credits?: number
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      patient_health_reserve_ledger: {
+        Row: {
+          id: string
+          patient_id: string
+          reserve_id: string
+          entry_type: string
+          credits_delta: number
+          balance_after: number
+          reason: string
+          reference_id: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          reserve_id: string
+          entry_type: string
+          credits_delta: number
+          balance_after: number
+          reason: string
+          reference_id?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          reserve_id?: string
+          entry_type?: string
+          credits_delta?: number
+          balance_after?: number
+          reason?: string
+          reference_id?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+      patient_subscriptions: {
+        Row: {
+          id: string
+          patient_id: string
+          tier: string
+          status: string
+          billing_period: string
+          price_cents: number
+          currency: string
+          payment_method: string
+          mercadopago_preapproval_id: string | null
+          current_period_start: string
+          current_period_end: string
+          cancel_at_period_end: boolean
+          trial_end: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          tier?: string
+          status?: string
+          billing_period?: string
+          price_cents?: number
+          currency?: string
+          payment_method?: string
+          mercadopago_preapproval_id?: string | null
+          current_period_start?: string
+          current_period_end: string
+          cancel_at_period_end?: boolean
+          trial_end?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          tier?: string
+          status?: string
+          billing_period?: string
+          price_cents?: number
+          currency?: string
+          payment_method?: string
+          mercadopago_preapproval_id?: string | null
+          current_period_start?: string
+          current_period_end?: string
+          cancel_at_period_end?: boolean
+          trial_end?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       adverse_drug_reactions: {
         Row: {
           action_taken: string | null

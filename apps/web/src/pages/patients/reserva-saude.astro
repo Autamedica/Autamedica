@@ -1,0 +1,11 @@
+---
+import PatientAppLayout from '@/layouts/PatientAppLayout.astro';
+import ReservaSaudePage from '@/components/patients/reserva/ReservaSaudePage';
+
+const title = 'Reserva de Saúde | AutaMedica';
+const description = 'Gerencie seus AUTA Créditos, acumule benefícios e canjee vouchers em rede credenciada.';
+---
+
+<PatientAppLayout title={title} description={description} activeTab="inicio">
+  <ReservaSaudePage client:load />
+</PatientAppLayout>

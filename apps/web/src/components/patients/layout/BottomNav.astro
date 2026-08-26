@@ -1,11 +1,14 @@
 ---
 import { Calendar, Home, MessageCircle, Pill, Video } from 'lucide-react';
+import { getI18n } from '@/i18n';
 
 interface Props {
   activeTab: 'inicio' | 'agenda' | 'consultar' | 'historial' | 'comunidad';
 }
 
 const { activeTab } = Astro.props;
+const locale = Astro.locals.locale ?? 'es';
+const { dict } = getI18n(locale);
 
 const TABS: { 
   key: 'inicio' | 'agenda' | 'consultar' | 'historial' | 'comunidad', 
@@ -14,11 +17,11 @@ const TABS: {
   icon: any, 
   center?: boolean 
 }[] = [
-  { key: 'inicio', label: 'Inicio', href: '/?portal=patient', icon: Home },
-  { key: 'agenda', label: 'Agenda', href: '/patients/appointments', icon: Calendar },
-  { key: 'consultar', label: 'Consultar', href: '/patients/appointments?type=telemedicine', icon: Video, center: true },
-  { key: 'historial', label: 'Recetas', href: '/patients/medical-history', icon: Pill },
-  { key: 'comunidad', label: 'Comunidad', href: '/patients/community', icon: MessageCircle },
+  { key: 'inicio', label: dict.patientPortal.tabs.inicio, href: '/?portal=patient', icon: Home },
+  { key: 'agenda', label: dict.patientPortal.tabs.agenda, href: '/patients/appointments', icon: Calendar },
+  { key: 'consultar', label: dict.patientPortal.tabs.consultar, href: '/patients/appointments?type=telemedicine', icon: Video, center: true },
+  { key: 'historial', label: dict.patientPortal.tabs.recetas, href: '/patients/medical-history', icon: Pill },
+  { key: 'comunidad', label: dict.patientPortal.tabs.comunidad, href: '/patients/community', icon: MessageCircle },
 ];
 ---
 

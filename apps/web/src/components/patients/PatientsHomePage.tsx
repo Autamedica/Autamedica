@@ -7,7 +7,7 @@ import {
   Heart, Shield, Users,
   Check, AlertCircle, ArrowRight,
   LogOut, Settings, User,
-  Wallet, Plus, Loader2, CreditCard, Gift,
+  Wallet, Plus, Loader2, CreditCard, Gift, Coins, Sparkles,
 } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
@@ -17,16 +17,16 @@ import {
   isJoinableTelemedicineAppointment,
   isTelemedicineAppointment,
 } from '@/lib/patients/lib/telemedicine-entry'
-import type { Locale } from '@/i18n/index'
+import { getClientI18n, type Locale } from '@/i18n/index'
 import { PatientDoctorChat } from '@/components/patients/chat/PatientDoctorChat'
 import { PreconsultationVoiceAssistant } from '@/components/patients/PreconsultationVoiceAssistant'
 import type { PreconsultationSummary } from '@/lib/patients/types/pre-consultation'
 
-function getGreeting(): string {
+function getGreeting(dict: ReturnType<typeof getClientI18n>['dict']): string {
   const hour = new Date().getHours()
-  if (hour < 12) return 'Buenos días'
-  if (hour < 19) return 'Buenas tardes'
-  return 'Buenas noches'
+  if (hour < 12) return dict.patientPortal.greetings.morning
+  if (hour < 19) return dict.patientPortal.greetings.afternoon
+  return dict.patientPortal.greetings.evening
 }
 
 function getFirstName(
@@ -49,11 +49,22 @@ type PatientWalletSummary = {
   }
 }
 
-function formatWalletBalance(cents: number | null | undefined): string {
+interface HealthReserveData {
+  patient_id: string
+  benefit_balance: number
+  max_cap_credits: number
+  status: string
+  subscription_tier: 'free' | 'cuidado'
+  subscription_status: string
+}
+
+function formatWalletBalance(cents: number | null | undefined, locale?: Locale): string {
   const amount = cents ? cents / 100 : 0
-  return new Intl.NumberFormat('es-AR', {
+  const currencyCode = locale === 'pt' ? 'BRL' : 'ARS'
+  const numberLocale = locale === 'pt' ? 'pt-BR' : 'es-AR'
+  return new Intl.NumberFormat(numberLocale, {
     style: 'currency',
-    currency: 'ARS',
+    currency: currencyCode,
     maximumFractionDigits: 0,
   }).format(amount)
 }
@@ -61,25 +72,6 @@ function formatWalletBalance(cents: number | null | undefined): string {
 interface PatientsHomePageProps {
   locale?: Locale
 }
-
-const SERVICES = [
-  { icon: Video, label: 'Médico online', href: '/patients/appointments?type=telemedicine' },
-  { icon: Calendar, label: 'Mi agenda', href: '/patients/appointments' },
-  { icon: FileText, label: 'Mis medicamentos', href: '/patients/medical-history' },
-  { icon: Heart, label: 'Mi historial de salud', href: '/patients/anamnesis' },
-  { icon: Brain, label: 'Salud mental', href: '/patients/psychiatry' },
-  { icon: Shield, label: 'Prevención y chequeos', href: '/patients/preventive-health' },
-  { icon: Heart, label: 'Planificación y cuidado', href: '/patients/reproductive-health' },
-  { icon: Users, label: 'Foro de pacientes', href: '/patients/community' },
-] as const
-
-const BOTTOM_TABS = [
-  { icon: Heart, label: 'Inicio', href: '/?portal=patient' },
-  { icon: Calendar, label: 'Agenda', href: '/patients/appointments' },
-  { icon: Video, label: 'Consultar', href: '/patients/appointments?type=telemedicine' },
-  { icon: FileText, label: 'Recetas', href: '/patients/medical-history' },
-  { icon: Users, label: 'Comunidad', href: '/patients/community' },
-] as const
 
 export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const { user, profile, patient, signOut } = usePatientSession()
@@ -91,11 +83,14 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     clearError: clearJoinError,
   } = useJoinTelemedicineAppointment()
 
+  const { dict } = getClientI18n(locale ?? 'es')
+
   const [showMenu, setShowMenu] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [isPreconsultationOpen, setIsPreconsultationOpen] = useState(false)
   const [hasHydrated, setHasHydrated] = useState(false)
   const [walletSummary, setWalletSummary] = useState<PatientWalletSummary | null>(null)
+  const [reserveData, setReserveData] = useState<HealthReserveData | null>(null)
   const [isWalletPopoverOpen, setIsWalletPopoverOpen] = useState(false)
   const [isTopupModalOpen, setIsTopupModalOpen] = useState(false)
   const [topupAmount, setTopupAmount] = useState('')
@@ -118,6 +113,12 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       fetchApi<PatientWalletSummary>('/api/patients/wallet')
         .then(setWalletSummary)
         .catch(err => console.error('Error fetching wallet balance:', err))
+
+      fetchApi<{ success: boolean; data: HealthReserveData }>('/api/patients/reserva-saude')
+        .then(res => {
+          if (res?.data) setReserveData(res.data)
+        })
+        .catch(err => console.error('Error fetching health reserve subscription:', err))
     }
   }, [hasHydrated, user])
 
@@ -170,10 +171,10 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const freeConsults = patient?.freeConsultationsRemaining ?? 0
   const getWalletFabText = () => {
     if (freeConsults > 0) {
-      return `${freeConsults} ${freeConsults === 1 ? 'consulta gratis' : 'consultas gratis'}`
+      return `${freeConsults} ${freeConsults === 1 ? 'consulta' : 'consultas'} ${dict.patientPortal.metrics.freeConsultations.toLowerCase()}`
     }
     const balanceCents = walletSummary?.balance.available_credit_cents ?? 0
-    return formatWalletBalance(balanceCents)
+    return formatWalletBalance(balanceCents, locale)
   }
   const dateLocale = locale === 'pt' ? 'pt-BR' : 'es-AR'
 
@@ -230,7 +231,27 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   ], [profile, patient, anamnesisCompleted])
 
   const incompleteItems = checklistItems.filter(i => !i.completed)
-  const greeting = hasHydrated ? getGreeting() : 'Hola'
+  const greeting = hasHydrated ? getGreeting(dict) : (dict.patientPortal.greetings.hello ?? 'Hola')
+
+  const services = useMemo(() => [
+    { icon: Coins, label: dict.patientPortal.services.planning, href: '/patients/reserva-saude' },
+    { icon: Video, label: dict.patientPortal.services.onlineDoctor, href: '/patients/appointments?type=telemedicine' },
+    { icon: Calendar, label: dict.patientPortal.services.mySchedule, href: '/patients/appointments' },
+    { icon: FileText, label: dict.patientPortal.services.myPrescriptions, href: '/patients/medical-history' },
+    { icon: Heart, label: dict.patientPortal.services.myHistory, href: '/patients/anamnesis' },
+    { icon: Brain, label: dict.patientPortal.services.mentalHealth, href: '/patients/psychiatry' },
+    { icon: Shield, label: dict.patientPortal.services.prevention, href: '/patients/preventive-health' },
+    { icon: Heart, label: dict.patientPortal.services.planning, href: '/patients/reproductive-health' },
+    { icon: Users, label: dict.patientPortal.services.community, href: '/patients/community' },
+  ], [dict])
+
+  const bottomTabs = useMemo(() => [
+    { icon: Heart, label: dict.patientPortal.tabs.inicio, href: '/?portal=patient' },
+    { icon: Calendar, label: dict.patientPortal.tabs.agenda, href: '/patients/appointments' },
+    { icon: Video, label: dict.patientPortal.tabs.consultar, href: '/patients/appointments?type=telemedicine' },
+    { icon: FileText, label: dict.patientPortal.tabs.recetas, href: '/patients/medical-history' },
+    { icon: Users, label: dict.patientPortal.tabs.comunidad, href: '/patients/community' },
+  ], [dict])
 
   return (
     <div ref={containerRef} className="min-h-screen bg-white">
@@ -244,7 +265,27 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <div className="size-9 rounded-full bg-sky-500 flex items-center justify-center text-white text-sm font-medium">
               {firstName.charAt(0).toUpperCase()}
             </div>
-            <span className="text-sm text-neutral-900">{firstName}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-neutral-900">{firstName}</span>
+              {reserveData && (
+                <span className={`hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                  reserveData.subscription_tier === 'cuidado'
+                    ? reserveData.subscription_status === 'past_due'
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+                    : 'bg-neutral-100 text-neutral-600'
+                }`}>
+                  {reserveData.subscription_tier === 'cuidado' ? (
+                    <Sparkles className="size-3 text-cyan-600" />
+                  ) : (
+                    <Coins className="size-3 text-neutral-400" />
+                  )}
+                  {reserveData.subscription_tier === 'cuidado'
+                    ? (reserveData.subscription_status === 'past_due' ? dict.patientPortal.subscription.planCuidadoPastDue : dict.patientPortal.subscription.planCuidadoActive)
+                    : dict.patientPortal.subscription.planFree}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -317,6 +358,54 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.8 }}
           >
+            {/* Dedicated Subscription Status Badge */}
+            {reserveData && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="mb-4"
+              >
+                {reserveData.subscription_tier === 'cuidado' ? (
+                  reserveData.subscription_status === 'past_due' ? (
+                    <a
+                      href="/patients/reserva-saude"
+                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-200 text-xs font-semibold hover:bg-amber-500/30 transition-all backdrop-blur-md"
+                    >
+                      <AlertCircle className="size-3.5 text-amber-400" />
+                      <span>{dict.patientPortal.subscription.planCuidadoPastDue}</span>
+                      <ArrowRight className="size-3 text-amber-300" />
+                    </a>
+                  ) : (
+                    <a
+                      href="/patients/reserva-saude"
+                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-400/30 text-cyan-200 text-xs font-semibold hover:bg-cyan-500/30 transition-all backdrop-blur-md"
+                    >
+                      <Sparkles className="size-3.5 text-cyan-400" />
+                      <span>{dict.patientPortal.subscription.planCuidadoActive}</span>
+                      {reserveData.benefit_balance > 0 && (
+                        <span className="bg-cyan-400/20 text-cyan-300 px-2 py-0.5 rounded-full text-[10px] font-mono">
+                          +{reserveData.benefit_balance} {dict.patientPortal.subscription.creditsLabel}
+                        </span>
+                      )}
+                      <ArrowRight className="size-3 text-cyan-300 opacity-60" />
+                    </a>
+                  )
+                ) : (
+                  <a
+                    href="/patients/reserva-saude"
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-white/90 text-xs font-medium hover:bg-white/15 transition-all backdrop-blur-md"
+                  >
+                    <Coins className="size-3.5 text-neutral-300" />
+                    <span>{dict.patientPortal.subscription.planFree}</span>
+                    <span className="text-cyan-300 text-[11px] font-semibold flex items-center gap-1">
+                      {dict.patientPortal.subscription.activatePlan} <ArrowRight className="size-3" />
+                    </span>
+                  </a>
+                )}
+              </motion.div>
+            )}
+
             <motion.p
               className="text-white/70 text-sm mb-3 tracking-wide uppercase"
               initial={{ opacity: 0 }}
@@ -332,7 +421,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
             >
-              {firstName},<br />tu salud en control
+              {firstName},<br />{dict.patientPortal.metrics.healthInControl}
             </motion.h1>
 
             <motion.p
@@ -342,8 +431,8 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               transition={{ delay: 0.8 }}
             >
               {anamnesisCompleted
-                ? 'Todo listo para tu atención médica'
-                : 'Completa tu historia clínica para comenzar'}
+                ? dict.patientPortal.metrics.allReady
+                : dict.patientPortal.metrics.completeToStart}
             </motion.p>
 
             <motion.a
@@ -355,7 +444,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              {anamnesisCompleted ? 'Agendar consulta' : 'Completar perfil'}
+              {anamnesisCompleted ? dict.patientPortal.metrics.bookAppointment : dict.patientPortal.metrics.goToProfile}
               <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
             </motion.a>
           </motion.div>
@@ -402,9 +491,9 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 transition={{ delay: 0.2 }}
               >
                 {!anamnesisCompleted ? (
-                  <><AlertCircle className="size-3.5" /> Acción requerida</>
+                  <><AlertCircle className="size-3.5" /> {dict.patientPortal.metrics.actionRequired}</>
                 ) : (
-                  <><Check className="size-3.5" /> Activo</>
+                  <><Check className="size-3.5" /> {dict.patientPortal.metrics.active}</>
                 )}
               </motion.div>
 
@@ -416,8 +505,8 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 transition={{ delay: 0.3 }}
               >
                 {!anamnesisCompleted
-                  ? 'Completa tu historia clínica'
-                  : 'Todo listo para tu atención'}
+                  ? dict.patientPortal.metrics.completeHistory
+                  : dict.patientPortal.metrics.allReady}
               </motion.h2>
 
               <motion.p
@@ -428,8 +517,8 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 transition={{ delay: 0.4 }}
               >
                 {!anamnesisCompleted
-                  ? 'Para ofrecerte la mejor atención médica'
-                  : 'Accede a consultas, recetas y más'}
+                  ? dict.patientPortal.metrics.completeToStart
+                  : 'Acesse consultas, receitas e benefícios'}
               </motion.p>
 
               <motion.a
@@ -442,7 +531,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                {!anamnesisCompleted ? 'Completar ahora' : 'Agendar consulta'}
+                {!anamnesisCompleted ? 'Completar ahora' : dict.patientPortal.metrics.bookAppointment}
                 <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
               </motion.a>
             </div>
@@ -456,7 +545,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 transition={{ delay: 0.3 }}
               >
                 <div className="flex items-end justify-between mb-3">
-                  <span className="text-neutral-500">Historia clínica</span>
+                  <span className="text-neutral-500">{dict.patientPortal.metrics.clinicalHistory}</span>
                   <span className="text-5xl text-neutral-900 tabular-nums">{anamnesisProgress}</span>
                 </div>
                 <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
@@ -477,7 +566,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 transition={{ delay: 0.4 }}
               >
                 <div className="flex items-end justify-between mb-3">
-                  <span className="text-neutral-500">Perfil completo</span>
+                  <span className="text-neutral-500">{dict.patientPortal.metrics.completeProfile}</span>
                   <span className="text-5xl text-neutral-900 tabular-nums">{profileProgress}</span>
                 </div>
                 <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
@@ -498,7 +587,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 transition={{ delay: 0.5 }}
               >
                 <div className="flex items-end justify-between mb-3">
-                  <span className="text-neutral-500">Consultas gratuitas</span>
+                  <span className="text-neutral-500">{dict.patientPortal.metrics.freeConsultations}</span>
                   <span className="text-5xl text-sky-600 tabular-nums">{freeConsults}</span>
                 </div>
                 <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
@@ -657,16 +746,16 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              ¿Cómo te ayudamos?
+              {locale === 'pt' ? 'Como podemos te ajudar?' : '¿Cómo te ayudamos?'}
             </motion.h3>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {SERVICES.map((action, i) => (
+              {services.map((action, i) => (
                 <motion.a
                   key={action.label}
                   href={action.href}
                   onClick={(e) => {
-                    if (action.label === 'Médico online') {
+                    if (action.href.includes('telemedicine')) {
                       e.preventDefault()
                       setIsPreconsultationOpen(true)
                     }
@@ -679,7 +768,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   whileHover={{ y: -4 }}
                 >
                   <action.icon className="size-8 text-neutral-400 group-hover:text-neutral-900 mb-6 transition-colors" />
-                  <p className="text-neutral-900 group-hover:text-neutral-900">
+                  <p className="text-neutral-900 group-hover:text-neutral-900 font-medium">
                     {action.label}
                   </p>
                 </motion.a>
@@ -694,12 +783,12 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       {/* Bottom Navigation - Mobile Only */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-neutral-100 z-50">
         <div className="flex items-center justify-around px-4 py-3">
-          {BOTTOM_TABS.map((tab) => (
+          {bottomTabs.map((tab) => (
             <motion.a
               key={tab.label}
               href={tab.href}
               onClick={(e) => {
-                if (tab.label === 'Consultar') {
+                if (tab.href.includes('telemedicine')) {
                   e.preventDefault()
                   setIsPreconsultationOpen(true)
                 }
@@ -708,7 +797,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               whileTap={{ scale: 0.95 }}
             >
               <tab.icon className="size-5 text-neutral-600" />
-              <span className="text-xs text-neutral-600">{tab.label}</span>
+              <span className="text-xs text-neutral-600 font-medium">{tab.label}</span>
             </motion.a>
           ))}
         </div>
@@ -732,10 +821,10 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-sky-600">
-                      Saldo AutaMedica
+                      {dict.patientPortal.wallet.title}
                     </p>
                     <p className="text-xs text-neutral-400 font-medium">
-                      Tu saldo para consultas
+                      {dict.patientPortal.wallet.subtitle}
                     </p>
                   </div>
                 </div>
@@ -746,10 +835,10 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   <div className="flex items-center justify-between p-2.5 rounded-2xl bg-stone-50/50 border border-stone-100">
                     <div className="flex items-center gap-2">
                       <CreditCard className="h-4 w-4 text-stone-400" />
-                      <span className="text-xs font-semibold text-stone-600">Saldo a favor</span>
+                      <span className="text-xs font-semibold text-stone-600">{dict.patientPortal.wallet.balanceAvailable}</span>
                     </div>
                     <span className="text-sm font-bold text-stone-900">
-                      {formatWalletBalance(walletSummary.balance.available_credit_cents)}
+                      {formatWalletBalance(walletSummary.balance.available_credit_cents, locale)}
                     </span>
                   </div>
 
@@ -761,19 +850,26 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   }`}>
                     <div className="flex items-center gap-2">
                       <Gift className={`h-4 w-4 ${freeConsults > 0 ? 'text-sky-500' : 'text-stone-400'}`} />
-                      <span className="text-xs font-semibold text-stone-600">Consultas de regalo</span>
+                      <span className="text-xs font-semibold text-stone-600">{dict.patientPortal.wallet.giftConsults}</span>
                     </div>
                     <span className={`text-sm font-bold ${freeConsults > 0 ? 'text-sky-600' : 'text-stone-400'}`}>
-                      {freeConsults > 0 ? `${freeConsults} disp.` : 'Ninguna'}
+                      {freeConsults > 0 ? `${freeConsults} ${dict.patientPortal.wallet.available}` : dict.patientPortal.wallet.none}
                     </span>
                   </div>
                 </div>
 
                 <p className="text-[11px] text-neutral-400 leading-relaxed mb-4">
-                  Usá tu saldo o tus consultas de regalo para agendar turnos al instante sin usar tarjetas.
+                  {dict.patientPortal.wallet.explanation}
                 </p>
 
                 <div className="flex flex-col gap-2">
+                  <a
+                    href="/patients/reserva-saude"
+                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-cyan-600 to-emerald-600 py-3 text-xs font-bold text-white transition hover:opacity-90 shadow-md shadow-cyan-500/10"
+                  >
+                    <Coins className="h-3.5 w-3.5" />
+                    {dict.patientPortal.wallet.reserveSaudeBtn}
+                  </a>
                   <button
                     onClick={() => {
                       setIsWalletPopoverOpen(false);
@@ -782,13 +878,13 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                     className="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-stone-950 py-3 text-xs font-semibold text-white transition hover:bg-stone-800"
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    Cargar Saldo
+                    {dict.patientPortal.wallet.topupBtn}
                   </button>
                   <a
                     href="/patients/appointments"
                     className="w-full inline-flex items-center justify-center rounded-2xl border border-neutral-200 py-3 text-xs font-semibold text-neutral-600 transition hover:bg-neutral-50"
                   >
-                    Mis turnos
+                    {dict.patientPortal.wallet.myAppointmentsBtn}
                   </a>
                 </div>
               </motion.div>

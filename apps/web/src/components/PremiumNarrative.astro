@@ -7,7 +7,9 @@ const pillars = dict.landing.premiumNarrative.pillars;
 
 <section class="premium-narrative" aria-label="Experiencia clínica premium">
   <div class="narrative-inner">
-    <p class="narrative-kicker animate-on-scroll">{t('landing.premiumNarrative.kicker')}</p>
+    <div class="kicker-wrapper animate-on-scroll">
+      <span class="narrative-kicker">{t('landing.premiumNarrative.kicker')}</span>
+    </div>
     <div class="narrative-grid">
       <div class="narrative-main animate-on-scroll">
         <div class="narrative-main-bg">
@@ -41,39 +43,53 @@ const pillars = dict.landing.premiumNarrative.pillars;
   .premium-narrative {
     padding: var(--section-py) var(--section-px);
     background:
-      radial-gradient(90% 120% at 0% 20%, rgba(255, 255, 255, 0.06), transparent 60%),
-      radial-gradient(80% 120% at 100% 0%, rgba(148, 163, 184, 0.08), transparent 58%),
-      var(--au-bg);
+      radial-gradient(90% 120% at 0% 20%, rgba(14, 165, 233, 0.04), transparent 60%),
+      radial-gradient(80% 120% at 100% 0%, rgba(148, 163, 184, 0.06), transparent 58%),
+      #ffffff;
   }
 
   .narrative-inner {
-    max-width: 1120px;
+    max-width: 1160px;
     margin: 0 auto;
   }
 
+  .kicker-wrapper {
+    margin-bottom: var(--space-6);
+  }
+
   .narrative-kicker {
-    margin: 0 0 var(--space-6);
-    font-size: var(--text-xs);
-    letter-spacing: 0.12em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--au-text-secondary);
+    color: #0284c7;
   }
 
   .narrative-grid {
     display: grid;
-    grid-template-columns: 1.2fr 1fr;
+    grid-template-columns: 1.25fr 1fr;
     gap: var(--space-8);
-    align-items: start;
+    align-items: stretch;
   }
 
   .narrative-main {
     position: relative;
-    padding: var(--space-8);
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-lg);
-    background: var(--au-bg);
-    box-shadow: var(--shadow-glow);
+    padding: 3rem 2.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 28px;
+    background: #09090b;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 40px rgba(14, 165, 233, 0.12);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   .narrative-main-bg {
@@ -86,14 +102,14 @@ const pillars = dict.landing.premiumNarrative.pillars;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.3;
-    filter: saturate(0.8) brightness(0.7);
+    opacity: 0.22;
+    filter: saturate(0.8) brightness(0.6);
   }
 
   .narrative-bg-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(9,9,11,0.85) 0%, transparent 60%, rgba(9,9,11,0.5) 100%);
+    background: linear-gradient(135deg, rgba(9, 9, 11, 0.96) 0%, rgba(9, 9, 11, 0.8) 50%, rgba(9, 9, 11, 0.94) 100%);
   }
 
   .narrative-content-wrapper {
@@ -102,33 +118,40 @@ const pillars = dict.landing.premiumNarrative.pillars;
   }
 
   .narrative-title {
-    margin: 0 0 var(--space-4);
-    font-size: clamp(2rem, 4.2vw, 3.2rem);
-    line-height: 1.04;
+    margin: 0 0 1.25rem;
+    font-size: clamp(2rem, 3.5vw, 2.75rem);
+    line-height: 1.12;
     letter-spacing: -0.03em;
-    color: var(--au-text-primary);
+    font-weight: 800;
+    color: #ffffff;
   }
 
   .narrative-copy {
     margin: 0;
-    font-size: var(--text-lg);
-    color: var(--au-text-secondary);
-    max-width: 38ch;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: #cbd5e1;
+    max-width: 44ch;
   }
 
   .narrative-side {
-    padding: var(--space-6);
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-lg);
-    background: var(--au-glass-bg);
+    padding: 2.25rem 2rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 28px;
+    background: #ffffff;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   .narrative-side-title {
-    margin: 0 0 var(--space-4);
-    font-size: var(--text-sm);
+    margin: 0 0 1.25rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--au-text-secondary);
+    color: #64748b;
   }
 
   .narrative-list {
@@ -136,28 +159,35 @@ const pillars = dict.landing.premiumNarrative.pillars;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: var(--space-4);
+    gap: 0.875rem;
   }
 
   .narrative-item {
     display: grid;
-    gap: var(--space-1);
-    padding: var(--space-4);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--au-glass-border);
-    background: var(--au-glass-bg);
+    gap: 0.25rem;
+    padding: 1.125rem 1.25rem;
+    border-radius: 18px;
+    border: 1px solid #f1f5f9;
+    background: #f8fafc;
+    transition: all 0.2s ease;
+  }
+
+  .narrative-item:hover {
+    border-color: #cbd5e1;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
   }
 
   .narrative-item strong {
-    font-size: var(--text-base);
-    font-weight: var(--font-semibold);
-    color: var(--au-text-primary);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #0f172a;
   }
 
   .narrative-item span {
-    font-size: var(--text-sm);
-    color: var(--au-text-secondary);
-    line-height: 1.55;
+    font-size: 0.875rem;
+    color: #64748b;
+    line-height: 1.5;
   }
 
   @media (max-width: 920px) {
@@ -166,7 +196,12 @@ const pillars = dict.landing.premiumNarrative.pillars;
     }
 
     .narrative-main {
-      padding: var(--space-6);
+      padding: 2.25rem 1.75rem;
+    }
+
+    .narrative-side {
+      padding: 1.75rem;
     }
   }
 </style>
+
