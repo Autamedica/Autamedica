@@ -9987,6 +9987,21 @@ export type Database = {
       }
     }
     Functions: {
+      process_all_monthly_reserve_accruals: {
+        Args: { p_period_key?: string }
+        Returns: Json
+      }
+      process_monthly_reserve_accrual: {
+        Args: {
+          p_patient_id: string
+          p_subscription_id: string
+          p_tier: "free" | "cuidado"
+          p_used_monthly_benefit: boolean
+          p_appointment_id?: string
+          p_period_key?: string
+        }
+        Returns: Json
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined
