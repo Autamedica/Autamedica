@@ -70,7 +70,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     let amountBrl = 49.9
     let description = 'AutaMedica Brasil - Plano Cuidado Mensal'
     let externalReference = `sub:${patientContext.patientId}`
-    let expirationMinutes = 1440 // 24 horas para suscripciones
+    let expirationMinutes = 60 // 1 hora (60 minutos)
     let doctorId: string | null = null
 
     if (type === 'appointment') {
@@ -93,13 +93,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       amountBrl = feeCents / 100
       description = 'AutaMedica Brasil - Teleconsulta Médica'
       externalReference = `apt:${appointmentId}`
-      expirationMinutes = 30 // 30 minutos para consultas inmediatas
+      expirationMinutes = 60 // 1 hora (60 minutos)
     } else if (type === 'wallet_topup') {
       const topupCents = body.amountCents ?? 5000
       amountBrl = topupCents / 100
       description = 'AutaMedica - Carga de Saldo Billetera'
       externalReference = `topup:${patientContext.patientId}`
-      expirationMinutes = 60
+      expirationMinutes = 60 // 1 hora (60 minutos)
     }
 
     const expirationDate = new Date(Date.now() + expirationMinutes * 60 * 1000).toISOString()
