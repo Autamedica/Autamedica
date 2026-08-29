@@ -87,9 +87,16 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
         setTimeLeft('Expirado')
         clearInterval(interval)
       } else {
-        const mins = Math.floor(remaining / 60000)
-        const secs = Math.floor((remaining % 60000) / 1000)
-        setTimeLeft(`${mins}:${secs < 10 ? '0' : ''}${secs}`)
+        const totalSecs = Math.floor(remaining / 1000)
+        const hours = Math.floor(totalSecs / 3600)
+        const mins = Math.floor((totalSecs % 3600) / 60)
+        const secs = totalSecs % 60
+
+        if (hours > 0) {
+          setTimeLeft(`${hours}h ${mins < 10 ? '0' : ''}${mins}m`)
+        } else {
+          setTimeLeft(`${mins}:${secs < 10 ? '0' : ''}${secs}`)
+        }
       }
     }, 1000)
     return () => clearInterval(interval)
