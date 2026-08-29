@@ -70,7 +70,29 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
           const externalRef = mpPayment.external_reference || ''
           const metadata = mpPayment.metadata || {}
 
+          // Verificar que el pago pertenezca al paciente autenticado
+          const isOwner = 
+            metadata.patient_id === patientContext.patientId ||
+            externalRef.startsWith(`sub:${patientContext.patientId}`) ||
+            externalRef.startsWith(`apt:`)
+
+          if (!isOwner) {
+            return jsonOk({
+              status: mpStatus,
+              statusDetail: 'unauthorized_payment_reference',
+            })
+          }
+
           if (metadata.payment_type === 'subscription' || externalRef.startsWith('sub:')) {
+            // Verificar si ya tiene periodo activo para no resetearlo
+            const { data: existingSub } = await admin
+              .from('patient_subscriptions' as never)
+              .select('status, current_period_end')
+              .eq('patient_id', patientContext.patientId)
+              .maybeSingle()
+
+            const isAlreadyActive = (existingSub as { status?: string } | null)?.status === 'active'
+
             await admin.from('patient_subscriptions' as never).upsert(
               {
                 patient_id: patientContext.patientId,
@@ -80,8 +102,8 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
                 currency: 'BRL',
                 payment_provider: 'mercadopago_pix',
                 provider_subscription_id: String(paymentId),
-                current_period_start: new Date().toISOString(),
-                current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                current_period_start: isAlreadyActive ? undefined : new Date().toISOString(),
+                current_period_end: isAlreadyActive ? undefined : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 updated_at: new Date().toISOString(),
               } as never,
               { onConflict: 'patient_id' },
