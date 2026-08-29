@@ -53,12 +53,13 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
         body: JSON.stringify({ type, appointmentId, patientCpf, amountCents }),
       })
 
-      const data = await res.json()
+      const resJson = await res.json()
       if (!res.ok) {
-        throw new Error(data.message || 'Falha ao gerar QR Code Pix oficial')
+        throw new Error(resJson.error?.message || resJson.message || 'Falha ao gerar QR Code Pix oficial')
       }
 
-      setPixData(data)
+      const payload = resJson.data ?? resJson
+      setPixData(payload)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro inesperado ao gerar pagamento Pix'
       setError(msg)
@@ -274,11 +275,17 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
 
               {/* QR Code Container */}
               <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-neutral-200 shadow-xs">
-                <img
-                  src={`data:image/png;base64,${pixData.qrCodeBase64}`}
-                  alt="QR Code Pix"
-                  className="w-44 h-44 object-contain rounded-lg"
-                />
+                {pixData.qrCodeBase64 ? (
+                  <img
+                    src={`data:image/png;base64,${pixData.qrCodeBase64}`}
+                    alt="QR Code Pix"
+                    className="w-44 h-44 object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="w-44 h-44 flex items-center justify-center bg-neutral-100 rounded-lg text-neutral-400">
+                    <QrCode className="w-16 h-16" />
+                  </div>
+                )}
                 <span className="text-[11px] text-neutral-500 mt-2 font-medium">
                   Abra o aplicativo do seu banco e escaneie o código
                 </span>
