@@ -38,8 +38,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const body = (await request.json()) as PixPaymentRequest
     const { type = 'subscription', appointmentId, patientCpf } = body
 
-    const mpToken = getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN') ?? import.meta.env?.MERCADOPAGO_ACCESS_TOKEN
+    const mpToken =
+      (locals.runtime?.env?.MERCADOPAGO_ACCESS_TOKEN as string | undefined) ??
+      getRuntimeEnvValue('MERCADOPAGO_ACCESS_TOKEN') ??
+      import.meta.env?.MERCADOPAGO_ACCESS_TOKEN
     const appUrl = (
+      (locals.runtime?.env?.PUBLIC_APP_URL as string | undefined) ??
       getRuntimeEnvValue('PUBLIC_APP_URL') ??
       import.meta.env?.PUBLIC_APP_URL ??
       'https://www.autamedica.com'
@@ -52,11 +56,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const admin = createAstroAdminClient(locals.runtime?.env)
 
-    // Obtener datos del perfil del paciente para el payer
+    // Obtener datos del perfil del paciente para el payer (user_id en tabla profiles)
     const { data: profile } = await admin
       .from('profiles')
       .select('first_name, last_name, email')
-      .eq('id', patientContext.userId)
+      .eq('user_id', patientContext.userId)
       .maybeSingle()
 
     const payerEmail = (profile as { email?: string } | null)?.email ?? locals?.session?.user?.email ?? 'paciente@autamedica.com'
