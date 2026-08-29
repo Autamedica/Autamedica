@@ -126,9 +126,23 @@ async function main() {
   const context = await browser.newContext({ locale: 'es-ES' });
   const page = await context.newPage();
 
-  const handle = '@AUTAMEDICA';
-  const longVideos = await scrapeTab(page, `https://www.youtube.com/${handle}/videos`, false);
-  const shorts = await scrapeTab(page, `https://www.youtube.com/${handle}/shorts`, true);
+  // Parse command line arguments
+  let channel = '@AUTAMEDICA';
+  const channelIndex = process.argv.indexOf('--channel');
+  if (channelIndex !== -1 && channelIndex + 1 < process.argv.length) {
+    channel = process.argv[channelIndex + 1];
+  }
+
+  let baseUrl;
+  if (channel.startsWith('UC')) {
+    baseUrl = `https://www.youtube.com/channel/${channel}`;
+  } else {
+    const handle = channel.startsWith('@') ? channel : '@' + channel;
+    baseUrl = `https://www.youtube.com/${handle}`;
+  }
+
+  const longVideos = await scrapeTab(page, `${baseUrl}/videos`, false);
+  const shorts = await scrapeTab(page, `${baseUrl}/shorts`, true);
 
   console.log(`\n📊 Scrape complete:`);
   console.log(`  - Long Videos found: ${longVideos.length}`);

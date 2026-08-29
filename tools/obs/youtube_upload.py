@@ -12,7 +12,8 @@ CLIENT_SECRETS_FILE = "/home/edu/client_secrets.json"
 CREDENTIALS_FILE = "/home/edu/.youtube-credentials.json"
 SCOPES = [
     "https://www.googleapis.com/auth/youtube.upload",
-    "https://www.googleapis.com/auth/youtube.readonly"
+    "https://www.googleapis.com/auth/youtube.readonly",
+    "https://www.googleapis.com/auth/youtube.force-ssl"
 ]
 
 

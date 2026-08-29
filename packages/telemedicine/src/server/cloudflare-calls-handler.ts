@@ -49,6 +49,7 @@ export async function handleCloudflareCallsProxy(
       headers: {
         Authorization: `Bearer ${appSecret}`,
         'Content-Type': 'application/json',
+        'User-Agent': 'AutaMedica-Telemedicine-SFU/1.0',
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     })

@@ -143,9 +143,12 @@ function resolveEnv(name: string): string | undefined {
     return process.env[nextName]
   }
 
-  // 5. Fallback canónico de AutaMedica Supabase URL si no fue provista
+  // 5. Fallback canónico de AutaMedica Supabase si el entorno host no inyectó window.__ENV
   if (name === 'PUBLIC_SUPABASE_URL' || name === 'NEXT_PUBLIC_SUPABASE_URL' || name === 'SUPABASE_URL') {
     return 'https://qxjjrpksmwwrmubhvjew.supabase.co'
+  }
+  if (name === 'PUBLIC_SUPABASE_ANON_KEY' || name === 'NEXT_PUBLIC_SUPABASE_ANON_KEY' || name === 'SUPABASE_ANON_KEY') {
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4ampycGtzbXd3cm11Ymh2amV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTA0NjgsImV4cCI6MjA4Nzk2NjQ2OH0.Cnb_sTp_C3FYFF19YQfHTfyMiFFMN0aw2Xj0hUU-aa0'
   }
 
   return undefined

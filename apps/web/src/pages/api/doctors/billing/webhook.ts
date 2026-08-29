@@ -13,23 +13,36 @@ import type { MercadoPagoWebhookPayload } from '@autamedica/types';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
+    const url = new URL(request.url);
     const signature = request.headers.get('x-signature');
+    const requestId = request.headers.get('x-request-id');
     const rawBody = await request.text();
 
-    if (!billingService.validateWebhookSignature(signature, rawBody)) {
-      logger.warn('[billing/webhook] Invalid signature');
-      return unauthorized('invalid_webhook_signature');
-    }
-
-    let payload: MercadoPagoWebhookPayload;
+    let payload: Partial<MercadoPagoWebhookPayload> = {};
     try {
-      payload = JSON.parse(rawBody) as MercadoPagoWebhookPayload;
+      if (rawBody.trim()) {
+        payload = JSON.parse(rawBody) as Partial<MercadoPagoWebhookPayload>;
+      }
     } catch {
       return badRequest('invalid_json');
     }
 
-    if (!payload.type || !payload.data?.id) {
+    const type = payload.type ?? url.searchParams.get('type') ?? undefined;
+    const dataId = payload.data?.id ?? url.searchParams.get('data.id') ?? undefined;
+
+    if (!type || !dataId) {
       return badRequest('missing_type_or_data_id');
+    }
+
+    const isValidSignature = await billingService.validateWebhookSignature({
+      signature,
+      requestId,
+      dataId: String(dataId),
+    });
+
+    if (!isValidSignature) {
+      logger.warn('[billing/webhook] Invalid signature');
+      return unauthorized('invalid_webhook_signature');
     }
 
     const supabase = createAstroAdminClient(locals.runtime?.env);

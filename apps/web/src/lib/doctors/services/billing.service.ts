@@ -282,13 +282,64 @@ export const billingService = {
     }
   },
 
-  validateWebhookSignature(signature: string | null, _body: string): boolean {
+  async validateWebhookSignature(input: {
+    signature: string | null;
+    requestId: string | null;
+    dataId: string | null;
+  }): Promise<boolean> {
     const secret = getWebhookSecret();
-    if (!secret) return true;
-    if (!signature) return false;
-    return signature.includes('v1=');
+    if (!secret || !input.signature || !input.requestId || !input.dataId) return false;
+
+    const { ts, v1 } = parseMercadoPagoSignature(input.signature);
+    if (!ts || !v1) return false;
+
+    const manifest = `id:${input.dataId};request-id:${input.requestId};ts:${ts};`;
+    const expected = await hmacSha256Hex(secret, manifest);
+
+    return constantTimeEqual(expected, v1);
   },
 };
+
+function constantTimeEqual(left: string, right: string): boolean {
+  if (left.length !== right.length) return false;
+
+  let result = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    result |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+
+  return result === 0;
+}
+
+function parseMercadoPagoSignature(signature: string): { ts: string | null; v1: string | null } {
+  return signature.split(',').reduce<{ ts: string | null; v1: string | null }>(
+    (acc, part) => {
+      const [rawKey, ...rawValue] = part.split('=');
+      const key = rawKey?.trim();
+      const value = rawValue.join('=').trim();
+      if (key === 'ts') acc.ts = value;
+      if (key === 'v1') acc.v1 = value;
+      return acc;
+    },
+    { ts: null, v1: null },
+  );
+}
+
+async function hmacSha256Hex(secret: string, message: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
+
+  return [...new Uint8Array(signature)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 async function handlePaymentNotification(supabase: Client, paymentId: string): Promise<void> {
   const payment = await mpFetch<MercadoPagoPaymentDetail>(`/v1/payments/${paymentId}`);

@@ -228,6 +228,88 @@ Detalle: `docs/ARQUITECTURA.md` sección "Patrones Avanzados".
 
 > **REGLA:** Nunca asumir en qué cuenta está un servicio. Consultar esta tabla primero.
 
+## 4a. YouTube / OBS Content Ops
+
+Estas herramientas viven en `tools/obs/` y se usan para el pipeline local de contenido de
+AutaMedica. Elegir el script correcto evita subir versiones equivocadas o romper metadata ya
+publicada.
+
+### Matriz de Scripts
+
+| Necesidad | Script / comando | Cuándo usarlo | Cuidado operativo |
+| --- | --- | --- | --- |
+| Editar silencios de un raw ya grabado | `python3 tools/obs/process_video_edits.py <video>` | Primer pase local de postproducción después de tener el video y/o JSON de Whisper | Lee `<video>.json`. El comportamiento actual acelera silencios a `5x` porque `SILENT_SPEED = 5.0`; revisar esa constante antes de esperar cortes secos. |
+| Generar subtítulos sincronizados con edición de silencios | `python3 tools/obs/generate_srt.py <video>` | Después de editar silencios y antes de subir/importar a editor | Genera `_ai_silence.srt` y `_ai_speed.srt`. Si el MP4 final tuvo nuevos inserts, concat o reemplazos visuales, verificar sincronía contra el archivo final exacto. |
+| Subir video largo/VOD a YouTube | `python3 tools/obs/youtube_upload.py <video> "<title>" <description_file_or_text> private` | Cuando el MP4 final, título y descripción están listos | Subir siempre como `private`. Este script no sube subtítulos ni asigna playlists; para eso usar llamadas YouTube API con `youtube.force-ssl`. |
+| Reautorizar YouTube para editar videos existentes | `python3 tools/obs/youtube_reauth_force_ssl.py` | Antes de modificar metadata publicada, canal, playlists o captions | Necesario si aparece `insufficient authentication scopes`. Guarda `/home/edu/.youtube-credentials.json` con `youtube.upload`, `youtube.readonly` y `youtube.force-ssl`. Si `localhost` falla, usar el redirect de Supabase registrado. |
+| Auditar performance del canal | `python3 tools/obs/youtube_analytics_audit.py --days 28` | Para decidir que temas repetir, que videos retitular y donde mejorar retención | Solo lectura. Exporta JSON/Markdown en `video_exports/youtube_developer_tools/`. Combina YouTube Data API y YouTube Analytics API. |
+| Revisar/subir subtítulos | `python3 tools/obs/youtube_captions_sync.py list --video-id <id>` / `python3 tools/obs/youtube_captions_sync.py upload --video-id <id> --file <srt> --replace --apply` | Cuando un video publicado necesita captions sincronizados | El upload es dry-run si no se pasa `--apply`. `captions.insert` consume mucha cuota; no reintentar en bucle si falla por cuota. |
+| Descargar/actualizar subtítulos | `python3 tools/obs/youtube_captions_sync.py download --caption-id <id> --output <file.srt>` / `python3 tools/obs/youtube_captions_sync.py update --caption-id <id> --video-id <id> --file <srt> --apply` | Antes de reemplazar captions existentes | Descargar backup antes de actualizar. |
+| Ordenar secciones del canal | `python3 tools/obs/youtube_channel_sections.py` / `python3 tools/obs/youtube_channel_sections.py --apply` | Para exponer playlists canónicas en la home del canal | Dry-run por defecto. Crea secciones faltantes tipo `singlePlaylist` solo con `--apply`. |
+| Triar comentarios | `python3 tools/obs/youtube_comments_triage.py --max-results 100` | Para encontrar preguntas clínicas, oportunidades de respuesta y posible spam | Solo lectura. No responde ni oculta comentarios; deja reportes JSON/Markdown. |
+| Responder/moderar comentarios | `python3 tools/obs/youtube_comments_actions.py reply --comment-id <id> --text "<respuesta>" --apply` | Solo después de revisar triage manualmente | Dry-run si no se pasa `--apply`. No dar consejo médico personalizado en comentarios. |
+| Release completo de YouTube | `python3 tools/obs/youtube_release_manager.py --video <mp4> --title "<titulo>" --description <txt> --thumbnail <jpg> --captions <srt> --playlist <key> --apply` | Cuando hay paquete final con video, miniatura, subtítulos y playlist | Puede subir video o decorar un `--video-id` existente. Mutaciones solo con `--apply`. |
+| Optimizar metadata en lote | `python3 tools/obs/youtube_metadata_optimizer.py plan --limit 120` / `python3 tools/obs/youtube_metadata_optimizer.py apply --plan <json> --apply` | Para reparar descripciones finas y pocos tags | Conservador: no cambia privacidad ni borra videos. Revisar plan JSON antes de aplicar. |
+| Enrutar videos a playlists | `python3 tools/obs/youtube_playlist_router.py --limit 120` / `python3 tools/obs/youtube_playlist_router.py --limit 120 --apply` | Para ubicar videos existentes en playlists canónicas | Agrega membresías faltantes; no remueve videos de playlists. |
+| Generar Shorts del análisis Pereira/UFC | `python3 tools/obs/generate_shorts_pereira.py` | Para cortar los Shorts verticales del master `06_youtube_final_callouts_720p.mp4` | Hardcoded para ese master y timestamps. Cambiar constantes antes de reutilizar en otro video. |
+| Subir Shorts Pereira/UFC | `python3 tools/obs/upload_shorts_pereira.py` | Después de generar los Shorts Pereira | Sube como `private`; títulos/descripciones están hardcoded para ese lote. |
+| Scripts viejos de Shorts | `tools/obs/upload_shorts.py`, `scratch/generate_and_upload_shorts.py` | Solo si el input/config hardcoded coincide con el proyecto actual | Tratar como legacy. No usarlos para Pereira ni para el claim-safe master sin auditar rutas, timestamps y metadata. |
+
+### Reglas para Operaciones de YouTube API
+
+- Antes de cualquier cambio masivo de metadata, guardar backup JSON en
+  `video_exports/youtube_channel_optimization/`.
+- Para subir video largo, usar `youtube_upload.py`; para editar videos existentes o canal,
+  usar `get_authenticated_service()` después de reauth con `youtube_reauth_force_ssl.py`.
+- No cambiar privacidad ni borrar videos en lote sin una instrucción explícita del usuario.
+- Cuando se actualizan títulos/descripciones/tags, generar primero un plan JSON, luego aplicar,
+  y finalmente auditar con una nueva lectura de YouTube API.
+- Si `captions().insert()` devuelve `quotaExceeded`, no insistir: esperar reset de cuota o cargar
+  el `.srt` manualmente desde YouTube Studio.
+- Los scripts nuevos de mantenimiento comparten autenticación en `tools/obs/youtube_api_utils.py`.
+  Cualquier cambio público o potencialmente destructivo debe exigir `--apply`; las auditorías deben
+  quedar en modo solo lectura por defecto.
+- Orden semanal recomendado: `youtube_analytics_audit.py`, luego `youtube_comments_triage.py`,
+  después captions en videos prioritarios y recién al final ajustes de secciones/metadata.
+- Para nuevas publicaciones, preferir `youtube_release_manager.py` cuando ya existan miniatura,
+  SRT y playlist objetivo. El script legacy `youtube_upload.py` queda para subidas simples.
+- Para reparaciones masivas: correr auditoría, generar plan con `youtube_metadata_optimizer.py`,
+  revisar JSON y recién aplicar. No cambiar privacidad ni borrar videos en estos flujos.
+- Playlists canónicas creadas el 2026-07-05:
+  `AutaMedica Shorts`, `Telemedicina y salud digital`,
+  `UFC biomecánica y medicina deportiva`, `IA médica y automedicación`,
+  `Tutoriales AutaMedica`, `Educación médica y prevención`.
+- Logs útiles del último mantenimiento:
+  `video_exports/youtube_channel_optimization/final_metadata_audit_2026-07-05.json` y
+  `video_exports/youtube_channel_optimization/youtube_api_structuring_2026-07-05.json`.
+
+### Posicionamiento de Contenido YouTube
+
+- No tratar a AutaMedica como un canal genérico de telemedicina. La promesa más fuerte es:
+  `medicina real explicada con casos reales`.
+- Cuando se generen títulos, guiones, Shorts, miniaturas o descripciones, copiar la estrategia de
+  canales médicos/ciencia fuertes, no su contenido:
+  - Doctor Mike: medicina conectada a cultura, reacciones y situaciones virales conocidas.
+  - La Hiperactina: biomedicina clara con personalidad y hooks simples.
+  - ZDoggMD: autoridad médica + crítica del sistema + entretenimiento.
+  - Mayo Clinic/Cleveland Clinic/Osmosis: orden clínico, confianza y explicación clara.
+- Fórmula default para piezas AutaMedica:
+  `caso viral -> conflicto médico -> evidencia visual -> explicación simple -> aprendizaje útil -> CTA suave a AutaMedica`.
+- Preferir series reconocibles sobre temas sueltos:
+  `Autopsia Biomecánica`, `El Cuerpo No Miente`, `IA Médica: Cuidado`,
+  `Síntomas Que No Son Normales`.
+- No empezar como clase. Empezar con contradicción, tensión o consecuencia.
+  Ejemplo: `Pereira no perdió por el jab. Perdió porque su pierna ya no obedecía.`
+- Para crecimiento, trabajar experimentos de 30 días con dos líneas principales:
+  1. UFC/biomecánica/falla del cuerpo desde casos visuales.
+  2. IA médica/errores de automedicación conectados a riesgo real del paciente.
+- No sobreponderar contenido institucional de plataforma. AutaMedica debe entrar como el siguiente
+  paso confiable después de la explicación, no como tema principal salvo que el video sea
+  explícitamente de producto.
+- Regla de decisión: repetir formatos que superen el baseline del canal, pausar temas que queden
+  repetidamente por debajo y no decidir por un solo video. Usar `youtube_analytics_audit.py`
+  antes de cambiar estrategia cuando haya cuota.
+
 ---
 
 ## 4b. Estrategia de Ramas (Senior Trunk-Based Development)
@@ -475,6 +557,18 @@ try {
 | `pnpm deploy:web`                     | Build + deploy apps/web           |
 | `supabase db push`                    | Aplicar migraciones en prod       |
 | `supabase functions deploy`           | Deploy Edge Functions             |
+
+### 🎥 Comandos de Producción y Edición de Video (OBS Pipeline)
+
+| Comando | Descripción |
+| ------- | ----------- |
+| `python3 tools/obs/boost_phone_performance.py` | Libera memoria RAM en el teléfono cerrando apps pesadas en segundo plano antes de grabar. |
+| `python3 tools/obs/pull_latest_video.py` | Descarga inalámbrica del último video grabado en el teléfono a la PC. |
+| `python3 tools/obs/record_pc_audio.py --list-sources` | Lista las entradas de audio disponibles en la PC. |
+| `python3 tools/obs/record_pc_audio.py` | Graba el micrófono/entrada de audio de la computadora como WAV limpio. |
+| `python3 tools/obs/replace_video_audio.py "/ruta/video.mp4" "/ruta/audio.wav"` | Reemplaza el audio del video del teléfono por el audio grabado en la PC. |
+| `python3 tools/obs/process_video_edits.py "/ruta/al/video.mkv"` | Edita silencios (aceleración 5x) basados en Whisper JSON. |
+| `python3 tools/obs/generate_srt.py "/ruta/al/video.mkv"` | Genera subtítulos `.srt` sincronizados dinámicamente con los cortes. |
 
 ### CUIDADO: Comandos de Build en Monorepo
 
@@ -748,3 +842,130 @@ Para aprovechar al máximo el ecosistema de Google dentro del IDE:
 - **Generación de Tests:** Seleccionar lógica de negocio, clic derecho -> "Gemini -> Generate Unit Tests" para crear cobertura automática (JUnit/MockK).
 - **Documentación KDoc:** Generar comentarios de funciones instantáneamente (clic derecho -> "Gemini -> Add documentation").
 - _Nota:_ Asegurar que el "Context Sharing" esté activado en la ventana de chat del IDE para que Gemini lea el código local.
+
+---
+
+## 📈 AutaMedica Growth & Marketing Core
+
+### A. Calificación y Enriquecimiento de Prospectos (CRM)
+1. **Foco en Decisores:** Priorizar siempre directores médicos, dueños o directores de operaciones. No calificar a médicos generales o de staff como decisores de compra.
+2. **Correos Válidos:** Evitar correos de turnos genéricos (`turnos@`) o correos de soporte (`info@`) para campañas directas. No incorporar correos académicos o de investigación de otros países (ej. CSIC de España) para clínicas locales.
+3. **Respetar Datos Existentes:** NUNCA simplificar o pisar direcciones exactas preexistentes en el CRM con datos genéricos (ej. reemplazar calle exacta por "Buenos Aires, Argentina").
+
+### B. Campañas de Emailing (Brevo)
+1. **Evitar Filtros de Spam:** No usar emojis (como `🎥`) ni palabras típicamente comerciales ("Gratis", "Stream en Vivo") en el asunto de correos corporativos.
+2. **Inbox vs. Promociones:** Si se busca caer en la bandeja principal de Gmail en lugar de la pestaña de "Promociones", enviar el mail en formato texto plano puro en lugar de HTML complejos con imágenes.
+3. **Zafar del Límite de Envío:** Si hay cuotas diarias restrictivas (ej. 300/día), utilizar envíos automáticos por WhatsApp (OpenClaw) o redirigir a los usuarios interesados a una lista de difusión de WhatsApp para avisos en vivo.
+
+### C. Estrategia de Videos Cortos (Shorts / TikTok)
+1. **El Gancho Inicial (3s):** El video debe arrancar con una pregunta intrigante, un dilema o un dolor universal. Prohibido iniciar con introducciones lentas o mostrando el software estático.
+2. **Títulos Curiosos:** Evitar títulos formales o explicativos (ej. "Emitiendo receta en AutaMedica"). Usar títulos que apelen al autocuidado o a la curiosidad (ej. "Cuida tu salud siempre primero", "El caso de libro siempre es bonito").
+3. **Evitar Bloqueos del Algoritmo (0 vistas):**
+   - **Espaciado obligatorio:** Dejar pasar mínimo 12-24 horas entre publicaciones. Subir videos en ráfaga hace que el algoritmo bloquee la distribución por sospecha de bot.
+   - **Variación de metadatos:** Cambiar los títulos y no usar de forma sistemática la misma lista de hashtags.
+  - **Protocolo de Resubida:** Si un video se clava en 0 vistas por más de 48 horas, borrarlo, modificar el título/hashtags y volver a subirlo tras un descanso de publicaciones.
+   - **Desintoxicación de cuenta (Shadowban):** Si hay 4 o más videos seguidos en 0 vistas, pausar publicaciones por 72 horas completo e interactuar activamente (likes/comentarios) como usuario humano.
+
+### D. Estrategia de Contenidos y Producción de Video (YouTube VOD & Shorts)
+
+1. **Simplificar Títulos (El "Gancho"):**
+   - Evitar el uso de términos médicos técnicos complejos en la primera parte del título. YouTube es entretenimiento e información general.
+   - *Patrón:* Primero la curiosidad o el beneficio, después el término médico.
+   - *Antes:* "Inhibición Artrogénica: El cerebro corta la corriente"
+   - *Ahora:* "Por qué tus músculos 'se apagan' solos (y no puedes evitarlo)"
+
+2. **Duplicar lo que Funciona (Medicina + Tendencia):**
+   - Los videos de análisis de combate de la UFC (ej. Alex Pereira) tienen el CTR más alto. Aprovechar esta inercia.
+   - Usar eventos deportivos de élite, accidentes o noticias actuales para explicar conceptos médicos complejos. Es el puente perfecto para captar audiencias generales.
+
+3. **Optimizar Miniaturas (Tu Vidriera):**
+   - Mantener el CTR alto reduciendo el ruido visual.
+   - *Menos texto:* Máximo 3 o 4 palabras de gran tamaño y fuerte contraste.
+   - *Más impacto:* Mostrar el momento exacto del impacto o una imagen anatómica/médica limpia y llamativa.
+   - *Sin logos irrelevantes:* Solo incluir logos reconocibles del contexto inmediato (ej. UFC) si aportan claridad. No colocar marcas genéricas.
+
+4. **Consistencia sobre Cantidad:**
+   - Priorizar la calidad. Es preferible publicar un video de alta producción, bien estructurado y analizado a la semana, que múltiples videos mediocres.
+   - En Shorts, asegurar que el primer segundo tenga una pregunta intrigante o una metáfora cruda para amarrar la retención desde el inicio.
+
+5. **Llamados a la Acción (CTA) Claros:**
+   - Traducir el conocimiento técnico médico al lenguaje de la curiosidad del espectador.
+   - En la mitad de cada video, indicar explícitamente el valor de suscribirse: *"Suscribite para entender cómo funciona tu cuerpo en situaciones extremas"*.
+   - Canalizar el tráfico del video mediante enlaces en la descripción dirigiendo a los usuarios a la plataforma de telemedicina `autamedica.com` para consultas médicas reales.
+
+---
+
+## 🎬 Historial de Videos Subidos (YouTube)
+
+### 1. La física no perdonó: la autopsia a la rodilla de McGregor
+* **Fecha:** 12 de Julio de 2026
+* **Video ID:** `CN6mJtBdqkM`
+* **URL:** https://youtu.be/CN6mJtBdqkM
+* **Descripción del análisis:** En este video, Eduardo Marques realiza una "autopsia biomecánica" del colapso de la rodilla de Conor McGregor en su pelea contra Max Holloway. Eduardo desmiente la creencia de que la derrota de McGregor haya sido por simple inactividad o falta de ritmo, y desglosa frame a frame la biomecánica detrás del fallo de la base de sustentación, explicando los tres conceptos críticos: la absorción de torque, la carga axial y el valgo dinámico severo. Además, narra cómo Max Holloway detuvo el ataque de manera empática al darse cuenta de que la rodilla de su oponente había colapsado por completo.
+
+### 2. Shorts Extraídos del Video de McGregor (Fecha: 12 de Julio de 2026):
+* **Short 1:** La física no perdonó a Conor McGregor 🏎️
+  * **Video ID:** `20xVHnT6TP8`
+  * **URL:** https://youtu.be/20xVHnT6TP8
+* **Short 2:** El colapso de rodilla de Conor McGregor 😱
+  * **Video ID:** `LbAb9Jzuv1Y`
+  * **URL:** https://youtu.be/LbAb9Jzuv1Y
+* **Short 3:** La empatía de Max Holloway en el octágono 🤝
+  * **Video ID:** `DcdK_Kuc86Q`
+  * **URL:** https://youtu.be/DcdK_Kuc86Q
+
+---
+
+## 🎨 Estándar de Calidad Audiovisual (Matriz de Referencia)
+
+Evaluación del grado de producción de AutaMedica frente a referentes de alto rendimiento de Instagram (Reels) a Julio de 2026:
+
+| Dimensión | 🎥 Reel 1 (3D Médico) | 🎞️ Reel 2 (Real + Vectores) | 🩺 AutaMedica (McGregor v4) |
+| :--- | :--- | :--- | :--- |
+| **Estilo Visual** | Modelados 3D de esqueletos translúcidos y resonancias. | Combate real (UFC footage) reencuadrado. | Combate real + Facecam selectiva estilizada. |
+| **Diseño de Layout** | 9:16 nativo pantalla completa. | Híbrido (9:16 nativo y 16:9 con blur wrap). | Híbrido (16:9 centrado con blur wrap). |
+| **Grafismos / Señalética** | Ninguno. | Flechas vectoriales de color con sombra. | Subtítulos dinámicos (sin flechas/círculos en combate). |
+| **Ritmo (Pacing)** | Medio (transiciones suaves a 60fps). | Rápido (cortes cada 2-3 segundos). | Ultra-rápido (ajustado por software sin silencios). |
+| **Audio (SFX)** | Sonido clínico/quirúrgico (ticks, booms). | Sonido deportivo genérico + música. | Profesional (normalizado a -14 LUFS, limitador y SFX). |
+| **Nivel / Grado** | **Grado 3: Premium Editorial / 3D** | **Grado 2: Divulgador Técnico Pro** | **Grado 2.5: Divulgador de Alta Producción** |
+
+### 🔍 Diagnóstico & Hoja de Ruta de AutaMedica:
+* **Estado Actual (Grado 2.5):** La calidad técnica del audio y el ritmo de edición automatizado por software son excelentes. El layout híbrido de video centrado con blur wrap superior/inferior se ve premium.
+* **Foco de Mejora (Para llegar a Grado 3):**
+  1. **Señalética en combate:** Congelar pantalla en el punto crítico e introducir flechas o círculos rojos con sombra para guiar la vista hacia la rodilla/articulación.
+  2. **B-Roll Científico:** Intercalar tomas de 3 segundos de modelos 3D translúcidos (grabados desde *BioDigital Human* o stock) en fondo negro para ilustrar la mecánica interna de la lesión.
+
+---
+
+## 📊 Revelación de Analítica: La Regla de los 20 Segundos para Shorts
+
+Análisis basado en la auditoría de datos del canal (`Hoja de cálculo sin título.xlsx` a Julio de 2026):
+
+* **Shorts Super Cortos (≤ 20 segundos):** Promedio de **`386.5` vistas**. La retención del 100% o superior (repetición de bucle) dispara el algoritmo de distribución masiva de YouTube de forma inmediata.
+* **Shorts Largos (20 a 60 segundos):** Promedio de **`64.5` vistas** (caída de 6 veces en la distribución). Es extremadamente difícil mantener al usuario pegado al celular más de 30 segundos, reduciendo la retención promedio y matando el alcance algorítmico del Short.
+* **Videos Largos (> 60 segundos):** Promedio de **`56.0` vistas**. Poseen excelente CTR (ej: Pereira 9.09%), pero YouTube no regala impresiones de forma automática en este formato.
+
+### 💡 Regla de Producción Corta:
+Los Shorts deben ser **anzuelos rápidos de 10 a 15 segundos** enfocados únicamente en generar dudas, tensión o curiosidad extrema (Curiosity Gap). No deben intentar explicar la patología completa; deben forzar al usuario a hacer clic en el *Vídeo Relacionado* para ver la explicación en el video largo.
+
+---
+
+## 🚀 Blueprint de Producción y Distribución Definitivo
+
+Basado en el cruce de datos históricos y comportamiento del algoritmo de YouTube:
+
+### 1. Dos Formatos con Objetivos Diferentes:
+* **Shorts de Captación (8 a 15 segundos):** Creados como piezas independientes para consumirse como Shorts, no como fragmentos de explicaciones largas.
+  * **Estructura:** Impacto visual en el segundo 1 ➔ Planteo de duda/tensión ➔ Derivación al video relacionado.
+  * **Titulaciones:** Estructura directa `[Atleta] + [Problema] + [Resultado]` (Ej: *"El cerebro apagó la rodilla de Pereira"* en lugar de *"Inhibición artrogénica"*).
+  * **Optimización Idioma:** Español neutro en títulos y diagramas, pero manteniendo el acento argentino nativo en la narración.
+* **Videos Largos (Fidelización y Autoridad):** Orientados a resolver la brecha de curiosidad.
+  * **Optimización Crítica:** Resolver la retención del primer minuto (superar el 5% de retención inicial actual). La intro de los primeros 30 segundos debe ir directo a la biomecánica y el misterio sin rodeos teóricos.
+
+### 2. Métricas de Control Realistas:
+* **Shorts:** Descartar el CTR de impresiones. Evaluar únicamente **"Mostrado en el feed"** y **"Eligieron mirar frente a deslizaron"** (Target > 65%).
+* **Videos Largos:** Evaluar CTR de impresiones tradicionales (>6%) y **Tiempo medio de visualización** (>2 minutos).
+
+
+
+

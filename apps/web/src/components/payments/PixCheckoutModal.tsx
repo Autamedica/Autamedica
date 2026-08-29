@@ -171,11 +171,7 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
           const supabase = createBrowserClient()
           supabase.removeChannel(realtimeChannel)
         } catch {
-<<<<<<< HEAD
-          // ignore cleanup error
-=======
           // ignore channel removal error on unmount
->>>>>>> 32fe8fc4a (feat(payments): integrate mercadopago pix checkout and patient subscriptions)
         }
       }
     }

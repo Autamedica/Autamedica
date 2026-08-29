@@ -37,7 +37,7 @@ def parse_relative_date(relative_str):
         
     return now
 
-def run_scraper_fallback():
+def run_scraper_fallback(target_channel=None):
     print("\n⚠️ YouTube API read scopes are not available. Falling back to browser-based scraping...")
     script_dir = os.path.dirname(os.path.abspath(__file__))
     scraper_path = os.path.join(script_dir, "scrape_pub_dates.mjs")
@@ -45,7 +45,10 @@ def run_scraper_fallback():
     
     print(f"🌐 Running browser scraper: {scraper_path}...")
     try:
-        subprocess.run(["node", scraper_path, "--out", json_path], check=True)
+        cmd = ["node", scraper_path, "--out", json_path]
+        if target_channel:
+            cmd.extend(["--channel", target_channel])
+        subprocess.run(cmd, check=True)
     except Exception as e:
         sys.exit(f"❌ Failed to run scraper fallback: {e}")
         
@@ -143,25 +146,46 @@ def get_api_client():
     return build("youtube", "v3", credentials=credentials)
 
 def main():
+    target_channel = None
+    if len(sys.argv) > 1:
+        target_channel = sys.argv[1]
+
     try:
         print("🔑 Checking saved YouTube credentials...")
         youtube = get_api_client()
 
-        print("🔍 Fetching authenticated channel details...")
-        ch_response = youtube.channels().list(
-            part="snippet,contentDetails",
-            mine=True
-        ).execute()
+        if target_channel:
+            print(f"🔍 Fetching details for channel: {target_channel}...")
+            if target_channel.startswith('UC'):
+                ch_response = youtube.channels().list(
+                    part="snippet,contentDetails",
+                    id=target_channel
+                ).execute()
+            else:
+                handle = target_channel if target_channel.startswith('@') else f"@{target_channel}"
+                ch_response = youtube.channels().list(
+                    part="snippet,contentDetails",
+                    forHandle=handle
+                ).execute()
+        else:
+            print("🔍 Fetching authenticated channel details...")
+            ch_response = youtube.channels().list(
+                part="snippet,contentDetails",
+                mine=True
+            ).execute()
 
         if not ch_response.get("items"):
-            sys.exit("❌ No channel found for these credentials.")
+            sys.exit(f"❌ No channel found for: {target_channel or 'authenticated user'}")
             
         channel = ch_response["items"][0]
         channel_id = channel["id"]
         channel_title = channel["snippet"]["title"]
         uploads_playlist_id = channel["contentDetails"]["relatedPlaylists"]["uploads"]
         
-        print(f"✅ Authenticated as Channel: {channel_title} ({channel_id})")
+        if target_channel:
+            print(f"✅ Channel found: {channel_title} ({channel_id})")
+        else:
+            print(f"✅ Authenticated as Channel: {channel_title} ({channel_id})")
         print(f"Uploads Playlist ID: {uploads_playlist_id}")
         
         # 2. Fetch all videos from the uploads playlist
@@ -232,7 +256,7 @@ def main():
         for hour in range(24):
             if hourly_counts[hour] > 0:
                 print(f"  - {hour:02d}:00: {hourly_counts[hour]} videos")
-
+ 
         # Print the most recent 15 videos
         print("\n🆕 Most recent 15 videos:")
         for i, video in enumerate(videos[:15], 1):
@@ -240,7 +264,7 @@ def main():
             
     except Exception as e:
         print(f"⚠️ YouTube API query failed or credentials lack read permissions: {e}")
-        run_scraper_fallback()
+        run_scraper_fallback(target_channel)
 
 if __name__ == "__main__":
     main()

@@ -40,6 +40,24 @@
 | `pnpm typecheck`                      | TypeScript checks across the repo            |
 | `pnpm test:unit`                      | Unit tests                                   |
 | `pnpm db:sync`                        | Regenerate DB types and validate schema sync |
+| `python3 tools/obs/boost_phone_performance.py` | Terminate background social media and heavy apps to free up RAM before recording |
+| `python3 tools/obs/pull_latest_video.py` | Pull the latest recorded video from the phone wirelessly |
+| `python3 tools/obs/record_pc_audio.py --list-sources` | List PC microphone/input sources |
+| `python3 tools/obs/record_pc_audio.py` | Record workstation microphone audio as WAV |
+| `python3 tools/obs/replace_video_audio.py <video> <audio.wav>` | Replace phone video audio with PC-recorded audio |
+| `python3 tools/obs/process_video_edits.py <video>` | Edit silences (5x ramping) from speech timestamps |
+| `python3 tools/obs/generate_srt.py <video>` | Generate adjusted SRT subtitles synced with edits |
+| `python3 tools/obs/youtube_upload.py <video> "<title>" <description_file_or_text> private` | Upload long-form YouTube videos as private first |
+| `python3 tools/obs/youtube_reauth_force_ssl.py` | Refresh YouTube OAuth scopes before editing existing videos, playlists, captions or channel metadata |
+| `python3 tools/obs/youtube_analytics_audit.py --days 28` | Export channel/video performance audit |
+| `python3 tools/obs/youtube_captions_sync.py list --video-id <id>` | Inspect captions for one video |
+| `python3 tools/obs/youtube_channel_sections.py` | Dry-run canonical channel home sections |
+| `python3 tools/obs/youtube_comments_triage.py` | Export recent comments and moderation/reply queue |
+| `python3 tools/obs/youtube_release_manager.py ...` | Upload/decorate a full YouTube release package |
+| `python3 tools/obs/youtube_metadata_optimizer.py plan` | Plan safe metadata repairs with backups |
+| `python3 tools/obs/youtube_playlist_router.py` | Dry-run canonical playlist routing |
+| `python3 tools/obs/generate_shorts_pereira.py` | Generate vertical Pereira/UFC Shorts from the current editorial master |
+| `python3 tools/obs/upload_shorts_pereira.py` | Upload generated Pereira/UFC Shorts as private |
 
 ## Senior Git Standards & Traceability
 
@@ -92,3 +110,96 @@ supabase/
 - `CLAUDE.md`: compact operational manual
 - `docs/AGENTS.md`: extended engineering guide
 - `docs/AGENTS-2.md`: advanced hardening rules
+
+## YouTube Strategy & Content Engine
+
+### YouTube Scripts: Which One To Use
+
+Use the OBS/YouTube scripts deliberately; several are workflow-specific.
+
+| Task | Use | When | Notes |
+| --- | --- | --- | --- |
+| Silence editing from an already-recorded raw video | `python3 tools/obs/process_video_edits.py <video>` | First local post-production pass after recording and Whisper transcription | Reads `<video_basename>.json`; creates an edited MKV using the configured silence policy. Current script speeds silence to `5x`; inspect `SILENT_SPEED` before assuming hard cuts. |
+| Subtitles synced to silence-edited exports | `python3 tools/obs/generate_srt.py <video>` | After `process_video_edits.py`, before upload or editor import | Generates `_ai_silence.srt` and `_ai_speed.srt` from the same Whisper JSON/cut math. For heavily re-timed final masters, verify against the exact MP4 before publishing. |
+| Long-form YouTube upload | `python3 tools/obs/youtube_upload.py <video> "<title>" <description_file_or_text> private` | Uploading a final long-form MP4/VOD | Always upload `private` first. This script uploads video metadata only; thumbnail/captions/playlist/channel edits require YouTube Data API calls with `youtube.force-ssl`. |
+| YouTube OAuth scope refresh | `python3 tools/obs/youtube_reauth_force_ssl.py` | Before editing existing videos, creating playlists, updating channel description, uploading captions, or changing metadata in bulk | Saves `/home/edu/.youtube-credentials.json` with `youtube.upload`, `youtube.readonly`, and `youtube.force-ssl`. Use Supabase callback URL if localhost redirects fail. |
+| YouTube analytics audit | `python3 tools/obs/youtube_analytics_audit.py --days 28` | Weekly review of what is working on the channel | Read-only. Writes JSON and Markdown reports under `video_exports/youtube_developer_tools/`. Uses YouTube Data API plus YouTube Analytics API. |
+| YouTube captions sync | `python3 tools/obs/youtube_captions_sync.py list --video-id <id>` or `python3 tools/obs/youtube_captions_sync.py upload --video-id <id> --file <srt> --replace --apply` | Checking or uploading SRT/VTT captions for a published video | Upload is dry-run unless `--apply` is present. Captions calls are quota-expensive; do not loop retries after `quotaExceeded`. |
+| YouTube captions backup/update | `python3 tools/obs/youtube_captions_sync.py download --caption-id <id> --output <file.srt>` or `python3 tools/obs/youtube_captions_sync.py update --caption-id <id> --video-id <id> --file <srt> --apply` | Before replacing caption tracks | Always download a backup before updating captions. |
+| YouTube channel sections | `python3 tools/obs/youtube_channel_sections.py` then `python3 tools/obs/youtube_channel_sections.py --apply` | Ensuring the channel homepage exposes canonical playlists | Dry-run by default. Creates missing `singlePlaylist` channel sections only with `--apply`. |
+| YouTube comment triage | `python3 tools/obs/youtube_comments_triage.py --max-results 100` | Weekly review of questions, clinical opportunities and possible spam | Read-only. Exports JSON/Markdown; does not hide or reply to comments. |
+| YouTube comment actions | `python3 tools/obs/youtube_comments_actions.py reply --comment-id <id> --text "<reply>" --apply` | Replying to selected comments or moderating one comment after triage | Dry-run unless `--apply`. Do not automate medical advice in comments. |
+| Full YouTube release manager | `python3 tools/obs/youtube_release_manager.py --video <mp4> --title "<title>" --description <txt> --thumbnail <jpg> --captions <srt> --playlist <key> --apply` | Publishing a new long-form or Short package end-to-end | Dry-run unless `--apply`. Handles video upload or existing `--video-id`, metadata, thumbnail, captions and playlist placement. |
+| YouTube metadata optimizer | `python3 tools/obs/youtube_metadata_optimizer.py plan --limit 120` then `python3 tools/obs/youtube_metadata_optimizer.py apply --plan <json> --apply` | Repairing thin descriptions and sparse tags in batches | Conservative: preserves titles/privacy, adds descriptions/tags/disclaimer. Review the plan JSON before applying. |
+| YouTube playlist router | `python3 tools/obs/youtube_playlist_router.py --limit 120` then `python3 tools/obs/youtube_playlist_router.py --limit 120 --apply` | Routing existing videos into canonical playlists | Adds missing playlist membership only; it does not remove videos from playlists. |
+| Pereira/UFC Shorts generation | `python3 tools/obs/generate_shorts_pereira.py` | Creating vertical Shorts from `06_youtube_final_callouts_720p.mp4` | Hardcoded for the Pereira editorial master and output folder. Adjust constants before reusing for another video. |
+| Pereira/UFC Shorts upload | `python3 tools/obs/upload_shorts_pereira.py` | Uploading the generated Pereira Shorts | Uploads as `private`. Titles/descriptions are hardcoded for the current Pereira batch. |
+| Legacy generic Shorts upload | `tools/obs/upload_shorts.py` or `scratch/generate_and_upload_shorts.py` | Only for the older configured source videos | Do not use for the current Pereira/claim-safe workflow unless constants are audited first. |
+
+### YouTube API Maintenance Rules
+
+- Before bulk metadata edits, always save a JSON backup under
+  `video_exports/youtube_channel_optimization/`.
+- For existing published videos, playlists, channel description and captions, credentials must include
+  `https://www.googleapis.com/auth/youtube.force-ssl`; run
+  `python3 tools/obs/youtube_reauth_force_ssl.py` if edits return `insufficient authentication scopes`.
+- Keep uploads private until title, description, thumbnail, subtitles, copyright status and playlist
+  placement are verified in YouTube Studio.
+- If captions upload fails with `quotaExceeded`, do not retry in a loop; wait for quota reset or upload
+  the `.srt` manually in YouTube Studio.
+- Developer utility scripts share OAuth helpers in `tools/obs/youtube_api_utils.py`; keep destructive
+  or public-facing operations behind explicit `--apply`.
+- Weekly YouTube maintenance order: run analytics audit, review comments triage, fix captions on priority
+  videos, then adjust channel sections or metadata only if the reports justify it.
+- New upload order: prefer `youtube_release_manager.py` over the legacy upload script when a thumbnail,
+  subtitles or playlist placement are available.
+- Batch repair order: `youtube_analytics_audit.py`, then `youtube_metadata_optimizer.py plan`, review
+  the JSON plan, then apply. Never batch-change privacy or delete videos from these scripts.
+- Channel-structure changes already performed should be audited through
+  `video_exports/youtube_channel_optimization/youtube_api_structuring_2026-07-05.json`.
+- Current canonical playlists are:
+  `AutaMedica Shorts`, `Telemedicina y salud digital`,
+  `UFC biomecánica y medicina deportiva`, `IA médica y automedicación`,
+  `Tutoriales AutaMedica`, and `Educación médica y prevención`.
+
+### YouTube Content Positioning Rules
+
+- Do not position AutaMedica as a generic telemedicine channel. The strongest channel promise is:
+  `medicina real explicada con casos reales`.
+- When generating titles, scripts, shorts, thumbnails or descriptions, copy the strategy of strong
+  medical/science channels, not their content:
+  - Doctor Mike: medicine tied to culture, reactions and familiar viral situations.
+  - La Hiperactina: biomedical clarity with personality and simple hooks.
+  - ZDoggMD: medical authority plus system critique and entertainment.
+  - Mayo Clinic/Cleveland Clinic/Osmosis: clinical order, trust and explainability.
+- Default formula for AutaMedica videos:
+  `caso viral -> conflicto medico -> evidencia visual -> explicacion simple -> aprendizaje util -> CTA suave a AutaMedica`.
+- Strong recurring series names should be preferred over one-off topics:
+  `Autopsia Biomecanica`, `El Cuerpo No Miente`, `IA Medica: Cuidado`,
+  `Sintomas Que No Son Normales`.
+- Avoid starting videos like a class. Start with a contradiction or consequence.
+  Example: `Pereira no perdio por el jab. Perdio porque su pierna ya no obedecia.`
+- For the next growth phase, favor 30-day experiments with two main lines:
+  1. UFC/biomechanics/body failure from visual cases.
+  2. AI medicine/self-medication mistakes tied to real patient risk.
+- Do not over-weight institutional platform content. AutaMedica should enter as the trusted next
+  step after the explanation, not as the main subject unless the video is explicitly product-led.
+- Decision rule: repeat formats that cross the channel baseline, pause topics that repeatedly stay
+  below it, and never judge by one video alone. Use `youtube_analytics_audit.py` before changing
+  strategy when quota allows it.
+
+### 📦 Pautas para Videos de Alta Retención y CTR
+1. **Simplificación de Títulos:** 
+   - No usar tecnicismos complejos en la primera mitad del título. Despertar la curiosidad o beneficio primero, y el término médico después.
+   - *Ejemplo:* `"Por qué tus músculos 'se apagan' solos (y no puedes evitarlo)"` en lugar de `"Inhibición Artrogénica"`.
+2. **Medicina + Tendencia (Duplicar Éxitos):** 
+   - El análisis biomecánico de deportes (ej. lesiones de la UFC) tiene el mayor CTR. Usar tendencias y atletas conocidos para explicar la fisiología humana de forma atractiva.
+3. **Miniaturas de Alto Contraste:** 
+   - Reducir el texto a un máximo de 3-4 palabras grandes. 
+   - Resaltar momentos de impacto exactos o ilustraciones médicas de alto contraste. No usar logos innecesarios que saturen el encuadre.
+4. **Calidad y Retención:** 
+   - Un video largo excelente a la semana es mejor que múltiples videos descuidados.
+   - En videos verticales (Shorts), capturar la atención en el primer segundo con una pregunta intrigante o una analogía directa y cruda.
+5. **Llamados a la Acción (CTA) Claros:** 
+   - En la mitad del video, explicar claramente el beneficio de suscribirse: *"Suscribite para entender cómo funciona tu cuerpo en situaciones extremas"*.
+   - Direccionar siempre a los usuarios a la plataforma de telemedicina `autamedica.com` mediante enlaces integrados en las descripciones del video.
