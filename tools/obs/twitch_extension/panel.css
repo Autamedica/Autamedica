@@ -1,0 +1,262 @@
+/* CSS Estilos Corporativos AutaMedica — Twitch Panel Extension */
+
+:root {
+    --obsidian: #121223;
+    --obsidian-light: #1c1c32;
+    --cyan: #00d4ff;
+    --cyan-glow: rgba(0, 212, 255, 0.4);
+    --white: #ffffff;
+    --zinc-200: #e4e4e7;
+    --zinc-400: #a1a1aa;
+    --zinc-500: #71717a;
+    --zinc-800: #27272a;
+    --font-sans: 'Inter', sans-serif;
+    --font-serif: 'Playfair Display', serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--obsidian);
+    font-family: var(--font-sans);
+    color: var(--white);
+    padding: 10px;
+    width: 320px;
+    overflow-x: hidden;
+}
+
+.panel-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Header */
+.panel-header {
+    text-align: center;
+    padding: 8px 0;
+}
+
+.trophy-badge {
+    font-size: 28px;
+    margin-bottom: 4px;
+}
+
+.panel-header h1 {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--white);
+}
+
+.panel-header .subtitle {
+    font-size: 11px;
+    color: var(--cyan);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+}
+
+/* Leaderboard Card */
+.leaderboard-card {
+    background-color: var(--obsidian-light);
+    border: 1px solid var(--zinc-800);
+    border-radius: 12px;
+    position: relative;
+    padding: 14px 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.neon-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--cyan), #0088ff);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 1px 10px var(--cyan-glow);
+}
+
+/* Tabla */
+.table-header {
+    display: flex;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--zinc-500);
+    letter-spacing: 1px;
+    padding-bottom: 6px;
+    border-b: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 8px;
+}
+
+.col-pos {
+    width: 40px;
+    text-align: center;
+}
+
+.col-user {
+    flex-grow: 1;
+}
+
+.col-pts {
+    width: 60px;
+    text-align: right;
+}
+
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+/* Scrollbar styling */
+.leaderboard-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.leaderboard-list::-webkit-scrollbar-thumb {
+    background-color: var(--zinc-800);
+    border-radius: 2px;
+}
+
+/* Fila de Jugador */
+.player-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.player-row:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.player-row.top-1 {
+    background-color: rgba(0, 212, 255, 0.04);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.pos-badge {
+    width: 40px;
+    display: flex;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.pos-badge.gold { color: #ffd700; font-size: 14px; }
+.pos-badge.silver { color: #c0c0c0; font-size: 14px; }
+.pos-badge.bronze { color: #cd7f32; font-size: 14px; }
+.pos-badge.other { color: var(--zinc-500); font-family: monospace; }
+
+.username-cell {
+    flex-grow: 1;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--zinc-200);
+}
+
+.points-cell {
+    width: 60px;
+    text-align: right;
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--zinc-200);
+}
+
+.player-row.top-1 .points-cell {
+    color: var(--cyan);
+}
+
+.points-unit {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--zinc-500);
+}
+
+/* Footer / CTA */
+.panel-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.rules-card {
+    background-color: rgba(28, 28, 50, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--zinc-400);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rules-card h3 {
+    color: var(--white);
+    font-size: 12px;
+}
+
+.rules-card .highlight {
+    color: var(--cyan);
+    font-weight: 600;
+}
+
+.cta-button {
+    background-color: var(--cyan);
+    color: var(--obsidian);
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.1s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 212, 255, 0.2);
+}
+
+.cta-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 212, 255, 0.35);
+}
+
+/* Loading & Empty States */
+.loading-state, .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 30px 0;
+    color: var(--zinc-500);
+    font-size: 12px;
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(0, 212, 255, 0.1);
+    border-top: 2px solid var(--cyan);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

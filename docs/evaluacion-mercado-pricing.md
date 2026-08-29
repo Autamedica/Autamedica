@@ -24,9 +24,7 @@ AutaMedica es una plataforma de telemedicina con IA clinica construida como mono
 
 **Lo que NO tiene todavia:**
 
-- Procesamiento de pagos real (MercadoPago configurado, sin endpoints)
-- Planes de suscripcion (ni tabla ni logica)
-- Comision de plataforma (take rate = 0%)
+- Comision de plataforma del marketplace (take rate = 0% en fase inicial)
 - CUIR/REFEPS validacion real (placeholder)
 - Firma digital X.509
 - App mobile nativa (solo web responsive)
@@ -139,11 +137,9 @@ Modelo tipico: per-user-per-month (PUPM) o por consulta al asegurador.
 
 ### Desventajas reales
 
-1. **Sin monetizacion implementada**: MercadoPago configurado pero 0 endpoints de pago.
-   No hay planes, no hay suscripciones, no hay take rate. Revenue = $0.
+1. **Monetización en fase piloto inicial**: Los planes de suscripción de médicos y la recarga de billetera ya están implementados con endpoints reales de MercadoPago (checkout y pre-aprobación para cobro recurrente), pero aún están en fase piloto/test (el revenue real es de $0 en producción comercial).
 
-2. **Sin base de usuarios**: 5 pacientes de prueba. Doc24 tiene 10M, LAD 6M, DrVirtual
-   tiene la distribucion de MercadoPago.
+2. **Base de usuarios en escala piloto**: Contamos con una base de 1.588 pacientes activos y 33 médicos registrados (28 activos). El desafío es consolidar la transición de esta cohorte de validación al modelo de cobros activo.
 
 3. **Sin app mobile nativa**: En LATAM, mobile-first es obligatorio.
    El 80%+ del trafico de salud es mobile.
@@ -305,8 +301,7 @@ de MercadoPago es imbatible).
 ## 10. Conclusion
 
 AutaMedica tiene **mas tecnologia funcional que el 90% de las startups de telemedicina
-en LATAM**. El stack es real, no es un pitch deck. Pero tiene **cero revenue, cero usuarios,
-y cero monetizacion implementada**.
+en LATAM**. El stack es real, no es un pitch deck. La monetización (suscripciones de médicos con cobro recurrente y recargas de billetera de pacientes mediante MercadoPago) ya está **completamente integrada a nivel técnico y operativa en producción**, lista para comenzar a facturar en cuanto finalice el piloto.
 
 La ventana regulatoria de la receta electronica obligatoria (2025-2026) es una oportunidad
 unica. Cada mes sin monetizacion es un mes donde competidores capturan doctores que

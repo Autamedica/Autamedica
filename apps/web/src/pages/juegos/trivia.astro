@@ -1,0 +1,184 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import { createAstroAdminClient } from '../../lib/supabase';
+
+// URL canónica
+const canonicalUrl = 'https://www.autamedica.com/juegos/trivia';
+
+// Obtener datos de Supabase en tiempo de servidor
+let leaderboard: Array<{ username: string; points: number }> = [];
+let errorMsg = '';
+
+try {
+  const supabase = createAstroAdminClient(Astro.locals.runtime?.env);
+  
+  // Cast standard client to any to fetch dynamically created table, typing the response
+  const { data: rows, error } = await (supabase as any)
+    .from('juegos_leaderboard')
+    .select('nombre, tiempo_segundos')
+    .eq('juego_id', 'trivia-twitch') as { data: Array<{ nombre: string; tiempo_segundos: number }> | null, error: any };
+
+  if (error) {
+    throw error;
+  }
+
+  // Agrupar en memoria por usuario y sumar puntos
+  const userTotals: Record<string, number> = {};
+  if (rows) {
+    for (const row of rows) {
+      // Limpiar el nombre (remover @ si el espectador lo tiene)
+      const cleanName = row.nombre.startsWith('@') ? row.nombre.slice(1) : row.nombre;
+      userTotals[cleanName] = (userTotals[cleanName] || 0) + row.tiempo_segundos;
+    }
+  }
+
+  // Convertir a array, ordenar de mayor a menor y tomar el Top 100
+  leaderboard = Object.entries(userTotals)
+    .map(([username, points]) => ({ username, points }))
+    .sort((a, b) => b.points - a.points);
+
+} catch (err) {
+  console.error('[trivia-leaderboard-error]', err);
+  errorMsg = 'No se pudieron cargar las posiciones en este momento.';
+}
+---
+
+<Layout
+  title="Tabla de Posiciones de la Trivia | AutaMedica"
+  description="Consulta la tabla de clasificación de la Trivia Médica de Twitch de AutaMedica. ¡Participa en vivo, suma puntos y gana videoconsultas de salud gratuitas!"
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow"
+>
+  <Navbar />
+  
+  <main class="bg-zinc-950 min-h-screen text-white pt-24 pb-16">
+    <div class="max-w-4xl mx-auto px-6">
+      
+      {/* Breadcrumbs */}
+      <nav class="flex items-center gap-2 text-sm text-zinc-500 mb-8">
+        <a href="/" class="hover:text-white transition-colors">Inicio</a>
+        <span>/</span>
+        <span class="text-zinc-400">Juegos</span>
+        <span>/</span>
+        <span class="text-zinc-300">Trivia Twitch</span>
+      </nav>
+
+      {/* Header */}
+      <div class="text-center mb-12">
+        <div class="inline-flex items-center justify-center p-3 bg-cyan-950/40 border border-cyan-800/60 rounded-full mb-4">
+          <span class="text-3xl">🏆</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold font-serif tracking-tight text-white mb-3">
+          Trivia Médica <span class="text-cyan-400">Twitch</span>
+        </h1>
+        <p class="text-zinc-400 max-w-lg mx-auto text-sm md:text-base">
+          Tabla de clasificación histórica acumulada de nuestro stream en vivo. ¡Suma puntos respondiendo en el chat y canjea premios médicos reales!
+        </p>
+      </div>
+
+      {/* Leaderboard Table Container */}
+      <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-6 md:p-8 backdrop-blur shadow-2xl relative overflow-hidden">
+        {/* Neon accent top border */}
+        <div class="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-500 to-blue-500 shadow-[0_1px_15px_rgba(6,182,212,0.5)]"></div>
+
+        {errorMsg ? (
+          <div class="text-center py-12 text-zinc-500">
+            <span class="text-3xl block mb-2">⚠️</span>
+            <p>{errorMsg}</p>
+          </div>
+        ) : leaderboard.length === 0 ? (
+          <div class="text-center py-16 text-zinc-500">
+            <span class="text-4xl block mb-3">🎮</span>
+            <p class="font-medium text-white mb-1">¡Aún no hay puntuaciones registradas!</p>
+            <p class="text-sm">Sé el primero en participar respondiendo en el chat durante el próximo directo.</p>
+          </div>
+        ) : (
+          <div class="space-y-4">
+            <div class="grid grid-cols-12 text-xs font-semibold text-zinc-500 uppercase tracking-wider px-4 pb-2 border-b border-zinc-800/60">
+              <div class="col-span-2 text-center">Posición</div>
+              <div class="col-span-7">Espectador Twitch</div>
+              <div class="col-span-3 text-right">Puntaje</div>
+            </div>
+
+            <div class="divide-y divide-zinc-800/40 max-h-[500px] overflow-y-auto pr-1">
+              {leaderboard.map((player, idx) => {
+                const isTop1 = idx === 0;
+                const isTop2 = idx === 1;
+                const isTop3 = idx === 2;
+                
+                return (
+                  <div class={`grid grid-cols-12 items-center py-3.5 px-4 rounded-xl transition-all ${
+                    isTop1 ? 'bg-cyan-950/20 border border-cyan-900/30' : 'hover:bg-zinc-800/30'
+                  }`}>
+                    {/* Position */}
+                    <div class="col-span-2 flex justify-center">
+                      {isTop1 ? (
+                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-400 font-bold text-sm shadow-[0_0_10px_rgba(245,158,11,0.2)]">🥇</span>
+                      ) : isTop2 ? (
+                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-zinc-300/20 border border-zinc-300/50 text-zinc-300 font-bold text-sm">🥈</span>
+                      ) : isTop3 ? (
+                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-700/20 border border-amber-700/50 text-amber-600 font-bold text-sm">🥉</span>
+                      ) : (
+                        <span class="text-zinc-500 font-mono text-sm font-semibold">{idx + 1}</span>
+                      )}
+                    </div>
+
+                    {/* Username */}
+                    <div class="col-span-7 flex items-center gap-2">
+                      <span class="text-zinc-500 text-xs">@</span>
+                      <span class="font-medium text-zinc-200 hover:text-cyan-400 transition-colors cursor-pointer">
+                        {player.username}
+                      </span>
+                    </div>
+
+                    {/* Points */}
+                    <div class="col-span-3 text-right">
+                      <span class={`font-mono font-bold text-sm md:text-base ${isTop1 ? 'text-cyan-400' : 'text-zinc-300'}`}>
+                        {player.points} <span class="text-xs font-normal text-zinc-500">pts</span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Rules and Prize block */}
+      <div class="grid md:grid-cols-2 gap-6 mt-8">
+        <div class="bg-zinc-900/40 border border-zinc-800/50 rounded-xl p-6">
+          <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+            <span class="text-cyan-400">📢</span> ¿Cómo participar?
+          </h3>
+          <ul class="text-zinc-400 text-sm space-y-2.5 list-disc pl-5">
+            <li>Sintoniza nuestros streams en vivo en <a href="https://twitch.tv/autamedica" class="text-cyan-400 hover:underline">twitch.tv/autamedica</a>.</li>
+            <li>Cuando se presente una pregunta de Trivia, vota escribiendo <strong>1</strong> (Verdadero/Mito) o <strong>2</strong> (Falso/Verdad) en el chat.</li>
+            <li>El primero en responder correctamente suma <strong>3 puntos</strong>, los demás aciertos suman <strong>1 punto</strong>.</li>
+          </ul>
+        </div>
+
+        <div class="bg-zinc-900/40 border border-zinc-800/50 rounded-xl p-6">
+          <h3 class="text-white font-bold mb-3 flex items-center gap-2">
+            <span class="text-cyan-400">🎁</span> Premios y Canje
+          </h3>
+          <p class="text-zinc-400 text-sm leading-relaxed mb-4">
+            Al finalizar cada mes, los <strong>3 primeros puestos</strong> de la clasificación recibirán un cupón de descuento del 100% en su correo para agendar una consulta médica real.
+          </p>
+          <a
+            href="/juegos"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-cyan-900/40 transition-all"
+          >
+            Vincular mi Cuenta de Twitch 🔗
+          </a>
+        </div>
+      </div>
+      
+    </div>
+  </main>
+
+  <Footer />
+</Layout>

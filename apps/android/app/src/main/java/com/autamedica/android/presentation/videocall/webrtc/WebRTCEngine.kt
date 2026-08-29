@@ -104,7 +104,7 @@ class WebRTCEngine(
 
     // -- Internal state --
 
-    private lateinit var config: Config
+    lateinit var config: Config
     private val peers = mutableMapOf<String, PeerState>()
     private var localAudioTrack: AudioTrack? = null
     private var localVideoTrackInternal: VideoTrack? = null
@@ -164,14 +164,14 @@ class WebRTCEngine(
         }
     }
 
-    fun connect(roomId: String? = null) {
+    fun connect(roomId: String? = null, signalingUrl: String? = null) {
         val state = _connectionState.value
         if (state == ConnectionState.CONNECTING || state == ConnectionState.CONNECTED
             || state == ConnectionState.RECONNECTING) return
 
         setConnectionState(ConnectionState.CONNECTING)
         val finalRoomId = roomId ?: config.roomId
-        signalingClient.connect(finalRoomId)
+        signalingClient.connect(finalRoomId, signalingUrl)
     }
 
     fun disconnect() {

@@ -619,10 +619,74 @@ export const appointmentPaymentsService = {
       return
     }
 
+    const isSubscription =
+      payment.metadata?.type === 'subscription' ||
+      payment.metadata?.payment_type === 'subscription' ||
+      (typeof payment.external_reference === 'string' && payment.external_reference.startsWith('sub:'))
+
+    if (isSubscription) {
+      const patientId =
+        (payment.metadata?.patient_id as string | undefined) ??
+        (typeof payment.external_reference === 'string' && payment.external_reference.startsWith('sub:')
+          ? payment.external_reference.slice(4)
+          : null)
+
+      const status = resolveAppointmentPaymentStatus(payment)
+
+      if (patientId) {
+        if (status === 'approved') {
+          const { error: subError } = await supabase.from('patient_subscriptions' as never).upsert(
+            {
+              patient_id: patientId,
+              tier: 'cuidado',
+              status: 'active',
+              price_cents: majorUnitToCents(payment.transaction_amount) || 4990,
+              currency: payment.currency_id || 'BRL',
+              payment_provider: 'mercadopago_pix',
+              provider_subscription_id: String(payment.id),
+              current_period_start: new Date().toISOString(),
+              current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              updated_at: new Date().toISOString(),
+            } as never,
+            { onConflict: 'patient_id' },
+          )
+
+          if (subError) {
+            logger.error('[appointment-payments] Webhook subscription activation failed', {
+              paymentId: payment.id,
+              patientId,
+              error: subError,
+            })
+            throw subError
+          }
+
+          // Ensure Health Reserve in DB
+          const { error: reserveError } = await supabase.rpc('ensure_patient_health_reserve' as never, {
+            p_patient_id: patientId,
+          } as never)
+
+          if (reserveError) {
+            logger.error('[appointment-payments] Webhook ensure_patient_health_reserve failed', {
+              patientId,
+              error: reserveError,
+            })
+          }
+
+          logger.info('[appointment-payments] Webhook Plano Cuidado subscription activated successfully', {
+            paymentId: payment.id,
+            patientId,
+          })
+        }
+      }
+      return
+    }
+
     const appointmentId =
       typeof payment.metadata?.appointment_id === 'string'
         ? payment.metadata.appointment_id
-        : payment.external_reference ?? null
+        : payment.external_reference?.startsWith('apt:')
+          ? payment.external_reference.slice(4)
+          : payment.external_reference ?? null
 
     if (!appointmentId) {
       logger.warn('[appointment-payments] Payment without appointment reference', {

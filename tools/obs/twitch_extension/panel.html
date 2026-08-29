@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutaMedica Trivia Leaderboard</title>
+    <link rel="stylesheet" href="panel.css">
+    <!-- Fuente premium Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <!-- Twitch Extension Helper -->
+    <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
+</head>
+<body>
+    <div class="panel-container">
+        <!-- Header con el branding de AutaMedica -->
+        <header class="panel-header">
+            <div class="trophy-badge">🏆</div>
+            <h1>Trivia Médica</h1>
+            <p class="subtitle">Tabla de Posiciones en Vivo</p>
+        </header>
+
+        <!-- Contenedor del Leaderboard -->
+        <main class="leaderboard-card">
+            <!-- Barra de acento neón superior -->
+            <div class="neon-bar"></div>
+
+            <div class="table-header">
+                <span class="col-pos">Pos</span>
+                <span class="col-user">Espectador</span>
+                <span class="col-pts">Puntos</span>
+            </div>
+
+            <!-- Lista de jugadores (cargada dinámicamente) -->
+            <div id="leaderboard-list" class="leaderboard-list">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Cargando posiciones...</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Reglas y Llamado a la Acción -->
+        <footer class="panel-footer">
+            <div class="rules-card">
+                <h3>🎮 ¿Cómo jugar?</h3>
+                <p>Responde <strong>1</strong> (Verdadero) o <strong>2</strong> (Falso) en el chat en vivo cuando se active la trivia.</p>
+                <p class="highlight">🎁 ¡Los 3 mejores del mes ganan videoconsultas de salud gratis!</p>
+            </div>
+            <a href="https://www.autamedica.com/juegos/trivia" target="_blank" class="cta-button">
+                Vincular mi Cuenta de Twitch 🔗
+            </a>
+        </footer>
+    </div>
+
+    <script src="panel.js"></script>
+</body>
+</html>

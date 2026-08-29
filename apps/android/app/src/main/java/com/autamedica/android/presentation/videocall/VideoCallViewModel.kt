@@ -28,8 +28,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.webrtc.EglBase
+import org.webrtc.PeerConnection
 import org.webrtc.PeerConnectionFactory
 import org.webrtc.VideoTrack
+import com.autamedica.android.domain.repository.IceServerInfo
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -369,6 +371,14 @@ class VideoCallViewModel @Inject constructor(
         telemedicineRepository.getSession(appointmentId)
             .onSuccess { sessionInfo ->
                 sessionRetryJob?.cancel()
+
+                val dynamicIce = sessionInfo.iceServers.map { it.toPeerConnectionIceServer() }
+                if (dynamicIce.isNotEmpty()) {
+                    engine.config = engine.config.copy(
+                        iceServers = dynamicIce
+                    )
+                }
+
                 _uiState.update {
                     it.copy(
                         connectionState = ConnectionState.CONNECTING,
@@ -377,7 +387,7 @@ class VideoCallViewModel @Inject constructor(
                         sessionStatusMessage = "Conectando con la sala...",
                     )
                 }
-                engine.connect(sessionInfo.roomId)
+                engine.connect(sessionInfo.roomId, sessionInfo.signalingUrl)
             }
             .onFailure { error ->
                 val logContext = if (manualRetry) {
@@ -424,5 +434,12 @@ class VideoCallViewModel @Inject constructor(
             else ->
                 "Tu camara ya esta activa. Estamos esperando que la sala quede disponible."
         }
+    }
+
+    private fun IceServerInfo.toPeerConnectionIceServer(): PeerConnection.IceServer {
+        val builder = PeerConnection.IceServer.builder(urls)
+        if (username != null) builder.setUsername(username)
+        if (credential != null) builder.setPassword(credential)
+        return builder.createIceServer()
     }
 }

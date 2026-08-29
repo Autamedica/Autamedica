@@ -104,25 +104,35 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
     try {
       const supabase = createBrowserClient()
       const tableToListen = type === 'appointment' ? 'appointment_payments' : 'patient_subscriptions'
+      const filterClause = type === 'appointment' && appointmentId
+        ? `appointment_id=eq.${appointmentId}`
+        : undefined
 
-      realtimeChannel = supabase
+      const channelBuilder = supabase
         .channel(`pix_realtime_${pixData.paymentId}`)
-        .on(
-          'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: tableToListen },
-          (payload: { new?: { status?: string } }) => {
-            const status = payload.new?.status
-            if (status === 'approved' || status === 'active') {
-              if (isMounted) {
-                setIsApproved(true)
-                setTimeout(() => {
-                  onSuccess?.()
-                }, 1800)
+
+      if (filterClause) {
+        realtimeChannel = channelBuilder
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: tableToListen, filter: filterClause },
+            (payload: { new?: { status?: string } }) => {
+              const status = payload.new?.status
+              if (status === 'approved' || status === 'active') {
+                if (isMounted) {
+                  setIsApproved(true)
+                  setTimeout(() => {
+                    onSuccess?.()
+                  }, 1800)
+                }
               }
-            }
-          },
-        )
-        .subscribe()
+            },
+          )
+          .subscribe()
+      } else {
+        // Para suscripciones el polling garantiza la consulta segura autenticada
+        realtimeChannel = null
+      }
     } catch (realtimeErr) {
       console.warn('[PixCheckoutModal] Realtime subscription fallback to polling', realtimeErr)
     }
@@ -161,7 +171,11 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
           const supabase = createBrowserClient()
           supabase.removeChannel(realtimeChannel)
         } catch {
+<<<<<<< HEAD
           // ignore cleanup error
+=======
+          // ignore channel removal error on unmount
+>>>>>>> 32fe8fc4a (feat(payments): integrate mercadopago pix checkout and patient subscriptions)
         }
       }
     }

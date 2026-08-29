@@ -20,6 +20,7 @@ export interface AutamedicaEmailTemplateInput {
   closingName?: string;
   closingRole?: string;
   showPersonalSignature?: boolean;
+  imageUrls?: string[];
 }
 
 export interface RenderedEmail {
@@ -97,6 +98,14 @@ export function renderAutamedicaEmail(
     ? `<a href="${escapeHtml(input.unsubscribeUrl)}" style="font-size:12px;">Darse de baja</a>`
     : '';
 
+  const imagesHtml = input.imageUrls && input.imageUrls.length > 0
+    ? input.imageUrls.map(url => `
+      <div style="margin:24px 0;text-align:center;">
+        <img src="${escapeHtml(url)}" style="max-width:100%;height:auto;border-radius:16px;border:1px solid #E2E8F0;box-shadow:0 4px 12px rgba(15,23,42,0.03);" alt="Previsualización de la transmisión" />
+      </div>
+    `).join('\n')
+    : '';
+
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -105,16 +114,13 @@ export function renderAutamedicaEmail(
   <title>${escapeHtml(subject)}</title>
   <style>
     body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #0F172A; }
-    .email-container { max-width: 640px; margin: 40px auto; background-color: #FFFFFF; border-radius: 12px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: 0 20px 40px rgba(15,23,42,0.06); }
-    .brand-header { background: linear-gradient(135deg,#143B5A,#2876A4); padding: 40px 40px 28px; text-align: center; }
-    .brand-header img { display: block; width: 225px; max-width: 70%; height: auto; border: 0; outline: none; text-decoration: none; margin: 0 auto 24px; background: #FFFFFF; }
-    .brand-kicker { color: #DDEAF4; font-size: 15px; line-height: 1.2; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 500; }
-    .content { padding: 44px 46px 42px; line-height: 1.62; }
-    h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 26px; line-height: 1.2; font-weight: 700; color: #0F2B46; margin: 0 0 22px; letter-spacing: 0; }
-    p { font-size: 16px; margin: 0 0 18px; color: #475569; }
+    .email-container { max-width: 600px; margin: 40px auto; background-color: #FFFFFF; border-radius: 28px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: 0 20px 40px rgba(15,23,42,0.06); }
+    .content { padding: 44px 46px 42px; line-height: 1.75; }
+    h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 30px; line-height: 1.18; font-weight: 700; color: #020617; margin: 0 0 8px; letter-spacing: 0; }
+    p { font-size: 16px; margin: 0 0 24px; color: #475569; }
     strong { color: #111827; }
     .note { background-color: #F8FAFC; padding: 22px; border-radius: 18px; margin: 30px 0 0; border-left: 4px solid #00A3FF; }
-    .button { background-color: #1B4F72; color: #FFFFFF !important; padding: 13px 26px; text-decoration: none; border-radius: 8px; font-weight: 700; display: inline-block; font-size: 15px; }
+    .button { background-color: #020617; color: #FFFFFF !important; padding: 15px 30px; text-decoration: none; border-radius: 9999px; font-weight: 700; display: inline-block; font-size: 15px; }
     .footer { padding: 32px 40px 38px; text-align: center; font-size: 13px; color: #64748B; border-top: 1px solid #F1F5F9; }
     .footer a { color: #64748B; }
     @media (max-width: 640px) {
@@ -127,15 +133,23 @@ export function renderAutamedicaEmail(
 <body>
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(preheader)}</div>
   <div class="email-container">
-    <div class="brand-header">
-      <img src="${escapeHtml(gifUrl)}" alt="AutaMedica">
-      <div class="brand-kicker">Telemedicina para LATAM</div>
-    </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td
+          background="${escapeHtml(gifUrl)}"
+          bgcolor="#EAF6FF"
+          width="600"
+          height="220"
+          style="background-image:url('${escapeHtml(gifUrl)}');background-repeat:no-repeat;background-position:center;background-size:contain;height:220px;border-bottom:1px solid #F1F5F9;"
+        ></td>
+      </tr>
+    </table>
 
     <div class="content">
       <h1>${escapeHtml(input.title)}</h1>
       ${input.intro ? `<p>${escapeHtml(input.intro)}</p>` : ''}
       ${paragraphHtml(input.paragraphs)}
+      ${imagesHtml}
       ${input.note ? `<div class="note"><p style="margin:0;">${escapeHtml(input.note)}</p></div>` : ''}
       ${actionHtml}
       ${secondaryHtml}
@@ -377,3 +391,28 @@ export function buildPatientPrescriptionBenefitsEmail(
     unsubscribeUrl,
   });
 }
+
+export function buildStreamingAnnouncementEmail(
+  recipientName: string,
+  actionUrl: string,
+  unsubscribeUrl?: string,
+): RenderedEmail {
+  return renderAutamedicaEmail('🎥 Primer Stream en Vivo de AutaMedica: Hablá con profesionales de salud', {
+    variant: 'newsletter',
+    title: `Hola, ${recipientName || 'cómo estás'}`,
+    preheader: 'Unite a nuestro primer stream de salud y conversá directo con profesionales del equipo.',
+    paragraphs: [
+      'Queremos contarte algo nuevo: en AutaMedica creemos que la salud digital debe ser abierta, interactiva y transparente. Por eso, inauguramos nuestro canal de streaming para debatir en vivo y responder dudas en tiempo real.',
+      'Este no será un espacio de consultas médicas individuales o diagnóstico, sino un punto de encuentro semanal para hablar de prevención, derribar mitos médicos, debatir sobre nuevas regulaciones de recetas digitales y mostrar el detrás de escena del desarrollo de nuestra plataforma.',
+      'Lo más importante: el chat estará abierto para que puedas hacer preguntas generales en vivo y conversar de manera directa con médicos y especialistas del equipo.',
+      'Transmitiremos en simultáneo por Twitch y YouTube. ¡Sumate a la comunidad para construir juntos una salud más informada!',
+    ],
+    imageUrls: [
+      'https://qxjjrpksmwwrmubhvjew.supabase.co/storage/v1/object/public/public_assets/stream-preview-twitch.png',
+      'https://qxjjrpksmwwrmubhvjew.supabase.co/storage/v1/object/public/public_assets/stream-preview-youtube.png'
+    ],
+    action: { label: 'Ver Agenda y Canales', url: actionUrl },
+    unsubscribeUrl,
+  });
+}
+

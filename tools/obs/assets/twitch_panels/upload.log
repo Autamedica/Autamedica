@@ -1,0 +1,25 @@
+🎮 AutaMedica — Twitch Panel Uploader
+   📂 Panels: /mnt/data/Autamedica/tools/obs/assets/twitch_panels
+   🔐 Chrome Profile: Profile 15 (autamedica@gmail.com)
+
+🚀 Lanzando Patchright con Chrome Profile 15 (autamedica@gmail.com)...
+Fatal: browserType.launchPersistentContext: Target page, context or browser has been closed
+Browser logs:
+
+<launching> /opt/google/chrome/chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-breakpad --no-default-browser-check --disable-dev-shm-usage --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --disable-hang-monitor --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --disable-blink-features=AutomationControlled --no-sandbox --profile-directory=Profile 15 --disable-blink-features=AutomationControlled --no-sandbox --disable-setuid-sandbox --disable-infobars --no-first-run --no-default-browser-check --user-data-dir=/home/edu/.config/google-chrome --remote-debugging-pipe about:blank
+<launched> pid=1288986
+[pid=1288986][err] [0610/120928.515777:WARNING:chrome/app/chrome_main_linux.cc:84] Read channel stable from /opt/google/chrome/CHROME_VERSION_EXTRA
+[pid=1288986][out] Se está abriendo en una sesión de navegador existente.
+Call log:
+[2m  - <launching> /opt/google/chrome/chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-breakpad --no-default-browser-check --disable-dev-shm-usage --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --disable-hang-monitor --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --disable-blink-features=AutomationControlled --no-sandbox --profile-directory=Profile 15 --disable-blink-features=AutomationControlled --no-sandbox --disable-setuid-sandbox --disable-infobars --no-first-run --no-default-browser-check --user-data-dir=/home/edu/.config/google-chrome --remote-debugging-pipe about:blank[22m
+[2m  - <launched> pid=1288986[22m
+[2m  - [pid=1288986][err] [0610/120928.515777:WARNING:chrome/app/chrome_main_linux.cc:84] Read channel stable from /opt/google/chrome/CHROME_VERSION_EXTRA[22m
+[2m  - [pid=1288986][out] Se está abriendo en una sesión de navegador existente.[22m
+[2m  - [pid=1288986] <gracefully close start>[22m
+[2m  - [pid=1288986] <kill>[22m
+[2m  - [pid=1288986] <will force kill>[22m
+[2m  - [pid=1288986] <process did exit: exitCode=0, signal=null>[22m
+[2m  - [pid=1288986] starting temporary directories cleanup[22m
+[2m  - [pid=1288986] finished temporary directories cleanup[22m
+[2m  - [pid=1288986] <gracefully close end>[22m
+
