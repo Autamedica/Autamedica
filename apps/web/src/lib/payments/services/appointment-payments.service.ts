@@ -575,13 +575,33 @@ export const appointmentPaymentsService = {
     supabase: Db,
     type: string,
     dataId: string,
-  ): Promise<void> {
+  ): Promise<{ handled: boolean; ignored?: boolean; reason?: string }> {
     if (type !== 'payment') {
       logger.info('[appointment-payments] Unhandled MercadoPago webhook type', { type, dataId })
-      return
+      return { handled: false, ignored: true, reason: `unhandled_type:${type}` }
     }
 
-    const payment = await mpFetch<MercadoPagoPaymentDetail>(`/v1/payments/${dataId}`)
+    // Si es un ID de prueba simulado por Mercado Pago Developers (ej: 123456 o test_payment_id)
+    if (dataId === '123456' || dataId === 'test_payment_id') {
+      logger.info('[appointment-payments] Simulated MercadoPago test payment received', { dataId })
+      return { handled: false, ignored: true, reason: 'payment_not_found_or_simulated' }
+    }
+
+    let payment: MercadoPagoPaymentDetail
+    try {
+      payment = await mpFetch<MercadoPagoPaymentDetail>(`/v1/payments/${dataId}`)
+    } catch (fetchError) {
+      const errMsg = fetchError instanceof Error ? fetchError.message : String(fetchError)
+      // Si Mercado Pago devuelve 404 (pago de prueba o inexistente), registrar warning y retornar 200
+      if (errMsg.includes('404') || errMsg.includes('not_found')) {
+        logger.warn('[appointment-payments] Webhook payment ID not found in MercadoPago (simulated or expired)', {
+          dataId,
+          error: errMsg,
+        })
+        return { handled: false, ignored: true, reason: 'payment_not_found_or_simulated' }
+      }
+      throw fetchError
+    }
 
     const isWalletTopup = payment.metadata?.type === 'wallet_topup'
     if (isWalletTopup) {
