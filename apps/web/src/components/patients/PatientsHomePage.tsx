@@ -292,6 +292,93 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Botón de Saldo en Header */}
+            {walletSummary && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsWalletPopoverOpen(!isWalletPopoverOpen)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200/80 border border-stone-200 text-stone-800 text-xs font-semibold transition-all shadow-2xs"
+                  title="Ver saldo disponível"
+                >
+                  <Wallet className="size-3.5 text-stone-600" />
+                  <span>{getWalletFabText()}</span>
+                </button>
+
+                <AnimatePresence>
+                  {isWalletPopoverOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-72 overflow-hidden rounded-3xl border border-stone-100 bg-white p-5 shadow-2xl z-50"
+                    >
+                      <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-stone-100">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
+                          <Wallet className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                            {dict.patientPortal.wallet.title}
+                          </p>
+                          <p className="text-xs text-stone-400 font-medium">
+                            {dict.patientPortal.wallet.subtitle}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Wallet Balance Info Grid */}
+                      <div className="space-y-2.5 mb-4">
+                        <div className="flex items-center justify-between p-2.5 rounded-2xl bg-stone-50 border border-stone-100">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="h-4 w-4 text-stone-400" />
+                            <span className="text-xs font-semibold text-stone-600">{dict.patientPortal.wallet.balanceAvailable}</span>
+                          </div>
+                          <span className="text-sm font-bold text-stone-900">
+                            {formatWalletBalance(walletSummary.balance.available_credit_cents, locale)}
+                          </span>
+                        </div>
+
+                        <div className={`flex items-center justify-between p-2.5 rounded-2xl border ${
+                          freeConsults > 0 ? 'bg-stone-50 border-stone-200' : 'bg-stone-50/40 border-stone-100 opacity-60'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <Gift className={`h-4 w-4 ${freeConsults > 0 ? 'text-stone-700' : 'text-stone-400'}`} />
+                            <span className="text-xs font-semibold text-stone-600">{dict.patientPortal.wallet.giftConsults}</span>
+                          </div>
+                          <span className={`text-sm font-bold ${freeConsults > 0 ? 'text-stone-900' : 'text-stone-400'}`}>
+                            {freeConsults > 0 ? `${freeConsults} ${dict.patientPortal.wallet.available}` : dict.patientPortal.wallet.none}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <a
+                          href="/patients/reserva-saude"
+                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-stone-950 py-3 text-xs font-bold text-white transition hover:bg-stone-800"
+                        >
+                          <Coins className="h-3.5 w-3.5" />
+                          {dict.patientPortal.wallet.reserveSaudeBtn}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsWalletPopoverOpen(false);
+                            setIsTopupModalOpen(true);
+                          }}
+                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-stone-100 py-3 text-xs font-semibold text-stone-800 hover:bg-stone-200/80 transition-colors"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          {dict.patientPortal.wallet.topupBtn}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
             <button type="button" className="relative p-2 hover:bg-neutral-50 rounded-lg transition-colors">
               <Bell className="size-5 text-neutral-600" />
               {hasUpcomingAppointment && (
@@ -319,7 +406,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                     <User className="h-4 w-4 text-neutral-400" /> Perfil
                   </a>
                   <a href="/patients/settings" className="flex items-center gap-2.5 w-full px-4 py-3 text-left text-sm hover:bg-neutral-50 transition-colors">
-                    <Settings className="h-4 w-4 text-neutral-400" /> Configuración
+                    <Settings className="h-4 w-4 text-neutral-400" /> Configuração
                   </a>
                   <div className="border-t border-neutral-100" />
                   <button
@@ -433,21 +520,19 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
             >
-              {anamnesisCompleted
-                ? dict.patientPortal.metrics.allReady
-                : dict.patientPortal.metrics.completeToStart}
+              {dict.patientPortal.metrics.allReady}
             </motion.p>
 
             <motion.a
-              href={anamnesisCompleted ? '/patients/appointments?type=telemedicine' : '/patients/anamnesis'}
-              className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-neutral-900 rounded-full text-base font-medium hover:bg-neutral-50 transition-all"
+              href="/patients/appointments?type=telemedicine"
+              className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-neutral-900 rounded-full text-base font-medium hover:bg-neutral-50 transition-all shadow-xl hover:shadow-2xl active:scale-[0.98]"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1 }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              {anamnesisCompleted ? dict.patientPortal.metrics.bookAppointment : dict.patientPortal.metrics.goToProfile}
+              {dict.patientPortal.metrics.bookAppointment}
               <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
             </motion.a>
           </motion.div>
@@ -933,108 +1018,6 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
           ))}
         </div>
       </nav>
-
-      {/* Floating balance button and popover */}
-      {walletSummary && (
-        <div className="fixed bottom-24 right-20 z-50 sm:right-24">
-          <AnimatePresence>
-            {isWalletPopoverOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 12, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute bottom-16 right-0 w-72 overflow-hidden rounded-3xl border border-neutral-100 bg-white p-5 shadow-2xl"
-              >
-                <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-neutral-50">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100/50">
-                    <Wallet className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-sky-600">
-                      {dict.patientPortal.wallet.title}
-                    </p>
-                    <p className="text-xs text-neutral-400 font-medium">
-                      {dict.patientPortal.wallet.subtitle}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Wallet Balance Info Grid */}
-                <div className="space-y-3 mb-4">
-                  {/* Cash Balance Row */}
-                  <div className="flex items-center justify-between p-2.5 rounded-2xl bg-stone-50/50 border border-stone-100">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-stone-400" />
-                      <span className="text-xs font-semibold text-stone-600">{dict.patientPortal.wallet.balanceAvailable}</span>
-                    </div>
-                    <span className="text-sm font-bold text-stone-900">
-                      {formatWalletBalance(walletSummary.balance.available_credit_cents, locale)}
-                    </span>
-                  </div>
-
-                  {/* Free Consults Row */}
-                  <div className={`flex items-center justify-between p-2.5 rounded-2xl border ${
-                    freeConsults > 0
-                      ? 'bg-sky-50/40 border-sky-100/70'
-                      : 'bg-stone-50/20 border-stone-100/60 opacity-60'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <Gift className={`h-4 w-4 ${freeConsults > 0 ? 'text-sky-500' : 'text-stone-400'}`} />
-                      <span className="text-xs font-semibold text-stone-600">{dict.patientPortal.wallet.giftConsults}</span>
-                    </div>
-                    <span className={`text-sm font-bold ${freeConsults > 0 ? 'text-sky-600' : 'text-stone-400'}`}>
-                      {freeConsults > 0 ? `${freeConsults} ${dict.patientPortal.wallet.available}` : dict.patientPortal.wallet.none}
-                    </span>
-                  </div>
-                </div>
-
-                <p className="text-[11px] text-neutral-400 leading-relaxed mb-4">
-                  {dict.patientPortal.wallet.explanation}
-                </p>
-
-                <div className="flex flex-col gap-2">
-                  <a
-                    href="/patients/reserva-saude"
-                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-cyan-600 to-emerald-600 py-3 text-xs font-bold text-white transition hover:opacity-90 shadow-md shadow-cyan-500/10"
-                  >
-                    <Coins className="h-3.5 w-3.5" />
-                    {dict.patientPortal.wallet.reserveSaudeBtn}
-                  </a>
-                  <button
-                    onClick={() => {
-                      setIsWalletPopoverOpen(false);
-                      setIsTopupModalOpen(true);
-                    }}
-                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-stone-950 py-3 text-xs font-semibold text-white transition hover:bg-stone-800"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    {dict.patientPortal.wallet.topupBtn}
-                  </button>
-                  <a
-                    href="/patients/appointments"
-                    className="w-full inline-flex items-center justify-center rounded-2xl border border-neutral-200 py-3 text-xs font-semibold text-neutral-600 transition hover:bg-neutral-50"
-                  >
-                    {dict.patientPortal.wallet.myAppointmentsBtn}
-                  </a>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            onClick={() => setIsWalletPopoverOpen(!isWalletPopoverOpen)}
-            className="flex h-14 items-center gap-2.5 rounded-full bg-stone-900 px-4 text-white shadow-2xl transition-all hover:bg-stone-800 border border-white/10 active:scale-[0.98]"
-          >
-            <Wallet className="h-5 w-5 text-sky-400" />
-            <span className="text-sm font-bold tracking-tight pr-1">
-              {getWalletFabText()}
-            </span>
-          </motion.button>
-        </div>
-      )}
 
       {/* Floating P2P Chat */}
       <PatientDoctorChat />

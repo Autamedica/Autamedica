@@ -199,22 +199,22 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-neutral-200 overflow-hidden text-neutral-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md rounded-3xl bg-white p-6 md:p-7 shadow-2xl border border-stone-200/80 overflow-hidden text-stone-900">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-neutral-100">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100">
+        <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-stone-100 text-stone-900 border border-stone-200">
               <QrCode className="w-5 h-5" strokeWidth={2} />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-neutral-950">Pagamento Instantâneo via Pix</h3>
-              <p className="text-xs text-neutral-500 font-medium">AutaMedica Brasil · Confirmação Automática</p>
+              <h3 className="text-base font-semibold text-stone-950">Pagamento Instantâneo Pix</h3>
+              <p className="text-xs text-stone-500 font-medium">AutaMedica Brasil · Confirmação Automática</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-700 text-lg font-bold p-1 transition"
+            className="text-stone-400 hover:text-stone-700 text-sm font-bold p-2 rounded-full hover:bg-stone-100 transition-colors"
             aria-label="Fechar modal"
           >
             ✕
@@ -225,8 +225,8 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
         <div className="py-4">
           {loading && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-              <p className="text-sm font-medium text-neutral-700">Gerando QR Code Pix oficial...</p>
+              <Loader2 className="w-8 h-8 text-stone-900 animate-spin" />
+              <p className="text-sm font-medium text-stone-700">Gerando QR Code Pix oficial...</p>
             </div>
           )}
 
@@ -239,7 +239,7 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
               <p className="text-xs leading-relaxed">{error}</p>
               <button
                 onClick={generatePix}
-                className="w-full py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition"
+                className="w-full py-2.5 bg-stone-950 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Tentar Novamente
@@ -249,71 +249,71 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
 
           {isApproved && (
             <div className="flex flex-col items-center justify-center py-8 gap-3 text-center animate-in zoom-in-95">
-              <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200 shadow-xs">
+              <div className="w-16 h-16 rounded-full bg-stone-100 text-stone-900 flex items-center justify-center border border-stone-200 shadow-xs">
                 <CheckCircle2 className="w-9 h-9" />
               </div>
-              <h4 className="text-xl font-bold text-neutral-950">Pagamento Confirmado!</h4>
-              <p className="text-xs text-neutral-600 max-w-xs leading-relaxed">
+              <h4 className="text-xl font-bold text-stone-950">Pagamento Confirmado!</h4>
+              <p className="text-xs text-stone-600 max-w-xs leading-relaxed">
                 {type === 'subscription'
                   ? 'Sua assinatura do Plano Cuidado foi ativada com sucesso.'
                   : 'Sua consulta médica foi confirmada na plataforma.'}
               </p>
-              <span className="text-xs text-emerald-700 font-semibold mt-1">Atualizando sua conta...</span>
+              <span className="text-xs text-stone-800 font-semibold mt-1">Atualizando sua conta...</span>
             </div>
           )}
 
           {!loading && !error && !isApproved && pixData && (
             <div className="space-y-4">
               {/* Valor e Timer */}
-              <div className="flex items-center justify-between bg-neutral-50 px-4 py-3 rounded-2xl border border-neutral-200">
+              <div className="flex items-center justify-between bg-stone-50 px-4 py-3 rounded-2xl border border-stone-200">
                 <div>
-                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">
+                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
                     {type === 'subscription' ? 'Plano Cuidado (Mensal)' : 'Valor da Consulta'}
                   </span>
-                  <p className="text-xl font-bold text-neutral-950">
+                  <p className="text-xl font-bold text-stone-950">
                     {formatBrl(pixData.amountCents)}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700 bg-white px-3 py-1.5 rounded-xl border border-neutral-200 shadow-xs">
-                  <Clock className="w-3.5 h-3.5 text-cyan-600" />
-                  <span>Expira em: <strong className="text-neutral-950">{timeLeft}</strong></span>
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-stone-700 bg-white px-3 py-1.5 rounded-xl border border-stone-200 shadow-xs">
+                  <Clock className="w-3.5 h-3.5 text-stone-600" />
+                  <span>Expira em: <strong className="text-stone-950">{timeLeft}</strong></span>
                 </div>
               </div>
 
               {/* QR Code Container */}
-              <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-neutral-200 shadow-xs">
+              <div className="flex flex-col items-center justify-center p-4 bg-stone-50/50 rounded-2xl border border-stone-200 shadow-2xs">
                 {pixData.qrCodeBase64 ? (
                   <img
                     src={`data:image/png;base64,${pixData.qrCodeBase64}`}
                     alt="QR Code Pix"
-                    className="w-44 h-44 object-contain rounded-lg"
+                    className="w-44 h-44 object-contain rounded-lg bg-white p-1 shadow-2xs"
                   />
                 ) : (
-                  <div className="w-44 h-44 flex items-center justify-center bg-neutral-100 rounded-lg text-neutral-400">
+                  <div className="w-44 h-44 flex items-center justify-center bg-stone-100 rounded-lg text-stone-400">
                     <QrCode className="w-16 h-16" />
                   </div>
                 )}
-                <span className="text-[11px] text-neutral-500 mt-2 font-medium">
+                <span className="text-[11px] text-stone-500 mt-2.5 font-medium">
                   Abra o aplicativo do seu banco e escaneie o código
                 </span>
               </div>
 
               {/* Pix Copia e Cola */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800">Pix Copia e Cola:</label>
+                <label className="text-xs font-semibold text-stone-800">Pix Copia e Cola:</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     readOnly
                     value={pixData.qrCode}
-                    className="w-full text-xs font-mono bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5 text-neutral-700 select-all truncate focus:outline-none focus:border-neutral-400"
+                    className="w-full text-xs font-mono bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-stone-700 select-all truncate focus:outline-none focus:border-stone-400"
                   />
                   <button
                     onClick={copyToClipboard}
                     className={`shrink-0 px-4 py-2.5 rounded-xl font-semibold text-xs transition flex items-center gap-1.5 shadow-xs ${
                       copied
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-neutral-950 hover:bg-neutral-800 text-white'
+                        ? 'bg-stone-800 text-white'
+                        : 'bg-stone-950 hover:bg-stone-800 text-white active:scale-[0.98]'
                     }`}
                   >
                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -323,8 +323,8 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
               </div>
 
               {/* Status de aguardo em tempo real */}
-              <div className="flex items-center justify-center gap-2 text-xs font-medium text-neutral-500 pt-1">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+              <div className="flex items-center justify-center gap-2 text-xs font-medium text-stone-500 pt-1">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-stone-700" />
                 <span>Aguardando identificação instantânea do Pix...</span>
               </div>
             </div>
@@ -332,8 +332,8 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-neutral-400 border-t border-neutral-100 pt-3">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+        <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-stone-400 border-t border-stone-100 pt-3">
+          <ShieldCheck className="w-4 h-4 text-stone-600" />
           <span>Ambiente Seguro · Pix Banco Central do Brasil</span>
         </div>
       </div>
