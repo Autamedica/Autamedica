@@ -636,7 +636,7 @@ export const appointmentPaymentsService = {
           amountCents,
         })
       }
-      return
+      return { handled: true }
     }
 
     const isSubscription =
@@ -698,7 +698,7 @@ export const appointmentPaymentsService = {
           })
         }
       }
-      return
+      return { handled: true }
     }
 
     const appointmentId =
@@ -712,7 +712,7 @@ export const appointmentPaymentsService = {
       logger.warn('[appointment-payments] Payment without appointment reference', {
         paymentId: payment.id,
       })
-      return
+      return { handled: false, ignored: true, reason: 'missing_appointment_reference' }
     }
 
     const appointment = await findAppointmentWithDoctor(supabase, appointmentId)
@@ -721,7 +721,7 @@ export const appointmentPaymentsService = {
         appointmentId,
         paymentId: payment.id,
       })
-      return
+      return { handled: false, ignored: true, reason: 'appointment_missing_patient_or_doctor' }
     }
 
     const status = resolveAppointmentPaymentStatus(payment)
@@ -808,6 +808,8 @@ export const appointmentPaymentsService = {
         })
       }
     }
+
+    return { handled: true }
   },
 
   async createDoctorEarningForAppointment(

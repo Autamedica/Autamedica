@@ -52,11 +52,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const supabase = createAstroAdminClient(locals.runtime?.env)
 
-    await appointmentPaymentsService.handleWebhookNotification(
+    const result = await appointmentPaymentsService.handleWebhookNotification(
       supabase,
       type,
       dataId,
     )
+
+    if (result?.ignored) {
+      return jsonOk({ received: true, ignored: true, reason: result.reason })
+    }
 
     return jsonOk({ received: true })
   } catch (error) {
