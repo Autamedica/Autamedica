@@ -7,8 +7,9 @@ import {
   Heart, Shield, Users,
   Check, AlertCircle, ArrowRight,
   LogOut, Settings, User,
-  Wallet, Plus, Loader2, CreditCard, Gift, Coins, Sparkles,
+  Wallet, Plus, Loader2, CreditCard, Gift, Coins, Sparkles, X, Stethoscope,
 } from 'lucide-react'
+import { PixCheckoutModal } from '@/components/payments/PixCheckoutModal'
 import { fetchApi } from '@/lib/api-client'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { useAppointments } from '@/hooks/patients/useAppointments'
@@ -91,6 +92,8 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const [hasHydrated, setHasHydrated] = useState(false)
   const [walletSummary, setWalletSummary] = useState<PatientWalletSummary | null>(null)
   const [reserveData, setReserveData] = useState<HealthReserveData | null>(null)
+  const [showReservaBanner, setShowReservaBanner] = useState(true)
+  const [showPixSubscriptionModal, setShowPixSubscriptionModal] = useState(false)
   const [isWalletPopoverOpen, setIsWalletPopoverOpen] = useState(false)
   const [isTopupModalOpen, setIsTopupModalOpen] = useState(false)
   const [topupAmount, setTopupAmount] = useState('')
@@ -470,7 +473,135 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         className="relative bg-white"
         style={{ y: contentY }}
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-24 lg:py-32 space-y-32">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-12 lg:py-20 space-y-20">
+
+          {/* ── BANNER / BADGE MINHA RESERVA DE SAÚDE COM FECHAR ── */}
+          <AnimatePresence>
+            {showReservaBanner && reserveData?.subscription_tier !== 'cuidado' && (
+              <motion.section
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
+                transition={{ duration: 0.4 }}
+                className="relative overflow-hidden rounded-3xl bg-neutral-950 text-white p-6 md:p-8 shadow-2xl border border-neutral-800"
+              >
+                {/* Botón de cerrar badge */}
+                <button
+                  type="button"
+                  onClick={() => setShowReservaBanner(false)}
+                  className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-neutral-400 hover:text-white transition-colors z-20"
+                  title="Fechar"
+                  aria-label="Fechar"
+                >
+                  <X className="size-4" />
+                </button>
+
+                <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+                  <div className="space-y-3 max-w-2xl">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-neutral-300 text-xs font-semibold uppercase tracking-wider">
+                      <Coins className="size-3.5 text-neutral-300" />
+                      AUTAMÉDICA Free
+                    </div>
+                    <h2 className="text-3xl md:text-4xl font-light tracking-tight text-white">
+                      Minha Reserva de Saúde
+                    </h2>
+                    <p className="text-neutral-300 text-sm md:text-base leading-relaxed">
+                      Você tem acesso ao benefício de atendimento clínico. <strong className="text-white font-semibold">Precisou? Use. </strong> 
+                      <strong className="text-emerald-400 font-semibold">Não precisou? Acumule (+22 créditos/mês) </strong> 
+                      para especialistas, exames e farmácia.
+                    </p>
+                  </div>
+
+                  {/* Saldo e Capacidade */}
+                  <div className="w-full lg:w-auto min-w-[280px] bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 p-5 shadow-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-neutral-400 uppercase tracking-wider">Saldo Disponível</span>
+                      <Coins className="size-5 text-cyan-400" />
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-light text-white tracking-tight">
+                        {reserveData?.benefit_balance ?? 0}
+                      </span>
+                      <span className="text-sm font-semibold text-cyan-400">AUTA Créditos</span>
+                    </div>
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex justify-between text-xs text-neutral-400">
+                        <span>Capacidade acumulada</span>
+                        <span>{reserveData?.benefit_balance ?? 0} / {reserveData?.max_cap_credits ?? 600} pts</span>
+                      </div>
+                      <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 rounded-full transition-all duration-500" 
+                          style={{ width: `${Math.min(Math.round(((reserveData?.benefit_balance ?? 0) / (reserveData?.max_cap_credits ?? 600)) * 100), 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Upsell / Ativar Plano Cuidado */}
+                <div className="mt-8 pt-6 border-t border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base md:text-lg font-semibold text-white">
+                        Ative o Plano Cuidado por R$ 49,90/mês
+                      </h3>
+                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        Pix ou Cartão
+                      </span>
+                    </div>
+                    <p className="text-neutral-400 text-xs md:text-sm">
+                      Garanta 1 atendimento clínico mensal e acumule 22 AUTA Créditos todo mês que não precisar de consulta.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 w-full md:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setShowPixSubscriptionModal(true)}
+                      className="w-full md:w-auto px-6 py-3 rounded-full bg-cyan-500 hover:bg-cyan-400 text-neutral-950 font-bold text-sm transition-all shadow-lg hover:shadow-cyan-500/25 flex items-center justify-center gap-2 shrink-0 active:scale-[0.98]"
+                    >
+                      <Sparkles className="size-4" />
+                      Assinar com Pix (R$ 49,90)
+                    </button>
+                    <a
+                      href="/patients/reserva-saude"
+                      className="px-4 py-3 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0"
+                    >
+                      Ver detalhes
+                      <ArrowRight className="size-3.5" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Sub-informações: Catálogo e Extrato */}
+                <div className="mt-6 pt-6 border-t border-white/5 grid md:grid-cols-2 gap-4 text-xs text-neutral-400">
+                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1.5">
+                    <div className="flex items-center gap-2 text-white font-medium text-sm">
+                      <Stethoscope className="size-4 text-cyan-400" />
+                      Catálogo de Resgate em Rede Credenciada
+                    </div>
+                    <p className="leading-relaxed">
+                      Troque seus AUTA Créditos por consultas especializadas, check-ups laboratoriais e medicamentos.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-medium text-sm flex items-center gap-2">
+                        <FileText className="size-4 text-emerald-400" />
+                        Extrato da Reserva de Saúde
+                      </span>
+                      <span className="text-[10px] text-neutral-500">Todos • Acumulações • Resgates</span>
+                    </div>
+                    <p className="text-neutral-500 italic">
+                      Nenhuma movimentação registrada na sua Reserva de Saúde até o momento.
+                    </p>
+                  </div>
+                </div>
+              </motion.section>
+            )}
+          </AnimatePresence>
 
           {/* Status Section */}
           <motion.section
@@ -997,6 +1128,21 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
           const params = new URLSearchParams({ type: 'telemedicine', preconsultation: 'completed' })
           if (preconsultationId) params.set('preconsultationId', preconsultationId)
           window.location.href = `/patients/appointments?${params.toString()}`
+        }}
+      />
+
+      <PixCheckoutModal
+        isOpen={showPixSubscriptionModal}
+        onClose={() => setShowPixSubscriptionModal(false)}
+        type="subscription"
+        amountCents={4990}
+        onSuccess={() => {
+          setShowPixSubscriptionModal(false)
+          fetchApi<{ success: boolean; data: HealthReserveData }>('/api/patients/reserva-saude')
+            .then(res => {
+              if (res?.data) setReserveData(res.data)
+            })
+            .catch(() => {})
         }}
       />
     </div>
