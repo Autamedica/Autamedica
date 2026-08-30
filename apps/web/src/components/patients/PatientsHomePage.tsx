@@ -503,7 +503,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                       AUTAMÉDICA Free
                     </div>
                     <h2 className="text-3xl md:text-4xl font-light tracking-tight text-white">
-                      Minha Reserva de Saúde
+                      Assinatura AutaMedica
                     </h2>
                     <p className="text-neutral-300 text-sm md:text-base leading-relaxed">
                       Você tem acesso ao benefício de atendimento clínico. <strong className="text-white font-semibold">Precisou? Use. </strong> 

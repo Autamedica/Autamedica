@@ -589,7 +589,7 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
       mentalHealthDesc: 'Psiquiatria e bem-estar',
       prevention: 'Prevenção e exames',
       preventionDesc: 'Planos preventivos e alertas',
-      planning: 'Reserva de Saúde',
+      planning: 'Assinatura AutaMedica',
       planningDesc: 'Benefícios acumulativos e resgates',
       community: 'Comunidade de pacientes',
       communityDesc: 'Espaço seguro de troca e apoio',

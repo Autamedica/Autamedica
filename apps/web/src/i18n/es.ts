@@ -570,7 +570,7 @@ export const es = {
       mentalHealthDesc: 'Psiquiatría y bienestar',
       prevention: 'Prevención y chequeos',
       preventionDesc: 'Planes preventivos y alertas',
-      planning: 'Reserva de Saúde',
+      planning: 'Suscripción AutaMedica',
       planningDesc: 'Beneficios acumulativos y canjes',
       community: 'Foro de pacientes',
       communityDesc: 'Espacio de intercambio seguro',
