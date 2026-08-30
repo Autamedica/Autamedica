@@ -400,6 +400,27 @@ export function CreateAppointmentModal({
                               </span>
                             )}
                           </div>
+                          {!isPending && !isDemo && doc.license_pills && doc.license_pills.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                              {doc.license_pills.map((pill, idx) => (
+                                <span
+                                  key={idx}
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10.5px] font-medium border ${
+                                    pill.country === 'BR'
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                      : pill.country === 'UY'
+                                        ? 'bg-sky-50 text-sky-800 border-sky-200'
+                                        : 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                  }`}
+                                  title={`Habilitado para emitir recetas en ${
+                                    pill.country === 'BR' ? 'Brasil (CRM)' : pill.country === 'UY' ? 'Uruguay (MSP)' : 'Argentina (MN/MP)'
+                                  }`}
+                                >
+                                  {pill.label}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         {isSelected && !isDisabled && (
                           <div className="flex h-5 w-5 items-center justify-center rounded-full bg-stone-900 text-white">

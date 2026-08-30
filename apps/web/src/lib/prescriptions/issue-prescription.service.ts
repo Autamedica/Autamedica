@@ -18,7 +18,9 @@ import type {
   FarmalinkAltaResult,
   FarmalinkPrescriptionMapInput,
 } from './farmalink.types';
-import { generatePrescriptionPdf } from './pdf-prescription.service';
+import { generatePrescriptionPdf, type PrescriptionArtifacts } from './pdf-prescription.service';
+import { generateBrazilPrescriptionPdf } from './brazil/brazil-pdf-prescription.service';
+import { rctaService } from './rcta.service';
 // Certificate queries are Supabase-only (no node-forge dependency)
 import { getActiveCertificate, loadSigningCredentials } from '../doctors/services/certificate-query.service';
 import {
@@ -498,31 +500,18 @@ export async function issuePrescription(
   // 1. Resolve and validate doctor
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
+    .select('id, license_number, license_type, uf_brazil, rqe_number, cpf, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
     .eq('user_id', userId)
     .maybeSingle();
 
   if (!doctor) return fail({ code: 'doctor_not_found' });
   if (!doctor.license_number) return fail({ code: 'missing_license_number' });
-  if (!doctor.refeps_id) return fail({ code: 'missing_refeps_id' });
   if (!doctor.professional_address) return fail({ code: 'missing_professional_address' });
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('sss_validation_status')
-    .eq('user_id', userId)
-    .single();
-
-  if (!canIssueWithPrescriberValidationStatus(
-    profile?.sss_validation_status as PrescriberValidationStatus | null | undefined,
-  )) {
-    return fail({ code: 'prescriber_validation_required' });
-  }
 
   // 2. Get and validate prescription
   const { data: rx } = await supabase
     .from('prescriptions')
-    .select('id, doctor_id, patient_id, status, clinical_data, cuir')
+    .select('id, doctor_id, patient_id, status, clinical_data, cuir, country_code, prescription_model_br')
     .eq('id', prescriptionId)
     .single();
 
@@ -530,10 +519,30 @@ export async function issuePrescription(
   if (rx.doctor_id !== doctor.id) return fail({ code: 'not_your_prescription' });
   if (rx.cuir) return fail({ code: 'already_issued' });
 
+  // Determine country jurisdiction from prescription or doctor profile
+  const prescriptionCountry: string = (rx as { country_code?: string })?.country_code
+    || (doctor.license_type === 'CRM' || doctor.uf_brazil ? 'BR' : doctor.license_type === 'MSP' ? 'UY' : 'AR');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('sss_validation_status')
+    .eq('user_id', userId)
+    .single();
+
+  // Validate prescriber according to country regulations
+  if (prescriptionCountry === 'AR') {
+    if (!doctor.refeps_id) return fail({ code: 'missing_refeps_id' });
+    if (!canIssueWithPrescriberValidationStatus(
+      profile?.sss_validation_status as PrescriberValidationStatus | null | undefined,
+    )) {
+      return fail({ code: 'prescriber_validation_required' });
+    }
+  }
+
   // 3. Get and validate patient
   const { data: patient } = await supabase
     .from('patients')
-    .select('user_id, dni, cuil, address, birth_date, gender, insurance_info')
+    .select('user_id, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info')
     .eq('id', rx.patient_id)
     .single();
 
@@ -541,7 +550,17 @@ export async function issuePrescription(
   // 4. Parse clinical data
   const clinicalData = rx.clinical_data as ClinicalData;
   const externalPatient = clinicalData?.external_patient;
-  if (!patient.dni && !patient.cuil && !externalPatient?.dni && !externalPatient?.cuil) {
+  
+  const hasPatientId = patient.dni
+    || patient.cuil
+    || (patient as { cpf?: string }).cpf
+    || (patient as { ci?: string }).ci
+    || externalPatient?.dni
+    || externalPatient?.cuil
+    || (externalPatient as { cpf?: string })?.cpf
+    || (externalPatient as { ci?: string })?.ci;
+
+  if (!hasPatientId) {
     return fail({ code: 'missing_patient_identification' });
   }
   if (!patient.address && !externalPatient?.address) return fail({ code: 'missing_patient_address' });
@@ -567,68 +586,126 @@ export async function issuePrescription(
     substanceCategory,
     validityDays,
   );
-  const farmalinkRegistration = await registerFarmalinkIfEnabled({
-    clinicalData,
-    doctor,
-    doctorName,
-    item,
-    patient,
-    patientName,
-    now,
-    expiresAt,
-  });
-  if (farmalinkRegistration.ok === false) return fail(farmalinkRegistration.error);
 
-  const externalRegistration = farmalinkRegistration.registration;
+  let externalRegistration: FarmalinkRegistration | undefined;
+  if (prescriptionCountry === 'AR') {
+    const farmalinkRegistration = await registerFarmalinkIfEnabled({
+      clinicalData,
+      doctor,
+      doctorName,
+      item,
+      patient,
+      patientName,
+      now,
+      expiresAt,
+    });
+    if (farmalinkRegistration.ok === false) return fail(farmalinkRegistration.error);
+    externalRegistration = farmalinkRegistration.registration;
+  }
+
   const vendorName = externalRegistration?.vendorName ?? 'autamedica_internal';
   const vendorId = externalRegistration?.vendorId ?? `am-${Date.now()}`;
 
   // 6. Generate artifacts (PDF + QR + CUIR)
-  let artifacts: Awaited<ReturnType<typeof generatePrescriptionPdf>>;
+  let artifacts: PrescriptionArtifacts;
   try {
-    artifacts = await generatePrescriptionPdf({
-      prescriptionId,
-      externalPrescription: externalRegistration?.externalPrescription,
-      medication: {
-        genericName: medicationName,
-        commercialName: item.commercial_name,
-        dosage: item.dosage ?? '',
-        presentation: item.presentation ?? '',
-        quantity: item.quantity ?? 0,
-        instructions: item.instructions ?? '',
-      },
-      diagnosis: clinicalData.diagnosis ?? '',
-      notes: clinicalData.notes,
-      patient: {
-        name: patientName,
-        dni: patient.dni ?? externalPatient?.dni ?? undefined,
-        cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
-        dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
-        sex: patient.gender ?? externalPatient?.gender ?? undefined,
-        insurancePlan: resolveInsurancePlan(patient.insurance_info),
-        address: patient.address ?? externalPatient?.address ?? undefined,
-      },
-      prescriber: {
-        name: doctorName,
-        license: doctor.license_number,
-        licenseJurisdiction: doctor.enrollment_jurisdiction ?? undefined,
-        licenseEntity: doctor.enrollment_entity ?? undefined,
-        refeps: doctor.refeps_id ?? undefined,
-        specialty: doctor.specialty ?? undefined,
-        professionalAddress: doctor.professional_address ?? undefined,
-        signatureImageUrl: doctor.signature_image_url ?? undefined,
-        stampImageUrl: doctor.stamp_image_url ?? undefined,
-      },
-      issuedAt: now,
-      expiresAt,
-      careGuide: {
-        tips: clinicalData.care_guide_tips,
-        forgotten: clinicalData.care_guide_forgotten,
-        warnings: clinicalData.care_guide_warnings,
-        lifestyle: clinicalData.care_guide_lifestyle,
-      },
-      template: doctor.care_guide_template ?? 'neutral',
-    });
+    if (prescriptionCountry === 'BR') {
+      const generated = await rctaService.registerPrescription(
+        userId,
+        rx.patient_id,
+        medicationName,
+        { groupId: prescriptionId },
+      );
+      const verificationUrl = `https://autamedica.com/verify/${generated.cuir}`;
+      const brPdf = generateBrazilPrescriptionPdf({
+        prescriptionId,
+        model: ((rx as { prescription_model_br?: string })?.prescription_model_br as 'simples') || 'simples',
+        patient: {
+          name: patientName,
+          cpf: (patient as { cpf?: string }).cpf || (externalPatient as { cpf?: string })?.cpf || patient.dni || externalPatient?.dni || '',
+          cns: (patient as { cns?: string }).cns,
+          birthDate: patient.birth_date || externalPatient?.birth_date,
+          address: patient.address || externalPatient?.address,
+        },
+        prescriber: {
+          name: doctorName,
+          crm: doctor.license_number,
+          uf: doctor.uf_brazil || 'RS',
+          rqe: (doctor as { rqe_number?: string }).rqe_number || undefined,
+          cpf: (doctor as { cpf?: string }).cpf || '',
+          specialty: doctor.specialty || undefined,
+          address: doctor.professional_address || undefined,
+          signatureImageUrl: doctor.signature_image_url || undefined,
+        },
+        medications: [
+          {
+            genericName: medicationName,
+            commercialName: item.commercial_name,
+            dosage: item.dosage || '',
+            presentation: item.presentation || '',
+            quantity: item.quantity || 1,
+            instructions: item.instructions || '',
+          },
+        ],
+        diagnosis: clinicalData.diagnosis || '',
+        notes: clinicalData.notes,
+        issuedAt: now,
+        expiresAt,
+        itiValidationUrl: verificationUrl,
+      });
+
+      artifacts = {
+        cuir: generated.cuir,
+        pdfBuffer: brPdf,
+        pdfFilename: `Receita_Digital_${doctor.license_number}_${generated.cuir.slice(-6)}.pdf`,
+        qrDataUrl: '',
+        qrContent: verificationUrl,
+      };
+    } else {
+      artifacts = await generatePrescriptionPdf({
+        prescriptionId,
+        externalPrescription: externalRegistration?.externalPrescription,
+        medication: {
+          genericName: medicationName,
+          commercialName: item.commercial_name,
+          dosage: item.dosage ?? '',
+          presentation: item.presentation ?? '',
+          quantity: item.quantity ?? 0,
+          instructions: item.instructions ?? '',
+        },
+        diagnosis: clinicalData.diagnosis ?? '',
+        notes: clinicalData.notes,
+        patient: {
+          name: patientName,
+          dni: patient.dni ?? externalPatient?.dni ?? (patient as { ci?: string }).ci ?? (externalPatient as { ci?: string })?.ci ?? undefined,
+          cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
+          dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
+          sex: patient.gender ?? externalPatient?.gender ?? undefined,
+          insurancePlan: resolveInsurancePlan(patient.insurance_info),
+          address: patient.address ?? externalPatient?.address ?? undefined,
+        },
+        prescriber: {
+          name: doctorName,
+          license: doctor.license_number,
+          licenseJurisdiction: doctor.enrollment_jurisdiction ?? (prescriptionCountry === 'UY' ? 'Uruguay' : undefined),
+          licenseEntity: doctor.enrollment_entity ?? (prescriptionCountry === 'UY' ? 'MSP' : undefined),
+          refeps: doctor.refeps_id ?? undefined,
+          specialty: doctor.specialty ?? undefined,
+          professionalAddress: doctor.professional_address ?? undefined,
+          signatureImageUrl: doctor.signature_image_url ?? undefined,
+          stampImageUrl: doctor.stamp_image_url ?? undefined,
+        },
+        issuedAt: now,
+        expiresAt,
+        careGuide: {
+          tips: clinicalData.care_guide_tips,
+          forgotten: clinicalData.care_guide_forgotten,
+          warnings: clinicalData.care_guide_warnings,
+          lifestyle: clinicalData.care_guide_lifestyle,
+        },
+        template: doctor.care_guide_template ?? 'neutral',
+      });
+    }
   } catch (error) {
     const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     logger.error('[issuePrescription] PDF generation failed', {

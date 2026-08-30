@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import type { IDoctorsRepository } from '@/lib/patients/ports/doctors.port'
+import type { DoctorLicensePill } from '@/components/patients/appointments/appointment-modal.types'
 
 type Db = SupabaseClient<Database>
 
@@ -22,6 +23,7 @@ export interface DoctorSummary {
   overall_score: number
   rank_position: number | null
   has_prescription_digital: boolean
+  license_pills: DoctorLicensePill[]
 }
 
 interface DoctorRow {
@@ -29,6 +31,9 @@ interface DoctorRow {
   specialty: string | null
   consultation_fee: number | null
   license_number: string | null
+  license_type: string | null
+  enrollment_jurisdiction: string | null
+  uf_brazil: string | null
   signature_image_url: string | null
   stamp_image_url: string | null
   profile: {
@@ -43,6 +48,96 @@ interface DoctorRow {
     overall_score: number | null
     rank_position: number | null
   }[] | null
+  doctor_licenses?: Array<{
+    license_number: string
+    license_type: string
+    province?: string | null
+    uf_brazil?: string | null
+    status?: string | null
+  }> | null
+}
+
+function buildDoctorLicensePills(row: {
+  license_number?: string | null
+  license_type?: string | null
+  enrollment_jurisdiction?: string | null
+  uf_brazil?: string | null
+  doctor_licenses?: Array<{
+    license_number: string
+    license_type: string
+    province?: string | null
+    uf_brazil?: string | null
+    status?: string | null
+  }> | null
+}): DoctorLicensePill[] {
+  const pills: DoctorLicensePill[] = []
+  const seen = new Set<string>()
+
+  // 1. Process relational doctor_licenses
+  if (Array.isArray(row.doctor_licenses)) {
+    for (const lic of row.doctor_licenses) {
+      if (lic.status && lic.status !== 'active') continue
+      if (!lic.license_number) continue
+
+      let country: 'AR' | 'BR' | 'UY' = 'AR'
+      let label = ''
+
+      if (lic.license_type === 'CRM' || lic.license_type === 'CRO' || lic.license_type === 'CRF' || lic.uf_brazil) {
+        country = 'BR'
+        const uf = lic.uf_brazil ? `-${lic.uf_brazil}` : ''
+        label = `🇧🇷 CRM${uf} ${lic.license_number}`
+      } else if (lic.license_type === 'MSP' || lic.license_type === 'CMU' || lic.license_type === 'CJPPU') {
+        country = 'UY'
+        label = `🇺🇾 MSP ${lic.license_number}`
+      } else if (lic.license_type === 'MN') {
+        country = 'AR'
+        label = `🇦🇷 MN ${lic.license_number}`
+      } else {
+        country = 'AR'
+        const prov = lic.province ? ` · ${lic.province}` : ''
+        label = `🇦🇷 MP ${lic.license_number}${prov}`
+      }
+
+      const key = `${country}:${lic.license_number}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        pills.push({ country, label, jurisdiction: lic.uf_brazil || lic.province })
+      }
+    }
+  }
+
+  // 2. Fallback / complement with primary license in doctors table
+  if (row.license_number && row.license_number !== 'PENDING') {
+    let country: 'AR' | 'BR' | 'UY' = 'AR'
+    let label = ''
+
+    if (row.license_type === 'CRM' || row.uf_brazil) {
+      country = 'BR'
+      const uf = row.uf_brazil ? `-${row.uf_brazil}` : ''
+      label = `🇧🇷 CRM${uf} ${row.license_number}`
+    } else if (row.license_type === 'MSP') {
+      country = 'UY'
+      label = `🇺🇾 MSP ${row.license_number}`
+    } else if (row.license_type === 'MN' || row.enrollment_jurisdiction === 'CABA' || row.enrollment_jurisdiction === 'Nacional') {
+      country = 'AR'
+      label = `🇦🇷 MN ${row.license_number}`
+    } else if (row.license_type === 'MP') {
+      country = 'AR'
+      const prov = row.enrollment_jurisdiction ? ` · ${row.enrollment_jurisdiction}` : ''
+      label = `🇦🇷 MP ${row.license_number}${prov}`
+    } else {
+      country = 'AR'
+      label = `🇦🇷 Mat. ${row.license_number}`
+    }
+
+    const key = `${country}:${row.license_number}`
+    if (!seen.has(key)) {
+      seen.add(key)
+      pills.push({ country, label, jurisdiction: row.uf_brazil || row.enrollment_jurisdiction })
+    }
+  }
+
+  return pills
 }
 
 export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
@@ -50,7 +145,20 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
     async listActive(): Promise<DoctorSummary[]> {
       const { data, error } = await supabase
         .from('doctors')
-        .select('id, specialty, consultation_fee, license_number, signature_image_url, stamp_image_url, profile:profiles!doctors_user_id_fkey(first_name, last_name, avatar_url), doctor_ranking_metrics(overall_score, rank_position)')
+        .select(`
+          id, 
+          specialty, 
+          consultation_fee, 
+          license_number, 
+          license_type,
+          enrollment_jurisdiction,
+          uf_brazil,
+          signature_image_url, 
+          stamp_image_url, 
+          profile:profiles!doctors_user_id_fkey(first_name, last_name, avatar_url), 
+          doctor_ranking_metrics(overall_score, rank_position),
+          doctor_licenses(license_number, license_type, province, uf_brazil, status)
+        `)
         .eq('active', true)
 
       if (error) {
@@ -124,6 +232,7 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
           const hasAvailability = doctorsWithAvailability.has(row.id)
           const activePlan = doctorPlans.get(row.id) ?? null
           const hasPrescriptionDigital = !!(row.signature_image_url && row.stamp_image_url)
+          const licensePills = buildDoctorLicensePills(row)
 
           const metrics = Array.isArray(row.doctor_ranking_metrics)
             ? row.doctor_ranking_metrics[0]
@@ -146,6 +255,7 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
             overall_score: overallScore,
             rank_position: rankPosition,
             has_prescription_digital: hasPrescriptionDigital,
+            license_pills: licensePills,
           }
         })
 
