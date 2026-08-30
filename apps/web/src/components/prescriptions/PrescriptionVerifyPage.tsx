@@ -9,6 +9,7 @@ interface VerifyResult {
   prescription: {
     cuir: string;
     status: string;
+    countryCode?: string;
     medication: string;
     dosage: string;
     quantity: number;
@@ -31,6 +32,16 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Cancelada', color: 'bg-red-100 text-red-700' },
   expired: { label: 'Expirada', color: 'bg-gray-200 text-gray-500' },
 };
+
+function getLegalFooter(countryCode?: string): string {
+  if (countryCode === 'BR') {
+    return 'Verificado por AutaMedica · Resolução CFM nº 2.299/2021 & Lei 14.510/2022 (Brasil)';
+  }
+  if (countryCode === 'UY') {
+    return 'Verificado por AutaMedica · Ley nº 18.600 & Decreto 242/017 MSP (Uruguay)';
+  }
+  return 'Verificado por AutaMedica · Ley 27.553 & Decreto 63/2024 (Argentina)';
+}
 
 export function PrescriptionVerifyPage({ cuir }: { cuir: string }) {
   const [loading, setLoading] = useState(true);
@@ -96,7 +107,7 @@ export function PrescriptionVerifyPage({ cuir }: { cuir: string }) {
           <p className="text-sm text-slate-300">CUIR: <span className="font-mono text-emerald-300">{rx.cuir}</span></p>
         </div>
 
-        {/* QR Code (Res. 2214/2025: CUIR + código de barras o QR) */}
+        {/* QR Code */}
         {rx.qrContent && (
           <div className="flex justify-center py-5 border-b border-slate-100">
             <div className="text-center">
@@ -169,7 +180,7 @@ export function PrescriptionVerifyPage({ cuir }: { cuir: string }) {
         {/* Footer */}
         <div className="px-8 py-4 bg-slate-50 border-t border-slate-100">
           <p className="text-[10px] text-slate-400 text-center">
-            Verificado por AutaMedica. Ley 27.553 — Prescripciones electronicas.
+            {getLegalFooter(rx.countryCode)}
           </p>
         </div>
       </div>

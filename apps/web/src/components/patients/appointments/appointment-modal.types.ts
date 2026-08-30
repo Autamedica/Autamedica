@@ -1,5 +1,11 @@
 import type { CreateAppointmentInput } from '@/lib/patients/types/appointment'
 
+export interface DoctorLicensePill {
+  country: 'AR' | 'BR' | 'UY'
+  label: string
+  jurisdiction?: string | null
+}
+
 export interface DoctorOption {
   id: string
   specialty: string | null
@@ -14,6 +20,7 @@ export interface DoctorOption {
   overall_score?: number
   rank_position?: number | null
   has_prescription_digital?: boolean
+  license_pills?: DoctorLicensePill[]
 }
 
 export interface SlotData {

@@ -5944,6 +5944,7 @@ export type Database = {
           sisa_folio: string | null
           sisa_record: string | null
           status: string
+          uf_brazil: string | null
           updated_at: string
         }
         Insert: {
@@ -5959,6 +5960,7 @@ export type Database = {
           sisa_folio?: string | null
           sisa_record?: string | null
           status?: string
+          uf_brazil?: string | null
           updated_at?: string
         }
         Update: {
@@ -5974,6 +5976,7 @@ export type Database = {
           sisa_folio?: string | null
           sisa_record?: string | null
           status?: string
+          uf_brazil?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -8697,6 +8700,7 @@ export type Database = {
           blocked_reason: string | null
           clinical_data: Json
           controlled_substance_list: string | null
+          country_code: string
           created_at: string
           cuir: string | null
           doctor_id: string
@@ -8720,6 +8724,7 @@ export type Database = {
           blocked_reason?: string | null
           clinical_data: Json
           controlled_substance_list?: string | null
+          country_code?: string
           created_at?: string
           cuir?: string | null
           doctor_id: string
@@ -8743,6 +8748,7 @@ export type Database = {
           blocked_reason?: string | null
           clinical_data?: Json
           controlled_substance_list?: string | null
+          country_code?: string
           created_at?: string
           cuir?: string | null
           doctor_id?: string

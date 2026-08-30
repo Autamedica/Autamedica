@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
     const { data: rx, error } = await admin
       .from('prescriptions')
-      .select('id, cuir, status, clinical_data, doctor_id, patient_id, signed_pdf_url, qr_code_content, created_at')
+      .select('id, cuir, status, clinical_data, doctor_id, patient_id, signed_pdf_url, qr_code_content, created_at, country_code')
       .eq('cuir', cuir)
       .maybeSingle();
 
@@ -39,12 +39,23 @@ export const GET: APIRoute = async ({ params, locals }) => {
     let prescriberLicense = '';
     const { data: doctor } = await admin
       .from('doctors')
-      .select('user_id, license_number, specialty')
+      .select('user_id, license_number, specialty, license_type, uf_brazil')
       .eq('id', rx.doctor_id)
       .maybeSingle();
 
     if (doctor) {
-      prescriberLicense = `Matrícula: ${doctor.license_number ?? 'N/D'}`;
+      let licPrefix = 'Matrícula';
+      if (doctor.license_type === 'CRM' || doctor.uf_brazil) {
+        licPrefix = `CRM-${doctor.uf_brazil ?? 'BR'}`;
+      } else if (doctor.license_type === 'MSP') {
+        licPrefix = 'MSP (Uruguay)';
+      } else if (doctor.license_type === 'MN') {
+        licPrefix = 'MN';
+      } else if (doctor.license_type === 'MP') {
+        licPrefix = 'MP';
+      }
+
+      prescriberLicense = `${licPrefix}: ${doctor.license_number ?? 'N/D'}`;
       if (doctor.specialty) prescriberLicense += ` | ${doctor.specialty}`;
       const { data: dProfile } = await admin
         .from('profiles')
@@ -74,6 +85,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       prescription: {
         cuir: rx.cuir,
         status: rx.status,
+        countryCode: (rx as { country_code?: string })?.country_code ?? 'AR',
         medication: item?.generic_name ?? 'Sin especificar',
         dosage: item?.dosage ?? '',
         quantity: item?.quantity ?? 0,
