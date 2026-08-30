@@ -141,11 +141,19 @@ function getSafeRedirect(
   }
 
   if (parsedReturnTo.absolute) {
-    if (parsedReturnTo.absolute.origin === requestUrl.origin) {
-      return parsedReturnTo.absolute.pathname + parsedReturnTo.absolute.search;
-    }
-    if (validateRedirectUrl(parsedReturnTo.absolute.toString())) {
-      return parsedReturnTo.absolute.toString();
+    const isRootLanding =
+      (parsedReturnTo.absolute.hostname === 'autamedica.com' ||
+        parsedReturnTo.absolute.hostname === 'www.autamedica.com') &&
+      (parsedReturnTo.absolute.pathname === '/' || parsedReturnTo.absolute.pathname === '');
+
+    // Si returnTo apunta a la raíz comercial sin subruta, redirigir al portal del rol
+    if (!isRootLanding) {
+      if (parsedReturnTo.absolute.origin === requestUrl.origin) {
+        return parsedReturnTo.absolute.pathname + parsedReturnTo.absolute.search;
+      }
+      if (validateRedirectUrl(parsedReturnTo.absolute.toString())) {
+        return parsedReturnTo.absolute.toString();
+      }
     }
   }
 

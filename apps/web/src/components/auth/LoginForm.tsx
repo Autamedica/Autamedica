@@ -185,15 +185,11 @@ export function LoginForm({ locale = "es" }: { locale?: Locale }) {
       // OAuth callback MUST go through www.autamedica.com (the Supabase site_url)
       // so the PKCE code_verifier cookie is readable by the server doing the exchange.
       // After auth, the callback redirects to the correct subdomain based on role.
-      const isProd = window.location.hostname.endsWith(".autamedica.com");
       const callbackUrl = new URL(
         getCanonicalAuthCallbackUrl(window.location.origin),
       );
       if (role) callbackUrl.searchParams.set("role", role);
-      const effectiveReturnTo =
-        returnTo || (isProd ? window.location.origin + "/" : undefined);
-      if (effectiveReturnTo)
-        callbackUrl.searchParams.set("returnTo", effectiveReturnTo);
+      if (returnTo) callbackUrl.searchParams.set("returnTo", returnTo);
 
       // signInWithOAuth limpia el estado previo internamente (ver AuthService).
       const result = await signInWithOAuth("google", callbackUrl.toString());

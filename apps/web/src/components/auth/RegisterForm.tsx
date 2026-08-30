@@ -100,11 +100,9 @@ export function RegisterForm({ locale = 'es' }: { locale?: Locale }) {
     setError(null);
 
     try {
-      const isProd = window.location.hostname.endsWith('.autamedica.com');
       const callbackUrl = new URL(getCanonicalAuthCallbackUrl(window.location.origin));
       if (role) callbackUrl.searchParams.set('role', role);
-      const effectiveReturnTo = returnTo || (isProd ? window.location.origin + '/' : undefined);
-      if (effectiveReturnTo) callbackUrl.searchParams.set('returnTo', effectiveReturnTo);
+      if (returnTo) callbackUrl.searchParams.set('returnTo', returnTo);
 
       const result = await signInWithOAuth('google', callbackUrl.toString());
 
