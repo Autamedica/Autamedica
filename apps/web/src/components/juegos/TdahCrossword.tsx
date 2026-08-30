@@ -79,6 +79,14 @@ const getCellNumberLabel = (x: number, y: number): number | null => {
   return null;
 };
 
+interface LeaderboardEntry {
+  id?: string;
+  nombre: string;
+  tiempo_segundos: number;
+  juego_id?: string;
+  created_at?: string;
+}
+
 export default function TdahCrossword() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [selectedWord, setSelectedWord] = useState<WordInfo | null>(null);
@@ -86,14 +94,14 @@ export default function TdahCrossword() {
   const [verified, setVerified] = useState(false);
   const [verificationResults, setVerificationResults] = useState<Record<string, boolean>>({});
   const [showSuccess, setShowSuccess] = useState(false);
-  
+
   // Timer & Leaderboard
   const [timer, setTimer] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [playerName, setPlayerName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const supabase = getBrowserSupabaseClient();
@@ -116,14 +124,14 @@ export default function TdahCrossword() {
 
   const fetchLeaderboard = async () => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('juegos_leaderboard')
         .select('*')
         .eq('juego_id', 'tdah')
         .order('tiempo_segundos', { ascending: true })
         .limit(10);
       if (!error && data) {
-        setLeaderboard(data);
+        setLeaderboard(data as unknown as LeaderboardEntry[]);
       }
     } catch (err) {
       console.error('Error fetching leaderboard:', err);
@@ -136,7 +144,7 @@ export default function TdahCrossword() {
 
     setIsSaving(true);
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('juegos_leaderboard')
         .insert([
           {
@@ -144,7 +152,7 @@ export default function TdahCrossword() {
             tiempo_segundos: timer,
             juego_id: 'tdah',
           },
-        ]);
+        ] as never);
 
       if (!error) {
         setHasSaved(true);
@@ -284,7 +292,7 @@ export default function TdahCrossword() {
       if (intersectingWords.length === 1) {
         setSelectedWord(intersectingWords[0]);
       } else {
-        if (!selectedWord || selectedWord.number !== intersectingWords[0].number) {
+        if (selectedWord?.number !== intersectingWords[0].number) {
           const isCurrentHorizontal = selectedWord?.direction === 'horizontal';
           const nextWord = intersectingWords.find(w => w.direction !== (isCurrentHorizontal ? 'horizontal' : 'vertical')) 
             || intersectingWords[0];

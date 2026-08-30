@@ -78,9 +78,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .select('user_id, active')
       .eq('active', true);
 
+    const requestedUserId = isNonEmptyString(body.userId) ? body.userId.trim() : '';
     const { data: doctor, error: doctorError } = isNonEmptyString(body.doctorId)
       ? await doctorQuery.eq('id', body.doctorId.trim()).maybeSingle()
-      : await doctorQuery.eq('user_id', body.userId!.trim()).maybeSingle();
+      : await doctorQuery.eq('user_id', requestedUserId).maybeSingle();
 
     if (doctorError) throw doctorError;
     if (!doctor?.user_id) return badRequest('doctor not found');
