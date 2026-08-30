@@ -6463,6 +6463,7 @@ export type Database = {
           certifications: Json | null
           consultation_fee: number | null
           created_at: string | null
+          cpf: string | null
           education: Json | null
           enrollment_entity: string | null
           enrollment_jurisdiction: string | null
@@ -6470,10 +6471,13 @@ export type Database = {
           id: string
           languages: Json | null
           license_number: string
+          license_type: string | null
           payout_alias: string | null
           payout_cbu: string | null
+          payout_pix_key: string | null
           professional_address: string | null
           refeps_id: string | null
+          rqe_number: string | null
           schedule: Json | null
           signature_image_url: string | null
           signature_url: string | null
@@ -6482,6 +6486,7 @@ export type Database = {
           stamp_url: string | null
           subspecialty: string | null
           timezone: string
+          uf_brazil: string | null
           updated_at: string | null
           user_id: string | null
           years_experience: number | null
@@ -6496,6 +6501,7 @@ export type Database = {
           care_guide_template?: string | null
           certifications?: Json | null
           consultation_fee?: number | null
+          cpf?: string | null
           created_at?: string | null
           education?: Json | null
           enrollment_entity?: string | null
@@ -6504,10 +6510,13 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number: string
+          license_type?: string | null
           payout_alias?: string | null
           payout_cbu?: string | null
+          payout_pix_key?: string | null
           professional_address?: string | null
           refeps_id?: string | null
+          rqe_number?: string | null
           schedule?: Json | null
           signature_image_url?: string | null
           signature_url?: string | null
@@ -6516,6 +6525,7 @@ export type Database = {
           stamp_url?: string | null
           subspecialty?: string | null
           timezone?: string
+          uf_brazil?: string | null
           updated_at?: string | null
           user_id?: string | null
           years_experience?: number | null
@@ -6530,6 +6540,7 @@ export type Database = {
           care_guide_template?: string | null
           certifications?: Json | null
           consultation_fee?: number | null
+          cpf?: string | null
           created_at?: string | null
           education?: Json | null
           enrollment_entity?: string | null
@@ -6538,10 +6549,13 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number?: string
+          license_type?: string | null
           payout_alias?: string | null
           payout_cbu?: string | null
+          payout_pix_key?: string | null
           professional_address?: string | null
           refeps_id?: string | null
+          rqe_number?: string | null
           schedule?: Json | null
           signature_image_url?: string | null
           signature_url?: string | null
@@ -6550,6 +6564,7 @@ export type Database = {
           stamp_url?: string | null
           subspecialty?: string | null
           timezone?: string
+          uf_brazil?: string | null
           updated_at?: string | null
           user_id?: string | null
           years_experience?: number | null

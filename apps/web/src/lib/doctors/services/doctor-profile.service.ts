@@ -62,6 +62,10 @@ export interface DoctorProfileInput {
   userId: string
   licenseNumber: string
   specialty: string
+  licenseType?: string | null
+  ufBrazil?: string | null
+  rqeNumber?: string | null
+  cpf?: string | null
   firstName?: string | null
   lastName?: string | null
   phone?: string | null
@@ -81,6 +85,7 @@ export interface DoctorProfileInput {
   professionalAddress?: string | null
   payoutCbu?: string | null
   payoutAlias?: string | null
+  payoutPixKey?: string | null
   signatureUrl?: string | null
   stampUrl?: string | null
   active?: boolean
@@ -125,6 +130,11 @@ export const doctorProfileService = {
     setIfDefined(doctorData, 'professional_address', input.professionalAddress)
     setIfDefined(doctorData, 'payout_cbu', input.payoutCbu)
     setIfDefined(doctorData, 'payout_alias', input.payoutAlias)
+    setIfDefined(doctorData as any, 'payout_pix_key', input.payoutPixKey) // eslint-disable-line @typescript-eslint/no-explicit-any
+    setIfDefined(doctorData as any, 'license_type', input.licenseType) // eslint-disable-line @typescript-eslint/no-explicit-any
+    setIfDefined(doctorData as any, 'uf_brazil', input.ufBrazil) // eslint-disable-line @typescript-eslint/no-explicit-any
+    setIfDefined(doctorData as any, 'rqe_number', input.rqeNumber) // eslint-disable-line @typescript-eslint/no-explicit-any
+    setIfDefined(doctorData as any, 'cpf', input.cpf) // eslint-disable-line @typescript-eslint/no-explicit-any
     setIfDefined(doctorData as any, 'signature_image_url', input.signatureUrl) // eslint-disable-line @typescript-eslint/no-explicit-any
     setIfDefined(doctorData as any, 'stamp_image_url', input.stampUrl) // eslint-disable-line @typescript-eslint/no-explicit-any
     setIfDefined(doctorData as any, 'signature_url', input.signatureUrl) // eslint-disable-line @typescript-eslint/no-explicit-any
