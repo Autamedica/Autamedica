@@ -29,7 +29,20 @@ function normalizeMatricula(value: unknown): string {
   return String(value ?? '').trim().replace(/[^A-Za-z0-9]/g, '').toUpperCase()
 }
 
-type Country = 'argentina' | 'other'
+const BRAZIL_UFS = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+  'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+  'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+] as const
+
+const URUGUAY_DEPARTMENTS = [
+  'Artigas', 'Canelones', 'Cerro Largo', 'Colonia', 'Durazno',
+  'Flores', 'Florida', 'Lavalleja', 'Maldonado', 'Montevideo',
+  'Paysandú', 'Río Negro', 'Rivera', 'Rocha', 'Salto',
+  'San José', 'Soriano', 'Tacuarembó', 'Treinta y Tres',
+] as const
+
+type Country = 'argentina' | 'brasil' | 'uruguay' | 'other'
 type LicenseValidationStatus = 'pending' | 'valid' | 'pending_review' | 'rejected' | 'exempt'
 
 type VerifyDoctorLicenseResponse = {
@@ -52,14 +65,19 @@ export function ProfileForm() {
   const [specialty, setSpecialty] = useState('')
   const [country, setCountry] = useState<Country>('argentina')
   const [province, setProvince] = useState('')
+  const [ufBrazil, setUfBrazil] = useState('')
+  const [departmentUy, setDepartmentUy] = useState('')
   const [otherRegion, setOtherRegion] = useState('')
   const [licenseNumber, setLicenseNumber] = useState('')
+  const [cpf, setCpf] = useState('')
+  const [rqeNumber, setRqeNumber] = useState('')
   const [refepsId, setRefepsId] = useState('')
   const [enrollmentEntity, setEnrollmentEntity] = useState('')
   const [professionalAddress, setProfessionalAddress] = useState('')
   const [consultationFee, setConsultationFee] = useState('')
   const [payoutCbu, setPayoutCbu] = useState('')
   const [payoutAlias, setPayoutAlias] = useState('')
+  const [payoutPixKey, setPayoutPixKey] = useState('')
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null)
   const [stampUrl, setStampUrl] = useState<string | null>(null)
   const [professionalDni, setProfessionalDni] = useState('')
@@ -111,6 +129,12 @@ export function ProfileForm() {
         if ((ARGENTINE_PROVINCES as readonly string[]).includes(jur)) {
           setCountry('argentina')
           setProvince(jur)
+        } else if ((BRAZIL_UFS as readonly string[]).includes(jur)) {
+          setCountry('brasil')
+          setUfBrazil(jur)
+        } else if ((URUGUAY_DEPARTMENTS as readonly string[]).includes(jur)) {
+          setCountry('uruguay')
+          setDepartmentUy(jur)
         } else {
           setCountry('other')
           setOtherRegion(jur)
@@ -119,13 +143,21 @@ export function ProfileForm() {
     }
   }, [doctor])
 
-  const region = country === 'argentina' ? province : otherRegion.trim()
+  const region = country === 'argentina' 
+    ? province 
+    : country === 'brasil' 
+      ? ufBrazil 
+      : country === 'uruguay' 
+        ? departmentUy 
+        : otherRegion.trim()
+
   const normalizedCbu = payoutCbu.replace(/\D/g, '')
   const normalizedFee = consultationFee.trim()
   const consultationFeeValue = normalizedFee === '' ? undefined : Number(consultationFee)
   const consultationFeeIsValid =
     normalizedFee === '' || (Number.isFinite(consultationFeeValue) && consultationFeeValue >= 0)
-  const payoutCbuIsValid = normalizedCbu === '' || normalizedCbu.length === 22
+  const payoutCbuIsValid = country !== 'argentina' || normalizedCbu === '' || normalizedCbu.length === 22
+  const payoutPixIsValid = country !== 'brasil' || payoutPixKey.trim() !== ''
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const profile = (doctor as any)?.profile
   const licenseValidationStatus = (
@@ -143,12 +175,14 @@ export function ProfileForm() {
   const currentLicenseNumber = normalizeMatricula(licenseNumber)
   const licenseMatchesSavedProfile = currentLicenseNumber !== '' && currentLicenseNumber === savedLicenseNumber
   const canVerifyLicense =
+    country === 'argentina' &&
     normalizedDni.length >= 7 &&
     normalizedDni.length <= 9 &&
     currentLicenseNumber.length >= 3 &&
     licenseMatchesSavedProfile &&
     licenseValidationStatus !== 'exempt' &&
     !isVerifyingLicense
+
   const canSubmit =
     firstName.trim() !== '' &&
     lastName.trim() !== '' &&
@@ -156,14 +190,15 @@ export function ProfileForm() {
     licenseNumber.trim().length >= 3 &&
     region !== '' &&
     consultationFeeIsValid &&
-    payoutCbuIsValid
+    payoutCbuIsValid &&
+    payoutPixIsValid
 
   async function handleVerifyLicense() {
-    if (!canVerifyLicense || !user) return
+    if (!canVerifyLicense) return
 
     setIsVerifyingLicense(true)
-    setVerificationMessage(null)
     setError(null)
+    setVerificationMessage(null)
 
     try {
       const supabase = getBrowserSupabaseClient()
@@ -213,6 +248,10 @@ export function ProfileForm() {
           last_name: lastName.trim() || undefined,
           phone: phone.trim() || undefined,
           license_number: licenseNumber.trim(),
+          license_type: country === 'brasil' ? 'CRM' : country === 'uruguay' ? 'MSP' : 'MN',
+          uf_brazil: country === 'brasil' ? ufBrazil : undefined,
+          rqe_number: rqeNumber.trim() || undefined,
+          cpf: cpf.trim() || undefined,
           specialty,
           refeps_id: refepsId.trim() || undefined,
           enrollment_entity: enrollmentEntity.trim() || undefined,
@@ -221,6 +260,7 @@ export function ProfileForm() {
           consultation_fee: normalizedFee === '' ? undefined : Math.round((consultationFeeValue || 0) * 100),
           payout_cbu: normalizedCbu || undefined,
           payout_alias: payoutAlias.trim() || undefined,
+          payout_pix_key: payoutPixKey.trim() || undefined,
           signature_url: signatureUrl || undefined,
           stamp_url: stampUrl || undefined,
           care_guide_template: careGuideTemplate,
@@ -350,7 +390,7 @@ export function ProfileForm() {
             {/* País */}
             <div>
               <label htmlFor="country" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-                País
+                País de Ejercicio Profesional
               </label>
               <select
                 id="country"
@@ -358,18 +398,22 @@ export function ProfileForm() {
                 onChange={(e) => {
                   setCountry(e.target.value as Country)
                   setProvince('')
+                  setUfBrazil('')
+                  setDepartmentUy('')
                   setOtherRegion('')
                 }}
                 className={inputClass}
                 disabled={isSubmitting}
               >
-                <option value="argentina">Argentina</option>
-                <option value="other">Otro país</option>
+                <option value="argentina">Argentina 🇦🇷</option>
+                <option value="brasil">Brasil 🇧🇷</option>
+                <option value="uruguay">Uruguay 🇺🇾</option>
+                <option value="other">Otro país 🌐</option>
               </select>
             </div>
 
-            {/* Provincia (Argentina) o Región (otro país) */}
-            {country === 'argentina' ? (
+            {/* Jurisdicción por País */}
+            {country === 'argentina' && (
               <div>
                 <label htmlFor="province" className="block text-sm font-medium text-am-surface-700 mb-1.5">
                   Provincia de Registro
@@ -387,7 +431,49 @@ export function ProfileForm() {
                   ))}
                 </select>
               </div>
-            ) : (
+            )}
+
+            {country === 'brasil' && (
+              <div>
+                <label htmlFor="ufBrazil" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  Estado / UF do CRM (Conselho Regional de Medicina)
+                </label>
+                <select
+                  id="ufBrazil"
+                  value={ufBrazil}
+                  onChange={(e) => setUfBrazil(e.target.value)}
+                  className={inputClass}
+                  disabled={isSubmitting}
+                >
+                  <option value="">Selecione o Estado (UF)</option>
+                  {BRAZIL_UFS.map((uf) => (
+                    <option key={uf} value={uf}>{uf}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {country === 'uruguay' && (
+              <div>
+                <label htmlFor="departmentUy" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  Departamento de Registro (Uruguay)
+                </label>
+                <select
+                  id="departmentUy"
+                  value={departmentUy}
+                  onChange={(e) => setDepartmentUy(e.target.value)}
+                  className={inputClass}
+                  disabled={isSubmitting}
+                >
+                  <option value="">Selecciona un departamento</option>
+                  {URUGUAY_DEPARTMENTS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {country === 'other' && (
               <div>
                 <label htmlFor="region" className="block text-sm font-medium text-am-surface-700 mb-1.5">
                   País / Región de Registro
@@ -404,37 +490,88 @@ export function ProfileForm() {
               </div>
             )}
 
-            {/* Número de matrícula y Entidad */}
+            {/* Número de matrícula y campos específicos por país */}
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <label htmlFor="license" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-                  Número de Matrícula
+                  {country === 'brasil' ? 'Número do CRM' : country === 'uruguay' ? 'Número de Registro MSP / Caja Profesional' : 'Número de Matrícula (MN / MP)'}
                 </label>
                 <input
                   type="text"
                   id="license"
                   value={licenseNumber}
                   onChange={(e) => setLicenseNumber(e.target.value)}
-                  placeholder="Ej: MP12345"
+                  placeholder={country === 'brasil' ? 'Ej: 123456' : country === 'uruguay' ? 'Ej: 98765' : 'Ej: MP12345'}
                   className={inputClass}
                   disabled={isSubmitting}
                 />
               </div>
-              <div>
-                <label htmlFor="enrollmentEntity" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-                  Entidad de Matrícula (opcional)
-                </label>
-                <input
-                  type="text"
-                  id="enrollmentEntity"
-                  value={enrollmentEntity}
-                  onChange={(e) => setEnrollmentEntity(e.target.value)}
-                  placeholder="Ej: Min. de Salud"
-                  className={inputClass}
-                  disabled={isSubmitting}
-                />
-              </div>
+
+              {country === 'brasil' ? (
+                <div>
+                  <label htmlFor="cpf" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                    CPF do Médico (11 dígitos)
+                  </label>
+                  <input
+                    type="text"
+                    id="cpf"
+                    value={cpf}
+                    onChange={(e) => setCpf(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                    placeholder="000.000.000-00"
+                    className={inputClass}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="enrollmentEntity" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                    Entidad de Matrícula (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    id="enrollmentEntity"
+                    value={enrollmentEntity}
+                    onChange={(e) => setEnrollmentEntity(e.target.value)}
+                    placeholder={country === 'uruguay' ? 'Ej: MSP / Facultad de Medicina' : 'Ej: Min. de Salud'}
+                    className={inputClass}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              )}
             </div>
+
+            {country === 'brasil' && (
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="rqeNumber" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                    RQE - Registro de Qualificação de Especialista (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    id="rqeNumber"
+                    value={rqeNumber}
+                    onChange={(e) => setRqeNumber(e.target.value)}
+                    placeholder="Ej: RQE 12345"
+                    className={inputClass}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="enrollmentEntityBr" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                    Conselho Regional Emissor (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    id="enrollmentEntityBr"
+                    value={enrollmentEntity}
+                    onChange={(e) => setEnrollmentEntity(e.target.value)}
+                    placeholder="Ej: CREMESP / CREMERJ"
+                    className={inputClass}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+            )}
 
             <section
               id="license-verification"
@@ -466,17 +603,21 @@ export function ProfileForm() {
                     </span>
                   </div>
                     <p className="mt-1 text-xs leading-relaxed text-am-surface-500">
-                      {licenseValidationStatus === 'exempt'
-                        ? 'Este perfil no requiere validación automática.'
-                        : 'Usamos tu matrícula y DNI profesional para validar el perfil.'}
+                      {country === 'brasil'
+                        ? 'Os registros CRM no Brasil são validados via consulta ao CFM / conferência documental.'
+                        : country === 'uruguay'
+                          ? 'Los registros MSP en Uruguay son auditados por el equipo médico.'
+                          : licenseValidationStatus === 'exempt'
+                            ? 'Este perfil no requiere validación automática.'
+                            : 'Usamos tu matrícula y DNI profesional para validar el perfil vía SISA / REFEPS.'}
                     </p>
-                  {!licenseMatchesSavedProfile && licenseValidationStatus !== 'exempt' && (
+                  {country === 'argentina' && !licenseMatchesSavedProfile && licenseValidationStatus !== 'exempt' && (
                     <p className="mt-2 text-xs leading-relaxed text-amber-700">
                       Guardá el perfil antes de validar si modificaste la matrícula.
                     </p>
                   )}
 
-                  {licenseValidationStatus !== 'exempt' && (
+                  {country === 'argentina' && licenseValidationStatus !== 'exempt' && (
                     <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
                       <div>
                         <label htmlFor="professionalDni" className="block text-sm font-medium text-am-surface-700 mb-1.5">
@@ -531,31 +672,33 @@ export function ProfileForm() {
             </section>
 
             {/* REFEPS e Institución */}
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <label htmlFor="refepsId" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-                  Nº de REFEPS (Requerido para emitir recetas)
-                </label>
-                <input
-                  type="text"
-                  id="refepsId"
-                  value={refepsId}
-                  onChange={(e) => setRefepsId(e.target.value)}
-                  placeholder="Registro de Establecimientos"
-                  className={inputClass}
-                  disabled={isSubmitting}
-                />
-              </div>
+            <div className={country === 'argentina' ? 'grid gap-5 sm:grid-cols-2' : 'grid gap-5'}>
+              {country === 'argentina' && (
+                <div>
+                  <label htmlFor="refepsId" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                    Nº de REFEPS (Requerido para emitir recetas en Arg)
+                  </label>
+                  <input
+                    type="text"
+                    id="refepsId"
+                    value={refepsId}
+                    onChange={(e) => setRefepsId(e.target.value)}
+                    placeholder="Registro de Establecimientos"
+                    className={inputClass}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              )}
               <div>
                 <label htmlFor="professionalAddress" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-                  Domicilio Profesional (Requerido para emitir recetas)
+                  Domicilio Profesional / Consultório
                 </label>
                 <input
                   type="text"
                   id="professionalAddress"
                   value={professionalAddress}
                   onChange={(e) => setProfessionalAddress(e.target.value)}
-                  placeholder="Dirección del consultorio"
+                  placeholder="Dirección del consultorio / Endereço"
                   className={inputClass}
                   disabled={isSubmitting}
                 />
@@ -571,54 +714,94 @@ export function ProfileForm() {
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <label htmlFor="consultationFee" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-                  Valor de consulta (ARS)
+                  Valor de consulta ({country === 'brasil' ? 'BRL R$' : country === 'uruguay' ? 'UYU $' : 'ARS $'})
                 </label>
                 <input
                   type="number"
                   id="consultationFee"
                   value={consultationFee}
                   onChange={(e) => setConsultationFee(e.target.value)}
-                  placeholder="Ej: 25000"
+                  placeholder={country === 'brasil' ? 'Ej: 150' : country === 'uruguay' ? 'Ej: 1800' : 'Ej: 25000'}
                   min="0"
                   step="0.01"
                   className={inputClass}
                   disabled={isSubmitting}
                 />
               </div>
+
+              {country === 'brasil' ? (
+                <div>
+                  <label htmlFor="payoutPixKey" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                    Chave Pix para recebimento
+                  </label>
+                  <input
+                    type="text"
+                    id="payoutPixKey"
+                    value={payoutPixKey}
+                    onChange={(e) => setPayoutPixKey(e.target.value)}
+                    placeholder="CPF, E-mail, Telefone ou Chave Aleatória"
+                    className={inputClass}
+                    disabled={isSubmitting}
+                  />
+                  <p className="mt-1 text-xs text-am-surface-500">
+                    Os repasses de consultas no Brasil são efetuados diretamente via Pix.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="payoutAlias" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                    Alias de cobro (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    id="payoutAlias"
+                    value={payoutAlias}
+                    onChange={(e) => setPayoutAlias(e.target.value)}
+                    placeholder="Ej: dr.garcia.consultas"
+                    className={inputClass}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              )}
+            </div>
+
+            {country === 'argentina' && (
               <div>
-                <label htmlFor="payoutAlias" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-                  Alias de cobro (opcional)
+                <label htmlFor="payoutCbu" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  CBU/CVU para cobros (Argentina)
                 </label>
                 <input
                   type="text"
-                  id="payoutAlias"
-                  value={payoutAlias}
-                  onChange={(e) => setPayoutAlias(e.target.value)}
-                  placeholder="Ej: dr.garcia.consultas"
+                  id="payoutCbu"
+                  value={payoutCbu}
+                  onChange={(e) => setPayoutCbu(e.target.value.replace(/[^\d]/g, '').slice(0, 22))}
+                  placeholder="22 dígitos"
+                  inputMode="numeric"
+                  className={inputClass}
+                  disabled={isSubmitting}
+                />
+                <p className="mt-1 text-xs text-am-surface-500">
+                  Guardamos sólo números. Si cargás CBU/CVU, tienen que ser 22 dígitos.
+                </p>
+              </div>
+            )}
+
+            {country === 'uruguay' && (
+              <div>
+                <label htmlFor="payoutCbuUy" className="block text-sm font-medium text-am-surface-700 mb-1.5">
+                  Cuenta Bancaria para transferencias (BROU / Itaú / Santander)
+                </label>
+                <input
+                  type="text"
+                  id="payoutCbuUy"
+                  value={payoutCbu}
+                  onChange={(e) => setPayoutCbu(e.target.value)}
+                  placeholder="Número de cuenta y banco"
                   className={inputClass}
                   disabled={isSubmitting}
                 />
               </div>
-            </div>
-
-            <div>
-              <label htmlFor="payoutCbu" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-                CBU/CVU para cobros
-              </label>
-              <input
-                type="text"
-                id="payoutCbu"
-                value={payoutCbu}
-                onChange={(e) => setPayoutCbu(e.target.value.replace(/[^\d]/g, '').slice(0, 22))}
-                placeholder="22 dígitos"
-                inputMode="numeric"
-                className={inputClass}
-                disabled={isSubmitting}
-              />
-              <p className="mt-1 text-xs text-am-surface-500">
-                Guardamos sólo números. Si cargás CBU/CVU, tienen que ser 22 dígitos.
-              </p>
-            </div>
+            )}
 
             {!consultationFeeIsValid && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -626,7 +809,7 @@ export function ProfileForm() {
               </div>
             )}
 
-            {!payoutCbuIsValid && (
+            {country === 'argentina' && !payoutCbuIsValid && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                 El CBU/CVU tiene que tener exactamente 22 dígitos.
               </div>
