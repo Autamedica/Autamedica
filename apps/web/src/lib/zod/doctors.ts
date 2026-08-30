@@ -22,6 +22,14 @@ const JsonValue: z.ZodType = z.lazy(() =>
 
 export const CreateDoctorProfileSchema = z.object({
   license_number: z.string().trim().min(1, 'license_number is required'),
+  license_type: z.enum(['MN', 'MP', 'CRM', 'CRO', 'CRF', 'RMS']).default('MN').optional(),
+  uf_brazil: z.enum([
+    'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA',
+    'MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN',
+    'RS','RO','RR','SC','SP','SE','TO'
+  ]).optional(),
+  rqe_number: z.string().trim().optional(),
+  cpf: z.string().trim().regex(/^\d{11}$/, 'CPF deve conter exatamente 11 dígitos').optional(),
   specialty: z.string().trim().min(1, 'specialty is required'),
   subspecialty: z.string().trim().nullable().optional(),
   years_experience: z.number().int().min(0).max(80).nullable().optional(),
@@ -34,6 +42,7 @@ export const CreateDoctorProfileSchema = z.object({
   languages: JsonValue.nullable().optional(),
   payout_cbu: z.string().trim().regex(/^\d{22}$/).nullable().optional(),
   payout_alias: z.string().trim().min(3).max(100).nullable().optional(),
+  payout_pix_key: z.string().trim().optional(),
   active: z.boolean().optional().default(true),
   fullName: z.string().trim().min(1).optional(),
   full_name: z.string().trim().min(1).optional(),
@@ -42,4 +51,5 @@ export const CreateDoctorProfileSchema = z.object({
 export const DoctorOnboardingCompleteSchema = z.object({
   first_name: z.string().trim().min(1).optional(),
   last_name: z.string().trim().min(1).optional(),
+  cpf: z.string().trim().regex(/^\d{11}$/).optional(),
 })
