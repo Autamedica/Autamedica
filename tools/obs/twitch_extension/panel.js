@@ -1,14 +1,14 @@
 // Javascript Corporativo AutaMedica — Twitch Panel Extension
 // Consulta en tiempo real de Supabase la tabla juegos_leaderboard
 
-const SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4ampycGtzbXd3cm11Ymh2amV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTA0NjgsImV4cCI6MjA4Nzk2NjQ2OH0.Cnb_sTp_C3FYFF19YQfHTfyMiFFMN0aw2Xj0hUU-aa0';
+const SUPABASE_URL = window?.SUPABASE_URL || 'https://qxjjrpksmwwrmubhvjew.supabase.co';
+const SUPABASE_ANON_KEY = window?.SUPABASE_ANON_KEY || '';
 
 const listContainer = document.getElementById('leaderboard-list');
 
 // Inicializa Twitch Extension Helper si está disponible
 if (window.Twitch && window.Twitch.ext) {
-    window.Twitch.ext.onAuthorized((auth) => {
+    window.Twitch.ext.onAuthorized((_auth) => {
         // En extensiones de Twitch, podemos usar la información de autorización si es necesario
         // Por ahora, cargamos de forma libre ya que el leaderboard es público
         loadLeaderboard();

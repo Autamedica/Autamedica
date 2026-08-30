@@ -125,7 +125,7 @@ export default function TdahCrossword() {
   const fetchLeaderboard = async () => {
     try {
       const { data, error } = await supabase
-        .from('juegos_leaderboard')
+        .from('juegos_leaderboard' as never)
         .select('*')
         .eq('juego_id', 'tdah')
         .order('tiempo_segundos', { ascending: true })
@@ -145,7 +145,7 @@ export default function TdahCrossword() {
     setIsSaving(true);
     try {
       const { error } = await supabase
-        .from('juegos_leaderboard')
+        .from('juegos_leaderboard' as never)
         .insert([
           {
             nombre: playerName.trim(),

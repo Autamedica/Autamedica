@@ -148,7 +148,7 @@ function resolveEnv(name: string): string | undefined {
     return 'https://qxjjrpksmwwrmubhvjew.supabase.co'
   }
   if (name === 'PUBLIC_SUPABASE_ANON_KEY' || name === 'NEXT_PUBLIC_SUPABASE_ANON_KEY' || name === 'SUPABASE_ANON_KEY') {
-    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4ampycGtzbXd3cm11Ymh2amV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTA0NjgsImV4cCI6MjA4Nzk2NjQ2OH0.Cnb_sTp_C3FYFF19YQfHTfyMiFFMN0aw2Xj0hUU-aa0'
+    return (globalThis as Record<string, unknown>)?.__PUBLIC_SUPABASE_ANON_KEY as string | undefined
   }
 
   return undefined
