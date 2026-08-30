@@ -237,14 +237,14 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const greeting = hasHydrated ? getGreeting(dict) : (dict.patientPortal.greetings.hello ?? 'Hola')
 
   const services = useMemo(() => [
-    { icon: Coins, label: dict.patientPortal.services.planning, href: '/patients/reserva-saude' },
+    { icon: Coins, label: dict.patientPortal.services.subscription, href: '/patients/reserva-saude' },
     { icon: Video, label: dict.patientPortal.services.onlineDoctor, href: '/patients/appointments?type=telemedicine' },
     { icon: Calendar, label: dict.patientPortal.services.mySchedule, href: '/patients/appointments' },
     { icon: FileText, label: dict.patientPortal.services.myPrescriptions, href: '/patients/medical-history' },
     { icon: Heart, label: dict.patientPortal.services.myHistory, href: '/patients/anamnesis' },
     { icon: Brain, label: dict.patientPortal.services.mentalHealth, href: '/patients/psychiatry' },
     { icon: Shield, label: dict.patientPortal.services.prevention, href: '/patients/preventive-health' },
-    { icon: Heart, label: dict.patientPortal.services.planning, href: '/patients/reproductive-health' },
+    { icon: Heart, label: dict.patientPortal.services.reproductiveHealth, href: '/patients/reproductive-health' },
     { icon: Users, label: dict.patientPortal.services.community, href: '/patients/community' },
   ], [dict])
 
