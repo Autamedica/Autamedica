@@ -13,7 +13,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const admin = createAstroAdminClient(locals?.runtime?.env);
     const { data: doctor, error } = await admin
       .from('doctors')
-      .select('id, user_id, active, license_number, uf_brazil, cpf, first_name, last_name, profiles(first_name, last_name, email, phone)')
+      .select('id, user_id, active, license_number, uf_brazil, cpf, profiles(first_name, last_name, email, phone)')
       .eq('user_id', auth.user.id)
       .maybeSingle();
 
@@ -22,14 +22,14 @@ export const GET: APIRoute = async ({ request, locals }) => {
       return internalError();
     }
 
-    if (!doctor || !doctor.active) {
+    if (!doctor?.active) {
       return forbidden('doctor_profile_required');
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const profile = (doctor as any).profiles;
-    const nome = doctor.first_name || profile?.first_name || 'Médico';
-    const sobrenome = doctor.last_name || profile?.last_name || 'AutaMedica';
+    const nome = profile?.first_name || 'Médico';
+    const sobrenome = profile?.last_name || 'AutaMedica';
     const crm = doctor.license_number || '123456';
     const uf = doctor.uf_brazil || 'SP';
     const cpf = doctor.cpf || '00000000000';
