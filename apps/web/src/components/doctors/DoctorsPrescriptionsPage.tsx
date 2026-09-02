@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { DoctorsPortalFrame } from "@/components/doctors/DoctorsPortalFrame";
 import { PrescriptionCreateModal } from "@/components/doctors/medical/PrescriptionCreateModal";
+import { MemedPrescriptionWidget } from "@/components/doctors/medical/MemedPrescriptionWidget";
 import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import { usePrescriptionsCore } from "@/hooks/doctors/usePrescriptionsCore";
 import type { IssuedPrescription } from "@autamedica/prescriptions";
@@ -212,6 +213,7 @@ export function DoctorsPrescriptionsPage() {
 
   // UI state
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showMemedWidget, setShowMemedWidget] = useState(false);
   const [editingPrescription, setEditingPrescription] = useState<IssuedPrescription | null>(null);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<IssuedPrescription | null>(null);
@@ -319,13 +321,22 @@ export function DoctorsPrescriptionsPage() {
                 : "Creá una receta para un paciente de la plataforma o cargá sus datos manualmente"}
             </p>
           </div>
-          <button
-            onClick={() => { setEditingPrescription(null); setShowCreateModal(true); }}
-            className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-neutral-800 active:scale-[0.97]"
-          >
-            <Plus className="h-4 w-4" />
-            Nueva receta
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setEditingPrescription(null); setShowMemedWidget(true); }}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.97]"
+            >
+              <Plus className="h-4 w-4" />
+              Receta BR (ICP)
+            </button>
+            <button
+              onClick={() => { setEditingPrescription(null); setShowCreateModal(true); }}
+              className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-neutral-800 active:scale-[0.97]"
+            >
+              <Plus className="h-4 w-4" />
+              Nueva receta
+            </button>
+          </div>
         </motion.div>
 
         {/* ── Patient Selector ── */}
@@ -623,6 +634,22 @@ export function DoctorsPrescriptionsPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* ── Memed Widget ── */}
+      {showMemedWidget && (
+        <MemedPrescriptionWidget
+          doctorCrm="123456" // Emulated or fetched from context
+          doctorUf="SP"
+          patientName={selectedPatientId ? "Paciente Selecionado" : "Paciente Novo"}
+          patientCpf="000.000.000-00"
+          onPrescriptionSaved={(memedId) => {
+            console.log("Prescrição Memed salva com ID:", memedId);
+            setShowMemedWidget(false);
+            refresh();
+          }}
+          onClose={() => setShowMemedWidget(false)}
+        />
+      )}
     </DoctorsPortalFrame>
   );
 }
