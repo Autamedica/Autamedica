@@ -16,11 +16,11 @@ SELECT
   COUNT(a.id) AS total_appointments,
   COUNT(CASE WHEN a.status = 'completed' THEN 1 END) AS completed_appointments,
   COUNT(CASE WHEN p.status = 'approved' THEN 1 END) AS paid_appointments,
-  SUM(CASE WHEN p.status = 'approved' THEN p.amount_cents ELSE 0 END) / 100.0 AS total_revenue,
+  SUM(CASE WHEN p.status = 'approved' THEN p.gross_amount ELSE 0 END) / 100.0 AS total_revenue,
   -- AutaMedica fee 5%
-  SUM(CASE WHEN p.status = 'approved' THEN (p.amount_cents * 0.05) ELSE 0 END) / 100.0 AS autamedica_fee,
+  SUM(CASE WHEN p.status = 'approved' THEN (p.gross_amount * 0.05) ELSE 0 END) / 100.0 AS autamedica_fee,
   -- Clinic/Doctor gets 95%
-  SUM(CASE WHEN p.status = 'approved' THEN (p.amount_cents * 0.95) ELSE 0 END) / 100.0 AS clinic_revenue
+  SUM(CASE WHEN p.status = 'approved' THEN (p.gross_amount * 0.95) ELSE 0 END) / 100.0 AS clinic_revenue
 FROM public.appointments a
 JOIN public.doctors d ON a.doctor_id = d.id
 JOIN public.clinics c ON c.id = d.clinic_id

@@ -227,7 +227,7 @@ BEGIN
     PERFORM cron.schedule(
       'autamedica-monthly-reserve-accrual',
       '5 0 1 * *', -- El día 1 de cada mes a las 00:05 UTC
-      $$ SELECT public.process_all_monthly_reserve_accruals(); $$
+      $cron$ SELECT public.process_all_monthly_reserve_accruals(); $cron$
     );
   END IF;
 EXCEPTION
