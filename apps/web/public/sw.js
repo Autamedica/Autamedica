@@ -50,13 +50,17 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // 1. Ignorar llamadas a Supabase Realtime, autenticación externa, Edge Functions directas o analíticas de terceros
+  // 1. Ignorar llamadas a Supabase, Edge Functions directas, extensiones de navegador y analíticas de terceros
   if (
-    url.hostname.includes('supabase.co') ||
     request.method !== 'GET' ||
+    !(url.protocol === 'http:' || url.protocol === 'https:') ||
+    url.hostname.includes('supabase.co') ||
     url.pathname.includes('/api/auth') ||
     url.pathname.includes('/realtime/') ||
-    url.hostname.includes('google-analytics.com')
+    url.hostname.includes('google-analytics.com') ||
+    url.hostname.includes('googleadservices.com') ||
+    url.hostname.includes('doubleclick.net') ||
+    url.hostname.includes('google.com')
   ) {
     return;
   }
