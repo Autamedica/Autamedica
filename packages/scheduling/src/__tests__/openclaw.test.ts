@@ -3,7 +3,9 @@ import {
   buildReminder24h,
   buildReminder2h,
   buildWaitlistOffer,
+  buildFollowup48h,
   parsePatientResponse,
+  parseFollowup48hResponse,
 } from '../openclaw';
 import type { ReminderMessageData } from '../openclaw';
 
@@ -109,3 +111,63 @@ describe('parsePatientResponse', () => {
     expect(parsePatientResponse('\ncancelo\n')).toBe('cancelled');
   });
 });
+
+describe('buildFollowup48h', () => {
+  it('generates correct ES-LATAM copy according to Line 4 of Eduardo', () => {
+    const msg = buildFollowup48h({
+      patientName: 'Martha',
+      doctorName: 'Dr. Bruno',
+      lang: 'es',
+    });
+    expect(msg).toBe(
+      'Hola Martha, te contactamos de parte del Dr. Bruno por AutaMedica. ¿Cómo te venís sintiendo tras iniciar el tratamiento? Respondé: 1 - Mejor | 2 - Igual | 3 - Peor',
+    );
+  });
+
+  it('generates correct PT-BR copy according to Line 4 of Eduardo', () => {
+    const msg = buildFollowup48h({
+      patientName: 'Martha',
+      doctorName: 'Dr. Bruno',
+      lang: 'pt-br',
+    });
+    expect(msg).toBe(
+      'Olá Martha, aqui é a equipe médica do Dr. Bruno pela AutaMedica. Passando para checar: como você está se sentindo hoje após o início do tratamento? Responda com: 1 - Melhor | 2 - Igual | 3 - Pior',
+    );
+  });
+
+  it('handles doctorName without Dr. prefix gracefully', () => {
+    const msg = buildFollowup48h({
+      patientName: 'Eduardo',
+      doctorName: 'Silva',
+      lang: 'es',
+    });
+    expect(msg).toContain('Dr. Silva');
+  });
+});
+
+describe('parseFollowup48hResponse', () => {
+  it('correctly maps 1, mejor, melhor to better', () => {
+    expect(parseFollowup48hResponse('1')).toBe('better');
+    expect(parseFollowup48hResponse('Mejor')).toBe('better');
+    expect(parseFollowup48hResponse('estoy mejor')).toBe('better');
+    expect(parseFollowup48hResponse('melhor')).toBe('better');
+  });
+
+  it('correctly maps 2, igual to same', () => {
+    expect(parseFollowup48hResponse('2')).toBe('same');
+    expect(parseFollowup48hResponse('igual')).toBe('same');
+    expect(parseFollowup48hResponse('Sigo igual')).toBe('same');
+  });
+
+  it('correctly maps 3, peor, pior to worse', () => {
+    expect(parseFollowup48hResponse('3')).toBe('worse');
+    expect(parseFollowup48hResponse('peor')).toBe('worse');
+    expect(parseFollowup48hResponse('Me siento peor')).toBe('worse');
+    expect(parseFollowup48hResponse('pior')).toBe('worse');
+  });
+
+  it('returns null for unknown input', () => {
+    expect(parseFollowup48hResponse('gracias')).toBeNull();
+  });
+});
+

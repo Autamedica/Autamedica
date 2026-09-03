@@ -27,6 +27,18 @@ export type DomainEvents = {
     cancelledBy: 'doctor' | 'patient'
     reason?: string
   }
+  'appointment.followup_48h': {
+    appointmentId?: string
+    callId?: string
+    doctorId: string
+    patientId: string
+    patientName: string
+    doctorName: string
+    patientPhone: string
+    scheduledFor: string
+    message: string
+    lang: 'es' | 'pt-br'
+  }
 
   // Anamnesis
   'anamnesis.started': {

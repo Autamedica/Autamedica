@@ -184,6 +184,45 @@ export function buildWaitlistOffer(data: {
   ].join('\n');
 }
 
+export interface Followup48hData {
+  patientName: string;
+  doctorName: string;
+  lang?: 'es' | 'pt' | 'pt-br' | string;
+}
+
+/**
+ * Genera el mensaje de seguimiento clínico a 48 horas post-consulta (Línea 4 de Eduardo).
+ */
+export function buildFollowup48h(data: Followup48hData): string {
+  const patientName = data.patientName?.trim() || 'paciente';
+  const cleanDoctor = (data.doctorName || '').trim().replace(/^(dr\.|dra\.|dr|dra)\s+/i, '');
+  const doctorName = cleanDoctor || data.doctorName?.trim() || 'Médico';
+  const lang = (data.lang || 'es').toLowerCase();
+  const isPt = lang.startsWith('pt') || lang === 'br';
+
+  if (isPt) {
+    return `Olá ${patientName}, aqui é a equipe médica do Dr. ${doctorName} pela AutaMedica. Passando para checar: como você está se sentindo hoje após o início do tratamento? Responda com: 1 - Melhor | 2 - Igual | 3 - Pior`;
+  }
+
+  return `Hola ${patientName}, te contactamos de parte del Dr. ${doctorName} por AutaMedica. ¿Cómo te venís sintiendo tras iniciar el tratamiento? Respondé: 1 - Mejor | 2 - Igual | 3 - Peor`;
+}
+
+/**
+ * Parsea la respuesta del paciente al seguimiento a 48 horas.
+ */
+export function parseFollowup48hResponse(message: string): 'better' | 'same' | 'worse' | null {
+  const normalized = message
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (normalized === '1' || normalized.includes('mejor') || normalized.includes('melhor')) return 'better';
+  if (normalized === '2' || normalized.includes('igual')) return 'same';
+  if (normalized === '3' || normalized.includes('peor') || normalized.includes('pior')) return 'worse';
+  return null;
+}
+
 /**
  * Parsea la respuesta del paciente a un recordatorio.
  */

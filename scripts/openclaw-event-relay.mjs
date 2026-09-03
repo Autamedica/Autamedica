@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import http from 'node:http'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 
@@ -26,11 +28,37 @@ const RATE_LIMIT_MAX = Number(process.env.OPENCLAW_EVENT_RELAY_RATE_MAX || '60')
 const ALLOWED_EVENTS = new Set([
   'appointment.payment_approved',
   'appointment.payment_confirmed_patient',
+  'appointment.completed',
+  'appointment.followup_48h',
   'prescription.issued',
   'dispatch.offer',
   'dispatch.escalated',
   'anamnesis.reminder',
 ])
+
+/**
+ * Formateador de mensaje para seguimiento clínico a 48 horas post-consulta (Línea 4 de Eduardo).
+ * Soporta PT-BR y ES-LATAM.
+ *
+ * @param {Object} [params]
+ * @param {string} [params.patientName]
+ * @param {string} [params.doctorName]
+ * @param {string} [params.lang]
+ * @returns {string}
+ */
+export function formatFollowup48hMessage({ patientName, doctorName, lang = 'es' } = {}) {
+  const pName = (patientName || 'paciente').trim()
+  const cleanDoctor = String(doctorName || '').trim().replace(/^(dr\.|dra\.|dr|dra)\s+/i, '')
+  const dName = cleanDoctor || String(doctorName || '').trim() || 'Médico'
+  const normalizedLang = String(lang || '').toLowerCase()
+  const isPt = normalizedLang.startsWith('pt') || normalizedLang === 'br'
+
+  if (isPt) {
+    return `Olá ${pName}, aqui é a equipe médica do Dr. ${dName} pela AutaMedica. Passando para checar: como você está se sentindo hoje após o início do tratamento? Responda com: 1 - Melhor | 2 - Igual | 3 - Pior`
+  }
+
+  return `Hola ${pName}, te contactamos de parte del Dr. ${dName} por AutaMedica. ¿Cómo te venís sintiendo tras iniciar el tratamiento? Respondé: 1 - Mejor | 2 - Igual | 3 - Peor`
+}
 
 const buckets = new Map()
 
@@ -150,7 +178,14 @@ async function handleSend(req, res) {
   const channel = String(body.channel || DEFAULT_CHANNEL)
   const accountId = String(body.accountId || DEFAULT_ACCOUNT)
   const to = cleanPhone(body.to)
-  const message = String(body.message || '').trim()
+  let message = String(body.message || '').trim()
+
+  if (event === 'appointment.followup_48h') {
+    const patientName = body.patientName || body.data?.patientName || ''
+    const doctorName = body.doctorName || body.data?.doctorName || ''
+    const lang = body.lang || body.locale || body.data?.lang || body.data?.locale || 'es'
+    message = formatFollowup48hMessage({ patientName, doctorName, lang })
+  }
 
   if (!ALLOWED_EVENTS.has(event)) return json(res, 400, { ok: false, error: 'invalid_event' })
   if (channel !== 'whatsapp') return json(res, 400, { ok: false, error: 'invalid_channel' })
@@ -185,7 +220,18 @@ const server = http.createServer((req, res) => {
     })
 })
 
-server.listen(PORT, HOST, () => {
-  console.log(`[openclaw-event-relay] listening on http://${HOST}:${PORT}`)
-  console.log(`[openclaw-event-relay] authorize URL: ${AUTHORIZE_URL}`)
-})
+const isDirectExecution = Boolean(
+  process.argv[1] && (
+    fileURLToPath(import.meta.url) === path.resolve(process.argv[1]) ||
+    process.argv[1].endsWith('openclaw-event-relay.mjs')
+  )
+)
+
+if (isDirectExecution) {
+  server.listen(PORT, HOST, () => {
+    console.log(`[openclaw-event-relay] listening on http://${HOST}:${PORT}`)
+    console.log(`[openclaw-event-relay] authorize URL: ${AUTHORIZE_URL}`)
+  })
+}
+
+export { server, ALLOWED_EVENTS }
