@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
-import { badRequest, internalError, jsonOk, unauthorized } from '@/lib/api-helpers'
+import { badRequest, forbidden, internalError, jsonOk, unauthorized } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
@@ -74,25 +74,41 @@ export const POST: APIRoute = async ({ request, locals }) => {
     let doctorId: string | null = null
 
     if (type === 'appointment') {
-      if (!appointmentId) return badRequest('appointment_id_required')
+      if (appointmentId) {
+        const { data: apt, error: aptError } = await admin
+          .from('appointments')
+          .select('id, patient_id, doctor_id, doctor:doctors!appointments_doctor_id_fkey(consultation_fee)')
+          .eq('id', appointmentId)
+          .maybeSingle()
 
-      const { data: apt, error: aptError } = await admin
-        .from('appointments')
-        .select('id, doctor_id, doctor:doctors!appointments_doctor_id_fkey(consultation_fee)')
-        .eq('id', appointmentId)
-        .maybeSingle()
+        if (!apt) {
+          logger.error('[pix/create] appointment lookup failed', { appointmentId, aptError })
+          return badRequest('appointment_not_found')
+        }
 
-      if (aptError || !apt) {
-        logger.error('[pix/create] appointment lookup failed', { appointmentId, aptError })
-        return badRequest('appointment_not_found')
+        const aptData = apt as {
+          id: string
+          patient_id?: string | null
+          doctor_id: string
+          doctor?: { consultation_fee?: number | null } | null
+        }
+
+        if (aptData.patient_id && aptData.patient_id !== patientContext.patientId) {
+          return forbidden('appointment_belongs_to_another_patient')
+        }
+
+        doctorId = aptData.doctor_id
+        const doctorFee = aptData.doctor?.consultation_fee ?? 15000
+        amountBrl = doctorFee / 100
+        description = 'AutaMedica Brasil - Teleconsulta Médica'
+        externalReference = `apt:${appointmentId}`
+      } else if (body.amountCents) {
+        amountBrl = Math.max(10, body.amountCents / 100)
+        description = 'AutaMedica Brasil - Teleconsulta Médica Particular'
+        externalReference = `particular:${patientContext.patientId}`
+      } else {
+        return badRequest('appointment_id_required')
       }
-
-      doctorId = (apt as { doctor_id: string }).doctor_id
-      const doctorData = (apt as { doctor?: { consultation_fee?: number | null } | null }).doctor
-      const feeCents = doctorData?.consultation_fee ?? 4900
-      amountBrl = feeCents / 100
-      description = 'AutaMedica Brasil - Teleconsulta Médica'
-      externalReference = `apt:${appointmentId}`
       expirationMinutes = 60 // 1 hora (60 minutos)
     } else if (type === 'wallet_topup') {
       const topupCents = body.amountCents ?? 5000

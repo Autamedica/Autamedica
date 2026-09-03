@@ -1,6 +1,7 @@
 import type { Database } from '@autamedica/types';
 import { domainEvents, logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
+import { followupScheduleService } from '@/lib/calls/services/followup-schedule.service';
 
 type TriggerAudience = 'doctor' | 'patient';
 type TriggerCategory = 'appointment' | 'report' | 'community' | 'system';
@@ -386,6 +387,16 @@ function registerNotificationTriggers() {
       dedupeKey: `event:consultation.report_generated:${consultationId}`,
       contextData: { consultationId, doctorId, patientId, reportUrl: reportUrl ?? null },
     });
+  });
+
+  domainEvents.on('call.ended', async ({ callId, roomId, durationSeconds }) => {
+    logger.info('[notificationTriggers] Received call.ended domain event', { callId, roomId, durationSeconds });
+    try {
+      const admin = getAdminClient();
+      await followupScheduleService.schedule48hFollowup(admin, { callId });
+    } catch (err) {
+      logger.error('[notificationTriggers] Failed to schedule 48h followup on call.ended', { callId, error: err });
+    }
   });
 }
 

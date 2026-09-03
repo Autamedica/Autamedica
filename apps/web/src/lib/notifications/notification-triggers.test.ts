@@ -1,31 +1,34 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { followupScheduleService } from '@/lib/calls/services/followup-schedule.service';
 
-type Handler = (payload: unknown) => unknown | Promise<unknown>;
-
-const handlers = new Map<string, Set<Handler>>();
-
-const fakeBus = {
-  on(event: string, handler: Handler) {
-    let set = handlers.get(event);
-    if (!set) {
-      set = new Set();
-      handlers.set(event, set);
-    }
-    set.add(handler);
-    return () => set?.delete(handler);
-  },
-  off(event: string, handler: Handler) {
-    handlers.get(event)?.delete(handler);
-  },
-  async emit(event: string, payload: unknown) {
-    const listeners = handlers.get(event);
-    if (!listeners || listeners.size === 0) return;
-    await Promise.all([...listeners].map((h) => h(payload)));
-  },
-  clear() {
-    handlers.clear();
-  },
-};
+const { fakeBus } = vi.hoisted(() => {
+  type Handler = (payload: unknown) => unknown | Promise<unknown>;
+  const handlers = new Map<string, Set<Handler>>();
+  return {
+    fakeBus: {
+      on(event: string, handler: Handler) {
+        let set = handlers.get(event);
+        if (!set) {
+          set = new Set();
+          handlers.set(event, set);
+        }
+        set.add(handler);
+        return () => set?.delete(handler);
+      },
+      off(event: string, handler: Handler) {
+        handlers.get(event)?.delete(handler);
+      },
+      async emit(event: string, payload: unknown) {
+        const listeners = handlers.get(event);
+        if (!listeners || listeners.size === 0) return;
+        await Promise.all([...listeners].map((h) => h(payload)));
+      },
+      clear() {
+        handlers.clear();
+      },
+    },
+  };
+});
 
 vi.mock('@autamedica/shared', () => ({
   domainEvents: fakeBus,
@@ -151,5 +154,20 @@ describe('appointment.cancelled notification trigger', () => {
     const doctorNotif = notifs.find((row) => row.audience === 'doctor');
     expect(String(doctorNotif?.body)).toContain('Ana Paciente');
     expect(String(doctorNotif?.body)).not.toContain('Motivo:');
+  });
+
+  it('ejecuta la programación del seguimiento a 48h cuando se emite call.ended', async () => {
+    const spy = vi.spyOn(followupScheduleService, 'schedule48hFollowup').mockResolvedValue({
+      ok: true,
+      callId: 'call-ended-1',
+    } as any);
+
+    await fakeBus.emit('call.ended', {
+      callId: 'call-ended-1',
+      roomId: 'room-1',
+      durationSeconds: 900,
+    });
+
+    expect(spy).toHaveBeenCalledWith(expect.anything(), { callId: 'call-ended-1' });
   });
 });

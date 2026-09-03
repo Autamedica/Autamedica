@@ -17,3 +17,14 @@ export function formatArsFromCents(amountCents: number | null | undefined): stri
     maximumFractionDigits: 0,
   }).format(centsToMajorUnit(amountCents))
 }
+
+export function formatBrlFromCents(amountCents: number | null | undefined): string {
+  if (amountCents == null || amountCents <= 0) return 'R$ 0,00'
+
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(centsToMajorUnit(amountCents))
+}

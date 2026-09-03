@@ -67,13 +67,16 @@ export {
   buildReminder24h,
   buildReminder2h,
   buildWaitlistOffer,
+  buildFollowup48h,
   parsePatientResponse,
+  parseFollowup48hResponse,
   DEFAULT_OPENCLAW_CONFIG,
 } from './openclaw';
 
 export type {
   OpenClawConfig,
   ReminderMessageData,
+  Followup48hData,
 } from './openclaw';
 
 // Reminder worker
