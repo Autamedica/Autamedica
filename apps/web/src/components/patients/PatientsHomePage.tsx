@@ -348,7 +348,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     return doctors.map((doc) => ({
       id: doc.id,
       name: doc.label,
-      photoUrl: doc.avatar_url || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400&h=500',
+      photoUrl: doc.avatar_url?.trim() ? doc.avatar_url : undefined,
       specialty: doc.specialty || (locale === 'pt' ? 'Clínico Geral' : 'Médico General'),
       city: doc.license_pills?.[0]?.jurisdiction,
       matricula: doc.license_number || '',

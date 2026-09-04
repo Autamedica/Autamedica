@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ShieldCheck, Lock, Activity, HeartPulse } from 'lucide-react';
 import { DoctorCard } from './DoctorCard';
@@ -20,6 +20,57 @@ export function AvailableDoctorsCarousel({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [dotsCount, setDotsCount] = useState(1);
+  const [isPaused, setIsPaused] = useState(false);
+  const touchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Ensure enough items to create a continuous seamless scroll on any screen size
+  const displayDoctors = useMemo(() => {
+    if (!doctors || doctors.length === 0) return [];
+    let base = [...doctors];
+    while (base.length < 8) {
+      base = [...base, ...doctors];
+    }
+    return [...base, ...base];
+  }, [doctors]);
+
+  // Smooth continuous horizontal displacement (pauses on hover/touch)
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || isPaused || isLoading || displayDoctors.length === 0) return;
+
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    let animationFrameId: number;
+    let lastTime: number | null = null;
+    let currentScroll = container.scrollLeft;
+    const speedPxPerSec = 30; // Smooth, readable glide
+
+    const step = (time: number) => {
+      if (lastTime === null) {
+        lastTime = time;
+      }
+      const elapsed = Math.min((time - lastTime) / 1000, 0.1);
+      lastTime = time;
+
+      if (container) {
+        const halfWidth = container.scrollWidth / 2;
+        if (halfWidth > 0) {
+          currentScroll += speedPxPerSec * elapsed;
+          if (currentScroll >= halfWidth) {
+            currentScroll -= halfWidth;
+          }
+          container.scrollLeft = currentScroll;
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(step);
+    };
+
+    animationFrameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isPaused, isLoading, displayDoctors.length]);
 
   // Update dots count on resize
   useEffect(() => {
@@ -33,27 +84,47 @@ export function AvailableDoctorsCarousel({
     return () => window.removeEventListener('resize', updateDots);
   }, [doctors.length]);
 
+  const pauseTemporarily = (durationMs = 2200) => {
+    setIsPaused(true);
+    if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+    touchTimeoutRef.current = setTimeout(() => {
+      setIsPaused(false);
+    }, durationMs);
+  };
+
   const handleNext = () => {
+    pauseTemporarily(2200);
     if (!scrollRef.current) return;
     const container = scrollRef.current;
     const scrollAmount = compact ? 335 : 324;
-    const isEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 10;
-    
-    if (isEnd) {
-      container.scrollTo({ left: 0, behavior: 'smooth' });
-      setActiveIndex(0);
-    } else {
-      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-      setActiveIndex((prev) => Math.min(prev + 1, dotsCount - 1));
+    const halfWidth = container.scrollWidth / 2;
+    container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    if (halfWidth > 0 && container.scrollLeft >= halfWidth) {
+      container.scrollLeft -= halfWidth;
     }
+    setActiveIndex((prev) => (prev + 1) % dotsCount);
   };
 
   const handlePrev = () => {
+    pauseTemporarily(2200);
     if (!scrollRef.current) return;
     const container = scrollRef.current;
     const scrollAmount = compact ? 335 : 324;
+    const halfWidth = container.scrollWidth / 2;
+    if (halfWidth > 0 && container.scrollLeft <= 0) {
+      container.scrollLeft += halfWidth;
+    }
     container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-    setActiveIndex((prev) => Math.max(prev - 1, 0));
+    setActiveIndex((prev) => (prev - 1 + dotsCount) % dotsCount);
+  };
+
+  const onMouseEnter = () => setIsPaused(true);
+  const onMouseLeave = () => setIsPaused(false);
+  const onTouchStart = () => {
+    pauseTemporarily(1800);
+  };
+  const onTouchEnd = () => {
+    pauseTemporarily(1800);
   };
 
   const handleScroll = () => {
@@ -139,7 +210,13 @@ export function AvailableDoctorsCarousel({
         )}
 
         {/* Carousel Container */}
-        <div className="relative group/carousel">
+        <div
+          className="relative group/carousel"
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
           {/* Navigation Arrows */}
           <button 
             type="button"
@@ -193,8 +270,14 @@ export function AvailableDoctorsCarousel({
                 )
               ))
             ) : (
-              doctors.map((doctor, idx) => (
-                <DoctorCard key={doctor.id} doctor={doctor} index={idx} compact={compact} locale={locale} />
+              displayDoctors.map((doctor, idx) => (
+                <DoctorCard
+                  key={`${doctor.id}-${idx}`}
+                  doctor={doctor}
+                  index={idx % (doctors.length || 1)}
+                  compact={compact}
+                  locale={locale}
+                />
               ))
             )}
           </div>

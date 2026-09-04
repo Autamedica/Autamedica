@@ -1,6 +1,17 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Star, MapPin, CheckCircle2 } from 'lucide-react';
+import { Star, MapPin, CheckCircle2, Stethoscope } from 'lucide-react';
+import { formatArsFromCents, formatBrlFromCents } from '@/lib/payments/money';
 import type { Doctor } from './types';
+
+function getInitials(name?: string): string {
+  if (!name) return 'DR';
+  const clean = name.replace(/^(Dr\.|Dra\.|Doctor|Doctora)\s+/i, '').trim();
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'DR';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 interface DoctorCardProps {
   doctor: Doctor;
@@ -10,12 +21,23 @@ interface DoctorCardProps {
 }
 
 export function DoctorCard({ doctor, index, compact = false, locale = 'es' }: DoctorCardProps) {
+  const [imgError, setImgError] = useState(false);
+  const hasPhoto = Boolean(doctor.photoUrl && !imgError);
+
   const isAvailableToday = doctor.availability === 'today';
   const isAvailableTomorrow = doctor.availability === 'tomorrow';
 
-  const priceFormatted = doctor.price
-    ? (locale === 'pt' ? `R$ ${doctor.price.toLocaleString('pt-BR')}` : `$${doctor.price.toLocaleString('es-AR')}`)
-    : (locale === 'pt' ? 'A confirmar' : 'A confirmar');
+  const isBrazilDoctor = Boolean(
+    doctor.matricula?.includes('CRM') ||
+    doctor.city?.includes('Brasil') ||
+    doctor.city?.includes('SP') ||
+    doctor.city?.includes('RJ') ||
+    (locale === 'pt' && !doctor.matricula?.includes('MN') && !doctor.matricula?.includes('MP'))
+  );
+  const hasValidPrice = Boolean(doctor.price && doctor.price > 0);
+  const priceFormatted = hasValidPrice
+    ? (isBrazilDoctor ? formatBrlFromCents(doctor.price) : formatArsFromCents(doctor.price))
+    : (locale === 'pt' ? 'Valor a confirmar' : 'Valor a confirmar');
 
   const compactSubtitle = [doctor.hospital, doctor.university || doctor.city].filter(Boolean).join(' • ');
 
@@ -30,13 +52,28 @@ export function DoctorCard({ doctor, index, compact = false, locale = 'es' }: Do
         className="group relative flex items-center bg-white rounded-[22px] border border-slate-200/70 p-3.5 w-[310px] md:w-[325px] shrink-0 gap-3.5 overflow-hidden shadow-xs hover:shadow-md hover:border-sky-300 transition-all duration-200"
       >
         <div className="relative size-20 shrink-0 rounded-[18px] overflow-hidden bg-slate-100 ring-1 ring-slate-200/60">
-          <img
-            src={doctor.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=300'}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
-          />
+          {hasPhoto ? (
+            <img
+              src={doctor.photoUrl ?? ''}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              onError={() => setImgError(true)}
+              className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 text-white select-none relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-sky-500/25 via-transparent to-transparent pointer-events-none" />
+              <div className="size-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center shadow-xs mb-0.5">
+                <span className="text-xs font-black text-sky-400 tracking-tight">
+                  {getInitials(doctor.name)}
+                </span>
+              </div>
+              <span className="text-[8px] font-bold tracking-wider text-slate-300 uppercase">
+                {locale === 'pt' ? 'Médico' : 'Médico'}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col flex-grow min-w-0 justify-between h-full py-0.5">
@@ -64,10 +101,12 @@ export function DoctorCard({ doctor, index, compact = false, locale = 'es' }: Do
 
           <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-100">
             <div>
-              <span className="text-[10px] text-slate-400 block -mb-0.5">
-                {locale === 'pt' ? 'A partir de' : 'Desde'}
-              </span>
-              <span className="text-xs md:text-sm font-black text-slate-900">
+              {hasValidPrice && (
+                <span className="text-[10px] text-slate-400 block -mb-0.5">
+                  {locale === 'pt' ? 'A partir de' : 'Desde'}
+                </span>
+              )}
+              <span className={hasValidPrice ? "text-xs md:text-sm font-black text-slate-900" : "text-xs font-semibold text-slate-400"}>
                 {priceFormatted}
               </span>
             </div>
@@ -94,13 +133,30 @@ export function DoctorCard({ doctor, index, compact = false, locale = 'es' }: Do
     >
       {/* Photo Section */}
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-slate-50">
-        <motion.img
-          src={doctor.photoUrl}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
-        />
+        {hasPhoto ? (
+          <motion.img
+            src={doctor.photoUrl ?? ''}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-800 to-slate-950 text-white select-none relative overflow-hidden p-6">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-sky-500/20 via-transparent to-transparent pointer-events-none" />
+            <div className="size-20 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 flex flex-col items-center justify-center shadow-xl mb-3">
+              <Stethoscope className="size-5 text-sky-400 mb-1" />
+              <span className="text-lg font-black tracking-tight text-white">
+                {getInitials(doctor.name)}
+              </span>
+            </div>
+            <span className="text-xs font-semibold tracking-wider text-slate-300 uppercase">
+              {doctor.specialty || (locale === 'pt' ? 'Profissional da Saúde' : 'Profesional Médico')}
+            </span>
+            <span className="text-[11px] text-slate-400 mt-1">AutaMédica</span>
+          </div>
+        )}
         
         {/* Top Badges */}
         <div className="absolute top-4 left-4 flex gap-2">
@@ -143,10 +199,16 @@ export function DoctorCard({ doctor, index, compact = false, locale = 'es' }: Do
 
         {/* Pricing */}
         <div className="mb-4">
-          <p className="text-sm text-slate-500">
-            {locale === 'pt' ? 'A partir de' : 'Desde'}{' '}
-            <span className="text-lg font-bold text-sky-600">{priceFormatted}</span>
-          </p>
+          {hasValidPrice ? (
+            <p className="text-sm text-slate-500">
+              {locale === 'pt' ? 'A partir de' : 'Desde'}{' '}
+              <span className="text-lg font-bold text-sky-600">{priceFormatted}</span>
+            </p>
+          ) : (
+            <p className="text-sm font-medium text-slate-400">
+              {locale === 'pt' ? 'Valor a confirmar' : 'Valor a confirmar'}
+            </p>
+          )}
         </div>
 
         {/* Availability */}
