@@ -204,3 +204,10 @@ Use the OBS/YouTube scripts deliberately; several are workflow-specific.
 5. **Llamados a la Acción (CTA) Claros:**
    - En la mitad del video, explicar claramente el beneficio de suscribirse: _"Suscribite para entender cómo funciona tu cuerpo en situaciones extremas"_.
    - Direccionar siempre a los usuarios a la plataforma de telemedicina `autamedica.com` mediante enlaces integrados en las descripciones del video.
+
+### 📰 Estándar Editorial y Narrativo (The New York Times en Español / Crónica LATAM)
+
+1. **Prohibición de Copywriting Anglosajón Sintético:** Prohibidas las frases condensadas, telegráficas o publicitarias (ej. _"si tu pulso pierde el compás"_, _"el cuerpo avisa"_, _"bomba de tiempo"_). Nadie habla así en América Latina.
+2. **Cadencia Explicativa y Prosa Narrativa Rica:** Utilizar la cantidad natural y rica de palabras que el español requiere para explicar mecanismos, causas y consecuencias con serenidad y profundidad clínica (ej. _"Lo que ocurre en general, en estos casos, es que el pulso en las arritmias sufre una alteración notable: a veces aumentando la frecuencia de los latidos de manera repentina, a veces disminuyéndola o volviéndose completamente irregular, dependiendo del tipo específico de arritmia... por eso lo recomendable siempre es no esperar a que las cosas se calmen por sí solas..."_).
+3. **Anclaje Territorial y Humano:** Toda pieza médica debe enraizarse en la experiencia real del paciente del interior y la frontera (el ómnibus nocturno en la BR-290 a las 3:00 AM bajo la lluvia, el banco de madera de la sala de espera a las 5:00 AM, las 14 horas de viaje para una consulta de 15 minutos, versus la telemetría y el seguimiento continuo en el hogar).
+4. **Locución Pura y Natural:** Puntuación adaptada a la respiración y cadencia orgánica del locutor, sin cortes artificiales ni apuros de retención.

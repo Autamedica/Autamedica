@@ -22,6 +22,9 @@ import { getClientI18n, type Locale } from '@/i18n/index'
 import { PatientDoctorChat } from '@/components/patients/chat/PatientDoctorChat'
 import { PreconsultationVoiceAssistant } from '@/components/patients/PreconsultationVoiceAssistant'
 import type { PreconsultationSummary } from '@/lib/patients/types/pre-consultation'
+import type { DoctorOption } from '@/components/patients/appointments/appointment-modal.types'
+import { AvailableDoctorsCarousel } from '@/components/ui/available-doctors-carousel'
+import type { Doctor } from '@/components/ui/available-doctors-carousel/types'
 
 function getGreeting(dict: ReturnType<typeof getClientI18n>['dict']): string {
   const hour = new Date().getHours()
@@ -133,6 +136,13 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  // Auto-collapse Assinatura banner after 5 seconds
+  useEffect(() => {
+    if (!showReservaBanner) return
+    const timer = setTimeout(() => setShowReservaBanner(false), 5000)
+    return () => clearTimeout(timer)
+  }, [showReservaBanner])
+
   const handleSignOut = useCallback(async () => {
     setSigningOut(true)
     try {
@@ -237,15 +247,74 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const greeting = hasHydrated ? getGreeting(dict) : (dict.patientPortal.greetings.hello ?? 'Hola')
 
   const services = useMemo(() => [
-    { icon: Coins, label: dict.patientPortal.services.subscription, href: '/patients/reserva-saude' },
-    { icon: Video, label: dict.patientPortal.services.onlineDoctor, href: '/patients/appointments?type=telemedicine' },
-    { icon: Calendar, label: dict.patientPortal.services.mySchedule, href: '/patients/appointments' },
-    { icon: FileText, label: dict.patientPortal.services.myPrescriptions, href: '/patients/medical-history' },
-    { icon: Heart, label: dict.patientPortal.services.myHistory, href: '/patients/anamnesis' },
-    { icon: Brain, label: dict.patientPortal.services.mentalHealth, href: '/patients/psychiatry' },
-    { icon: Shield, label: dict.patientPortal.services.prevention, href: '/patients/preventive-health' },
-    { icon: Heart, label: dict.patientPortal.services.reproductiveHealth, href: '/patients/reproductive-health' },
-    { icon: Users, label: dict.patientPortal.services.community, href: '/patients/community' },
+    {
+      label: dict.patientPortal.services.onlineDoctor,
+      desc: dict.patientPortal.services.onlineDoctorDesc,
+      href: '/patients/appointments?type=telemedicine',
+      bgImage: '/images/cards/card_bg_medico_online.jpg',
+      iconImage: '/images/cards/icon_medico_online.jpg',
+      icon: Video,
+    },
+    {
+      label: dict.patientPortal.services.subscription,
+      desc: dict.patientPortal.services.subscriptionDesc,
+      href: '/patients/reserva-saude',
+      bgImage: '/images/cards/card_bg_suscripcion.jpg',
+      iconImage: '/images/cards/icon_suscripcion.jpg',
+      icon: Coins,
+    },
+    {
+      label: dict.patientPortal.services.mySchedule,
+      desc: dict.patientPortal.services.myScheduleDesc,
+      href: '/patients/appointments',
+      bgImage: '/images/cards/card_bg_agenda.jpg',
+      iconImage: '/images/cards/icon_agenda.jpg',
+      icon: Calendar,
+    },
+    {
+      label: dict.patientPortal.services.myPrescriptions,
+      desc: dict.patientPortal.services.myPrescriptionsDesc,
+      href: '/patients/medical-history',
+      bgImage: '/images/cards/card_bg_recetas.jpg',
+      iconImage: '/images/cards/icon_recetas.jpg',
+      icon: FileText,
+    },
+    {
+      label: dict.patientPortal.services.myHistory,
+      desc: dict.patientPortal.services.myHistoryDesc,
+      href: '/patients/anamnesis',
+      bgImage: '/images/cards/card_bg_historial.jpg',
+      iconImage: '/images/cards/icon_historial.jpg',
+      icon: Heart,
+    },
+    {
+      label: dict.patientPortal.services.mentalHealth,
+      desc: dict.patientPortal.services.mentalHealthDesc,
+      href: '/patients/psychiatry',
+      bgImage: '/images/cards/card_bg_salud_mental.jpg',
+      icon: Brain,
+    },
+    {
+      label: dict.patientPortal.services.prevention,
+      desc: dict.patientPortal.services.preventionDesc,
+      href: '/patients/preventive-health',
+      bgImage: '/images/cards/card_bg_prevencion.jpg',
+      icon: Shield,
+    },
+    {
+      label: dict.patientPortal.services.reproductiveHealth,
+      desc: dict.patientPortal.services.reproductiveHealthDesc,
+      href: '/patients/reproductive-health',
+      bgImage: '/images/cards/card_bg_salud_reproductiva.jpg',
+      icon: Heart,
+    },
+    {
+      label: dict.patientPortal.services.community,
+      desc: dict.patientPortal.services.communityDesc,
+      href: '/patients/community',
+      bgImage: '/images/cards/card_bg_comunidad.jpg',
+      icon: Users,
+    },
   ], [dict])
 
   const bottomTabs = useMemo(() => [
@@ -255,6 +324,44 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     { icon: FileText, label: dict.patientPortal.tabs.recetas, href: '/patients/medical-history' },
     { icon: Users, label: dict.patientPortal.tabs.comunidad, href: '/patients/community' },
   ], [dict])
+
+  const [doctors, setDoctors] = useState<DoctorOption[]>([])
+  const [doctorsLoading, setDoctorsLoading] = useState(false)
+
+  useEffect(() => {
+    if (hasHydrated) {
+      setDoctorsLoading(true)
+      fetchApi<DoctorOption[]>('/api/patients/doctors')
+        .then((data) => {
+          setDoctors((data ?? []).filter(d => 
+            !(d.license_number?.startsWith('PENDING') || d.license_number === 'PENDING') &&
+            !d.license_number?.includes('DEMO') &&
+            d.has_availability !== false
+          ))
+        })
+        .catch((err) => console.error('Error fetching doctors:', err))
+        .finally(() => setDoctorsLoading(false))
+    }
+  }, [hasHydrated])
+
+  const carouselDoctors: Doctor[] = useMemo(() => {
+    return doctors.map((doc) => ({
+      id: doc.id,
+      name: doc.label,
+      photoUrl: doc.avatar_url || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400&h=500',
+      specialty: doc.specialty || (locale === 'pt' ? 'Clínico Geral' : 'Médico General'),
+      city: doc.license_pills?.[0]?.jurisdiction,
+      matricula: doc.license_number || '',
+      price: doc.consultation_fee ?? undefined,
+      rating: doc.overall_score ? Number(doc.overall_score) : undefined,
+      languages: undefined,
+      experienceYears: undefined,
+      hospital: undefined,
+      university: undefined,
+      availability: doc.has_availability ? 'today' : 'tomorrow',
+      verified: true,
+    }))
+  }, [doctors, locale])
 
   return (
     <div ref={containerRef} className="min-h-screen bg-white">
@@ -558,11 +665,19 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         className="relative bg-white"
         style={{ y: contentY }}
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-12 lg:py-20 space-y-20">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-8 space-y-12">
+
+          {/* ── CAROUSEL MÉDICOS DISPONIBLES (COMPACT ~13%) ── */}
+          <AvailableDoctorsCarousel
+            doctors={carouselDoctors}
+            isLoading={doctorsLoading}
+            compact
+            locale={locale}
+          />
 
           {/* ── BANNER / BADGE MINHA RESERVA DE SAÚDE COM FECHAR ── */}
-          <AnimatePresence>
-            {showReservaBanner && reserveData?.subscription_tier !== 'cuidado' && (
+          <AnimatePresence mode="wait">
+            {showReservaBanner && reserveData?.subscription_tier !== 'cuidado' ? (
               <motion.section
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -592,7 +707,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                     </h2>
                     <p className="text-neutral-300 text-sm md:text-base leading-relaxed">
                       Você tem acesso ao benefício de atendimento clínico. <strong className="text-white font-semibold">Precisou? Use. </strong> 
-                      <strong className="text-emerald-400 font-semibold">Não precisou? Acumule (+22 créditos/mês) </strong> 
+                      <strong className="text-cyan-400 font-semibold">Não precisou? Acumule (+22 créditos/mês) </strong> 
                       para especialistas, exames e farmácia.
                     </p>
                   </div>
@@ -616,7 +731,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                       </div>
                       <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 rounded-full transition-all duration-500" 
+                          className="h-full bg-gradient-to-r from-cyan-500 to-sky-400 rounded-full transition-all duration-500" 
                           style={{ width: `${Math.min(Math.round(((reserveData?.benefit_balance ?? 0) / (reserveData?.max_cap_credits ?? 600)) * 100), 100)}%` }}
                         />
                       </div>
@@ -631,7 +746,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                       <h3 className="text-base md:text-lg font-semibold text-white">
                         Ative o Plano Cuidado por R$ 49,90/mês
                       </h3>
-                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
                         Pix ou Cartão
                       </span>
                     </div>
@@ -674,7 +789,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-white font-medium text-sm flex items-center gap-2">
-                        <FileText className="size-4 text-emerald-400" />
+                        <FileText className="size-4 text-cyan-400" />
                         Extrato da Reserva de Saúde
                       </span>
                       <span className="text-[10px] text-neutral-500">Todos • Acumulações • Resgates</span>
@@ -685,7 +800,25 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   </div>
                 </div>
               </motion.section>
-            )}
+            ) : reserveData?.subscription_tier !== 'cuidado' ? (
+              <motion.div
+                key="banner-collapsed"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="flex justify-start"
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowReservaBanner(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-100 hover:bg-neutral-200/80 border border-neutral-200 text-neutral-800 text-xs font-semibold transition-all shadow-2xs group"
+                >
+                  <Sparkles className="size-3.5 text-cyan-600 group-hover:scale-110 transition-transform" />
+                  <span>{locale === 'pt' ? 'Ver planos da AutaMédica' : 'Ver planes de AutaMédica'}</span>
+                </button>
+              </motion.div>
+            ) : null}
           </AnimatePresence>
 
           {/* Status Section */}
@@ -699,7 +832,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             <div>
               <motion.div
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-6 ${
-                  !anamnesisCompleted ? 'bg-sky-50 text-sky-700' : 'bg-emerald-50 text-emerald-700'
+                  !anamnesisCompleted ? 'bg-sky-50 text-sky-700' : 'bg-cyan-50 text-cyan-700'
                 }`}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -949,6 +1082,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             </motion.section>
           )}
 
+
           {/* Services Grid */}
           <motion.section
             className="border-t border-neutral-100 pt-24 lg:pt-32"
@@ -965,7 +1099,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               {locale === 'pt' ? 'Como podemos te ajudar?' : '¿Cómo te ayudamos?'}
             </motion.h3>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {services.map((action, i) => (
                 <motion.a
                   key={action.label}
@@ -976,17 +1110,56 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                       setIsPreconsultationOpen(true)
                     }
                   }}
-                  className="group p-8 text-left border border-neutral-200 rounded-2xl hover:border-neutral-900 hover:bg-neutral-50 transition-all cursor-pointer"
+                  className="group relative flex flex-col justify-between p-7 text-left border border-slate-200/90 rounded-3xl hover:border-slate-800 bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden min-h-[220px]"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.05 }}
+                  transition={{ delay: i * 0.04 }}
                   whileHover={{ y: -4 }}
                 >
-                  <action.icon className="size-8 text-neutral-400 group-hover:text-neutral-900 mb-6 transition-colors" />
-                  <p className="text-neutral-900 group-hover:text-neutral-900 font-medium">
-                    {action.label}
-                  </p>
+                  {/* Card Background Texture */}
+                  <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none rounded-3xl">
+                    <img
+                      src={action.bgImage}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover object-right-top opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-white via-white/70 to-transparent" />
+                  </div>
+
+                  <div className="relative z-10 flex flex-col justify-between h-full">
+                    <div className="flex items-center justify-between">
+                      {action.iconImage ? (
+                        <div className="size-14 rounded-2xl overflow-hidden shadow-md border border-slate-200/80 bg-slate-950 shrink-0 group-hover:scale-105 group-hover:border-cyan-400/50 transition-all duration-300">
+                          <img
+                            src={action.iconImage}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover scale-125"
+                          />
+                        </div>
+                      ) : (
+                        <div className="size-14 rounded-2xl bg-slate-950 text-cyan-400 flex items-center justify-center shadow-md border border-slate-800 shrink-0 group-hover:scale-105 transition-transform duration-300">
+                          <action.icon className="size-7 text-cyan-400" strokeWidth={1.8} />
+                        </div>
+                      )}
+                      <div className="size-8 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200/60 flex items-center justify-center text-slate-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all shadow-xs">
+                        <ArrowRight className="size-4" />
+                      </div>
+                    </div>
+
+                    <div className="mt-8">
+                      <p className="text-slate-950 font-bold text-lg tracking-tight">
+                        {action.label}
+                      </p>
+                      <p className="text-xs text-slate-600 leading-relaxed mt-1 font-medium">
+                        {action.desc}
+                      </p>
+                    </div>
+                  </div>
                 </motion.a>
               ))}
             </div>

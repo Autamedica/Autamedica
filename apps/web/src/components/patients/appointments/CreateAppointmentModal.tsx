@@ -33,6 +33,7 @@ export function CreateAppointmentModal({
   isOpen,
   onClose,
   onSubmit,
+  initialDoctorId,
 }: CreateAppointmentModalProps) {
   const [loading, setLoading] = useState(false);
   const [doctors, setDoctors] = useState<DoctorOption[]>([]);
@@ -119,8 +120,10 @@ export function CreateAppointmentModal({
       setReason('');
       setNotes('');
       setWeekBase(new Date());
+    } else if (initialDoctorId) {
+      setSelectedDoctorId(initialDoctorId);
     }
-  }, [isOpen]);
+  }, [isOpen, initialDoctorId]);
 
   useEffect(() => {
     setSelectedSlot(null);

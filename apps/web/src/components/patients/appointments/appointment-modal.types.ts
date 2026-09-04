@@ -37,4 +37,5 @@ export interface CreateAppointmentModalProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (data: CreateAppointmentInput) => Promise<void>
+  initialDoctorId?: string
 }
