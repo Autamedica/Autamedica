@@ -278,7 +278,7 @@ export default function GuestCallPage({ roomId }: GuestCallPageProps) {
         doctorName={doctorDisplayName}
         clinicName="AutaMedica"
         patientName={callSession.user.displayName || 'Paciente'}
-        triageCompleted={true}
+        triageCompleted={false}
         language={language}
         onJoin={() => setInWaitingRoom(false)}
       />

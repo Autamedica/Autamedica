@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { PixPaymentModal } from '@/components/payments/PixPaymentModal'
 import { formatBrlFromCents } from '@/lib/payments/money'
+import { PreconsultationVoiceAssistant } from '@/components/patients/PreconsultationVoiceAssistant'
 
 export interface PatientWaitingRoomProps {
   doctorName?: string
@@ -125,12 +126,14 @@ export default function PatientWaitingRoom({
   paymentRequired = false,
   isPaid = false,
   onPaymentSuccess,
-  onJoin
+  onJoin,
+  triageCompleted = false
 }: PatientWaitingRoomProps) {
   const t = I18N[language] || I18N.pt
 
   const [showPixModal, setShowPixModal] = useState(false)
   const [hasPaid, setHasPaid] = useState(isPaid || !paymentRequired)
+  const [showTriage, setShowTriage] = useState(triageCompleted === false)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -729,6 +732,21 @@ export default function PatientWaitingRoom({
             setHasPaid(true)
             setShowPixModal(false)
             onPaymentSuccess?.()
+          }}
+        />
+
+        <PreconsultationVoiceAssistant
+          isOpen={showTriage}
+          onClose={() => setShowTriage(false)}
+          onComplete={(summary, id) => {
+            if (summary || id) {
+              sessionStorage.setItem('autamedica:preconsultation', JSON.stringify({
+                summary,
+                preconsultationId: id,
+                savedAt: new Date().toISOString()
+              }))
+            }
+            setShowTriage(false)
           }}
         />
       </div>
