@@ -117,11 +117,11 @@ export function PreconsultationAssistantDialog({
               onNextTurn={onNextTurn}
             />
 
-            <div className="pt-2 text-center border-t border-neutral-50">
+            <div className="pt-4 mt-2 border-t border-neutral-100 flex justify-center">
               <button
                 type="button"
                 onClick={onSkip}
-                className="text-xs font-semibold text-neutral-400 hover:text-neutral-600 transition-colors hover:underline"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-neutral-100 hover:bg-neutral-200 border border-neutral-200/60 text-neutral-700 font-semibold px-6 py-3.5 text-sm transition-all shadow-sm active:scale-[0.98]"
               >
                 Saltar preconsulta e ingresar directo a la fila de guardia
               </button>

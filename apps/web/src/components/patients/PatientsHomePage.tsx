@@ -20,8 +20,6 @@ import {
 } from '@/lib/patients/lib/telemedicine-entry'
 import { getClientI18n, type Locale } from '@/i18n/index'
 import { PatientDoctorChat } from '@/components/patients/chat/PatientDoctorChat'
-import { PreconsultationVoiceAssistant } from '@/components/patients/PreconsultationVoiceAssistant'
-import type { PreconsultationSummary } from '@/lib/patients/types/pre-consultation'
 import type { DoctorOption } from '@/components/patients/appointments/appointment-modal.types'
 import { AvailableDoctorsCarousel } from '@/components/ui/available-doctors-carousel'
 import type { Doctor } from '@/components/ui/available-doctors-carousel/types'
@@ -91,7 +89,6 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
   const [showMenu, setShowMenu] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
-  const [isPreconsultationOpen, setIsPreconsultationOpen] = useState(false)
   const [hasHydrated, setHasHydrated] = useState(false)
   const [walletSummary, setWalletSummary] = useState<PatientWalletSummary | null>(null)
   const [reserveData, setReserveData] = useState<HealthReserveData | null>(null)
@@ -1107,7 +1104,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   onClick={(e) => {
                     if (action.href.includes('telemedicine')) {
                       e.preventDefault()
-                      setIsPreconsultationOpen(true)
+                      window.location.href = "/patients/appointments?type=telemedicine"
                     }
                   }}
                   className="group relative flex flex-col justify-between p-7 text-left border border-slate-200/90 rounded-3xl hover:border-slate-800 bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden min-h-[220px]"
@@ -1179,7 +1176,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               onClick={(e) => {
                 if (tab.href.includes('telemedicine')) {
                   e.preventDefault()
-                  setIsPreconsultationOpen(true)
+                  window.location.href = "/patients/appointments?type=telemedicine"
                 }
               }}
               className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-neutral-100 transition-colors min-w-[60px] cursor-pointer"
@@ -1269,23 +1266,6 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         </div>
       )}
 
-      <PreconsultationVoiceAssistant
-        isOpen={isPreconsultationOpen}
-        onClose={() => setIsPreconsultationOpen(false)}
-        onComplete={(summary: PreconsultationSummary | null, preconsultationId?: string) => {
-          if (summary || preconsultationId) {
-            sessionStorage.setItem('autamedica:preconsultation', JSON.stringify({
-              summary,
-              preconsultationId,
-              savedAt: new Date().toISOString(),
-            }))
-          }
-          setIsPreconsultationOpen(false)
-          const params = new URLSearchParams({ type: 'telemedicine', preconsultation: 'completed' })
-          if (preconsultationId) params.set('preconsultationId', preconsultationId)
-          window.location.href = `/patients/appointments?${params.toString()}`
-        }}
-      />
 
       <PixCheckoutModal
         isOpen={showPixSubscriptionModal}

@@ -166,7 +166,7 @@ export function PreconsultationVoiceAssistant({
       }
     } catch (err) {
       logger.error('[PreconsultationVoiceAssistant] turn processing failed', err)
-      setError('Hubo un problema al procesar tu respuesta. Intentá nuevamente.')
+      setError('No pudimos escuchar bien tu voz. Intentá hablar de nuevo o usá el teclado.')
     } finally {
       setIsProcessing(false)
     }

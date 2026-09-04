@@ -27,7 +27,7 @@ import {
 
 function createMockSocket(userId: string, role: 'patient' | 'doctor' = 'patient') {
   const roomEmit = vi.fn();
-  const toRoom = vi.fn(() => ({ emit: roomEmit }));
+  const toRoom = vi.fn((_room: string) => ({ emit: roomEmit }));
 
   return {
     id: `socket-${userId}`,
@@ -234,7 +234,7 @@ describe('Relay: SDP Offer forwarding', () => {
     const patient = createMockSocket('patient-1', 'patient');
     handleOffer(patient, { roomId, offer }, true);
 
-    const relayed = patient._roomEmit.mock.calls[0][1] as Record<string, unknown>;
+    const relayed = patient._roomEmit.mock.calls[0]?.[1] as Record<string, unknown>;
     expect(relayed.userId).toBe('patient-1');
   });
 });

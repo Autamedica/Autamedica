@@ -21,8 +21,8 @@ describe('RoomManager', () => {
 
       expect(room.id).toBe('room-1');
       expect(room.users).toHaveLength(1);
-      expect(room.users[0].userId).toBe('user-a');
-      expect(room.users[0].role).toBe('patient');
+      expect(room.users[0]?.userId).toBe('user-a');
+      expect(room.users[0]?.role).toBe('patient');
     });
 
     it('returns the same room when a second user joins', async () => {
@@ -69,7 +69,7 @@ describe('RoomManager', () => {
       const room = manager.getRoom('room-1');
       expect(room).toBeDefined();
       expect(room?.users).toHaveLength(1);
-      expect(room?.users[0].userId).toBe('user-b');
+      expect(room?.users[0]?.userId).toBe('user-b');
     });
 
     it('destroys the room when the last user leaves', async () => {
