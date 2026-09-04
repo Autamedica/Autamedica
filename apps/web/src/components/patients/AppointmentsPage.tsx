@@ -277,6 +277,7 @@ export default function AppointmentsPage({
     const newAppointment = await createAppointment(appointmentData)
     if (newAppointment) {
       setIsModalOpen(false)
+      setInitialDoctorId(undefined)
       await refreshAppointments()
       const payment = await createAppointmentPayment(newAppointment.id)
       if (payment?.status === 'covered_by_credit') {
@@ -673,7 +674,10 @@ export default function AppointmentsPage({
 
       <CreateAppointmentModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false)
+          setInitialDoctorId(undefined)
+        }}
         onSubmit={handleCreateAppointment}
         initialDoctorId={initialDoctorId}
       />

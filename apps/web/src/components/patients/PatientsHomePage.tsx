@@ -349,19 +349,19 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       id: doc.id,
       name: doc.label,
       photoUrl: doc.avatar_url || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400&h=500',
-      specialty: doc.specialty || 'Médico General',
-      city: doc.license_pills?.[0]?.jurisdiction || 'Argentina',
+      specialty: doc.specialty || (locale === 'pt' ? 'Clínico Geral' : 'Médico General'),
+      city: doc.license_pills?.[0]?.jurisdiction,
       matricula: doc.license_number || '',
       price: doc.consultation_fee ?? undefined,
-      rating: doc.overall_score ? Number(doc.overall_score) : 4.9,
-      languages: ['Español'],
-      experienceYears: 10,
-      hospital: 'Red AutaMédica',
-      university: 'UBA',
+      rating: doc.overall_score ? Number(doc.overall_score) : undefined,
+      languages: undefined,
+      experienceYears: undefined,
+      hospital: undefined,
+      university: undefined,
       availability: doc.has_availability ? 'today' : 'tomorrow',
       verified: true,
     }))
-  }, [doctors])
+  }, [doctors, locale])
 
   return (
     <div ref={containerRef} className="min-h-screen bg-white">
@@ -672,6 +672,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             doctors={carouselDoctors}
             isLoading={doctorsLoading}
             compact
+            locale={locale}
           />
 
           {/* ── BANNER / BADGE MINHA RESERVA DE SAÚDE COM FECHAR ── */}
@@ -814,7 +815,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-100 hover:bg-neutral-200/80 border border-neutral-200 text-neutral-800 text-xs font-semibold transition-all shadow-2xs group"
                 >
                   <Sparkles className="size-3.5 text-cyan-600 group-hover:scale-110 transition-transform" />
-                  <span>Apretar para ver planes de Autamedica</span>
+                  <span>{locale === 'pt' ? 'Ver planos da AutaMédica' : 'Ver planes de AutaMédica'}</span>
                 </button>
               </motion.div>
             ) : null}
@@ -1098,7 +1099,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               {locale === 'pt' ? 'Como podemos te ajudar?' : '¿Cómo te ayudamos?'}
             </motion.h3>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {services.map((action, i) => (
                 <motion.a
                   key={action.label}
@@ -1121,6 +1122,8 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                     <img
                       src={action.bgImage}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover object-right-top opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-white via-white/70 to-transparent" />
@@ -1132,7 +1135,9 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                         <div className="size-14 rounded-2xl overflow-hidden shadow-md border border-slate-200/80 bg-slate-950 shrink-0 group-hover:scale-105 group-hover:border-cyan-400/50 transition-all duration-300">
                           <img
                             src={action.iconImage}
-                            alt={action.label}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover scale-125"
                           />
                         </div>
