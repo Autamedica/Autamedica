@@ -122,15 +122,22 @@ export default function AppointmentsPage({
     }
   }, [])
 
+  const [initialDoctorId, setInitialDoctorId] = useState<string | undefined>(undefined)
+
   useEffect(() => {
     if (typeof window === 'undefined') return
 
     const params = new URLSearchParams(window.location.search)
     const preconsultationStatus = params.get('preconsultation')
+    const openModal = params.get('openModal')
+    const doctorParam = params.get('doctor')
 
-    if (preconsultationStatus === 'completed') {
+    if (preconsultationStatus === 'completed' || openModal === 'true') {
+      if (doctorParam) setInitialDoctorId(doctorParam)
       setIsModalOpen(true)
       params.delete('preconsultation')
+      params.delete('openModal')
+      params.delete('doctor')
       const nextUrl = params.toString()
         ? `${window.location.pathname}?${params.toString()}`
         : window.location.pathname
@@ -668,6 +675,7 @@ export default function AppointmentsPage({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreateAppointment}
+        initialDoctorId={initialDoctorId}
       />
 
       {reviewTarget && (
