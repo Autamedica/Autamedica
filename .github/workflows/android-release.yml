@@ -187,7 +187,6 @@ jobs:
           releaseFiles: ./aab/*.aab
           track: ${{ github.event.inputs.track || 'internal' }}
           status: completed
-          changesNotSentForReview: true
 
       - name: Deploy Summary
         run: |

@@ -46,8 +46,8 @@ android {
     defaultConfig {
         applicationId = "com.autamedica.android"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 3
+        targetSdk = 36
+        versionCode = 4
         versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
