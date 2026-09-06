@@ -51,35 +51,24 @@ jobs:
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" > apps/android/app/google-services.json
-            echo "✅ google-services.json created from secret"
-          elif [ ! -f apps/android/app/google-services.json ]; then
-            cat << 'EOF' > apps/android/app/google-services.json
-            {
-              "project_info": {
-                "project_number": "653971537811",
-                "project_id": "autamedica-e54fa",
-                "storage_bucket": "autamedica-e54fa.firebasestorage.app"
-              },
-              "client": [
-                {
-                  "client_info": {
-                    "mobilesdk_app_id": "1:653971537811:android:dummy",
-                    "android_client_info": {
-                      "package_name": "com.autamedica.android"
-                    }
-                  },
-                  "oauth_client": [],
-                  "api_key": [{"current_key": "dummy"}],
-                  "services": {"appinvite_service": {"other_platform_oauth_client": []}}
-                }
-              ],
-              "configuration_version": "1"
-            }
-            EOF
-            echo "⚠️ Created fallback dummy google-services.json for CI"
-          fi
+          python3 -c "
+          import os, json
+          val = os.environ.get('GOOGLE_SERVICES_JSON', '')
+          path = 'apps/android/app/google-services.json'
+          if val.strip():
+              with open(path, 'w') as f:
+                  f.write(val)
+              print('✅ google-services.json created from secret')
+          elif not os.path.exists(path):
+              dummy = {
+                  'project_info': {'project_number': '653971537811', 'project_id': 'autamedica-e54fa', 'storage_bucket': 'autamedica-e54fa.firebasestorage.app'},
+                  'client': [{'client_info': {'mobilesdk_app_id': '1:653971537811:android:dummy', 'android_client_info': {'package_name': 'com.autamedica.android'}}, 'oauth_client': [], 'api_key': [{'current_key': 'dummy'}], 'services': {}}],
+                  'configuration_version': '1'
+              }
+              with open(path, 'w') as f:
+                  json.dump(dummy, f, indent=2)
+              print('⚠️ Created fallback dummy google-services.json for CI')
+          "
 
       - name: Compile and Run JVM Unit Tests
         run: |
