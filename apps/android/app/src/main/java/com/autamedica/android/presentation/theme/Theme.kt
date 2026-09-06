@@ -4,6 +4,7 @@ import android.app.Activity
 import android.os.Build
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
@@ -12,10 +13,10 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 /**
- * AutaMedica dark theme — matching the landing page design.
- * Uses Zinc palette + portal accent colors.
+ * AutaMedica clinical theme — matching the clean web design system (globals.css / auth.css).
+ * High-contrast white surfaces + role-based portal accents.
  */
-private val AutamedicaDarkScheme = darkColorScheme(
+private val AutamedicaScheme = lightColorScheme(
     // Core surfaces
     background = AuBackground,
     surface = AuSurface,
@@ -27,27 +28,27 @@ private val AutamedicaDarkScheme = darkColorScheme(
     onSurface = AuTextPrimary,
     onSurfaceVariant = AuTextSecondary,
 
-    // Primary (blue — portals/CTAs)
-    primary = PrimaryLight,
-    onPrimary = OnPrimary,
-    primaryContainer = PrimaryContainer,
-    onPrimaryContainer = PrimaryLight,
+    // Primary (sky-500 matching web)
+    primary = PortalPatients,
+    onPrimary = Color.White,
+    primaryContainer = PortalPatientsSoft,
+    onPrimaryContainer = PortalPatients,
 
-    // Secondary (sky — patient accent)
-    secondary = Secondary,
-    onSecondary = OnPrimary,
-    secondaryContainer = SecondaryContainer,
-    onSecondaryContainer = Secondary,
+    // Secondary (cyan-600 doctor accent)
+    secondary = PortalDoctors,
+    onSecondary = Color.White,
+    secondaryContainer = PortalDoctorsSoft,
+    onSecondaryContainer = PortalDoctors,
 
-    // Tertiary (violet — doctor accent)
-    tertiary = Tertiary,
-    onTertiary = OnPrimary,
-    tertiaryContainer = TertiaryContainer,
-    onTertiaryContainer = Tertiary,
+    // Tertiary (emerald-600 pharmacy accent)
+    tertiary = PortalPharmacists,
+    onTertiary = Color.White,
+    tertiaryContainer = PortalPharmacistsSoft,
+    onTertiaryContainer = PortalPharmacists,
 
     // Error
     error = AuDanger,
-    onError = OnPrimary,
+    onError = Color.White,
     errorContainer = ErrorContainer,
     onErrorContainer = AuDanger,
 
@@ -55,8 +56,8 @@ private val AutamedicaDarkScheme = darkColorScheme(
     outline = AuBorder,
     outlineVariant = AuBorderHover,
 
-    // Inverse (for snackbars, etc.)
-    inverseSurface = AuAccent,
+    // Inverse
+    inverseSurface = AuTextPrimary,
     inverseOnSurface = AuBackground,
     inversePrimary = Primary,
 )
@@ -65,7 +66,7 @@ private val AutamedicaDarkScheme = darkColorScheme(
 fun AutamedicaTheme(
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = AutamedicaDarkScheme
+    val colorScheme = AutamedicaScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -79,8 +80,8 @@ fun AutamedicaTheme(
                 window.isNavigationBarContrastEnforced = false
             }
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = false
-                isAppearanceLightNavigationBars = false
+                isAppearanceLightStatusBars = true
+                isAppearanceLightNavigationBars = true
             }
         }
     }

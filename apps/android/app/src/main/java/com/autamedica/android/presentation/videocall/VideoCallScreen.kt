@@ -56,8 +56,11 @@ import com.autamedica.android.presentation.videocall.livekit.LiveKitVideoCallScr
 import com.autamedica.android.presentation.videocall.components.CallControls
 import com.autamedica.android.presentation.videocall.components.CallTimer
 import com.autamedica.android.presentation.videocall.components.ChatPanel
+import com.autamedica.android.presentation.videocall.components.ClinicalNotesSheet
 import com.autamedica.android.presentation.videocall.components.ManagedVideoRenderer
+import com.autamedica.android.presentation.videocall.components.PatientWaitingRoomOverlay
 import com.autamedica.android.presentation.videocall.components.QualityIndicator
+import com.autamedica.android.presentation.videocall.components.SoapEvolutionSheet
 
 @Composable
 fun VideoCallScreen(
@@ -156,8 +159,14 @@ fun VideoCallScreen(
 
     // Handle call end
     if (uiState.connectionState == ConnectionState.DISCONNECTED && uiState.callDurationSeconds > 0) {
-        onCallEnd()
-        return
+        if (uiState.isDoctor && !uiState.soapSaved && !isPreviewRoute) {
+            LaunchedEffect(Unit) {
+                viewModel.openSoapEvolution()
+            }
+        } else if (!uiState.showSoapEvolution) {
+            onCallEnd()
+            return
+        }
     }
 
     Box(
@@ -249,47 +258,60 @@ fun VideoCallScreen(
         }
 
         if (remoteTrack == null) {
-            Column(
+            Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .safeDrawingPadding()
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .safeDrawingPadding(),
+                contentAlignment = Alignment.Center,
             ) {
-                val overlayText = when {
-                    uiState.isPreviewOnlyMode ->
-                        uiState.sessionStatusMessage ?: "Vista previa local activa."
-                    uiState.isWaitingRoom ->
-                        uiState.sessionStatusMessage ?: "Tu camara ya esta activa. Esperando que la sala este disponible."
-                    uiState.connectionState == ConnectionState.CONNECTING ->
-                        uiState.sessionStatusMessage ?: "Conectando con la sala..."
-                    uiState.connectionState == ConnectionState.RECONNECTING ->
-                        uiState.sessionStatusMessage ?: "Recuperando la conexion..."
-                    uiState.connectionState == ConnectionState.FAILED ->
-                        uiState.sessionStatusMessage ?: "No se pudo conectar la llamada."
-                    showLocalPreviewFullscreen ->
-                        "Tu camara esta encendida. Falta que se conecte la otra persona."
-                    else -> null
-                }
-
-                if (overlayText != null) {
+                if (uiState.isWaitingRoom || uiState.connectionState == ConnectionState.FAILED || uiState.connectionState == ConnectionState.CONNECTING) {
+                    if (!uiState.isDoctor) {
+                        PatientWaitingRoomOverlay(
+                            isAudioEnabled = uiState.isAudioEnabled,
+                            isVideoEnabled = uiState.isVideoEnabled,
+                            statusMessage = uiState.sessionStatusMessage,
+                            isConnecting = uiState.connectionState == ConnectionState.CONNECTING,
+                            onToggleAudio = viewModel::toggleAudio,
+                            onToggleVideo = viewModel::toggleVideo,
+                            onSwitchCamera = viewModel::switchCamera,
+                            onJoinOrRetry = viewModel::retryConnection,
+                            onExit = {
+                                viewModel.endCall()
+                                onCallEnd()
+                            },
+                        )
+                    } else {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.padding(horizontal = 24.dp),
+                        ) {
+                            Text(
+                                text = uiState.sessionStatusMessage ?: "Sala de consulta activa. Esperando que el paciente se conecte...",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color.Black.copy(alpha = 0.65f))
+                                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                            )
+                            Button(onClick = viewModel::retryConnection) {
+                                Text(stringResource(com.autamedica.android.R.string.common_try_connect))
+                            }
+                        }
+                    }
+                } else if (showLocalPreviewFullscreen) {
                     Text(
-                        text = overlayText,
+                        text = if (uiState.isDoctor) "Tu cámara está activa. Esperando al paciente en sala..." else "Tu cámara está encendida. Falta que se conecte el profesional.",
                         color = Color.White,
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color.Black.copy(alpha = 0.55f))
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .background(Color.Black.copy(alpha = 0.65f))
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
                     )
-                }
-
-                if (uiState.isWaitingRoom || uiState.connectionState == ConnectionState.FAILED) {
-                    Button(onClick = viewModel::retryConnection) {
-                        Text(stringResource(com.autamedica.android.R.string.common_try_connect))
-                    }
                 }
             }
         }
@@ -340,6 +362,26 @@ fun VideoCallScreen(
             }
         }
 
+        // Clinical Notes Sheet (Doctor only)
+        AnimatedVisibility(
+            visible = uiState.isClinicalNotesOpen,
+            enter = fadeIn() + slideInVertically { it },
+            exit = fadeOut() + slideOutVertically { it },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding(),
+        ) {
+            ClinicalNotesSheet(
+                notes = uiState.consultationNotes,
+                initialNotes = uiState.appointmentNotes,
+                isSaving = uiState.isSavingNotes,
+                isSaved = uiState.notesSaved,
+                onNotesChange = viewModel::updateConsultationNotes,
+                onSaveNotes = viewModel::saveConsultationNotes,
+                onClose = viewModel::toggleClinicalNotes,
+            )
+        }
+
         // Chat panel (slide from bottom)
         AnimatedVisibility(
             visible = uiState.isChatOpen,
@@ -378,12 +420,34 @@ fun VideoCallScreen(
                 onToggleVideo = viewModel::toggleVideo,
                 onToggleSpeaker = viewModel::toggleSpeaker,
                 onToggleChat = viewModel::toggleChat,
+                onSwitchCamera = viewModel::switchCamera,
+                isDoctor = uiState.isDoctor,
+                isClinicalNotesOpen = uiState.isClinicalNotesOpen,
+                onToggleClinicalNotes = viewModel::toggleClinicalNotes,
                 onEndCall = {
-                    viewModel.endCall()
-                    onCallEnd()
+                    viewModel.handleCallEnd(onCallEnd)
                 },
             )
         }
+    }
+
+    if (uiState.showSoapEvolution) {
+        SoapEvolutionSheet(
+            soapData = uiState.soapData,
+            isSaving = uiState.isSavingSoap,
+            isSaved = uiState.soapSaved,
+            errorMessage = uiState.soapError,
+            onSoapDataChange = viewModel::updateSoapData,
+            onSaveAndFinish = {
+                viewModel.saveSoapEvolution(appointmentId) {
+                    onCallEnd()
+                }
+            },
+            onDismiss = {
+                viewModel.dismissSoapEvolution()
+                onCallEnd()
+            },
+        )
     }
 }
 

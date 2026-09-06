@@ -37,7 +37,7 @@ class HealthRepositoryImpl @Inject constructor(
 ) : HealthRepository {
 
     override suspend fun getAnamnesisSummary(): Result<AnamnesisSummary?> = runCatching {
-        val patientId = resolvePatientId()
+        val patientId = resolvePatientIdOrNull() ?: return@runCatching null
 
         supabaseClient.postgrest
             .from("anamnesis")
@@ -54,7 +54,8 @@ class HealthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPreventiveProfile(): Result<PatientPreventiveProfile> = runCatching {
-        val patientId = resolvePatientId()
+        val patientId = resolvePatientIdOrNull()
+            ?: throw IllegalStateException("No patient profile associated")
 
         supabaseClient.postgrest
             .from("patients")
@@ -62,8 +63,9 @@ class HealthRepositoryImpl @Inject constructor(
                 filter { eq("id", patientId) }
                 limit(1)
             }
-            .decodeSingle<PatientPreventiveProfileDto>()
-            .toDomain()
+            .decodeSingleOrNull<PatientPreventiveProfileDto>()
+            ?.toDomain()
+            ?: throw IllegalStateException("Patient details not found")
     }.onFailure {
         SecureLog.error("[Health] Failed fetching preventive profile", it)
     }
@@ -230,16 +232,23 @@ class HealthRepositoryImpl @Inject constructor(
     //  Helpers
     // ────────────────────────────────────────────────────────────
 
+    private suspend fun resolvePatientIdOrNull(): String? {
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID) ?: return null
+        return try {
+            supabaseClient.postgrest
+                .from("patients")
+                .select(Columns.list("id")) {
+                    filter { eq("user_id", userId) }
+                }
+                .decodeSingleOrNull<RecordIdDto>()
+                ?.id
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     private suspend fun resolvePatientId(): String {
-        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
-            ?: throw IllegalStateException("No user ID found")
-        return supabaseClient.postgrest
-            .from("patients")
-            .select(Columns.list("id")) {
-                filter { eq("user_id", userId) }
-            }
-            .decodeSingle<RecordIdDto>()
-            .id
+        return resolvePatientIdOrNull() ?: throw IllegalStateException("No patient record found")
     }
 
     private suspend fun requireEditableAnamnesis(anamnesisId: String): AnamnesisSummary {

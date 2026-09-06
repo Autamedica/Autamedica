@@ -78,6 +78,7 @@ import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.ErrorContainer
 import com.autamedica.android.presentation.theme.PortalDoctors
 import com.autamedica.android.presentation.theme.PortalPatients
+import com.autamedica.android.presentation.theme.PortalPharmacists
 import com.autamedica.android.presentation.theme.PrimaryLight
 import com.autamedica.android.presentation.theme.SuccessContainer
 import java.time.LocalDate
@@ -702,16 +703,19 @@ private fun displayName(user: User, firstName: String, lastName: String): String
 private fun roleLabel(role: UserRole): String = when (role) {
     UserRole.PATIENT -> "Paciente"
     UserRole.DOCTOR -> "Medico"
+    UserRole.PHARMACIST -> "Farmaceutico"
     UserRole.COMPANY -> "Empresa"
     UserRole.COMPANY_ADMIN -> "Admin empresa"
     UserRole.ORGANIZATION_ADMIN -> "Admin organizacion"
     UserRole.ADMIN -> "Admin"
     UserRole.PLATFORM_ADMIN -> "Admin plataforma"
+    else -> role.displayName
 }
 
 private fun roleAccent(role: UserRole?): Color = when (role) {
     UserRole.DOCTOR -> PortalDoctors
     UserRole.PATIENT -> PortalPatients
+    UserRole.PHARMACIST -> PortalPharmacists
     else -> AuAccent
 }
 

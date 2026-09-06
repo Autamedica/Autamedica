@@ -29,16 +29,42 @@ class TelemedicineRepositoryImpl @Inject constructor(
         private val UUID_REGEX = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$")
     }
 
+    internal var sessionInfoFinder: (suspend (String) -> TelemedicineSessionInfo?)? = null
+
     override suspend fun getSession(sessionId: String): Result<TelemedicineSessionInfo> = runCatching {
         val identifier = sessionId.trim()
         require(identifier.isNotEmpty()) { "Session identifier cannot be empty" }
 
-        val call = findCallForIdentifier(identifier)
-            ?: throw IllegalStateException("No telemedicine call found for identifier")
+        val customFinder = sessionInfoFinder
+        if (customFinder != null) {
+            val resolved = customFinder(identifier)
+            if (resolved != null) return@runCatching resolved
+        } else {
+            val call = findCallForIdentifier(identifier)
+            if (call != null) {
+                return@runCatching TelemedicineSessionInfo(
+                    sessionId = call.id,
+                    roomId = call.roomId,
+                    signalingUrl = BuildConfig.SIGNALING_URL,
+                    iceServers = getDefaultIceServers(),
+                )
+            }
 
+            val session = findTelemedicineSessionForIdentifier(identifier)
+            if (session != null) {
+                return@runCatching TelemedicineSessionInfo(
+                    sessionId = session.id,
+                    roomId = session.roomId?.trim()?.takeIf { it.isNotEmpty() } ?: identifier,
+                    signalingUrl = BuildConfig.SIGNALING_URL,
+                    iceServers = getDefaultIceServers(),
+                )
+            }
+        }
+
+        SecureLog.info("[Telemedicine] Fallback to direct roomId connection for identifier=$identifier")
         TelemedicineSessionInfo(
-            sessionId = call.id,
-            roomId = call.roomId,
+            sessionId = identifier,
+            roomId = identifier,
             signalingUrl = BuildConfig.SIGNALING_URL,
             iceServers = getDefaultIceServers(),
         )
@@ -80,6 +106,35 @@ class TelemedicineRepositoryImpl @Inject constructor(
         )
     }.onFailure {
         SecureLog.error("[Telemedicine] Failed fetching LiveKit credentials", it)
+    }
+
+    override suspend fun updateCallStatus(callId: String, status: String): Result<Unit> = runCatching {
+        val trimmedCallId = callId.trim()
+        if (trimmedCallId.isEmpty()) return@runCatching
+
+        runCatching {
+            supabaseClient.postgrest
+                .from("calls")
+                .update(mapOf("status" to status)) {
+                    filter { eq("id", trimmedCallId) }
+                }
+        }
+
+        runCatching {
+            supabaseClient.postgrest
+                .from("telemedicine_sessions")
+                .update(mapOf("status" to status)) {
+                    filter {
+                        or {
+                            eq("appointment_id", trimmedCallId)
+                            eq("id", trimmedCallId)
+                        }
+                    }
+                }
+        }
+        Unit
+    }.onFailure {
+        SecureLog.warn("[Telemedicine] Failed updating call status", it)
     }
 
     override suspend fun getJoinableAppointmentIds(appointments: List<Appointment>): Result<Set<String>> = runCatching {
@@ -171,6 +226,40 @@ class TelemedicineRepositoryImpl @Inject constructor(
             .firstOrNull()
     }
 
+    private suspend fun findTelemedicineSessionForIdentifier(identifier: String): TelemedicineSessionDto? {
+        if (identifier.isUuid()) {
+            val byAppointmentId = findSessionByColumn("appointment_id", identifier)
+            if (byAppointmentId != null) return byAppointmentId
+
+            val byId = findSessionByColumn("id", identifier)
+            if (byId != null) return byId
+        }
+
+        val byRoomId = findSessionByColumn("room_id", identifier)
+        if (byRoomId != null) return byRoomId
+
+        if (identifier.isUuid()) {
+            val callIdFromAppointment = resolveCallIdFromAppointment(identifier)
+            if (callIdFromAppointment != null) {
+                val byResolvedRoom = findSessionByColumn("room_id", callIdFromAppointment)
+                if (byResolvedRoom != null) return byResolvedRoom
+            }
+        }
+
+        return null
+    }
+
+    private suspend fun findSessionByColumn(column: String, value: String): TelemedicineSessionDto? {
+        return supabaseClient.postgrest
+            .from("telemedicine_sessions")
+            .select(Columns.ALL) {
+                filter { eq(column, value) }
+                limit(1)
+            }
+            .decodeList<TelemedicineSessionDto>()
+            .firstOrNull()
+    }
+
     private suspend fun resolveCallIdFromAppointment(appointmentId: String): String? {
         val meetingUrl = supabaseClient.postgrest
             .from("appointments")
@@ -237,6 +326,16 @@ private data class AppointmentMeetingDto(
 private data class LiveSessionAvailabilityDto(
     @SerialName("appointment_id") val appointmentId: String? = null,
     val status: String,
+)
+
+@Serializable
+private data class TelemedicineSessionDto(
+    val id: String,
+    @SerialName("room_id") val roomId: String? = null,
+    @SerialName("appointment_id") val appointmentId: String? = null,
+    @SerialName("doctor_id") val doctorId: String? = null,
+    @SerialName("patient_id") val patientId: String? = null,
+    val status: String? = null,
 )
 
 @Serializable

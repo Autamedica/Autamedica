@@ -25,4 +25,5 @@ interface TelemedicineRepository {
     suspend fun getSession(sessionId: String): Result<TelemedicineSessionInfo>
     suspend fun getLiveKitCredentials(sessionId: String): Result<LiveKitCredentials>
     suspend fun getJoinableAppointmentIds(appointments: List<Appointment>): Result<Set<String>>
+    suspend fun updateCallStatus(callId: String, status: String): Result<Unit>
 }

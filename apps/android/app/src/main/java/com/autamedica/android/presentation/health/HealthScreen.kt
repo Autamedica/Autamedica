@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.HealthAndSafety
 import androidx.compose.material.icons.outlined.LocalHospital
+import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material.icons.outlined.Vaccines
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -58,6 +59,7 @@ import com.autamedica.android.presentation.theme.SuccessContainer
 import com.autamedica.android.presentation.theme.Tertiary
 
 private data class HealthFeature(
+    val id: String,
     val title: String,
     val description: String,
     val icon: ImageVector,
@@ -69,15 +71,29 @@ private data class HealthFeature(
 
 private val otherHealthFeatures = listOf(
     HealthFeature(
-        title = "Historial Medico",
-        description = "Consultas, diagnosticos y examenes anteriores",
-        icon = Icons.Outlined.LocalHospital,
-        iconColor = PrimaryLight,
-        iconBgColor = Color(0xFF172554),
+        id = "prescriptions",
+        title = "Recetas Digitales",
+        description = "Prescripciones médicas firmadas y códigos QR para farmacia",
+        icon = Icons.Outlined.Medication,
+        iconColor = PortalPatients,
+        iconBgColor = Color(0xFF0F172A),
+        statusLabel = "Oficial",
+        isEnabled = true,
     ),
     HealthFeature(
+        id = "documents",
+        title = "Estudios y Documentos",
+        description = "Análisis de laboratorio, estudios por imágenes y reportes",
+        icon = Icons.Outlined.Description,
+        iconColor = PrimaryLight,
+        iconBgColor = Color(0xFF172554),
+        statusLabel = "Activo",
+        isEnabled = true,
+    ),
+    HealthFeature(
+        id = "preventive",
         title = "Salud Preventiva",
-        description = "Controles periodicos, vacunas y screenings",
+        description = "Controles periódicos, vacunas y screenings",
         icon = Icons.Outlined.HealthAndSafety,
         iconColor = PortalPatients,
         iconBgColor = Color(0xFF052E16),
@@ -85,8 +101,9 @@ private val otherHealthFeatures = listOf(
         isEnabled = true,
     ),
     HealthFeature(
+        id = "vaccines",
         title = "Vacunas",
-        description = "Calendario de vacunacion y registros",
+        description = "Calendario de vacunación y registros",
         icon = Icons.Outlined.Vaccines,
         iconColor = Secondary,
         iconBgColor = Color(0xFF0C4A6E),
@@ -98,6 +115,8 @@ private val otherHealthFeatures = listOf(
 fun HealthScreen(
     onNavigateToAnamnesisForm: () -> Unit = {},
     onNavigateToPreventiveHealth: () -> Unit = {},
+    onNavigateToPrescriptions: () -> Unit = {},
+    onNavigateToClinicalDocuments: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HealthViewModel = hiltViewModel(),
 ) {
@@ -138,7 +157,7 @@ fun HealthScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Accede a tu informacion de salud en un solo lugar",
+                        text = "Accede a tu información de salud en un solo lugar",
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary,
                     )
@@ -156,9 +175,18 @@ fun HealthScreen(
             }
 
             items(otherHealthFeatures) { feature ->
+                val onClickAction: (() -> Unit)? = if (feature.isEnabled) {
+                    when (feature.id) {
+                        "prescriptions" -> onNavigateToPrescriptions
+                        "documents" -> onNavigateToClinicalDocuments
+                        "preventive" -> onNavigateToPreventiveHealth
+                        else -> null
+                    }
+                } else null
+
                 HealthFeatureCard(
                     feature = feature,
-                    onClick = if (feature.isEnabled) onNavigateToPreventiveHealth else null,
+                    onClick = onClickAction,
                 )
             }
         }

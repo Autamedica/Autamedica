@@ -244,6 +244,10 @@ class WebRTCEngine(
         _isAudioEnabled.value = newState
     }
 
+    fun switchCamera() {
+        videoCapturer?.switchCamera(null)
+    }
+
     // -- Chat --
 
     fun sendChatMessage(text: String): Boolean {

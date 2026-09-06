@@ -27,6 +27,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -40,6 +42,10 @@ fun CallControls(
     onToggleSpeaker: () -> Unit,
     onToggleChat: () -> Unit,
     onEndCall: () -> Unit,
+    onSwitchCamera: (() -> Unit)? = null,
+    isDoctor: Boolean = false,
+    isClinicalNotesOpen: Boolean = false,
+    onToggleClinicalNotes: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -63,7 +69,7 @@ fun CallControls(
             containerColor = if (isAudioEnabled) Color.DarkGray else Color.Red.copy(alpha = 0.8f),
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(10.dp))
 
         // Video toggle
         ControlButton(
@@ -78,7 +84,22 @@ fun CallControls(
             containerColor = if (isVideoEnabled) Color.DarkGray else Color.Red.copy(alpha = 0.8f),
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        if (onSwitchCamera != null && isVideoEnabled) {
+            Spacer(modifier = Modifier.width(10.dp))
+            ControlButton(
+                icon = {
+                    Icon(
+                        imageVector = Icons.Filled.Refresh,
+                        contentDescription = "Cambiar camara",
+                        tint = Color.White,
+                    )
+                },
+                onClick = onSwitchCamera,
+                containerColor = Color.DarkGray,
+            )
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
 
         // Speaker toggle
         ControlButton(
@@ -93,7 +114,7 @@ fun CallControls(
             containerColor = if (isSpeakerOn) Color.DarkGray else Color(0xFF455A64),
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(10.dp))
 
         // Chat toggle
         ControlButton(
@@ -108,12 +129,28 @@ fun CallControls(
             containerColor = if (isChatOpen) MaterialTheme.colorScheme.primary else Color.DarkGray,
         )
 
-        Spacer(modifier = Modifier.width(20.dp))
+        // Doctor Clinical Notes toggle
+        if (isDoctor && onToggleClinicalNotes != null) {
+            Spacer(modifier = Modifier.width(10.dp))
+            ControlButton(
+                icon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Description,
+                        contentDescription = "Notas clinicas",
+                        tint = Color.White,
+                    )
+                },
+                onClick = onToggleClinicalNotes,
+                containerColor = if (isClinicalNotesOpen) Color(0xFF0D9488) else Color.DarkGray,
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
 
         // End call
         FilledIconButton(
             onClick = onEndCall,
-            modifier = Modifier.size(56.dp),
+            modifier = Modifier.size(54.dp),
             shape = CircleShape,
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = Color.Red,

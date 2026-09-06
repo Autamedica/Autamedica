@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Videocam
@@ -29,8 +30,11 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -98,6 +102,7 @@ private data class AgendaDay(
 @Composable
 fun AppointmentsScreen(
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
+    onNavigateToBookAppointment: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: AppointmentsViewModel = hiltViewModel(),
 ) {
@@ -165,10 +170,65 @@ fun AppointmentsScreen(
                         )
                     }
                 },
+                actions = {
+                    if (!isDoctor) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = accentColor.copy(alpha = 0.16f),
+                            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.4f)),
+                            modifier = Modifier
+                                .padding(end = 12.dp)
+                                .clickable { onNavigateToBookAppointment() },
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = null,
+                                    tint = accentColor,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Text(
+                                    text = "Reservar Turno",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = accentColor,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = AuBackground,
                 ),
             )
+        },
+        floatingActionButton = {
+            if (!isDoctor) {
+                ExtendedFloatingActionButton(
+                    onClick = onNavigateToBookAppointment,
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint = Color.White,
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "Nuevo Turno",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                    },
+                    containerColor = accentColor,
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(16.dp),
+                )
+            }
         },
         containerColor = AuBackground,
         modifier = modifier,
@@ -229,7 +289,11 @@ fun AppointmentsScreen(
                 }
 
                 uiState.appointments.isEmpty() -> {
-                    EmptyAppointmentsState()
+                    EmptyAppointmentsState(
+                        isDoctor = isDoctor,
+                        accentColor = accentColor,
+                        onNavigateToBookAppointment = onNavigateToBookAppointment,
+                    )
                 }
 
                 else -> {
@@ -286,7 +350,11 @@ fun AppointmentsScreen(
 }
 
 @Composable
-private fun EmptyAppointmentsState() {
+private fun EmptyAppointmentsState(
+    isDoctor: Boolean = false,
+    accentColor: Color = PortalPatients,
+    onNavigateToBookAppointment: () -> Unit = {},
+) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
@@ -327,6 +395,27 @@ private fun EmptyAppointmentsState() {
                 style = MaterialTheme.typography.bodySmall,
                 color = AuTextSecondary,
             )
+            if (!isDoctor) {
+                Spacer(modifier = Modifier.height(20.dp))
+                Button(
+                    onClick = onNavigateToBookAppointment,
+                    colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = Color.White,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Reservar Turno",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
+            }
         }
     }
 }

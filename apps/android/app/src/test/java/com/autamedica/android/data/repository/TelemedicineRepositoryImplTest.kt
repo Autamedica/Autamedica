@@ -50,4 +50,22 @@ class TelemedicineRepositoryImplTest {
         assertThat(result.isFailure).isTrue()
         assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
     }
+
+    @Test
+    fun updateCallStatusWithEmptyCallIdReturnsSuccessImmediately() = runTest {
+        val result = repository.updateCallStatus("   ", "completed")
+        assertThat(result.isSuccess).isTrue()
+    }
+
+    @Test
+    fun getSessionFallsBackToDirectRoomIdWhenNoPriorRecordExists() = runTest {
+        repository.sessionInfoFinder = { null }
+        val result = repository.getSession("custom-room-456")
+        assertThat(result.isSuccess).isTrue()
+        val session = result.getOrNull()
+        assertThat(session).isNotNull()
+        assertThat(session?.sessionId).isEqualTo("custom-room-456")
+        assertThat(session?.roomId).isEqualTo("custom-room-456")
+        assertThat(session?.signalingUrl).isNotEmpty()
+    }
 }

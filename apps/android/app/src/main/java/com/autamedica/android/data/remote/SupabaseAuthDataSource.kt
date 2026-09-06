@@ -35,11 +35,7 @@ class SupabaseAuthDataSource @Inject constructor(
             is SessionStatus.Authenticated -> {
                 val user = status.session.user
                 if (user != null) {
-                    val role = user.userMetadata
-                        ?.jsonObject
-                        ?.get("role")
-                        ?.jsonPrimitive
-                        ?.content
+                    val role = extractRole(user)
                     AuthUser(
                         id = user.id,
                         email = user.email ?: "",
@@ -62,11 +58,7 @@ class SupabaseAuthDataSource @Inject constructor(
         val user = session.user
             ?: throw IllegalStateException("User is null after sign-in")
 
-        val role = user.userMetadata
-            ?.jsonObject
-            ?.get("role")
-            ?.jsonPrimitive
-            ?.content
+        val role = extractRole(user)
 
         return AuthUser(
             id = user.id,
@@ -86,11 +78,7 @@ class SupabaseAuthDataSource @Inject constructor(
         val user = session.user
             ?: throw IllegalStateException("User is null after Google sign-in")
 
-        val role = user.userMetadata
-            ?.jsonObject
-            ?.get("role")
-            ?.jsonPrimitive
-            ?.content
+        val role = extractRole(user)
 
         return AuthUser(
             id = user.id,
@@ -104,13 +92,10 @@ class SupabaseAuthDataSource @Inject constructor(
     }
 
     suspend fun getCurrentUser(): AuthUser? {
+        auth.awaitInitialization()
         val session = auth.currentSessionOrNull() ?: return null
         val user = session.user ?: return null
-        val role = user.userMetadata
-            ?.jsonObject
-            ?.get("role")
-            ?.jsonPrimitive
-            ?.content
+        val role = extractRole(user)
         return AuthUser(
             id = user.id,
             email = user.email ?: "",
@@ -118,13 +103,22 @@ class SupabaseAuthDataSource @Inject constructor(
         )
     }
 
+    private fun extractRole(user: io.github.jan.supabase.auth.user.UserInfo): String? {
+        val appRole = user.appMetadata?.get("role")?.jsonPrimitive?.content
+        if (!appRole.isNullOrBlank()) return appRole
+        val userRole = user.userMetadata?.jsonObject?.get("role")?.jsonPrimitive?.content
+        if (!userRole.isNullOrBlank()) return userRole
+        return null
+    }
+
     suspend fun fetchUserRole(userId: String): String? {
         return try {
             val result = supabase.postgrest.from("profiles")
-                .select {
+                .select(io.github.jan.supabase.postgrest.query.Columns.list("role")) {
                     filter { eq("user_id", userId) }
                 }
-                .decodeSingleOrNull<ProfileRow>()
+                .decodeList<ProfileRoleOnly>()
+                .firstOrNull()
             result?.role
         } catch (e: Exception) {
             SecureLog.warn("Failed to fetch user role from profiles table", e)
@@ -134,7 +128,6 @@ class SupabaseAuthDataSource @Inject constructor(
 }
 
 @kotlinx.serialization.Serializable
-private data class ProfileRow(
-    @kotlinx.serialization.SerialName("user_id") val id: String,
+private data class ProfileRoleOnly(
     val role: String? = null,
 )

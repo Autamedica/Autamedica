@@ -5,9 +5,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -31,11 +31,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -60,9 +60,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -73,7 +74,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -81,9 +81,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.BuildConfig
 import com.autamedica.android.R
+import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
+import com.autamedica.android.presentation.theme.AuBorderHover
 import com.autamedica.android.presentation.theme.AuDanger
 import com.autamedica.android.presentation.theme.AuSurface
 import com.autamedica.android.presentation.theme.AuSurfaceHover
@@ -91,9 +93,12 @@ import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.ErrorContainer
+import com.autamedica.android.presentation.theme.LogoObsidianBg
+import com.autamedica.android.presentation.theme.LogoRingBorder
+import com.autamedica.android.presentation.theme.PortalCompanies
 import com.autamedica.android.presentation.theme.PortalDoctors
 import com.autamedica.android.presentation.theme.PortalPatients
-import com.autamedica.android.presentation.theme.PrimaryLight
+import com.autamedica.android.presentation.theme.PortalPharmacists
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
@@ -106,9 +111,10 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
-    var passwordVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     val coroutineScope = rememberCoroutineScope()
+    var passwordVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.loggedInUser) {
         if (uiState.loggedInUser != null) {
@@ -136,7 +142,7 @@ fun LoginScreen(
                         .createFrom(result.credential.data)
                     viewModel.onGoogleSignIn(googleIdTokenCredential.idToken)
                 } catch (_: GetCredentialCancellationException) {
-                    // User cancelled, no error needed.
+                    // User cancelled Google picker, do nothing
                 } catch (e: Exception) {
                     viewModel.onGoogleSignInError(e)
                 }
@@ -150,6 +156,12 @@ fun LoginScreen(
     }
 
     val scrollState = rememberScrollState()
+    val activeColor = when (uiState.selectedRole) {
+        UserRole.PATIENT -> PortalPatients
+        UserRole.DOCTOR -> PortalDoctors
+        UserRole.PHARMACIST -> PortalPharmacists
+        else -> PortalCompanies
+    }
 
     Box(
         modifier = modifier
@@ -158,344 +170,345 @@ fun LoginScreen(
             .safeDrawingPadding()
             .imePadding(),
     ) {
-        WelcomeBackdrop()
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 20.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            WelcomeHeroCard()
+            // ── AutaMedica Branding & Access Mode Badge (Matching Web AuthLogo.tsx) ──
+            AutamedicaHeader(
+                activeRole = uiState.selectedRole,
+                activeColor = activeColor,
+            )
 
+            // ── Role Segmented Selector (Matching Web Tabs) ──
+            RoleSegmentedPicker(
+                selectedRole = uiState.selectedRole,
+                onRoleSelected = viewModel::onRoleChange,
+            )
+
+            // ── Dynamic Role Heading (Matching Web H1 & Subtitle) ──
+            RoleHeading(
+                selectedRole = uiState.selectedRole,
+            )
+
+            // ── Main Login Form Card ──
             LoginFormCard(
                 uiState = uiState,
+                activeColor = activeColor,
                 passwordVisible = passwordVisible,
                 onPasswordVisibilityToggle = { passwordVisible = !passwordVisible },
                 onGoogleSignIn = launchGoogleSignIn,
                 onEmailChange = viewModel::onEmailChange,
                 onPasswordChange = viewModel::onPasswordChange,
+                onForgotPasswordClick = {
+                    uriHandler.openUri("https://www.autamedica.com/auth/forgot-password?role=${uiState.selectedRole.wireName}")
+                },
                 onSubmit = {
                     focusManager.clearFocus()
                     viewModel.onLogin()
                 },
             )
 
-            Text(
-                text = "Tus recordatorios, turnos y videoconsultas quedan sincronizados en una sola experiencia.",
-                style = MaterialTheme.typography.bodySmall,
-                color = AuTextTertiary,
-                textAlign = TextAlign.Center,
+            // ── Register Link (Matching Web Footer) ──
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun WelcomeLoadingState(
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(AuBackground)
-            .safeDrawingPadding(),
-    ) {
-        WelcomeBackdrop()
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 28.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Surface(
-                modifier = Modifier.size(92.dp),
-                shape = RoundedCornerShape(28.dp),
-                color = AuSurface,
-                border = BorderStroke(1.dp, AuBorder),
+                    .padding(vertical = 4.dp),
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    androidx.compose.foundation.Image(
-                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                        contentDescription = null,
-                        modifier = Modifier.size(58.dp),
-                    )
-                }
+                Text(
+                    text = "¿No tienes una cuenta? ",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AuTextSecondary,
+                )
+                Text(
+                    text = "Crear cuenta",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = activeColor,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable {
+                        uriHandler.openUri("https://www.autamedica.com/auth/register?role=${uiState.selectedRole.wireName}")
+                    },
+                )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "AutaMedica",
-                style = MaterialTheme.typography.headlineLarge,
-                color = AuTextPrimary,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.8).sp,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Preparando tu acceso a la clinica digital.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AuTextSecondary,
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(modifier = Modifier.height(26.dp))
-
-            CircularProgressIndicator(
-                color = AuAccent,
-                strokeWidth = 2.dp,
-            )
+            // ── Security & Compliance Legend (HIPAA) ──
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp, bottom = 12.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint = AuTextTertiary,
+                    modifier = Modifier.size(13.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Conexión cifrada de extremo a extremo • Cumplimiento HIPAA",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AuTextTertiary,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }
 
+/**
+ * Encabezado de acceso con el logo oficial AutaMedica
+ * y el badge de modo de acceso correspondiente al rol activo (idéntico a AuthLogo.tsx de la web).
+ */
 @Composable
-private fun WelcomeBackdrop() {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Surface(
-            modifier = Modifier
-                .size(220.dp)
-                .offset(x = 118.dp, y = (-42).dp)
-                .align(Alignment.TopEnd),
-            shape = CircleShape,
-            color = PortalDoctors.copy(alpha = 0.14f),
-        ) {}
-
-        Surface(
-            modifier = Modifier
-                .size(170.dp)
-                .offset(x = (-72).dp, y = 96.dp)
-                .align(Alignment.TopStart),
-            shape = CircleShape,
-            color = PortalPatients.copy(alpha = 0.1f),
-        ) {}
-
-        Surface(
-            modifier = Modifier
-                .size(240.dp)
-                .offset(x = (-110).dp, y = 160.dp)
-                .align(Alignment.BottomStart),
-            shape = CircleShape,
-            color = PrimaryLight.copy(alpha = 0.08f),
-        ) {}
-    }
-}
-
-@Composable
-private fun WelcomeHeroCard() {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .zIndex(1f),
-        shape = RoundedCornerShape(28.dp),
-        color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
+private fun AutamedicaHeader(
+    activeRole: UserRole,
+    activeColor: Color,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(22.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+        // Access Mode Badge (Matching Web)
+        Surface(
+            shape = RoundedCornerShape(999.dp),
+            color = AuSurface,
+            border = BorderStroke(1.dp, AuBorder),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             ) {
-                Surface(
-                    modifier = Modifier.size(54.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    color = AuBackground,
-                    border = BorderStroke(1.dp, AuBorder),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        androidx.compose.foundation.Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                            contentDescription = null,
-                            modifier = Modifier.size(34.dp),
-                        )
-                    }
-                }
-
-                Column {
-                    Surface(
-                        shape = RoundedCornerShape(999.dp),
-                        color = PortalPatients.copy(alpha = 0.14f),
-                    ) {
-                        Text(
-                            text = "Telemedicina activa",
-                            color = PortalPatients,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Bienvenido a AutaMedica",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = AuTextPrimary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(activeColor),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "MODO DE ACCESO",
+                    color = AuTextSecondary,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.6.sp,
+                )
             }
+        }
 
-            Text(
-                text = stringResource(com.autamedica.android.R.string.welcome_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = AuTextSecondary,
-            )
+        Spacer(modifier = Modifier.height(4.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+        // Logo Squircle (Obsidian Jewel matching Web AuthLogo.tsx)
+        Surface(
+            modifier = Modifier.size(96.dp),
+            shape = RoundedCornerShape(32.dp),
+            color = LogoObsidianBg,
+            border = BorderStroke(1.dp, LogoRingBorder),
+            shadowElevation = 16.dp,
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize(),
             ) {
-                WelcomeTagChip(label = stringResource(com.autamedica.android.R.string.welcome_tag_appointments))
-                WelcomeTagChip(label = stringResource(com.autamedica.android.R.string.welcome_tag_videocall))
-                WelcomeTagChip(label = stringResource(com.autamedica.android.R.string.welcome_tag_history))
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                WelcomeFeatureRow(
-                    icon = Icons.Outlined.CalendarMonth,
-                    iconTint = PortalDoctors,
-                    title = stringResource(com.autamedica.android.R.string.welcome_feature_agenda_title),
-                    description = stringResource(com.autamedica.android.R.string.welcome_feature_agenda_desc),
-                )
-                WelcomeFeatureRow(
-                    icon = Icons.Default.Videocam,
-                    iconTint = PortalPatients,
-                    title = stringResource(com.autamedica.android.R.string.welcome_feature_consultation_title),
-                    description = stringResource(com.autamedica.android.R.string.welcome_feature_consultation_desc),
-                )
-                WelcomeFeatureRow(
-                    icon = Icons.Outlined.MedicalServices,
-                    iconTint = AuAccent,
-                    title = stringResource(com.autamedica.android.R.string.welcome_feature_followup_title),
-                    description = stringResource(com.autamedica.android.R.string.welcome_feature_followup_desc),
+                Image(
+                    painter = painterResource(id = R.drawable.logo_autamedica),
+                    contentDescription = "AutaMedica",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.Fit,
                 )
             }
         }
     }
 }
 
+/**
+ * Título y subtítulo del portal seleccionado (idéntico a LoginForm.tsx de la web).
+ */
 @Composable
-private fun WelcomeTagChip(label: String) {
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = AuBackground,
-        border = BorderStroke(1.dp, AuBorder),
+private fun RoleHeading(
+    selectedRole: UserRole,
+) {
+    val title = when (selectedRole) {
+        UserRole.PATIENT -> "Portal Pacientes"
+        UserRole.DOCTOR -> "Portal Médico"
+        UserRole.PHARMACIST -> "Portal Farmacia"
+        else -> "Portal Empresa"
+    }
+
+    val subtitle = when (selectedRole) {
+        UserRole.PATIENT -> "Ingresá a tu espacio de salud personalizada"
+        UserRole.DOCTOR -> "Accedé a tu consultorio virtual y agenda médica"
+        UserRole.PHARMACIST -> "Validación y dispensa de recetas oficiales"
+        else -> "Gestión de salud corporativa y coberturas"
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
     ) {
         Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            color = AuTextPrimary,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            letterSpacing = (-0.5).sp,
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyMedium,
             color = AuTextSecondary,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            textAlign = TextAlign.Center,
         )
     }
 }
 
+/**
+ * Selector segmentado de 4 portales (Paciente, Médico, Farmacia, Empresa)
+ * idéntico a las pestañas de selección de rol de la web de AutaMedica.
+ */
 @Composable
-private fun WelcomeFeatureRow(
-    icon: ImageVector,
-    iconTint: Color,
-    title: String,
-    description: String,
+private fun RoleSegmentedPicker(
+    selectedRole: UserRole,
+    onRoleSelected: (UserRole) -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(AuBackground)
-            .border(1.dp, AuBorder, RoundedCornerShape(18.dp))
-            .padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Surface(
-            modifier = Modifier.size(40.dp),
-            shape = RoundedCornerShape(14.dp),
-            color = iconTint.copy(alpha = 0.14f),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.padding(9.dp),
-                tint = iconTint,
-            )
-        }
+    val roles = listOf(
+        Triple(UserRole.PATIENT, "Paciente", com.autamedica.android.presentation.theme.PortalPatients to com.autamedica.android.presentation.theme.PortalPatientsSoft),
+        Triple(UserRole.DOCTOR, "Médico", com.autamedica.android.presentation.theme.PortalDoctors to com.autamedica.android.presentation.theme.PortalDoctorsSoft),
+        Triple(UserRole.PHARMACIST, "Farmacia", com.autamedica.android.presentation.theme.PortalPharmacists to com.autamedica.android.presentation.theme.PortalPharmacistsSoft),
+        Triple(UserRole.COMPANY, "Empresa", com.autamedica.android.presentation.theme.PortalCompanies to com.autamedica.android.presentation.theme.PortalCompaniesSoft),
+    )
 
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = AuTextPrimary,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = AuTextTertiary,
-            )
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = AuSurface,
+        border = BorderStroke(1.dp, AuBorder),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            roles.forEach { (role, label, colorPair) ->
+                val (roleColor, roleSoft) = colorPair
+                val isSelected = selectedRole == role
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (isSelected) roleSoft else Color.Transparent)
+                        .border(
+                            width = 1.dp,
+                            color = if (isSelected) roleColor.copy(alpha = 0.5f) else Color.Transparent,
+                            shape = RoundedCornerShape(14.dp),
+                        )
+                        .clickable { onRoleSelected(role) }
+                        .padding(vertical = 10.dp),
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        when (role) {
+                            UserRole.PATIENT -> Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = if (isSelected) roleColor else AuTextTertiary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            UserRole.DOCTOR -> Icon(
+                                imageVector = Icons.Outlined.MedicalServices,
+                                contentDescription = null,
+                                tint = if (isSelected) roleColor else AuTextTertiary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            UserRole.PHARMACIST -> Icon(
+                                painter = painterResource(id = R.drawable.ic_medical_cross_outline),
+                                contentDescription = null,
+                                tint = if (isSelected) roleColor else AuTextTertiary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            else -> Icon(
+                                painter = painterResource(id = R.drawable.ic_profile_outline),
+                                contentDescription = null,
+                                tint = if (isSelected) roleColor else AuTextTertiary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) AuTextPrimary else AuTextTertiary,
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
+/**
+ * Tarjeta contenedora de autenticación con Google Sign-In, divisor,
+ * campos de email/password, recuperación de clave y botón de acceso por rol.
+ */
 @Composable
 private fun LoginFormCard(
     uiState: LoginUiState,
+    activeColor: Color,
     passwordVisible: Boolean,
     onPasswordVisibilityToggle: () -> Unit,
     onGoogleSignIn: () -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
+    onForgotPasswordClick: () -> Unit,
     onSubmit: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
+    val buttonLabel = when (uiState.selectedRole) {
+        UserRole.PATIENT -> "Ingresar a mi portal"
+        UserRole.DOCTOR -> "Ingresar como Médico"
+        UserRole.PHARMACIST -> "Continuar a Portal Web"
+        else -> "Continuar a Portal Web"
+    }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         color = AuSurface,
         border = BorderStroke(1.dp, AuBorder),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(22.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "Continua con tu cuenta",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = AuTextPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    text = "Ingresa para acceder a turnos, telemedicina y seguimiento personalizado.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AuTextTertiary,
-                )
-            }
-
+            // Google Sign-In
             OutlinedButton(
                 onClick = onGoogleSignIn,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .height(50.dp),
                 enabled = !uiState.isLoading && !uiState.isGoogleLoading,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(14.dp),
                 border = BorderStroke(1.dp, AuBorder),
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = AuBackground,
@@ -506,7 +519,7 @@ private fun LoginFormCard(
             ) {
                 if (uiState.isGoogleLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(18.dp),
                         color = AuTextSecondary,
                         strokeWidth = 2.dp,
                     )
@@ -521,28 +534,24 @@ private fun LoginFormCard(
                     Text(
                         text = "Continuar con Google",
                         fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
 
+            // Divider
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    color = AuBorder,
-                )
+                HorizontalDivider(modifier = Modifier.weight(1f), color = AuBorder)
                 Text(
-                    text = "o",
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "o ingresa con tu correo",
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                 )
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    color = AuBorder,
-                )
+                HorizontalDivider(modifier = Modifier.weight(1f), color = AuBorder)
             }
 
             val textFieldColors = OutlinedTextFieldDefaults.colors(
@@ -550,13 +559,14 @@ private fun LoginFormCard(
                 unfocusedTextColor = AuTextPrimary,
                 focusedContainerColor = AuBackground,
                 unfocusedContainerColor = AuBackground,
-                focusedBorderColor = PrimaryLight,
+                focusedBorderColor = activeColor,
                 unfocusedBorderColor = AuBorder,
-                focusedLabelColor = PrimaryLight,
+                focusedLabelColor = activeColor,
                 unfocusedLabelColor = AuTextTertiary,
-                cursorColor = AuAccent,
+                cursorColor = activeColor,
             )
 
+            // Email field
             OutlinedTextField(
                 value = uiState.email,
                 onValueChange = onEmailChange,
@@ -574,53 +584,78 @@ private fun LoginFormCard(
                 ),
                 singleLine = true,
                 enabled = !uiState.isLoading && !uiState.isGoogleLoading,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            OutlinedTextField(
-                value = uiState.password,
-                onValueChange = onPasswordChange,
-                label = { Text(stringResource(R.string.login_password_label)) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = AuTextTertiary,
+            // Password section with top label row matching web layout
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.login_password_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = AuTextSecondary,
+                        fontWeight = FontWeight.Medium,
                     )
-                },
-                trailingIcon = {
-                    IconButton(onClick = onPasswordVisibilityToggle) {
+                    Text(
+                        text = "¿Olvidaste tu contraseña?",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AuTextTertiary,
+                        modifier = Modifier.clickable(onClick = onForgotPasswordClick),
+                    )
+                }
+
+                OutlinedTextField(
+                    value = uiState.password,
+                    onValueChange = onPasswordChange,
+                    leadingIcon = {
                         Icon(
-                            if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (passwordVisible) "Ocultar" else "Mostrar",
+                            Icons.Default.Lock,
+                            contentDescription = null,
                             tint = AuTextTertiary,
                         )
-                    }
-                },
-                visualTransformation = if (passwordVisible) {
-                    VisualTransformation.None
-                } else {
-                    PasswordVisualTransformation()
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        focusManager.clearFocus()
-                        onSubmit()
                     },
-                ),
-                singleLine = true,
-                enabled = !uiState.isLoading && !uiState.isGoogleLoading,
-                shape = RoundedCornerShape(16.dp),
-                colors = textFieldColors,
-                modifier = Modifier.fillMaxWidth(),
-            )
+                    trailingIcon = {
+                        IconButton(onClick = onPasswordVisibilityToggle) {
+                            Icon(
+                                if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (passwordVisible) "Ocultar" else "Mostrar",
+                                tint = AuTextTertiary,
+                            )
+                        }
+                    },
+                    visualTransformation = if (passwordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            focusManager.clearFocus()
+                            onSubmit()
+                        },
+                    ),
+                    singleLine = true,
+                    enabled = !uiState.isLoading && !uiState.isGoogleLoading,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = textFieldColors,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
+            // Error banner
             AnimatedVisibility(
                 visible = uiState.error != null,
                 enter = fadeIn() + slideInVertically(),
@@ -629,9 +664,10 @@ private fun LoginFormCard(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(ErrorContainer)
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                            .border(1.dp, AuDanger.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -651,6 +687,7 @@ private fun LoginFormCard(
                 }
             }
 
+            // Submit Button
             Button(
                 onClick = {
                     focusManager.clearFocus()
@@ -663,10 +700,10 @@ private fun LoginFormCard(
                     && uiState.password.isNotBlank()
                     && !uiState.isLoading
                     && !uiState.isGoogleLoading,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = AuAccent,
-                    contentColor = AuBackground,
+                    containerColor = activeColor,
+                    contentColor = Color.White,
                     disabledContainerColor = AuSurfaceHover,
                     disabledContentColor = AuTextTertiary,
                 ),
@@ -674,17 +711,87 @@ private fun LoginFormCard(
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = AuBackground,
+                        color = Color.White,
                         strokeWidth = 2.dp,
                     )
                 } else {
                     Text(
-                        text = stringResource(R.string.login_button),
+                        text = buttonLabel,
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Estado de carga inicial con el logo biocerámico de AutaMedica
+ */
+@Composable
+private fun WelcomeLoadingState(
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(AuBackground)
+            .safeDrawingPadding(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 28.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Surface(
+                modifier = Modifier.size(96.dp),
+                shape = RoundedCornerShape(32.dp),
+                color = LogoObsidianBg,
+                border = BorderStroke(1.dp, LogoRingBorder),
+                shadowElevation = 16.dp,
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.logo_autamedica),
+                        contentDescription = "AutaMedica",
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(RoundedCornerShape(16.dp)),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "AutaMedica",
+                style = MaterialTheme.typography.headlineLarge,
+                color = AuTextPrimary,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.8).sp,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Iniciando sesión en la clínica digital...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AuTextSecondary,
+                textAlign = TextAlign.Center,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            CircularProgressIndicator(
+                color = PortalPatients,
+                strokeWidth = 2.dp,
+            )
         }
     }
 }

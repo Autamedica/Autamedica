@@ -5,39 +5,50 @@ import androidx.compose.ui.graphics.Color
 // AutaMedica brand colors — matching landing page (dark palette)
 // Source: apps/web/src/styles/globals.css
 
-// Core dark surfaces (Zinc palette from landing)
-val AuBackground = Color(0xFF09090B)       // --au-bg
-val AuSurface = Color(0xFF141416)          // --au-surface
-val AuSurfaceHover = Color(0xFF1C1C20)     // --au-surface-hover
-val AuHover = Color(0xFF18181B)            // --au-hover
+// Core light surfaces (matching Web globals.css / auth.css)
+val AuBackground = Color(0xFFFFFFFF)       // --au-bg (clean white)
+val AuSurface = Color(0xFFF8FBFF)          // --au-surface (ice white)
+val AuSurfaceHover = Color(0xFFEEF6FF)     // --au-surface-hover
+val AuHover = Color(0xFFF3F8FF)            // --au-hover
 
-// Borders
-val AuBorder = Color(0xFF1F1F23)           // rgba(255,255,255,0.08) on #09090b
-val AuBorderHover = Color(0xFF2A2A2F)      // --au-hover-border
+// Borders with subtle sky tint
+val AuBorder = Color(0x1F0EA5E9)           // rgba(14, 165, 233, 0.12)
+val AuBorderHover = Color(0x3D0EA5E9)      // rgba(14, 165, 233, 0.24)
 
-// Text hierarchy
-val AuTextPrimary = Color(0xFFF4F4F5)      // --au-text-primary (zinc-100)
-val AuTextSecondary = Color(0xFFA1A1AA)    // --au-text-secondary (zinc-400)
-val AuTextTertiary = Color(0xFF71717A)     // --au-text-tertiary (zinc-500)
+// Text hierarchy (high contrast clinical)
+val AuTextPrimary = Color(0xFF050505)      // --au-text-primary
+val AuTextSecondary = Color(0xFF334155)    // --au-text-secondary (slate-700)
+val AuTextTertiary = Color(0xFF64748B)     // --au-text-tertiary (slate-500)
 
 // Accent
-val AuAccent = Color(0xFFE4E4E7)           // --au-accent (zinc-200)
-val AuAccentSoft = Color(0x14E4E4E7)       // rgba(228,228,231,0.08)
+val AuAccent = Color(0xFF0EA5E9)           // --au-accent (sky-500)
+val AuAccentSoft = Color(0x1F0EA5E9)       // rgba(14, 165, 233, 0.12)
 
-// Portal-specific accent colors
-val PortalPatients = Color(0xFF10B981)     // --portal-patients (emerald)
-val PortalDoctors = Color(0xFF3B82F6)      // --portal-doctors (blue)
-val PortalCompanies = Color(0xFFF59E0B)    // --portal-companies (amber)
+// Portal-specific accent colors (matching web role themes)
+val PortalPatients = Color(0xFF0EA5E9)        // --portal-patients (sky-500)
+val PortalPatientsSoft = Color(0x1F0EA5E9)    // rgba(14, 165, 233, 0.12)
+val PortalDoctors = Color(0xFF0891B2)         // --portal-doctors (cyan-600)
+val PortalDoctor = PortalDoctors
+val PortalDoctorsSoft = Color(0x1F0891B2)     // rgba(8, 145, 178, 0.12)
+val PortalDoctorSoft = PortalDoctorsSoft
+val PortalPharmacists = Color(0xFF059669)     // --portal-pharmacists (emerald-600)
+val PortalPharmacistsSoft = Color(0x1F059669) // rgba(5, 150, 105, 0.12)
+val PortalCompanies = Color(0xFF475569)       // --portal-companies (slate-600)
+val PortalCompaniesSoft = Color(0x1F475569)   // rgba(71, 85, 105, 0.12)
+
+// Logo Obsidian Jewel (matching Web AuthLogo bg-zinc-950)
+val LogoObsidianBg = Color(0xFF09090B)
+val LogoRingBorder = Color(0x1AFFFFFF)
 
 // Semantic
 val AuSuccess = Color(0xFF22C55E)          // --au-success (green-500)
 val AuWarning = Color(0xFFF59E0B)          // --au-warning (amber-500)
 val AuDanger = Color(0xFFEF4444)           // --au-danger (red-500)
 
-// Semantic containers (darker variants for dark theme)
-val SuccessContainer = Color(0xFF052E16)   // green-950
-val WarningContainer = Color(0xFF451A03)   // amber-950
-val ErrorContainer = Color(0xFF450A0A)     // red-950
+// Semantic containers
+val SuccessContainer = Color(0xFFECFDF5)   // emerald-50
+val WarningContainer = Color(0xFFFFFBEB)   // amber-50
+val ErrorContainer = Color(0xFFFEF2F2)     // red-50
 
 // Blue primary (from shared design system — used in portals/buttons)
 val Primary = Color(0xFF2563EB)            // am-primary-600

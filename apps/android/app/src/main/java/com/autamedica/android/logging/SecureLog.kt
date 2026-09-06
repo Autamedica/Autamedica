@@ -28,8 +28,16 @@ object SecureLog {
         Timber.e("%s | %s", sanitize(context), safeThrowableMessage(throwable))
     }
 
+    fun error(message: String) {
+        Timber.e(sanitize(message))
+    }
+
     fun warn(context: String, throwable: Throwable) {
         Timber.w("%s | %s", sanitize(context), safeThrowableMessage(throwable))
+    }
+
+    fun warn(message: String) {
+        Timber.w(sanitize(message))
     }
 
     fun debug(message: String) {

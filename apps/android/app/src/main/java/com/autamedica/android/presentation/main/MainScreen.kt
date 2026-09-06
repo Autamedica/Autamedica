@@ -5,8 +5,28 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Favorite
@@ -55,8 +75,14 @@ import timber.log.Timber
 
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.outlined.Email
-
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import com.autamedica.android.presentation.theme.AuBorder
+import com.autamedica.android.presentation.theme.AuTextPrimary
+import com.autamedica.android.presentation.theme.AuTextSecondary
+import com.autamedica.android.presentation.theme.LogoObsidianBg
+import com.autamedica.android.presentation.theme.LogoRingBorder
+import com.autamedica.android.presentation.theme.PortalPatients
 
 private data class TabItem(
     val labelRes: Int,
@@ -89,15 +115,28 @@ fun MainScreen(
     onNavigateToChatConversation: (chatId: String) -> Unit = {},
     onNavigateToAnamnesisForm: () -> Unit = {},
     onNavigateToPreventiveHealth: () -> Unit = {},
+    onNavigateToBookAppointment: () -> Unit = {},
+    onNavigateToPrescriptions: () -> Unit = {},
+    onNavigateToClinicalDocuments: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
-    val isDoctor = uiState.userRole.wireName == "doctor"
+    val isDoctor = uiState.userRole == com.autamedica.android.domain.model.UserRole.DOCTOR
+    val isWebPortal = uiState.userRole != com.autamedica.android.domain.model.UserRole.DOCTOR && uiState.userRole != com.autamedica.android.domain.model.UserRole.PATIENT
     val tabs = if (isDoctor) doctorTabs else patientTabs
-    val accentColor = if (isDoctor) PortalDoctors else AuAccent
+    val accentColor = if (isDoctor) PortalDoctors else com.autamedica.android.presentation.theme.PortalPatients
+
+    if (isWebPortal) {
+        WebPortalRedirectScreen(
+            userRole = uiState.userRole,
+            onLogout = viewModel::logout,
+            modifier = modifier,
+        )
+        return
+    }
 
     // ── Android 13+ notification permission ──
     val context = LocalContext.current
@@ -196,10 +235,13 @@ fun MainScreen(
                     )
                     2 -> AppointmentsScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,
+                        onNavigateToBookAppointment = onNavigateToBookAppointment,
                     )
                     3 -> HealthScreen(
                         onNavigateToAnamnesisForm = onNavigateToAnamnesisForm,
                         onNavigateToPreventiveHealth = onNavigateToPreventiveHealth,
+                        onNavigateToPrescriptions = onNavigateToPrescriptions,
+                        onNavigateToClinicalDocuments = onNavigateToClinicalDocuments,
                     )
                     4 -> ProfileScreen(
                         onLogout = viewModel::logout,
@@ -209,3 +251,97 @@ fun MainScreen(
         }
     }
 }
+
+@Composable
+private fun WebPortalRedirectScreen(
+    userRole: com.autamedica.android.domain.model.UserRole,
+    onLogout: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val uriHandler = LocalUriHandler.current
+    val portalUrl = when (userRole) {
+        com.autamedica.android.domain.model.UserRole.COMPANY,
+        com.autamedica.android.domain.model.UserRole.COMPANY_ADMIN -> "https://empresa.autamedica.com"
+        com.autamedica.android.domain.model.UserRole.PHARMACIST -> "https://farmacia.autamedica.com"
+        else -> "https://admin.autamedica.com"
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(AuBackground)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = AuSurface,
+            border = BorderStroke(1.dp, AuBorder),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Surface(
+                    modifier = Modifier.size(80.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    color = LogoObsidianBg,
+                    border = BorderStroke(1.dp, LogoRingBorder),
+                    shadowElevation = 12.dp,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Image(
+                            painter = painterResource(id = R.drawable.logo_autamedica),
+                            contentDescription = "AutaMedica",
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Portal ${userRole.displayName}",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = AuTextPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
+
+                Text(
+                    text = "Las funciones de gestión y administración para tu cuenta están optimizadas para la plataforma web de escritorio.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AuTextSecondary,
+                    textAlign = TextAlign.Center,
+                )
+
+                Button(
+                    onClick = { uriHandler.openUri(portalUrl) },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PortalPatients,
+                        contentColor = Color.White,
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                ) {
+                    Text("Abrir Portal en el Navegador", fontWeight = FontWeight.SemiBold)
+                }
+
+                OutlinedButton(
+                    onClick = onLogout,
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, AuBorder),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                ) {
+                    Text("Cerrar Sesión", color = AuTextSecondary)
+                }
+            }
+        }
+    }
+}
+

@@ -20,6 +20,7 @@ import javax.inject.Inject
 data class LoginUiState(
     val email: String = "",
     val password: String = "",
+    val selectedRole: com.autamedica.android.domain.model.UserRole = com.autamedica.android.domain.model.UserRole.PATIENT,
     val isLoading: Boolean = false,
     val isGoogleLoading: Boolean = false,
     val error: String? = null,
@@ -63,6 +64,10 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    fun onRoleChange(role: com.autamedica.android.domain.model.UserRole) {
+        _uiState.update { it.copy(selectedRole = role, error = null) }
+    }
+
     fun onEmailChange(email: String) {
         _uiState.update { it.copy(email = email, error = null) }
     }
@@ -73,21 +78,40 @@ class LoginViewModel @Inject constructor(
 
     private fun mapErrorMessage(error: Throwable): String {
         SecureLog.error("[Auth] Login error", error)
-        val msg = error.message?.lowercase() ?: return "Error desconocido al iniciar sesion"
+
+        if (error is io.github.jan.supabase.exceptions.RestException) {
+            val errorBody = error.error.lowercase()
+            val desc = error.description?.lowercase() ?: ""
+            return when {
+                error.statusCode == 400 && ("invalid_grant" in errorBody || "invalid" in desc || "invalid_credentials" in errorBody) ->
+                    "Correo o contraseña incorrectos. Revisa tus datos e intenta nuevamente."
+                error.statusCode == 422 || "email_not_confirmed" in errorBody ->
+                    "Tu correo no ha sido confirmado. Revisa tu bandeja de entrada o spam."
+                error.statusCode == 429 || "too_many_requests" in errorBody ->
+                    "Demasiados intentos fallidos. Por seguridad, espera unos minutos antes de reintentar."
+                else -> error.description ?: "Error de autenticación con el servidor (${error.statusCode})."
+            }
+        }
+
+        val msg = error.message?.lowercase() ?: return "Error desconocido al iniciar sesión"
         return when {
             "invalid_credentials" in msg || "invalid login" in msg ->
-                "Correo o contrasena incorrectos"
+                "Correo o contraseña incorrectos"
             "email not confirmed" in msg ->
-                "Confirma tu correo antes de ingresar"
+                "Confirma tu correo electrónico antes de ingresar"
             "too many requests" in msg || "rate limit" in msg ->
-                "Demasiados intentos. Intenta en unos minutos"
-            "network" in msg || "timeout" in msg || "connect" in msg ->
-                "Sin conexion a internet"
+                "Demasiados intentos. Espera unos minutos e intenta de nuevo"
+            "network" in msg || "timeout" in msg || "connect" in msg || "unable to resolve host" in msg ->
+                "Sin conexión a internet. Verifica tu red"
+            "cannot find a matching credential" in msg || "no credentials available" in msg || "type_no_credential" in msg ->
+                "No se encontraron cuentas de Google configuradas en este dispositivo"
+            "developer_error" in msg || "10:" in msg ->
+                "Error de configuración en Google Play Services (verificar cliente OAuth en Google Cloud)"
             "cancelled" in msg || "canceled" in msg ->
-                "Inicio de sesion cancelado"
-            "no credentials available" in msg || "no credential" in msg ->
-                "No se encontraron cuentas de Google en este dispositivo"
-            else -> "Error: ${error.message?.take(80) ?: "desconocido"}"
+                "Inicio de sesión cancelado"
+            "at least 6 characters" in msg ->
+                "La contraseña debe tener al menos 6 caracteres"
+            else -> "Error de acceso: ${error.message?.take(80) ?: "intenta nuevamente"}"
         }
     }
 
@@ -99,7 +123,7 @@ class LoginViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
 
         viewModelScope.launch {
-            val result = authRepository.login(state.email.trim(), state.password)
+            val result = authRepository.login(state.email.trim(), state.password, state.selectedRole)
             result.fold(
                 onSuccess = { user ->
                     _uiState.update { it.copy(isLoading = false, loggedInUser = user) }
@@ -118,12 +142,13 @@ class LoginViewModel @Inject constructor(
     }
 
     fun onGoogleSignIn(idToken: String) {
-        if (_uiState.value.isLoading || _uiState.value.isGoogleLoading) return
+        val state = _uiState.value
+        if (state.isLoading || state.isGoogleLoading) return
 
         _uiState.update { it.copy(isGoogleLoading = true, error = null) }
 
         viewModelScope.launch {
-            val result = authRepository.loginWithGoogle(idToken)
+            val result = authRepository.loginWithGoogle(idToken, state.selectedRole)
             result.fold(
                 onSuccess = { user ->
                     _uiState.update { it.copy(isGoogleLoading = false, loggedInUser = user) }

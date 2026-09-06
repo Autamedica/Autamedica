@@ -35,4 +35,13 @@ sealed interface Route {
 
     @Serializable
     data object PreventiveHealth : Route
+
+    @Serializable
+    data object BookAppointment : Route
+
+    @Serializable
+    data object Prescriptions : Route
+
+    @Serializable
+    data object ClinicalDocuments : Route
 }

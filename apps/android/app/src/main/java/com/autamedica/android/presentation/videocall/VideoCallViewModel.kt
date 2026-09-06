@@ -12,6 +12,8 @@ import com.autamedica.android.domain.model.ChatMessage
 import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.domain.model.StreamQualityLevel
 import com.autamedica.android.domain.model.StreamQualitySummary
+import com.autamedica.android.domain.model.UserRole
+import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.signaling.SignalingClient
@@ -32,6 +34,14 @@ import org.webrtc.PeerConnection
 import org.webrtc.PeerConnectionFactory
 import org.webrtc.VideoTrack
 import com.autamedica.android.domain.repository.IceServerInfo
+import com.autamedica.android.presentation.videocall.components.SoapEvolutionData
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -52,6 +62,18 @@ data class VideoCallUiState(
     val isWaitingRoom: Boolean = false,
     val isPreviewOnlyMode: Boolean = false,
     val sessionStatusMessage: String? = null,
+    val isDoctor: Boolean = false,
+    val appointmentNotes: String? = null,
+    val consultationNotes: String = "",
+    val isSavingNotes: Boolean = false,
+    val notesSaved: Boolean = false,
+    val isClinicalNotesOpen: Boolean = false,
+    val activeCallId: String? = null,
+    val showSoapEvolution: Boolean = false,
+    val soapData: SoapEvolutionData = SoapEvolutionData(),
+    val isSavingSoap: Boolean = false,
+    val soapSaved: Boolean = false,
+    val soapError: String? = null,
 )
 
 @HiltViewModel
@@ -64,7 +86,9 @@ class VideoCallViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val signalingClient: SignalingClient,
     private val telemedicineRepository: TelemedicineRepository,
+    private val appointmentRepository: AppointmentRepository,
     private val videoCallStateHolder: VideoCallStateHolder,
+    private val supabaseClient: SupabaseClient,
 ) : ViewModel() {
 
     val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
@@ -122,6 +146,23 @@ class VideoCallViewModel @Inject constructor(
                 callUserId = currentUser.id
                 callUserType = currentUser.role.wireName
                 callUserName = currentUser.displayName
+                val isDoc = currentUser.role == UserRole.DOCTOR
+
+                var apptNotes: String? = null
+                if (!previewOnlyMode && appointmentId.isNotBlank()) {
+                    runCatching {
+                        val appt = appointmentRepository.getAppointmentById(appointmentId).getOrNull()
+                        apptNotes = appt?.notes
+                    }
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isDoctor = isDoc,
+                        appointmentNotes = apptNotes,
+                        consultationNotes = apptNotes.orEmpty(),
+                    )
+                }
 
                 engine.initialize(
                     WebRTCEngine.Config(
@@ -165,6 +206,16 @@ class VideoCallViewModel @Inject constructor(
     }
 
     fun endCall() {
+        disconnectCallMedia()
+    }
+
+    fun disconnectCallMedia() {
+        val callId = _uiState.value.activeCallId ?: appointmentId
+        if (callId.isNotBlank() && !previewOnlyMode) {
+            viewModelScope.launch {
+                telemedicineRepository.updateCallStatus(callId, "completed")
+            }
+        }
         callStarted = false
         timerJob?.cancel()
         sessionRetryJob?.cancel()
@@ -174,11 +225,175 @@ class VideoCallViewModel @Inject constructor(
         videoCallStateHolder.setInVideoCall(false)
     }
 
+    fun handleCallEnd(onNavigateBack: () -> Unit) {
+        val isDoc = _uiState.value.isDoctor
+        if (isDoc && !previewOnlyMode && !_uiState.value.soapSaved) {
+            disconnectCallMedia()
+            _uiState.update {
+                it.copy(
+                    showSoapEvolution = true,
+                    connectionState = ConnectionState.DISCONNECTED,
+                    isWaitingRoom = false,
+                )
+            }
+        } else {
+            endCall()
+            onNavigateBack()
+        }
+    }
+
+    fun updateSoapData(data: SoapEvolutionData) {
+        _uiState.update { it.copy(soapData = data, soapError = null) }
+    }
+
+    fun openSoapEvolution() {
+        _uiState.update { it.copy(showSoapEvolution = true) }
+    }
+
+    fun dismissSoapEvolution() {
+        _uiState.update { it.copy(showSoapEvolution = false) }
+    }
+
+    fun saveSoapEvolution(
+        targetAppointmentId: String = this.appointmentId,
+        soapData: SoapEvolutionData = _uiState.value.soapData,
+        onSuccess: (() -> Unit)? = null,
+    ) {
+        if (targetAppointmentId.isBlank() || previewOnlyMode) {
+            _uiState.update { it.copy(showSoapEvolution = false, soapSaved = true) }
+            onSuccess?.invoke()
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingSoap = true, soapError = null) }
+            runCatching {
+                var resolvedPatientId: String? = null
+                var resolvedDoctorId: String? = null
+
+                val appt = appointmentRepository.getAppointmentById(targetAppointmentId).getOrNull()
+                if (appt != null) {
+                    resolvedPatientId = appt.patientId
+                    resolvedDoctorId = appt.doctorId
+                }
+
+                if (resolvedDoctorId == null && callUserId.isNotBlank()) {
+                    resolvedDoctorId = runCatching {
+                        supabaseClient.postgrest.from("doctors")
+                            .select(Columns.list("id")) { filter { eq("user_id", callUserId) } }
+                            .decodeSingleOrNull<DoctorRecordIdDto>()?.id
+                    }.getOrNull()
+                }
+
+                if (resolvedPatientId == null) {
+                    val session = runCatching {
+                        supabaseClient.postgrest.from("telemedicine_sessions")
+                            .select(Columns.list("patient_id", "doctor_id")) {
+                                filter {
+                                    or {
+                                        eq("appointment_id", targetAppointmentId)
+                                        eq("id", targetAppointmentId)
+                                        eq("room_id", targetAppointmentId)
+                                    }
+                                }
+                                limit(1)
+                            }
+                            .decodeSingleOrNull<SessionParticipantDto>()
+                    }.getOrNull()
+                    if (session != null) {
+                        resolvedPatientId = session.patientId
+                        if (resolvedDoctorId == null) resolvedDoctorId = session.doctorId
+                    }
+                }
+
+                val soapContent = buildJsonObject {
+                    put("subjective", soapData.subjective)
+                    put("objective", soapData.objective)
+                    put("assessment", soapData.assessment)
+                    put("plan", soapData.plan)
+                    put("cie10_code", soapData.cie10Code)
+                    put("cie10_description", soapData.cie10Description)
+                }
+
+                val insertPayload = buildJsonObject {
+                    if (resolvedPatientId != null) put("patient_id", resolvedPatientId)
+                    if (resolvedDoctorId != null) put("doctor_id", resolvedDoctorId)
+                    put("type", "consultation")
+                    put("title", "Evolución SOAP - Consulta Telemedicina")
+                    put("content", soapContent)
+                }
+
+                supabaseClient.postgrest
+                    .from("medical_records")
+                    .insert(insertPayload)
+
+                supabaseClient.postgrest
+                    .from("appointments")
+                    .update(mapOf("status" to "completed")) {
+                        filter { eq("id", targetAppointmentId) }
+                    }
+
+                val callId = _uiState.value.activeCallId ?: targetAppointmentId
+                if (callId.isNotBlank()) {
+                    telemedicineRepository.updateCallStatus(callId, "completed")
+                }
+
+                appointmentRepository.clearCachedAppointmentsForCurrentUser()
+            }.onSuccess {
+                SecureLog.info("[Telemedicine] SOAP evolution saved successfully for appointment=$targetAppointmentId")
+                _uiState.update {
+                    it.copy(
+                        isSavingSoap = false,
+                        soapSaved = true,
+                        showSoapEvolution = false,
+                    )
+                }
+                onSuccess?.invoke()
+            }.onFailure { error ->
+                SecureLog.error("[Telemedicine] Failed saving SOAP evolution", error)
+                _uiState.update {
+                    it.copy(
+                        isSavingSoap = false,
+                        soapError = "Error al guardar evolución: ${error.message ?: "Intente nuevamente"}",
+                    )
+                }
+            }
+        }
+    }
+
     fun retryConnection() {
         if (!callStarted || previewOnlyMode) return
         sessionRetryJob?.cancel()
         viewModelScope.launch {
             attemptSessionConnection(manualRetry = true)
+        }
+    }
+
+    fun switchCamera() {
+        engine.switchCamera()
+    }
+
+    fun toggleClinicalNotes() {
+        _uiState.update { it.copy(isClinicalNotesOpen = !it.isClinicalNotesOpen) }
+    }
+
+    fun updateConsultationNotes(text: String) {
+        _uiState.update { it.copy(consultationNotes = text, notesSaved = false) }
+    }
+
+    fun saveConsultationNotes() {
+        val notes = _uiState.value.consultationNotes
+        if (appointmentId.isBlank() || previewOnlyMode) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSavingNotes = true) }
+            appointmentRepository.updateAppointmentNotes(appointmentId, notes)
+                .onSuccess {
+                    _uiState.update { it.copy(isSavingNotes = false, notesSaved = true) }
+                }
+                .onFailure {
+                    _uiState.update { it.copy(isSavingNotes = false) }
+                }
         }
     }
 
@@ -283,10 +498,18 @@ class VideoCallViewModel @Inject constructor(
                         },
                     )
                 }
-                if (state == ConnectionState.CONNECTED && callStartTimeMs == 0L) {
-                    sessionRetryJob?.cancel()
-                    callStartTimeMs = System.currentTimeMillis()
-                    startTimer()
+                if (state == ConnectionState.CONNECTED) {
+                    val callId = _uiState.value.activeCallId ?: appointmentId
+                    if (callId.isNotBlank() && !previewOnlyMode) {
+                        viewModelScope.launch {
+                            telemedicineRepository.updateCallStatus(callId, "in_progress")
+                        }
+                    }
+                    if (callStartTimeMs == 0L) {
+                        sessionRetryJob?.cancel()
+                        callStartTimeMs = System.currentTimeMillis()
+                        startTimer()
+                    }
                 }
             }
         }
@@ -343,13 +566,7 @@ class VideoCallViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        callStarted = false
-        timerJob?.cancel()
-        sessionRetryJob?.cancel()
-        engine.disconnect()
-        restoreAudio()
-        CallNotificationService.stop(context)
-        videoCallStateHolder.setInVideoCall(false)
+        disconnectCallMedia()
     }
 
     private suspend fun attemptSessionConnection(manualRetry: Boolean) {
@@ -381,6 +598,7 @@ class VideoCallViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
+                        activeCallId = sessionInfo.sessionId,
                         connectionState = ConnectionState.CONNECTING,
                         isPreviewOnlyMode = false,
                         isWaitingRoom = false,
@@ -443,3 +661,12 @@ class VideoCallViewModel @Inject constructor(
         return builder.createIceServer()
     }
 }
+
+@Serializable
+private data class DoctorRecordIdDto(val id: String)
+
+@Serializable
+private data class SessionParticipantDto(
+    @SerialName("patient_id") val patientId: String? = null,
+    @SerialName("doctor_id") val doctorId: String? = null,
+)

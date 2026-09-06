@@ -29,8 +29,8 @@ private class FakeAuthRepository : AuthRepository {
     }
 
     override fun observeSession(): Flow<User?> = sessionFlow
-    override suspend fun login(email: String, password: String): Result<User> = Result.failure(Exception())
-    override suspend fun loginWithGoogle(idToken: String): Result<User> = Result.failure(Exception())
+    override suspend fun login(email: String, password: String, selectedRole: UserRole?): Result<User> = Result.failure(Exception())
+    override suspend fun loginWithGoogle(idToken: String, selectedRole: UserRole?): Result<User> = Result.failure(Exception())
     override suspend fun logout() {}
     override suspend fun getCurrentUser(): User? = User(id = "user-1", email = "ecucondor@gmail.com", role = UserRole.PATIENT)
 }
@@ -54,7 +54,16 @@ private class FakeAppointmentRepository : AppointmentRepository {
     var appointments = emptyList<Appointment>()
     override suspend fun getUpcomingAppointments(): Result<List<Appointment>> = Result.success(appointments)
     override suspend fun getAppointmentById(id: String): Result<Appointment> = Result.failure(Exception())
+    override suspend fun updateAppointmentNotes(id: String, notes: String): Result<Unit> = Result.success(Unit)
     override suspend fun clearCachedAppointmentsForCurrentUser(): Result<Unit> = Result.success(Unit)
+    override suspend fun getAvailableDoctors(specialty: String?): Result<List<com.autamedica.android.domain.model.DoctorBookingInfo>> = Result.success(emptyList())
+    override suspend fun bookAppointment(
+        doctorId: String,
+        startTime: String,
+        endTime: String,
+        type: String,
+        reason: String?
+    ): Result<Appointment> = Result.failure(Exception())
 }
 
 class NavigationFlowTest {

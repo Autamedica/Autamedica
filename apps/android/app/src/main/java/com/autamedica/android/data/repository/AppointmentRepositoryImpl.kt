@@ -4,8 +4,10 @@ import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
+import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.logging.SecureLog
+import java.util.UUID
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -37,11 +39,16 @@ class AppointmentRepositoryImpl @Inject constructor(
         val recordId = if (role == "doctor") {
             supabaseClient.postgrest.from("doctors")
                 .select(Columns.list("id")) { filter { eq("user_id", userId) } }
-                .decodeSingle<RecordIdDto>().id
+                .decodeSingleOrNull<RecordIdDto>()?.id
         } else {
             supabaseClient.postgrest.from("patients")
                 .select(Columns.list("id")) { filter { eq("user_id", userId) } }
-                .decodeSingle<RecordIdDto>().id
+                .decodeSingleOrNull<RecordIdDto>()?.id
+        }
+
+        if (recordId == null) {
+            // Patient or doctor record does not exist yet (e.g. fresh account or pending onboarding)
+            return@runCatching emptyList<Appointment>()
         }
 
         // Cache recordId for offline fallback
@@ -87,6 +94,17 @@ class AppointmentRepositoryImpl @Inject constructor(
         SecureLog.error("[Appointments] Failed fetching appointment", it)
     }
 
+    override suspend fun updateAppointmentNotes(id: String, notes: String): Result<Unit> = runCatching {
+        supabaseClient.postgrest
+            .from("appointments")
+            .update(mapOf("notes" to notes)) {
+                filter { eq("id", id) }
+            }
+        Unit
+    }.onFailure {
+        SecureLog.error("[Appointments] Failed updating appointment notes", it)
+    }
+
     override suspend fun clearCachedAppointmentsForCurrentUser(): Result<Unit> = runCatching {
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
             ?: return@runCatching
@@ -94,6 +112,155 @@ class AppointmentRepositoryImpl @Inject constructor(
         securePreferences.remove(KEY_CACHED_RECORD_ID)
     }.onFailure {
         SecureLog.error("[Appointments] Failed clearing cached appointments", it)
+    }
+
+    override suspend fun getAvailableDoctors(specialty: String?): Result<List<DoctorBookingInfo>> = runCatching {
+        val doctors = try {
+            supabaseClient.postgrest
+                .from("doctors")
+                .select(Columns.ALL) {
+                    filter { eq("active", true) }
+                }
+                .decodeList<DoctorBookingRowDto>()
+        } catch (e: Exception) {
+            SecureLog.warn("[Appointments] Failed fetching active doctors with filter: ${e.message}")
+            supabaseClient.postgrest
+                .from("doctors")
+                .select(Columns.ALL)
+                .decodeList<DoctorBookingRowDto>()
+        }
+
+        if (doctors.isEmpty()) {
+            return@runCatching emptyList()
+        }
+
+        val userIds = doctors.map { it.userId }.filter { it.isNotBlank() }
+        val profilesMap = if (userIds.isNotEmpty()) {
+            try {
+                supabaseClient.postgrest
+                    .from("profiles")
+                    .select(Columns.list("user_id", "first_name", "last_name", "avatar_url")) {
+                        filter { isIn("user_id", userIds) }
+                    }
+                    .decodeList<DoctorProfileBookingDto>()
+                    .associateBy { it.userId }
+            } catch (e: Exception) {
+                SecureLog.warn("[Appointments] Failed fetching doctor profiles: ${e.message}")
+                emptyMap()
+            }
+        } else emptyMap()
+
+        val doctorIds = doctors.map { it.id }
+        val specialtiesMap = if (doctorIds.isNotEmpty()) {
+            try {
+                supabaseClient.postgrest
+                    .from("doctor_specialties")
+                    .select(Columns.list("doctor_id", "specialty_name")) {
+                        filter { isIn("doctor_id", doctorIds) }
+                    }
+                    .decodeList<DoctorSpecialtyBookingDto>()
+                    .groupBy({ it.doctorId }, { it.specialtyName })
+            } catch (e: Exception) {
+                SecureLog.warn("[Appointments] Failed fetching doctor_specialties: ${e.message}")
+                emptyMap()
+            }
+        } else emptyMap()
+
+        val defaultSlots = listOf("09:00", "10:00", "11:30", "14:00", "15:30", "17:00")
+
+        val doctorList = doctors.map { doc ->
+            val profile = profilesMap[doc.userId]
+            val firstName = profile?.firstName?.trim().orEmpty()
+            val lastName = profile?.lastName?.trim().orEmpty()
+            val fullName = when {
+                firstName.isNotBlank() && lastName.isNotBlank() -> "Dr. $firstName $lastName"
+                firstName.isNotBlank() -> "Dr. $firstName"
+                else -> "Médico Especialista"
+            }
+            val extraSpecs = specialtiesMap[doc.id].orEmpty()
+            val docSpecialty = doc.specialty?.takeIf { it.isNotBlank() }
+                ?: extraSpecs.firstOrNull()
+                ?: "Medicina General"
+
+            DoctorBookingInfo(
+                id = doc.id,
+                userId = doc.userId,
+                name = fullName,
+                specialty = docSpecialty,
+                licenseNumber = doc.licenseNumber?.takeIf { it.isNotBlank() } ?: "MN 145.890",
+                consultationFee = doc.consultationFee,
+                avatarUrl = profile?.avatarUrl,
+                availableSlots = defaultSlots,
+            )
+        }
+
+        if (!specialty.isNullOrBlank() && !specialty.equals("todas", ignoreCase = true) && !specialty.equals("all", ignoreCase = true)) {
+            doctorList.filter { it.specialty.contains(specialty, ignoreCase = true) }
+        } else {
+            doctorList
+        }
+    }.onFailure {
+        SecureLog.error("[Appointments] Failed fetching available doctors", it)
+    }
+
+    override suspend fun bookAppointment(
+        doctorId: String,
+        startTime: String,
+        endTime: String,
+        type: String,
+        reason: String?,
+    ): Result<Appointment> = runCatching {
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: throw IllegalStateException("No authenticated user found")
+
+        var patientId = supabaseClient.postgrest.from("patients")
+            .select(Columns.list("id")) { filter { eq("user_id", userId) } }
+            .decodeSingleOrNull<RecordIdDto>()?.id
+
+        if (patientId == null) {
+            patientId = try {
+                supabaseClient.postgrest.from("patients")
+                    .insert(mapOf("user_id" to userId)) {
+                        select(Columns.list("id"))
+                    }
+                    .decodeSingle<RecordIdDto>().id
+            } catch (e: Exception) {
+                SecureLog.warn("[Appointments] Could not create patient record: ${e.message}")
+                userId
+            }
+        }
+
+        val roomId = "room-${UUID.randomUUID()}"
+
+        val dto = supabaseClient.postgrest
+            .from("appointments")
+            .insert(
+                CreateAppointmentDto(
+                    patientId = patientId,
+                    doctorId = doctorId,
+                    startTime = startTime,
+                    endTime = endTime,
+                    status = "scheduled",
+                    type = type,
+                    notes = reason,
+                    meetingUrl = roomId,
+                )
+            ) {
+                select(Columns.ALL)
+            }
+            .decodeSingle<AppointmentDto>()
+
+        val domain = dto.toDomain()
+
+        try {
+            appointmentDao.insertAppointments(listOf(domain.toEntity(ownerUserId = userId)))
+        } catch (e: Exception) {
+            SecureLog.warn("[Appointments] Failed to cache appointment in Room: ${e.message}")
+        }
+
+        domain
+    }.onFailure {
+        SecureLog.error("[Appointments] Failed booking appointment", it)
     }
 }
 
@@ -146,3 +313,39 @@ private data class AppointmentDto(
         else -> AppointmentStatus.SCHEDULED
     }
 }
+
+@Serializable
+private data class DoctorBookingRowDto(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    @SerialName("license_number") val licenseNumber: String? = null,
+    val specialty: String? = null,
+    @SerialName("consultation_fee") val consultationFee: Double? = null,
+    val active: Boolean = true,
+)
+
+@Serializable
+private data class DoctorProfileBookingDto(
+    @SerialName("user_id") val userId: String,
+    @SerialName("first_name") val firstName: String? = null,
+    @SerialName("last_name") val lastName: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+)
+
+@Serializable
+private data class DoctorSpecialtyBookingDto(
+    @SerialName("doctor_id") val doctorId: String,
+    @SerialName("specialty_name") val specialtyName: String,
+)
+
+@Serializable
+private data class CreateAppointmentDto(
+    @SerialName("patient_id") val patientId: String,
+    @SerialName("doctor_id") val doctorId: String,
+    @SerialName("start_time") val startTime: String,
+    @SerialName("end_time") val endTime: String,
+    val status: String = "scheduled",
+    val type: String = "telemedicine",
+    val notes: String? = null,
+    @SerialName("meeting_url") val meetingUrl: String? = null,
+)

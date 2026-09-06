@@ -7,13 +7,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.autamedica.android.presentation.appointments.BookAppointmentScreen
 import com.autamedica.android.presentation.auth.LoginScreen
 import com.autamedica.android.presentation.chat.ChatConversationScreen
 import com.autamedica.android.presentation.chat.ChatListScreen
 import com.autamedica.android.presentation.health.AnamnesisFormScreen
 import com.autamedica.android.presentation.health.PreventiveHealthScreen
+import com.autamedica.android.presentation.documents.ClinicalDocumentsScreen
 import com.autamedica.android.presentation.main.MainScreen
 import com.autamedica.android.presentation.patients.PatientDetailScreen
+import com.autamedica.android.presentation.prescriptions.PrescriptionsScreen
 import com.autamedica.android.presentation.videocall.VideoCallScreen
 
 @Composable
@@ -73,6 +76,24 @@ fun AppNavHost(
                         launchSingleTop = true
                     }
                 },
+                onNavigateToBookAppointment = {
+                    navController.navigate(Route.BookAppointment)
+                },
+                onNavigateToPrescriptions = {
+                    navController.navigate(Route.Prescriptions)
+                },
+                onNavigateToClinicalDocuments = {
+                    navController.navigate(Route.ClinicalDocuments)
+                },
+            )
+        }
+
+        composable<Route.BookAppointment> {
+            BookAppointmentScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToAgenda = {
+                    navController.popBackStack()
+                },
             )
         }
 
@@ -121,6 +142,18 @@ fun AppNavHost(
 
         composable<Route.PreventiveHealth> {
             PreventiveHealthScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<Route.Prescriptions> {
+            PrescriptionsScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<Route.ClinicalDocuments> {
+            ClinicalDocumentsScreen(
                 onBack = { navController.popBackStack() },
             )
         }

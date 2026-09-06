@@ -22,14 +22,19 @@ class FakeAuthRepository : AuthRepository {
     var currentUser: User? = null
     var loginCallCount = 0
     var lastLoginEmail: String? = null
+    var lastSelectedRole: UserRole? = null
 
     override fun observeSession(): Flow<User?> = flowOf(currentUser)
-    override suspend fun login(email: String, password: String): Result<User> {
+    override suspend fun login(email: String, password: String, selectedRole: UserRole?): Result<User> {
         loginCallCount++
         lastLoginEmail = email
+        lastSelectedRole = selectedRole
         return loginResult
     }
-    override suspend fun loginWithGoogle(idToken: String): Result<User> = loginResult
+    override suspend fun loginWithGoogle(idToken: String, selectedRole: UserRole?): Result<User> {
+        lastSelectedRole = selectedRole
+        return loginResult
+    }
     override suspend fun logout() {}
     override suspend fun getCurrentUser(): User? = currentUser
 }
@@ -114,7 +119,7 @@ class LoginViewModelTest {
 
         assertThat(viewModel.uiState.value.loggedInUser).isNull()
         assertThat(viewModel.uiState.value.isLoading).isFalse()
-        assertThat(viewModel.uiState.value.error).isEqualTo("Correo o contrasena incorrectos")
+        assertThat(viewModel.uiState.value.error).isEqualTo("Correo o contraseña incorrectos")
     }
 
     @Test
@@ -139,5 +144,20 @@ class LoginViewModelTest {
 
         viewModel.onEmailChange("new@email.com")
         assertThat(viewModel.uiState.value.error).isNull()
+    }
+
+    @Test
+    fun `role change updates state and delegates to login`() = runTest(testDispatcher.scheduler) {
+        fakeRepo.loginResult = Result.success(testUser)
+
+        val viewModel = LoginViewModel(fakeRepo, fakeNotificationRepo)
+        viewModel.onRoleChange(UserRole.DOCTOR)
+        assertThat(viewModel.uiState.value.selectedRole).isEqualTo(UserRole.DOCTOR)
+
+        viewModel.onEmailChange("doc@autamedica.com")
+        viewModel.onPasswordChange("secret123")
+        viewModel.onLogin()
+
+        assertThat(fakeRepo.lastSelectedRole).isEqualTo(UserRole.DOCTOR)
     }
 }

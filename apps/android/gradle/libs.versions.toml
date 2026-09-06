@@ -33,6 +33,7 @@ room = "2.6.1"
 livekit-sdk = "2.23.5"
 livekit-compose-components = "2.2.0"
 mlkit-face = "16.1.7"
+zxing = "3.5.3"
 
 [libraries]
 # Compose
@@ -129,6 +130,7 @@ room-compiler = { group = "androidx.room", name = "room-compiler", version.ref =
 # LiveKit
 livekit-android-sdk = { group = "io.livekit", name = "livekit-android", version.ref = "livekit-sdk" }
 livekit-compose-components = { group = "io.livekit", name = "livekit-android-compose-components", version.ref = "livekit-compose-components" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

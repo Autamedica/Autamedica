@@ -24,22 +24,21 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun login(email: String, password: String): Result<User> {
+    override suspend fun login(email: String, password: String, selectedRole: UserRole?): Result<User> {
         return try {
             val authUser = authDataSource.signIn(email, password)
 
-            // If role is not in JWT metadata, fetch from profiles table
-            val role = authUser.role ?: authDataSource.fetchUserRole(authUser.id)
+            // If role is not in JWT metadata, fetch from profiles table; fallback to selectedRole
+            val dbRole = authUser.role ?: authDataSource.fetchUserRole(authUser.id)
+            val effectiveRole = dbRole ?: selectedRole?.wireName ?: "patient"
 
             securePrefs.putString(SecurePreferences.KEY_USER_ID, authUser.id)
-            if (role != null) {
-                securePrefs.putString(SecurePreferences.KEY_USER_ROLE, role)
-            }
+            securePrefs.putString(SecurePreferences.KEY_USER_ROLE, effectiveRole)
 
             val user = User(
                 id = authUser.id,
                 email = authUser.email,
-                role = parseRole(role),
+                role = parseRole(effectiveRole),
             )
             Result.success(user)
         } catch (e: Exception) {
@@ -48,20 +47,19 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun loginWithGoogle(idToken: String): Result<User> {
+    override suspend fun loginWithGoogle(idToken: String, selectedRole: UserRole?): Result<User> {
         return try {
             val authUser = authDataSource.signInWithGoogle(idToken)
-            val role = authUser.role ?: authDataSource.fetchUserRole(authUser.id)
+            val dbRole = authUser.role ?: authDataSource.fetchUserRole(authUser.id)
+            val effectiveRole = dbRole ?: selectedRole?.wireName ?: "patient"
 
             securePrefs.putString(SecurePreferences.KEY_USER_ID, authUser.id)
-            if (role != null) {
-                securePrefs.putString(SecurePreferences.KEY_USER_ROLE, role)
-            }
+            securePrefs.putString(SecurePreferences.KEY_USER_ROLE, effectiveRole)
 
             val user = User(
                 id = authUser.id,
                 email = authUser.email,
-                role = parseRole(role),
+                role = parseRole(effectiveRole),
             )
             Result.success(user)
         } catch (e: Exception) {
