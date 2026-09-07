@@ -106,6 +106,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
+    onNavigateToRegister: (UserRole) -> Unit,
+    onNavigateToForgotPassword: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
@@ -205,7 +207,7 @@ fun LoginScreen(
                 onEmailChange = viewModel::onEmailChange,
                 onPasswordChange = viewModel::onPasswordChange,
                 onForgotPasswordClick = {
-                    uriHandler.openUri("https://www.autamedica.com/auth/forgot-password?role=${uiState.selectedRole.wireName}")
+                    onNavigateToForgotPassword()
                 },
                 onSubmit = {
                     focusManager.clearFocus()
@@ -232,7 +234,7 @@ fun LoginScreen(
                     color = activeColor,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.clickable {
-                        uriHandler.openUri("https://www.autamedica.com/auth/register?role=${uiState.selectedRole.wireName}")
+                        onNavigateToRegister(uiState.selectedRole)
                     },
                 )
             }

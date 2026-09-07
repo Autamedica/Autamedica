@@ -10,6 +10,23 @@ sealed interface Route {
     data object Login : Route
 
     @Serializable
+    data class Register(
+        val initialRole: String = "patient",
+    ) : Route
+
+    @Serializable
+    data object ForgotPassword : Route
+    
+    @Serializable
+    data class Consent(val appointmentId: String = "") : Route
+    
+    @Serializable
+    data object AdverseEvents : Route
+
+    @Serializable
+    data object PsychiatryIntake : Route
+
+    @Serializable
     data object Main : Route
 
     @Serializable
@@ -37,11 +54,41 @@ sealed interface Route {
     data object PreventiveHealth : Route
 
     @Serializable
-    data object BookAppointment : Route
+    data object ContinuityStatus : Route
 
     @Serializable
-    data object Prescriptions : Route
+    data object ConsultationReports : Route
 
     @Serializable
-    data object ClinicalDocuments : Route
+    data object ReproductiveHealth : Route
+
+    @Serializable
+    data object PatientCommunity : Route
+
+    @Serializable
+    data object DoctorAgenda : Route
+
+    @Serializable
+    data object DoctorPrescriptions : Route
+
+    @Serializable
+    data class CreatePrescription(val patientId: String = "") : Route
+
+    @Serializable
+    data object DoctorMedicalOrders : Route
+
+    @Serializable
+    data class CreateMedicalOrder(val patientId: String = "") : Route
+
+    @Serializable
+    data object DoctorSignature : Route
+
+    @Serializable
+    data class DoctorConsultationReport(val appointmentId: String = "") : Route
+
+    @Serializable
+    data object DoctorAccounting : Route
+
+    @Serializable
+    data object TdahEvaluation : Route
 }

@@ -48,9 +48,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -78,7 +82,6 @@ import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.ErrorContainer
 import com.autamedica.android.presentation.theme.PortalDoctors
 import com.autamedica.android.presentation.theme.PortalPatients
-import com.autamedica.android.presentation.theme.PortalPharmacists
 import com.autamedica.android.presentation.theme.PrimaryLight
 import com.autamedica.android.presentation.theme.SuccessContainer
 import java.time.LocalDate
@@ -95,6 +98,7 @@ fun ProfileScreen(
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val user = uiState.user
     val accentColor = remember(user?.role) { roleAccent(user?.role) }
@@ -194,8 +198,31 @@ fun ProfileScreen(
                     }
 
                     SessionSection(onLogout = onLogout)
+                    
+                    SecurityZoneSection(onDeleteRequest = { showDeleteDialog = true })
                 }
             }
+        }
+        
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Eliminar cuenta") },
+                text = { Text("¿Estás seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDeleteDialog = false
+                        onLogout()
+                    }) {
+                        Text("Eliminar", color = AuDanger)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Cancelar")
+                    }
+                }
+            )
         }
     }
 }
@@ -703,19 +730,17 @@ private fun displayName(user: User, firstName: String, lastName: String): String
 private fun roleLabel(role: UserRole): String = when (role) {
     UserRole.PATIENT -> "Paciente"
     UserRole.DOCTOR -> "Medico"
-    UserRole.PHARMACIST -> "Farmaceutico"
     UserRole.COMPANY -> "Empresa"
+    UserRole.PHARMACIST -> "Farmacia"
     UserRole.COMPANY_ADMIN -> "Admin empresa"
     UserRole.ORGANIZATION_ADMIN -> "Admin organizacion"
     UserRole.ADMIN -> "Admin"
     UserRole.PLATFORM_ADMIN -> "Admin plataforma"
-    else -> role.displayName
 }
 
 private fun roleAccent(role: UserRole?): Color = when (role) {
     UserRole.DOCTOR -> PortalDoctors
     UserRole.PATIENT -> PortalPatients
-    UserRole.PHARMACIST -> PortalPharmacists
     else -> AuAccent
 }
 
@@ -791,5 +816,33 @@ private fun genderLabel(value: String?): String {
         "prefer_not_to_say" -> "Prefiero no decirlo"
         null, "" -> "—"
         else -> value.replaceFirstChar { it.uppercase() }
+    }
+}
+
+@Composable
+private fun SecurityZoneSection(
+    onDeleteRequest: () -> Unit,
+) {
+    SectionCard(
+        title = "Zona de seguridad",
+        subtitle = "Gestión de cuenta y privacidad de datos.",
+        icon = Icons.Default.Person,
+    ) {
+        OutlinedButton(
+            onClick = onDeleteRequest,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.5f)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = AuDanger,
+            ),
+        ) {
+            Text(
+                "Eliminar mi cuenta",
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }

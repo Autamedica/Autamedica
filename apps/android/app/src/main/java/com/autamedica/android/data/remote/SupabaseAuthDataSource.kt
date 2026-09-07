@@ -87,6 +87,24 @@ class SupabaseAuthDataSource @Inject constructor(
         )
     }
 
+    suspend fun signUp(email: String, password: String, role: String): AuthUser? {
+        val result = auth.signUpWith(Email) {
+            this.email = email
+            this.password = password
+            data = kotlinx.serialization.json.buildJsonObject {
+                put("role", kotlinx.serialization.json.JsonPrimitive(role))
+            }
+        }
+        val user = result ?: auth.currentSessionOrNull()?.user
+        return user?.let {
+            AuthUser(
+                id = it.id,
+                email = it.email ?: email,
+                role = extractRole(it) ?: role,
+            )
+        }
+    }
+
     suspend fun signOut() {
         auth.signOut()
     }
@@ -124,6 +142,10 @@ class SupabaseAuthDataSource @Inject constructor(
             SecureLog.warn("Failed to fetch user role from profiles table", e)
             null
         }
+    }
+
+    suspend fun sendPasswordResetEmail(email: String) {
+        auth.resetPasswordForEmail(email)
     }
 }
 

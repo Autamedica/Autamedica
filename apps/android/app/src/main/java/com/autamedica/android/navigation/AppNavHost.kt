@@ -7,16 +7,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.autamedica.android.presentation.appointments.BookAppointmentScreen
 import com.autamedica.android.presentation.auth.LoginScreen
 import com.autamedica.android.presentation.chat.ChatConversationScreen
 import com.autamedica.android.presentation.chat.ChatListScreen
 import com.autamedica.android.presentation.health.AnamnesisFormScreen
 import com.autamedica.android.presentation.health.PreventiveHealthScreen
-import com.autamedica.android.presentation.documents.ClinicalDocumentsScreen
 import com.autamedica.android.presentation.main.MainScreen
 import com.autamedica.android.presentation.patients.PatientDetailScreen
-import com.autamedica.android.presentation.prescriptions.PrescriptionsScreen
+
+import com.autamedica.android.presentation.patients.reproductive.ReproductiveHealthScreen
+import com.autamedica.android.presentation.patients.community.PatientCommunityScreen
+
 import com.autamedica.android.presentation.videocall.VideoCallScreen
 
 @Composable
@@ -46,7 +47,44 @@ fun AppNavHost(
                         }
                         onPostLoginRouteConsumed()
                     }
+                },
+                onNavigateToRegister = { role ->
+                    navController.navigate(Route.Register(role.wireName))
+                },
+                onNavigateToForgotPassword = {
+                    navController.navigate(Route.ForgotPassword)
                 }
+            )
+        }
+
+        composable<Route.Register> { backStackEntry ->
+            val route = backStackEntry.toRoute<Route.Register>()
+            com.autamedica.android.presentation.auth.RegisterScreen(
+                initialRoleName = route.initialRole,
+                onNavigateToLogin = {
+                    navController.navigate(Route.Login) {
+                        popUpTo(Route.Register(route.initialRole)) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onRegisterSuccess = {
+                    navController.navigate(Route.Main) {
+                        popUpTo(Route.Register(route.initialRole)) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        composable<Route.ForgotPassword> {
+            com.autamedica.android.presentation.auth.ForgotPasswordScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.PsychiatryIntake> {
+            com.autamedica.android.presentation.patients.psychiatry.PsychiatryIntakeScreen(
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -75,24 +113,6 @@ fun AppNavHost(
                     navController.navigate(Route.PreventiveHealth) {
                         launchSingleTop = true
                     }
-                },
-                onNavigateToBookAppointment = {
-                    navController.navigate(Route.BookAppointment)
-                },
-                onNavigateToPrescriptions = {
-                    navController.navigate(Route.Prescriptions)
-                },
-                onNavigateToClinicalDocuments = {
-                    navController.navigate(Route.ClinicalDocuments)
-                },
-            )
-        }
-
-        composable<Route.BookAppointment> {
-            BookAppointmentScreen(
-                onBack = { navController.popBackStack() },
-                onNavigateToAgenda = {
-                    navController.popBackStack()
                 },
             )
         }
@@ -145,16 +165,106 @@ fun AppNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
-
-        composable<Route.Prescriptions> {
-            PrescriptionsScreen(
-                onBack = { navController.popBackStack() },
+        
+        composable<Route.Consent> {
+            com.autamedica.android.presentation.patients.consent.ConsentScreen(
+                onAccept = { navController.popBackStack() }
+            )
+        }
+        
+        composable<Route.AdverseEvents> {
+            com.autamedica.android.presentation.health.AdverseEventsScreen(
+                onBack = { navController.popBackStack() }
             )
         }
 
-        composable<Route.ClinicalDocuments> {
-            ClinicalDocumentsScreen(
+        composable<Route.ContinuityStatus> {
+            com.autamedica.android.presentation.patients.continuity.ContinuityStatusScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.ConsultationReports> {
+            com.autamedica.android.presentation.patients.reports.ConsultationReportsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.ReproductiveHealth> {
+            ReproductiveHealthScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.PatientCommunity> {
+            PatientCommunityScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.DoctorAgenda> {
+            com.autamedica.android.presentation.doctors.agenda.DoctorAgendaScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.DoctorPrescriptions> {
+            com.autamedica.android.presentation.doctors.prescriptions.DoctorPrescriptionsScreen(
                 onBack = { navController.popBackStack() },
+                onNavigateToCreatePrescription = {
+                    navController.navigate(Route.CreatePrescription(""))
+                }
+            )
+        }
+
+        composable<Route.CreatePrescription> { backStackEntry ->
+            val route = backStackEntry.toRoute<Route.CreatePrescription>()
+            com.autamedica.android.presentation.doctors.prescriptions.CreatePrescriptionScreen(
+                patientId = route.patientId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.DoctorMedicalOrders> {
+            com.autamedica.android.presentation.doctors.medicalorders.DoctorMedicalOrdersScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToCreateOrder = {
+                    navController.navigate(Route.CreateMedicalOrder(""))
+                }
+            )
+        }
+
+        composable<Route.CreateMedicalOrder> { backStackEntry ->
+            val route = backStackEntry.toRoute<Route.CreateMedicalOrder>()
+            com.autamedica.android.presentation.doctors.medicalorders.CreateMedicalOrderScreen(
+                patientId = route.patientId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.DoctorSignature> {
+            com.autamedica.android.presentation.doctors.signature.DoctorSignatureScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.DoctorConsultationReport> { backStackEntry ->
+            val route = backStackEntry.toRoute<Route.DoctorConsultationReport>()
+            com.autamedica.android.presentation.doctors.consultations.DoctorConsultationReportScreen(
+                appointmentId = route.appointmentId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.DoctorAccounting> {
+            com.autamedica.android.presentation.doctors.accounting.DoctorAccountingScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.TdahEvaluation> {
+            com.autamedica.android.presentation.patients.psychiatry.TdahEvaluationScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

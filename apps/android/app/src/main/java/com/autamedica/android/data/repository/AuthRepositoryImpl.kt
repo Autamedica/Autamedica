@@ -68,6 +68,36 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun register(email: String, password: String, selectedRole: UserRole): Result<com.autamedica.android.domain.repository.UserRegistrationResult> {
+        return try {
+            val authUser = authDataSource.signUp(email, password, selectedRole.wireName)
+            if (authUser != null) {
+                val requiresEmailConfirmation = authDataSource.getCurrentUser() == null
+                if (!requiresEmailConfirmation) {
+                    securePrefs.putString(SecurePreferences.KEY_USER_ID, authUser.id)
+                    securePrefs.putString(SecurePreferences.KEY_USER_ROLE, selectedRole.wireName)
+                }
+                val user = User(
+                    id = authUser.id,
+                    email = authUser.email,
+                    role = parseRole(authUser.role ?: selectedRole.wireName)
+                )
+                Result.success(com.autamedica.android.domain.repository.UserRegistrationResult(user, requiresEmailConfirmation))
+            } else {
+                Result.failure(Exception("Failed to register user"))
+            }
+        } catch (e: Exception) {
+            val errorMsg = e.message ?: ""
+            if (errorMsg.contains("User already registered", ignoreCase = true)) {
+                SecureLog.error("Registration failed: email already registered", e)
+                Result.failure(Exception("Este correo ya está registrado"))
+            } else {
+                SecureLog.error("Registration failed", e)
+                Result.failure(e)
+            }
+        }
+    }
+
     override suspend fun logout() {
         try {
             authDataSource.signOut()

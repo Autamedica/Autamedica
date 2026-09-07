@@ -4,6 +4,7 @@ import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.NotificationRepository
+import com.autamedica.android.domain.repository.UserRegistrationResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +35,9 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun loginWithGoogle(idToken: String, selectedRole: UserRole?): Result<User> {
         lastSelectedRole = selectedRole
         return loginResult
+    }
+    override suspend fun register(email: String, password: String, selectedRole: UserRole): Result<UserRegistrationResult> {
+        return Result.success(UserRegistrationResult(currentUser, false))
     }
     override suspend fun logout() {}
     override suspend fun getCurrentUser(): User? = currentUser
