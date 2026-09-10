@@ -88,7 +88,7 @@ jobs:
           SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL || secrets.PUBLIC_SUPABASE_URL || 'https://qxjjrpksmwwrmubhvjew.supabase.co' }}
           SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.PUBLIC_SUPABASE_ANON_KEY }}
           SIGNALING_URL=${{ secrets.PUBLIC_SIGNALING_URL || 'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling' }}
-          GOOGLE_WEB_CLIENT_ID=491151556566-6h58b6279rdq05rs65smol0lq8uoue48.apps.googleusercontent.com
+          GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID || '653971537811-inm445akaidgpvre8v4kabfcfe1an04q.apps.googleusercontent.com' }}
           USE_LIVEKIT=false
           RELEASE_STORE_FILE=../autamedica-release.keystore
           RELEASE_STORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}
