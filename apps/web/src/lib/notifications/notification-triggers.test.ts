@@ -40,6 +40,7 @@ const appointmentsRow = { doctor_id: 'doc-1', patient_id: 'pat-1', start_time: '
 const doctorsRow = { user_id: 'doctor-user-1' };
 const patientsRow = { user_id: 'patient-user-1' };
 const profilesRow = { first_name: 'Ana', last_name: 'Paciente' };
+const insertCallsRow: Record<string, unknown> = { appointment_id: null };
 
 function makeMaybeSingleResponse(data: unknown) {
   return Promise.resolve({ data, error: null });
@@ -71,6 +72,8 @@ function makeTableQuery(table: string) {
       switch (table) {
         case 'appointments':
           return makeMaybeSingleResponse(appointmentsRow);
+        case 'calls':
+          return makeMaybeSingleResponse(insertCallsRow);
         case 'doctors':
           return makeMaybeSingleResponse(doctorsRow);
         case 'patients':
@@ -97,9 +100,21 @@ const fakeAdminClient = {
   },
 };
 
+vi.mock('@/lib/runtime-env', () => ({
+  resolvePublicSupabaseEnv: () => ({ publicSupabaseUrl: 'https://project.supabase.co' }),
+  resolveServiceRoleKey: () => 'service-role-key',
+}));
+
 vi.mock('@/lib/supabase', () => ({
   createAstroAdminClient: () => fakeAdminClient,
 }));
+
+const fetchCalls: Array<{ url: string; init: RequestInit | undefined }> = [];
+
+globalThis.fetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+  fetchCalls.push({ url: String(url), init });
+  return new Response(JSON.stringify({ success: true }), { status: 200 });
+}) as unknown as typeof fetch;
 
 // Reset the init guard before importing so the module registers against our fake bus.
 (globalThis as Record<string, unknown>).__autamedicaNotificationTriggersInitialized__ = false;
@@ -169,5 +184,37 @@ describe('appointment.cancelled notification trigger', () => {
     });
 
     expect(spy).toHaveBeenCalledWith(expect.anything(), { callId: 'call-ended-1' });
+  });
+
+  it('envía push CALL_STARTED y crea la notificación portal cuando se emite call.started', async () => {
+    insertCallsRow.appointment_id = 'appt-call-1';
+    fetchCalls.length = 0;
+
+    await fakeBus.emit('call.started', {
+      callId: 'call-started-1',
+      roomId: 'room_abc',
+      doctorId: 'doc-1',
+      patientId: 'pat-1',
+    });
+
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].url).toBe('https://project.supabase.co/functions/v1/send-push-notification');
+
+    const body = JSON.parse(String(fetchCalls[0].init?.body));
+    expect(body.userId).toBe('patient-user-1');
+    expect(body.data.type).toBe('CALL_STARTED');
+    expect(body.data.call_id).toBe('call-started-1');
+    expect(body.data.room_id).toBe('room_abc');
+    expect(body.data.appointment_id).toBe('appt-call-1');
+    expect(body.title).toBe('Llamada entrante');
+
+    const notifs = insertedRows.filter((row) => row._table === 'portal_notifications');
+    const callNotif = notifs.find((row) => row.type === 'event_call_started');
+    expect(callNotif).toBeDefined();
+    expect(callNotif?.user_id).toBe('patient-user-1');
+    expect(callNotif?.priority).toBe('urgent');
+    expect(callNotif?.dedupe_key).toBe('event:call.started:call-started-1');
+
+    insertCallsRow.appointment_id = null;
   });
 });
