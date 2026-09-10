@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('fcm_token')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single()
 
     if (profileError || !profile?.fcm_token) {
