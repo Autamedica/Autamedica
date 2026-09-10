@@ -216,7 +216,7 @@ jobs:
                   releases = res.json().get("releases", [])
                   codes = []
                   for release in releases:
-                      codes.extend(release.get("versionCodes", []))
+                      codes.extend(int(vc) for vc in release.get("versionCodes", []))
                   max_code = max(max_code, *codes) if codes else max_code
                   print(f"Track '{track}': versionCodes={sorted(codes)}")
           finally:
