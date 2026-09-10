@@ -156,7 +156,7 @@ class AnamnesisFormViewModelTest {
                 completedAt = "2026-03-06T10:02:00Z",
             )
         }.map {
-            if (it.section == "personal_info") it.copy(data = emptyMap()) else it
+            if (it.section == "edad") it.copy(data = emptyMap()) else it
         }
 
         val viewModel = AnamnesisFormViewModel(fakeRepository)
@@ -187,11 +187,56 @@ class AnamnesisFormViewModelTest {
     }
 
     private fun validDataForSection(section: String): Map<String, String> = when (section) {
+        "edad" -> mapOf(
+            "fecha_nacimiento" to "1958-03-12",
+            "emergency_contact_name" to "Maria Perez",
+            "emergency_contact_phone" to "+54 11 5555 1111",
+        )
+        "ocupacion" -> mapOf("ocupacion_actual" to "Docente")
+        "motivo_consulta" -> mapOf(
+            "sintoma_principal" to "Dolor de cabeza",
+            "cuando_empezo" to "2-7dias",
+            "intensidad_sintoma" to "5",
+        )
+        "enfermedades_previas" -> mapOf("enfermedades_cronicas" to "ninguna")
+        "medicamentos" -> mapOf("toma_medicamentos" to "false")
+        "alergias" -> mapOf("tiene_alergias" to "false")
+        "antecedentes_familiares" -> mapOf(
+            "padre_vivo" to "true",
+            "madre_viva" to "true",
+        )
+        "habitos" -> mapOf(
+            "fuma" to "nunca",
+            "alcohol" to "nunca",
+            "ejercicio" to "moderado",
+            "horas_sueno" to "7",
+            "dieta" to "regular",
+        )
+        "cardiovascular" -> mapOf(
+            "dolor_pecho" to "false",
+            "falta_aire" to "false",
+            "palpitaciones" to "false",
+            "hinchazon_piernas" to "false",
+        )
+        "respiratorio" -> mapOf(
+            "tos" to "false",
+            "falta_aire_respiratorio" to "false",
+            "silbido_pecho" to "false",
+        )
+        "digestivo" -> mapOf(
+            "acidez" to "false",
+            "dolor_abdominal" to "false",
+            "cambio_habito_intestinal" to "no",
+        )
+        "genitourinario" -> mapOf(
+            "dolor_orinar" to "false",
+            "frecuencia_urinaria" to "normal",
+        )
+        "resumen_final" -> mapOf("confirma_informacion" to "true")
         "personal_info" -> mapOf(
             "emergency_contact_name" to "Maria Perez",
             "emergency_contact_phone" to "+54 11 5555 1111",
         )
-        "allergies" -> mapOf("medication_allergies" to "Ninguna")
         "current_medications" -> mapOf("medications" to "Ninguno")
         "medical_conditions" -> mapOf("chronic_conditions" to "Ninguna")
         "surgical_history" -> mapOf("surgeries" to "Ninguna")
