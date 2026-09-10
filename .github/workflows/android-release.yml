@@ -178,14 +178,63 @@ jobs:
             echo "⚠️ GOOGLE_PLAY_SERVICE_ACCOUNT secret not configured in repo"
           fi
 
+      - name: Pre-flight: validate versionCode against Play
+        if: steps.check_sa.outputs.has_secret == 'true'
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+        run: |
+          pip install --quiet google-auth google-api-python-client
+          python3 - <<'PY'
+          import json, os, google.auth, google.auth.transport.requests
+          from googleapiclient.discovery import build
+          from google.oauth2 import service_account
+
+          BUILD_VERSION_CODE = int("${{ needs.build-release-aab.outputs.version_code }}")
+          PKG = "com.autamedica.android"
+
+          info = json.loads(os.environ["SERVICE_ACCOUNT"])
+
+          creds = service_account.Credentials.from_service_account_info(
+              info,
+              scopes=["https://www.googleapis.com/auth/androidpublisher"],
+          )
+
+          service = build("androidpublisher", "v3", credentials=creds)
+
+          request = service.edits().create(body={}, packageName=PKG)
+          edit_id = request.execute()["id"]
+
+          max_code = 0
+          try:
+              for track in ("internal", "alpha", "beta", "production"):
+                  result = service.edits().tracks().get(
+                      editId=edit_id, packageName=PKG, track=track
+                  ).execute()
+                  for release in result.get("releases", []):
+                      for vc in release.get("versionCodes", []):
+                          max_code = max(max_code, vc)
+          finally:
+              service.edits().delete(editId=edit_id, packageName=PKG).execute()
+
+          print(f"Build versionCode: {BUILD_VERSION_CODE}")
+          print(f"Max Play versionCode across all tracks: {max_code}")
+
+          if BUILD_VERSION_CODE <= max_code:
+              raise SystemExit(
+                  f"BLOCKED: versionCode {BUILD_VERSION_CODE} <= max deployed {max_code}. "
+                  "Bump versionCode in build.gradle.kts before pushing."
+              )
+          print(f"✅ versionCode {BUILD_VERSION_CODE} is safe to deploy")
+          PY
+
       - name: Upload to Google Play Store
         if: steps.check_sa.outputs.has_secret == 'true'
-        uses: r0adkll/upload-google-play@v1.1.3
+        uses: r0adkll/upload-google-play@v1.1.4
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
           packageName: com.autamedica.android
           releaseFiles: ./aab/*.aab
-          track: ${{ github.event.inputs.track || 'internal' }}
+          tracks: ${{ github.event.inputs.track || 'internal' }}
           status: completed
 
       - name: Deploy Summary
