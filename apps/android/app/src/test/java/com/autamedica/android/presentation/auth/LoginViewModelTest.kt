@@ -53,6 +53,16 @@ class FakeNotificationRepository : NotificationRepository {
     }
     override suspend fun clearFcmToken(): Result<Unit> = Result.success(Unit)
     override fun getCachedToken(): String? = registeredToken
+
+    override suspend fun getNotifications(limit: Int): Result<List<com.autamedica.android.domain.model.PortalNotification>> = Result.success(emptyList())
+    override fun observeNotifications(): kotlinx.coroutines.flow.StateFlow<List<com.autamedica.android.domain.model.PortalNotification>> =
+        kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+    override fun observeUnreadCount(): kotlinx.coroutines.flow.StateFlow<Int> =
+        kotlinx.coroutines.flow.MutableStateFlow(0)
+    override suspend fun markAsRead(id: String): Result<Unit> = Result.success(Unit)
+    override suspend fun markAllAsRead(): Result<Unit> = Result.success(Unit)
+    override suspend fun startRealtimeListener() {}
+    override fun showLocalNotification(title: String, body: String, category: String, deepLink: String?) {}
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

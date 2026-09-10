@@ -1,179 +1,1102 @@
 package com.autamedica.android.presentation.patients.continuity
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Emergency
+import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ThumbDown
+import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.HourglassEmpty
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MedicalInformation
+import androidx.compose.material.icons.outlined.Medication
+import androidx.compose.material.icons.outlined.NotificationImportant
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
+// ── Design Tokens AutaMedica ──
+private val DeepSlate = Color(0xFF0F172A)
+private val DarkCardBg = Color(0xFF1E293B)
+private val LightCanvasBg = Color(0xFFF8FAFC)
+private val EmeraldPrimary = Color(0xFF10B981)
+private val EmeraldSoft = Color(0xFFECFDF5)
+private val AmberPrimary = Color(0xFFF59E0B)
+private val AmberSoft = Color(0xFFFFFBEB)
+private val RosePrimary = Color(0xFFEF4444)
+private val RoseSoft = Color(0xFFFEF2F2)
+private val SkyPrimary = Color(0xFF0284C7)
+private val SkySoft = Color(0xFFF0F9FF)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContinuityStatusScreen(
     onBack: () -> Unit,
-    viewModel: ContinuityStatusViewModel = viewModel()
+    modifier: Modifier = Modifier,
+    viewModel: ContinuityStatusViewModel = hiltViewModel(),
+    onNavigateToVideoCall: (String) -> Unit = {},
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.feedbackMessage) {
+        uiState.feedbackMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            viewModel.clearFeedbackMessage()
+        }
+    }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Estado de tu solicitud") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                    }
-                }
-            )
-        }
+        modifier = modifier.fillMaxSize(),
+        containerColor = LightCanvasBg,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF8FBFF))
+                .padding(paddingValues),
         ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (uiState.status == "none" || uiState.request == null) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text("Sin solicitudes activas", style = MaterialTheme.typography.titleLarge)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "No tenés solicitudes de continuidad en curso.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(onClick = onBack) {
-                        Text("Volver al inicio")
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        CircularProgressIndicator(
+                            color = SkyPrimary,
+                            strokeWidth = 3.dp,
+                            modifier = Modifier.size(40.dp),
+                        )
+                        Text(
+                            text = "Sincronizando estado clínico...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF64748B),
+                        )
                     }
                 }
+            } else if (uiState.status == "none" || uiState.request == null) {
+                // ── ESTADO VACÍO CLÍNICO IMPECABLE ──
+                EmptyContinuityState(
+                    onBack = onBack,
+                    onRequestNew = viewModel::requestNewContinuity,
+                )
             } else {
                 val request = uiState.request!!
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 40.dp),
                 ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            // Status Badge
-                            val statusLabel = when (request.triageStatus) {
-                                "pending" -> "Solicitud recibida"
-                                "acknowledged" -> "En revisión médica"
-                                "in_progress" -> "En proceso"
-                                "resolved" -> "Resuelto"
-                                "escalated" -> "Derivado a consulta"
-                                else -> "Desconocido"
-                            }
-                            
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(Color(0xFFFFF7ED))
-                                    .border(1.dp, Color(0xFFFFEDD5), RoundedCornerShape(16.dp))
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = statusLabel,
-                                    color = Color(0xFFD97706),
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.labelMedium
+                    // 1. Header Hero Clínico Obsidian
+                    item {
+                        ContinuityHeroHeader(
+                            request = request,
+                            onBack = onBack,
+                            onRefresh = viewModel::fetchStatus,
+                        )
+                    }
+
+                    // 2. Contenido Principal en Tarjetas
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .padding(top = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            // Alerta de Escalamiento / Riesgo Clínico (si aplica)
+                            if (request.isEscalatedAlertActive || request.triageStatus == "escalated") {
+                                EscalatedClinicalAlertCard(
+                                    onContactEmergency = { /* Acción directa */ },
+                                    onOpenVideoCall = { onNavigateToVideoCall("emergency_room") },
                                 )
                             }
-                            
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            // Medication Info
+
+                            // A. Tarjeta de Solicitud de Continuidad & Timeline
+                            ContinuityTimelineCard(request = request)
+
+                            // B. Tarjeta de Medicación & Adherencia a 30 Días (Línea 4)
                             request.medication?.let { med ->
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFFF1F5F9))
-                                        .padding(12.dp)
-                                ) {
-                                    Column {
-                                        Text(med.name, fontWeight = FontWeight.Bold)
-                                        Text(med.dose, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                                        med.daysRemaining?.let { days ->
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Text(
-                                                if (days == 0) "Sin medicación disponible" else "$days días restantes",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = if (days <= 3) Color.Red else Color.Gray
-                                            )
-                                        }
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(16.dp))
+                                MedicationAdherenceCard(
+                                    medication = med,
+                                    adherenceScore = request.adherenceScore,
+                                    dosesTaken = request.dosesTakenInCycle,
+                                    totalDoses = request.totalDosesInCycle,
+                                    riskOfInterruption = request.riskOfInterruption,
+                                    onRecordDose = viewModel::recordDoseToday,
+                                )
                             }
-                            
-                            // Timeline
-                            TimelineStep(label = "Solicitud recibida", date = request.createdAt, done = true)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            TimelineStep(label = "En revisión médica", date = request.acknowledgedAt, done = request.acknowledgedAt != null)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            TimelineStep(label = "Resolución", date = request.resolvedAt, done = request.resolvedAt != null)
+
+                            // C. Módulo de Check-in Post-Consulta a 48 Horas (Línea 4)
+                            PostConsultationCheckInCard(
+                                currentStatus = request.postConsultationCheckInState,
+                                isSubmitting = uiState.isSubmittingCheckIn,
+                                onSelectState = viewModel::submitPostConsultationCheckIn,
+                            )
+
+                            // D. Plazo de Resolución y Contacto Médico Garantizado
+                            ResolutionDeadlineCard(
+                                deadline = request.resolutionDeadline,
+                                assignedDoctor = request.assignedDoctor,
+                            )
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { /* priority contact logic */ },
-                        modifier = Modifier.fillMaxWidth()
+                }
+            }
+        }
+    }
+}
+
+// ── COMPONENTE: HERO HEADER OBSIDIAN ──
+@Composable
+private fun ContinuityHeroHeader(
+    request: ContinuityRequest,
+    onBack: () -> Unit,
+    onRefresh: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(DeepSlate, Color(0xFF1E293B)),
+                ),
+            )
+            .statusBarsPadding()
+            .padding(top = 12.dp, bottom = 24.dp, start = 16.dp, end = 16.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Barra Superior de Navegación
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x26FFFFFF)),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+
+                // Badge de Estado Clínico
+                val (statusLabel, badgeBg, badgeTextColor, badgeBorder) = when (request.triageStatus) {
+                    "pending" -> Quadruple("Solicitud recibida", SkySoft, SkyPrimary, Color(0x330284C7))
+                    "acknowledged" -> Quadruple("En revisión médica", AmberSoft, AmberPrimary, Color(0x33F59E0B))
+                    "in_progress" -> Quadruple("En proceso", SkySoft, SkyPrimary, Color(0x330284C7))
+                    "resolved" -> Quadruple("Resuelto", EmeraldSoft, EmeraldPrimary, Color(0x3310B981))
+                    "escalated" -> Quadruple("Derivado prioritario", RoseSoft, RosePrimary, Color(0x33EF4444))
+                    else -> Quadruple("En seguimiento", SkySoft, SkyPrimary, Color(0x330284C7))
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = badgeBg,
+                    border = BorderStroke(1.dp, badgeBorder),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text("Contacto prioritario")
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(badgeTextColor),
+                        )
+                        Text(
+                            text = statusLabel,
+                            color = badgeTextColor,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
                     }
                 }
+
+                IconButton(
+                    onClick = onRefresh,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x26FFFFFF)),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Actualizar",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+
+            // Título Principal
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Continuidad Asistencial",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp,
+                )
+                Text(
+                    text = request.intent,
+                    color = Color(0xFF94A3B8),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Normal,
+                )
+            }
+        }
+    }
+}
+
+// ── COMPONENTE: TARJETA DE LÍNEA DE TIEMPO CLÍNICA ──
+@Composable
+private fun ContinuityTimelineCard(request: ContinuityRequest) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Línea de Evolución Médica",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = DeepSlate,
+                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFF1F5F9),
+                ) {
+                    Text(
+                        text = "ID: ${request.id}",
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF64748B),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                    )
+                }
+            }
+
+            // Pasos de la Timeline
+            val isStep1Done = true
+            val isStep2Done = request.acknowledgedAt != null || request.triageStatus in listOf("acknowledged", "in_progress", "resolved")
+            val isStep3Done = request.inProgressAt != null || request.triageStatus in listOf("in_progress", "resolved")
+            val isStep4Done = request.resolvedAt != null || request.triageStatus == "resolved"
+
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                TimelineStepRow(
+                    stepNumber = "1",
+                    title = "Solicitud recibida por el sistema",
+                    subtitle = "Triaje digital completado con éxito.",
+                    timestamp = request.createdAt,
+                    isDone = isStep1Done,
+                    isLast = false,
+                )
+                TimelineStepRow(
+                    stepNumber = "2",
+                    title = "En revisión médica especializada",
+                    subtitle = if (request.assignedDoctor != null) {
+                        "${request.assignedDoctor.name} (${request.assignedDoctor.specialty} • ${request.assignedDoctor.licenseNumber})"
+                    } else {
+                        "Asignando médico especialista según perfil clínico."
+                    },
+                    timestamp = request.acknowledgedAt,
+                    isDone = isStep2Done,
+                    isLast = false,
+                )
+                TimelineStepRow(
+                    stepNumber = "3",
+                    title = "Ajuste terapéutico & Prescripción",
+                    subtitle = "Evaluación de dosis, tolerancia y emisión de receta electrónica.",
+                    timestamp = request.inProgressAt,
+                    isDone = isStep3Done,
+                    isLast = false,
+                )
+                TimelineStepRow(
+                    stepNumber = "4",
+                    title = "Tratamiento consolidado / Cierre",
+                    subtitle = "Indicaciones cargadas y seguimiento activo a 30 días.",
+                    timestamp = request.resolvedAt,
+                    isDone = isStep4Done,
+                    isLast = true,
+                )
             }
         }
     }
 }
 
 @Composable
-fun TimelineStep(label: String, date: String?, done: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(if (done) Color(0xFFD1FAE5) else Color.White)
-                .border(2.dp, if (done) Color.Transparent else Color.LightGray, CircleShape),
-            contentAlignment = Alignment.Center
+private fun TimelineStepRow(
+    stepNumber: String,
+    title: String,
+    subtitle: String,
+    timestamp: String?,
+    isDone: Boolean,
+    isLast: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        // Columna de Ícono / Línea
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            if (done) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(16.dp))
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(if (isDone) EmeraldSoft else Color(0xFFF1F5F9))
+                    .border(
+                        1.dp,
+                        if (isDone) EmeraldPrimary else Color(0xFFCBD5E1),
+                        CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (isDone) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = EmeraldPrimary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                } else {
+                    Text(
+                        text = stepNumber,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF94A3B8),
+                    )
+                }
+            }
+
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(38.dp)
+                        .background(if (isDone) EmeraldPrimary.copy(alpha = 0.4f) else Color(0xFFE2E8F0)),
+                )
             }
         }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(label, fontWeight = FontWeight.Medium, color = if (done) Color.Black else Color.Gray)
-            if (date != null) {
-                Text(date, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+
+        // Columna de Contenido
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = if (isLast) 0.dp else 16.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 13.sp,
+                    fontWeight = if (isDone) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (isDone) DeepSlate else Color(0xFF64748B),
+                )
+                if (timestamp != null) {
+                    Text(
+                        text = timestamp.take(10),
+                        fontSize = 10.sp,
+                        color = Color(0xFF94A3B8),
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
+            }
+            Text(
+                text = subtitle,
+                fontSize = 11.sp,
+                color = Color(0xFF64748B),
+                lineHeight = 15.sp,
+            )
+        }
+    }
+}
+
+// ── COMPONENTE: MEDICACIÓN Y SCORE DE ADHERENCIA A 30 DÍAS ──
+@Composable
+private fun MedicationAdherenceCard(
+    medication: Medication,
+    adherenceScore: Int,
+    dosesTaken: Int,
+    totalDoses: Int,
+    riskOfInterruption: String,
+    onRecordDose: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // Header del fármaco
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = SkySoft,
+                        border = BorderStroke(1.dp, Color(0x330284C7)),
+                        modifier = Modifier.size(44.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.Medication,
+                                contentDescription = null,
+                                tint = SkyPrimary,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = medication.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = DeepSlate,
+                        )
+                        Text(
+                            text = "${medication.dose} • ${medication.frequency}",
+                            fontSize = 12.sp,
+                            color = Color(0xFF64748B),
+                        )
+                    }
+                }
+
+                // Badge de Riesgo de Suministro
+                val (riskText, riskBg, riskColor) = when (riskOfInterruption) {
+                    "critical" -> Triple("Riesgo Crítico", RoseSoft, RosePrimary)
+                    "moderate" -> Triple("Riesgo Moderado", AmberSoft, AmberPrimary)
+                    else -> Triple("Suministro OK", EmeraldSoft, EmeraldPrimary)
+                }
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = riskBg,
+                ) {
+                    Text(
+                        text = riskText,
+                        color = riskColor,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    )
+                }
+            }
+
+            // Días restantes de medicación
+            medication.daysRemaining?.let { days ->
+                val daysColor = if (days <= 2) RosePrimary else if (days <= 5) AmberPrimary else EmeraldPrimary
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.AccessTime,
+                                contentDescription = null,
+                                tint = daysColor,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "Suministro restante:",
+                                fontSize = 12.sp,
+                                color = Color(0xFF64748B),
+                            )
+                        }
+                        Text(
+                            text = if (days == 0) "¡Sin stock! Renovar urgente" else "$days días disponibles",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = daysColor,
+                        )
+                    }
+                }
+            }
+
+            // Score de Adherencia a 30 Días
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Score de Adherencia (30 días)",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DeepSlate,
+                    )
+                    Text(
+                        text = "$adherenceScore% • $dosesTaken de $totalDoses tomas",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (adherenceScore >= 80) EmeraldPrimary else if (adherenceScore >= 60) AmberPrimary else RosePrimary,
+                    )
+                }
+
+                LinearProgressIndicator(
+                    progress = { (adherenceScore / 100f).coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = if (adherenceScore >= 80) EmeraldPrimary else if (adherenceScore >= 60) AmberPrimary else RosePrimary,
+                    trackColor = Color(0xFFE2E8F0),
+                )
+
+                Text(
+                    text = if (adherenceScore >= 80) {
+                        "Nivel Óptimo: Mantenés una continuidad terapéutica excelente que maximiza la efectividad del tratamiento."
+                    } else {
+                        "Importante: Mantener tomas regulares previene rebotes o pérdida de eficacia del fármaco."
+                    },
+                    fontSize = 11.sp,
+                    color = Color(0xFF64748B),
+                    lineHeight = 14.sp,
+                )
+            }
+
+            // Botón interactivo: Registrar toma de hoy
+            if (medication.isTakenToday) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = EmeraldSoft,
+                    border = BorderStroke(1.dp, EmeraldPrimary.copy(alpha = 0.3f)),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = EmeraldPrimary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Toma de hoy registrada correctamente",
+                            color = EmeraldPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            } else {
+                Button(
+                    onClick = onRecordDose,
+                    colors = ButtonDefaults.buttonColors(containerColor = SkyPrimary),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Registrar toma de hoy",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
     }
 }
+
+// ── COMPONENTE: CHECK-IN POST-CONSULTA A 48 HORAS (LÍNEA 4 AUTAMEDICA) ──
+@Composable
+private fun PostConsultationCheckInCard(
+    currentStatus: String?,
+    isSubmitting: Boolean,
+    onSelectState: (String) -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Shield,
+                        contentDescription = null,
+                        tint = SkyPrimary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                        text = "Check-in Post-Consulta (48 hs)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = DeepSlate,
+                    )
+                }
+                Text(
+                    text = "¿Cómo te sentís hoy con el tratamiento indicado?",
+                    fontSize = 13.sp,
+                    color = Color(0xFF475569),
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+
+            // 3 Opciones Rápidas de Evolución
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                // Opción: Mejor
+                CheckInOptionButton(
+                    label = "Mejor",
+                    icon = Icons.Default.ThumbUp,
+                    isSelected = currentStatus.equals("better", ignoreCase = true),
+                    activeColor = EmeraldPrimary,
+                    activeBg = EmeraldSoft,
+                    onClick = { onSelectState("better") },
+                    modifier = Modifier.weight(1f),
+                )
+
+                // Opción: Igual
+                CheckInOptionButton(
+                    label = "Igual / Estable",
+                    icon = Icons.Outlined.HourglassEmpty,
+                    isSelected = currentStatus.equals("stable", ignoreCase = true),
+                    activeColor = SkyPrimary,
+                    activeBg = SkySoft,
+                    onClick = { onSelectState("stable") },
+                    modifier = Modifier.weight(1.2f),
+                )
+
+                // Opción: Empeoré / Dudas
+                CheckInOptionButton(
+                    label = "Empeoré / Dudas",
+                    icon = Icons.Default.ThumbDown,
+                    isSelected = currentStatus.equals("worse", ignoreCase = true),
+                    activeColor = RosePrimary,
+                    activeBg = RoseSoft,
+                    onClick = { onSelectState("worse") },
+                    modifier = Modifier.weight(1.3f),
+                )
+            }
+
+            if (isSubmitting) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth().height(3.dp),
+                    color = SkyPrimary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CheckInOptionButton(
+    label: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    activeColor: Color,
+    activeBg: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (isSelected) activeBg else Color(0xFFF8FAFC),
+        border = BorderStroke(
+            width = if (isSelected) 1.5.dp else 1.dp,
+            color = if (isSelected) activeColor else Color(0xFFE2E8F0),
+        ),
+        modifier = modifier.clickable { onClick() },
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (isSelected) activeColor else Color(0xFF64748B),
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) activeColor else Color(0xFF475569),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+// ── COMPONENTE: ALERTA DE ESCALAMIENTO CLÍNICO INMEDIATO ──
+@Composable
+private fun EscalatedClinicalAlertCard(
+    onContactEmergency: () -> Unit,
+    onOpenVideoCall: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = RoseSoft,
+        border = BorderStroke(1.5.dp, RosePrimary.copy(alpha = 0.4f)),
+        shadowElevation = 4.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = RosePrimary,
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+                Text(
+                    text = "Alerta Clínica Prioritaria Activada",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = RosePrimary,
+                )
+            }
+
+            Text(
+                text = "Tu reporte de descompensación o dudas sobre la medicación fue elevado con máxima prioridad a tu equipo médico tratante. Un profesional revisará tu historial en breve.",
+                fontSize = 12.sp,
+                color = Color(0xFF991B1B),
+                lineHeight = 16.sp,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    onClick = onOpenVideoCall,
+                    colors = ButtonDefaults.buttonColors(containerColor = RosePrimary),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MedicalServices,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Videoconsulta de guardia",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── COMPONENTE: PLAZO DE RESOLUCIÓN MÉDICA Y PROFESIONAL ASIGNADO ──
+@Composable
+private fun ResolutionDeadlineCard(
+    deadline: String?,
+    assignedDoctor: AssignedDoctorInfo?,
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CheckCircle,
+                    contentDescription = null,
+                    tint = EmeraldPrimary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = "Compromiso de Respuesta Clínica",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = DeepSlate,
+                )
+            }
+
+            if (deadline != null) {
+                Text(
+                    text = "El equipo médico responderá y actualizará tus recetas antes de: $deadline.",
+                    fontSize = 12.sp,
+                    color = Color(0xFF64748B),
+                    lineHeight = 16.sp,
+                )
+            }
+
+            if (assignedDoctor != null) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = SkySoft,
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = SkyPrimary,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = assignedDoctor.name,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DeepSlate,
+                            )
+                            Text(
+                                text = "${assignedDoctor.specialty} • ${assignedDoctor.licenseNumber}",
+                                fontSize = 11.sp,
+                                color = Color(0xFF64748B),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── COMPONENTE: ESTADO VACÍO CLÍNICO ──
+@Composable
+private fun EmptyContinuityState(
+    onBack: () -> Unit,
+    onRequestNew: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = SkySoft,
+                border = BorderStroke(1.dp, Color(0x330284C7)),
+                modifier = Modifier.size(72.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.AccessTime,
+                        contentDescription = null,
+                        tint = SkyPrimary,
+                        modifier = Modifier.size(36.dp),
+                    )
+                }
+            }
+
+            Text(
+                text = "Sin solicitudes de continuidad activas",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = DeepSlate,
+                textAlign = TextAlign.Center,
+            )
+
+            Text(
+                text = "No tenés solicitudes de continuidad de tratamiento en curso. Si completaste tu consulta o evaluación clínica, podés solicitar la continuidad y renovación farmacológica directamente aquí.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF64748B),
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = onRequestNew,
+                colors = ButtonDefaults.buttonColors(containerColor = SkyPrimary),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(0.85f),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Medication,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Solicitar continuidad de tratamiento")
+            }
+
+            OutlinedButton(
+                onClick = onBack,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(0.85f),
+            ) {
+                Text("Volver al panel principal")
+            }
+        }
+    }
+}
+
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)

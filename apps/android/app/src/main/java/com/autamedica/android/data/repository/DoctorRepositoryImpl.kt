@@ -3,8 +3,10 @@ package com.autamedica.android.data.repository
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
+import com.autamedica.android.domain.model.DoctorAvailabilitySlot
 import com.autamedica.android.domain.model.DoctorProfile
 import com.autamedica.android.domain.model.DoctorStats
+import com.autamedica.android.domain.model.PatientClinicalContext
 import com.autamedica.android.domain.model.PatientDetail
 import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.domain.repository.DoctorRepository
@@ -15,6 +17,9 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -289,6 +294,170 @@ class DoctorRepositoryImpl @Inject constructor(
     }.onFailure {
         SecureLog.error("[DoctorRepo] Failed fetching patient detail", it)
     }
+
+    override suspend fun getDoctorAvailability(doctorId: String): Result<List<DoctorAvailabilitySlot>> = runCatching {
+        val dtos = supabaseClient.postgrest
+            .from("doctor_availability")
+            .select(Columns.ALL) {
+                filter {
+                    eq("doctor_id", doctorId)
+                    eq("is_active", true)
+                }
+                order("day_of_week", Order.ASCENDING)
+                order("start_time", Order.ASCENDING)
+            }
+            .decodeList<DoctorAvailabilityDto>()
+
+        // Check if fake 24/7 preset exists (matching Web: 7 days, 00:00 to 23:59)
+        val isFake = dtos.size >= 7 && dtos.all {
+            it.startTime.startsWith("00:00") && it.endTime.startsWith("23:59")
+        }
+        if (isFake) emptyList() else dtos.map { it.toDomain() }
+    }.onFailure {
+        SecureLog.error("[DoctorRepo] Failed fetching doctor availability", it)
+    }
+
+    override suspend fun saveDoctorAvailability(
+        doctorId: String,
+        slots: List<DoctorAvailabilitySlot>,
+    ): Result<Unit> = runCatching {
+        // Delete existing availability for this doctor
+        supabaseClient.postgrest
+            .from("doctor_availability")
+            .delete {
+                filter { eq("doctor_id", doctorId) }
+            }
+
+        // Insert new slots
+        if (slots.isNotEmpty()) {
+            val insertRows = slots.map { s ->
+                DoctorAvailabilityDto(
+                    doctorId = doctorId,
+                    dayOfWeek = s.dayOfWeek,
+                    startTime = if (s.startTime.length == 5) "${s.startTime}:00" else s.startTime,
+                    endTime = if (s.endTime.length == 5) "${s.endTime}:00" else s.endTime,
+                    slotDuration = s.slotDuration,
+                    location = s.location,
+                    isActive = s.isActive,
+                )
+            }
+            supabaseClient.postgrest
+                .from("doctor_availability")
+                .insert(insertRows)
+        }
+        Unit
+    }.onFailure {
+        SecureLog.error("[DoctorRepo] Failed saving doctor availability", it)
+    }
+
+    override suspend fun getPatientClinicalContext(patientId: String): Result<PatientClinicalContext> = runCatching {
+        val anamnesisList = supabaseClient.postgrest
+            .from("anamnesis")
+            .select(Columns.ALL) {
+                filter { eq("patient_id", patientId) }
+                order("updated_at", Order.DESCENDING)
+                limit(1)
+            }
+            .decodeList<AnamnesisContextDto>()
+
+        val anamnesis = anamnesisList.firstOrNull() ?: return@runCatching PatientClinicalContext(hasAnamnesis = false)
+
+        val sections = supabaseClient.postgrest
+            .from("anamnesis_sections")
+            .select(Columns.ALL) {
+                filter { eq("anamnesis_id", anamnesis.id) }
+            }
+            .decodeList<AnamnesisContextSectionDto>()
+
+        var chiefComplaint: String? = null
+        val allergies = mutableListOf<String>()
+        var medications: String? = null
+        val chronicDiseases = mutableListOf<String>()
+
+        for (sec in sections) {
+            val sectionName = sec.section.lowercase()
+            val stringValues = sec.data.values.mapNotNull {
+                runCatching { it.jsonPrimitive.contentOrNull }.getOrNull()
+            }
+
+            when {
+                sectionName.contains("motivo") -> {
+                    val complaint = stringValues.firstOrNull { it.isNotBlank() }
+                    if (complaint != null) {
+                        chiefComplaint = complaint
+                    }
+                }
+                sectionName.contains("alergia") -> {
+                    stringValues.forEach { valStr ->
+                        if (!valStr.contains("no documentado", ignoreCase = true) && !valStr.contains("niega", ignoreCase = true)) {
+                            allergies.addAll(valStr.split(",").map { it.trim() }.filter { it.isNotBlank() })
+                        }
+                    }
+                }
+                sectionName.contains("medicamento") || sectionName.contains("medication") -> {
+                    val medStr = stringValues.firstOrNull { 
+                        it.isNotBlank() && !it.contains("no documentado", ignoreCase = true) && !it.contains("niega", ignoreCase = true)
+                    }
+                    if (medStr != null) {
+                        medications = medStr
+                    }
+                }
+                sectionName.contains("enfermedad") || sectionName.contains("patolog") || sectionName.contains("condition") -> {
+                    stringValues.forEach { valStr ->
+                        if (!valStr.contains("no documentado", ignoreCase = true) && !valStr.contains("niega", ignoreCase = true)) {
+                            chronicDiseases.addAll(valStr.split(",").map { it.trim() }.filter { it.isNotBlank() })
+                        }
+                    }
+                }
+            }
+        }
+
+        PatientClinicalContext(
+            hasAnamnesis = true,
+            chiefComplaint = chiefComplaint,
+            allergies = allergies.distinct(),
+            medications = medications,
+            chronicDiseases = chronicDiseases.distinct(),
+        )
+    }.onFailure {
+        SecureLog.error("[DoctorRepo] Failed fetching patient clinical context", it)
+    }
+
+    override suspend fun resolvePatientNames(patientIds: List<String>): Result<Map<String, String>> = runCatching {
+        if (patientIds.isEmpty()) return@runCatching emptyMap()
+
+        val patients = supabaseClient.postgrest
+            .from("patients")
+            .select(Columns.list("id", "user_id")) {
+                filter { isIn("id", patientIds) }
+            }
+            .decodeList<PatientIdUserDto>()
+
+        val userIds = patients.mapNotNull { it.userId }.distinct()
+        if (userIds.isEmpty()) return@runCatching emptyMap()
+
+        val profiles = supabaseClient.postgrest
+            .from("profiles")
+            .select(Columns.list("user_id", "first_name", "last_name")) {
+                filter { isIn("user_id", userIds) }
+            }
+            .decodeList<DoctorPatientProfileDto>()
+            .associateBy { it.userId }
+
+        val nameMap = mutableMapOf<String, String>()
+        for (patient in patients) {
+            val profile = profiles[patient.userId]
+            if (profile != null) {
+                val fullName = "${profile.firstName.orEmpty()} ${profile.lastName.orEmpty()}".trim()
+                if (fullName.isNotBlank()) {
+                    nameMap[patient.id] = fullName
+                }
+            }
+        }
+        nameMap
+    }.onFailure {
+        SecureLog.error("[DoctorRepo] Failed resolving patient names", it)
+    }
 }
 
 // ── DTOs ────────────────────────────────────────────────────────────────────
@@ -423,3 +592,45 @@ private data class AppointmentFullDto(
         else -> AppointmentStatus.SCHEDULED
     }
 }
+
+@Serializable
+private data class DoctorAvailabilityDto(
+    val id: String? = null,
+    @SerialName("doctor_id") val doctorId: String? = null,
+    @SerialName("day_of_week") val dayOfWeek: Int,
+    @SerialName("start_time") val startTime: String,
+    @SerialName("end_time") val endTime: String,
+    @SerialName("slot_duration") val slotDuration: Int = 30,
+    val location: String? = null,
+    @SerialName("is_active") val isActive: Boolean = true,
+) {
+    fun toDomain() = DoctorAvailabilitySlot(
+        id = id,
+        dayOfWeek = dayOfWeek,
+        startTime = startTime.take(5),
+        endTime = endTime.take(5),
+        slotDuration = slotDuration,
+        location = location,
+        isActive = isActive,
+    )
+}
+
+@Serializable
+private data class AnamnesisContextDto(
+    val id: String,
+    @SerialName("patient_id") val patientId: String,
+    val status: String = "in_progress",
+)
+
+@Serializable
+private data class AnamnesisContextSectionDto(
+    val id: String,
+    val section: String,
+    val data: JsonObject = JsonObject(emptyMap()),
+)
+
+@Serializable
+private data class PatientIdUserDto(
+    val id: String,
+    @SerialName("user_id") val userId: String? = null,
+)

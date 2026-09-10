@@ -30,8 +30,6 @@ firebase-bom = "33.8.0"
 firebase-crashlytics-plugin = "3.0.2"
 firebase-perf-plugin = "1.4.2"
 room = "2.6.1"
-livekit-sdk = "2.23.5"
-livekit-compose-components = "2.2.0"
 mlkit-face = "16.1.7"
 zxing = "3.5.3"
 
@@ -93,6 +91,7 @@ biometric = { group = "androidx.biometric", name = "biometric", version.ref = "b
 
 # Image loading
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 
 # Logging
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
@@ -127,9 +126,6 @@ room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 
-# LiveKit
-livekit-android-sdk = { group = "io.livekit", name = "livekit-android", version.ref = "livekit-sdk" }
-livekit-compose-components = { group = "io.livekit", name = "livekit-android-compose-components", version.ref = "livekit-compose-components" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 [plugins]

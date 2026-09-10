@@ -1,0 +1,216 @@
+package com.autamedica.android.presentation.dashboard.components
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.MonetizationOn
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.autamedica.android.R
+import java.util.Calendar
+
+@Composable
+fun PatientHeroSection(
+    userName: String,
+    subscriptionTier: String,
+    benefitBalanceCredits: Int,
+    onBookConsultation: () -> Unit,
+    onOpenReserveDetails: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val firstName = userName.split(" ").firstOrNull()?.ifBlank { "Paciente" } ?: "Paciente"
+    val isCuidado = subscriptionTier.equals("cuidado", ignoreCase = true)
+    val greeting = getGreetingText()
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(420.dp),
+        shape = RoundedCornerShape(32.dp),
+        color = Color(0xFF0F172A),
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Background Image
+            Image(
+                painter = painterResource(id = R.drawable.hero_patient_bg),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+
+            // Dark Cinematic Gradient Vignette
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0x7309090B),
+                                Color(0xB309090B),
+                                Color(0xF209090B),
+                            )
+                        )
+                    )
+            )
+
+            // Content Overlay
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.Bottom,
+            ) {
+                // Subscription Chip Pill (48dp min touch target)
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (isCuidado) Color(0x3306B6D4) else Color(0x26FFFFFF),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isCuidado) Color(0x6606B6D4) else Color(0x33FFFFFF)
+                    ),
+                    modifier = Modifier
+                        .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .clickable(
+                            onClickLabel = if (isCuidado) "Ver créditos y beneficios de tu plan" else "Conocer beneficios del plan",
+                            onClick = onOpenReserveDetails,
+                        ),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        Icon(
+                            imageVector = if (isCuidado) Icons.Outlined.AutoAwesome else Icons.Outlined.MonetizationOn,
+                            contentDescription = if (isCuidado) "Plan Cuidado activo" else "Plan de Salud",
+                            modifier = Modifier.size(14.dp),
+                            tint = if (isCuidado) Color(0xFF67E8F9) else Color(0xFFE2E8F0),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isCuidado) {
+                                "Plan Cuidado • +$benefitBalanceCredits créditos"
+                            } else {
+                                "Beneficios del plan"
+                            },
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isCuidado) Color(0xFF67E8F9) else Color.White,
+                            maxLines = 1,
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(11.dp),
+                            tint = if (isCuidado) Color(0xFF67E8F9) else Color.White.copy(alpha = 0.7f),
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Uppercase Greeting
+                Text(
+                    text = greeting,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.2.sp,
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Large Editorial Title
+                Text(
+                    text = "$firstName, tu salud al día",
+                    fontSize = 30.sp,
+                    lineHeight = 36.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp,
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Subtitle
+                Text(
+                    text = "Consultas médicas sin esperas.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.85f),
+                    lineHeight = 20.sp,
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Large Hero CTA Button (48dp min touch target)
+                Button(
+                    onClick = onBookConsultation,
+                    shape = RoundedCornerShape(999.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color(0xFF09090B),
+                    ),
+                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        horizontal = 24.dp,
+                        vertical = 14.dp,
+                    ),
+                ) {
+                    Text(
+                        text = "Consultar ahora",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun getGreetingText(): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return when {
+        hour < 12 -> "BUENOS DÍAS"
+        hour < 19 -> "BUENAS TARDES"
+        else -> "BUENAS NOCHES"
+    }
+}

@@ -4,17 +4,12 @@ import com.autamedica.android.BuildConfig
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.domain.repository.IceServerInfo
-import com.autamedica.android.domain.repository.LiveKitCredentials
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.repository.TelemedicineSessionInfo
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
-import io.ktor.client.call.body
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
@@ -30,6 +25,7 @@ class TelemedicineRepositoryImpl @Inject constructor(
     }
 
     internal var sessionInfoFinder: (suspend (String) -> TelemedicineSessionInfo?)? = null
+    internal var iceServersProvider: (() -> List<IceServerInfo>)? = null
 
     override suspend fun getSession(sessionId: String): Result<TelemedicineSessionInfo> = runCatching {
         val identifier = sessionId.trim()
@@ -70,42 +66,6 @@ class TelemedicineRepositoryImpl @Inject constructor(
         )
     }.onFailure {
         SecureLog.error("[Telemedicine] Failed fetching session", it)
-    }
-
-    override suspend fun getLiveKitCredentials(sessionId: String): Result<LiveKitCredentials> = runCatching {
-        val identifier = sessionId.trim()
-        require(identifier.isNotEmpty()) { "Session identifier cannot be empty" }
-
-        val response = supabaseClient.functions.invoke(
-            BuildConfig.LIVEKIT_TOKEN_FUNCTION,
-            LiveKitTokenRequest(
-                consultationId = identifier,
-                sessionId = identifier,
-                appointmentId = identifier,
-            ),
-        )
-
-        if (!response.status.isSuccess()) {
-            val responseBody = runCatching { response.bodyAsText() }.getOrNull()
-            throw IllegalStateException(
-                "LiveKit token function failed with ${response.status.value}${responseBody?.let { ": $it" } ?: ""}",
-            )
-        }
-
-        val payload = response.body<LiveKitTokenResponseDto>()
-        val token = payload.token.normalizedOrNull()
-            ?: throw IllegalStateException("LiveKit token is empty")
-        val wsUrl = payload.wsUrl.normalizedOrNull()
-            ?: BuildConfig.LIVEKIT_WS_URL.normalizedOrNull()
-            ?: throw IllegalStateException("LiveKit wsUrl missing in response and BuildConfig")
-
-        LiveKitCredentials(
-            token = token,
-            roomName = payload.roomName.normalizedOrNull() ?: identifier,
-            wsUrl = wsUrl,
-        )
-    }.onFailure {
-        SecureLog.error("[Telemedicine] Failed fetching LiveKit credentials", it)
     }
 
     override suspend fun updateCallStatus(callId: String, status: String): Result<Unit> = runCatching {
@@ -283,14 +243,32 @@ class TelemedicineRepositoryImpl @Inject constructor(
         return this?.trim()?.takeIf { it.isNotEmpty() }
     }
 
-    private fun getDefaultIceServers(): List<IceServerInfo> {
-        return listOf(
+    internal fun getDefaultIceServers(): List<IceServerInfo> {
+        val custom = iceServersProvider?.invoke()
+        if (custom != null) return custom
+
+        val servers = mutableListOf(
             IceServerInfo(listOf("stun:stun.l.google.com:19302")),
             IceServerInfo(listOf("stun:stun1.l.google.com:19302")),
             IceServerInfo(listOf("stun:stun2.l.google.com:19302")),
             IceServerInfo(listOf("stun:stun3.l.google.com:19302")),
             IceServerInfo(listOf("stun:stun4.l.google.com:19302")),
         )
+
+        val turnUrls = BuildConfig.TURN_URLS.trim().takeIf { it.isNotEmpty() }
+        if (turnUrls != null) {
+            val urlList = turnUrls.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+            if (urlList.isNotEmpty()) {
+                servers.add(
+                    IceServerInfo(
+                        urls = urlList,
+                        username = BuildConfig.TURN_USERNAME.trim().takeIf { it.isNotEmpty() },
+                        credential = BuildConfig.TURN_CREDENTIAL.trim().takeIf { it.isNotEmpty() },
+                    )
+                )
+            }
+        }
+        return servers
     }
 }
 
@@ -336,18 +314,4 @@ private data class TelemedicineSessionDto(
     @SerialName("doctor_id") val doctorId: String? = null,
     @SerialName("patient_id") val patientId: String? = null,
     val status: String? = null,
-)
-
-@Serializable
-private data class LiveKitTokenRequest(
-    @SerialName("consultationId") val consultationId: String,
-    @SerialName("sessionId") val sessionId: String,
-    @SerialName("appointmentId") val appointmentId: String,
-)
-
-@Serializable
-private data class LiveKitTokenResponseDto(
-    val token: String,
-    @SerialName("roomName") val roomName: String? = null,
-    @SerialName("wsUrl") val wsUrl: String? = null,
 )

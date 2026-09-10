@@ -31,7 +31,7 @@ fun DoctorSignatureScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Firma Digital (SISA)") }
+                title = { Text("Firma digital") }
             )
         }
     ) { paddingValues ->
@@ -44,7 +44,7 @@ fun DoctorSignatureScreen(
             OutlinedTextField(
                 value = licenseNumber,
                 onValueChange = { licenseNumber = it },
-                label = { Text("Matrícula Nacional") },
+                label = { Text("Matrícula profesional") },
                 modifier = Modifier.fillMaxWidth()
             )
             
@@ -55,7 +55,7 @@ fun DoctorSignatureScreen(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !state.isLoading
             ) {
-                Text(if (state.sisaValidated) "Validado SISA" else "Validar SISA")
+                Text(if (state.sisaValidated) "Matrícula verificada" else "Verificar matrícula")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -118,7 +118,7 @@ fun DoctorSignatureScreen(
                     paths.clear() 
                     currentPath = null
                 }) {
-                    Text("Limpiar Trazo")
+                    Text("Borrar trazo")
                 }
                 
                 Button(
@@ -129,7 +129,7 @@ fun DoctorSignatureScreen(
                     },
                     enabled = state.sisaValidated && !state.isLoading
                 ) {
-                    Text("Confirmar y Guardar")
+                    Text("Guardar firma")
                 }
             }
 

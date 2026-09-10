@@ -323,9 +323,9 @@ private fun ProfileHeroCard(
                 )
                 Text(
                     text = if (completion < 100) {
-                        "Completa tu contacto y datos basicos para mejorar recordatorios y seguimiento."
+                        "Completá tus datos de contacto para tus turnos y recetas."
                     } else {
-                        "Tu perfil base esta completo y listo para una experiencia clinica mas fluida."
+                        "Tu perfil está completo."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
@@ -357,7 +357,7 @@ private fun ProfileEditCard(
 
     SectionCard(
         title = "Informacion personal",
-        subtitle = "Edita los datos que hoy Android ya puede sincronizar con tu perfil web.",
+        subtitle = "Actualizá tu nombre y teléfono de contacto.",
         icon = Icons.Default.Person,
     ) {
         OutlinedTextField(
@@ -472,7 +472,7 @@ private fun ContactSection(
 ) {
     SectionCard(
         title = "Contacto",
-        subtitle = "Datos que usamos para avisos de turnos y seguimiento.",
+        subtitle = "Canales de comunicación para avisos y turnos.",
         icon = Icons.Outlined.Email,
     ) {
         InfoRow(
@@ -497,7 +497,7 @@ private fun PersonalSummarySection(
 
     SectionCard(
         title = "Resumen personal",
-        subtitle = "Referencia tomada del perfil del portal web de pacientes.",
+        subtitle = "Datos registrados en tu cuenta.",
         icon = Icons.Outlined.Cake,
     ) {
         InfoRow(
@@ -530,7 +530,7 @@ private fun MedicalSummarySection(
 
     SectionCard(
         title = "Datos medicos",
-        subtitle = "Informacion basica del registro del paciente.",
+        subtitle = "Información clínica básica.",
         icon = Icons.Outlined.MedicalServices,
     ) {
         InfoRow(
@@ -565,7 +565,7 @@ private fun EmergencyContactSection(
 ) {
     SectionCard(
         title = "Contacto de emergencia",
-        subtitle = "Visible para acelerar asistencia cuando hace falta.",
+        subtitle = "Contacto para casos de urgencia médica.",
         icon = Icons.Outlined.Phone,
     ) {
         InfoRow(

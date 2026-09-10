@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import com.autamedica.android.data.local.room.dao.AppointmentDao
 import com.autamedica.android.data.local.room.entity.AppointmentEntity
 
-@Database(entities = [AppointmentEntity::class], version = 2, exportSchema = false)
+@Database(entities = [AppointmentEntity::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun appointmentDao(): AppointmentDao

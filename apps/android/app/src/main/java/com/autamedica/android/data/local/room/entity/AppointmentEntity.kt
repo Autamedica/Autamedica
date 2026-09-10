@@ -19,6 +19,10 @@ data class AppointmentEntity(
     val status: String,
     val notes: String?,
     val meetingUrl: String?,
+    val doctorName: String? = null,
+    val doctorSpecialty: String? = null,
+    val doctorAvatarUrl: String? = null,
+    val doctorFee: Double? = null,
     // Timestamp used to clear old data cache
     val cachedAt: Long = System.currentTimeMillis()
 )
@@ -33,7 +37,11 @@ fun AppointmentEntity.toDomain() = Appointment(
     type = runCatching { AppointmentType.valueOf(type) }.getOrDefault(AppointmentType.TELEMEDICINE),
     status = runCatching { AppointmentStatus.valueOf(status) }.getOrDefault(AppointmentStatus.SCHEDULED),
     notes = notes,
-    meetingUrl = meetingUrl
+    meetingUrl = meetingUrl,
+    doctorName = doctorName,
+    doctorSpecialty = doctorSpecialty,
+    doctorAvatarUrl = doctorAvatarUrl,
+    doctorFee = doctorFee,
 )
 
 fun Appointment.toEntity(ownerUserId: String) = AppointmentEntity(
@@ -48,5 +56,9 @@ fun Appointment.toEntity(ownerUserId: String) = AppointmentEntity(
     status = status.name,
     notes = notes,
     meetingUrl = meetingUrl,
+    doctorName = doctorName,
+    doctorSpecialty = doctorSpecialty,
+    doctorAvatarUrl = doctorAvatarUrl,
+    doctorFee = doctorFee,
     cachedAt = System.currentTimeMillis()
 )

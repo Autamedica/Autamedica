@@ -1,11 +1,12 @@
 package com.autamedica.android.presentation.appointments
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,22 +22,26 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material.icons.outlined.EventBusy
-import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -44,7 +49,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,14 +57,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
+import com.autamedica.android.domain.model.DoctorBookingInfo
+import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.presentation.dashboard.components.AppointmentCard
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
@@ -80,16 +86,7 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private const val ALL_DAYS_KEY = "__all_days__"
 private val spanishLocale = Locale("es", "AR")
-
-private data class AgendaStat(
-    val value: String,
-    val label: String,
-    val icon: ImageVector,
-    val iconColor: Color,
-    val iconBgColor: Color,
-)
 
 private data class AgendaDay(
     val key: String,
@@ -109,46 +106,28 @@ fun AppointmentsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDoctor = uiState.userRole == "doctor"
     val accentColor = if (isDoctor) PortalDoctors else PortalPatients
-    val title = if (isDoctor) "Agenda de Consultas" else "Mis Turnos"
-    val subtitle = if (isDoctor) {
-        "Organiza la jornada clinica y controla accesos a videollamadas."
-    } else {
-        "Revisa tus proximos turnos y entra a la videoconsulta cuando este lista."
-    }
+    val title = if (isDoctor) "Agenda médica" else "Mis turnos"
 
-    val agendaDays = remember(uiState.appointments, uiState.joinableAppointmentIds) {
-        buildAgendaDays(
-            appointments = uiState.appointments,
-            joinableAppointmentIds = uiState.joinableAppointmentIds,
-        )
-    }
-    val nextAppointment = remember(uiState.appointments) { uiState.appointments.firstOrNull() }
-    val stats = remember(uiState.appointments, uiState.joinableAppointmentIds) {
-        buildAgendaStats(
-            appointments = uiState.appointments,
-            joinableAppointmentIds = uiState.joinableAppointmentIds,
-            accentColor = accentColor,
-        )
-    }
-
-    var selectedDayKey by rememberSaveable { mutableStateOf("") }
-
-    LaunchedEffect(agendaDays) {
-        val hasCurrentSelection = selectedDayKey == ALL_DAYS_KEY || agendaDays.any { it.key == selectedDayKey }
-        if (hasCurrentSelection) return@LaunchedEffect
-
-        val todayKey = LocalDate.now().toString()
-        selectedDayKey = agendaDays.firstOrNull { it.key == todayKey }?.key
-            ?: agendaDays.firstOrNull()?.key
-            ?: ALL_DAYS_KEY
-    }
-
-    val visibleDays = remember(agendaDays, selectedDayKey) {
-        when {
-            selectedDayKey == ALL_DAYS_KEY -> agendaDays
-            selectedDayKey.isBlank() -> agendaDays.take(1)
-            else -> agendaDays.filter { it.key == selectedDayKey }
+    // Separar turnos activos vs historial para pacientes
+    val activeAppointments = remember(uiState.appointments) {
+        uiState.appointments.filter { apt ->
+            apt.status in setOf(
+                AppointmentStatus.SCHEDULED,
+                AppointmentStatus.CONFIRMED,
+                AppointmentStatus.IN_PROGRESS,
+                AppointmentStatus.PAYMENT_PENDING
+            )
         }
+    }
+    val pastAppointments = remember(uiState.appointments, activeAppointments) {
+        uiState.appointments.filter { it !in activeAppointments }
+    }
+
+    // Para doctores: días de agenda
+    val doctorAgendaDays = remember(uiState.appointments, uiState.joinableAppointmentIds) {
+        if (isDoctor) {
+            buildDoctorAgendaDays(uiState.appointments, uiState.joinableAppointmentIds)
+        } else emptyList()
     }
 
     Scaffold(
@@ -163,7 +142,7 @@ fun AppointmentsScreen(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = if (isDoctor) "Portal medico" else "Portal paciente",
+                            text = if (isDoctor) "Portal médico" else "Videoconsulta médica",
                             style = MaterialTheme.typography.labelSmall,
                             color = accentColor,
                             fontWeight = FontWeight.Medium,
@@ -171,64 +150,18 @@ fun AppointmentsScreen(
                     }
                 },
                 actions = {
-                    if (!isDoctor) {
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = accentColor.copy(alpha = 0.16f),
-                            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.4f)),
-                            modifier = Modifier
-                                .padding(end = 12.dp)
-                                .clickable { onNavigateToBookAppointment() },
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = null,
-                                    tint = accentColor,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Text(
-                                    text = "Reservar Turno",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = accentColor,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-                        }
+                    IconButton(onClick = viewModel::refresh) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Actualizar",
+                            tint = AuTextSecondary,
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = AuBackground,
                 ),
             )
-        },
-        floatingActionButton = {
-            if (!isDoctor) {
-                ExtendedFloatingActionButton(
-                    onClick = onNavigateToBookAppointment,
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            tint = Color.White,
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = "Nuevo Turno",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                        )
-                    },
-                    containerColor = accentColor,
-                    contentColor = Color.White,
-                    shape = RoundedCornerShape(16.dp),
-                )
-            }
         },
         containerColor = AuBackground,
         modifier = modifier,
@@ -241,7 +174,7 @@ fun AppointmentsScreen(
                 .padding(innerPadding),
         ) {
             when {
-                uiState.isLoading -> {
+                uiState.isLoading && uiState.appointments.isEmpty() && uiState.availableDoctors.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
@@ -250,7 +183,7 @@ fun AppointmentsScreen(
                     }
                 }
 
-                uiState.error != null -> {
+                uiState.error != null && uiState.appointments.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
@@ -273,74 +206,218 @@ fun AppointmentsScreen(
                             }
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = uiState.error ?: "Error",
+                                text = uiState.error ?: "Error al cargar los turnos",
                                 color = AuDanger,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Deslizar hacia abajo para reintentar",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = AuTextTertiary,
-                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = viewModel::refresh,
+                                colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Text("Reintentar", color = Color.White)
+                            }
                         }
                     }
                 }
 
-                uiState.appointments.isEmpty() -> {
-                    EmptyAppointmentsState(
-                        isDoctor = isDoctor,
-                        accentColor = accentColor,
-                        onNavigateToBookAppointment = onNavigateToBookAppointment,
-                    )
-                }
-
-                else -> {
+                isDoctor -> {
+                    // Vista limpia y sin estadísticas para el médico
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        item {
-                            AgendaHeroCard(
-                                title = title,
-                                subtitle = subtitle,
-                                accentColor = accentColor,
-                                totalAppointments = uiState.appointments.size,
-                                joinableCount = uiState.joinableAppointmentIds.size,
-                                nextAppointment = nextAppointment,
-                            )
-                        }
-
-                        item {
-                            StatsRow(stats = stats)
-                        }
-
-                        uiState.telemedicineError?.let { telemedicineError ->
+                        if (doctorAgendaDays.isEmpty()) {
                             item {
-                                AgendaInfoBanner(
-                                    text = telemedicineError,
-                                    icon = Icons.Default.Videocam,
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = AuSurface,
+                                    border = BorderStroke(1.dp, AuBorder),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(24.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CalendarMonth,
+                                            contentDescription = null,
+                                            tint = AuTextTertiary,
+                                            modifier = Modifier.size(36.dp),
+                                        )
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Text(
+                                            text = "No tenés pacientes agendados actualmente.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = AuTextSecondary,
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            items(doctorAgendaDays, key = { it.key }) { day ->
+                                DoctorAgendaDaySection(
+                                    day = day,
+                                    joinableAppointmentIds = uiState.joinableAppointmentIds,
+                                    onNavigateToVideoCall = onNavigateToVideoCall,
                                 )
                             }
                         }
+                    }
+                }
 
+                else -> {
+                    // Vista orientada al objetivo para el Paciente: Cita real rápida en 1 pantalla
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        // Banner de éxito al agendar
+                        uiState.bookingSuccessMessage?.let { successMsg ->
+                            item {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = AuSuccess.copy(alpha = 0.14f),
+                                    border = BorderStroke(1.dp, AuSuccess.copy(alpha = 0.4f)),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.CheckCircle,
+                                            contentDescription = null,
+                                            tint = AuSuccess,
+                                            modifier = Modifier.size(22.dp),
+                                        )
+                                        Text(
+                                            text = successMsg,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Medium,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        IconButton(
+                                            onClick = viewModel::dismissBookingMessages,
+                                            modifier = Modifier.size(24.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Cerrar",
+                                                tint = AuTextSecondary,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Banner de error al agendar
+                        uiState.bookingErrorMessage?.let { errorMsg ->
+                            item {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = ErrorContainer,
+                                    border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.4f)),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Info,
+                                            contentDescription = null,
+                                            tint = AuDanger,
+                                            modifier = Modifier.size(22.dp),
+                                        )
+                                        Text(
+                                            text = errorMsg,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = AuDanger,
+                                            fontWeight = FontWeight.Medium,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        IconButton(
+                                            onClick = viewModel::dismissBookingMessages,
+                                            modifier = Modifier.size(24.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Cerrar",
+                                                tint = AuDanger,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // A. TURNO ACTIVO (si ya tiene uno o más)
+                        if (activeAppointments.isNotEmpty()) {
+                            val primary = activeAppointments.first()
+                            val isJoinable = primary.id in uiState.joinableAppointmentIds || primary.isTelemedicineJoinCandidate()
+                            item {
+                                ActiveAppointmentCard(
+                                    appointment = primary,
+                                    isJoinable = isJoinable,
+                                    onJoinCall = { onNavigateToVideoCall(primary.id) },
+                                )
+                            }
+
+                            // Si tiene más de 1 turno activo, mostrarlos de forma compacta
+                            if (activeAppointments.size > 1) {
+                                item {
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(
+                                            text = "Otros turnos programados",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = AuTextSecondary,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                        activeAppointments.drop(1).forEach { extraApt ->
+                                            val extraJoinable = extraApt.id in uiState.joinableAppointmentIds || extraApt.isTelemedicineJoinCandidate()
+                                            AppointmentCard(
+                                                appointment = extraApt,
+                                                onJoinCall = if (extraJoinable) {
+                                                    { onNavigateToVideoCall(extraApt.id) }
+                                                } else null,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // B. CALENDARIO CON FECHAS Y HORARIOS DISPONIBLES (Directo en la pantalla)
                         item {
-                            CalendarFilterCard(
-                                days = agendaDays,
-                                selectedDayKey = selectedDayKey,
-                                accentColor = accentColor,
-                                onSelectAll = { selectedDayKey = ALL_DAYS_KEY },
-                                onSelectDay = { selectedDayKey = it },
+                            BookingCalendarCard(
+                                availableDoctors = uiState.availableDoctors,
+                                selectedDoctor = uiState.selectedDoctor,
+                                availableDates = uiState.availableDates,
+                                selectedDate = uiState.selectedDate,
+                                availableSlots = uiState.availableSlots,
+                                selectedSlot = uiState.selectedSlot,
+                                isBooking = uiState.isBooking,
+                                onSelectDate = viewModel::selectDate,
+                                onSelectSlot = viewModel::selectSlot,
+                                onSelectDoctor = viewModel::selectDoctor,
+                                onConfirmBooking = viewModel::confirmQuickBooking,
                             )
                         }
 
-                        items(visibleDays, key = { it.key }) { day ->
-                            AgendaDaySection(
-                                day = day,
-                                joinableAppointmentIds = uiState.joinableAppointmentIds,
-                                onNavigateToVideoCall = onNavigateToVideoCall,
-                            )
+                        // D. TURNOS PASADOS / HISTORIAL (Plegado / compacto)
+                        if (pastAppointments.isNotEmpty()) {
+                            item {
+                                PastAppointmentsSection(appointments = pastAppointments)
+                            }
                         }
                     }
                 }
@@ -350,70 +427,710 @@ fun AppointmentsScreen(
 }
 
 @Composable
-private fun EmptyAppointmentsState(
-    isDoctor: Boolean = false,
-    accentColor: Color = PortalPatients,
-    onNavigateToBookAppointment: () -> Unit = {},
+private fun ActiveAppointmentCard(
+    appointment: Appointment,
+    isJoinable: Boolean,
+    onJoinCall: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = AuSurface,
+        border = BorderStroke(
+            width = if (isJoinable) 1.5.dp else 1.dp,
+            color = if (isJoinable) AuSuccess.copy(alpha = 0.5f) else AuBorder,
+        ),
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp),
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Surface(
-                modifier = Modifier.size(80.dp),
-                shape = CircleShape,
-                color = AuSurface,
-                border = BorderStroke(1.dp, AuBorder),
+            // Header: Status badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    Icons.Outlined.CalendarMonth,
-                    contentDescription = null,
-                    modifier = Modifier.padding(20.dp),
-                    tint = AuTextSecondary,
-                )
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (isJoinable) AuSuccess.copy(alpha = 0.16f) else PortalPatients.copy(alpha = 0.16f),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (isJoinable) AuSuccess.copy(alpha = 0.4f) else PortalPatients.copy(alpha = 0.4f),
+                    ),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        if (isJoinable) {
+                            Surface(
+                                modifier = Modifier.size(8.dp),
+                                shape = CircleShape,
+                                color = AuSuccess,
+                            ) {}
+                        }
+                        Text(
+                            text = if (isJoinable) "SALA LISTA • ENTRAR AHORA" else "PRÓXIMO TURNO",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isJoinable) AuSuccess else PortalPatients,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp,
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = AuSurfaceHover,
+                ) {
+                    Text(
+                        text = "Videoconsulta HD",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AuTextSecondary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(20.dp))
-            Text(
-                text = "Sin turnos programados",
-                style = MaterialTheme.typography.titleMedium,
-                color = AuTextPrimary,
-                fontWeight = FontWeight.Medium,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Cuando tengas nuevas consultas apareceran agrupadas por dia en esta agenda.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AuTextTertiary,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Las videoconsultas se habilitan desde turnos de consulta o telemedicina.",
-                style = MaterialTheme.typography.bodySmall,
-                color = AuTextSecondary,
-            )
-            if (!isDoctor) {
-                Spacer(modifier = Modifier.height(20.dp))
+
+            // Doctor Info + Date & Time
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = PortalPatients.copy(alpha = 0.18f),
+                    border = BorderStroke(1.dp, PortalPatients.copy(alpha = 0.35f)),
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        val initials = (appointment.doctorName ?: "Dr.")
+                            .replace("Dr.", "")
+                            .replace("Dra.", "")
+                            .trim()
+                            .split(" ")
+                            .take(2)
+                            .mapNotNull { it.firstOrNull()?.toString() }
+                            .joinToString("")
+                            .ifBlank { "MD" }
+
+                        Text(
+                            text = initials,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = PortalPatients,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = appointment.doctorName ?: "Profesional Médico",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = AuTextPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = appointment.doctorSpecialty ?: "Medicina General",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PortalPatients,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = AuTextSecondary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            text = formatHeroDate(appointment.startTime),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = AuTextPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
+
+            // Action: Direct Button to enter call or schedule note
+            if (isJoinable) {
                 Button(
-                    onClick = onNavigateToBookAppointment,
-                    colors = ButtonDefaults.buttonColors(containerColor = accentColor),
-                    shape = RoundedCornerShape(14.dp),
+                    onClick = onJoinCall,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AuSuccess,
+                        contentColor = Color.White,
+                    ),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = Icons.Default.Videocam,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                         tint = Color.White,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Reservar Turno",
+                        text = "Entrar a la consulta",
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                     )
+                }
+            } else {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = AuBackground,
+                    border = BorderStroke(1.dp, AuBorder),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = AuTextTertiary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = "La sala se habilitará 10 minutos antes del horario.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AuTextSecondary,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BookingCalendarCard(
+    availableDoctors: List<DoctorBookingInfo>,
+    selectedDoctor: DoctorBookingInfo?,
+    availableDates: List<LocalDate>,
+    selectedDate: LocalDate,
+    availableSlots: List<String>,
+    selectedSlot: String?,
+    isBooking: Boolean,
+    onSelectDate: (LocalDate) -> Unit,
+    onSelectSlot: (String) -> Unit,
+    onSelectDoctor: (DoctorBookingInfo) -> Unit,
+    onConfirmBooking: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var showDoctorSheet by remember { mutableStateOf(false) }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = AuSurface,
+        border = BorderStroke(1.dp, AuBorder),
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // Section Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = "Agendar videoconsulta",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = AuTextPrimary,
+                    )
+                    Text(
+                        text = "Elegí fecha y horario disponible",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = PortalPatients.copy(alpha = 0.14f),
+                ) {
+                    Text(
+                        text = "Turno directo",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PortalPatients,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    )
+                }
+            }
+
+            // 1-Line Doctor Assigned/Selected
+            selectedDoctor?.let { doctor ->
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = AuBackground,
+                    border = BorderStroke(1.dp, AuBorder),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = availableDoctors.size > 1) { showDoctorSheet = true },
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = PortalPatients.copy(alpha = 0.16f),
+                            modifier = Modifier.size(38.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                val initials = doctor.name
+                                    .replace("Dr.", "")
+                                    .replace("Dra.", "")
+                                    .trim()
+                                    .split(" ")
+                                    .take(2)
+                                    .mapNotNull { it.firstOrNull()?.toString() }
+                                    .joinToString("")
+                                    .ifBlank { "MD" }
+
+                                Text(
+                                    text = initials,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = PortalPatients,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = doctor.name,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = AuTextPrimary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Text(
+                                    text = doctor.specialty,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = PortalPatients,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    text = "·",
+                                    color = AuTextTertiary,
+                                )
+                                Text(
+                                    text = if (doctor.consultationFee != null && doctor.consultationFee > 0) {
+                                        "$${"%,.0f".format(doctor.consultationFee)}"
+                                    } else {
+                                        "Cubierto por plan"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = AuTextSecondary,
+                                )
+                            }
+                        }
+
+                        if (availableDoctors.size > 1) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = AuSurfaceHover,
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    Text(
+                                        text = "Cambiar",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = PortalPatients,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.ExpandMore,
+                                        contentDescription = null,
+                                        tint = PortalPatients,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Tira interactiva de fechas
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Día de atención",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AuTextSecondary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(availableDates, key = { it.toString() }) { date ->
+                        val isSelected = date == selectedDate
+                        DatePill(
+                            date = date,
+                            isSelected = isSelected,
+                            accentColor = PortalPatients,
+                            onClick = { onSelectDate(date) },
+                        )
+                    }
+                }
+            }
+
+            // Grilla de horarios disponibles
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Horarios disponibles",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = AuTextSecondary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = formatSectionDateShort(selectedDate),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PortalPatients,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+
+                if (availableSlots.isEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = AuBackground,
+                        border = BorderStroke(1.dp, AuBorder),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = "Sin turnos disponibles para esta fecha. Elegí otro día.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AuTextTertiary,
+                            modifier = Modifier.padding(14.dp),
+                        )
+                    }
+                } else {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        availableSlots.forEach { slot ->
+                            val isSelected = slot == selectedSlot
+                            SlotChip(
+                                slot = slot,
+                                isSelected = isSelected,
+                                accentColor = PortalPatients,
+                                onClick = { onSelectSlot(slot) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Botón de acción directo: Confirmar turno
+            Button(
+                onClick = onConfirmBooking,
+                enabled = selectedSlot != null && !isBooking,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PortalPatients,
+                    disabledContainerColor = AuSurfaceHover,
+                    contentColor = Color.White,
+                    disabledContentColor = AuTextTertiary,
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+            ) {
+                if (isBooking) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Confirmando turno...",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.CalendarMonth,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (selectedSlot != null) {
+                            "Confirmar $selectedSlot hs"
+                        } else {
+                            "Elegí un horario para confirmar"
+                        },
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+        }
+    }
+
+    // Modal Bottom Sheet para cambiar doctor
+    if (showDoctorSheet) {
+        DoctorPickerBottomSheet(
+            doctors = availableDoctors,
+            selectedDoctor = selectedDoctor,
+            accentColor = PortalPatients,
+            onSelectDoctor = {
+                onSelectDoctor(it)
+                showDoctorSheet = false
+            },
+            onDismiss = { showDoctorSheet = false },
+        )
+    }
+}
+
+@Composable
+private fun DatePill(
+    date: LocalDate,
+    isSelected: Boolean,
+    accentColor: Color,
+    onClick: () -> Unit,
+) {
+    val today = LocalDate.now()
+    val dayName = when (date) {
+        today -> "HOY"
+        today.plusDays(1) -> "MAÑ"
+        else -> date.format(DateTimeFormatter.ofPattern("EEE", spanishLocale)).uppercase()
+    }
+    val dayNum = date.dayOfMonth.toString()
+    val monthName = date.format(DateTimeFormatter.ofPattern("MMM", spanishLocale)).uppercase()
+
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = if (isSelected) accentColor else AuBackground,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isSelected) accentColor else AuBorder,
+        ),
+        modifier = Modifier
+            .width(62.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = dayName,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isSelected) Color.White.copy(alpha = 0.9f) else AuTextTertiary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 10.sp,
+            )
+            Text(
+                text = dayNum,
+                style = MaterialTheme.typography.titleLarge,
+                color = if (isSelected) Color.White else AuTextPrimary,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = monthName,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isSelected) Color.White.copy(alpha = 0.8f) else AuTextTertiary,
+                fontSize = 9.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SlotChip(
+    slot: String,
+    isSelected: Boolean,
+    accentColor: Color,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) accentColor else AuBackground,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isSelected) accentColor else AuBorder,
+        ),
+        modifier = Modifier.clickable(onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.AccessTime,
+                contentDescription = null,
+                modifier = Modifier.size(13.dp),
+                tint = if (isSelected) Color.White else AuTextSecondary,
+            )
+            Text(
+                text = "$slot hs",
+                style = MaterialTheme.typography.labelMedium,
+                color = if (isSelected) Color.White else AuTextPrimary,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DoctorPickerBottomSheet(
+    doctors: List<DoctorBookingInfo>,
+    selectedDoctor: DoctorBookingInfo?,
+    accentColor: Color,
+    onSelectDoctor: (DoctorBookingInfo) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = AuSurface,
+        dragHandle = {
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = AuBorder,
+                modifier = Modifier
+                    .padding(vertical = 12.dp)
+                    .size(width = 36.dp, height = 4.dp),
+            ) {}
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(
+                text = "Elegir profesional de atención",
+                style = MaterialTheme.typography.titleMedium,
+                color = AuTextPrimary,
+                fontWeight = FontWeight.Bold,
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                doctors.forEach { doctor ->
+                    val isSelected = selectedDoctor?.id == doctor.id
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isSelected) accentColor.copy(alpha = 0.12f) else AuBackground,
+                        border = BorderStroke(
+                            width = if (isSelected) 1.5.dp else 1.dp,
+                            color = if (isSelected) accentColor else AuBorder,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelectDoctor(doctor) },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = accentColor.copy(alpha = 0.16f),
+                                modifier = Modifier.size(42.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    val initials = doctor.name
+                                        .replace("Dr.", "")
+                                        .replace("Dra.", "")
+                                        .trim()
+                                        .split(" ")
+                                        .take(2)
+                                        .mapNotNull { it.firstOrNull()?.toString() }
+                                        .joinToString("")
+                                        .ifBlank { "MD" }
+
+                                    Text(
+                                        text = initials,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = accentColor,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = doctor.name,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = AuTextPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = "${doctor.specialty} · ${doctor.licenseNumber}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = AuTextSecondary,
+                                )
+                                Text(
+                                    text = if (doctor.consultationFee != null && doctor.consultationFee > 0) {
+                                        "Arancel: $${"%,.0f".format(doctor.consultationFee)}"
+                                    } else {
+                                        "Cubierto por plan"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = accentColor,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
+
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Outlined.CheckCircle,
+                                    contentDescription = null,
+                                    tint = accentColor,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -421,109 +1138,98 @@ private fun EmptyAppointmentsState(
 }
 
 @Composable
-private fun AgendaHeroCard(
-    title: String,
-    subtitle: String,
-    accentColor: Color,
-    totalAppointments: Int,
-    joinableCount: Int,
-    nextAppointment: Appointment?,
+private fun PastAppointmentsSection(
+    appointments: List<Appointment>,
+    modifier: Modifier = Modifier,
 ) {
+    var isExpanded by rememberSaveable { mutableStateOf(false) }
+
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         color = AuSurface,
         border = BorderStroke(1.dp, AuBorder),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(1.dp),
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(accentColor.copy(alpha = 0.14f), RoundedCornerShape(17.dp))
-                    .padding(18.dp),
+                    .clickable { isExpanded = !isExpanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Surface(
-                        shape = RoundedCornerShape(999.dp),
-                        color = accentColor.copy(alpha = 0.16f),
-                    ) {
-                        Text(
-                            text = "$totalAppointments turno${if (totalAppointments == 1) "" else "s"} activo${if (totalAppointments == 1) "" else "s"}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = accentColor,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        )
-                    }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        tint = AuTextTertiary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                        text = "Consultas anteriores (${appointments.size})",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = AuTextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = AuTextPrimary,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = AuTextSecondary,
-                        )
-                    }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "Ocultar" else "Mostrar",
+                    tint = AuTextSecondary,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
 
-                    if (nextAppointment != null) {
+            if (isExpanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    appointments.forEach { apt ->
                         Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = AuSurface.copy(alpha = 0.92f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = AuBackground,
                             border = BorderStroke(1.dp, AuBorder),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                modifier = Modifier.padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Surface(
-                                    modifier = Modifier.size(38.dp),
-                                    shape = CircleShape,
-                                    color = accentColor.copy(alpha = 0.14f),
-                                ) {
-                                    Icon(
-                                        imageVector = appointmentTypeIcon(nextAppointment.type),
-                                        contentDescription = null,
-                                        modifier = Modifier.padding(9.dp),
-                                        tint = accentColor,
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Siguiente turno",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = AuTextTertiary,
-                                    )
-                                    Text(
-                                        text = "${displayAppointmentType(nextAppointment.type)} · ${formatHeroDate(nextAppointment.startTime)}",
-                                        style = MaterialTheme.typography.titleSmall,
+                                        text = apt.doctorName ?: displayAppointmentType(apt.type),
+                                        style = MaterialTheme.typography.bodyMedium,
                                         color = AuTextPrimary,
                                         fontWeight = FontWeight.SemiBold,
                                     )
+                                    Text(
+                                        text = formatHeroDate(apt.startTime),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = AuTextTertiary,
+                                    )
                                 }
-                                if (joinableCount > 0) {
-                                    Surface(
-                                        shape = RoundedCornerShape(999.dp),
-                                        color = AuSuccess.copy(alpha = 0.14f),
-                                    ) {
-                                        Text(
-                                            text = "$joinableCount lista${if (joinableCount == 1) "" else "s"}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = AuSuccess,
-                                            fontWeight = FontWeight.SemiBold,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                        )
-                                    }
+
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = AuSurfaceHover,
+                                ) {
+                                    Text(
+                                        text = when (apt.status) {
+                                            AppointmentStatus.COMPLETED -> "Completada"
+                                            AppointmentStatus.CANCELLED -> "Cancelada"
+                                            AppointmentStatus.NO_SHOW -> "No asistió"
+                                            else -> "Finalizada"
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = AuTextSecondary,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    )
                                 }
                             }
                         }
@@ -535,216 +1241,7 @@ private fun AgendaHeroCard(
 }
 
 @Composable
-private fun StatsRow(stats: List<AgendaStat>) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        items(stats, key = { it.label }) { stat ->
-            AgendaStatCard(
-                stat = stat,
-                modifier = Modifier.width(132.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun AgendaStatCard(
-    stat: AgendaStat,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Surface(
-                modifier = Modifier.size(36.dp),
-                shape = CircleShape,
-                color = stat.iconBgColor,
-            ) {
-                Icon(
-                    imageVector = stat.icon,
-                    contentDescription = null,
-                    modifier = Modifier.padding(8.dp),
-                    tint = stat.iconColor,
-                )
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = stat.value,
-                style = MaterialTheme.typography.headlineMedium,
-                color = AuTextPrimary,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = stat.label,
-                style = MaterialTheme.typography.labelSmall,
-                color = AuTextTertiary,
-            )
-        }
-    }
-}
-
-@Composable
-private fun AgendaInfoBanner(
-    text: String,
-    icon: ImageVector,
-) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Surface(
-                modifier = Modifier.size(34.dp),
-                shape = CircleShape,
-                color = AuSurfaceHover,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.padding(8.dp),
-                    tint = AuTextSecondary,
-                )
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodySmall,
-                color = AuTextSecondary,
-            )
-        }
-    }
-}
-
-@Composable
-private fun CalendarFilterCard(
-    days: List<AgendaDay>,
-    selectedDayKey: String,
-    accentColor: Color,
-    onSelectAll: () -> Unit,
-    onSelectDay: (String) -> Unit,
-) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                Text(
-                    text = "Calendario rapido",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = AuTextPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Explora la agenda por dia o revisa todo el bloque de turnos activos.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AuTextTertiary,
-                )
-            }
-
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (days.size > 1) {
-                    item {
-                        CalendarChip(
-                            label = "Todo",
-                            supportingText = "${days.sumOf { it.appointments.size }} turnos",
-                            isSelected = selectedDayKey == ALL_DAYS_KEY,
-                            accentColor = accentColor,
-                            hasHighlight = days.any { it.hasJoinableAppointment },
-                            onClick = onSelectAll,
-                        )
-                    }
-                }
-
-                items(days, key = { it.key }) { day ->
-                    CalendarChip(
-                        label = day.date.format(DateTimeFormatter.ofPattern("EEE d", spanishLocale))
-                            .replaceFirstChar { it.uppercase() },
-                        supportingText = "${day.appointments.size} cita${if (day.appointments.size == 1) "" else "s"}",
-                        isSelected = selectedDayKey == day.key || (selectedDayKey.isBlank() && days.firstOrNull()?.key == day.key),
-                        accentColor = accentColor,
-                        hasHighlight = day.hasJoinableAppointment,
-                        onClick = { onSelectDay(day.key) },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CalendarChip(
-    label: String,
-    supportingText: String,
-    isSelected: Boolean,
-    accentColor: Color,
-    hasHighlight: Boolean,
-    onClick: () -> Unit,
-) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) accentColor.copy(alpha = 0.14f) else AuBackground,
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (isSelected) accentColor.copy(alpha = 0.45f) else AuBorder,
-        ),
-        modifier = Modifier.clickable(onClick = onClick),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = if (isSelected) AuTextPrimary else AuTextSecondary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                if (hasHighlight) {
-                    Surface(
-                        modifier = Modifier.size(8.dp),
-                        shape = CircleShape,
-                        color = AuSuccess,
-                    ) {}
-                }
-            }
-            Text(
-                text = supportingText,
-                style = MaterialTheme.typography.labelSmall,
-                color = if (isSelected) accentColor else AuTextTertiary,
-            )
-        }
-    }
-}
-
-@Composable
-private fun AgendaDaySection(
+private fun DoctorAgendaDaySection(
     day: AgendaDay,
     joinableAppointmentIds: Set<String>,
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
@@ -819,53 +1316,7 @@ private fun AgendaDaySection(
     }
 }
 
-private fun buildAgendaStats(
-    appointments: List<Appointment>,
-    joinableAppointmentIds: Set<String>,
-    accentColor: Color,
-): List<AgendaStat> {
-    val today = LocalDate.now()
-    val todayCount = appointments.count { parseLocalDate(it.startTime) == today }
-    val telemedicineCount = appointments.count { appointment ->
-        appointment.type == AppointmentType.TELEMEDICINE || appointment.meetingUrl != null
-    }
-    val scheduledCount = appointments.count { appointment ->
-        appointment.status == AppointmentStatus.SCHEDULED || appointment.status == AppointmentStatus.CONFIRMED
-    }
-
-    return listOf(
-        AgendaStat(
-            value = scheduledCount.toString(),
-            label = "Programadas",
-            icon = Icons.Outlined.EventAvailable,
-            iconColor = accentColor,
-            iconBgColor = accentColor.copy(alpha = 0.16f),
-        ),
-        AgendaStat(
-            value = todayCount.toString(),
-            label = "Hoy",
-            icon = Icons.Default.Schedule,
-            iconColor = AuAccent,
-            iconBgColor = AuAccent.copy(alpha = 0.12f),
-        ),
-        AgendaStat(
-            value = joinableAppointmentIds.size.toString().ifBlank { "0" },
-            label = "Para entrar",
-            icon = Icons.Default.Videocam,
-            iconColor = AuSuccess,
-            iconBgColor = AuSuccess.copy(alpha = 0.14f),
-        ),
-        AgendaStat(
-            value = telemedicineCount.toString(),
-            label = "Telemedicina",
-            icon = Icons.Outlined.MedicalServices,
-            iconColor = PortalDoctors,
-            iconBgColor = PortalDoctors.copy(alpha = 0.14f),
-        ),
-    ).take(4)
-}
-
-private fun buildAgendaDays(
+private fun buildDoctorAgendaDays(
     appointments: List<Appointment>,
     joinableAppointmentIds: Set<String>,
 ): List<AgendaDay> {
@@ -888,13 +1339,6 @@ private fun buildAgendaDays(
         .sortedBy { it.date }
 }
 
-private fun appointmentTypeIcon(type: AppointmentType): ImageVector = when (type) {
-    AppointmentType.TELEMEDICINE -> Icons.Default.Videocam
-    AppointmentType.CHECKUP -> Icons.Outlined.CheckCircle
-    AppointmentType.LAB_TEST -> Icons.Outlined.MedicalServices
-    else -> Icons.Default.CalendarMonth
-}
-
 private fun displayAppointmentType(type: AppointmentType): String = when (type) {
     AppointmentType.CONSULTATION -> "Consulta"
     AppointmentType.FOLLOW_UP -> "Seguimiento"
@@ -906,19 +1350,34 @@ private fun displayAppointmentType(type: AppointmentType): String = when (type) 
 
 private fun formatHeroDate(isoString: String): String {
     val dateTime = parseDateTime(isoString) ?: return isoString
-    return dateTime.format(DateTimeFormatter.ofPattern("EEE d MMM · HH:mm", spanishLocale))
-        .replaceFirstChar { it.uppercase() }
+    val today = LocalDate.now()
+    val date = dateTime.toLocalDate()
+    val time = dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+    return when (date) {
+        today -> "Hoy a las $time hs"
+        today.plusDays(1) -> "Mañana a las $time hs"
+        else -> dateTime.format(DateTimeFormatter.ofPattern("EEE d MMM · HH:mm 'hs'", spanishLocale))
+            .replaceFirstChar { it.uppercase() }
+    }
 }
 
 private fun formatSectionDate(date: LocalDate): String {
     val today = LocalDate.now()
-    val prefix = when {
+    return when {
         date == today -> "Hoy"
-        date == today.plusDays(1) -> "Manana"
+        date == today.plusDays(1) -> "Mañana"
         else -> date.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", spanishLocale))
             .replaceFirstChar { it.uppercase() }
     }
-    return prefix
+}
+
+private fun formatSectionDateShort(date: LocalDate): String {
+    val today = LocalDate.now()
+    return when (date) {
+        today -> "Hoy"
+        today.plusDays(1) -> "Mañana"
+        else -> date.format(DateTimeFormatter.ofPattern("d 'de' MMMM", spanishLocale))
+    }
 }
 
 private fun parseDateTime(value: String): OffsetDateTime? {

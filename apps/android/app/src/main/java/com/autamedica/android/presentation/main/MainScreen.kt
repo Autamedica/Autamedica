@@ -3,6 +3,7 @@ package com.autamedica.android.presentation.main
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -24,8 +26,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -45,14 +49,20 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
@@ -60,6 +70,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
 import com.autamedica.android.presentation.appointments.AppointmentsScreen
+import com.autamedica.android.presentation.consultation.ConsultationHubScreen
 import com.autamedica.android.presentation.dashboard.DashboardScreen
 import com.autamedica.android.presentation.dashboard.DoctorDashboardScreen
 import com.autamedica.android.presentation.health.HealthScreen
@@ -84,18 +95,30 @@ import com.autamedica.android.presentation.theme.LogoObsidianBg
 import com.autamedica.android.presentation.theme.LogoRingBorder
 import com.autamedica.android.presentation.theme.PortalPatients
 
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.ui.unit.sp
+import com.autamedica.android.presentation.patients.community.PatientCommunityScreen
+import com.autamedica.android.presentation.prescriptions.PrescriptionsScreen
+import com.autamedica.android.presentation.health.HealthReserveDetailScreen
+
 private data class TabItem(
     val labelRes: Int,
     val iconRes: Int,
 )
 
-// Patient tabs
+private data class PatientTabItem(
+    val labelRes: Int,
+    val icon: ImageVector,
+)
+
+// Patient tabs matching Web/iOS 1:1 (Início, Agenda, Consultar, Receitas, Comunidade)
 private val patientTabs = listOf(
-    TabItem(R.string.nav_home, R.drawable.ic_home_outline),
-    TabItem(R.string.nav_messages, R.drawable.ic_chat_outline),
-    TabItem(R.string.nav_appointments, R.drawable.ic_calendar_outline),
-    TabItem(R.string.nav_health, R.drawable.ic_medical_cross_outline),
-    TabItem(R.string.nav_profile, R.drawable.ic_profile_outline),
+    PatientTabItem(R.string.nav_patient_home, Icons.Outlined.FavoriteBorder),
+    PatientTabItem(R.string.nav_patient_agenda, Icons.Outlined.CalendarMonth),
+    PatientTabItem(R.string.nav_patient_consult, Icons.Outlined.Videocam),
+    PatientTabItem(R.string.nav_patient_prescriptions, Icons.Outlined.Description),
+    PatientTabItem(R.string.nav_patient_community, Icons.Outlined.Groups),
 )
 
 // Doctor tabs
@@ -118,15 +141,22 @@ fun MainScreen(
     onNavigateToBookAppointment: () -> Unit = {},
     onNavigateToPrescriptions: () -> Unit = {},
     onNavigateToClinicalDocuments: () -> Unit = {},
+    onNavigateToPsychiatry: () -> Unit = {},
+    onNavigateToReproductiveHealth: () -> Unit = {},
+    onNavigateToCommunity: () -> Unit = {},
+    onNavigateToContinuityStatus: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    var showHealthReserveDetail by rememberSaveable { mutableStateOf(false) }
+    var reserveSubscriptionTier by rememberSaveable { mutableStateOf("cuidado") }
+    var reserveBalanceCredits by rememberSaveable { mutableIntStateOf(22) }
+    var reserveMaxCapCredits by rememberSaveable { mutableIntStateOf(600) }
 
     val isDoctor = uiState.userRole == com.autamedica.android.domain.model.UserRole.DOCTOR
     val isWebPortal = uiState.userRole != com.autamedica.android.domain.model.UserRole.DOCTOR && uiState.userRole != com.autamedica.android.domain.model.UserRole.PATIENT
-    val tabs = if (isDoctor) doctorTabs else patientTabs
     val accentColor = if (isDoctor) PortalDoctors else com.autamedica.android.presentation.theme.PortalPatients
 
     if (isWebPortal) {
@@ -164,36 +194,126 @@ fun MainScreen(
         }
     }
 
+    var lastBackPressTime by remember { mutableLongStateOf(0L) }
+
+    // ── BackHandler: cierra HealthReserveDetail con prioridad máxima ──
+    BackHandler(enabled = showHealthReserveDetail) {
+        showHealthReserveDetail = false
+    }
+
+    // ── Phone Back Button Hierarchical Navigation ──
+    // Patient: Any screen/tab (Comunidad/Recetas/Agenda) -> Consultar (tab 2) -> Inicio (tab 0) -> Exit app
+    if (!isDoctor) {
+        BackHandler(enabled = selectedTab != 0) {
+            val now = System.currentTimeMillis()
+            if (now - lastBackPressTime < 350L) {
+                Timber.d("[BackNav] Ignored duplicate back event (debounce)")
+                return@BackHandler
+            }
+            lastBackPressTime = now
+            Timber.i("[BackNav] Hardware back pressed. Current tab=%d", selectedTab)
+            if (selectedTab != 2) {
+                // 1er click en regresar: lleva a Consultar (tab 2)
+                Timber.i("[BackNav] Step 1: Navigating to Consultar (tab 2)")
+                selectedTab = 2
+            } else {
+                // 2do click en regresar: lleva a Inicio (tab 0)
+                Timber.i("[BackNav] Step 2: Navigating to Inicio (tab 0)")
+                selectedTab = 0
+            }
+            // 3er click en regresar: cuando ya está en Inicio (selectedTab == 0), enabled es false y sale de la app
+        }
+    } else {
+        BackHandler(enabled = selectedTab != 0) {
+            selectedTab = 0
+        }
+    }
+
     Scaffold(
         bottomBar = {
-            NavigationBar(
-                containerColor = AuSurface,
+            val currentDensity = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(
+                    density = currentDensity.density,
+                    fontScale = currentDensity.fontScale.coerceAtMost(1.0f),
+                )
             ) {
-                tabs.forEachIndexed { index, tab ->
-                    NavigationBarItem(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        icon = {
-                            Icon(
-                                painter = painterResource(id = tab.iconRes),
-                                contentDescription = stringResource(tab.labelRes),
+                NavigationBar(
+                    containerColor = Color.White,
+                    modifier = Modifier.drawBehind {
+                        drawLine(
+                            color = Color(0x1F0EA5E9), // rgba(14, 165, 233, 0.12)
+                            start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                            end = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                            strokeWidth = 1.dp.toPx(),
+                        )
+                    },
+                    tonalElevation = 0.dp,
+                ) {
+                    if (isDoctor) {
+                        doctorTabs.forEachIndexed { index, tab ->
+                            val isSelected = selectedTab == index
+                            NavigationBarItem(
+                                selected = isSelected,
+                                onClick = { selectedTab = index },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(id = tab.iconRes),
+                                        contentDescription = stringResource(tab.labelRes),
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        text = stringResource(tab.labelRes),
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = accentColor,
+                                    selectedTextColor = accentColor,
+                                    unselectedIconColor = Color(0xFF64748B),
+                                    unselectedTextColor = Color(0xFF64748B),
+                                    indicatorColor = Color.Transparent,
+                                ),
                             )
-                        },
-                        label = {
-                            Text(
-                                text = stringResource(tab.labelRes),
-                                fontWeight = if (selectedTab == index) FontWeight.SemiBold
-                                else FontWeight.Normal,
+                        }
+                    } else {
+                        patientTabs.forEachIndexed { index, tab ->
+                            val isSelected = selectedTab == index
+                            NavigationBarItem(
+                                selected = isSelected,
+                                onClick = { selectedTab = index },
+                                icon = {
+                                    Icon(
+                                        imageVector = tab.icon,
+                                        contentDescription = stringResource(tab.labelRes),
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        text = stringResource(tab.labelRes),
+                                        fontSize = 10.sp,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis,
+                                        letterSpacing = (-0.2).sp,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                        modifier = Modifier.wrapContentWidth(unbounded = true),
+                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = Color(0xFF0284C7),
+                                    selectedTextColor = Color(0xFF0284C7),
+                                    unselectedIconColor = Color(0xFF64748B),
+                                    unselectedTextColor = Color(0xFF64748B),
+                                    indicatorColor = Color.Transparent,
+                                ),
                             )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = accentColor,
-                            selectedTextColor = accentColor,
-                            unselectedIconColor = AuTextTertiary,
-                            unselectedTextColor = AuTextTertiary,
-                            indicatorColor = AuSurfaceHover,
-                        ),
-                    )
+                        }
+                    }
                 }
             }
         },
@@ -222,30 +342,62 @@ fun MainScreen(
                     )
                 }
             } else {
-                // Patient experience
-                when (selectedTab) {
-                    0 -> DashboardScreen(
-                        onNavigateToVideoCall = onNavigateToVideoCall,
-                        onNavigateToTab = { selectedTab = it },
-                        onNavigateToAnamnesisForm = onNavigateToAnamnesisForm,
-                        onNavigateToPreventiveHealth = onNavigateToPreventiveHealth,
+                // Patient experience matching Web/iOS bottom navigation
+                if (showHealthReserveDetail) {
+                    HealthReserveDetailScreen(
+                        subscriptionTier = reserveSubscriptionTier,
+                        benefitBalanceCredits = reserveBalanceCredits,
+                        maxCapCredits = reserveMaxCapCredits,
+                        onBack = { showHealthReserveDetail = false },
+                        onActivatePlan = { newTier ->
+                            reserveSubscriptionTier = newTier
+                            if (newTier == "cuidado") {
+                                reserveMaxCapCredits = 600
+                                if (reserveBalanceCredits == 0) reserveBalanceCredits = 22
+                            } else if (newTier == "familiar") {
+                                reserveMaxCapCredits = 1800
+                                if (reserveBalanceCredits == 0) reserveBalanceCredits = 66
+                            }
+                        },
                     )
-                    1 -> com.autamedica.android.presentation.chat.ChatListScreen(
-                        onNavigateToConversation = onNavigateToChatConversation,
-                    )
-                    2 -> AppointmentsScreen(
-                        onNavigateToVideoCall = onNavigateToVideoCall,
-                        onNavigateToBookAppointment = onNavigateToBookAppointment,
-                    )
-                    3 -> HealthScreen(
-                        onNavigateToAnamnesisForm = onNavigateToAnamnesisForm,
-                        onNavigateToPreventiveHealth = onNavigateToPreventiveHealth,
-                        onNavigateToPrescriptions = onNavigateToPrescriptions,
-                        onNavigateToClinicalDocuments = onNavigateToClinicalDocuments,
-                    )
-                    4 -> ProfileScreen(
-                        onLogout = viewModel::logout,
-                    )
+                } else {
+                    when (selectedTab) {
+                        0 -> DashboardScreen(
+                            onNavigateToVideoCall = onNavigateToVideoCall,
+                            onNavigateToTab = { selectedTab = it },
+                            onNavigateToAnamnesisForm = onNavigateToAnamnesisForm,
+                            onNavigateToPreventiveHealth = onNavigateToPreventiveHealth,
+                            onNavigateToBookAppointment = onNavigateToBookAppointment,
+                            onNavigateToPrescriptions = onNavigateToPrescriptions,
+                            onNavigateToClinicalDocuments = onNavigateToClinicalDocuments,
+                            onNavigateToChatConversation = onNavigateToChatConversation,
+                            onNavigateToPsychiatry = onNavigateToPsychiatry,
+                            onNavigateToReproductiveHealth = onNavigateToReproductiveHealth,
+                            onNavigateToCommunity = onNavigateToCommunity,
+                            onNavigateToContinuityStatus = onNavigateToContinuityStatus,
+                            onNavigateToHealthReserve = { showHealthReserveDetail = true },
+                            onOpenHealthReserveDetail = { tier, credits, maxCap ->
+                                reserveSubscriptionTier = tier
+                                reserveBalanceCredits = credits
+                                reserveMaxCapCredits = maxCap
+                                showHealthReserveDetail = true
+                            },
+                        )
+                        1 -> AppointmentsScreen(
+                            onNavigateToVideoCall = onNavigateToVideoCall,
+                            onNavigateToBookAppointment = onNavigateToBookAppointment,
+                        )
+                        2 -> ConsultationHubScreen(
+                            onNavigateToVideoCall = onNavigateToVideoCall,
+                            onNavigateToBookAppointment = onNavigateToBookAppointment,
+                        )
+                        3 -> PrescriptionsScreen(
+                            onBack = { selectedTab = 2 },
+                        )
+                        4 -> PatientCommunityScreen(
+                            onBack = { selectedTab = 2 },
+                        )
+                    }
                 }
             }
         }
@@ -310,7 +462,7 @@ private fun WebPortalRedirectScreen(
                 )
 
                 Text(
-                    text = "Las funciones de gestión y administración para tu cuenta están optimizadas para la plataforma web de escritorio.",
+                    text = "Este portal se gestiona desde la web de escritorio.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AuTextSecondary,
                     textAlign = TextAlign.Center,
@@ -327,7 +479,7 @@ private fun WebPortalRedirectScreen(
                         .fillMaxWidth()
                         .height(48.dp),
                 ) {
-                    Text("Abrir Portal en el Navegador", fontWeight = FontWeight.SemiBold)
+                    Text("Abrir en el navegador", fontWeight = FontWeight.SemiBold)
                 }
 
                 OutlinedButton(
@@ -338,7 +490,7 @@ private fun WebPortalRedirectScreen(
                         .fillMaxWidth()
                         .height(48.dp),
                 ) {
-                    Text("Cerrar Sesión", color = AuTextSecondary)
+                    Text("Cerrar sesión", color = AuTextSecondary)
                 }
             }
         }

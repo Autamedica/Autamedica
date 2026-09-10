@@ -39,11 +39,11 @@ class AppointmentRepositoryImpl @Inject constructor(
         val recordId = if (role == "doctor") {
             supabaseClient.postgrest.from("doctors")
                 .select(Columns.list("id")) { filter { eq("user_id", userId) } }
-                .decodeSingleOrNull<RecordIdDto>()?.id
+                .decodeSingleOrNull<AppointmentRecordIdDto>()?.id
         } else {
             supabaseClient.postgrest.from("patients")
                 .select(Columns.list("id")) { filter { eq("user_id", userId) } }
-                .decodeSingleOrNull<RecordIdDto>()?.id
+                .decodeSingleOrNull<AppointmentRecordIdDto>()?.id
         }
 
         if (recordId == null) {
@@ -56,18 +56,30 @@ class AppointmentRepositoryImpl @Inject constructor(
 
         val filterColumn = if (role == "doctor") "doctor_id" else "patient_id"
 
+        val statusList = if (role == "doctor") {
+            listOf("scheduled", "confirmed", "in_progress")
+        } else {
+            listOf("payment_pending", "scheduled", "confirmed", "in_progress", "completed", "cancelled", "no_show")
+        }
+
         val dtos = supabaseClient.postgrest
             .from("appointments")
             .select(Columns.ALL) {
                 filter {
                     eq(filterColumn, recordId)
-                    isIn("status", listOf("scheduled", "confirmed", "in_progress"))
+                    isIn("status", statusList)
                 }
                 order("start_time", Order.ASCENDING)
             }
             .decodeList<AppointmentDto>()
 
-        val domainModels = dtos.map { it.toDomain() }
+        val rawDomainModels = dtos.map { it.toDomain() }
+
+        val domainModels = if (role != "doctor") {
+            enrichWithDoctorInfo(rawDomainModels)
+        } else {
+            rawDomainModels
+        }
 
         // Phase 3: Cache data to Room for offline access
         appointmentDao.insertAppointments(domainModels.map { it.toEntity(ownerUserId = userId) })
@@ -89,7 +101,13 @@ class AppointmentRepositoryImpl @Inject constructor(
             }
             .decodeSingle<AppointmentDto>()
 
-        dto.toDomain()
+        val domain = dto.toDomain()
+        val role = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: "patient"
+        if (role != "doctor") {
+            enrichWithDoctorInfo(listOf(domain)).first()
+        } else {
+            domain
+        }
     }.onFailure {
         SecureLog.error("[Appointments] Failed fetching appointment", it)
     }
@@ -103,6 +121,26 @@ class AppointmentRepositoryImpl @Inject constructor(
         Unit
     }.onFailure {
         SecureLog.error("[Appointments] Failed updating appointment notes", it)
+    }
+
+    override suspend fun updateAppointmentStatus(id: String, status: AppointmentStatus): Result<Unit> = runCatching {
+        val wireStatus = when (status) {
+            AppointmentStatus.PAYMENT_PENDING -> "payment_pending"
+            AppointmentStatus.SCHEDULED -> "scheduled"
+            AppointmentStatus.CONFIRMED -> "confirmed"
+            AppointmentStatus.IN_PROGRESS -> "in_progress"
+            AppointmentStatus.COMPLETED -> "completed"
+            AppointmentStatus.CANCELLED -> "cancelled"
+            AppointmentStatus.NO_SHOW -> "no_show"
+        }
+        supabaseClient.postgrest
+            .from("appointments")
+            .update(mapOf("status" to wireStatus)) {
+                filter { eq("id", id) }
+            }
+        Unit
+    }.onFailure {
+        SecureLog.error("[Appointments] Failed updating appointment status", it)
     }
 
     override suspend fun clearCachedAppointmentsForCurrentUser(): Result<Unit> = runCatching {
@@ -168,31 +206,74 @@ class AppointmentRepositoryImpl @Inject constructor(
 
         val defaultSlots = listOf("09:00", "10:00", "11:30", "14:00", "15:30", "17:00")
 
+        val femaleNames = setOf(
+            "amancay", "layla", "bianca", "bárbara", "barbara", "julieta",
+            "leticia", "camila", "valentina", "sofía", "sofia", "carolina",
+            "mariana", "rachel", "manuela", "florencia", "lucía", "lucia",
+            "maría", "maria", "victoria", "laura", "ana", "paula", "claudia",
+            "andrea", "natalia", "gabriela", "daniela", "melisa", "melissa"
+        )
+
         val doctorList = doctors.map { doc ->
             val profile = profilesMap[doc.userId]
             val firstName = profile?.firstName?.trim().orEmpty()
             val lastName = profile?.lastName?.trim().orEmpty()
-            val fullName = when {
-                firstName.isNotBlank() && lastName.isNotBlank() -> "Dr. $firstName $lastName"
-                firstName.isNotBlank() -> "Dr. $firstName"
-                else -> "Médico Especialista"
+
+            val rawName = when {
+                firstName.isNotBlank() && lastName.isNotBlank() -> "$firstName $lastName"
+                firstName.isNotBlank() -> firstName
+                lastName.isNotBlank() -> lastName
+                else -> ""
             }
+
+            val fullName = if (rawName.isNotBlank()) {
+                val lowerFirst = firstName.lowercase().split(" ").firstOrNull().orEmpty()
+                val isDra = femaleNames.contains(lowerFirst) || rawName.startsWith("Dra.", ignoreCase = true)
+                when {
+                    rawName.startsWith("Dr.", ignoreCase = true) || rawName.startsWith("Dra.", ignoreCase = true) -> rawName
+                    isDra -> "Dra. $rawName"
+                    else -> "Dr. $rawName"
+                }
+            } else {
+                "Médico Especialista"
+            }
+
             val extraSpecs = specialtiesMap[doc.id].orEmpty()
-            val docSpecialty = doc.specialty?.takeIf { it.isNotBlank() }
+            val rawSpecialty = doc.specialty?.takeIf { it.isNotBlank() }
                 ?: extraSpecs.firstOrNull()
                 ?: "Medicina General"
+            val docSpecialty = if (rawSpecialty.equals("General", ignoreCase = true)) "Medicina General" else rawSpecialty
+
+            val rawLicense = doc.licenseNumber?.trim().orEmpty()
+            val formattedLicense = when {
+                rawLicense.isBlank() || rawLicense.startsWith("PENDING", ignoreCase = true) -> "MN Colegiado"
+                rawLicense.matches(Regex("^[0-9a-fA-F-]{8,}$")) -> "MN Colegiado"
+                rawLicense.matches(Regex("^\\d{4,8}$")) -> "MN $rawLicense"
+                else -> rawLicense
+            }
+
+            val rawFee = doc.consultationFee
+            val normalizedFee = when {
+                rawFee == null || rawFee <= 0 -> null
+                rawFee >= 10000.0 -> rawFee / 100.0 // Stored in cents in Supabase DB (e.g. 3000000.00 -> 30000.0)
+                else -> rawFee
+            }
 
             DoctorBookingInfo(
                 id = doc.id,
                 userId = doc.userId,
                 name = fullName,
                 specialty = docSpecialty,
-                licenseNumber = doc.licenseNumber?.takeIf { it.isNotBlank() } ?: "MN 145.890",
-                consultationFee = doc.consultationFee,
-                avatarUrl = profile?.avatarUrl,
+                licenseNumber = formattedLicense,
+                consultationFee = normalizedFee,
+                avatarUrl = profile?.avatarUrl?.takeIf { it.isNotBlank() },
                 availableSlots = defaultSlots,
             )
-        }
+        }.sortedWith(
+            compareByDescending<DoctorBookingInfo> { it.avatarUrl != null }
+                .thenByDescending { it.name != "Médico Especialista" }
+                .thenBy { it.name }
+        )
 
         if (!specialty.isNullOrBlank() && !specialty.equals("todas", ignoreCase = true) && !specialty.equals("all", ignoreCase = true)) {
             doctorList.filter { it.specialty.contains(specialty, ignoreCase = true) }
@@ -215,7 +296,7 @@ class AppointmentRepositoryImpl @Inject constructor(
 
         var patientId = supabaseClient.postgrest.from("patients")
             .select(Columns.list("id")) { filter { eq("user_id", userId) } }
-            .decodeSingleOrNull<RecordIdDto>()?.id
+            .decodeSingleOrNull<AppointmentRecordIdDto>()?.id
 
         if (patientId == null) {
             patientId = try {
@@ -223,7 +304,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                     .insert(mapOf("user_id" to userId)) {
                         select(Columns.list("id"))
                     }
-                    .decodeSingle<RecordIdDto>().id
+                    .decodeSingle<AppointmentRecordIdDto>().id
             } catch (e: Exception) {
                 SecureLog.warn("[Appointments] Could not create patient record: ${e.message}")
                 userId
@@ -262,10 +343,96 @@ class AppointmentRepositoryImpl @Inject constructor(
     }.onFailure {
         SecureLog.error("[Appointments] Failed booking appointment", it)
     }
+
+    private suspend fun enrichWithDoctorInfo(appointments: List<Appointment>): List<Appointment> {
+        val doctorIds = appointments.mapNotNull { it.doctorId }.distinct()
+        if (doctorIds.isEmpty()) return appointments
+
+        val availableDoctors = runCatching {
+            getAvailableDoctors().getOrNull() ?: emptyList()
+        }.getOrDefault(emptyList())
+
+        val doctorsMap = availableDoctors.associateBy { it.id }.toMutableMap()
+
+        val missingDoctorIds = doctorIds.filter { it !in doctorsMap }
+        if (missingDoctorIds.isNotEmpty()) {
+            try {
+                val missingDoctors = supabaseClient.postgrest
+                    .from("doctors")
+                    .select(Columns.ALL) {
+                        filter { isIn("id", missingDoctorIds) }
+                    }
+                    .decodeList<DoctorBookingRowDto>()
+
+                val userIds = missingDoctors.map { it.userId }.filter { it.isNotBlank() }
+                val profilesMap = if (userIds.isNotEmpty()) {
+                    supabaseClient.postgrest
+                        .from("profiles")
+                        .select(Columns.list("user_id", "first_name", "last_name", "avatar_url")) {
+                            filter { isIn("user_id", userIds) }
+                        }
+                        .decodeList<DoctorProfileBookingDto>()
+                        .associateBy { it.userId }
+                } else emptyMap()
+
+                for (doc in missingDoctors) {
+                    val profile = profilesMap[doc.userId]
+                    val firstName = profile?.firstName?.trim().orEmpty()
+                    val lastName = profile?.lastName?.trim().orEmpty()
+                    val rawName = when {
+                        firstName.isNotBlank() && lastName.isNotBlank() -> "$firstName $lastName"
+                        firstName.isNotBlank() -> firstName
+                        lastName.isNotBlank() -> lastName
+                        else -> "Médico Especialista"
+                    }
+                    val fullName = if (rawName.startsWith("Dr.", ignoreCase = true) || rawName.startsWith("Dra.", ignoreCase = true)) {
+                        rawName
+                    } else if (rawName != "Médico Especialista") {
+                        "Dr. $rawName"
+                    } else {
+                        rawName
+                    }
+                    val rawFee = doc.consultationFee
+                    val normalizedFee = when {
+                        rawFee == null || rawFee <= 0 -> null
+                        rawFee >= 10000.0 -> rawFee / 100.0
+                        else -> rawFee
+                    }
+                    doctorsMap[doc.id] = DoctorBookingInfo(
+                        id = doc.id,
+                        userId = doc.userId,
+                        name = fullName,
+                        specialty = doc.specialty ?: "Medicina General",
+                        licenseNumber = doc.licenseNumber.orEmpty(),
+                        consultationFee = normalizedFee,
+                        avatarUrl = profile?.avatarUrl?.takeIf { it.isNotBlank() },
+                        availableSlots = emptyList(),
+                    )
+                }
+            } catch (e: Exception) {
+                SecureLog.warn("[Appointments] Failed fetching missing doctors: ${e.message}")
+            }
+        }
+
+        return appointments.map { apt ->
+            val doc = apt.doctorId?.let { doctorsMap[it] }
+            if (doc != null) {
+                apt.copy(
+                    doctorName = doc.name,
+                    doctorSpecialty = doc.specialty,
+                    doctorAvatarUrl = doc.avatarUrl,
+                    doctorFee = doc.consultationFee,
+                    doctorLicenseNumber = doc.licenseNumber,
+                )
+            } else {
+                apt
+            }
+        }
+    }
 }
 
 @Serializable
-private data class RecordIdDto(val id: String)
+private data class AppointmentRecordIdDto(val id: String)
 
 @Serializable
 private data class AppointmentDto(
@@ -304,6 +471,7 @@ private data class AppointmentDto(
     }
 
     private fun parseStatus(raw: String): AppointmentStatus = when (raw.lowercase()) {
+        "payment_pending" -> AppointmentStatus.PAYMENT_PENDING
         "scheduled" -> AppointmentStatus.SCHEDULED
         "confirmed" -> AppointmentStatus.CONFIRMED
         "in_progress" -> AppointmentStatus.IN_PROGRESS

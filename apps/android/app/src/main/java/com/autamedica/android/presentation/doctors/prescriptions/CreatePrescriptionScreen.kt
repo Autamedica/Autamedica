@@ -20,7 +20,7 @@ fun CreatePrescriptionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Nueva Receta") },
+                title = { Text("Nueva receta") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -35,9 +35,9 @@ fun CreatePrescriptionScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            Text("Formulario Clínico (Paciente: $patientId)")
+            Text("Datos de la prescripción")
             Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(value = "", onValueChange = {}, label = { Text("Fármaco / Principio Activo") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = "", onValueChange = {}, label = { Text("Medicamento o principio activo") }, modifier = Modifier.fillMaxWidth())
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(value = "", onValueChange = {}, label = { Text("Dosis") }, modifier = Modifier.fillMaxWidth())
             Spacer(modifier = Modifier.height(8.dp))
@@ -45,14 +45,14 @@ fun CreatePrescriptionScreen(
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(value = "", onValueChange = {}, label = { Text("Duración") }, modifier = Modifier.fillMaxWidth())
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(value = "", onValueChange = {}, label = { Text("Diagnóstico CIE-10") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = "", onValueChange = {}, label = { Text("Diagnóstico (CIE-10)") }, modifier = Modifier.fillMaxWidth())
             
             Spacer(modifier = Modifier.weight(1f))
             Button(
                 onClick = { viewModel.emitPrescription(); onBack() },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Emitir Receta Homologada")
+                Text("Emitir receta")
             }
         }
     }

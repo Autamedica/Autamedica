@@ -41,6 +41,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            )
+        }
+        handleIncomingCallIntent(intent)
         enableEdgeToEdge()
         incomingIntent = intent
         setContent {
@@ -48,24 +59,12 @@ class MainActivity : ComponentActivity() {
             val activeIntent = incomingIntent
 
             LaunchedEffect(activeIntent) {
-                val route = NotificationRouteResolver.resolve(
-                    appointmentId = activeIntent?.getStringExtra(
-                        NotificationRouteResolver.EXTRA_APPOINTMENT_ID,
-                    ),
-                    chatRoomId = activeIntent?.getStringExtra(
-                        NotificationRouteResolver.EXTRA_CHAT_ROOM_ID,
-                    ),
-                    deepLink = activeIntent?.getStringExtra(
-                        NotificationRouteResolver.EXTRA_DEEP_LINK,
-                    ),
-                )
+                val route = NotificationRouteResolver.resolve(activeIntent)
 
                 if (route != null) {
-                    if (authRepository.getCurrentUser() != null) {
-                        navController.navigate(Route.Main) {
-                            popUpTo(Route.Login) { inclusive = true }
-                            launchSingleTop = true
-                        }
+                    val currentDest = navController.currentDestination?.route
+                    val isAlreadyPastLogin = currentDest != null && !currentDest.contains("Login")
+                    if (isAlreadyPastLogin) {
                         navController.navigate(route) {
                             launchSingleTop = true
                         }
@@ -78,7 +77,7 @@ class MainActivity : ComponentActivity() {
 
             AutamedicaTheme {
                 AppNavHost(
-                    startDestination = Route.Login,
+                    startDestination = Route.Main,
                     postLoginRoute = pendingPostLoginRoute,
                     onPostLoginRouteConsumed = { pendingPostLoginRoute = null },
                     isInPipMode = isInPipMode,
@@ -91,7 +90,18 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        handleIncomingCallIntent(intent)
         incomingIntent = intent
+    }
+
+    private fun handleIncomingCallIntent(intent: Intent?) {
+        if (intent == null) return
+        val isCall = intent.getBooleanExtra(com.autamedica.android.service.IncomingCallNotificationManager.EXTRA_IS_INCOMING_CALL, false) ||
+            intent.action == com.autamedica.android.service.IncomingCallNotificationManager.ACTION_ANSWER_CALL
+        if (isCall) {
+            val notifId = intent.getIntExtra(com.autamedica.android.service.IncomingCallNotificationManager.EXTRA_NOTIFICATION_ID, -1)
+            com.autamedica.android.service.IncomingCallNotificationManager.dismissCall(this, notifId)
+        }
     }
 
     override fun onUserLeaveHint() {

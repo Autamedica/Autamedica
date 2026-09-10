@@ -115,63 +115,118 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    fun setGoogleLoading(loading: Boolean) {
+        _uiState.update { it.copy(isGoogleLoading = loading, error = if (loading) null else it.error) }
+    }
+
     fun onLogin() {
         val state = _uiState.value
-        if (state.email.isBlank() || state.password.isBlank()) return
+        val email = state.email.trim()
+        val password = state.password
+
+        if (email.isBlank()) {
+            _uiState.update { it.copy(error = "Por favor ingresá tu correo electrónico") }
+            return
+        }
+        if (!email.contains("@") || !email.contains(".")) {
+            _uiState.update { it.copy(error = "El formato de correo no es válido (ej: usuario@correo.com)") }
+            return
+        }
+        if (password.isBlank()) {
+            _uiState.update { it.copy(error = "Por favor ingresá tu contraseña") }
+            return
+        }
+        if (password.length < 6) {
+            _uiState.update { it.copy(error = "La contraseña debe tener al menos 6 caracteres") }
+            return
+        }
         if (state.isLoading || state.isGoogleLoading) return
 
         _uiState.update { it.copy(isLoading = true, error = null) }
 
         viewModelScope.launch {
-            val result = authRepository.login(state.email.trim(), state.password, state.selectedRole)
-            result.fold(
-                onSuccess = { user ->
-                    _uiState.update { it.copy(isLoading = false, loggedInUser = user) }
-                    registerFcmToken()
-                },
-                onFailure = { error ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = mapErrorMessage(error),
-                        )
-                    }
-                },
-            )
+            try {
+                val result = authRepository.login(email, password, state.selectedRole)
+                result.fold(
+                    onSuccess = { user ->
+                        Timber.d("[Auth] Login successful for user: %s", user.id)
+                        _uiState.update { it.copy(isLoading = false, loggedInUser = user) }
+                        registerFcmToken()
+                    },
+                    onFailure = { error ->
+                        Timber.e(error, "[Auth] Login failed: %s", error.message)
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = mapErrorMessage(error),
+                            )
+                        }
+                    },
+                )
+            } catch (e: Throwable) {
+                Timber.e(e, "[Auth] Unexpected login exception")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = mapErrorMessage(e),
+                    )
+                }
+            }
         }
     }
 
     fun onGoogleSignIn(idToken: String) {
         val state = _uiState.value
-        if (state.isLoading || state.isGoogleLoading) return
+        if (state.isLoading) return
 
         _uiState.update { it.copy(isGoogleLoading = true, error = null) }
 
         viewModelScope.launch {
-            val result = authRepository.loginWithGoogle(idToken, state.selectedRole)
-            result.fold(
-                onSuccess = { user ->
-                    _uiState.update { it.copy(isGoogleLoading = false, loggedInUser = user) }
-                    registerFcmToken()
-                },
-                onFailure = { error ->
-                    _uiState.update {
-                        it.copy(
-                            isGoogleLoading = false,
-                            error = mapErrorMessage(error),
-                        )
-                    }
-                },
-            )
+            try {
+                val result = authRepository.loginWithGoogle(idToken, state.selectedRole)
+                result.fold(
+                    onSuccess = { user ->
+                        Timber.d("[Auth] Google login successful for user: %s", user.id)
+                        _uiState.update { it.copy(isGoogleLoading = false, loggedInUser = user) }
+                        registerFcmToken()
+                    },
+                    onFailure = { error ->
+                        Timber.e(error, "[Auth] Google login failed: %s", error.message)
+                        _uiState.update {
+                            it.copy(
+                                isGoogleLoading = false,
+                                error = mapErrorMessage(error),
+                            )
+                        }
+                    },
+                )
+            } catch (e: Throwable) {
+                Timber.e(e, "[Auth] Unexpected error during Google login")
+                _uiState.update {
+                    it.copy(
+                        isGoogleLoading = false,
+                        error = mapErrorMessage(e),
+                    )
+                }
+            }
         }
     }
 
     fun onGoogleSignInError(error: Throwable) {
         SecureLog.error("[Auth] Google sign-in error", error)
+        Timber.e(error, "[Auth] Google sign-in error: %s", error.message)
+        val friendlyMessage = when {
+            error is androidx.credentials.exceptions.GetCredentialCancellationException ->
+                "Inicio con Google cancelado o interrumpido. Podés ingresar con tu correo y contraseña."
+            error is androidx.credentials.exceptions.NoCredentialException ||
+                error.message?.contains("no credential", ignoreCase = true) == true ->
+                "No se encontró ninguna cuenta de Google disponible en este dispositivo. Ingresá con correo y contraseña."
+            else -> mapErrorMessage(error)
+        }
         _uiState.update {
             it.copy(
                 isGoogleLoading = false,
-                error = mapErrorMessage(error),
+                error = friendlyMessage,
             )
         }
     }

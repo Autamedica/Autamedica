@@ -7,6 +7,8 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
 import android.os.IBinder
 import com.autamedica.android.MainActivity
 import com.autamedica.android.R
@@ -26,9 +28,21 @@ class CallNotificationService : Service() {
             }
         }
 
-        val notification = buildNotification()
-        startForeground(NOTIFICATION_ID, notification)
-        return START_STICKY
+        runCatching {
+            val notification = buildNotification()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        }.onFailure {
+            stopSelf()
+        }
+        return START_NOT_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -92,12 +106,20 @@ class CallNotificationService : Service() {
         const val ACTION_END_CALL = "com.autamedica.android.END_CALL"
 
         fun start(context: Context) {
-            val intent = Intent(context, CallNotificationService::class.java)
-            context.startForegroundService(intent)
+            runCatching {
+                val intent = Intent(context, CallNotificationService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            }
         }
 
         fun stop(context: Context) {
-            context.stopService(Intent(context, CallNotificationService::class.java))
+            runCatching {
+                context.stopService(Intent(context, CallNotificationService::class.java))
+            }
         }
     }
 }

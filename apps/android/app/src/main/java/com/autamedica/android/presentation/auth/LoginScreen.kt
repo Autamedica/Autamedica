@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MedicalServices
@@ -143,8 +144,8 @@ fun LoginScreen(
                     val googleIdTokenCredential = GoogleIdTokenCredential
                         .createFrom(result.credential.data)
                     viewModel.onGoogleSignIn(googleIdTokenCredential.idToken)
-                } catch (_: GetCredentialCancellationException) {
-                    // User cancelled Google picker, do nothing
+                } catch (e: GetCredentialCancellationException) {
+                    viewModel.onGoogleSignInError(e)
                 } catch (e: Exception) {
                     viewModel.onGoogleSignInError(e)
                 }
@@ -180,11 +181,8 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            // ── AutaMedica Branding & Access Mode Badge (Matching Web AuthLogo.tsx) ──
-            AutamedicaHeader(
-                activeRole = uiState.selectedRole,
-                activeColor = activeColor,
-            )
+            // ── AutaMedica Branding ──
+            AutamedicaHeader()
 
             // ── Role Segmented Selector (Matching Web Tabs) ──
             RoleSegmentedPicker(
@@ -192,7 +190,7 @@ fun LoginScreen(
                 onRoleSelected = viewModel::onRoleChange,
             )
 
-            // ── Dynamic Role Heading (Matching Web H1 & Subtitle) ──
+            // ── Role Heading ──
             RoleHeading(
                 selectedRole = uiState.selectedRole,
             )
@@ -239,7 +237,7 @@ fun LoginScreen(
                 )
             }
 
-            // ── Security & Compliance Legend (HIPAA) ──
+            // ── Security & Privacy Legend ──
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
@@ -255,7 +253,7 @@ fun LoginScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Conexión cifrada de extremo a extremo • Cumplimiento HIPAA",
+                    text = "Conexión cifrada de extremo a extremo",
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                     textAlign = TextAlign.Center,
@@ -266,116 +264,57 @@ fun LoginScreen(
 }
 
 /**
- * Encabezado de acceso con el logo oficial AutaMedica
- * y el badge de modo de acceso correspondiente al rol activo (idéntico a AuthLogo.tsx de la web).
+ * Encabezado con el isotipo oficial de AutaMedica:
+ * Contenedor squircle (96x96dp) color obsidiana (#09090B), esquinas de 30dp (rounded-[2rem]),
+ * anillo translúcido (border-white/10) y sombra de vidrio ahumado profunda.
  */
 @Composable
-private fun AutamedicaHeader(
-    activeRole: UserRole,
-    activeColor: Color,
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fillMaxWidth(),
+private fun AutamedicaHeader() {
+    Surface(
+        modifier = Modifier.size(96.dp),
+        shape = RoundedCornerShape(30.dp),
+        color = LogoObsidianBg,
+        border = BorderStroke(1.dp, LogoRingBorder),
+        shadowElevation = 16.dp,
     ) {
-        // Access Mode Badge (Matching Web)
-        Surface(
-            shape = RoundedCornerShape(999.dp),
-            color = AuSurface,
-            border = BorderStroke(1.dp, AuBorder),
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize(),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(activeColor),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "MODO DE ACCESO",
-                    color = AuTextSecondary,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.6.sp,
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Logo Squircle (Obsidian Jewel matching Web AuthLogo.tsx)
-        Surface(
-            modifier = Modifier.size(96.dp),
-            shape = RoundedCornerShape(32.dp),
-            color = LogoObsidianBg,
-            border = BorderStroke(1.dp, LogoRingBorder),
-            shadowElevation = 16.dp,
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_autamedica),
-                    contentDescription = "AutaMedica",
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(16.dp)),
-                    contentScale = ContentScale.Fit,
-                )
-            }
+            Image(
+                painter = painterResource(id = R.drawable.logo_autamedica),
+                contentDescription = "AutaMedica",
+                modifier = Modifier
+                    .size(76.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                contentScale = ContentScale.Fit,
+            )
         }
     }
 }
 
 /**
- * Título y subtítulo del portal seleccionado (idéntico a LoginForm.tsx de la web).
+ * Título minimalista según el rol seleccionado
  */
 @Composable
 private fun RoleHeading(
     selectedRole: UserRole,
 ) {
     val title = when (selectedRole) {
-        UserRole.PATIENT -> "Portal Pacientes"
-        UserRole.DOCTOR -> "Portal Médico"
-        UserRole.PHARMACIST -> "Portal Farmacia"
-        else -> "Portal Empresa"
+        UserRole.PATIENT -> "Iniciar sesión"
+        UserRole.DOCTOR -> "Acceso médico"
+        UserRole.PHARMACIST -> "Acceso farmacia"
+        else -> "Acceso empresa"
     }
 
-    val subtitle = when (selectedRole) {
-        UserRole.PATIENT -> "Ingresá a tu espacio de salud personalizada"
-        UserRole.DOCTOR -> "Accedé a tu consultorio virtual y agenda médica"
-        UserRole.PHARMACIST -> "Validación y dispensa de recetas oficiales"
-        else -> "Gestión de salud corporativa y coberturas"
-    }
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineMedium,
-            color = AuTextPrimary,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            letterSpacing = (-0.5).sp,
-        )
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = AuTextSecondary,
-            textAlign = TextAlign.Center,
-        )
-    }
+    Text(
+        text = title,
+        style = MaterialTheme.typography.headlineMedium,
+        color = AuTextPrimary,
+        fontWeight = FontWeight.Bold,
+        textAlign = TextAlign.Center,
+        letterSpacing = (-0.5).sp,
+    )
 }
 
 /**
@@ -485,10 +424,8 @@ private fun LoginFormCard(
 ) {
     val focusManager = LocalFocusManager.current
     val buttonLabel = when (uiState.selectedRole) {
-        UserRole.PATIENT -> "Ingresar a mi portal"
-        UserRole.DOCTOR -> "Ingresar como Médico"
-        UserRole.PHARMACIST -> "Continuar a Portal Web"
-        else -> "Continuar a Portal Web"
+        UserRole.PATIENT, UserRole.DOCTOR -> "Ingresar"
+        else -> "Ir a la web"
     }
 
     Surface(
@@ -548,7 +485,7 @@ private fun LoginFormCard(
             ) {
                 HorizontalDivider(modifier = Modifier.weight(1f), color = AuBorder)
                 Text(
-                    text = "o ingresa con tu correo",
+                    text = "o con tu correo",
                     modifier = Modifier.padding(horizontal = 12.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
@@ -673,7 +610,7 @@ private fun LoginFormCard(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.CheckCircle,
+                            imageVector = Icons.Default.Warning,
                             contentDescription = null,
                             tint = AuDanger,
                             modifier = Modifier.size(16.dp),
@@ -698,10 +635,7 @@ private fun LoginFormCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                enabled = uiState.email.isNotBlank()
-                    && uiState.password.isNotBlank()
-                    && !uiState.isLoading
-                    && !uiState.isGoogleLoading,
+                enabled = !uiState.isLoading && !uiState.isGoogleLoading,
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = activeColor,
@@ -782,7 +716,7 @@ private fun WelcomeLoadingState(
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Iniciando sesión en la clínica digital...",
+                text = "Iniciando sesión...",
                 style = MaterialTheme.typography.bodyMedium,
                 color = AuTextSecondary,
                 textAlign = TextAlign.Center,

@@ -130,7 +130,14 @@ class HealthRepositoryImpl @Inject constructor(
                 }
                 .decodeList<AnamnesisSectionDto>()
                 .map { it.toDomain() }
-                .sortedBy { AnamnesisSection.SECTION_ORDER.indexOf(it.section).takeIf { i -> i >= 0 } ?: 999 }
+                .sortedBy {
+                    val idx = AnamnesisSection.SECTION_ORDER.indexOf(it.section)
+                    if (idx >= 0) idx
+                    else {
+                        val legacyIdx = AnamnesisSection.LEGACY_SECTIONS.indexOf(it.section)
+                        if (legacyIdx >= 0) 100 + legacyIdx else 999
+                    }
+                }
         }.onFailure {
             SecureLog.error("[Health] Failed fetching sections", it)
         }

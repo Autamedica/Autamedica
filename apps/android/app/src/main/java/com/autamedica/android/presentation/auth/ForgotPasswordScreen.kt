@@ -43,11 +43,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.Image
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
@@ -62,6 +67,8 @@ import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.ErrorContainer
+import com.autamedica.android.presentation.theme.LogoObsidianBg
+import com.autamedica.android.presentation.theme.LogoRingBorder
 import com.autamedica.android.presentation.theme.PrimaryLight
 import com.autamedica.android.presentation.theme.SuccessContainer
 
@@ -87,33 +94,45 @@ fun ForgotPasswordScreen(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 20.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
+            // ── AutaMedica Branding ──
+            AutamedicaHeader()
+
+            // ── Heading ──
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "Recuperar acceso",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = AuTextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    letterSpacing = (-0.5).sp,
+                )
+                Text(
+                    text = "Ingresá tu correo para restablecer la contraseña.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AuTextSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(24.dp),
                 color = AuSurface,
                 border = BorderStroke(1.dp, AuBorder),
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(22.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = "Recuperar contraseña",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = AuTextPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = "Ingresa tu email y te enviaremos las instrucciones para restablecer tu acceso.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AuTextTertiary,
-                        )
-                    }
 
                     val textFieldColors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = AuTextPrimary,
@@ -240,7 +259,7 @@ fun ForgotPasswordScreen(
                             )
                         } else {
                             Text(
-                                text = "Enviar instrucciones de recuperación",
+                                text = "Enviar enlace de recuperación",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -266,6 +285,59 @@ fun ForgotPasswordScreen(
                     }
                 }
             }
+
+            // ── Security & Privacy Legend ──
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp, bottom = 12.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint = AuTextTertiary,
+                    modifier = Modifier.size(13.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Conexión cifrada de extremo a extremo",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AuTextTertiary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Encabezado con el isotipo oficial de AutaMedica:
+ * Contenedor squircle (96x96dp) color obsidiana (#09090B), esquinas de 30dp (rounded-[2rem]),
+ * anillo translúcido (border-white/10) y sombra de vidrio ahumado profunda.
+ */
+@Composable
+private fun AutamedicaHeader() {
+    Surface(
+        modifier = Modifier.size(96.dp),
+        shape = RoundedCornerShape(30.dp),
+        color = LogoObsidianBg,
+        border = BorderStroke(1.dp, LogoRingBorder),
+        shadowElevation = 16.dp,
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.logo_autamedica),
+                contentDescription = "AutaMedica",
+                modifier = Modifier
+                    .size(76.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                contentScale = ContentScale.Fit,
+            )
         }
     }
 }

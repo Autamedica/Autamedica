@@ -45,10 +45,38 @@ class TelemedicineRepositoryImplTest {
     }
 
     @Test
-    fun getLiveKitCredentialsWithEmptySessionIdReturnsFailure() = runTest {
-        val result = repository.getLiveKitCredentials("")
-        assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
+    fun defaultIceServersIncludesStunServers() {
+        val servers = repository.getDefaultIceServers()
+        assertThat(servers).isNotEmpty()
+        val allUrls = servers.flatMap { it.urls }
+        assertThat(allUrls.any { it.startsWith("stun:") }).isTrue()
+        assertThat(allUrls).contains("stun:stun.l.google.com:19302")
+    }
+
+    @Test
+    fun customIceServersProviderSupportsTurnRelay() = runTest {
+        val customTurn = listOf(
+            com.autamedica.android.domain.repository.IceServerInfo(
+                urls = listOf("turn:turn.autamedica.com:3478", "turns:turn.autamedica.com:5349"),
+                username = "telemed-user",
+                credential = "telemed-password",
+            ),
+            com.autamedica.android.domain.repository.IceServerInfo(
+                urls = listOf("stun:stun.l.google.com:19302"),
+            )
+        )
+        repository.iceServersProvider = { customTurn }
+        repository.sessionInfoFinder = { null }
+
+        val result = repository.getSession("room-turn-test")
+        assertThat(result.isSuccess).isTrue()
+        val session = result.getOrNull()
+        assertThat(session).isNotNull()
+        assertThat(session?.iceServers).hasSize(2)
+        val turnServer = session?.iceServers?.first()
+        assertThat(turnServer?.urls).contains("turn:turn.autamedica.com:3478")
+        assertThat(turnServer?.username).isEqualTo("telemed-user")
+        assertThat(turnServer?.credential).isEqualTo("telemed-password")
     }
 
     @Test

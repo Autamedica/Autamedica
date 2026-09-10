@@ -52,6 +52,54 @@ class PrescriptionAndClinicalDocumentTest {
     }
 
     @Test
+    fun prescriptionStatusEvaluatesCompletedAndExpiredCorrectly() {
+        val completed = Prescription(
+            id = "rx-3",
+            status = "completada",
+            cuir = "CUIR-2026-0003",
+            signedPdfUrl = null,
+            qrCodeContent = null,
+            medicationName = "Ibuprofeno 400mg",
+            dosage = "400mg",
+            frequency = "Cada 8 hs",
+            instructions = "Tomar con alimentos",
+            doctorName = "Dr. Pedro Gómez",
+            doctorLicense = "MN 55555",
+            createdAt = "2026-08-01T10:00:00Z",
+            countryCode = "AR",
+            duration = "5 días",
+            diagnosis = "Cefalea tensional",
+            notes = "Suspender al ceder el dolor",
+        )
+
+        assertThat(completed.isCompleted).isTrue()
+        assertThat(completed.isActive).isFalse()
+        assertThat(completed.isDispensed).isFalse()
+        assertThat(completed.duration).isEqualTo("5 días")
+        assertThat(completed.diagnosis).isEqualTo("Cefalea tensional")
+        assertThat(completed.notes).isEqualTo("Suspender al ceder el dolor")
+
+        val expired = Prescription(
+            id = "rx-4",
+            status = "vencida",
+            cuir = "CUIR-2026-0004",
+            signedPdfUrl = null,
+            qrCodeContent = null,
+            medicationName = "Clonazepam 0.5mg",
+            dosage = "0.5mg",
+            frequency = "1 comprimido por noche",
+            instructions = "No discontinuar abruptamente",
+            doctorName = "Dra. Sofía Rivas",
+            doctorLicense = "MN 99999",
+            createdAt = "2026-07-01T10:00:00Z",
+            countryCode = "AR",
+        )
+
+        assertThat(expired.isExpired).isTrue()
+        assertThat(expired.isActive).isFalse()
+    }
+
+    @Test
     fun clinicalDocumentMimeTypeAndSizeFormatting() {
         val pdfDoc = ClinicalDocument(
             id = "doc-1",

@@ -27,10 +27,20 @@
     <string name="nav_health">Salud</string>
     <string name="nav_patients">Pacientes</string>
     <string name="nav_profile">Perfil</string>
+    <string name="nav_patient_home">Inicio</string>
+    <string name="nav_patient_agenda">Agenda</string>
+    <string name="nav_patient_consult">Consultar</string>
+    <string name="nav_patient_prescriptions">Recetas</string>
+    <string name="nav_patient_community">Comunidad</string>
     <string name="notification_call_channel">Llamada en curso</string>
     <string name="notification_call_title">Consulta medica en curso</string>
     <string name="notification_call_text">Toca para volver a la llamada</string>
     <string name="notification_end_call">Finalizar</string>
+    <string name="notification_incoming_call_channel">Llamadas entrantes</string>
+    <string name="notification_incoming_call_title">Te están llamando</string>
+    <string name="notification_incoming_call_text">Videollamada para tu consulta</string>
+    <string name="notification_answer_call">Atender</string>
+    <string name="notification_decline_call">Rechazar</string>
     <string name="notification_permission_title">Activar notificaciones</string>
     <string name="notification_permission_message">Recibiras avisos de nuevos turnos, mensajes y recetas</string>
 
@@ -49,8 +59,8 @@
     <string name="doctor_dashboard_no_active_call">No hay consultas activas en este momento.</string>
     <string name="doctor_dashboard_waiting_room_hint">Puedes iniciar la sala y esperar a que el paciente se conecte.</string>
     <string name="dashboard_open_appointments">Abrir mis turnos</string>
-    <string name="dashboard_no_upcoming_appointments">No tienes consultas próximas.</string>
-    <string name="dashboard_no_upcoming_appointments_hint">Revisa tu agenda para confirmar si necesitas seguimiento clínico.</string>
+    <string name="dashboard_no_upcoming_appointments">No tenés consultas programadas.</string>
+    <string name="dashboard_no_upcoming_appointments_hint">Podés solicitar un turno desde la sección de turnos.</string>
 
     <!-- Videocall & Permissions -->
     <string name="permissions_grant">Conceder permisos</string>
@@ -66,18 +76,18 @@
 
     <!-- Health / Anamnesis -->
     <string name="common_previous">Anterior</string>
-    <string name="health_submit_anamnesis">Enviar Anamnesis</string>
+    <string name="health_submit_anamnesis">Enviar ficha médica</string>
     <string name="health_your_age">Tu edad</string>
     <string name="health_age_example">Ej: 45</string>
     <!-- Welcome / Hero -->
-    <string name="welcome_subtitle">Un solo lugar para ingresar a tu consulta, gestionar turnos y mantener el seguimiento clínico sin fricción.</string>
-    <string name="welcome_tag_appointments">Turnos inteligentes</string>
-    <string name="welcome_tag_videocall">Videollamada segura</string>
-    <string name="welcome_tag_history">Historial conectado</string>
-    <string name="welcome_feature_agenda_title">Agenda clara</string>
-    <string name="welcome_feature_agenda_desc">Revisa disponibilidad, recordatorios y próximos pasos sin salir del flujo.</string>
-    <string name="welcome_feature_consultation_title">Consulta inmediata</string>
-    <string name="welcome_feature_consultation_desc">Entra a tu videoconsulta apenas la sala esté habilitada desde tu turno.</string>
-    <string name="welcome_feature_followup_title">Seguimiento continuo</string>
-    <string name="welcome_feature_followup_desc">Perfil, salud preventiva y mensajes en una experiencia pensada para mobile.</string>
+    <string name="welcome_subtitle">Consultas médicas, turnos y seguimiento clínico en un solo lugar.</string>
+    <string name="welcome_tag_appointments">Turnos online</string>
+    <string name="welcome_tag_videocall">Videoconsultas</string>
+    <string name="welcome_tag_history">Historial clínico</string>
+    <string name="welcome_feature_agenda_title">Agenda al día</string>
+    <string name="welcome_feature_agenda_desc">Consultá tus fechas, horarios y profesionales disponibles.</string>
+    <string name="welcome_feature_consultation_title">Videoconsulta directa</string>
+    <string name="welcome_feature_consultation_desc">Entrá a tu consulta cuando llegue el horario del turno.</string>
+    <string name="welcome_feature_followup_title">Seguimiento clínico</string>
+    <string name="welcome_feature_followup_desc">Accedé a tus recetas, estudios y controles preventivos.</string>
 </resources>

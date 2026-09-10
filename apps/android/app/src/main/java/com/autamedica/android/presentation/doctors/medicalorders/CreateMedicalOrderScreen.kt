@@ -20,7 +20,7 @@ fun CreateMedicalOrderScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Nueva Orden Médica") },
+                title = { Text("Nueva orden médica") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -35,9 +35,9 @@ fun CreateMedicalOrderScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            Text("Prescribir Estudios (Paciente: $patientId)")
+            Text("Estudios y prácticas indicadas")
             Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(value = "", onValueChange = {}, label = { Text("Tipo (Análisis de sangre, radiografía...)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = "", onValueChange = {}, label = { Text("Tipo de estudio o práctica") }, modifier = Modifier.fillMaxWidth())
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(value = "", onValueChange = {}, label = { Text("Indicaciones clínicas") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
             
@@ -46,7 +46,7 @@ fun CreateMedicalOrderScreen(
                 onClick = { viewModel.createOrder(); onBack() },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Generar Orden Médica")
+                Text("Generar orden")
             }
         }
     }

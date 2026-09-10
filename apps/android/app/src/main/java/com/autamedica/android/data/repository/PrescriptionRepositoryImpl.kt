@@ -64,6 +64,10 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 doctorLicense = docId?.let { doctorLicenseMap[it] },
                 createdAt = row.createdAt,
                 countryCode = row.countryCode,
+                duration = clinical.duration,
+                diagnosis = clinical.diagnosis,
+                notes = clinical.notes,
+                prescribedDate = clinical.prescribedDate ?: row.createdAt,
             )
         }
     }.onFailure {
@@ -97,6 +101,10 @@ class PrescriptionRepositoryImpl @Inject constructor(
             doctorLicense = docId?.let { doctorLicenseMap[it] },
             createdAt = row.createdAt,
             countryCode = row.countryCode,
+            duration = clinical.duration,
+            diagnosis = clinical.diagnosis,
+            notes = clinical.notes,
+            prescribedDate = clinical.prescribedDate ?: row.createdAt,
         )
     }.onFailure {
         SecureLog.error("[Prescriptions] Failed fetching prescription $id", it)
@@ -184,17 +192,27 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val directName = obj["medication_name"]?.jsonPrimitive?.contentOrNull
             ?: obj["medicationName"]?.jsonPrimitive?.contentOrNull
             ?: obj["drug_name"]?.jsonPrimitive?.contentOrNull
+            ?: obj["name"]?.jsonPrimitive?.contentOrNull
         val directDosage = obj["dosage"]?.jsonPrimitive?.contentOrNull ?: ""
         val directFrequency = obj["frequency"]?.jsonPrimitive?.contentOrNull ?: ""
+        val directDuration = obj["duration"]?.jsonPrimitive?.contentOrNull ?: ""
         val directInstructions = obj["instructions"]?.jsonPrimitive?.contentOrNull
             ?: obj["directions"]?.jsonPrimitive?.contentOrNull ?: ""
+        val directDiagnosis = obj["diagnosis"]?.jsonPrimitive?.contentOrNull
+        val directNotes = obj["notes"]?.jsonPrimitive?.contentOrNull
+        val directPrescribedDate = obj["prescribed_date"]?.jsonPrimitive?.contentOrNull
+            ?: obj["start_date"]?.jsonPrimitive?.contentOrNull
 
         if (!directName.isNullOrBlank()) {
             return ParsedClinicalData(
                 medicationName = directName.trim(),
                 dosage = directDosage.trim(),
                 frequency = directFrequency.trim(),
+                duration = directDuration.trim(),
                 instructions = directInstructions.trim(),
+                diagnosis = directDiagnosis?.trim()?.takeIf { it.isNotEmpty() },
+                notes = directNotes?.trim()?.takeIf { it.isNotEmpty() },
+                prescribedDate = directPrescribedDate?.trim()?.takeIf { it.isNotEmpty() },
             )
         }
 
@@ -206,13 +224,18 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 ?: firstMed["medication_name"]?.jsonPrimitive?.contentOrNull
             val dosage = firstMed["dosage"]?.jsonPrimitive?.contentOrNull ?: ""
             val frequency = firstMed["frequency"]?.jsonPrimitive?.contentOrNull ?: ""
+            val duration = firstMed["duration"]?.jsonPrimitive?.contentOrNull ?: directDuration
             val instructions = firstMed["instructions"]?.jsonPrimitive?.contentOrNull ?: ""
             if (!name.isNullOrBlank()) {
                 return ParsedClinicalData(
                     medicationName = name.trim(),
                     dosage = dosage.trim(),
                     frequency = frequency.trim(),
+                    duration = duration.trim(),
                     instructions = instructions.trim(),
+                    diagnosis = directDiagnosis?.trim()?.takeIf { it.isNotEmpty() },
+                    notes = directNotes?.trim()?.takeIf { it.isNotEmpty() },
+                    prescribedDate = directPrescribedDate?.trim()?.takeIf { it.isNotEmpty() },
                 )
             }
         }
@@ -226,13 +249,18 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 ?: firstItem["name"]?.jsonPrimitive?.contentOrNull
             val dosage = firstItem["dosage"]?.jsonPrimitive?.contentOrNull ?: ""
             val frequency = firstItem["frequency"]?.jsonPrimitive?.contentOrNull ?: ""
+            val duration = firstItem["duration"]?.jsonPrimitive?.contentOrNull ?: directDuration
             val instructions = firstItem["instructions"]?.jsonPrimitive?.contentOrNull ?: ""
             if (!name.isNullOrBlank()) {
                 return ParsedClinicalData(
                     medicationName = name.trim(),
                     dosage = dosage.trim(),
                     frequency = frequency.trim(),
+                    duration = duration.trim(),
                     instructions = instructions.trim(),
+                    diagnosis = directDiagnosis?.trim()?.takeIf { it.isNotEmpty() },
+                    notes = directNotes?.trim()?.takeIf { it.isNotEmpty() },
+                    prescribedDate = directPrescribedDate?.trim()?.takeIf { it.isNotEmpty() },
                 )
             }
         }
@@ -241,7 +269,11 @@ class PrescriptionRepositoryImpl @Inject constructor(
             medicationName = "Prescripción Médica",
             dosage = directDosage,
             frequency = directFrequency,
+            duration = directDuration,
             instructions = directInstructions,
+            diagnosis = directDiagnosis?.trim()?.takeIf { it.isNotEmpty() },
+            notes = directNotes?.trim()?.takeIf { it.isNotEmpty() },
+            prescribedDate = directPrescribedDate?.trim()?.takeIf { it.isNotEmpty() },
         )
     }
 
@@ -249,7 +281,11 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val medicationName: String,
         val dosage: String = "",
         val frequency: String = "",
+        val duration: String = "",
         val instructions: String = "",
+        val diagnosis: String? = null,
+        val notes: String? = null,
+        val prescribedDate: String? = null,
     )
 
     @Serializable

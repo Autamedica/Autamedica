@@ -3,7 +3,6 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
@@ -47,8 +46,8 @@ android {
         applicationId = "com.autamedica.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "1.1.4"
+        versionCode = 14
+        versionName = "1.2.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -78,24 +77,24 @@ android {
             quoteForBuildConfig(
                 optionalBuildProperty(
                     "GOOGLE_WEB_CLIENT_ID",
-                    "491151556566-6h58b6279rdq05rs65smol0lq8uoue48.apps.googleusercontent.com"
+                    "653971537811-inm445akaidgpvre8v4kabfcfe1an04q.apps.googleusercontent.com"
                 )
             )
         )
         buildConfigField(
-            "boolean",
-            "USE_LIVEKIT",
-            optionalBuildProperty("USE_LIVEKIT", "false").trim().removeSurrounding("\"")
+            "String",
+            "TURN_URLS",
+            quoteForBuildConfig(optionalBuildProperty("TURN_URLS", ""))
         )
         buildConfigField(
             "String",
-            "LIVEKIT_WS_URL",
-            quoteForBuildConfig(optionalBuildProperty("LIVEKIT_WS_URL", ""))
+            "TURN_USERNAME",
+            quoteForBuildConfig(optionalBuildProperty("TURN_USERNAME", ""))
         )
         buildConfigField(
             "String",
-            "LIVEKIT_TOKEN_FUNCTION",
-            quoteForBuildConfig(optionalBuildProperty("LIVEKIT_TOKEN_FUNCTION", "get-meeting-token"))
+            "TURN_CREDENTIAL",
+            quoteForBuildConfig(optionalBuildProperty("TURN_CREDENTIAL", ""))
         )
     }
 
@@ -112,6 +111,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            val releaseConfig = signingConfigs.findByName("release")
+            if (releaseConfig?.storeFile != null) {
+                signingConfig = releaseConfig
+            }
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -139,10 +144,6 @@ android {
         compose = true
         buildConfig = true
     }
-}
-
-kapt {
-    correctErrorTypes = true
 }
 
 dependencies {
@@ -173,7 +174,7 @@ dependencies {
 
     // Hilt
     implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
     // Supabase
@@ -193,8 +194,6 @@ dependencies {
 
     // WebRTC
     implementation(libs.webrtc)
-    implementation(libs.livekit.android.sdk)
-    implementation(libs.livekit.compose.components)
 
     // Serialization
     implementation(libs.kotlinx.serialization)
@@ -213,6 +212,7 @@ dependencies {
 
     // Image loading
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     // Logging
     implementation(libs.timber)

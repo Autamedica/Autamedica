@@ -60,22 +60,40 @@ class PushNotificationService : FirebaseMessagingService() {
         Timber.d("[FCM] Message received: type=${message.data["type"]}")
 
         val payload = parsePayload(message)
-        NotificationHelper.show(this, payload)
+        when (payload.type) {
+            NotificationType.CALL_STARTED,
+            NotificationType.PATIENT_CONNECTED,
+            NotificationType.INCOMING_CALL -> {
+                Timber.i("[FCM] High-priority incoming call notification: ${payload.type}")
+                IncomingCallNotificationManager.showIncomingCall(this, payload)
+            }
+            else -> {
+                NotificationHelper.show(this, payload)
+            }
+        }
     }
 
     private fun parsePayload(message: RemoteMessage): PushPayload {
         val data = message.data
         val notification = message.notification
 
+        val rawType = data["type"] ?: data["event"] ?: data["notification_type"]
+        val doctorName = data["doctor_name"] ?: data["caller_name"]
+        val doctorAvatarUrl = data["doctor_avatar_url"] ?: data["caller_avatar_url"]
         return PushPayload(
-            type = NotificationType.fromString(data["type"]),
+            type = NotificationType.fromString(rawType),
             title = data["title"] ?: notification?.title ?: "AutaMedica",
             body = data["body"] ?: notification?.body ?: "",
             appointmentId = data["appointment_id"],
+            callId = data["call_id"],
+            roomId = data["room_id"],
             chatRoomId = data["chat_room_id"],
             prescriptionId = data["prescription_id"],
             senderId = data["sender_id"],
             deepLink = data["deep_link"],
+            rawType = rawType,
+            doctorName = doctorName,
+            doctorAvatarUrl = doctorAvatarUrl,
         )
     }
 }

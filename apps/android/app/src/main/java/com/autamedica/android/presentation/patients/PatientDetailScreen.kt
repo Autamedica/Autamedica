@@ -535,6 +535,7 @@ private fun AppointmentHistoryRow(
 // ── Helpers ─────────────────────────────────────────────────────────────
 
 private fun statusColor(status: AppointmentStatus): Color = when (status) {
+    AppointmentStatus.PAYMENT_PENDING -> Color(0xFFD97706)
     AppointmentStatus.IN_PROGRESS -> PortalDoctors
     AppointmentStatus.CONFIRMED -> AuSuccess
     AppointmentStatus.SCHEDULED -> PrimaryLight
@@ -553,6 +554,7 @@ private fun displayAppointmentType(type: AppointmentType): String = when (type) 
 }
 
 private fun displayStatus(status: AppointmentStatus): String = when (status) {
+    AppointmentStatus.PAYMENT_PENDING -> "Pago pendiente"
     AppointmentStatus.SCHEDULED -> "Programada"
     AppointmentStatus.CONFIRMED -> "Confirmada"
     AppointmentStatus.IN_PROGRESS -> "En curso"

@@ -11,6 +11,11 @@ data class Appointment(
     val status: AppointmentStatus,
     val notes: String?,
     val meetingUrl: String?,
+    val doctorName: String? = null,
+    val doctorSpecialty: String? = null,
+    val doctorAvatarUrl: String? = null,
+    val doctorFee: Double? = null,
+    val doctorLicenseNumber: String? = null,
 )
 
 enum class AppointmentType {
@@ -23,6 +28,7 @@ enum class AppointmentType {
 }
 
 enum class AppointmentStatus {
+    PAYMENT_PENDING,
     SCHEDULED,
     CONFIRMED,
     IN_PROGRESS,

@@ -46,7 +46,7 @@ import timber.log.Timber
 import javax.inject.Inject
 
 data class VideoCallUiState(
-    val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
+    val connectionState: ConnectionState = ConnectionState.CONNECTING,
     val isVideoEnabled: Boolean = true,
     val isAudioEnabled: Boolean = true,
     val isSpeakerOn: Boolean = true,
@@ -59,9 +59,9 @@ data class VideoCallUiState(
     val callDurationSeconds: Long = 0,
     val showControls: Boolean = true,
     val hasRemoteVideo: Boolean = false,
-    val isWaitingRoom: Boolean = false,
+    val isWaitingRoom: Boolean = true,
     val isPreviewOnlyMode: Boolean = false,
-    val sessionStatusMessage: String? = null,
+    val sessionStatusMessage: String? = "Esperando al médico...",
     val isDoctor: Boolean = false,
     val appointmentNotes: String? = null,
     val consultationNotes: String = "",
@@ -74,6 +74,14 @@ data class VideoCallUiState(
     val isSavingSoap: Boolean = false,
     val soapSaved: Boolean = false,
     val soapError: String? = null,
+    val doctorName: String = "Dr. Felipe Silva",
+    val doctorRole: String = "Clínica Médica & Telemedicina",
+    val doctorCrm: String = "CRM/SP 184.920",
+    val clinicName: String = "AutaMedica",
+    val preconsultationReason: String = "",
+    val preconsultationSymptoms: String = "",
+    val preconsultationEvolution: String = "",
+    val isPreconsultationSaved: Boolean = false,
 )
 
 @HiltViewModel
@@ -92,6 +100,8 @@ class VideoCallViewModel @Inject constructor(
 ) : ViewModel() {
 
     val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
+    /** roomId real de la call (room_XXXX). Si está vacío, se usa appointmentId como fallback. */
+    private val incomingRoomId: String = savedStateHandle["roomId"] ?: ""
     private val previewOnlyMode: Boolean = appointmentId == VIDEO_PREVIEW_APPOINTMENT_ID
 
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -119,23 +129,35 @@ class VideoCallViewModel @Inject constructor(
     private var sessionRetryJob: kotlinx.coroutines.Job? = null
     private var engineObserversBound = false
     private var callStarted = false
+    private var callRequestedByPatient = false
     private var callUserId: String = ""
     private var callUserType: String = ""
     private var callUserName: String = ""
 
     init {
-        _uiState.update { it.copy(connectionState = ConnectionState.CONNECTING) }
+        _uiState.update {
+            it.copy(
+                connectionState = ConnectionState.DISCONNECTED,
+                isWaitingRoom = true,
+                sessionStatusMessage = null,
+            )
+        }
         setupAudioForCall()
     }
 
-    fun startCall() {
+    fun startCall(isIncomingCall: Boolean = false) {
         if (callStarted) return
         callStarted = true
+        callRequestedByPatient = isIncomingCall
         _uiState.update {
             it.copy(
-                connectionState = ConnectionState.CONNECTING,
-                isWaitingRoom = false,
-                sessionStatusMessage = "Preparando tu camara...",
+                connectionState = if (it.isDoctor || isIncomingCall) ConnectionState.CONNECTING else ConnectionState.DISCONNECTED,
+                isWaitingRoom = !it.isDoctor,
+                sessionStatusMessage = when {
+                    it.isDoctor -> "Conectando consultorio..."
+                    isIncomingCall -> "Conectando con tu consulta..."
+                    else -> null
+                },
             )
         }
 
@@ -149,10 +171,25 @@ class VideoCallViewModel @Inject constructor(
                 val isDoc = currentUser.role == UserRole.DOCTOR
 
                 var apptNotes: String? = null
+                var docName = "Dr. Felipe Silva"
+                var docRole = "Clínica Médica & Telemedicina"
+                var docCrm = "CRM/SP 184.920"
+                var preReason = ""
+                var preSaved = false
+
                 if (!previewOnlyMode && appointmentId.isNotBlank()) {
                     runCatching {
                         val appt = appointmentRepository.getAppointmentById(appointmentId).getOrNull()
-                        apptNotes = appt?.notes
+                        if (appt != null) {
+                            apptNotes = appt.notes
+                            appt.doctorName?.takeIf { it.isNotBlank() }?.let { docName = it }
+                            appt.doctorSpecialty?.takeIf { it.isNotBlank() }?.let { docRole = it }
+                            appt.doctorLicenseNumber?.takeIf { it.isNotBlank() }?.let { docCrm = it }
+                            if (!appt.notes.isNullOrBlank()) {
+                                preReason = appt.notes
+                                preSaved = true
+                            }
+                        }
                     }
                 }
 
@@ -161,6 +198,17 @@ class VideoCallViewModel @Inject constructor(
                         isDoctor = isDoc,
                         appointmentNotes = apptNotes,
                         consultationNotes = apptNotes.orEmpty(),
+                        isWaitingRoom = !isDoc,
+                        sessionStatusMessage = when {
+                            isDoc -> "Conectando consultorio..."
+                            callRequestedByPatient -> "Conectando con tu consulta..."
+                            else -> "Esperando al médico..."
+                        },
+                        doctorName = docName,
+                        doctorRole = docRole,
+                        doctorCrm = docCrm,
+                        preconsultationReason = if (preReason.isNotBlank()) preReason else it.preconsultationReason,
+                        isPreconsultationSaved = preSaved || it.isPreconsultationSaved,
                     )
                 }
 
@@ -187,19 +235,25 @@ class VideoCallViewModel @Inject constructor(
                 videoCallStateHolder.setInVideoCall(false)
                 callStarted = false
             }.onSuccess {
-                videoCallStateHolder.setInVideoCall(true)
-                CallNotificationService.start(context)
-                if (previewOnlyMode) {
+                if (_uiState.value.isDoctor) {
+                    videoCallStateHolder.setInVideoCall(true)
+                    CallNotificationService.start(context)
+                    attemptSessionConnection(manualRetry = false)
+                } else if (callRequestedByPatient) {
+                    // Llamada entrante aceptada (paciente): conectarse directo a la sala
+                    // del médico, sin pasar por el botón "Llamar al médico".
+                    videoCallStateHolder.setInVideoCall(true)
+                    attemptSessionConnection(manualRetry = false)
+                } else {
+                    // Paciente: Sala de espera en reposo con cámara local activa.
+                    // No llama automáticamente al médico hasta presionar "Llamar al médico".
                     _uiState.update {
                         it.copy(
                             connectionState = ConnectionState.DISCONNECTED,
-                            isPreviewOnlyMode = true,
-                            isWaitingRoom = false,
-                            sessionStatusMessage = "Vista previa local activa. Podes probar tu camara aunque no haya nadie conectado.",
+                            isWaitingRoom = true,
+                            sessionStatusMessage = null,
                         )
                     }
-                } else {
-                    attemptSessionConnection(manualRetry = false)
                 }
             }
         }
@@ -361,6 +415,39 @@ class VideoCallViewModel @Inject constructor(
         }
     }
 
+    fun joinConsultation() {
+        callRequestedByPatient = true
+        sessionRetryJob?.cancel()
+        _uiState.update {
+            it.copy(
+                connectionState = ConnectionState.CONNECTING,
+                sessionStatusMessage = "Llamando al médico...",
+            )
+        }
+        if (!callStarted) {
+            startCall()
+            return
+        }
+        if (previewOnlyMode) return
+        viewModelScope.launch {
+            attemptSessionConnection(manualRetry = true)
+        }
+    }
+
+    fun cancelCallRequest() {
+        callRequestedByPatient = false
+        sessionRetryJob?.cancel()
+        if (!previewOnlyMode) {
+            engine.disconnect()
+        }
+        _uiState.update {
+            it.copy(
+                connectionState = ConnectionState.DISCONNECTED,
+                sessionStatusMessage = null,
+            )
+        }
+    }
+
     fun retryConnection() {
         if (!callStarted || previewOnlyMode) return
         sessionRetryJob?.cancel()
@@ -482,23 +569,31 @@ class VideoCallViewModel @Inject constructor(
         viewModelScope.launch {
             engine.connectionState.collect { state ->
                 _uiState.update { current ->
+                    val isPatientWaiting = !current.isDoctor && engine.remoteVideoTrack.value == null
+                    val effectiveState = if (!current.isDoctor && !callRequestedByPatient) {
+                        ConnectionState.DISCONNECTED
+                    } else if (isPatientWaiting && state == ConnectionState.DISCONNECTED && callRequestedByPatient) {
+                        ConnectionState.CONNECTING
+                    } else {
+                        state
+                    }
                     current.copy(
-                        connectionState = state,
-                        isWaitingRoom = when (state) {
-                            ConnectionState.CONNECTING,
-                            ConnectionState.CONNECTED,
-                            ConnectionState.RECONNECTING -> false
-                            else -> current.isWaitingRoom
-                        },
-                        sessionStatusMessage = when (state) {
-                            ConnectionState.CONNECTING -> "Conectando con la sala..."
-                            ConnectionState.CONNECTED -> null
-                            ConnectionState.RECONNECTING -> "Recuperando la conexion..."
+                        connectionState = effectiveState,
+                        // isWaitingRoom derivado y no monotónico: cuando el estado llega a CONNECTED
+                        // (médico en sala) la sala de espera cede paso a la llamada activa.
+                        isWaitingRoom = isPatientWaiting && effectiveState != ConnectionState.CONNECTED,
+                        sessionStatusMessage = when {
+                            !current.isDoctor && !callRequestedByPatient -> null
+                            effectiveState == ConnectionState.CONNECTING -> "Llamando al médico..."
+                            effectiveState == ConnectionState.CONNECTED -> null
+                            effectiveState == ConnectionState.RECONNECTING -> "Recuperando la conexión..."
                             else -> current.sessionStatusMessage
                         },
                     )
                 }
                 if (state == ConnectionState.CONNECTED) {
+                    videoCallStateHolder.setInVideoCall(true)
+                    CallNotificationService.start(context)
                     val callId = _uiState.value.activeCallId ?: appointmentId
                     if (callId.isNotBlank() && !previewOnlyMode) {
                         viewModelScope.launch {
@@ -553,6 +648,38 @@ class VideoCallViewModel @Inject constructor(
         }
     }
 
+    fun updatePreconsultationReason(reason: String) {
+        _uiState.update { it.copy(preconsultationReason = reason, isPreconsultationSaved = false) }
+    }
+
+    fun updatePreconsultationSymptoms(symptoms: String) {
+        _uiState.update { it.copy(preconsultationSymptoms = symptoms, isPreconsultationSaved = false) }
+    }
+
+    fun updatePreconsultationEvolution(evolution: String) {
+        _uiState.update { it.copy(preconsultationEvolution = evolution, isPreconsultationSaved = false) }
+    }
+
+    fun savePreconsultation() {
+        val state = _uiState.value
+        val reason = state.preconsultationReason.ifBlank { "Control o chequeo" }
+        val symptoms = if (state.preconsultationSymptoms.isNotBlank()) "\nSíntomas: ${state.preconsultationSymptoms}" else ""
+        val formattedSummary = "Motivo: $reason$symptoms"
+
+        _uiState.update {
+            it.copy(
+                isPreconsultationSaved = true,
+                consultationNotes = if (it.consultationNotes.isBlank()) formattedSummary else "${it.consultationNotes}\n\n$formattedSummary",
+            )
+        }
+
+        if (appointmentId.isNotBlank() && !previewOnlyMode) {
+            viewModelScope.launch {
+                appointmentRepository.updateAppointmentNotes(appointmentId, formattedSummary)
+            }
+        }
+    }
+
     private fun startTimer() {
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
@@ -569,6 +696,12 @@ class VideoCallViewModel @Inject constructor(
         disconnectCallMedia()
     }
 
+    private fun patientStatusMessage(manualRetry: Boolean): String = when {
+        manualRetry -> "Llamando al médico..."
+        callRequestedByPatient -> "Conectando con tu consulta..."
+        else -> "Esperando al médico..."
+    }
+
     private suspend fun attemptSessionConnection(manualRetry: Boolean) {
         if (!callStarted) return
 
@@ -576,13 +709,32 @@ class VideoCallViewModel @Inject constructor(
             current.copy(
                 connectionState = ConnectionState.CONNECTING,
                 isPreviewOnlyMode = false,
-                isWaitingRoom = false,
-                sessionStatusMessage = if (manualRetry) {
+                isWaitingRoom = !current.isDoctor,
+                sessionStatusMessage = if (!current.isDoctor) {
+                    patientStatusMessage(manualRetry)
+                } else if (manualRetry) {
                     "Intentando conectar con la sala..."
                 } else {
-                    current.sessionStatusMessage
+                    current.sessionStatusMessage ?: "Conectando con la sala..."
                 },
             )
+        }
+
+        // Fast path: si tenemos el roomId real de la llamada entrante, conectar directamente
+        // sin hacer lookup en Supabase. Evita el bug donde appointmentId != roomId de la call.
+        if (incomingRoomId.isNotBlank()) {
+            sessionRetryJob?.cancel()
+            _uiState.update {
+                it.copy(
+                    activeCallId = incomingRoomId,
+                    connectionState = ConnectionState.CONNECTING,
+                    isPreviewOnlyMode = false,
+                    isWaitingRoom = !it.isDoctor,
+                    sessionStatusMessage = if (it.isDoctor) "Conectando con la sala..." else patientStatusMessage(manualRetry),
+                )
+            }
+            engine.connect(incomingRoomId, null)
+            return
         }
 
         telemedicineRepository.getSession(appointmentId)
@@ -601,8 +753,8 @@ class VideoCallViewModel @Inject constructor(
                         activeCallId = sessionInfo.sessionId,
                         connectionState = ConnectionState.CONNECTING,
                         isPreviewOnlyMode = false,
-                        isWaitingRoom = false,
-                        sessionStatusMessage = "Conectando con la sala...",
+                        isWaitingRoom = !it.isDoctor,
+                        sessionStatusMessage = if (it.isDoctor) "Conectando con la sala..." else patientStatusMessage(manualRetry),
                     )
                 }
                 engine.connect(sessionInfo.roomId, sessionInfo.signalingUrl)
@@ -621,20 +773,23 @@ class VideoCallViewModel @Inject constructor(
     private fun enterWaitingRoom(error: Throwable) {
         _uiState.update {
             it.copy(
-                connectionState = ConnectionState.DISCONNECTED,
+                connectionState = if (it.isDoctor || callRequestedByPatient) ConnectionState.CONNECTING else ConnectionState.DISCONNECTED,
                 isPreviewOnlyMode = false,
                 isWaitingRoom = true,
-                sessionStatusMessage = waitingRoomMessage(error.message),
+                sessionStatusMessage = if (it.isDoctor || callRequestedByPatient) "Llamando al médico..." else null,
             )
         }
-        scheduleSessionRetry()
+        if (_uiState.value.isDoctor || callRequestedByPatient) {
+            scheduleSessionRetry()
+        }
     }
 
     private fun scheduleSessionRetry() {
+        if (!_uiState.value.isDoctor && !callRequestedByPatient) return
         if (sessionRetryJob?.isActive == true) return
 
         sessionRetryJob = viewModelScope.launch {
-            while (callStarted) {
+            while (callStarted && (callRequestedByPatient || _uiState.value.isDoctor)) {
                 kotlinx.coroutines.delay(8_000)
                 if (!_uiState.value.isWaitingRoom) break
                 attemptSessionConnection(manualRetry = false)
@@ -646,11 +801,11 @@ class VideoCallViewModel @Inject constructor(
         val normalized = raw?.lowercase().orEmpty()
         return when {
             "network" in normalized || "timeout" in normalized ->
-                "Tu camara ya esta activa. La sala todavia no responde; vamos a reintentar automaticamente."
+                "Consultorio virtual conectado. Reintentando enlace en segundo plano..."
             "no telemedicine call found" in normalized || "no telemedicine" in normalized ->
-                "Tu camara ya esta activa. Todavia no hay otra persona conectada en la sala."
+                "Consultorio conectado. El profesional está revisando tu ficha clínica previa."
             else ->
-                "Tu camara ya esta activa. Estamos esperando que la sala quede disponible."
+                "Sala de espera activa. El profesional ingresará a la consulta en unos momentos."
         }
     }
 

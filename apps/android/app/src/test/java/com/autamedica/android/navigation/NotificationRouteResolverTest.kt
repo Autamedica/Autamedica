@@ -59,4 +59,139 @@ class NotificationRouteResolverTest {
 
         assertThat(route).isNull()
     }
+
+    @Test
+    fun `followup notification type appointment followup 48h resolves to ContinuityStatus`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = "appointment-123",
+            chatRoomId = null,
+            deepLink = null,
+            notificationType = "appointment.followup_48h",
+        )
+
+        assertThat(route).isEqualTo(Route.ContinuityStatus)
+    }
+
+    @Test
+    fun `followup notification type event_appointment_followup_48h resolves to ContinuityStatus`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = "appointment-123",
+            chatRoomId = null,
+            deepLink = null,
+            notificationType = "event_appointment_followup_48h",
+        )
+
+        assertThat(route).isEqualTo(Route.ContinuityStatus)
+    }
+
+    @Test
+    fun `followup notification type followup resolves to ContinuityStatus`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = null,
+            notificationType = "followup",
+        )
+
+        assertThat(route).isEqualTo(Route.ContinuityStatus)
+    }
+
+    @Test
+    fun `deep link autamedica continuity resolves to ContinuityStatus`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = "autamedica://continuity",
+        )
+
+        assertThat(route).isEqualTo(Route.ContinuityStatus)
+    }
+
+    @Test
+    fun `deep link autamedica followup resolves to ContinuityStatus`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = "autamedica://followup",
+        )
+
+        assertThat(route).isEqualTo(Route.ContinuityStatus)
+    }
+
+    @Test
+    fun `deep link with trailing slash or subpath resolves to ContinuityStatus`() {
+        val routeSlash = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = "autamedica://continuity/",
+        )
+        val routeSubpath = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = "/followup",
+        )
+
+        assertThat(routeSlash).isEqualTo(Route.ContinuityStatus)
+        assertThat(routeSubpath).isEqualTo(Route.ContinuityStatus)
+    }
+
+    @Test
+    fun `followup notification type overrides appointment id`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = "appointment-999",
+            chatRoomId = null,
+            deepLink = null,
+            notificationType = "appointment.followup_48h",
+        )
+
+        assertThat(route).isEqualTo(Route.ContinuityStatus)
+    }
+
+    @Test
+    fun `incoming call notification type resolves to VideoCall route with direct join`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = "call-appointment-001",
+            roomId = "room-001",
+            chatRoomId = null,
+            deepLink = null,
+            notificationType = "INCOMING_CALL",
+        )
+
+        assertThat(route).isEqualTo(Route.VideoCall("call-appointment-001", "room-001", true))
+    }
+
+    @Test
+    fun `call started notification type has priority over chat room id`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = "call-appointment-002",
+            roomId = "room-002",
+            chatRoomId = "chat-room-999",
+            deepLink = null,
+            notificationType = "CALL_STARTED",
+        )
+
+        assertThat(route).isEqualTo(Route.VideoCall("call-appointment-002", "room-002", true))
+    }
+
+    @Test
+    fun `patient connected notification type resolves to VideoCall route without direct join flag`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = "call-appointment-003",
+            chatRoomId = null,
+            deepLink = null,
+            notificationType = "PATIENT_CONNECTED",
+        )
+
+        assertThat(route).isEqualTo(Route.VideoCall("call-appointment-003"))
+    }
+
+    @Test
+    fun `isCallNotification detects call events`() {
+        assertThat(NotificationRouteResolver.isCallNotification("incoming_call")).isTrue()
+        assertThat(NotificationRouteResolver.isCallNotification("call_started")).isTrue()
+        assertThat(NotificationRouteResolver.isCallNotification("patient_connected")).isTrue()
+        assertThat(NotificationRouteResolver.isCallNotification("CALL_STARTED")).isTrue()
+        assertThat(NotificationRouteResolver.isCallNotification("followup")).isFalse()
+        assertThat(NotificationRouteResolver.isCallNotification(null)).isFalse()
+    }
 }

@@ -4,11 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.AnamnesisSummary
 import com.autamedica.android.domain.model.Appointment
+import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.model.PatientPreventiveProfile
+import com.autamedica.android.domain.model.PatientProfileSnapshot
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.HealthRepository
+import com.autamedica.android.domain.repository.ProfileRepository
+import com.autamedica.android.domain.model.PortalNotification
+import com.autamedica.android.domain.repository.NotificationRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -23,6 +28,8 @@ import javax.inject.Inject
 data class DashboardUiState(
     val appointments: List<Appointment> = emptyList(),
     val joinableAppointmentIds: Set<String> = emptySet(),
+    val availableDoctors: List<DoctorBookingInfo> = emptyList(),
+    val doctorsLoading: Boolean = false,
     val isLoading: Boolean = true,
     val error: String? = null,
     val telemedicineError: String? = null,
@@ -31,8 +38,27 @@ data class DashboardUiState(
     val userId: String = "",
     val userRole: String = "patient",
     val userName: String = "",
+    val userEmail: String = "",
+    val userPhone: String? = null,
+    val userAvatarUrl: String? = null,
     val anamnesisSummary: AnamnesisSummary? = null,
     val preventiveProfile: PatientPreventiveProfile? = null,
+    val patientSnapshot: PatientProfileSnapshot? = null,
+    // Health Reserve Subscription
+    val subscriptionTier: String = "free", // "free" | "cuidado"
+    val subscriptionStatus: String = "active", // "active" | "past_due"
+    val benefitBalanceCredits: Int = 22,
+    val maxCapCredits: Int = 600,
+    val showReserveBanner: Boolean = true,
+    // Wallet
+    val walletBalanceCents: Long = 0L,
+    val freeConsultationsCount: Int = 1,
+    val isWalletSheetOpen: Boolean = false,
+    val isTopupDialogOpen: Boolean = false,
+    // Notifications
+    val notifications: List<PortalNotification> = emptyList(),
+    val unreadNotificationsCount: Int = 0,
+    val isNotificationsSheetOpen: Boolean = false,
 )
 
 @HiltViewModel
@@ -41,6 +67,8 @@ class DashboardViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val healthRepository: HealthRepository,
     private val telemedicineRepository: TelemedicineRepository,
+    private val profileRepository: ProfileRepository,
+    private val notificationRepository: NotificationRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -48,11 +76,74 @@ class DashboardViewModel @Inject constructor(
 
     init {
         loadUserInfo()
+        observeNotifications()
         refreshData(initialLoad = true)
+    }
+
+    private fun observeNotifications() {
+        viewModelScope.launch {
+            notificationRepository.observeNotifications().collect { notifs ->
+                _uiState.update { it.copy(notifications = notifs) }
+            }
+        }
+        viewModelScope.launch {
+            notificationRepository.observeUnreadCount().collect { count ->
+                _uiState.update { it.copy(unreadNotificationsCount = count) }
+            }
+        }
     }
 
     fun refresh() {
         refreshData(initialLoad = false)
+    }
+
+    fun setNotificationsSheetVisible(visible: Boolean) {
+        _uiState.update { it.copy(isNotificationsSheetOpen = visible) }
+    }
+
+    fun markNotificationAsRead(id: String) {
+        viewModelScope.launch {
+            notificationRepository.markAsRead(id)
+        }
+    }
+
+    fun markAllNotificationsAsRead() {
+        viewModelScope.launch {
+            notificationRepository.markAllAsRead()
+        }
+    }
+
+    fun sendTestNotification() {
+        viewModelScope.launch {
+            notificationRepository.showLocalNotification(
+                title = "Turno confirmado con Dr. Eduardo Da Rosa",
+                body = "Tu consulta de Medicina General está confirmada. Toca para ingresar a la sala.",
+                category = "appointment",
+                deepLink = "/appointments",
+            )
+        }
+    }
+
+    fun toggleReserveBanner(visible: Boolean) {
+        _uiState.update { it.copy(showReserveBanner = visible) }
+    }
+
+    fun setWalletSheetVisible(visible: Boolean) {
+        _uiState.update { it.copy(isWalletSheetOpen = visible) }
+    }
+
+    fun setTopupDialogVisible(visible: Boolean) {
+        _uiState.update { it.copy(isTopupDialogOpen = visible) }
+    }
+
+    fun topupWallet(amountArs: Double) {
+        val centsToAdd = (amountArs * 100).toLong()
+        _uiState.update { current ->
+            current.copy(
+                walletBalanceCents = current.walletBalanceCents + centsToAdd,
+                isTopupDialogOpen = false,
+            )
+        }
     }
 
     private fun loadUserInfo() {
@@ -66,6 +157,9 @@ class DashboardViewModel @Inject constructor(
                         userName = listOfNotNull(user.firstName, user.lastName)
                             .joinToString(" ")
                             .ifBlank { user.email },
+                        userEmail = user.email,
+                        userPhone = user.phone,
+                        userAvatarUrl = user.avatarUrl,
                     )
                 }
             }
@@ -77,6 +171,7 @@ class DashboardViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isLoading = if (initialLoad) true else it.isLoading,
+                    doctorsLoading = true,
                     isRefreshing = !initialLoad,
                     error = null,
                     telemedicineError = null,
@@ -85,13 +180,22 @@ class DashboardViewModel @Inject constructor(
             }
 
             coroutineScope {
+                launch { notificationRepository.startRealtimeListener() }
                 val appointmentsDeferred = async { appointmentRepository.getUpcomingAppointments() }
                 val anamnesisDeferred = async { healthRepository.getAnamnesisSummary() }
                 val preventiveDeferred = async { healthRepository.getPreventiveProfile() }
+                val doctorsDeferred = async { appointmentRepository.getAvailableDoctors() }
+                val snapshotDeferred = async { profileRepository.getPatientProfileSnapshot() }
+                val profileDeferred = async { profileRepository.getProfile() }
+                val notifsDeferred = async { notificationRepository.getNotifications() }
 
                 val appointmentsResult = appointmentsDeferred.await()
                 val anamnesisResult = anamnesisDeferred.await()
                 val preventiveResult = preventiveDeferred.await()
+                val doctorsResult = doctorsDeferred.await()
+                val snapshotResult = snapshotDeferred.await()
+                val profileResult = profileDeferred.await()
+                notifsDeferred.await()
 
                 val appointments = appointmentsResult.getOrNull()
                 val resolvedAppointments = appointments ?: _uiState.value.appointments
@@ -101,10 +205,21 @@ class DashboardViewModel @Inject constructor(
                     _uiState.value.joinableAppointmentIds to _uiState.value.telemedicineError
                 }
 
+                val availableDoctors = doctorsResult.getOrNull() ?: _uiState.value.availableDoctors
+                val snapshot = snapshotResult.getOrNull() ?: _uiState.value.patientSnapshot
+                val profile = profileResult.getOrNull()
+
                 _uiState.update { current ->
+                    val resolvedName = profile?.displayName?.ifBlank { current.userName } ?: current.userName
+                    val resolvedEmail = profile?.email?.ifBlank { current.userEmail } ?: current.userEmail
+                    val resolvedPhone = profile?.phone ?: current.userPhone
+                    val resolvedAvatar = profile?.avatarUrl ?: current.userAvatarUrl
+
                     current.copy(
                         appointments = resolvedAppointments,
                         joinableAppointmentIds = joinableResult.first,
+                        availableDoctors = availableDoctors,
+                        doctorsLoading = false,
                         isLoading = false,
                         isRefreshing = false,
                         error = appointmentsResult.exceptionOrNull()?.let { sanitizeErrorMessage(it.message) },
@@ -112,6 +227,11 @@ class DashboardViewModel @Inject constructor(
                         preventiveError = preventiveResult.exceptionOrNull()?.let { sanitizePreventiveError(it.message) },
                         anamnesisSummary = anamnesisResult.getOrNull() ?: current.anamnesisSummary,
                         preventiveProfile = preventiveResult.getOrNull() ?: current.preventiveProfile,
+                        patientSnapshot = snapshot,
+                        userName = resolvedName,
+                        userEmail = resolvedEmail,
+                        userPhone = resolvedPhone,
+                        userAvatarUrl = resolvedAvatar,
                     )
                 }
             }

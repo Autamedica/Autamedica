@@ -37,6 +37,12 @@ object NotificationHelper {
             importance = NotificationManager.IMPORTANCE_HIGH,
         ),
         ChannelDef(
+            id = IncomingCallNotificationManager.CHANNEL_ID,
+            name = "Llamadas entrantes",
+            description = "Llamadas y videollamadas entrantes con timbre y pantalla completa",
+            importance = NotificationManager.IMPORTANCE_HIGH,
+        ),
+        ChannelDef(
             id = "autamedica_calls",
             name = "Videollamadas",
             description = "Avisos cuando un paciente o doctor se conecta a la consulta",
@@ -72,7 +78,18 @@ object NotificationHelper {
         channels.forEach { def ->
             val channel = NotificationChannel(def.id, def.name, def.importance).apply {
                 description = def.description
-                if (def.importance >= NotificationManager.IMPORTANCE_HIGH) {
+                if (def.id == IncomingCallNotificationManager.CHANNEL_ID) {
+                    val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+                    val audioAttrs = AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                    setSound(ringtoneUri, audioAttrs)
+                    enableVibration(true)
+                    vibrationPattern = longArrayOf(0, 1000, 1000, 1000, 1000, 1000)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                    setBypassDnd(true)
+                } else if (def.importance >= NotificationManager.IMPORTANCE_HIGH) {
                     val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                     val audioAttrs = AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_NOTIFICATION)
@@ -90,6 +107,15 @@ object NotificationHelper {
      * Build and show a notification for the given [PushPayload].
      */
     fun show(context: Context, payload: PushPayload) {
+        if (payload.type == NotificationType.CALL_STARTED ||
+            payload.type == NotificationType.PATIENT_CONNECTED ||
+            payload.type == NotificationType.INCOMING_CALL
+        ) {
+            IncomingCallNotificationManager.showIncomingCall(context, payload)
+            return
+        }
+
+        createChannels(context)
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
 
         val contentIntent = buildContentIntent(context, payload)
@@ -121,6 +147,7 @@ object NotificationHelper {
         val notificationId = (payload.appointmentId ?: payload.chatRoomId ?: payload.type.name)
             .hashCode()
 
+        timber.log.Timber.d("[Notifications] Showing system notification id=$notificationId channel=${payload.type.channelId} title=${payload.title}")
         manager.notify(notificationId, builder.build())
     }
 
@@ -140,7 +167,9 @@ object NotificationHelper {
             payload.deepLink?.let {
                 putExtra(NotificationRouteResolver.EXTRA_DEEP_LINK, it)
             }
-            putExtra(NotificationRouteResolver.EXTRA_NOTIFICATION_TYPE, payload.type.name)
+            val notifType = payload.rawType ?: payload.type.name
+            putExtra(NotificationRouteResolver.EXTRA_NOTIFICATION_TYPE, notifType)
+            putExtra(NotificationRouteResolver.EXTRA_EVENT, notifType)
         }
         return PendingIntent.getActivity(
             context,

@@ -147,10 +147,7 @@ fun RegisterScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            AutamedicaHeader(
-                activeRole = selectedRole,
-                activeColor = activeColor,
-            )
+            AutamedicaHeader()
 
             RoleSegmentedPicker(
                 selectedRole = selectedRole,
@@ -250,7 +247,7 @@ fun RegisterScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Conexión cifrada de extremo a extremo • Cumplimiento HIPAA",
+                    text = "Conexión cifrada de extremo a extremo",
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                     textAlign = TextAlign.Center,
@@ -261,63 +258,26 @@ fun RegisterScreen(
 }
 
 @Composable
-private fun AutamedicaHeader(
-    activeRole: UserRole,
-    activeColor: Color,
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fillMaxWidth(),
+private fun AutamedicaHeader() {
+    Surface(
+        modifier = Modifier.size(96.dp),
+        shape = RoundedCornerShape(30.dp),
+        color = LogoObsidianBg,
+        border = BorderStroke(1.dp, LogoRingBorder),
+        shadowElevation = 16.dp,
     ) {
-        Surface(
-            shape = RoundedCornerShape(999.dp),
-            color = AuSurface,
-            border = BorderStroke(1.dp, AuBorder),
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize(),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(activeColor),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "REGISTRO DE CUENTA",
-                    color = AuTextSecondary,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.6.sp,
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Surface(
-            modifier = Modifier.size(96.dp),
-            shape = RoundedCornerShape(32.dp),
-            color = LogoObsidianBg,
-            border = BorderStroke(1.dp, LogoRingBorder),
-            shadowElevation = 16.dp,
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_autamedica),
-                    contentDescription = "AutaMedica",
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(16.dp)),
-                    contentScale = ContentScale.Fit,
-                )
-            }
+            Image(
+                painter = painterResource(id = R.drawable.logo_autamedica),
+                contentDescription = "AutaMedica",
+                modifier = Modifier
+                    .size(76.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                contentScale = ContentScale.Fit,
+            )
         }
     }
 }
@@ -327,17 +287,17 @@ private fun RoleHeading(
     selectedRole: UserRole,
 ) {
     val title = when (selectedRole) {
-        UserRole.PATIENT -> "Creá tu cuenta de paciente"
-        UserRole.DOCTOR -> "Creá tu cuenta médica"
-        UserRole.PHARMACIST -> "Creá tu cuenta de farmacia"
-        else -> "Creá tu cuenta corporativa"
+        UserRole.PATIENT -> "Crear cuenta"
+        UserRole.DOCTOR -> "Registro médico"
+        UserRole.PHARMACIST -> "Registro de farmacia"
+        else -> "Registro corporativo"
     }
 
     val subtitle = when (selectedRole) {
-        UserRole.PATIENT -> "Ingresá a tu espacio de salud personalizada"
-        UserRole.DOCTOR -> "Accedé a tu consultorio virtual y agenda médica"
+        UserRole.PATIENT -> "Completá tus datos para acceder a tus consultas y recetas"
+        UserRole.DOCTOR -> "Gestioná tus turnos, videoconsultas y recetas"
         UserRole.PHARMACIST -> "Validación y dispensa de recetas oficiales"
-        else -> "Gestión de salud corporativa y coberturas"
+        else -> "Gestión de coberturas corporativas"
     }
 
     Column(
@@ -474,7 +434,7 @@ private fun RegisterFormCard(
     onPrivacyClick: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
-    val buttonLabel = "Crear mi cuenta"
+    val buttonLabel = "Crear cuenta"
 
     Surface(
         modifier = Modifier.fillMaxWidth(),

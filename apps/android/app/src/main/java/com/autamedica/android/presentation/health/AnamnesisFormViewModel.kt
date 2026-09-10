@@ -14,6 +14,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class AnamnesisDisplayMode {
+    WIZARD,
+    OVERVIEW,
+}
+
 data class AnamnesisFormUiState(
     val isLoading: Boolean = true,
     val summary: AnamnesisSummary? = null,
@@ -24,7 +29,9 @@ data class AnamnesisFormUiState(
     val isSaving: Boolean = false,
     val isSubmitting: Boolean = false,
     val error: String? = null,
+    val saveSuccessMessage: String? = null,
     val submitted: Boolean = false,
+    val displayMode: AnamnesisDisplayMode = AnamnesisDisplayMode.WIZARD,
 ) {
     val currentSection: AnamnesisSection?
         get() = sections.getOrNull(currentSectionIndex)
@@ -37,6 +44,15 @@ data class AnamnesisFormUiState(
 
     val allSectionsCompleted: Boolean
         get() = sections.isNotEmpty() && sections.all { it.completed }
+
+    val completedSectionsCount: Int
+        get() = sections.count { it.completed }
+
+    val completionPercentage: Int
+        get() {
+            val total = sections.size.coerceAtLeast(1)
+            return ((completedSectionsCount.toFloat() / total) * 100).toInt()
+        }
 
     val hasUnsavedChanges: Boolean
         get() = currentSection?.data.orEmpty() != fieldValues
@@ -106,8 +122,17 @@ class AnamnesisFormViewModel @Inject constructor(
                 fieldValues = state.fieldValues + (key to value),
                 fieldErrors = state.fieldErrors - key,
                 error = null,
+                saveSuccessMessage = null,
             )
         }
+    }
+
+    fun dismissSaveSuccess() {
+        _uiState.update { it.copy(saveSuccessMessage = null) }
+    }
+
+    fun switchMode(mode: AnamnesisDisplayMode) {
+        _uiState.update { it.copy(displayMode = mode, error = null) }
     }
 
     fun saveAndNext() {
@@ -136,7 +161,7 @@ class AnamnesisFormViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSaving = true, error = null, fieldErrors = emptyMap()) }
+            _uiState.update { it.copy(isSaving = true, error = null, fieldErrors = emptyMap(), saveSuccessMessage = null) }
 
             healthRepository.saveSection(summary.id, section.section, state.fieldValues)
                 .onSuccess {
@@ -151,6 +176,7 @@ class AnamnesisFormViewModel @Inject constructor(
                                         state.currentSectionIndex + 1
                                     }
                                     val nextSection = updatedSections.getOrNull(nextIndex)
+                                    val sectionDisplayName = AnamnesisSection.displayName(section.section)
                                     _uiState.update {
                                         it.copy(
                                             isSaving = false,
@@ -158,6 +184,7 @@ class AnamnesisFormViewModel @Inject constructor(
                                             currentSectionIndex = nextIndex,
                                             fieldValues = nextSection?.data ?: emptyMap(),
                                             fieldErrors = emptyMap(),
+                                            saveSuccessMessage = "Sección $sectionDisplayName guardada correctamente.",
                                         )
                                     }
                                 }
@@ -205,6 +232,7 @@ class AnamnesisFormViewModel @Inject constructor(
                 fieldValues = prevSection?.data ?: emptyMap(),
                 fieldErrors = emptyMap(),
                 error = null,
+                saveSuccessMessage = null,
             )
         }
     }
@@ -217,6 +245,7 @@ class AnamnesisFormViewModel @Inject constructor(
                 fieldValues = section.data,
                 fieldErrors = emptyMap(),
                 error = null,
+                saveSuccessMessage = null,
             )
         }
     }

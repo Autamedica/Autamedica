@@ -114,6 +114,24 @@ fun AppNavHost(
                         launchSingleTop = true
                     }
                 },
+                onNavigateToPsychiatry = {
+                    navController.navigate(Route.PsychiatryIntake)
+                },
+                onNavigateToReproductiveHealth = {
+                    navController.navigate(Route.ReproductiveHealth)
+                },
+                onNavigateToCommunity = {
+                    navController.navigate(Route.PatientCommunity)
+                },
+                onNavigateToPrescriptions = {
+                    navController.navigate(Route.ConsultationReports)
+                },
+                onNavigateToClinicalDocuments = {
+                    navController.navigate(Route.ConsultationReports)
+                },
+                onNavigateToContinuityStatus = {
+                    navController.navigate(Route.ContinuityStatus)
+                },
             )
         }
 
@@ -121,6 +139,8 @@ fun AppNavHost(
             val route = backStackEntry.toRoute<Route.VideoCall>()
             VideoCallScreen(
                 appointmentId = route.appointmentId,
+                roomId = route.roomId,
+                isIncomingCall = route.isIncomingCall,
                 onCallEnd = { navController.popBackStack() },
                 isInPipMode = isInPipMode,
             )
@@ -180,7 +200,10 @@ fun AppNavHost(
 
         composable<Route.ContinuityStatus> {
             com.autamedica.android.presentation.patients.continuity.ContinuityStatusScreen(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onNavigateToVideoCall = { appointmentId ->
+                    navController.navigate(Route.VideoCall(appointmentId))
+                },
             )
         }
 
@@ -204,7 +227,12 @@ fun AppNavHost(
 
         composable<Route.DoctorAgenda> {
             com.autamedica.android.presentation.doctors.agenda.DoctorAgendaScreen(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onNavigateToVideoCall = { appointmentId ->
+                    navController.navigate(Route.VideoCall(appointmentId)) {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 

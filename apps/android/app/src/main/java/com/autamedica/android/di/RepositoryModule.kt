@@ -16,6 +16,8 @@ import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.repository.StorageRepository
 import com.autamedica.android.data.repository.StorageRepositoryImpl
 import com.autamedica.android.data.repository.TelemedicineRepositoryImpl
+import com.autamedica.android.data.repository.FollowupRepositoryImpl
+import com.autamedica.android.domain.repository.FollowupRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -69,4 +71,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindClinicalDocumentRepository(impl: com.autamedica.android.data.repository.ClinicalDocumentRepositoryImpl): com.autamedica.android.domain.repository.ClinicalDocumentRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFollowupRepository(impl: FollowupRepositoryImpl): FollowupRepository
 }

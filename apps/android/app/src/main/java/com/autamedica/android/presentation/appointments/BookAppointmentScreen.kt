@@ -94,13 +94,13 @@ fun BookAppointmentScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Reservar Turno",
+                            text = "Pedir turno",
                             style = MaterialTheme.typography.titleLarge,
                             color = AuTextPrimary,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Videoconsulta médica programada",
+                            text = "Videoconsulta médica",
                             style = MaterialTheme.typography.labelSmall,
                             color = accentColor,
                         )
@@ -134,8 +134,8 @@ fun BookAppointmentScreen(
             item {
                 SectionHeader(
                     stepNumber = "1",
-                    title = "Especialidad Médica",
-                    subtitle = "Filtra los médicos disponibles por área de atención",
+                    title = "Especialidad",
+                    subtitle = "Elegí el área de atención",
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 LazyRow(
@@ -157,8 +157,8 @@ fun BookAppointmentScreen(
             item {
                 SectionHeader(
                     stepNumber = "2",
-                    title = "Profesional Disponible",
-                    subtitle = "Elige el especialista para tu videoconsulta",
+                    title = "Profesional",
+                    subtitle = "Elegí al especialista",
                 )
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -215,8 +215,8 @@ fun BookAppointmentScreen(
             item {
                 SectionHeader(
                     stepNumber = "3",
-                    title = "Fecha y Horario",
-                    subtitle = "Selecciona el día y la franja horaria que prefieras",
+                    title = "Fecha y horario",
+                    subtitle = "Elegí el día y la hora que prefieras",
                 )
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -274,8 +274,8 @@ fun BookAppointmentScreen(
             item {
                 SectionHeader(
                     stepNumber = "4",
-                    title = "Motivo de la Consulta",
-                    subtitle = "Detalla brevemente la razón del turno o tus síntomas",
+                    title = "Motivo de consulta",
+                    subtitle = "Contanos brevemente el motivo del turno",
                 )
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -402,7 +402,7 @@ fun BookAppointmentScreen(
             },
             title = {
                 Text(
-                    text = "¡Turno Agendado con Éxito!",
+                    text = "Turno confirmado",
                     style = MaterialTheme.typography.titleLarge,
                     color = AuTextPrimary,
                     fontWeight = FontWeight.Bold,
@@ -410,11 +410,6 @@ fun BookAppointmentScreen(
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Tu consulta ha quedado programada correctamente en la plataforma:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AuTextSecondary,
-                    )
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = AuBackground,
@@ -440,14 +435,14 @@ fun BookAppointmentScreen(
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = "Modalidad: Videoconsulta (Telemedicina)",
+                                text = "Videoconsulta",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextTertiary,
                             )
                         }
                     }
                     Text(
-                        text = "Podrás unirte a la videoconsulta desde tu agenda cuando llegue la fecha y hora.",
+                        text = "Vas a poder ingresar desde tus turnos cuando llegue el horario.",
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary,
                     )
@@ -462,7 +457,7 @@ fun BookAppointmentScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                 ) {
-                    Text("Ver en Mi Agenda", fontWeight = FontWeight.Bold)
+                    Text("Ver mis turnos", fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = AuSurface,

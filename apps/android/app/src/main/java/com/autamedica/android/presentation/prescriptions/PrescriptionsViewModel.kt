@@ -13,13 +13,32 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class PrescriptionFilter(val label: String) {
+    TODAS("Todas"),
+    ACTIVAS("Activas"),
+    DISPENSADAS("Dispensadas"),
+    COMPLETADAS("Completadas"),
+}
+
 data class PrescriptionsUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val prescriptions: List<Prescription> = emptyList(),
+    val selectedFilter: PrescriptionFilter = PrescriptionFilter.TODAS,
     val selectedPrescription: Prescription? = null,
     val error: String? = null,
-)
+) {
+    val activeCount: Int
+        get() = prescriptions.count { it.isActive }
+
+    val filteredPrescriptions: List<Prescription>
+        get() = when (selectedFilter) {
+            PrescriptionFilter.TODAS -> prescriptions
+            PrescriptionFilter.ACTIVAS -> prescriptions.filter { it.isActive }
+            PrescriptionFilter.DISPENSADAS -> prescriptions.filter { it.isDispensed }
+            PrescriptionFilter.COMPLETADAS -> prescriptions.filter { it.isCompleted }
+        }
+}
 
 @HiltViewModel
 class PrescriptionsViewModel @Inject constructor(
@@ -77,5 +96,9 @@ class PrescriptionsViewModel @Inject constructor(
 
     fun clearSelectedPrescription() {
         _uiState.update { it.copy(selectedPrescription = null) }
+    }
+
+    fun setFilter(filter: PrescriptionFilter) {
+        _uiState.update { it.copy(selectedFilter = filter) }
     }
 }

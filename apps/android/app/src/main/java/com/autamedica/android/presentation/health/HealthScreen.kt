@@ -72,8 +72,8 @@ private data class HealthFeature(
 private val otherHealthFeatures = listOf(
     HealthFeature(
         id = "prescriptions",
-        title = "Recetas Digitales",
-        description = "Prescripciones médicas firmadas y códigos QR para farmacia",
+        title = "Recetas digitales",
+        description = "Prescripciones médicas y códigos QR para farmacia",
         icon = Icons.Outlined.Medication,
         iconColor = PortalPatients,
         iconBgColor = Color(0xFF0F172A),
@@ -82,8 +82,8 @@ private val otherHealthFeatures = listOf(
     ),
     HealthFeature(
         id = "documents",
-        title = "Estudios y Documentos",
-        description = "Análisis de laboratorio, estudios por imágenes y reportes",
+        title = "Estudios y documentos",
+        description = "Análisis de laboratorio, imágenes y reportes",
         icon = Icons.Outlined.Description,
         iconColor = PrimaryLight,
         iconBgColor = Color(0xFF172554),
@@ -92,8 +92,8 @@ private val otherHealthFeatures = listOf(
     ),
     HealthFeature(
         id = "preventive",
-        title = "Salud Preventiva",
-        description = "Controles periódicos, vacunas y screenings",
+        title = "Salud preventiva",
+        description = "Controles periódicos y chequeos sugeridos",
         icon = Icons.Outlined.HealthAndSafety,
         iconColor = PortalPatients,
         iconBgColor = Color(0xFF052E16),
@@ -127,7 +127,7 @@ fun HealthScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Mi Salud",
+                        text = "Mi salud",
                         style = MaterialTheme.typography.titleLarge,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.Bold,
@@ -148,22 +148,6 @@ fun HealthScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                Column(modifier = Modifier.padding(bottom = 8.dp)) {
-                    Text(
-                        text = "Tu espacio de bienestar",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AuTextSecondary,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Accede a tu información de salud en un solo lugar",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AuTextTertiary,
-                    )
-                }
-            }
-
             item {
                 AnamnesisFeatureCard(
                     summary = uiState.anamnesisSummary,
@@ -322,13 +306,13 @@ private fun AnamnesisFeatureCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Mi Anamnesis",
+                        text = "Ficha médica",
                         style = MaterialTheme.typography.titleSmall,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = "Tu historial clinico personal y antecedentes",
+                        text = "Historial clínico y antecedentes de salud",
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary,
                     )
@@ -364,7 +348,7 @@ private fun AnamnesisFeatureCard(
                 )
             } else if (!isLoading) {
                 Text(
-                    text = "Todavia no hay una anamnesis cargada para este paciente.",
+                    text = "Todavía no tenés una ficha médica cargada.",
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                 )

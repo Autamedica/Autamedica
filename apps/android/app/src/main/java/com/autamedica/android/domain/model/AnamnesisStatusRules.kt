@@ -32,13 +32,13 @@ fun anamnesisReadOnlyReason(summary: AnamnesisSummary?): String? {
 
     return when (normalizeAnamnesisStatus(summary.status)) {
         ANAMNESIS_STATUS_APPROVED ->
-            "La anamnesis ya fue aprobada por el equipo clinico y queda en solo lectura."
+            "La ficha médica ya fue aprobada por el equipo médico."
         ANAMNESIS_STATUS_UNDER_REVIEW ->
             "La anamnesis ya fue enviada y esta en revision. No se permiten cambios."
         ANAMNESIS_STATUS_COMPLETED ->
-            "La anamnesis ya fue completada. Se muestra en solo lectura para evitar cambios accidentales."
+            "La ficha médica ya fue completada."
         else -> if (summary.locked) {
-            "La anamnesis se encuentra bloqueada por el backend y no permite edicion."
+            "La ficha médica se encuentra cerrada para edición."
         } else {
             null
         }

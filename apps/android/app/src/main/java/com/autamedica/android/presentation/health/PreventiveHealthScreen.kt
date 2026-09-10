@@ -239,20 +239,11 @@ fun PreventiveHealthScreen(
                     )
                     uiState.isProfileReady -> InfoBanner(
                         title = "Perfil conectado",
-                        message = "Usando tu fecha de nacimiento y genero guardados en Supabase para calcular chequeos preventivos automaticamente.",
+                        message = "Chequeos calculados a partir de tu fecha de nacimiento y género.",
                     )
                     else -> InfoBanner(
-                        title = "Perfil preventivo incompleto",
-                        message = "No encontramos fecha de nacimiento y genero en formato utilizable. Puedes calcular manualmente tus controles mientras conectamos la edicion de perfil en Android.",
-                    )
-                }
-            }
-
-            item {
-                if (calculatedAge == null || calculatedGender == null) {
-                    InfoBanner(
-                        title = "Personaliza tus controles",
-                        message = "La calculadora sigue disponible para ajustes manuales y para casos donde quieras explorar otro escenario preventivo.",
+                        title = "Completá tu perfil",
+                        message = "Completá tu fecha de nacimiento y género para personalizar tus chequeos, o calculalos manualmente.",
                     )
                 }
             }
@@ -351,13 +342,13 @@ private fun HeroCard(modifier: Modifier = Modifier) {
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "Chequeos y vacunas segun tu etapa de vida",
+                    text = "Chequeos y vacunas según tu edad",
                     style = MaterialTheme.typography.headlineMedium,
                     color = AuTextPrimary,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Replica la experiencia definida en Astro/Next para que puedas revisar controles recomendados, entender cuando empiezan y sostener habitos preventivos.",
+                    text = "Revisá los controles de salud recomendados para tu edad y género.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AuTextSecondary,
                 )
