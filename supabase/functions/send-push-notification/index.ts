@@ -3,6 +3,17 @@ import { corsHeaders } from '../_shared/cors.ts'
 
 console.info('Send Push Notification function started')
 
+interface ServiceAccount {
+  type: string
+  project_id: string
+  private_key_id: string
+  private_key: string
+  client_email: string
+  client_id: string
+  token_uri: string
+  auth_uri: string
+}
+
 interface PushPayload {
   userId: string
   title: string
@@ -10,15 +21,142 @@ interface PushPayload {
   data?: Record<string, string>
 }
 
+function base64UrlEncode(input: string): string {
+  return btoa(input)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+}
+
+function base64UrlDecodeToBinary(input: string): Uint8Array {
+  const b64 = input.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=')
+  const raw = atob(padded)
+  const bytes = new Uint8Array(raw.length)
+  for (let i = 0; i < raw.length; i++) {
+    bytes[i] = raw.charCodeAt(i)
+  }
+  return bytes
+}
+
+function pemToBinary(pem: string): Uint8Array {
+  const body = pem
+    .replace(/-----BEGIN [A-Z ]+-----/g, '')
+    .replace(/-----END [A-Z ]+-----/g, '')
+    .replace(/\s+/g, '')
+  return base64UrlDecodeToBinary(body)
+}
+
+async function signJwt(
+  clientEmail: string,
+  privateKey: string,
+  tokenUri: string,
+  scope: string,
+): Promise<string> {
+  const now = Math.floor(Date.now() / 1000)
+
+  const header = { alg: 'RS256', typ: 'JWT' }
+  const claims = {
+    iss: clientEmail,
+    scope,
+    aud: tokenUri,
+    iat: now,
+    exp: now + 3600,
+  }
+
+  const signingInput = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(JSON.stringify(claims))}`
+
+  const key = await crypto.subtle.importKey(
+    'pkcs8',
+    pemToBinary(privateKey),
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    key,
+    new TextEncoder().encode(signingInput),
+  )
+
+  const sigBytes = new Uint8Array(signature)
+  let sigBase64 = ''
+  for (let i = 0; i < sigBytes.length; i++) {
+    sigBase64 += String.fromCharCode(sigBytes[i])
+  }
+
+  return `${signingInput}.${base64UrlEncode(sigBase64)}`
+}
+
+async function getAccessToken(sa: ServiceAccount): Promise<string> {
+  const jwt = await signJwt(
+    sa.client_email,
+    sa.private_key,
+    sa.token_uri,
+    'https://www.googleapis.com/auth/firebase.messaging',
+  )
+
+  const res = await fetch(sa.token_uri, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }),
+  })
+
+  const body = await res.json().catch(() => null) as { access_token?: string; error?: string } | null
+
+  if (!res.ok || !body?.access_token) {
+    throw new Error(`OAuth2 token exchange failed: ${res.status} ${JSON.stringify(body)}`)
+  }
+
+  return body.access_token
+}
+
+async function sendFcm(sa: ServiceAccount, message: Record<string, unknown>): Promise<{ ok: boolean; status: number; body: unknown }> {
+  const accessToken = await getAccessToken(sa)
+
+  const res = await fetch(
+    `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message }),
+    },
+  )
+
+  const body = await res.json().catch(() => null)
+  return { ok: res.ok, status: res.status, body }
+}
+
+function parseServiceAccount(raw: string | null): ServiceAccount | null {
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as ServiceAccount
+  } catch {
+    return null
+  }
+}
+
+function isAuthorized(authHeader: string | null): boolean {
+  if (!authHeader) return false
+  const token = authHeader.replace('Bearer ', '')
+  const cronSecret = Deno.env.get('CRON_SECRET') ?? ''
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  return token && (token === cronSecret || token === serviceRoleKey)
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  const authHeader = req.headers.get('Authorization')
-  const expectedToken = Deno.env.get('CRON_SECRET') ?? ''
-
-  if (!authHeader || authHeader !== `Bearer ${expectedToken}`) {
+  if (!isAuthorized(req.headers.get('Authorization'))) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -28,7 +166,13 @@ Deno.serve(async (req) => {
   try {
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      },
     )
 
     const { userId, title, body, data } = await req.json() as PushPayload
@@ -37,7 +181,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'userId is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Get FCM token from profile
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('fcm_token')
@@ -49,24 +192,46 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: false, error: 'no_token' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // In a real implementation, we would use the Google Auth library to get an access token
-    // and then call the FCM v1 REST API.
-    // Since we are in a Deno environment, we can use 'https://esm.sh/googleapis' or similar.
-    
-    // For now, we will log the intent and the token.
-    // TODO (AUT-128): Implement actual FCM v1 call using service account
-    console.info(`[FCM] Sending ${data?.type || 'GENERAL'} notification to ${userId}`)
-    console.info(`[FCM] Token: ${profile.fcm_token.slice(0, 10)}...`)
-    console.info(`[FCM] Content: ${title} - ${body}`)
+    const sa = parseServiceAccount(Deno.env.get('FIREBASE_SERVICE_ACCOUNT') ?? null)
+    if (!sa) {
+      console.error('FIREBASE_SERVICE_ACCOUNT secret is missing or invalid')
+      return new Response(JSON.stringify({ error: 'firebase_not_configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: 'Notification queued',
-      debug: {
-        token_found: true,
-        type: data?.type || 'unknown'
-      }
-    }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const message: Record<string, unknown> = {
+      token: profile.fcm_token,
+      data: {
+        type: data?.type ?? 'GENERAL',
+        title: title ?? 'AutaMedica',
+        body: body ?? '',
+        ...data,
+      },
+      android: {
+        priority: data?.type === 'CALL_STARTED' || data?.type === 'PATIENT_CONNECTED' || data?.type === 'INCOMING_CALL'
+          ? 'high'
+          : 'normal',
+      },
+    }
+
+    if (data?.type !== 'CALL_STARTED' && data?.type !== 'PATIENT_CONNECTED' && data?.type !== 'INCOMING_CALL') {
+      message.notification = { title: title ?? 'AutaMedica', body: body ?? '' }
+    }
+
+    const result = await sendFcm(sa, message)
+
+    if (!result.ok) {
+      console.error('[FCM] send failed', { status: result.status, body: result.body })
+      return new Response(
+        JSON.stringify({ success: false, error: 'fcm_send_failed', details: result.body }),
+        { status: result.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    console.info('[FCM] Sent notification', { type: data?.type ?? 'GENERAL', status: result.status })
+    return new Response(JSON.stringify({ success: true, type: data?.type ?? 'GENERAL', fcm: result.body }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
 
   } catch (error) {
     console.error('send-push-notification error:', error)

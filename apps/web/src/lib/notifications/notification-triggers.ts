@@ -1,6 +1,7 @@
 import type { Database } from '@autamedica/types';
 import { domainEvents, logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
+import { resolvePublicSupabaseEnv, resolveServiceRoleKey } from '@/lib/runtime-env';
 import { followupScheduleService } from '@/lib/calls/services/followup-schedule.service';
 
 type TriggerAudience = 'doctor' | 'patient';
@@ -388,6 +389,87 @@ function registerNotificationTriggers() {
       contextData: { consultationId, doctorId, patientId, reportUrl: reportUrl ?? null },
     });
   });
+
+  domainEvents.on(
+    'call.started',
+    async ({ callId, roomId, doctorId, patientId }: { callId: string; roomId: string; doctorId: string; patientId: string | null }) => {
+      logger.info('[notificationTriggers] Received call.started domain event', { callId, roomId, doctorId, patientId });
+      try {
+        const patientUserId = await resolvePatientUser(patientId);
+        if (!patientUserId) {
+          logger.warn('[notificationTriggers] call.started: no patient user to notify', { callId, patientId });
+          return;
+        }
+
+        const [doctorUser, appointment] = await Promise.all([
+          getAdminClient().from('doctors').select('user_id').eq('id', doctorId).maybeSingle(),
+          getAdminClient().from('calls').select('appointment_id').eq('id', callId).maybeSingle(),
+        ]);
+
+        let doctorDisplay = 'su medico';
+        if (doctorUser.data?.user_id) {
+          const { data: profile } = await getAdminClient()
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('user_id', doctorUser.data.user_id)
+            .maybeSingle();
+          const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim();
+          if (fullName) {
+            doctorDisplay = `Dr. ${fullName}`;
+          }
+        }
+
+        const { publicSupabaseUrl } = resolvePublicSupabaseEnv();
+        const serviceRoleKey = resolveServiceRoleKey();
+
+        if (!publicSupabaseUrl || !serviceRoleKey) {
+          logger.warn('[notificationTriggers] call.started: missing SUPABASE_URL/SERVICE_ROLE_KEY, skipping push', { callId });
+          return;
+        }
+
+        const pushRes = await fetch(`${publicSupabaseUrl}/functions/v1/send-push-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${serviceRoleKey}`,
+          },
+          body: JSON.stringify({
+            userId: patientUserId,
+            title: 'Llamada entrante',
+            body: `${doctorDisplay} te está llamando para tu consulta.`,
+            data: {
+              type: 'CALL_STARTED',
+              call_id: callId,
+              room_id: roomId,
+              appointment_id: appointment.data?.appointment_id ?? '',
+              doctor_id: doctorId,
+            },
+          }),
+        });
+
+        if (!pushRes.ok) {
+          const errBody = await pushRes.text().catch(() => '');
+          logger.error('[notificationTriggers] call.started push failed', { callId, status: pushRes.status, body: errBody });
+        }
+
+        await insertPortalNotification({
+          userId: patientUserId,
+          audience: 'patient',
+          category: 'appointment',
+          type: 'event_call_started',
+          title: 'Llamada entrante',
+          body: `${doctorDisplay} te está llamando para tu consulta.`,
+          actionUrl: '/patients/videoconsulta',
+          actionLabel: 'Atender llamada',
+          priority: 'urgent',
+          dedupeKey: `event:call.started:${callId}`,
+          contextData: { callId, roomId, doctorId, patientId },
+        });
+      } catch (err) {
+        logger.error('[notificationTriggers] call.started handler failed', { callId, error: err instanceof Error ? err.message : err });
+      }
+    },
+  );
 
   domainEvents.on('call.ended', async ({ callId, roomId, durationSeconds }) => {
     logger.info('[notificationTriggers] Received call.ended domain event', { callId, roomId, durationSeconds });
