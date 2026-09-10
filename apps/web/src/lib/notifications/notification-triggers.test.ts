@@ -39,7 +39,7 @@ const insertedRows: Array<Record<string, unknown>> = [];
 const appointmentsRow = { doctor_id: 'doc-1', patient_id: 'pat-1', start_time: '2026-04-20T15:00:00Z' };
 const doctorsRow = { user_id: 'doctor-user-1' };
 const patientsRow = { user_id: 'patient-user-1' };
-const profilesRow = { first_name: 'Ana', last_name: 'Paciente' };
+const profilesRow = { first_name: 'Ana', last_name: 'Paciente', avatar_url: 'https://cdn.example.com/avatar.jpg' };
 const insertCallsRow: Record<string, unknown> = { appointment_id: null };
 
 function makeMaybeSingleResponse(data: unknown) {
@@ -206,7 +206,9 @@ describe('appointment.cancelled notification trigger', () => {
     expect(body.data.call_id).toBe('call-started-1');
     expect(body.data.room_id).toBe('room_abc');
     expect(body.data.appointment_id).toBe('appt-call-1');
-    expect(body.title).toBe('Llamada entrante');
+expect(body.title).toBe('Dr. Ana Paciente te está llamando');
+    expect(body.data.doctor_name).toBe('Dr. Ana Paciente');
+    expect(body.data.doctor_avatar_url).toBe('https://cdn.example.com/avatar.jpg');
 
     const notifs = insertedRows.filter((row) => row._table === 'portal_notifications');
     const callNotif = notifs.find((row) => row.type === 'event_call_started');

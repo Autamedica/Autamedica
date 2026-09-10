@@ -407,16 +407,18 @@ function registerNotificationTriggers() {
         ]);
 
         let doctorDisplay = 'su medico';
+        let doctorAvatarUrl: string | undefined;
         if (doctorUser.data?.user_id) {
           const { data: profile } = await getAdminClient()
             .from('profiles')
-            .select('first_name, last_name')
+            .select('first_name, last_name, avatar_url')
             .eq('user_id', doctorUser.data.user_id)
             .maybeSingle();
           const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim();
           if (fullName) {
             doctorDisplay = `Dr. ${fullName}`;
           }
+          doctorAvatarUrl = profile?.avatar_url ?? undefined;
         }
 
         const { publicSupabaseUrl } = resolvePublicSupabaseEnv();
@@ -435,14 +437,16 @@ function registerNotificationTriggers() {
           },
           body: JSON.stringify({
             userId: patientUserId,
-            title: 'Llamada entrante',
-            body: `${doctorDisplay} te está llamando para tu consulta.`,
+title: `${doctorDisplay} te está llamando`,
+            body: 'Videollamada para tu consulta',
             data: {
               type: 'CALL_STARTED',
               call_id: callId,
               room_id: roomId,
               appointment_id: appointment.data?.appointment_id ?? '',
               doctor_id: doctorId,
+              doctor_name: doctorDisplay,
+              doctor_avatar_url: doctorAvatarUrl ?? '',
             },
           }),
         });
@@ -457,8 +461,8 @@ function registerNotificationTriggers() {
           audience: 'patient',
           category: 'appointment',
           type: 'event_call_started',
-          title: 'Llamada entrante',
-          body: `${doctorDisplay} te está llamando para tu consulta.`,
+title: `${doctorDisplay} te está llamando`,
+          body: 'Videollamada para tu consulta',
           actionUrl: '/patients/videoconsulta',
           actionLabel: 'Atender llamada',
           priority: 'urgent',
