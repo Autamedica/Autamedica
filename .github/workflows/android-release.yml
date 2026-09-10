@@ -178,7 +178,7 @@ jobs:
             echo "⚠️ GOOGLE_PLAY_SERVICE_ACCOUNT secret not configured in repo"
           fi
 
-      - name: Pre-flight: validate versionCode against Play
+      - name: "Pre-flight: validate versionCode against Play"
         if: steps.check_sa.outputs.has_secret == 'true'
         env:
           SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
