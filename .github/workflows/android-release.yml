@@ -183,38 +183,44 @@ jobs:
         env:
           SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
         run: |
-          pip install --quiet google-auth google-api-python-client
+          pip install --quiet google-auth
           python3 - <<'PY'
-          import json, os, google.auth, google.auth.transport.requests
-          from googleapiclient.discovery import build
+          import json, os
+          from google.auth.transport.requests import AuthorizedSession
           from google.oauth2 import service_account
 
           BUILD_VERSION_CODE = int("${{ needs.build-release-aab.outputs.version_code }}")
           PKG = "com.autamedica.android"
 
-          info = json.loads(os.environ["SERVICE_ACCOUNT"])
-
           creds = service_account.Credentials.from_service_account_info(
-              info,
+              json.loads(os.environ["SERVICE_ACCOUNT"]),
               scopes=["https://www.googleapis.com/auth/androidpublisher"],
           )
+          session = AuthorizedSession(creds)
 
-          service = build("androidpublisher", "v3", credentials=creds)
+          base = f"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{PKG}"
 
-          request = service.edits().create(body={}, packageName=PKG)
-          edit_id = request.execute()["id"]
+          resp = session.post(f"{base}/edits")
+          resp.raise_for_status()
+          edit_id = resp.json()["id"]
+          print(f"Edit created: {edit_id}")
 
           max_code = 0
           try:
               for track in ("internal", "alpha", "beta", "production"):
-                  result = service.edits().tracks().get(
-                      editId=edit_id, packageName=PKG, track=track
-                  ).execute()
-                  for release in result.get("releases", []):
-                      for vc in release.get("versionCodes", []):
-                          max_code = max(max_code, vc)
+                  res = session.get(f"{base}/edits/{edit_id}/tracks/{track}")
+                  if res.status_code == 404:
+                      print(f"Track '{track}': empty or not configured, skipping")
+                      continue
+                  res.raise_for_status()
+                  releases = res.json().get("releases", [])
+                  codes = []
+                  for release in releases:
+                      codes.extend(release.get("versionCodes", []))
+                  max_code = max(max_code, *codes) if codes else max_code
+                  print(f"Track '{track}': versionCodes={sorted(codes)}")
           finally:
-              service.edits().delete(editId=edit_id, packageName=PKG).execute()
+              session.delete(f"{base}/edits/{edit_id}")
 
           print(f"Build versionCode: {BUILD_VERSION_CODE}")
           print(f"Max Play versionCode across all tracks: {max_code}")
