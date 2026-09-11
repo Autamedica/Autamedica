@@ -4,3 +4,4 @@
 # Post-commit: no-op
 # ESLint ya se ejecutó en pre-commit via lint-staged.
 # TypeCheck completo corre en CI (deploy-production.yml).
+exit 0

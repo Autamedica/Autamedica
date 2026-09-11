@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
 import { badRequest, internalError, jsonOk, unauthorized } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
+import { isProduction } from '@/lib/auth-utils'
 import { appointmentPaymentsService } from '@/lib/payments/services/appointment-payments.service'
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -35,7 +36,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const isSimulation = dataId === '123456' || payload.data?.id === '123456'
 
-    if (!isSimulation) {
+    if (!isSimulation || isProduction()) {
       const isValidSignature = await appointmentPaymentsService.validateWebhookSignature({
         signature,
         requestId,
@@ -47,7 +48,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         return unauthorized('invalid_webhook_signature')
       }
     } else {
-      logger.info('[payments/webhook] Bypassing signature check for Mercado Pago simulated test event (data.id: 123456)')
+      logger.info('[payments/webhook] Bypassing signature check for Mercado Pago simulated test event (data.id: 123456) — non-production only')
     }
 
     const supabase = createAstroAdminClient(locals.runtime?.env)
