@@ -6,7 +6,7 @@
 import type { IAppointmentReadRepository, AppointmentView, AppointmentStatus } from '@autamedica/types';
 import { logger, domainEvents } from '@autamedica/shared';
 
-type InternalStatus = AppointmentStatus | 're_queue' | 'no_show';
+type InternalStatus = AppointmentStatus | 'no_show';
 
 export class AppointmentTransitionError extends Error {
   constructor(message: string, public readonly code: string) {
@@ -77,11 +77,10 @@ export class TransitionAppointmentUseCase {
       payment_pending: ['confirmed', 'cancelled'],
       scheduled: ['confirmed', 'cancelled', 'in_progress', 'no_show'],
       confirmed: ['in_progress', 'cancelled', 'no_show'],
-      in_progress: ['completed', 're_queue'],
-      re_queue: ['scheduled', 'cancelled'],
+      in_progress: ['completed'],
       completed: [],
       cancelled: [],
-      no_show: ['scheduled'],
+      no_show: [],
     };
 
     return transitions[current]?.includes(next) ?? false;

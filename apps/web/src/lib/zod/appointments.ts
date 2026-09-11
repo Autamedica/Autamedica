@@ -39,7 +39,7 @@ export const CreateDoctorAppointmentSchema = z.object({
 })
 
 export const TransitionAppointmentSchema = z.object({
-  status: z.enum(['payment_pending', 'scheduled', 'confirmed', 'in_progress', 're_queue', 'completed', 'cancelled', 'no_show'], {
+  status: z.enum(['payment_pending', 'scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show'], {
     required_error: 'Missing status',
     invalid_type_error: 'Missing status',
   }),

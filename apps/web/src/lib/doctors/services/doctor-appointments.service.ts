@@ -25,7 +25,7 @@ export const doctorAppointmentsService = {
     })
   },
 
-  async transition(id: string, status: AppointmentStatus | 're_queue'): Promise<DoctorAppointmentRecord> {
+  async transition(id: string, status: AppointmentStatus): Promise<DoctorAppointmentRecord> {
     return fetchApi<DoctorAppointmentRecord>(`/api/doctors/appointments/${id}/transition`, {
       method: 'POST',
       body: { status },

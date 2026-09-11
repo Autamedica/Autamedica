@@ -21,7 +21,7 @@ interface UseDoctorAppointmentsResult {
   refetch: () => Promise<void>
   createAppointment: (values: DoctorAppointmentFormValues) => Promise<void>
   updateAppointment: (id: string, values: DoctorAppointmentFormValues) => Promise<void>
-  transitionAppointment: (id: string, status: AppointmentStatus | 're_queue') => Promise<void>
+  transitionAppointment: (id: string, status: AppointmentStatus) => Promise<void>
 }
 
 export function useDoctorAppointments(): UseDoctorAppointmentsResult {
@@ -92,7 +92,7 @@ export function useDoctorAppointments(): UseDoctorAppointmentsResult {
   )
 
   const transitionAppointment = useCallback(
-    async (id: string, status: AppointmentStatus | 're_queue') => {
+    async (id: string, status: AppointmentStatus) => {
       try {
         await doctorAppointmentsService.transition(id, status)
         await fetchAppointments()
