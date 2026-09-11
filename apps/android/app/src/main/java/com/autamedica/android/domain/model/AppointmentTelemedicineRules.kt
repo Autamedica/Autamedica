@@ -1,5 +1,7 @@
 package com.autamedica.android.domain.model
 
+import java.time.OffsetDateTime
+
 private val telemedicineJoinableStatuses = setOf(
     AppointmentStatus.SCHEDULED,
     AppointmentStatus.CONFIRMED,
@@ -12,5 +14,8 @@ private val telemedicineJoinableTypes = setOf(
 )
 
 fun Appointment.isTelemedicineJoinCandidate(): Boolean {
-    return type in telemedicineJoinableTypes && status in telemedicineJoinableStatuses
+    if (type !in telemedicineJoinableTypes || status !in telemedicineJoinableStatuses) return false
+    return runCatching {
+        OffsetDateTime.parse(startTime).isAfter(OffsetDateTime.now().minusMinutes(30))
+    }.getOrDefault(false)
 }

@@ -7,6 +7,10 @@ import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.logging.SecureLog
+import java.time.OffsetDateTime
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.DayOfWeek
 import java.util.UUID
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -14,6 +18,8 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,6 +28,26 @@ import com.autamedica.android.data.local.room.entity.toDomain
 import com.autamedica.android.data.local.room.entity.toEntity
 
 private const val KEY_CACHED_RECORD_ID = "cached_record_id"
+
+private const val ACTIVE_WINDOW_MINUTES = 30L
+
+private fun filterActiveWindow(appointments: List<Appointment>): List<Appointment> {
+    val terminalStatuses = setOf(
+        AppointmentStatus.COMPLETED,
+        AppointmentStatus.CANCELLED,
+        AppointmentStatus.NO_SHOW,
+    )
+    val now = OffsetDateTime.now()
+    return appointments.filter { apt ->
+        if (apt.status in terminalStatuses) {
+            true
+        } else {
+            runCatching {
+                OffsetDateTime.parse(apt.startTime).isAfter(now.minusMinutes(ACTIVE_WINDOW_MINUTES))
+            }.getOrDefault(false)
+        }
+    }
+}
 
 @Singleton
 class AppointmentRepositoryImpl @Inject constructor(
@@ -76,7 +102,9 @@ class AppointmentRepositoryImpl @Inject constructor(
         val rawDomainModels = dtos.map { it.toDomain() }
 
         val domainModels = if (role != "doctor") {
-            enrichWithDoctorInfo(rawDomainModels)
+            enrichWithDoctorInfo(
+                filterActiveWindow(rawDomainModels)
+            )
         } else {
             rawDomainModels
         }
@@ -89,8 +117,14 @@ class AppointmentRepositoryImpl @Inject constructor(
         SecureLog.error("[Appointments] Network failed, falling back to offline cache", it)
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
             ?: throw IllegalStateException("No authenticated user available for offline appointments")
+        val role = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: "patient"
         val cachedEntities = appointmentDao.getAppointmentsForUser(userId).firstOrNull() ?: emptyList()
-        cachedEntities.map { entity -> entity.toDomain() }
+        val domainModels = cachedEntities.map { entity -> entity.toDomain() }
+        if (role != "doctor") {
+            filterActiveWindow(domainModels)
+        } else {
+            domainModels
+        }
     }
 
     override suspend fun getAppointmentById(id: String): Result<Appointment> = runCatching {
@@ -267,6 +301,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                 licenseNumber = formattedLicense,
                 consultationFee = normalizedFee,
                 avatarUrl = profile?.avatarUrl?.takeIf { it.isNotBlank() },
+                subspecialty = doc.subspecialty?.takeIf { it.isNotBlank() },
                 availableSlots = defaultSlots,
             )
         }.sortedWith(
@@ -344,6 +379,124 @@ class AppointmentRepositoryImpl @Inject constructor(
         SecureLog.error("[Appointments] Failed booking appointment", it)
     }
 
+    override suspend fun getAvailableSlots(
+        doctorId: String,
+        date: String,
+    ): Result<List<String>> = runCatching {
+        val targetDate = LocalDate.parse(date)
+        val dayOfWeekInt = when (targetDate.dayOfWeek) {
+            DayOfWeek.SUNDAY -> 0
+            DayOfWeek.MONDAY -> 1
+            DayOfWeek.TUESDAY -> 2
+            DayOfWeek.WEDNESDAY -> 3
+            DayOfWeek.THURSDAY -> 4
+            DayOfWeek.FRIDAY -> 5
+            DayOfWeek.SATURDAY -> 6
+        }
+
+        val availabilities = try {
+            supabaseClient.postgrest
+                .from("doctor_availability")
+                .select(Columns.ALL) {
+                    filter {
+                        eq("doctor_id", doctorId)
+                        eq("day_of_week", dayOfWeekInt)
+                        eq("is_active", true)
+                    }
+                }
+                .decodeList<DoctorAvailabilityRowDto>()
+        } catch (e: Exception) {
+            SecureLog.warn("[Appointments] Failed fetching doctor availability: ${e.message}")
+            emptyList()
+        }
+
+        val busyRanges = try {
+            val params = buildJsonObject {
+                put("p_doctor_id", doctorId)
+                put("p_start_date", date)
+                put("p_end_date", date)
+            }
+            supabaseClient.postgrest
+                .rpc("get_doctor_busy_slots", params)
+                .decodeList<DoctorBusySlotDto>()
+        } catch (e: Exception) {
+            SecureLog.warn("[Appointments] Failed calling get_doctor_busy_slots: ${e.message}")
+            emptyList()
+        }
+
+        val defaultTimeRanges = if (availabilities.isNotEmpty()) {
+            availabilities
+        } else {
+            listOf(
+                DoctorAvailabilityRowDto(
+                    doctorId = doctorId,
+                    dayOfWeek = dayOfWeekInt,
+                    startTime = "09:00:00",
+                    endTime = "18:00:00",
+                    slotDuration = 30,
+                    isActive = true
+                )
+            )
+        }
+
+        val bookedTimeWindows = busyRanges.mapNotNull { busy ->
+            runCatching {
+                val start = OffsetDateTime.parse(busy.startTime).toLocalTime()
+                val end = OffsetDateTime.parse(busy.endTime).toLocalTime()
+                start to end
+            }.getOrNull()
+        }
+
+        val generatedSlots = mutableListOf<String>()
+
+        for (avail in defaultTimeRanges) {
+            val startParts = avail.startTime.split(":")
+            val endParts = avail.endTime.split(":")
+            val startH = startParts.getOrNull(0)?.toIntOrNull() ?: 9
+            val startM = startParts.getOrNull(1)?.toIntOrNull() ?: 0
+            val endH = endParts.getOrNull(0)?.toIntOrNull() ?: 18
+            val endM = endParts.getOrNull(1)?.toIntOrNull() ?: 0
+
+            var current = LocalTime.of(startH, startM)
+            val end = LocalTime.of(endH, endM)
+            val durationMinutes = if (avail.slotDuration > 0) avail.slotDuration.toLong() else 30L
+
+            while (current.plusMinutes(durationMinutes) <= end) {
+                val slotStart = current
+                val slotEnd = current.plusMinutes(durationMinutes)
+
+                val isBusy = bookedTimeWindows.any { (busyStart, busyEnd) ->
+                    slotStart < busyEnd && slotEnd > busyStart
+                }
+
+                if (!isBusy) {
+                    val formattedSlot = "%02d:%02d".format(slotStart.hour, slotStart.minute)
+                    generatedSlots.add(formattedSlot)
+                }
+
+                current = slotEnd
+            }
+        }
+
+        val now = OffsetDateTime.now()
+        val filtered = if (targetDate == now.toLocalDate()) {
+            val currentHour = now.hour
+            val currentMin = now.minute
+            generatedSlots.filter { slot ->
+                val parts = slot.split(":")
+                val h = parts.getOrNull(0)?.toIntOrNull() ?: 0
+                val m = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                h > currentHour || (h == currentHour && m > currentMin + 15)
+            }
+        } else {
+            generatedSlots
+        }
+
+        filtered.distinct().sorted()
+    }.onFailure {
+        SecureLog.error("[Appointments] Failed fetching available slots", it)
+    }
+
     private suspend fun enrichWithDoctorInfo(appointments: List<Appointment>): List<Appointment> {
         val doctorIds = appointments.mapNotNull { it.doctorId }.distinct()
         if (doctorIds.isEmpty()) return appointments
@@ -406,6 +559,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                         licenseNumber = doc.licenseNumber.orEmpty(),
                         consultationFee = normalizedFee,
                         avatarUrl = profile?.avatarUrl?.takeIf { it.isNotBlank() },
+                        subspecialty = doc.subspecialty?.takeIf { it.isNotBlank() },
                         availableSlots = emptyList(),
                     )
                 }
@@ -488,6 +642,7 @@ private data class DoctorBookingRowDto(
     @SerialName("user_id") val userId: String,
     @SerialName("license_number") val licenseNumber: String? = null,
     val specialty: String? = null,
+    val subspecialty: String? = null,
     @SerialName("consultation_fee") val consultationFee: Double? = null,
     val active: Boolean = true,
 )
@@ -516,4 +671,20 @@ private data class CreateAppointmentDto(
     val type: String = "telemedicine",
     val notes: String? = null,
     @SerialName("meeting_url") val meetingUrl: String? = null,
+)
+
+@Serializable
+private data class DoctorAvailabilityRowDto(
+    @SerialName("doctor_id") val doctorId: String,
+    @SerialName("day_of_week") val dayOfWeek: Int,
+    @SerialName("start_time") val startTime: String,
+    @SerialName("end_time") val endTime: String,
+    @SerialName("slot_duration") val slotDuration: Int = 30,
+    @SerialName("is_active") val isActive: Boolean = true,
+)
+
+@Serializable
+private data class DoctorBusySlotDto(
+    @SerialName("start_time") val startTime: String,
+    @SerialName("end_time") val endTime: String,
 )

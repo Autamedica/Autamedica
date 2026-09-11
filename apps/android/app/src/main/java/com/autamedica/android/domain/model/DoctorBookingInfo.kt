@@ -8,5 +8,6 @@ data class DoctorBookingInfo(
     val licenseNumber: String,
     val consultationFee: Double? = null,
     val avatarUrl: String? = null,
+    val subspecialty: String? = null,
     val availableSlots: List<String> = emptyList(),
 )

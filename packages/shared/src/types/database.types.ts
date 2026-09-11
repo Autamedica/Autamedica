@@ -2039,6 +2039,264 @@ export type Database = {
   }
   public: {
     Tables: {
+      benefit_catalog_items: {
+        Row: {
+          id: string
+          category: string
+          name: string
+          description: string | null
+          market_reference_price_cents: number
+          redemption_credits: number
+          partner_name: string
+          partner_service_code: string | null
+          is_active: boolean
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          category: string
+          name: string
+          description?: string | null
+          market_reference_price_cents: number
+          redemption_credits: number
+          partner_name: string
+          partner_service_code?: string | null
+          is_active?: boolean
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          category?: string
+          name?: string
+          description?: string | null
+          market_reference_price_cents?: number
+          redemption_credits?: number
+          partner_name?: string
+          partner_service_code?: string | null
+          is_active?: boolean
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      benefit_vouchers: {
+        Row: {
+          id: string
+          patient_id: string
+          catalog_item_id: string
+          voucher_code: string
+          status: string
+          credits_cost: number
+          expires_at: string
+          redeemed_at: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          catalog_item_id: string
+          voucher_code: string
+          status?: string
+          credits_cost: number
+          expires_at: string
+          redeemed_at?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          catalog_item_id?: string
+          voucher_code?: string
+          status?: string
+          credits_cost?: number
+          expires_at?: string
+          redeemed_at?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      partner_settlements: {
+        Row: {
+          id: string
+          partner_name: string
+          period_start: string
+          period_end: string
+          vouchers_count: number
+          total_settlement_cents: number
+          status: string
+          paid_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          partner_name: string
+          period_start: string
+          period_end: string
+          vouchers_count?: number
+          total_settlement_cents: number
+          status?: string
+          paid_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          partner_name?: string
+          period_start?: string
+          period_end?: string
+          vouchers_count?: number
+          total_settlement_cents?: number
+          status?: string
+          paid_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      patient_health_reserves: {
+        Row: {
+          id: string
+          patient_id: string
+          subscription_id: string | null
+          balance_credits: number
+          max_cap_credits: number
+          total_accrued_credits: number
+          total_redeemed_credits: number
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          subscription_id?: string | null
+          balance_credits?: number
+          max_cap_credits?: number
+          total_accrued_credits?: number
+          total_redeemed_credits?: number
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          subscription_id?: string | null
+          balance_credits?: number
+          max_cap_credits?: number
+          total_accrued_credits?: number
+          total_redeemed_credits?: number
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      patient_health_reserve_ledger: {
+        Row: {
+          id: string
+          patient_id: string
+          reserve_id: string
+          entry_type: string
+          credits_delta: number
+          balance_after: number
+          reason: string
+          reference_id: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          reserve_id: string
+          entry_type: string
+          credits_delta: number
+          balance_after: number
+          reason: string
+          reference_id?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          reserve_id?: string
+          entry_type?: string
+          credits_delta?: number
+          balance_after?: number
+          reason?: string
+          reference_id?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+      patient_subscriptions: {
+        Row: {
+          id: string
+          patient_id: string
+          tier: string
+          status: string
+          billing_period: string
+          price_cents: number
+          currency: string
+          payment_method: string
+          mercadopago_preapproval_id: string | null
+          current_period_start: string
+          current_period_end: string
+          cancel_at_period_end: boolean
+          trial_end: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          tier?: string
+          status?: string
+          billing_period?: string
+          price_cents?: number
+          currency?: string
+          payment_method?: string
+          mercadopago_preapproval_id?: string | null
+          current_period_start?: string
+          current_period_end: string
+          cancel_at_period_end?: boolean
+          trial_end?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          tier?: string
+          status?: string
+          billing_period?: string
+          price_cents?: number
+          currency?: string
+          payment_method?: string
+          mercadopago_preapproval_id?: string | null
+          current_period_start?: string
+          current_period_end?: string
+          cancel_at_period_end?: boolean
+          trial_end?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       adverse_drug_reactions: {
         Row: {
           action_taken: string | null
@@ -5686,6 +5944,7 @@ export type Database = {
           sisa_folio: string | null
           sisa_record: string | null
           status: string
+          uf_brazil: string | null
           updated_at: string
         }
         Insert: {
@@ -5701,6 +5960,7 @@ export type Database = {
           sisa_folio?: string | null
           sisa_record?: string | null
           status?: string
+          uf_brazil?: string | null
           updated_at?: string
         }
         Update: {
@@ -5716,6 +5976,7 @@ export type Database = {
           sisa_folio?: string | null
           sisa_record?: string | null
           status?: string
+          uf_brazil?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -6205,6 +6466,7 @@ export type Database = {
           certifications: Json | null
           consultation_fee: number | null
           created_at: string | null
+          cpf: string | null
           education: Json | null
           enrollment_entity: string | null
           enrollment_jurisdiction: string | null
@@ -6212,10 +6474,13 @@ export type Database = {
           id: string
           languages: Json | null
           license_number: string
+          license_type: string | null
           payout_alias: string | null
           payout_cbu: string | null
+          payout_pix_key: string | null
           professional_address: string | null
           refeps_id: string | null
+          rqe_number: string | null
           schedule: Json | null
           signature_image_url: string | null
           signature_url: string | null
@@ -6224,6 +6489,7 @@ export type Database = {
           stamp_url: string | null
           subspecialty: string | null
           timezone: string
+          uf_brazil: string | null
           updated_at: string | null
           user_id: string | null
           years_experience: number | null
@@ -6238,6 +6504,7 @@ export type Database = {
           care_guide_template?: string | null
           certifications?: Json | null
           consultation_fee?: number | null
+          cpf?: string | null
           created_at?: string | null
           education?: Json | null
           enrollment_entity?: string | null
@@ -6246,10 +6513,13 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number: string
+          license_type?: string | null
           payout_alias?: string | null
           payout_cbu?: string | null
+          payout_pix_key?: string | null
           professional_address?: string | null
           refeps_id?: string | null
+          rqe_number?: string | null
           schedule?: Json | null
           signature_image_url?: string | null
           signature_url?: string | null
@@ -6258,6 +6528,7 @@ export type Database = {
           stamp_url?: string | null
           subspecialty?: string | null
           timezone?: string
+          uf_brazil?: string | null
           updated_at?: string | null
           user_id?: string | null
           years_experience?: number | null
@@ -6272,6 +6543,7 @@ export type Database = {
           care_guide_template?: string | null
           certifications?: Json | null
           consultation_fee?: number | null
+          cpf?: string | null
           created_at?: string | null
           education?: Json | null
           enrollment_entity?: string | null
@@ -6280,10 +6552,13 @@ export type Database = {
           id?: string
           languages?: Json | null
           license_number?: string
+          license_type?: string | null
           payout_alias?: string | null
           payout_cbu?: string | null
+          payout_pix_key?: string | null
           professional_address?: string | null
           refeps_id?: string | null
+          rqe_number?: string | null
           schedule?: Json | null
           signature_image_url?: string | null
           signature_url?: string | null
@@ -6292,6 +6567,7 @@ export type Database = {
           stamp_url?: string | null
           subspecialty?: string | null
           timezone?: string
+          uf_brazil?: string | null
           updated_at?: string | null
           user_id?: string | null
           years_experience?: number | null
@@ -8424,6 +8700,7 @@ export type Database = {
           blocked_reason: string | null
           clinical_data: Json
           controlled_substance_list: string | null
+          country_code: string
           created_at: string
           cuir: string | null
           doctor_id: string
@@ -8447,6 +8724,7 @@ export type Database = {
           blocked_reason?: string | null
           clinical_data: Json
           controlled_substance_list?: string | null
+          country_code?: string
           created_at?: string
           cuir?: string | null
           doctor_id: string
@@ -8470,6 +8748,7 @@ export type Database = {
           blocked_reason?: string | null
           clinical_data?: Json
           controlled_substance_list?: string | null
+          country_code?: string
           created_at?: string
           cuir?: string | null
           doctor_id?: string
@@ -9729,6 +10008,21 @@ export type Database = {
       }
     }
     Functions: {
+      process_all_monthly_reserve_accruals: {
+        Args: { p_period_key?: string }
+        Returns: Json
+      }
+      process_monthly_reserve_accrual: {
+        Args: {
+          p_patient_id: string
+          p_subscription_id: string
+          p_tier: "free" | "cuidado"
+          p_used_monthly_benefit: boolean
+          p_appointment_id?: string
+          p_period_key?: string
+        }
+        Returns: Json
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined
@@ -10154,6 +10448,13 @@ export type Database = {
           target_channels: string[]
           topic: string
           variants: Json
+        }[]
+      }
+      get_doctor_busy_slots: {
+        Args: { p_doctor_id: string; p_end_date: string; p_start_date: string }
+        Returns: {
+          end_time: string
+          start_time: string
         }[]
       }
       get_my_doctor_id: { Args: never; Returns: string }
@@ -11313,4 +11614,5 @@ export const Constants = {
     },
   },
 } as const
+
 

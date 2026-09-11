@@ -10450,6 +10450,13 @@ export type Database = {
           variants: Json
         }[]
       }
+      get_doctor_busy_slots: {
+        Args: { p_doctor_id: string; p_end_date: string; p_start_date: string }
+        Returns: {
+          end_time: string
+          start_time: string
+        }[]
+      }
       get_my_doctor_id: { Args: never; Returns: string }
       get_my_patient_id: { Args: never; Returns: string }
       get_next_numeric_id: { Args: never; Returns: number }

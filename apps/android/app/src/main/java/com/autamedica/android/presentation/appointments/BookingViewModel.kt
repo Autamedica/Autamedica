@@ -19,16 +19,7 @@ import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 data class BookingUiState(
-    val specialties: List<String> = listOf(
-        "Todas",
-        "Medicina General",
-        "Cardiología",
-        "Pediatría",
-        "Neurología",
-        "Dermatología",
-        "Traumatología",
-        "Ginecología",
-    ),
+    val specialties: List<String> = listOf("Todas"),
     val selectedSpecialty: String = "Todas",
     val doctorsList: List<DoctorBookingInfo> = emptyList(),
     val allDoctors: List<DoctorBookingInfo> = emptyList(),
@@ -116,13 +107,20 @@ class BookingViewModel @Inject constructor(
             appointmentRepository.getAvailableDoctors()
                 .onSuccess { remoteDoctors ->
                     val doctors = if (remoteDoctors.isNotEmpty()) remoteDoctors else fallbackDoctors
+                    val dynamicSpecialties = listOf("Todas") + doctors.map { it.specialty.trim() }
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                        .sorted()
                     val initialDoctor = doctors.firstOrNull()
                     val slots = generateSlotsForDate(_uiState.value.selectedDate, initialDoctor?.availableSlots.orEmpty())
 
                     _uiState.update { state ->
+                        val activeSpecialty = if (state.selectedSpecialty in dynamicSpecialties) state.selectedSpecialty else "Todas"
                         state.copy(
+                            specialties = dynamicSpecialties,
+                            selectedSpecialty = activeSpecialty,
                             allDoctors = doctors,
-                            doctorsList = filterDoctors(doctors, state.selectedSpecialty),
+                            doctorsList = filterDoctors(doctors, activeSpecialty),
                             selectedDoctor = initialDoctor,
                             availableSlots = slots,
                             selectedSlot = slots.firstOrNull(),
@@ -130,23 +128,32 @@ class BookingViewModel @Inject constructor(
                             errorMessage = null,
                         )
                     }
+                    refreshSlots(initialDoctor, _uiState.value.selectedDate)
                 }
                 .onFailure { error ->
                     SecureLog.error("[BookingVM] Error fetching doctors, using fallback", error)
                     val doctors = fallbackDoctors
+                    val dynamicSpecialties = listOf("Todas") + doctors.map { it.specialty.trim() }
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                        .sorted()
                     val initialDoctor = doctors.firstOrNull()
                     val slots = generateSlotsForDate(_uiState.value.selectedDate, initialDoctor?.availableSlots.orEmpty())
 
                     _uiState.update { state ->
+                        val activeSpecialty = if (state.selectedSpecialty in dynamicSpecialties) state.selectedSpecialty else "Todas"
                         state.copy(
+                            specialties = dynamicSpecialties,
+                            selectedSpecialty = activeSpecialty,
                             allDoctors = doctors,
-                            doctorsList = filterDoctors(doctors, state.selectedSpecialty),
+                            doctorsList = filterDoctors(doctors, activeSpecialty),
                             selectedDoctor = initialDoctor,
                             availableSlots = slots,
                             selectedSlot = slots.firstOrNull(),
                             isLoadingDoctors = false,
                         )
                     }
+                    refreshSlots(initialDoctor, _uiState.value.selectedDate)
                 }
         }
     }
@@ -165,6 +172,8 @@ class BookingViewModel @Inject constructor(
                 selectedSlot = slots.firstOrNull(),
             )
         }
+        val currentDoc = _uiState.value.selectedDoctor
+        refreshSlots(currentDoc, _uiState.value.selectedDate)
     }
 
     fun selectDoctor(doctor: DoctorBookingInfo) {
@@ -176,6 +185,7 @@ class BookingViewModel @Inject constructor(
                 selectedSlot = slots.firstOrNull(),
             )
         }
+        refreshSlots(doctor, _uiState.value.selectedDate)
     }
 
     fun selectDate(date: LocalDate) {
@@ -186,6 +196,36 @@ class BookingViewModel @Inject constructor(
                 availableSlots = slots,
                 selectedSlot = slots.firstOrNull(),
             )
+        }
+        refreshSlots(_uiState.value.selectedDoctor, date)
+    }
+
+    private fun refreshSlots(doctor: DoctorBookingInfo?, date: LocalDate) {
+        if (doctor == null) return
+        viewModelScope.launch {
+            appointmentRepository.getAvailableSlots(doctor.id, date.toString())
+                .onSuccess { realSlots ->
+                    val finalSlots = if (realSlots.isNotEmpty()) realSlots else generateSlotsForDate(date, doctor.availableSlots)
+                    _uiState.update { state ->
+                        if (state.selectedDoctor?.id == doctor.id && state.selectedDate == date) {
+                            state.copy(
+                                availableSlots = finalSlots,
+                                selectedSlot = if (state.selectedSlot in finalSlots) state.selectedSlot else finalSlots.firstOrNull(),
+                            )
+                        } else state
+                    }
+                }
+                .onFailure {
+                    val fallbackSlots = generateSlotsForDate(date, doctor.availableSlots)
+                    _uiState.update { state ->
+                        if (state.selectedDoctor?.id == doctor.id && state.selectedDate == date) {
+                            state.copy(
+                                availableSlots = fallbackSlots,
+                                selectedSlot = if (state.selectedSlot in fallbackSlots) state.selectedSlot else fallbackSlots.firstOrNull(),
+                            )
+                        } else state
+                    }
+                }
         }
     }
 
@@ -272,7 +312,10 @@ class BookingViewModel @Inject constructor(
 
     private fun filterDoctors(doctors: List<DoctorBookingInfo>, specialty: String): List<DoctorBookingInfo> {
         if (specialty.equals("Todas", ignoreCase = true)) return doctors
-        return doctors.filter { it.specialty.contains(specialty, ignoreCase = true) }
+        return doctors.filter {
+            it.specialty.contains(specialty, ignoreCase = true) ||
+                it.subspecialty?.contains(specialty, ignoreCase = true) == true
+        }
     }
 
     private fun generateSlotsForDate(date: LocalDate, doctorSlots: List<String>): List<String> {

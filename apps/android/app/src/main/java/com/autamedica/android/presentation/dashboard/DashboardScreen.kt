@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.presentation.dashboard.components.AvailableDoctorsCarousel
@@ -68,7 +69,12 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val nextAppointment = uiState.appointments.firstOrNull()
+    val terminalStatuses = setOf(
+        AppointmentStatus.COMPLETED,
+        AppointmentStatus.CANCELLED,
+        AppointmentStatus.NO_SHOW,
+    )
+    val nextAppointment = uiState.appointments.firstOrNull { it.status !in terminalStatuses }
     val telemedicineCandidate = uiState.appointments.firstOrNull { it.isTelemedicineJoinCandidate() }
     val telemedicineAppointment = uiState.appointments.firstOrNull { it.id in uiState.joinableAppointmentIds }
     val isJoinableNow = nextAppointment?.id?.let { it in uiState.joinableAppointmentIds } == true

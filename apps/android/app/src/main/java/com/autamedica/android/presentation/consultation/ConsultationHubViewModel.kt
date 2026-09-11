@@ -338,7 +338,11 @@ class ConsultationHubViewModel @Inject constructor(
             val upcoming = telemedicineApts.filter { apt ->
                 apt.id != joinableApt?.id &&
                     apt.id != pendingPaymentApt?.id &&
-                    (apt.status == AppointmentStatus.SCHEDULED || apt.status == AppointmentStatus.CONFIRMED || apt.status == AppointmentStatus.IN_PROGRESS)
+                    (apt.status == AppointmentStatus.SCHEDULED || apt.status == AppointmentStatus.CONFIRMED || apt.status == AppointmentStatus.IN_PROGRESS) &&
+                    runCatching {
+                        java.time.OffsetDateTime.parse(apt.startTime)
+                            .isAfter(java.time.OffsetDateTime.now().minusMinutes(30))
+                    }.getOrDefault(false)
             }
 
             state.copy(

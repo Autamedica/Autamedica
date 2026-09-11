@@ -18,4 +18,9 @@ interface AppointmentRepository {
         type: String = "telemedicine",
         reason: String? = null
     ): Result<Appointment>
+
+    suspend fun getAvailableSlots(
+        doctorId: String,
+        date: String,
+    ): Result<List<String>> = Result.success(emptyList())
 }

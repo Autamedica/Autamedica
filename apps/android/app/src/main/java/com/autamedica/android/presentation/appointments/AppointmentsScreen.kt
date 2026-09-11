@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -116,7 +117,10 @@ fun AppointmentsScreen(
                 AppointmentStatus.CONFIRMED,
                 AppointmentStatus.IN_PROGRESS,
                 AppointmentStatus.PAYMENT_PENDING
-            )
+            ) && runCatching {
+                java.time.OffsetDateTime.parse(apt.startTime)
+                    .isAfter(java.time.OffsetDateTime.now().minusMinutes(30))
+            }.getOrDefault(false)
         }
     }
     val pastAppointments = remember(uiState.appointments, activeAppointments) {
@@ -690,7 +694,7 @@ private fun BookingCalendarCard(
                     border = BorderStroke(1.dp, AuBorder),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(enabled = availableDoctors.size > 1) { showDoctorSheet = true },
+                        .clickable(enabled = availableDoctors.isNotEmpty()) { showDoctorSheet = true },
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),
@@ -739,6 +743,20 @@ private fun BookingCalendarCard(
                                     color = PortalPatients,
                                     fontWeight = FontWeight.Medium,
                                 )
+                                if (!doctor.subspecialty.isNullOrBlank()) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = PortalPatients.copy(alpha = 0.12f),
+                                    ) {
+                                        Text(
+                                            text = doctor.subspecialty,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = PortalPatients,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                        )
+                                    }
+                                }
                                 Text(
                                     text = "·",
                                     color = AuTextTertiary,
@@ -755,7 +773,7 @@ private fun BookingCalendarCard(
                             }
                         }
 
-                        if (availableDoctors.size > 1) {
+                        if (availableDoctors.isNotEmpty()) {
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = AuSurfaceHover,
@@ -766,7 +784,7 @@ private fun BookingCalendarCard(
                                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                                 ) {
                                     Text(
-                                        text = "Cambiar",
+                                        text = if (availableDoctors.size > 1) "Cambiar" else "Ver médico",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = PortalPatients,
                                         fontWeight = FontWeight.SemiBold,
@@ -1026,6 +1044,22 @@ private fun DoctorPickerBottomSheet(
     onSelectDoctor: (DoctorBookingInfo) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var selectedFilter by rememberSaveable { mutableStateOf("Todas") }
+    val specialties = remember(doctors) {
+        listOf("Todas") + doctors.map { it.specialty.trim() }.filter { it.isNotBlank() }.distinct().sorted()
+    }
+
+    val filteredDoctors = remember(doctors, selectedFilter) {
+        if (selectedFilter.equals("Todas", ignoreCase = true)) {
+            doctors
+        } else {
+            doctors.filter {
+                it.specialty.contains(selectedFilter, ignoreCase = true) ||
+                    it.subspecialty?.contains(selectedFilter, ignoreCase = true) == true
+            }
+        }
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = AuSurface,
@@ -1046,15 +1080,59 @@ private fun DoctorPickerBottomSheet(
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(
-                text = "Elegir profesional de atención",
-                style = MaterialTheme.typography.titleMedium,
-                color = AuTextPrimary,
-                fontWeight = FontWeight.Bold,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Elegir profesional de atención",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = AuTextPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "${filteredDoctors.size} disponible${if (filteredDoctors.size != 1) "s" else ""}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AuTextTertiary,
+                )
+            }
 
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                doctors.forEach { doctor ->
+            if (specialties.size > 2) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    items(specialties, key = { it }) { spec ->
+                        val isFilterSelected = spec.equals(selectedFilter, ignoreCase = true)
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = if (isFilterSelected) accentColor.copy(alpha = 0.16f) else AuBackground,
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = if (isFilterSelected) accentColor else AuBorder,
+                            ),
+                            modifier = Modifier.clickable { selectedFilter = spec },
+                        ) {
+                            Text(
+                                text = spec,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isFilterSelected) accentColor else AuTextSecondary,
+                                fontWeight = if (isFilterSelected) FontWeight.Bold else FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            )
+                        }
+                    }
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 480.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items(filteredDoctors, key = { it.id }) { doctor ->
                     val isSelected = selectedDoctor?.id == doctor.id
                     Surface(
                         shape = RoundedCornerShape(14.dp),
@@ -1104,21 +1182,53 @@ private fun DoctorPickerBottomSheet(
                                     color = AuTextPrimary,
                                     fontWeight = FontWeight.SemiBold,
                                 )
-                                Text(
-                                    text = "${doctor.specialty} · ${doctor.licenseNumber}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = AuTextSecondary,
-                                )
-                                Text(
-                                    text = if (doctor.consultationFee != null && doctor.consultationFee > 0) {
-                                        "Arancel: $${"%,.0f".format(doctor.consultationFee)}"
-                                    } else {
-                                        "Cubierto por plan"
-                                    },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = accentColor,
-                                    fontWeight = FontWeight.Medium,
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.padding(vertical = 2.dp),
+                                ) {
+                                    Text(
+                                        text = doctor.specialty,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = AuTextSecondary,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                    if (!doctor.subspecialty.isNullOrBlank()) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = accentColor.copy(alpha = 0.12f),
+                                        ) {
+                                            Text(
+                                                text = doctor.subspecialty,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = accentColor,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Text(
+                                        text = doctor.licenseNumber,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = AuTextTertiary,
+                                    )
+                                    Text(text = "·", color = AuTextTertiary)
+                                    Text(
+                                        text = if (doctor.consultationFee != null && doctor.consultationFee > 0) {
+                                            "Arancel: $${"%,.0f".format(doctor.consultationFee)}"
+                                        } else {
+                                            "Cubierto por plan"
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = accentColor,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                }
                             }
 
                             if (isSelected) {
