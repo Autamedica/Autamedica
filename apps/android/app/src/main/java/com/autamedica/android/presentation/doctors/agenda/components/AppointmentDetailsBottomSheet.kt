@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
+import com.autamedica.android.domain.model.AppointmentTransitionRules
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.PatientClinicalContext
 import com.autamedica.android.presentation.theme.AuBorder
@@ -134,16 +136,18 @@ fun AppointmentDetailsBottomSheet(
                     }
                 }
 
-                IconButton(
-                    onClick = { onStatusChange(AppointmentStatus.CANCELLED) },
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Cancelar turno",
-                        tint = AuDanger,
-                        modifier = Modifier.size(20.dp),
-                    )
+                if (AppointmentTransitionRules.isTransitionAllowed(appointment.status, AppointmentStatus.CANCELLED)) {
+                    IconButton(
+                        onClick = { onStatusChange(AppointmentStatus.CANCELLED) },
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Cancelar turno",
+                            tint = AuDanger,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
             }
 
@@ -443,44 +447,95 @@ fun AppointmentDetailsBottomSheet(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Section: ACCIONES RÁPIDAS
-            Text(
-                text = "ACCIONES RÁPIDAS",
-                style = MaterialTheme.typography.labelSmall,
-                color = AuTextTertiary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.sp,
-                letterSpacing = 1.5.sp,
-            )
-            Spacer(modifier = Modifier.height(10.dp))
+            val validTransitions = AppointmentTransitionRules.getValidTransitions(appointment.status)
+            if (validTransitions.isNotEmpty()) {
+                Text(
+                    text = "ACCIONES RÁPIDAS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AuTextTertiary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    letterSpacing = 1.5.sp,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                OutlinedButton(
-                    onClick = { onStatusChange(AppointmentStatus.CONFIRMED) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-                ) {
-                    Text(
-                        text = "Confirmar",
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF047857),
-                    )
+                val hasStatusRow = AppointmentStatus.CONFIRMED in validTransitions ||
+                    AppointmentStatus.IN_PROGRESS in validTransitions ||
+                    AppointmentStatus.COMPLETED in validTransitions
+                if (hasStatusRow) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        if (validTransitions.contains(AppointmentStatus.CONFIRMED)) {
+                            OutlinedButton(
+                                onClick = { onStatusChange(AppointmentStatus.CONFIRMED) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                            ) {
+                                Text(
+                                    text = "Confirmar",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF047857),
+                                )
+                            }
+                        }
+
+                        if (validTransitions.contains(AppointmentStatus.IN_PROGRESS)) {
+                            OutlinedButton(
+                                onClick = { onStatusChange(AppointmentStatus.IN_PROGRESS) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                            ) {
+                                Text(
+                                    text = "Iniciar consulta",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0284C7),
+                                )
+                            }
+                        }
+
+                        if (validTransitions.contains(AppointmentStatus.COMPLETED)) {
+                            OutlinedButton(
+                                onClick = { onStatusChange(AppointmentStatus.COMPLETED) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                            ) {
+                                Text(
+                                    text = "Finalizada",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF334155),
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
 
-                OutlinedButton(
-                    onClick = { onStatusChange(AppointmentStatus.COMPLETED) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-                ) {
-                    Text(
-                        text = "Finalizada",
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF334155),
-                    )
+                if (validTransitions.contains(AppointmentStatus.NO_SHOW)) {
+                    OutlinedButton(
+                        onClick = { onStatusChange(AppointmentStatus.NO_SHOW) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.4f)),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.EventBusy,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = AuDanger,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "No asistió",
+                            fontWeight = FontWeight.Bold,
+                            color = AuDanger,
+                        )
+                    }
                 }
             }
 

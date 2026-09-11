@@ -3,6 +3,7 @@ package com.autamedica.android.data.repository
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
+import com.autamedica.android.domain.model.AppointmentTransitionRules
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.repository.AppointmentPaymentExecution
@@ -12,6 +13,8 @@ import java.time.OffsetDateTime
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.DayOfWeek
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.util.UUID
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
@@ -87,7 +90,7 @@ class AppointmentRepositoryImpl @Inject constructor(
         val filterColumn = if (role == "doctor") "doctor_id" else "patient_id"
 
         val statusList = if (role == "doctor") {
-            listOf("scheduled", "confirmed", "in_progress")
+            listOf("scheduled", "confirmed", "in_progress", "completed", "no_show")
         } else {
             listOf("payment_pending", "scheduled", "confirmed", "in_progress", "completed", "cancelled", "no_show")
         }
@@ -187,6 +190,88 @@ class AppointmentRepositoryImpl @Inject constructor(
         SecureLog.error("[Appointments] Failed updating appointment status", it)
     }
 
+    override suspend fun cancelAppointment(id: String): Result<Unit> = runCatching {
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: throw IllegalStateException("No user ID found")
+
+        val appointment = getAppointmentById(id).getOrThrow()
+
+        val currentStatus = appointment.status
+        if (!AppointmentTransitionRules.isTransitionAllowed(currentStatus, AppointmentStatus.CANCELLED)) {
+            throw IllegalStateException("Cannot cancel appointment with status $currentStatus")
+        }
+
+        supabaseClient.postgrest
+            .from("appointments")
+            .update(mapOf("status" to "cancelled")) {
+                filter { eq("id", id) }
+            }
+        appointmentDao.clearAppointmentsForUser(userId)
+        Unit
+    }.onFailure {
+        SecureLog.error("[Appointments] Failed canceling appointment", it)
+    }
+
+    override suspend fun rescheduleAppointment(
+        id: String,
+        newStartTime: String,
+        newEndTime: String,
+    ): Result<Unit> = runCatching {
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: throw IllegalStateException("No user ID found")
+
+        val newStart = runCatching { OffsetDateTime.parse(newStartTime) }.getOrNull()
+            ?: throw IllegalArgumentException("start_time is invalid")
+        if (newStart.isBefore(OffsetDateTime.now())) {
+            throw IllegalStateException("No se puede reprogramar una cita en el pasado")
+        }
+
+        val appointment = getAppointmentById(id).getOrThrow()
+        if (!AppointmentTransitionRules.isReschedulable(appointment.status)) {
+            throw IllegalStateException("No se puede reprogramar una cita con estado ${appointment.status}")
+        }
+        val doctorId = appointment.doctorId ?: throw IllegalStateException("Cannot reschedule: no doctor assigned")
+
+        val busy = runCatching {
+            val params = buildJsonObject {
+                put("p_doctor_id", doctorId)
+                put("p_start_date", newStart.toLocalDate().toString())
+                put("p_end_date", newStart.toLocalDate().toString())
+            }
+            supabaseClient.postgrest
+                .rpc("get_doctor_busy_slots", params)
+                .decodeList<DoctorBusySlotDto>()
+        }.getOrDefault(emptyList())
+
+        val hasConflict = busy.any { busySlot ->
+            val busyStart = runCatching { OffsetDateTime.parse(busySlot.startTime) }.getOrNull()
+                ?: return@any false
+            val busyEnd = runCatching { OffsetDateTime.parse(busySlot.endTime) }.getOrNull()
+                ?: return@any false
+            val newEnd = runCatching { OffsetDateTime.parse(newEndTime) }.getOrNull()
+                ?: return@any false
+            newStart.isBefore(busyEnd) && newEnd.isAfter(busyStart)
+        }
+        if (hasConflict) {
+            throw IllegalStateException("El profesional tiene una cita conflictiva en el horario solicitado")
+        }
+
+        supabaseClient.postgrest
+            .from("appointments")
+            .update(
+                mapOf(
+                    "start_time" to newStartTime,
+                    "end_time" to newEndTime,
+                ),
+            ) {
+                filter { eq("id", id) }
+            }
+        appointmentDao.clearAppointmentsForUser(userId)
+        Unit
+    }.onFailure {
+        SecureLog.error("[Appointments] Failed rescheduling appointment", it)
+    }
+
     override suspend fun clearCachedAppointmentsForCurrentUser(): Result<Unit> = runCatching {
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
             ?: return@runCatching
@@ -248,7 +333,34 @@ class AppointmentRepositoryImpl @Inject constructor(
             }
         } else emptyMap()
 
-        val defaultSlots = listOf("09:00", "10:00", "11:30", "14:00", "15:30", "17:00")
+        val availabilityMap = if (doctorIds.isNotEmpty()) {
+            try {
+                val rawAvailabilities = supabaseClient.postgrest
+                    .from("doctor_availability")
+                    .select(Columns.list("doctor_id", "day_of_week", "start_time", "end_time", "is_active")) {
+                        filter {
+                            isIn("doctor_id", doctorIds)
+                            eq("is_active", true)
+                        }
+                    }
+                    .decodeList<DoctorAvailabilityDayDto>()
+
+                rawAvailabilities
+                    .groupBy { it.doctorId }
+                    .filterValues { slots ->
+                        val isFake = slots.size >= 7 && slots.all {
+                            it.startTime.startsWith("00:00") && it.endTime.startsWith("23:59")
+                        }
+                        !isFake && slots.isNotEmpty()
+                    }
+                    .mapValues { entry ->
+                        entry.value.map { it.dayOfWeek }.toSet()
+                    }
+            } catch (e: Exception) {
+                SecureLog.warn("[Appointments] Failed fetching doctor availability days: ${e.message}")
+                emptyMap()
+            }
+        } else emptyMap()
 
         val femaleNames = setOf(
             "amancay", "layla", "bianca", "bárbara", "barbara", "julieta",
@@ -303,6 +415,8 @@ class AppointmentRepositoryImpl @Inject constructor(
                 else -> rawFee
             }
 
+            val activeDays = availabilityMap[doc.id].orEmpty()
+
             DoctorBookingInfo(
                 id = doc.id,
                 userId = doc.userId,
@@ -312,7 +426,8 @@ class AppointmentRepositoryImpl @Inject constructor(
                 consultationFee = normalizedFee,
                 avatarUrl = profile?.avatarUrl?.takeIf { it.isNotBlank() },
                 subspecialty = doc.subspecialty?.takeIf { it.isNotBlank() },
-                availableSlots = defaultSlots,
+                availableSlots = emptyList(),
+                availableDays = activeDays,
             )
         }.sortedWith(
             compareByDescending<DoctorBookingInfo> { it.avatarUrl != null }
@@ -404,22 +519,72 @@ class AppointmentRepositoryImpl @Inject constructor(
             DayOfWeek.SATURDAY -> 6
         }
 
-        val availabilities = try {
+        // 1. Check for specific date override in doctor_availability_overrides
+        val override = try {
             supabaseClient.postgrest
-                .from("doctor_availability")
+                .from("doctor_availability_overrides")
                 .select(Columns.ALL) {
                     filter {
                         eq("doctor_id", doctorId)
-                        eq("day_of_week", dayOfWeekInt)
-                        eq("is_active", true)
+                        eq("override_date", date)
                     }
                 }
-                .decodeList<DoctorAvailabilityRowDto>()
+                .decodeList<DoctorAvailabilityOverrideRowDto>()
+                .firstOrNull()
         } catch (e: Exception) {
-            SecureLog.warn("[Appointments] Failed fetching doctor availability: ${e.message}")
-            emptyList()
+            SecureLog.warn("[Appointments] Failed fetching doctor availability overrides: ${e.message}")
+            null
         }
 
+        // If override explicitly marks day as not available (holiday, vacation, leave), return empty
+        if (override != null && !override.isAvailable) {
+            return@runCatching emptyList()
+        }
+
+        // 2. Resolve active time ranges: from override or weekly doctor_availability
+        val timeRanges: List<DoctorAvailabilityRowDto> = if (override != null && override.isAvailable) {
+            val start = override.startTime?.takeIf { it.isNotBlank() } ?: "09:00:00"
+            val end = override.endTime?.takeIf { it.isNotBlank() } ?: "17:00:00"
+            listOf(
+                DoctorAvailabilityRowDto(
+                    doctorId = doctorId,
+                    dayOfWeek = dayOfWeekInt,
+                    startTime = if (start.length == 5) "$start:00" else start,
+                    endTime = if (end.length == 5) "$end:00" else end,
+                    slotDuration = 30,
+                    isActive = true,
+                )
+            )
+        } else {
+            val weeklyAvailabilities = try {
+                supabaseClient.postgrest
+                    .from("doctor_availability")
+                    .select(Columns.ALL) {
+                        filter {
+                            eq("doctor_id", doctorId)
+                            eq("day_of_week", dayOfWeekInt)
+                            eq("is_active", true)
+                        }
+                    }
+                    .decodeList<DoctorAvailabilityRowDto>()
+            } catch (e: Exception) {
+                SecureLog.warn("[Appointments] Failed fetching doctor availability: ${e.message}")
+                emptyList()
+            }
+
+            // Exclude fake 24/7 preset (7 days, 00:00 to 23:59)
+            val isFake = weeklyAvailabilities.all {
+                it.startTime.startsWith("00:00") && it.endTime.startsWith("23:59")
+            }
+            if (isFake) emptyList() else weeklyAvailabilities
+        }
+
+        // If no availability configured for this day, doctor does NOT work. Return empty.
+        if (timeRanges.isEmpty()) {
+            return@runCatching emptyList()
+        }
+
+        // 3. Fetch busy ranges (appointments already booked)
         val busyRanges = try {
             val params = buildJsonObject {
                 put("p_doctor_id", doctorId)
@@ -434,32 +599,18 @@ class AppointmentRepositoryImpl @Inject constructor(
             emptyList()
         }
 
-        val defaultTimeRanges = if (availabilities.isNotEmpty()) {
-            availabilities
-        } else {
-            listOf(
-                DoctorAvailabilityRowDto(
-                    doctorId = doctorId,
-                    dayOfWeek = dayOfWeekInt,
-                    startTime = "09:00:00",
-                    endTime = "18:00:00",
-                    slotDuration = 30,
-                    isActive = true
-                )
-            )
-        }
-
+        val argZone = ZoneId.of("America/Argentina/Buenos_Aires")
         val bookedTimeWindows = busyRanges.mapNotNull { busy ->
             runCatching {
-                val start = OffsetDateTime.parse(busy.startTime).toLocalTime()
-                val end = OffsetDateTime.parse(busy.endTime).toLocalTime()
+                val start = OffsetDateTime.parse(busy.startTime).atZoneSameInstant(argZone).toLocalTime()
+                val end = OffsetDateTime.parse(busy.endTime).atZoneSameInstant(argZone).toLocalTime()
                 start to end
             }.getOrNull()
         }
 
         val generatedSlots = mutableListOf<String>()
 
-        for (avail in defaultTimeRanges) {
+        for (avail in timeRanges) {
             val startParts = avail.startTime.split(":")
             val endParts = avail.endTime.split(":")
             val startH = startParts.getOrNull(0)?.toIntOrNull() ?: 9
@@ -488,10 +639,10 @@ class AppointmentRepositoryImpl @Inject constructor(
             }
         }
 
-        val now = OffsetDateTime.now()
-        val filtered = if (targetDate == now.toLocalDate()) {
-            val currentHour = now.hour
-            val currentMin = now.minute
+        val nowInArg = ZonedDateTime.now(argZone)
+        val filtered = if (targetDate == nowInArg.toLocalDate()) {
+            val currentHour = nowInArg.hour
+            val currentMin = nowInArg.minute
             generatedSlots.filter { slot ->
                 val parts = slot.split(":")
                 val h = parts.getOrNull(0)?.toIntOrNull() ?: 0
@@ -785,6 +936,24 @@ private data class DoctorAvailabilityRowDto(
     @SerialName("start_time") val startTime: String,
     @SerialName("end_time") val endTime: String,
     @SerialName("slot_duration") val slotDuration: Int = 30,
+    @SerialName("is_active") val isActive: Boolean = true,
+)
+
+@Serializable
+private data class DoctorAvailabilityOverrideRowDto(
+    @SerialName("doctor_id") val doctorId: String,
+    @SerialName("override_date") val overrideDate: String,
+    @SerialName("is_available") val isAvailable: Boolean = false,
+    @SerialName("start_time") val startTime: String? = null,
+    @SerialName("end_time") val endTime: String? = null,
+)
+
+@Serializable
+private data class DoctorAvailabilityDayDto(
+    @SerialName("doctor_id") val doctorId: String,
+    @SerialName("day_of_week") val dayOfWeek: Int,
+    @SerialName("start_time") val startTime: String = "",
+    @SerialName("end_time") val endTime: String = "",
     @SerialName("is_active") val isActive: Boolean = true,
 )
 

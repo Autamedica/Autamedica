@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,9 +17,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Schedule
@@ -26,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.domain.model.Appointment
@@ -50,6 +55,7 @@ import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.ErrorContainer
 import com.autamedica.android.presentation.theme.PortalDoctors
+import com.autamedica.android.presentation.theme.PortalPatients
 import com.autamedica.android.presentation.theme.SuccessContainer
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
@@ -61,6 +67,8 @@ fun AppointmentCard(
     onJoinCall: (() -> Unit)?,
     modifier: Modifier = Modifier,
     patientName: String? = null,
+    onCancel: (() -> Unit)? = null,
+    onReschedule: (() -> Unit)? = null,
 ) {
     val statusInfo = appointment.status.toStatusInfo()
     val isTelemed = appointment.type == AppointmentType.TELEMEDICINE || appointment.meetingUrl != null
@@ -68,9 +76,17 @@ fun AppointmentCard(
     val guestNameMatch = appointment.notes?.let { notes ->
         Regex("\\[INVITADO:\\s*([^\\]]+)\\]").find(notes)?.groupValues?.get(1)?.trim()
     }
-    val resolvedTitle = patientName 
+    val mainHeading = patientName 
         ?: guestNameMatch 
-        ?: appointment.type.displayName()
+        ?: appointment.doctorName
+        ?: appointment.doctorSpecialty
+        ?: "Consulta Médica"
+
+    val subHeading = if (patientName != null || guestNameMatch != null) {
+        appointment.doctorName ?: "Profesional asignado"
+    } else {
+        appointment.doctorSpecialty ?: "Medicina General"
+    }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -140,19 +156,30 @@ fun AppointmentCard(
                 }
             }
 
-            // Main Info: Patient/Consultation Title + Subtitle/Date
+            // Main Info: Doctor/Patient Title + Specialty/Type + Date
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = resolvedTitle,
+                    text = mainHeading,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     color = AuTextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    Text(
+                        text = subHeading,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PortalPatients,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(text = "·", color = AuTextTertiary)
                     Icon(
                         imageVector = Icons.Outlined.CalendarMonth,
                         contentDescription = null,
@@ -211,6 +238,67 @@ fun AppointmentCard(
                     )
                 }
             }
+
+            // Patient actions: Reschedule / Cancel (only when provided)
+            if (onReschedule != null || onCancel != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    onReschedule?.let { reschedule ->
+                        OutlinedButton(
+                            onClick = reschedule,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                            border = BorderStroke(1.dp, PortalPatients.copy(alpha = 0.5f)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = PortalPatients,
+                            ),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Reprogramar",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                maxLines = 1,
+                                softWrap = false,
+                            )
+                        }
+                    }
+                    onCancel?.let { cancel ->
+                        OutlinedButton(
+                            onClick = cancel,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                            border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.5f)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = AuDanger,
+                            ),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.EventBusy,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Cancelar",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                maxLines = 1,
+                                softWrap = false,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -235,11 +323,13 @@ private fun TypeBadge(isTelemed: Boolean) {
                     tint = Color(0xFF0284C7), // sky-700
                 )
                 Text(
-                    text = "Telemedicina",
+                    text = "Video",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color(0xFF0284C7),
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 10.sp,
+                    maxLines = 1,
+                    softWrap = false,
                 )
             }
         }
@@ -266,6 +356,8 @@ private fun TypeBadge(isTelemed: Boolean) {
                     color = Color(0xFF475569),
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 10.sp,
+                    maxLines = 1,
+                    softWrap = false,
                 )
             }
         }
@@ -301,6 +393,8 @@ private fun StatusChip(info: StatusInfo) {
             color = info.color,
             fontWeight = FontWeight.SemiBold,
             fontSize = 10.sp,
+            maxLines = 1,
+            softWrap = false,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
         )
     }
@@ -317,7 +411,22 @@ private fun AppointmentType.displayName(): String = when (this) {
 
 private fun cleanNotesContent(notes: String?): String {
     if (notes == null) return ""
-    return notes.replace(Regex("\\[INVITADO:[^\\]]+\\]"), "").trim()
+    var cleaned = notes
+        .replace(Regex("\\[INVITADO:[^\\]]+\\]", RegexOption.IGNORE_CASE), "")
+        .replace(Regex("(?i)^(Videoconsulta|Consulta|Turno)(?:\\s+m[eé]dica)?(?:\\s+de\\s+.*?)?\\s+con\\s+.*?$"), "")
+        .trim()
+    
+    // Also remove generic system notes or headers
+    if (cleaned.startsWith("Videoconsulta de", ignoreCase = true) && cleaned.contains(" con ", ignoreCase = true)) {
+        return ""
+    }
+    if (cleaned.startsWith("Consulta de", ignoreCase = true) && cleaned.contains(" con ", ignoreCase = true)) {
+        return ""
+    }
+    if (cleaned.equals("Consulta programada", ignoreCase = true) || cleaned.equals("Videoconsulta médica", ignoreCase = true)) {
+        return ""
+    }
+    return cleaned
 }
 
 private fun formatDate(isoString: String): String {

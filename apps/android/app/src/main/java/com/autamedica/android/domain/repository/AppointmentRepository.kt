@@ -31,6 +31,14 @@ interface AppointmentRepository {
     suspend fun getAppointmentPaymentStatus(
         appointmentId: String,
     ): Result<String?> = Result.success("approved")
+
+    suspend fun cancelAppointment(id: String): Result<Unit> = Result.success(Unit)
+
+    suspend fun rescheduleAppointment(
+        id: String,
+        newStartTime: String,
+        newEndTime: String,
+    ): Result<Unit> = Result.success(Unit)
 }
 
 data class AppointmentPaymentExecution(

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
+import com.autamedica.android.domain.model.AppointmentTransitionRules
 import com.autamedica.android.domain.model.DoctorAvailabilitySlot
 import com.autamedica.android.domain.model.PatientClinicalContext
 import com.autamedica.android.domain.repository.AppointmentRepository
@@ -62,7 +63,8 @@ data class DoctorAgendaUiState(
                     OffsetDateTime.parse(appt.startTime).toLocalDate() == today
                 }.getOrDefault(false) &&
                     appt.status != AppointmentStatus.CANCELLED &&
-                    appt.status != AppointmentStatus.COMPLETED
+                    appt.status != AppointmentStatus.COMPLETED &&
+                    appt.status != AppointmentStatus.NO_SHOW
             }.sortedBy { it.startTime }
 
             val inProgress = todayAppointments.find { it.status == AppointmentStatus.IN_PROGRESS }
@@ -291,6 +293,15 @@ class DoctorAgendaViewModel @Inject constructor(
 
     fun updateAppointmentStatus(appointmentId: String, newStatus: AppointmentStatus) {
         viewModelScope.launch {
+            val currentAppointment = _uiState.value.appointments.find { it.id == appointmentId }
+            if (currentAppointment == null) {
+                SecureLog.warn("[DoctorAgenda] Appointment $appointmentId not found in local list")
+                return@launch
+            }
+            if (!AppointmentTransitionRules.isTransitionAllowed(currentAppointment.status, newStatus)) {
+                SecureLog.warn("[DoctorAgenda] Invalid transition ${currentAppointment.status} -> $newStatus for $appointmentId")
+                return@launch
+            }
             appointmentRepository.updateAppointmentStatus(appointmentId, newStatus)
                 .onSuccess {
                     _uiState.update { state ->
