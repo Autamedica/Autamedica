@@ -242,13 +242,16 @@ private fun DoctorCard(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f),
                         )
-                        // Verified badge
-                        Icon(
-                            imageVector = Icons.Outlined.CheckCircle,
-                            contentDescription = "Verificado",
-                            tint = Color(0xFF0284C7),
-                            modifier = Modifier.size(15.dp),
-                        )
+                        // Verified badge: solo si la matrícula está validada en SISA/REFEPS
+                        val isVerified = doctor.sssValidationStatus == "valid" || doctor.sssValidationStatus == "exempt"
+                        if (isVerified) {
+                            Icon(
+                                imageVector = Icons.Outlined.CheckCircle,
+                                contentDescription = "Verificado",
+                                tint = Color(0xFF0284C7),
+                                modifier = Modifier.size(15.dp),
+                            )
+                        }
                     }
 
                     Text(

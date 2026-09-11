@@ -145,6 +145,7 @@ fun MainScreen(
     onNavigateToReproductiveHealth: () -> Unit = {},
     onNavigateToCommunity: () -> Unit = {},
     onNavigateToContinuityStatus: () -> Unit = {},
+    onNavigateToDoctorSignature: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel(),
 ) {
@@ -327,6 +328,7 @@ fun MainScreen(
                     0 -> DoctorDashboardScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,
                         onNavigateToTab = { selectedTab = it },
+                        onNavigateToDoctorSignature = onNavigateToDoctorSignature,
                     )
                     1 -> com.autamedica.android.presentation.chat.ChatListScreen(
                         onNavigateToConversation = onNavigateToChatConversation,

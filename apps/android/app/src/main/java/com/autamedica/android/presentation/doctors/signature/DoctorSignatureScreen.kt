@@ -26,6 +26,7 @@ fun DoctorSignatureScreen(
     val state by viewModel.state.collectAsState()
     var paths by remember { mutableStateOf(mutableListOf<Path>()) }
     var currentPath by remember { mutableStateOf<Path?>(null) }
+    var dni by remember { mutableStateOf("") }
     var licenseNumber by remember { mutableStateOf("") }
 
     Scaffold(
@@ -42,20 +43,45 @@ fun DoctorSignatureScreen(
                 .padding(16.dp)
         ) {
             OutlinedTextField(
+                value = dni,
+                onValueChange = { dni = it.filter(Char::isDigit).take(9) },
+                label = { Text("DNI del profesional") },
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
                 value = licenseNumber,
                 onValueChange = { licenseNumber = it },
                 label = { Text("Matrícula profesional") },
                 modifier = Modifier.fillMaxWidth()
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
             
             Button(
-                onClick = { viewModel.validateWithSisaRefeps(licenseNumber) },
+                onClick = { viewModel.validateWithSisaRefeps(dni, licenseNumber) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !state.isLoading
             ) {
-                Text(if (state.sisaValidated) "Matrícula verificada" else "Verificar matrícula")
+                Text(
+                    if (state.isLoading) "Verificando…" else
+                        if (state.sisaValidated) "Matrícula verificada" else "Verificar matrícula"
+                )
+            }
+
+            when {
+                state.isLoading -> Unit
+                state.sisaValidated -> Text(
+                    state.validationMessage ?: "Matrícula verificada en SISA/REFEPS",
+                    color = Color(0xFF00C853),
+                )
+                state.errorMessage != null -> Text(
+                    state.errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -133,7 +159,7 @@ fun DoctorSignatureScreen(
                 }
             }
 
-            if (state.errorMessage != null) {
+            if (state.errorMessage != null && !state.sisaValidated) {
                 Text(state.errorMessage!!, color = MaterialTheme.colorScheme.error)
             }
             if (state.isSuccess) {

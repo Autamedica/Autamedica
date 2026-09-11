@@ -40,7 +40,20 @@ class DoctorRepositoryImpl @Inject constructor(
             }
             .decodeSingle<DoctorDto>()
 
-        dto.toDomain()
+        val sssValidationStatus = runCatching {
+            supabaseClient.postgrest
+                .from("profiles")
+                .select(Columns.list("sss_validation_status")) {
+                    filter { eq("user_id", userId) }
+                }
+                .decodeSingle<DoctorProfileValidationDto>()
+                .sssValidationStatus
+        }.getOrElse {
+            SecureLog.warn("[DoctorRepo] Failed fetching doctor validation status: ${it.message}")
+            null
+        }
+
+        dto.toDomain(sssValidationStatus = sssValidationStatus)
     }.onFailure {
         SecureLog.error("[DoctorRepo] Failed fetching doctor profile", it)
     }
@@ -474,7 +487,7 @@ private data class DoctorDto(
     @SerialName("consultation_fee") val consultationFee: Double? = null,
     val active: Boolean = true,
 ) {
-    fun toDomain() = DoctorProfile(
+    fun toDomain(sssValidationStatus: String? = null) = DoctorProfile(
         id = id,
         userId = userId,
         licenseNumber = licenseNumber,
@@ -484,8 +497,14 @@ private data class DoctorDto(
         bio = bio,
         consultationFee = consultationFee,
         active = active,
+        sssValidationStatus = sssValidationStatus,
     )
 }
+
+@Serializable
+private data class DoctorProfileValidationDto(
+    @SerialName("sss_validation_status") val sssValidationStatus: String? = null,
+)
 
 @Serializable
 private data class AppointmentStatusDto(

@@ -132,6 +132,11 @@ fun AppNavHost(
                 onNavigateToContinuityStatus = {
                     navController.navigate(Route.ContinuityStatus)
                 },
+                onNavigateToDoctorSignature = {
+                    navController.navigate(Route.DoctorSignature) {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
 

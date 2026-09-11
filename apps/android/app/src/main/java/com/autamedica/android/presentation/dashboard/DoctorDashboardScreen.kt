@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.EventAvailable
@@ -85,6 +86,7 @@ import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
+import com.autamedica.android.presentation.theme.AuDanger
 import com.autamedica.android.presentation.theme.AuSuccess
 import com.autamedica.android.presentation.theme.AuSurface
 import com.autamedica.android.presentation.theme.AuSurfaceHover
@@ -107,6 +109,7 @@ private const val DOCTOR_TAB_PATIENTS = 3
 fun DoctorDashboardScreen(
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
     onNavigateToTab: (Int) -> Unit = {},
+    onNavigateToDoctorSignature: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: DoctorDashboardViewModel = hiltViewModel(),
 ) {
@@ -196,6 +199,8 @@ fun DoctorDashboardScreen(
                                 DoctorGreeting(
                                     name = uiState.userName,
                                     licenseNumber = uiState.doctorProfile?.licenseNumber,
+                                    sssValidationStatus = uiState.doctorProfile?.sssValidationStatus,
+                                    onVerifyLicense = onNavigateToDoctorSignature,
                                 )
                             }
                         }
@@ -659,6 +664,8 @@ private fun DoctorClinicalCockpit(
 private fun DoctorGreeting(
     name: String,
     licenseNumber: String?,
+    sssValidationStatus: String?,
+    onVerifyLicense: () -> Unit = {},
 ) {
     Column {
         Row(
@@ -679,26 +686,35 @@ private fun DoctorGreeting(
                 )
             }
             if (licenseNumber != null) {
+                val isVerified = sssValidationStatus == "valid" || sssValidationStatus == "exempt"
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = AuSuccess.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, AuSuccess.copy(alpha = 0.25f)),
+                    color = if (isVerified) AuSuccess.copy(alpha = 0.12f) else AuDanger.copy(alpha = 0.10f),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isVerified) AuSuccess.copy(alpha = 0.25f) else AuDanger.copy(alpha = 0.25f),
+                    ),
+                    modifier = if (isVerified) Modifier else Modifier.clickable { onVerifyLicense() },
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            Icons.Outlined.CheckCircle,
+                            if (isVerified) Icons.Outlined.CheckCircle else Icons.Default.Warning,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
-                            tint = AuSuccess,
+                            tint = if (isVerified) AuSuccess else AuDanger,
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "MN $licenseNumber",
+                            text = if (isVerified) {
+                                "MN $licenseNumber · Verificado"
+                            } else {
+                                "Matrícula sin verificar"
+                            },
                             style = MaterialTheme.typography.labelSmall,
-                            color = AuSuccess,
+                            color = if (isVerified) AuSuccess else AuDanger,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }

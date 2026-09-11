@@ -10,6 +10,7 @@ data class DoctorProfile(
     val bio: String? = null,
     val consultationFee: Double? = null,
     val active: Boolean = true,
+    val sssValidationStatus: String? = null,
 )
 
 data class DoctorStats(

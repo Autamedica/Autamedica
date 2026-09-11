@@ -306,7 +306,7 @@ class AppointmentRepositoryImpl @Inject constructor(
             try {
                 supabaseClient.postgrest
                     .from("profiles")
-                    .select(Columns.list("user_id", "first_name", "last_name", "avatar_url")) {
+                    .select(Columns.list("user_id", "first_name", "last_name", "avatar_url", "sss_validation_status")) {
                         filter { isIn("user_id", userIds) }
                     }
                     .decodeList<DoctorProfileBookingDto>()
@@ -428,6 +428,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                 subspecialty = doc.subspecialty?.takeIf { it.isNotBlank() },
                 availableSlots = emptyList(),
                 availableDays = activeDays,
+                sssValidationStatus = profile?.sssValidationStatus,
             )
         }.sortedWith(
             compareByDescending<DoctorBookingInfo> { it.avatarUrl != null }
@@ -682,7 +683,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                 val profilesMap = if (userIds.isNotEmpty()) {
                     supabaseClient.postgrest
                         .from("profiles")
-                        .select(Columns.list("user_id", "first_name", "last_name", "avatar_url")) {
+                        .select(Columns.list("user_id", "first_name", "last_name", "avatar_url", "sss_validation_status")) {
                             filter { isIn("user_id", userIds) }
                         }
                         .decodeList<DoctorProfileBookingDto>()
@@ -722,6 +723,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                         avatarUrl = profile?.avatarUrl?.takeIf { it.isNotBlank() },
                         subspecialty = doc.subspecialty?.takeIf { it.isNotBlank() },
                         availableSlots = emptyList(),
+                        sssValidationStatus = profile?.sssValidationStatus,
                     )
                 }
             } catch (e: Exception) {
@@ -909,6 +911,7 @@ private data class DoctorProfileBookingDto(
     @SerialName("first_name") val firstName: String? = null,
     @SerialName("last_name") val lastName: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("sss_validation_status") val sssValidationStatus: String? = null,
 )
 
 @Serializable
