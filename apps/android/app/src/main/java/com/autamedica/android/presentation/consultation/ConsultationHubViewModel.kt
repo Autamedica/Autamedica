@@ -11,6 +11,8 @@ import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +45,7 @@ data class ConsultationHubUiState(
     val walletBalanceCents: Long = 1500000L,
     val payingAppointmentId: String? = null,
     val paymentMessage: String? = null,
+    val checkoutUrlToLaunch: String? = null,
     val activeTelemedicineAppointment: Appointment? = null,
     val pendingPaymentAppointment: Appointment? = null,
     val upcomingTelemedicineAppointments: List<Appointment> = emptyList(),
@@ -144,46 +147,89 @@ class ConsultationHubViewModel @Inject constructor(
         }
     }
 
+    private var paymentPollingJob: Job? = null
+
     fun clearPaymentMessage() {
         _uiState.update { it.copy(paymentMessage = null) }
+    }
+
+    fun clearCheckoutUrl() {
+        _uiState.update { it.copy(checkoutUrlToLaunch = null) }
     }
 
     fun payAppointment(appointment: Appointment) {
         viewModelScope.launch {
             _uiState.update { it.copy(payingAppointmentId = appointment.id) }
-            val fee = appointment.doctorFee ?: 15000.0
-            val feeCents = (fee * 100).toLong()
-            val hasCredit = _uiState.value.walletBalanceCents >= feeCents
+            val paymentResult = appointmentRepository.createAppointmentPayment(appointment.id)
+            val execution = paymentResult.getOrNull()
 
-            val newBalance = if (hasCredit) {
-                _uiState.value.walletBalanceCents - feeCents
+            if (execution == null) {
+                _uiState.update {
+                    it.copy(
+                        payingAppointmentId = null,
+                        paymentMessage = "No se pudo iniciar el proceso de pago. Verificá tu conexión.",
+                    )
+                }
+                return@launch
+            }
+
+            if (execution.status == "approved") {
+                val updatedList = _uiState.value.appointments.map { apt ->
+                    if (apt.id == appointment.id) apt.copy(status = AppointmentStatus.CONFIRMED) else apt
+                }
+                _uiState.update {
+                    it.copy(
+                        appointments = updatedList,
+                        payingAppointmentId = null,
+                        paymentMessage = "Tu saldo AutaMedica cubrió la consulta. El turno ya quedó confirmado.",
+                    )
+                }
+                recomputeTelemedicineLists()
+                return@launch
+            }
+
+            if (!execution.checkoutUrl.isNullOrBlank()) {
+                _uiState.update {
+                    it.copy(
+                        checkoutUrlToLaunch = execution.checkoutUrl,
+                        paymentMessage = "Completá el pago en MercadoPago. Verificando confirmación...",
+                    )
+                }
+
+                paymentPollingJob?.cancel()
+                paymentPollingJob = viewModelScope.launch {
+                    val startPollTime = System.currentTimeMillis()
+                    while (System.currentTimeMillis() - startPollTime < 60_000L) {
+                        delay(2500L)
+                        val status = appointmentRepository.getAppointmentPaymentStatus(appointment.id).getOrNull()
+                        if (status == "approved") {
+                            val updatedList = _uiState.value.appointments.map { apt ->
+                                if (apt.id == appointment.id) apt.copy(status = AppointmentStatus.CONFIRMED) else apt
+                            }
+                            _uiState.update {
+                                it.copy(
+                                    appointments = updatedList,
+                                    payingAppointmentId = null,
+                                    paymentMessage = "Pago confirmado correctamente. Tu consulta ya está asegurada.",
+                                )
+                            }
+                            recomputeTelemedicineLists()
+                            break
+                        }
+                    }
+                    if (_uiState.value.payingAppointmentId == appointment.id) {
+                        _uiState.update { it.copy(payingAppointmentId = null) }
+                    }
+                    loadData()
+                }
             } else {
-                _uiState.value.walletBalanceCents
+                _uiState.update {
+                    it.copy(
+                        payingAppointmentId = null,
+                        paymentMessage = "No se pudo obtener el enlace de pago. Por favor intentá nuevamente.",
+                    )
+                }
             }
-
-            val updatedList = _uiState.value.appointments.map { apt ->
-                if (apt.id == appointment.id) {
-                    apt.copy(status = AppointmentStatus.CONFIRMED)
-                } else apt
-            }
-
-            val updatedJoinable = _uiState.value.joinableAppointmentIds + appointment.id
-            val msg = if (hasCredit) {
-                "Tu saldo AutaMedica cubrió la consulta. El turno ya quedó confirmado."
-            } else {
-                "Pago confirmado correctamente. Tu consulta ya está asegurada."
-            }
-
-            _uiState.update {
-                it.copy(
-                    appointments = updatedList,
-                    joinableAppointmentIds = updatedJoinable,
-                    walletBalanceCents = newBalance,
-                    payingAppointmentId = null,
-                    paymentMessage = msg,
-                )
-            }
-            recomputeTelemedicineLists()
         }
     }
 
@@ -209,36 +255,29 @@ class ConsultationHubViewModel @Inject constructor(
             }.getOrNull()
 
             val booked = result?.getOrNull()
-            val finalApt = booked?.copy(
+            if (booked == null) {
+                _uiState.update {
+                    it.copy(
+                        isEmergencyQueueLoading = false,
+                        paymentMessage = "No fue posible conectar con la guardia médica en este momento. Por favor intentá nuevamente.",
+                    )
+                }
+                return@launch
+            }
+
+            val finalApt = booked.copy(
                 doctorName = doctor.name,
                 doctorSpecialty = doctor.specialty,
                 doctorAvatarUrl = doctor.avatarUrl,
                 doctorFee = doctor.consultationFee ?: 15000.0,
                 status = AppointmentStatus.CONFIRMED,
-            ) ?: Appointment(
-                id = "guardia-${System.currentTimeMillis()}",
-                patientId = _uiState.value.userId,
-                doctorId = doctor.id,
-                startTime = startTime,
-                endTime = endTime,
-                durationMinutes = 30,
-                type = AppointmentType.TELEMEDICINE,
-                status = AppointmentStatus.CONFIRMED,
-                notes = "Guardia Inmediata 24/7: $reason",
-                meetingUrl = "https://meet.autamedica.com/guardia-${System.currentTimeMillis()}",
-                doctorName = doctor.name,
-                doctorSpecialty = doctor.specialty,
-                doctorAvatarUrl = doctor.avatarUrl,
-                doctorFee = doctor.consultationFee ?: 15000.0,
             )
 
             _uiState.update { current ->
-                val updatedAppointments = listOf(finalApt) + current.appointments
-                val updatedJoinable = current.joinableAppointmentIds + finalApt.id
+                val updatedAppointments = listOf(finalApt) + current.appointments.filter { it.id != finalApt.id }
                 current.copy(
                     isEmergencyQueueLoading = false,
                     appointments = updatedAppointments,
-                    joinableAppointmentIds = updatedJoinable,
                     paymentMessage = "Médico de guardia asignado (${doctor.name}). Podés ingresar de inmediato.",
                 )
             }
@@ -324,11 +363,11 @@ class ConsultationHubViewModel @Inject constructor(
             }
 
             // Active / Joinable appointment:
-            // An appointment in progress or with joinableId or confirmed candidate
+            // An appointment in progress or confirmed candidate within join window (45 min before / 24 h after)
             val liveApt = telemedicineApts.firstOrNull { it.status == AppointmentStatus.IN_PROGRESS }
             val joinableApt = liveApt ?: telemedicineApts.firstOrNull { apt ->
-                apt.id in state.joinableAppointmentIds ||
-                    (apt.status == AppointmentStatus.CONFIRMED && apt.isTelemedicineJoinCandidate())
+                (apt.status == AppointmentStatus.CONFIRMED || apt.id in state.joinableAppointmentIds) &&
+                    apt.isTelemedicineJoinCandidate()
             }
 
             // Pending payment appointment:
@@ -339,10 +378,7 @@ class ConsultationHubViewModel @Inject constructor(
                 apt.id != joinableApt?.id &&
                     apt.id != pendingPaymentApt?.id &&
                     (apt.status == AppointmentStatus.SCHEDULED || apt.status == AppointmentStatus.CONFIRMED || apt.status == AppointmentStatus.IN_PROGRESS) &&
-                    runCatching {
-                        java.time.OffsetDateTime.parse(apt.startTime)
-                            .isAfter(java.time.OffsetDateTime.now().minusMinutes(30))
-                    }.getOrDefault(false)
+                    apt.isTelemedicineJoinCandidate()
             }
 
             state.copy(

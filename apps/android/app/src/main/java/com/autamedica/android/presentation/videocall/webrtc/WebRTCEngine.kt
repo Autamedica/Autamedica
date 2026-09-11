@@ -102,6 +102,23 @@ class WebRTCEngine(
     private val _isAudioEnabled = MutableStateFlow(true)
     val isAudioEnabled: StateFlow<Boolean> = _isAudioEnabled.asStateFlow()
 
+    private val _isAutoDegradedToAudio = MutableStateFlow(false)
+    val isAutoDegradedToAudio: StateFlow<Boolean> = _isAutoDegradedToAudio.asStateFlow()
+
+    private val autoDegradeService = AutoDegradeService(
+        poorQualityThresholdMs = 30_000L,
+        recoveryThresholdMs = 15_000L,
+        onDegrade = {
+            Timber.w("[WebRTC] Quality poor for 30s: auto-degrading to audio-only")
+            _isAutoDegradedToAudio.value = true
+            toggleVideo(false)
+        },
+        onRecover = {
+            Timber.i("[WebRTC] Quality recovered for 15s")
+            adaptCaptureFormat(lowPressure = false)
+        },
+    )
+
     // -- Internal state --
 
     lateinit var config: Config
@@ -246,6 +263,26 @@ class WebRTCEngine(
 
     fun switchCamera() {
         videoCapturer?.switchCamera(null)
+    }
+
+    fun adaptCaptureFormat(lowPressure: Boolean) {
+        try {
+            if (lowPressure) {
+                videoCapturer?.changeCaptureFormat(320, 240, 15)
+                Timber.d("[WebRTC] Adapted video capture format to 320x240@15fps under network pressure")
+            } else {
+                videoCapturer?.changeCaptureFormat(640, 480, 30)
+                Timber.d("[WebRTC] Restored video capture format to 640x480@30fps")
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "[WebRTC] Failed to change capture format")
+        }
+    }
+
+    fun reactivateVideoAfterAutoDegrade() {
+        autoDegradeService.manualOverrideReset()
+        _isAutoDegradedToAudio.value = false
+        toggleVideo(true)
     }
 
     // -- Chat --
@@ -536,6 +573,8 @@ class WebRTCEngine(
         qualityJob?.cancel()
         qualityJob = null
         qualityMonitor.reset()
+        autoDegradeService.reset()
+        _isAutoDegradedToAudio.value = false
     }
 
     private fun collectQualityMetrics() {
@@ -549,9 +588,17 @@ class WebRTCEngine(
             if (metrics != null) peerMetrics.add(metrics)
         }
 
+        val overall = qualityMonitor.getOverallLevel(peerMetrics)
+        if (overall == StreamQualityLevel.POOR || overall == StreamQualityLevel.FAIR) {
+            adaptCaptureFormat(lowPressure = true)
+        } else if (overall == StreamQualityLevel.GOOD || overall == StreamQualityLevel.EXCELLENT) {
+            adaptCaptureFormat(lowPressure = false)
+        }
+        autoDegradeService.update(overall)
+
         _qualitySummary.value = StreamQualitySummary(
             roomId = config.roomId,
-            overallLevel = qualityMonitor.getOverallLevel(peerMetrics),
+            overallLevel = overall,
             peers = peerMetrics,
         )
     }
@@ -584,6 +631,8 @@ class WebRTCEngine(
         _chatReady.value = false
         _remoteVideoTrack.value = null
         remoteVideoOwnerId = null
+        autoDegradeService.reset()
+        _isAutoDegradedToAudio.value = false
 
         stopLocalMedia()
     }

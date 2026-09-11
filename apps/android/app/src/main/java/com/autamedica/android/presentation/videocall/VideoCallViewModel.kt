@@ -82,6 +82,7 @@ data class VideoCallUiState(
     val preconsultationSymptoms: String = "",
     val preconsultationEvolution: String = "",
     val isPreconsultationSaved: Boolean = false,
+    val isAutoDegradedToAudio: Boolean = false,
 )
 
 @HiltViewModel
@@ -646,6 +647,16 @@ class VideoCallViewModel @Inject constructor(
                 _uiState.update { it.copy(hasRemoteVideo = track != null) }
             }
         }
+
+        viewModelScope.launch {
+            engine.isAutoDegradedToAudio.collect { autoDegraded ->
+                _uiState.update { it.copy(isAutoDegradedToAudio = autoDegraded) }
+            }
+        }
+    }
+
+    fun reactivateVideo() {
+        engine.reactivateVideoAfterAutoDegrade()
     }
 
     fun updatePreconsultationReason(reason: String) {

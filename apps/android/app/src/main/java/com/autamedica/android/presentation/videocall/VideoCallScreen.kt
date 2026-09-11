@@ -17,6 +17,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -359,6 +361,37 @@ fun VideoCallScreen(
                         durationSeconds = uiState.callDurationSeconds,
                         isWaitingRoom = isWaitingRoomActive,
                     )
+                }
+
+                if (uiState.isAutoDegradedToAudio) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xD9B45309),
+                        border = BorderStroke(1.dp, Color(0x66FCD34D)),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .statusBarsPadding()
+                            .padding(top = 100.dp, start = 16.dp, end = 16.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = "Conexión débil: llamada en solo audio",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(
+                                onClick = { viewModel.reactivateVideo() },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            ) {
+                                Text("Reactivar video", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
                 }
 
                 // Local Video Picture-in-Picture (Bottom-Right, above Dock)

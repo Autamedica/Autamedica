@@ -23,4 +23,17 @@ interface AppointmentRepository {
         doctorId: String,
         date: String,
     ): Result<List<String>> = Result.success(emptyList())
+
+    suspend fun createAppointmentPayment(
+        appointmentId: String,
+    ): Result<AppointmentPaymentExecution> = Result.success(AppointmentPaymentExecution(status = "approved"))
+
+    suspend fun getAppointmentPaymentStatus(
+        appointmentId: String,
+    ): Result<String?> = Result.success("approved")
 }
+
+data class AppointmentPaymentExecution(
+    val status: String,
+    val checkoutUrl: String? = null,
+)

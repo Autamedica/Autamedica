@@ -5,6 +5,7 @@ import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.DoctorBookingInfo
+import com.autamedica.android.domain.repository.AppointmentPaymentExecution
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.logging.SecureLog
 import java.time.OffsetDateTime
@@ -13,11 +14,14 @@ import java.time.LocalTime
 import java.time.DayOfWeek
 import java.util.UUID
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.coroutines.flow.firstOrNull
@@ -101,12 +105,18 @@ class AppointmentRepositoryImpl @Inject constructor(
 
         val rawDomainModels = dtos.map { it.toDomain() }
 
-        val domainModels = if (role != "doctor") {
-            enrichWithDoctorInfo(
-                filterActiveWindow(rawDomainModels)
-            )
+        val reconciledModels = if (role != "doctor") {
+            reconcileApprovedPayments(rawDomainModels)
         } else {
             rawDomainModels
+        }
+
+        val domainModels = if (role != "doctor") {
+            enrichWithDoctorInfo(
+                filterActiveWindow(reconciledModels)
+            )
+        } else {
+            reconciledModels
         }
 
         // Phase 3: Cache data to Room for offline access
@@ -583,6 +593,79 @@ class AppointmentRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    /**
+     * Reconciles local appointment status against the backend payment ledger.
+     * If a turno is PAYMENT_PENDING or SCHEDULED but its appointment_payment is
+     * already 'approved' (e.g. the MercadoPago webhook arrived after Android's
+     * 60s polling window expired), it is promoted locally to CONFIRMED so the UI
+     * reflects the true backend state on next load.
+     */
+    private suspend fun reconcileApprovedPayments(appointments: List<Appointment>): List<Appointment> {
+        val reconcilable = appointments.filter { apt ->
+            apt.status == AppointmentStatus.PAYMENT_PENDING || apt.status == AppointmentStatus.SCHEDULED
+        }
+        if (reconcilable.isEmpty()) return appointments
+
+        val approvedIds = runCatching {
+            val pendingIds = reconcilable.map { it.id }
+            val statuses = supabaseClient.postgrest
+                .from("appointment_payments")
+                .select(Columns.list("appointment_id,status")) {
+                    filter {
+                        isIn("appointment_id", pendingIds)
+                    }
+                }
+                .decodeList<AppointmentPaymentIdStatusDto>()
+                .filter { it.status == "approved" }
+                .map { it.appointmentId }
+                .toSet()
+            statuses
+        }.getOrDefault(emptySet())
+
+        if (approvedIds.isEmpty()) return appointments
+
+        return appointments.map { apt ->
+            if ((apt.status == AppointmentStatus.PAYMENT_PENDING || apt.status == AppointmentStatus.SCHEDULED) &&
+                apt.id in approvedIds
+            ) {
+                apt.copy(status = AppointmentStatus.CONFIRMED)
+            } else {
+                apt
+            }
+        }
+    }
+
+    override suspend fun createAppointmentPayment(
+        appointmentId: String,
+    ): Result<AppointmentPaymentExecution> = runCatching {
+        val payload = buildJsonObject {
+            put("appointmentId", appointmentId)
+        }
+        val response = supabaseClient.functions("create-appointment-payment", payload)
+        val text = response.bodyAsText()
+        val json = Json { ignoreUnknownKeys = true }
+        val dto = json.decodeFromString<AppointmentPaymentResponseDto>(text)
+        AppointmentPaymentExecution(
+            status = dto.status,
+            checkoutUrl = dto.checkoutUrl,
+        )
+    }
+
+    override suspend fun getAppointmentPaymentStatus(
+        appointmentId: String,
+    ): Result<String?> = runCatching {
+        val result = supabaseClient.postgrest
+            .from("appointment_payments")
+            .select(Columns.list("status")) {
+                filter { eq("appointment_id", appointmentId) }
+                limit(1)
+            }
+            .decodeList<AppointmentPaymentStatusDto>()
+            .firstOrNull()
+            ?.status
+        result
+    }
 }
 
 @Serializable
@@ -635,6 +718,28 @@ private data class AppointmentDto(
         else -> AppointmentStatus.SCHEDULED
     }
 }
+
+@Serializable
+private data class AppointmentPaymentResponseDto(
+    val ok: Boolean = false,
+    val status: String = "pending",
+    @SerialName("payment_source") val paymentSource: String? = null,
+    @SerialName("checkout_url") val checkoutUrl: String? = null,
+    @SerialName("preference_id") val preferenceId: String? = null,
+    @SerialName("appointment_payment_id") val appointmentPaymentId: String? = null,
+)
+
+@Serializable
+private data class AppointmentPaymentStatusDto(
+    val status: String,
+)
+
+@Serializable
+private data class AppointmentPaymentIdStatusDto(
+    @SerialName("appointment_id") val appointmentId: String,
+    val status: String,
+)
+
 
 @Serializable
 private data class DoctorBookingRowDto(

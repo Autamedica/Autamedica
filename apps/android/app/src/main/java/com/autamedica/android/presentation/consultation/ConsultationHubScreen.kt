@@ -50,6 +50,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -104,6 +105,18 @@ fun ConsultationHubScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showEmergencyConfirmDialog by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(uiState.checkoutUrlToLaunch) {
+        val url = uiState.checkoutUrlToLaunch ?: return@LaunchedEffect
+        runCatching {
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
+                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        }
+        viewModel.clearCheckoutUrl()
+    }
 
     // Filter doctors based on selected reason
     val filteredDoctors = remember(uiState.availableDoctors, uiState.selectedReason) {

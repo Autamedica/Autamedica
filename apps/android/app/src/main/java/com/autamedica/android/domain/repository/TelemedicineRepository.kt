@@ -19,4 +19,5 @@ interface TelemedicineRepository {
     suspend fun getSession(sessionId: String): Result<TelemedicineSessionInfo>
     suspend fun getJoinableAppointmentIds(appointments: List<Appointment>): Result<Set<String>>
     suspend fun updateCallStatus(callId: String, status: String): Result<Unit>
+    suspend fun getIceServers(): Result<List<IceServerInfo>> = Result.success(emptyList())
 }

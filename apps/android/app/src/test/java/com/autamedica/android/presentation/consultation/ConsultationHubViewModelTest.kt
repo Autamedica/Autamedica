@@ -50,8 +50,8 @@ class ConsultationHubViewModelTest {
         id = "apt-1",
         patientId = "patient-1",
         doctorId = "doc-1",
-        startTime = java.time.OffsetDateTime.now().plusHours(1).toString(),
-        endTime = java.time.OffsetDateTime.now().plusHours(1).plusMinutes(30).toString(),
+        startTime = java.time.OffsetDateTime.now().plusMinutes(20).toString(),
+        endTime = java.time.OffsetDateTime.now().plusMinutes(50).toString(),
         durationMinutes = 30,
         type = AppointmentType.TELEMEDICINE,
         status = AppointmentStatus.CONFIRMED,
@@ -172,6 +172,32 @@ class ConsultationHubViewModelTest {
         assertThat(state.paymentMessage).contains("Médico de guardia asignado")
     }
 
+    @Test
+    fun `requestEmergencyConsultation does not enter call and displays honest error when booking fails`() = runTest(testDispatcher) {
+        val failingRepo = FakeAppointmentRepo(
+            appointments = listOf(sampleAppointment),
+            doctors = listOf(sampleDoctor),
+            bookAppointmentReturnsError = true,
+        )
+        val viewModel = ConsultationHubViewModel(
+            appointmentRepository = failingRepo,
+            authRepository = fakeAuthRepo,
+            telemedicineRepository = fakeTelemedicineRepo,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        var enteredAppointmentId: String? = null
+        viewModel.requestEmergencyConsultation("Dolor de pecho") { id ->
+            enteredAppointmentId = id
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertThat(enteredAppointmentId).isNull()
+        val state = viewModel.uiState.value
+        assertThat(state.isEmergencyQueueLoading).isFalse()
+        assertThat(state.paymentMessage).contains("No fue posible conectar con la guardia médica")
+    }
+
     // ── FAKES ──
 
     private class FakeAuthRepo(private val user: User?) : AuthRepository {
@@ -189,6 +215,7 @@ class ConsultationHubViewModelTest {
     private class FakeAppointmentRepo(
         private val appointments: List<Appointment>,
         private val doctors: List<DoctorBookingInfo>,
+        private val bookAppointmentReturnsError: Boolean = false,
     ) : AppointmentRepository {
         override suspend fun getUpcomingAppointments(): Result<List<Appointment>> = Result.success(appointments)
         override suspend fun getAppointmentById(id: String): Result<Appointment> =
@@ -203,20 +230,25 @@ class ConsultationHubViewModelTest {
             endTime: String,
             type: String,
             reason: String?,
-        ): Result<Appointment> = Result.success(
-            Appointment(
-                id = "booked-${System.currentTimeMillis()}",
-                patientId = "patient-1",
-                doctorId = doctorId,
-                startTime = startTime,
-                endTime = endTime,
-                durationMinutes = 30,
-                type = AppointmentType.TELEMEDICINE,
-                status = AppointmentStatus.CONFIRMED,
-                notes = reason,
-                meetingUrl = "https://meet.autamedica.com/booked",
+        ): Result<Appointment> {
+            if (bookAppointmentReturnsError) {
+                return Result.failure(Exception("Booking service unavailable"))
+            }
+            return Result.success(
+                Appointment(
+                    id = "booked-${System.currentTimeMillis()}",
+                    patientId = "patient-1",
+                    doctorId = doctorId,
+                    startTime = startTime,
+                    endTime = endTime,
+                    durationMinutes = 30,
+                    type = AppointmentType.TELEMEDICINE,
+                    status = AppointmentStatus.CONFIRMED,
+                    notes = reason,
+                    meetingUrl = "https://meet.autamedica.com/booked",
+                )
             )
-        )
+        }
     }
 
     private class FakeTelemedicineRepo(private val joinableIds: Set<String>) : TelemedicineRepository {

@@ -8,10 +8,13 @@ import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.repository.TelemedicineSessionInfo
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,7 +45,7 @@ class TelemedicineRepositoryImpl @Inject constructor(
                     sessionId = call.id,
                     roomId = call.roomId,
                     signalingUrl = BuildConfig.SIGNALING_URL,
-                    iceServers = getDefaultIceServers(),
+                    iceServers = fetchTurnIceServers(),
                 )
             }
 
@@ -52,7 +55,7 @@ class TelemedicineRepositoryImpl @Inject constructor(
                     sessionId = session.id,
                     roomId = session.roomId?.trim()?.takeIf { it.isNotEmpty() } ?: identifier,
                     signalingUrl = BuildConfig.SIGNALING_URL,
-                    iceServers = getDefaultIceServers(),
+                    iceServers = fetchTurnIceServers(),
                 )
             }
         }
@@ -62,7 +65,7 @@ class TelemedicineRepositoryImpl @Inject constructor(
             sessionId = identifier,
             roomId = identifier,
             signalingUrl = BuildConfig.SIGNALING_URL,
-            iceServers = getDefaultIceServers(),
+            iceServers = fetchTurnIceServers(),
         )
     }.onFailure {
         SecureLog.error("[Telemedicine] Failed fetching session", it)
@@ -270,7 +273,54 @@ class TelemedicineRepositoryImpl @Inject constructor(
         }
         return servers
     }
+
+    override suspend fun getIceServers(): Result<List<IceServerInfo>> = runCatching {
+        fetchTurnIceServers()
+    }
+
+    internal suspend fun fetchTurnIceServers(): List<IceServerInfo> {
+        val custom = iceServersProvider?.invoke()
+        if (custom != null) return custom
+
+        val fetched = runCatching {
+            val response = supabaseClient.functions.invoke("turn-credentials")
+            val text = response.bodyAsText()
+            val json = Json { ignoreUnknownKeys = true }
+            val dto = json.decodeFromString<TurnCredentialsResponseDto>(text)
+            if (dto.ok && !dto.iceServers.isNullOrEmpty()) {
+                dto.iceServers.map { entry ->
+                    IceServerInfo(
+                        urls = entry.urls,
+                        username = entry.username,
+                        credential = entry.credential,
+                    )
+                }
+            } else {
+                null
+            }
+        }.getOrNull()
+
+        if (!fetched.isNullOrEmpty()) {
+            return fetched
+        }
+
+        return getDefaultIceServers()
+    }
 }
+
+@Serializable
+private data class TurnCredentialsResponseDto(
+    val ok: Boolean = false,
+    @SerialName("iceServers") val iceServers: List<TurnIceServerDto>? = null,
+)
+
+@Serializable
+private data class TurnIceServerDto(
+    val urls: List<String>,
+    val username: String? = null,
+    val credential: String? = null,
+)
+
 
 
 @Serializable

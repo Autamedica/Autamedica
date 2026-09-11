@@ -125,7 +125,7 @@ class TelemedicineAvailabilityResolverTest {
         id = id,
         patientId = "patient-1",
         doctorId = "doctor-1",
-        startTime = java.time.OffsetDateTime.now().plusHours(1).toString(),
+        startTime = java.time.OffsetDateTime.now().plusMinutes(15).toString(),
         endTime = null,
         durationMinutes = 30,
         type = type,

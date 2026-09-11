@@ -16,6 +16,8 @@ private val telemedicineJoinableTypes = setOf(
 fun Appointment.isTelemedicineJoinCandidate(): Boolean {
     if (type !in telemedicineJoinableTypes || status !in telemedicineJoinableStatuses) return false
     return runCatching {
-        OffsetDateTime.parse(startTime).isAfter(OffsetDateTime.now().minusMinutes(30))
+        val start = OffsetDateTime.parse(startTime)
+        val now = OffsetDateTime.now()
+        start.isAfter(now.minusHours(24)) && start.isBefore(now.plusMinutes(45))
     }.getOrDefault(false)
 }

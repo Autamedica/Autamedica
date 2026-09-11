@@ -1,0 +1,80 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@std/assert@*": "1.0.19",
+    "jsr:@std/internal@^1.0.12": "1.0.14"
+  },
+  "jsr": {
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/internal@1.0.14": {
+      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
+    }
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@axe-core/playwright@^4.11.1",
+        "npm:@getbrevo/brevo@^5.0.4",
+        "npm:@google/generative-ai@~0.24.1",
+        "npm:@playwright/test@^1.58.2",
+        "npm:@signpdf/placeholder-plain@^3.3.0",
+        "npm:@signpdf/signer-p12@^3.3.0",
+        "npm:@signpdf/signpdf@^3.3.0",
+        "npm:@supabase/supabase-js@^2.98.0",
+        "npm:@testing-library/user-event@^14.6.1",
+        "npm:@types/handlebars@^4.1.0",
+        "npm:@types/node@^24.11.0",
+        "npm:@types/pg@^8.18.0",
+        "npm:@types/react-signature-canvas@^1.0.7",
+        "npm:@types/react@19.1.0",
+        "npm:@typescript-eslint/eslint-plugin@^8.56.1",
+        "npm:@typescript-eslint/parser@^8.56.1",
+        "npm:@vitejs/plugin-react@^6.0.1",
+        "npm:@vitest/browser@^4.1.6",
+        "npm:@vitest/coverage-v8@^4.1.6",
+        "npm:change-case@^5.4.4",
+        "npm:concurrently@^9.2.1",
+        "npm:dependency-cruiser@^17.3.8",
+        "npm:dotenv@^17.3.1",
+        "npm:eslint-import-resolver-typescript@^4.4.4",
+        "npm:eslint-plugin-boundaries@^5.4.0",
+        "npm:eslint-plugin-import@^2.32.0",
+        "npm:eslint-plugin-jsdoc@^58.1.1",
+        "npm:eslint-plugin-perfectionist@^4.15.1",
+        "npm:eslint-plugin-react-hooks@^5.2.0",
+        "npm:eslint-plugin-sonarjs@^3.0.7",
+        "npm:eslint-plugin-unicorn@^61.0.2",
+        "npm:eslint-plugin-unused-imports@^4.4.1",
+        "npm:eslint@^9.39.3",
+        "npm:glob@^11.1.0",
+        "npm:globals@^16.5.0",
+        "npm:globby@^11.1.0",
+        "npm:handlebars@^4.7.8",
+        "npm:happy-dom@^20.0.2",
+        "npm:husky@^9.1.0",
+        "npm:jose@^6.1.3",
+        "npm:jscpd@^4.0.8",
+        "npm:lint-staged@^15.5.2",
+        "npm:node-forge@^1.4.0",
+        "npm:nodemon@^3.1.14",
+        "npm:onnxruntime-web@^1.24.2",
+        "npm:patchright@^1.58.2",
+        "npm:pg@^8.19.0",
+        "npm:playwright@^1.58.2",
+        "npm:prettier@^3.8.1",
+        "npm:react-signature-canvas@1.1.0-alpha.2",
+        "npm:rimraf@^6.1.3",
+        "npm:ts-node@^10.9.2",
+        "npm:tsx@^4.21.0",
+        "npm:turbo@^2.8.12",
+        "npm:typescript@5.9.2",
+        "npm:vitest@^4.1.6"
+      ]
+    }
+  }
+}
