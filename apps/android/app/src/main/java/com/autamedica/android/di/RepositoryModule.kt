@@ -17,7 +17,9 @@ import com.autamedica.android.domain.repository.StorageRepository
 import com.autamedica.android.data.repository.StorageRepositoryImpl
 import com.autamedica.android.data.repository.TelemedicineRepositoryImpl
 import com.autamedica.android.data.repository.FollowupRepositoryImpl
+import com.autamedica.android.data.repository.WalletRepositoryImpl
 import com.autamedica.android.domain.repository.FollowupRepository
+import com.autamedica.android.domain.repository.WalletRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -75,4 +77,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindFollowupRepository(impl: FollowupRepositoryImpl): FollowupRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindWalletRepository(impl: WalletRepositoryImpl): WalletRepository
 }

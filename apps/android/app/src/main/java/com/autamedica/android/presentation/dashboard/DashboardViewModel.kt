@@ -15,6 +15,7 @@ import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.model.PortalNotification
 import com.autamedica.android.domain.repository.NotificationRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
+import com.autamedica.android.domain.repository.WalletRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -52,9 +53,11 @@ data class DashboardUiState(
     val showReserveBanner: Boolean = true,
     // Wallet
     val walletBalanceCents: Long = 0L,
-    val freeConsultationsCount: Int = 1,
+    val freeConsultationsCount: Int = 0,
     val isWalletSheetOpen: Boolean = false,
     val isTopupDialogOpen: Boolean = false,
+    val isTopupLoading: Boolean = false,
+    val checkoutUrlToLaunch: String? = null,
     // Notifications
     val notifications: List<PortalNotification> = emptyList(),
     val unreadNotificationsCount: Int = 0,
@@ -69,6 +72,7 @@ class DashboardViewModel @Inject constructor(
     private val telemedicineRepository: TelemedicineRepository,
     private val profileRepository: ProfileRepository,
     private val notificationRepository: NotificationRepository,
+    private val walletRepository: WalletRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -113,15 +117,8 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun sendTestNotification() {
-        viewModelScope.launch {
-            notificationRepository.showLocalNotification(
-                title = "Turno confirmado con Dr. Eduardo Da Rosa",
-                body = "Tu consulta de Medicina General está confirmada. Toca para ingresar a la sala.",
-                category = "appointment",
-                deepLink = "/appointments",
-            )
-        }
+    fun clearCheckoutUrl() {
+        _uiState.update { it.copy(checkoutUrlToLaunch = null) }
     }
 
     fun toggleReserveBanner(visible: Boolean) {
@@ -137,11 +134,26 @@ class DashboardViewModel @Inject constructor(
     }
 
     fun topupWallet(amountArs: Double) {
-        val centsToAdd = (amountArs * 100).toLong()
-        _uiState.update { current ->
-            current.copy(
-                walletBalanceCents = current.walletBalanceCents + centsToAdd,
-                isTopupDialogOpen = false,
+        viewModelScope.launch {
+            _uiState.update { it.copy(isTopupLoading = true) }
+            walletRepository.createTopupPreference(amountArs).fold(
+                onSuccess = { checkoutUrl ->
+                    _uiState.update {
+                        it.copy(
+                            checkoutUrlToLaunch = checkoutUrl,
+                            isTopupLoading = false,
+                            isTopupDialogOpen = false,
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(
+                            isTopupLoading = false,
+                            error = error.message ?: "Error al generar enlace de recarga",
+                        )
+                    }
+                }
             )
         }
     }
@@ -188,6 +200,7 @@ class DashboardViewModel @Inject constructor(
                 val snapshotDeferred = async { profileRepository.getPatientProfileSnapshot() }
                 val profileDeferred = async { profileRepository.getProfile() }
                 val notifsDeferred = async { notificationRepository.getNotifications() }
+                val walletDeferred = async { walletRepository.getWalletBalance() }
 
                 val appointmentsResult = appointmentsDeferred.await()
                 val anamnesisResult = anamnesisDeferred.await()
@@ -196,6 +209,7 @@ class DashboardViewModel @Inject constructor(
                 val snapshotResult = snapshotDeferred.await()
                 val profileResult = profileDeferred.await()
                 notifsDeferred.await()
+                val balanceResult = walletDeferred.await()
 
                 val appointments = appointmentsResult.getOrNull()
                 val resolvedAppointments = appointments ?: _uiState.value.appointments
@@ -232,6 +246,7 @@ class DashboardViewModel @Inject constructor(
                         userEmail = resolvedEmail,
                         userPhone = resolvedPhone,
                         userAvatarUrl = resolvedAvatar,
+                        walletBalanceCents = balanceResult.getOrNull() ?: current.walletBalanceCents,
                     )
                 }
             }

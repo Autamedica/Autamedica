@@ -43,7 +43,6 @@ import com.autamedica.android.presentation.theme.PortalPatients
 fun ReadinessMetricsSection(
     anamnesisProgress: Int,
     profileProgress: Int,
-    freeConsultations: Int,
     isCompleted: Boolean,
     onPrimaryAction: () -> Unit,
     modifier: Modifier = Modifier,
@@ -172,16 +171,6 @@ fun ReadinessMetricsSection(
                     valueText = "$profileProgress%",
                     progressFraction = (profileProgress / 100f).coerceIn(0f, 1f),
                     color = Color(0xFF64748B),
-                )
-
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF1F5F9)))
-
-                // Metric 3: Consultas libres
-                MetricProgressRow(
-                    label = "Consultas libres",
-                    valueText = freeConsultations.toString(),
-                    progressFraction = (freeConsultations / 5f).coerceIn(0f, 1f),
-                    color = Color(0xFF0284C7),
                 )
             }
         }

@@ -146,15 +146,16 @@ fun MainScreen(
     onNavigateToCommunity: () -> Unit = {},
     onNavigateToContinuityStatus: () -> Unit = {},
     onNavigateToDoctorSignature: () -> Unit = {},
+    onNavigateToPatientProfile: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showHealthReserveDetail by rememberSaveable { mutableStateOf(false) }
-    var reserveSubscriptionTier by rememberSaveable { mutableStateOf("cuidado") }
-    var reserveBalanceCredits by rememberSaveable { mutableIntStateOf(22) }
-    var reserveMaxCapCredits by rememberSaveable { mutableIntStateOf(600) }
+    var reserveSubscriptionTier by rememberSaveable { mutableStateOf("free") }
+    var reserveBalanceCredits by rememberSaveable { mutableIntStateOf(0) }
+    var reserveMaxCapCredits by rememberSaveable { mutableIntStateOf(0) }
 
     val isDoctor = uiState.userRole == com.autamedica.android.domain.model.UserRole.DOCTOR
     val isWebPortal = uiState.userRole != com.autamedica.android.domain.model.UserRole.DOCTOR && uiState.userRole != com.autamedica.android.domain.model.UserRole.PATIENT
@@ -351,22 +352,13 @@ fun MainScreen(
                         benefitBalanceCredits = reserveBalanceCredits,
                         maxCapCredits = reserveMaxCapCredits,
                         onBack = { showHealthReserveDetail = false },
-                        onActivatePlan = { newTier ->
-                            reserveSubscriptionTier = newTier
-                            if (newTier == "cuidado") {
-                                reserveMaxCapCredits = 600
-                                if (reserveBalanceCredits == 0) reserveBalanceCredits = 22
-                            } else if (newTier == "familiar") {
-                                reserveMaxCapCredits = 1800
-                                if (reserveBalanceCredits == 0) reserveBalanceCredits = 66
-                            }
-                        },
                     )
                 } else {
                     when (selectedTab) {
                         0 -> DashboardScreen(
                             onNavigateToVideoCall = onNavigateToVideoCall,
                             onNavigateToTab = { selectedTab = it },
+                            onNavigateToPatientProfile = onNavigateToPatientProfile,
                             onNavigateToAnamnesisForm = onNavigateToAnamnesisForm,
                             onNavigateToPreventiveHealth = onNavigateToPreventiveHealth,
                             onNavigateToBookAppointment = onNavigateToBookAppointment,

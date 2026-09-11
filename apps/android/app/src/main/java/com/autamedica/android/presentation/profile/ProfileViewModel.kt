@@ -5,8 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.PatientProfileSnapshot
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
+import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.ProfileRepository
+import com.autamedica.android.domain.repository.WalletRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,11 +27,17 @@ data class ProfileUiState(
     val firstName: String = "",
     val lastName: String = "",
     val phone: String = "",
+    val walletBalanceCents: Long = 0L,
+    val isTopupLoading: Boolean = false,
+    val checkoutUrlToLaunch: String? = null,
+    val isTopupDialogOpen: Boolean = false,
 )
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
+    private val walletRepository: WalletRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -86,7 +95,13 @@ class ProfileViewModel @Inject constructor(
 
     private fun loadProfile() {
         viewModelScope.launch {
-            profileRepository.getProfile().fold(
+            val walletDeferred = async { walletRepository.getWalletBalance() }
+            val profileDeferred = async { profileRepository.getProfile() }
+
+            val profileResult = profileDeferred.await()
+            val walletResult = walletDeferred.await()
+
+            profileResult.fold(
                 onSuccess = { user ->
                     val patientSnapshot = if (user.role == UserRole.PATIENT) {
                         profileRepository.getPatientProfileSnapshot().getOrNull()
@@ -101,6 +116,7 @@ class ProfileViewModel @Inject constructor(
                             firstName = user.firstName,
                             lastName = user.lastName,
                             phone = user.phone.orEmpty(),
+                            walletBalanceCents = walletResult.getOrNull() ?: it.walletBalanceCents,
                             isLoading = false,
                             error = null,
                         )
@@ -115,6 +131,54 @@ class ProfileViewModel @Inject constructor(
                     }
                 },
             )
+        }
+    }
+
+    fun refreshWallet() {
+        viewModelScope.launch {
+            walletRepository.getWalletBalance().onSuccess { balance ->
+                _uiState.update { it.copy(walletBalanceCents = balance) }
+            }
+        }
+    }
+
+    fun setTopupDialogVisible(visible: Boolean) {
+        _uiState.update { it.copy(isTopupDialogOpen = visible) }
+    }
+
+    fun clearCheckoutUrl() {
+        _uiState.update { it.copy(checkoutUrlToLaunch = null) }
+    }
+
+    fun topupWallet(amountArs: Double) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isTopupLoading = true) }
+            walletRepository.createTopupPreference(amountArs).fold(
+                onSuccess = { checkoutUrl ->
+                    _uiState.update {
+                        it.copy(
+                            checkoutUrlToLaunch = checkoutUrl,
+                            isTopupLoading = false,
+                            isTopupDialogOpen = false,
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(
+                            isTopupLoading = false,
+                            error = error.message ?: "Error al generar enlace de recarga",
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    fun logout(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            authRepository.logout()
+            onComplete()
         }
     }
 }

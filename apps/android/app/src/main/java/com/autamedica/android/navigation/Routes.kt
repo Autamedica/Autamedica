@@ -30,6 +30,9 @@ sealed interface Route {
     data object Main : Route
 
     @Serializable
+    data object PatientProfile : Route
+
+    @Serializable
     data class VideoCall(
         val appointmentId: String,
         val roomId: String = "",

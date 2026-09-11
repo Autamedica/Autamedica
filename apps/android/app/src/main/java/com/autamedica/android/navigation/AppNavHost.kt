@@ -18,6 +18,7 @@ import com.autamedica.android.presentation.patients.PatientDetailScreen
 import com.autamedica.android.presentation.patients.reproductive.ReproductiveHealthScreen
 import com.autamedica.android.presentation.patients.community.PatientCommunityScreen
 
+import com.autamedica.android.presentation.profile.PatientProfileScreen
 import com.autamedica.android.presentation.videocall.VideoCallScreen
 
 @Composable
@@ -134,6 +135,23 @@ fun AppNavHost(
                 },
                 onNavigateToDoctorSignature = {
                     navController.navigate(Route.DoctorSignature) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToPatientProfile = {
+                    navController.navigate(Route.PatientProfile) {
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+
+        composable<Route.PatientProfile> {
+            PatientProfileScreen(
+                onBack = { navController.popBackStack() },
+                onLogout = {
+                    navController.navigate(Route.Login) {
+                        popUpTo(Route.Main) { inclusive = true }
                         launchSingleTop = true
                     }
                 },

@@ -19,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -42,16 +43,17 @@ import com.autamedica.android.presentation.dashboard.components.UpcomingAppointm
 import com.autamedica.android.presentation.dashboard.components.WalletTopupDialog
 import com.autamedica.android.presentation.theme.AuAccent
 
-private const val PATIENT_TAB_MESSAGES = 1
-private const val PATIENT_TAB_APPOINTMENTS = 2
-private const val PATIENT_TAB_HEALTH = 3
-private const val PATIENT_TAB_PROFILE = 4
+private const val PATIENT_TAB_APPOINTMENTS = 1
+private const val PATIENT_TAB_CONSULT = 2
+private const val PATIENT_TAB_PRESCRIPTIONS = 3
+private const val PATIENT_TAB_COMMUNITY = 4
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
     onNavigateToTab: (Int) -> Unit = {},
+    onNavigateToPatientProfile: () -> Unit = {},
     onNavigateToAnamnesisForm: () -> Unit = {},
     onNavigateToPreventiveHealth: () -> Unit = {},
     onNavigateToBookAppointment: () -> Unit = {},
@@ -68,6 +70,15 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uriHandler = LocalUriHandler.current
+
+    LaunchedEffect(uiState.checkoutUrlToLaunch) {
+        val url = uiState.checkoutUrlToLaunch
+        if (!url.isNullOrBlank()) {
+            runCatching { uriHandler.openUri(url) }
+            viewModel.clearCheckoutUrl()
+        }
+    }
 
     val terminalStatuses = setOf(
         AppointmentStatus.COMPLETED,
@@ -105,31 +116,31 @@ fun DashboardScreen(
                 id = 1,
                 label = "Nombre",
                 isCompleted = uiState.userName.trim().split(" ").filter { it.isNotBlank() }.size >= 2,
-                onClick = { onNavigateToTab(PATIENT_TAB_PROFILE) },
+                onClick = onNavigateToPatientProfile,
             ),
             ChecklistItem(
                 id = 2,
                 label = "Email",
                 isCompleted = uiState.userEmail.isNotBlank(),
-                onClick = { onNavigateToTab(PATIENT_TAB_PROFILE) },
+                onClick = onNavigateToPatientProfile,
             ),
             ChecklistItem(
                 id = 3,
                 label = "Fecha de nacimiento",
                 isCompleted = !uiState.patientSnapshot?.birthDate.isNullOrBlank(),
-                onClick = { onNavigateToTab(PATIENT_TAB_PROFILE) },
+                onClick = onNavigateToPatientProfile,
             ),
             ChecklistItem(
                 id = 4,
                 label = "Teléfono",
                 isCompleted = !uiState.userPhone.isNullOrBlank(),
-                onClick = { onNavigateToTab(PATIENT_TAB_PROFILE) },
+                onClick = onNavigateToPatientProfile,
             ),
             ChecklistItem(
                 id = 5,
                 label = "Género",
                 isCompleted = !uiState.patientSnapshot?.gender.isNullOrBlank(),
-                onClick = { onNavigateToTab(PATIENT_TAB_PROFILE) },
+                onClick = onNavigateToPatientProfile,
             ),
             ChecklistItem(
                 id = 6,
@@ -147,12 +158,11 @@ fun DashboardScreen(
                 subscriptionTier = uiState.subscriptionTier,
                 subscriptionStatus = uiState.subscriptionStatus,
                 walletBalanceCents = uiState.walletBalanceCents,
-                freeConsultationsCount = uiState.freeConsultationsCount,
                 hasUpcomingAppointment = nextAppointment != null,
                 unreadNotificationsCount = uiState.unreadNotificationsCount,
                 onWalletClick = { viewModel.setWalletSheetVisible(true) },
                 onNotificationsClick = { viewModel.setNotificationsSheetVisible(true) },
-                onProfileClick = { onNavigateToTab(PATIENT_TAB_PROFILE) },
+                onProfileClick = onNavigateToPatientProfile,
             )
         },
         containerColor = Color.White,
@@ -188,11 +198,7 @@ fun DashboardScreen(
                                 subscriptionTier = uiState.subscriptionTier,
                                 benefitBalanceCredits = uiState.benefitBalanceCredits,
                                 onBookConsultation = {
-                                    if (onNavigateToBookAppointment != {}) {
-                                        onNavigateToBookAppointment()
-                                    } else {
-                                        onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
-                                    }
+                                    onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
                                 },
                                 onOpenReserveDetails = {
                                     onOpenHealthReserveDetail(
@@ -210,12 +216,8 @@ fun DashboardScreen(
                             AvailableDoctorsCarousel(
                                 doctors = uiState.availableDoctors,
                                 isLoading = uiState.doctorsLoading,
-                                onDoctorClick = { doctor ->
-                                    if (onNavigateToBookAppointment != {}) {
-                                        onNavigateToBookAppointment()
-                                    } else {
-                                        onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
-                                    }
+                                onDoctorClick = { _ ->
+                                    onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
                                 },
                                 onViewAllClick = {
                                     onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
@@ -255,7 +257,6 @@ fun DashboardScreen(
                             ReadinessMetricsSection(
                                 anamnesisProgress = anamnesisProgress,
                                 profileProgress = profileProgress,
-                                freeConsultations = uiState.freeConsultationsCount,
                                 isCompleted = isReadinessCompleted,
                                 onPrimaryAction = {
                                     if (!isReadinessCompleted) {
@@ -384,12 +385,11 @@ fun DashboardScreen(
                     "appointment" -> onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
                     "prescription" -> onNavigateToPrescriptions()
                     "community" -> onNavigateToCommunity()
-                    "chat", "message" -> onNavigateToTab(PATIENT_TAB_MESSAGES)
+                    "chat", "message" -> onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
                     else -> onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
                 }
             },
             onMarkAllAsRead = viewModel::markAllNotificationsAsRead,
-            onSendTestNotification = viewModel::sendTestNotification,
         )
     }
 }

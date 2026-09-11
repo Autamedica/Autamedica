@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material3.Button
@@ -72,19 +71,6 @@ fun AvailableDoctorsCarousel(
     onViewAllClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Ensure enough items to create a continuous seamless scroll on any screen size (matching Web)
-    val displayDoctors = remember(doctors) {
-        val base = if (doctors.isNotEmpty()) doctors else defaultSampleDoctors
-        val multiplied = mutableListOf<DoctorBookingInfo>()
-        var repeatIndex = 0
-        while (multiplied.size < 12) {
-            for (doc in base) {
-                multiplied.add(doc.copy(id = "${doc.id}_rep_${repeatIndex++}"))
-            }
-        }
-        multiplied
-    }
-
     val listState = rememberLazyListState()
     var isUserInteracting by remember { mutableStateOf(false) }
 
@@ -98,8 +84,8 @@ fun AvailableDoctorsCarousel(
     }
 
     // Continuous smooth horizontal glide (matching Web speed of ~30px/s)
-    LaunchedEffect(isUserInteracting, displayDoctors.size, isLoading) {
-        if (isUserInteracting || isLoading || displayDoctors.isEmpty()) return@LaunchedEffect
+    LaunchedEffect(isUserInteracting, doctors.size, isLoading) {
+        if (isUserInteracting || isLoading || doctors.isEmpty()) return@LaunchedEffect
         while (isActive) {
             listState.scrollBy(1.2f)
             delay(25L)
@@ -151,18 +137,41 @@ fun AvailableDoctorsCarousel(
             )
         }
 
-        // Horizontal Doctors Carousel with smooth glide
-        LazyRow(
-            state = listState,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            itemsIndexed(displayDoctors, key = { _, doc -> doc.id }) { _, doctor ->
-                DoctorCard(
-                    doctor = doctor,
-                    onClick = { onDoctorClick(doctor) },
-                )
+        if (doctors.isEmpty() && !isLoading) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "No hay profesionales disponibles para consulta inmediata en este momento.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AuTextSecondary,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                }
+            }
+        } else {
+            // Horizontal Doctors Carousel with smooth glide
+            LazyRow(
+                state = listState,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                itemsIndexed(doctors, key = { _, doc -> doc.id }) { _, doctor ->
+                    DoctorCard(
+                        doctor = doctor,
+                        onClick = { onDoctorClick(doctor) },
+                    )
+                }
             }
         }
     }
@@ -263,35 +272,16 @@ private fun DoctorCard(
                         overflow = TextOverflow.Ellipsis,
                     )
 
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        // Zero-Yellow Gate: Clinical sky accent instead of yellow
-                        Icon(
-                            imageVector = Icons.Filled.Star,
-                            contentDescription = "Calificación 4.9 estrellas",
-                            tint = Color(0xFF0284C7),
-                            modifier = Modifier.size(13.dp),
-                        )
+                    val formattedLicense = formatLicenseDisplay(doctor.licenseNumber)
+                    if (formattedLicense.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "4.9",
+                            text = formattedLicense,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF334155),
+                            color = AuTextTertiary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
-                        val formattedLicense = formatLicenseDisplay(doctor.licenseNumber)
-                        if (formattedLicense.isNotBlank()) {
-                            Text(
-                                text = "• $formattedLicense",
-                                fontSize = 11.sp,
-                                color = AuTextTertiary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
                     }
                 }
             }
@@ -320,7 +310,7 @@ private fun DoctorCard(
                         NumberFormat.getCurrencyInstance(Locale("es", "AR")).apply {
                             maximumFractionDigits = 0
                         }.format(fee)
-                    } ?: "Bonificada"
+                    } ?: "A consultar"
                     Text(
                         text = feeText,
                         fontSize = 13.sp,
@@ -450,66 +440,3 @@ private fun getDoctorFallbackAvatar(doctorId: String, name: String): Int {
         }
     }
 }
-
-private val defaultSampleDoctors = listOf(
-    DoctorBookingInfo(
-        id = "doc-1",
-        userId = "u-1",
-        name = "Dr. Alejandro Rossi",
-        specialty = "Clínico General",
-        licenseNumber = "MN 145.890",
-        consultationFee = 15000.0,
-        avatarUrl = null,
-        availableSlots = listOf("10:00", "11:30", "14:00"),
-    ),
-    DoctorBookingInfo(
-        id = "doc-2",
-        userId = "u-2",
-        name = "Dra. Mariana Gómez",
-        specialty = "Cardiología",
-        licenseNumber = "MN 152.340",
-        consultationFee = 18000.0,
-        avatarUrl = null,
-        availableSlots = listOf("11:00", "15:30", "17:00"),
-    ),
-    DoctorBookingInfo(
-        id = "doc-3",
-        userId = "u-3",
-        name = "Dr. Carlos Menéndez",
-        specialty = "Salud Mental y Triage",
-        licenseNumber = "MN 138.992",
-        consultationFee = 16500.0,
-        avatarUrl = null,
-        availableSlots = listOf("09:30", "12:00", "16:00"),
-    ),
-    DoctorBookingInfo(
-        id = "doc-4",
-        userId = "u-4",
-        name = "Dra. Camila Silveira",
-        specialty = "Pediatría y Familia",
-        licenseNumber = "MN 161.420",
-        consultationFee = 16000.0,
-        avatarUrl = null,
-        availableSlots = listOf("08:30", "13:00", "16:30"),
-    ),
-    DoctorBookingInfo(
-        id = "doc-5",
-        userId = "u-5",
-        name = "Dr. Lucas Ferreira",
-        specialty = "Dermatología Clínica",
-        licenseNumber = "MN 159.881",
-        consultationFee = 19000.0,
-        avatarUrl = null,
-        availableSlots = listOf("10:30", "14:30", "18:00"),
-    ),
-    DoctorBookingInfo(
-        id = "doc-6",
-        userId = "u-6",
-        name = "Dra. Valentina Paz",
-        specialty = "Ginecología y Obstetricia",
-        licenseNumber = "MN 147.210",
-        consultationFee = 17500.0,
-        avatarUrl = null,
-        availableSlots = listOf("09:00", "11:00", "15:00"),
-    ),
-)

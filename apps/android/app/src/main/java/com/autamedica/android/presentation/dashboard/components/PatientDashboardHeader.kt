@@ -51,7 +51,6 @@ fun PatientDashboardHeader(
     subscriptionTier: String,
     subscriptionStatus: String,
     walletBalanceCents: Long,
-    freeConsultationsCount: Int,
     hasUpcomingAppointment: Boolean,
     unreadNotificationsCount: Int = 0,
     onWalletClick: () -> Unit,
@@ -120,11 +119,7 @@ fun PatientDashboardHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                val walletText = if (freeConsultationsCount > 0) {
-                    "$freeConsultationsCount ${if (freeConsultationsCount == 1) "consulta" else "consultas"}"
-                } else {
-                    formatCents(walletBalanceCents)
-                }
+                val walletText = formatCents(walletBalanceCents)
 
                 // Wallet chip (48dp min touch target)
                 Surface(
@@ -209,7 +204,7 @@ fun PatientDashboardHeader(
     }
 }
 
-private fun formatCents(cents: Long): String {
+fun formatCents(cents: Long): String {
     val amount = cents / 100.0
     return NumberFormat.getCurrencyInstance(Locale("es", "AR")).apply {
         maximumFractionDigits = 0
