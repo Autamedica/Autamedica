@@ -1,0 +1,340 @@
+---
+import Layout from '../layouts/Layout.astro';
+import QRCode from 'qrcode';
+
+// Parámetros y detección en servidor
+const userAgent = Astro.request.headers.get('user-agent') || '';
+const isAndroidServer = /Android/i.test(userAgent);
+const isIOSServer = /iPhone|iPad|iPod/i.test(userAgent);
+
+// Captura y sanitización de parámetros de atribución
+const url = Astro.url;
+const rawRef = url.searchParams.get('ref') || '';
+const utmSource = url.searchParams.get('utm_source') || (rawRef ? `ref_${rawRef}` : 'direct');
+const utmMedium = url.searchParams.get('utm_medium') || 'smart_link';
+const utmCampaign = url.searchParams.get('utm_campaign') || 'mobile_growth';
+const utmContent = url.searchParams.get('utm_content') || '';
+const utmTerm = url.searchParams.get('utm_term') || '';
+
+// Construcción del Play Store Install Referrer (URL-encoded)
+const referrerParts = [
+  `utm_source=${encodeURIComponent(utmSource)}`,
+  `utm_medium=${encodeURIComponent(utmMedium)}`,
+  `utm_campaign=${encodeURIComponent(utmCampaign)}`,
+];
+if (utmContent) referrerParts.push(`utm_content=${encodeURIComponent(utmContent)}`);
+if (utmTerm) referrerParts.push(`utm_term=${encodeURIComponent(utmTerm)}`);
+
+const playReferrerString = referrerParts.join('&');
+const encodedPlayReferrer = encodeURIComponent(playReferrerString);
+
+// URLs de destino
+const PACKAGE_NAME = 'com.autamedica.android';
+const playStoreMarketUrl = `market://details?id=${PACKAGE_NAME}&referrer=${encodedPlayReferrer}`;
+const playStoreHttpsUrl = `https://play.google.com/store/apps/details?id=${PACKAGE_NAME}&referrer=${encodedPlayReferrer}&hl=es_419`;
+
+// Generación server-side del código QR para desktop (sin scripts pesados en cliente)
+const qrDestinationUrl = `https://www.autamedica.com/android?utm_source=${encodeURIComponent(utmSource)}&utm_medium=desktop_qr&utm_campaign=${encodeURIComponent(utmCampaign)}`;
+let qrSvg = '';
+try {
+  qrSvg = await QRCode.toString(qrDestinationUrl, {
+    type: 'svg',
+    margin: 1,
+    color: {
+      dark: '#050505',
+      light: '#ffffff',
+    },
+    errorCorrectionLevel: 'M',
+  });
+} catch (e) {
+  console.error('[QRCode] Error generando SVG:', e);
+}
+
+const pageTitle = 'AutaMedica para Android | Aplicación Oficial en Google Play';
+const pageDescription = 'Descargá la app médica oficial de AutaMedica en Google Play Store. Atención con médicos matriculados 24/7, recetas electrónicas válidas en farmacias de todo el país e historia clínica cifrada.';
+const canonicalUrl = 'https://www.autamedica.com/android';
+const ogImage = '/og-image.png';
+---
+
+<Layout
+  title={pageTitle}
+  description={pageDescription}
+  canonical={canonicalUrl}
+  ogImage={ogImage}
+>
+  <main class="min-h-screen bg-[#F8FBFF] text-[#050505] flex flex-col justify-between selection:bg-[#0EA5E9] selection:text-white">
+    <!-- Header sobrio y clínico -->
+    <header class="w-full border-b border-[#0EA5E9]/10 bg-white/80 backdrop-blur-md sticky top-0 z-30">
+      <div class="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-3 transition-opacity hover:opacity-90" aria-label="AutaMedica - Volver al inicio">
+          <img
+            src="/images/brand/logo_bioceramic.png"
+            alt="AutaMedica"
+            class="w-10 h-10 rounded-xl object-contain border border-[#0EA5E9]/15 shadow-sm"
+            width="40"
+            height="40"
+          />
+          <div class="flex flex-col">
+            <span class="font-bold text-lg tracking-tight leading-none text-[#050505]">AutaMedica</span>
+            <span class="text-[11px] font-medium text-[#64748b] tracking-wider uppercase mt-1">Salud Digital Certificada</span>
+          </div>
+        </a>
+
+        <div class="flex items-center gap-4">
+          <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#0EA5E9]/10 text-[#0284c7] border border-[#0EA5E9]/20">
+            <svg class="w-3.5 h-3.5 text-[#0284c7]" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            App Oficial Android v1.2.4
+          </span>
+          <a
+            href="/patients"
+            class="text-xs font-semibold text-[#334155] hover:text-[#0EA5E9] transition-colors py-2 px-3 rounded-lg hover:bg-[#0EA5E9]/5"
+          >
+            Portal Web &rarr;
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Contenedor central -->
+    <div class="flex-1 max-w-6xl mx-auto w-full px-6 py-10 md:py-16 flex flex-col justify-center">
+      
+      <!-- ESTADO ANDROID: Redirección automática / Botón de apertura -->
+      <section
+        id="android-redirect-panel"
+        class={`max-w-xl mx-auto w-full bg-white rounded-3xl p-8 md:p-10 border border-[#0EA5E9]/15 shadow-xl shadow-[#0EA5E9]/5 text-center ${isAndroidServer ? 'block' : 'hidden'}`}
+        aria-live="polite"
+      >
+        <div class="w-20 h-20 mx-auto mb-6 relative flex items-center justify-center">
+          <div class="absolute inset-0 rounded-2xl bg-[#0EA5E9]/15 animate-ping opacity-40"></div>
+          <div class="w-16 h-16 rounded-2xl bg-[#0EA5E9] text-white flex items-center justify-center shadow-lg shadow-[#0EA5E9]/30 relative z-10">
+            <!-- Icono Google Play / Android -->
+            <svg class="w-9 h-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+          </div>
+        </div>
+
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-[#050505] mb-3 font-heading">
+          Abriendo Google Play Store...
+        </h1>
+        <p class="text-sm md:text-base text-[#334155] mb-8 leading-relaxed">
+          Te estamos redirigiendo a la ficha oficial de AutaMedica en tu teléfono. Si no se abre en unos segundos, tocá el botón a continuación.
+        </p>
+
+        <div class="flex flex-col gap-3">
+          <a
+            id="android-manual-btn"
+            href={playStoreMarketUrl}
+            data-fallback={playStoreHttpsUrl}
+            class="w-full inline-flex items-center justify-center gap-3 bg-[#050505] text-white font-semibold py-4 px-6 rounded-2xl shadow-md hover:bg-[#1f2937] transition-all transform active:scale-[0.98]"
+          >
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3.609 1.814L13.792 12 3.61 22.186a2.38 2.38 0 0 1-.61-.836V2.65c.18-.334.4-.622.61-.836zm11.233 11.234l2.502 2.502-12.023 6.953 9.521-9.455zm2.502-2.096L14.842 8.45l-9.52-9.455 12.022 6.953zm.88 1.048c.52.296.842.82.842 1.414 0 .595-.322 1.118-.842 1.414l-2.026 1.17-2.61-2.584 2.61-2.584 2.026 1.17z"/>
+            </svg>
+            <span>Abrir en Google Play</span>
+          </a>
+
+          <a
+            href={playStoreHttpsUrl}
+            class="text-xs text-[#64748b] hover:text-[#0284c7] transition-colors py-2"
+          >
+            ¿Problemas con la tienda? Abrir en navegador web &rarr;
+          </a>
+        </div>
+      </section>
+
+      <!-- ESTADO DESKTOP / iOS / CRAWLERS: Micro-Landing de Conversión -->
+      <section
+        id="desktop-conversion-panel"
+        class={`grid grid-cols-1 lg:grid-cols-12 gap-12 items-center ${isAndroidServer ? 'hidden' : 'block'}`}
+      >
+        <!-- Columna Izquierda: Información de la app y valor médico -->
+        <div class="lg:col-span-7 flex flex-col items-start text-left">
+          
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0EA5E9]/10 border border-[#0EA5E9]/20 text-[#0284c7] text-xs font-semibold mb-6">
+            <span class="w-2 h-2 rounded-full bg-[#0EA5E9] animate-pulse"></span>
+            <span>Atención Médica Digital en Argentina y Uruguay</span>
+          </div>
+
+          <h1 class="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#050505] leading-[1.15] mb-6 font-heading">
+            Tu consulta médica y receta digital, <span class="text-[#0EA5E9]">en tu teléfono.</span>
+          </h1>
+
+          <p class="text-base md:text-lg text-[#334155] leading-relaxed mb-8 max-w-xl">
+            Accedé a consultas inmediatas con médicos matriculados, recetas electrónicas con validez legal en farmacias y tu historia clínica cifrada bajo estándares internacionales.
+          </p>
+
+          <!-- Tarjeta de valor clínico -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full mb-8">
+            <div class="bg-white p-4 rounded-2xl border border-[#0EA5E9]/15 shadow-sm">
+              <div class="w-8 h-8 rounded-lg bg-[#0EA5E9]/10 text-[#0284c7] flex items-center justify-center mb-2 font-bold text-sm">
+                24/7
+              </div>
+              <h4 class="font-semibold text-sm text-[#050505]">Guardia Online</h4>
+              <p class="text-xs text-[#64748b] mt-0.5 leading-snug">Atención clínica sin esperas de traslados ni salas colmadas.</p>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl border border-[#0EA5E9]/15 shadow-sm">
+              <div class="w-8 h-8 rounded-lg bg-[#0EA5E9]/10 text-[#0284c7] flex items-center justify-center mb-2">
+                <svg class="w-4 h-4 text-[#0284c7]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </div>
+              <h4 class="font-semibold text-sm text-[#050505]">Receta Oficial</h4>
+              <p class="text-xs text-[#64748b] mt-0.5 leading-snug">Válida con firma digital bajo Ley 27.553 en farmacias.</p>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl border border-[#0EA5E9]/15 shadow-sm">
+              <div class="w-8 h-8 rounded-lg bg-[#0EA5E9]/10 text-[#0284c7] flex items-center justify-center mb-2">
+                <svg class="w-4 h-4 text-[#0284c7]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                </svg>
+              </div>
+              <h4 class="font-semibold text-sm text-[#050505]">Privacidad Médica</h4>
+              <p class="text-xs text-[#64748b] mt-0.5 leading-snug">Historial médico cifrado de extremo a extremo.</p>
+            </div>
+          </div>
+
+          <!-- Acciones según dispositivo -->
+          <div class="flex flex-wrap items-center gap-4 w-full">
+            <a
+              href={playStoreHttpsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-3 bg-[#050505] text-white px-6 py-3.5 rounded-xl font-medium shadow-md hover:bg-[#1e293b] transition-all transform hover:-translate-y-0.5"
+            >
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3.609 1.814L13.792 12 3.61 22.186a2.38 2.38 0 0 1-.61-.836V2.65c.18-.334.4-.622.61-.836zm11.233 11.234l2.502 2.502-12.023 6.953 9.521-9.455zm2.502-2.096L14.842 8.45l-9.52-9.455 12.022 6.953zm.88 1.048c.52.296.842.82.842 1.414 0 .595-.322 1.118-.842 1.414l-2.026 1.17-2.61-2.584 2.61-2.584 2.026 1.17z"/>
+              </svg>
+              <div class="text-left">
+                <div class="text-[10px] uppercase tracking-wider text-gray-300 leading-none">Disponible en</div>
+                <div class="text-sm font-bold leading-none mt-0.5">Google Play</div>
+              </div>
+            </a>
+
+            <a
+              href="/patients"
+              class="inline-flex items-center gap-2 bg-white text-[#334155] border border-[#0EA5E9]/20 px-5 py-3.5 rounded-xl font-medium hover:bg-[#0EA5E9]/5 hover:text-[#050505] transition-all"
+            >
+              <span>Usar versión Web de Pacientes</span>
+              <span class="text-xs">&rarr;</span>
+            </a>
+          </div>
+
+          <!-- Mensaje para usuarios iOS -->
+          <div id="ios-notice" class={`mt-8 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-[#475569] max-w-xl ${isIOSServer ? 'block' : 'hidden'}`}>
+            <div class="flex items-start gap-2.5">
+              <svg class="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <div>
+                <strong class="font-semibold text-slate-800">¿Estás en un iPhone o iPad?</strong>
+                <p class="mt-0.5 leading-relaxed">
+                  Nuestra app nativa se encuentra actualmente en Google Play para Android. En dispositivos iOS podés utilizar de forma completa y sin instalar nada el <a href="/patients" class="text-[#0284c7] underline font-semibold">Portal Web de Pacientes</a> o consultar por WhatsApp.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Tarjeta QR de Descarga Rápida -->
+        <div class="lg:col-span-5 flex justify-center lg:justify-end">
+          <div class="w-full max-w-sm bg-white rounded-3xl p-8 border border-[#0EA5E9]/15 shadow-xl shadow-[#0EA5E9]/5 flex flex-col items-center text-center relative overflow-hidden">
+            
+            <div class="w-full flex items-center justify-between pb-5 border-b border-[#0EA5E9]/10 mb-6">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <span class="text-xs font-semibold text-[#334155]">Descarga Móvil</span>
+              </div>
+              <span class="text-[11px] font-medium text-[#64748b]">Android 10+</span>
+            </div>
+
+            <!-- Código QR generado en servidor -->
+            <div class="w-52 h-52 bg-white p-3 rounded-2xl border-2 border-dashed border-[#0EA5E9]/25 shadow-inner flex items-center justify-center relative mb-5 group">
+              {qrSvg ? (
+                <div class="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full" set:html={qrSvg} />
+              ) : (
+                <div class="text-xs text-[#64748b]">Código QR no disponible</div>
+              )}
+            </div>
+
+            <h3 class="font-bold text-base text-[#050505] mb-1">
+              Escaneá con tu celular
+            </h3>
+            <p class="text-xs text-[#64748b] leading-relaxed max-w-[240px] mb-6">
+              Apuntá la cámara de tu smartphone Android para abrir la app de Google Play directamente.
+            </p>
+
+            <div class="w-full pt-4 border-t border-[#0EA5E9]/10 flex items-center justify-center gap-2 text-xs text-[#334155]">
+              <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Verificado por Google Play Protect</span>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Footer sutil y médico -->
+    <footer class="w-full border-t border-[#0EA5E9]/10 bg-white/60 py-6">
+      <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#64748b]">
+        <p>&copy; {new Date().getFullYear()} AutaMedica Inc. Todos los derechos reservados.</p>
+        <div class="flex items-center gap-4">
+          <a href="/terms" class="hover:text-[#0EA5E9] transition-colors">Términos del Servicio</a>
+          <span>&bull;</span>
+          <a href="/privacidad" class="hover:text-[#0EA5E9] transition-colors">Privacidad y Protección de Datos</a>
+        </div>
+      </div>
+    </footer>
+  </main>
+</Layout>
+
+<!-- Script inteligente de despacho y fallback en cliente -->
+<script is:inline define:vars={{ playStoreMarketUrl, playStoreHttpsUrl }}>
+  (function () {
+    var ua = navigator.userAgent || '';
+    var isAndroid = /android/i.test(ua);
+    var isIOS = /iPad|iPhone|iPod/.test(ua) && !('MSStream' in window);
+
+    var androidPanel = document.getElementById('android-redirect-panel');
+    var desktopPanel = document.getElementById('desktop-conversion-panel');
+    var iosNotice = document.getElementById('ios-notice');
+
+    if (isAndroid) {
+      // Si el navegador es Android, mostramos el panel de redirección y ocultamos desktop
+      if (androidPanel) androidPanel.classList.remove('hidden');
+      if (desktopPanel) desktopPanel.classList.add('hidden');
+
+      // Intent de deep-linking nativo con fallback
+      var startTime = Date.now();
+      
+      // Intentar primero el esquema market://
+      window.location.href = playStoreMarketUrl;
+
+      // Fallback a HTTPS si market:// no respondió en 500ms
+      setTimeout(function () {
+        // Si el usuario sigue con foco en esta pestaña tras 500ms, market:// probablemente falló
+        var elapsed = Date.now() - startTime;
+        if (document.hidden || elapsed > 2500) {
+          // La app de Play Store se abrió y la pestaña pasó a segundo plano
+          return;
+        }
+        // Fallback a la web de Google Play
+        window.location.replace(playStoreHttpsUrl);
+      }, 500);
+      
+    } else {
+      // Dispositivos no Android (Desktop, iOS, bots)
+      if (androidPanel) androidPanel.classList.add('hidden');
+      if (desktopPanel) desktopPanel.classList.remove('hidden');
+      if (isIOS && iosNotice) {
+        iosNotice.classList.remove('hidden');
+      }
+    }
+  })();
+</script>

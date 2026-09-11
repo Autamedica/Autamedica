@@ -50,6 +50,8 @@ const metricItems = Array.isArray(metrics) ? metrics : [];
 const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
 
 const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w => w.trim() !== ''));
+const locale = Astro.locals.locale ?? 'es';
+const isPt = locale === 'pt';
 ---
 
 <section class="hero" aria-label="Presentacion principal">
@@ -99,6 +101,22 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
           </svg>
         </a>
       )}
+
+      <a
+        href="/descargar?utm_source=homepage_hero&utm_medium=badge&utm_campaign=app_download"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="hero-play-badge"
+        aria-label="Descargar en Google Play"
+      >
+        <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3.609 1.814L13.792 12 3.61 22.186a2.38 2.38 0 0 1-.61-.836V2.65c.18-.334.4-.622.61-.836zm11.233 11.234l2.502 2.502-12.023 6.953 9.521-9.455zm2.502-2.096L14.842 8.45l-9.52-9.455 12.022 6.953zm.88 1.048c.52.296.842.82.842 1.414 0 .595-.322 1.118-.842 1.414l-2.026 1.17-2.61-2.584 2.61-2.584 2.026 1.17z"/>
+        </svg>
+        <div class="play-text">
+          <span class="play-sub">{isPt ? "DISPONÍVEL NO" : "DISPONIBLE EN"}</span>
+          <span class="play-name">Google Play</span>
+        </div>
+      </a>
     </div>
     {shortcutItems.length > 0 && (
       <div class="hero-role-shortcuts" aria-label="Acceso rapido por perfil">
@@ -294,6 +312,57 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
 
   .hero-secondary-link:hover {
     color: #ffffff;
+  }
+
+  .hero-play-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 1.15rem;
+    background: rgba(10, 10, 10, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 0.85rem;
+    color: #ffffff;
+    text-decoration: none;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .hero-play-badge:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.45);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  .play-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+    color: #ffffff;
+  }
+
+  .play-text {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    line-height: 1.1;
+  }
+
+  .play-sub {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .play-name {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-top: 0.125rem;
   }
 
   .hero-role-shortcuts {
