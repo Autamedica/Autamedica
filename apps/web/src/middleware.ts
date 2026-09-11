@@ -588,6 +588,29 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect(canonicalUrl.toString(), 308);
   }
 
+  // Direct Google Play Store download routes (instant 302 redirect directly to store with UTM attribution)
+  if (pathname === "/descargar" || pathname === "/play" || pathname === "/playstore") {
+    const rawRef = requestUrl.searchParams.get("ref") || "";
+    const utmSource = requestUrl.searchParams.get("utm_source") || (rawRef ? `ref_${rawRef}` : "direct");
+    const utmMedium = requestUrl.searchParams.get("utm_medium") || "shortlink";
+    const utmCampaign = requestUrl.searchParams.get("utm_campaign") || "playstore_direct";
+    const utmContent = requestUrl.searchParams.get("utm_content") || "";
+    const utmTerm = requestUrl.searchParams.get("utm_term") || "";
+
+    const referrerParts = [
+      `utm_source=${encodeURIComponent(utmSource)}`,
+      `utm_medium=${encodeURIComponent(utmMedium)}`,
+      `utm_campaign=${encodeURIComponent(utmCampaign)}`,
+    ];
+    if (utmContent) referrerParts.push(`utm_content=${encodeURIComponent(utmContent)}`);
+    if (utmTerm) referrerParts.push(`utm_term=${encodeURIComponent(utmTerm)}`);
+
+    const encodedReferrer = encodeURIComponent(referrerParts.join("&"));
+    const playStoreUrl = `https://play.google.com/store/apps/details?id=com.autamedica.android&referrer=${encodedReferrer}&hl=es_419`;
+
+    return context.redirect(playStoreUrl, 302);
+  }
+
   // Unified legacy redirect: exact match + prefix+subpath in one pass
   for (const [legacy, target] of Object.entries(LEGACY_REDIRECTS)) {
     if (pathname === legacy) {
