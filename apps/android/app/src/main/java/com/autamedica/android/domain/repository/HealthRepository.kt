@@ -12,4 +12,5 @@ interface HealthRepository {
     suspend fun saveSection(anamnesisId: String, section: String, data: Map<String, String>): Result<Unit>
     suspend fun completeSection(anamnesisId: String, section: String): Result<Unit>
     suspend fun submitAnamnesis(anamnesisId: String): Result<Unit>
+    suspend fun getAnamnesisPreload(): Result<Map<String, String>> = Result.success(emptyMap())
 }

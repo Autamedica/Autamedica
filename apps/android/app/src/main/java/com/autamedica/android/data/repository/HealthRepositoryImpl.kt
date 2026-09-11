@@ -12,17 +12,22 @@ import com.autamedica.android.domain.model.isAnamnesisSummaryReadOnly
 import com.autamedica.android.domain.repository.HealthRepository
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -36,7 +41,21 @@ class HealthRepositoryImpl @Inject constructor(
     private val securePreferences: SecurePreferences,
 ) : HealthRepository {
 
+    private val json = Json { ignoreUnknownKeys = true }
+    private var cachedSnapshot: EdgeAnamnesisSnapshotDto? = null
+
     override suspend fun getAnamnesisSummary(): Result<AnamnesisSummary?> = runCatching {
+        // Try via Edge Function first (resolves patient_id and RLS cleanly)
+        try {
+            val response = supabaseClient.functions.invoke("patients-anamnesis")
+            val text = response.bodyAsText()
+            val dto = json.decodeFromString<EdgeAnamnesisSnapshotDto>(text)
+            cachedSnapshot = dto
+            return@runCatching dto.anamnesis.toDomain()
+        } catch (e: Exception) {
+            SecureLog.warn("[Health] Edge getAnamnesisSummary fallback to Postgrest: ${e.message}")
+        }
+
         val patientId = resolvePatientIdOrNull() ?: return@runCatching null
 
         supabaseClient.postgrest
@@ -71,6 +90,16 @@ class HealthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getOrCreateAnamnesis(): Result<AnamnesisSummary> = runCatching {
+        try {
+            val response = supabaseClient.functions.invoke("patients-anamnesis")
+            val text = response.bodyAsText()
+            val dto = json.decodeFromString<EdgeAnamnesisSnapshotDto>(text)
+            cachedSnapshot = dto
+            return@runCatching dto.anamnesis.toDomain()
+        } catch (e: Exception) {
+            SecureLog.warn("[Health] Edge getOrCreateAnamnesis fallback to Postgrest: ${e.message}")
+        }
+
         val patientId = resolvePatientId()
 
         val existing = supabaseClient.postgrest
@@ -123,6 +152,22 @@ class HealthRepositoryImpl @Inject constructor(
 
     override suspend fun getAnamnesisSections(anamnesisId: String): Result<List<AnamnesisSection>> =
         runCatching {
+            cachedSnapshot?.let { snapshot ->
+                if (snapshot.anamnesis.id == anamnesisId && snapshot.sections.isNotEmpty()) {
+                    return@runCatching snapshot.sections.map { it.toDomain() }
+                }
+            }
+
+            try {
+                val response = supabaseClient.functions.invoke("patients-anamnesis")
+                val text = response.bodyAsText()
+                val dto = json.decodeFromString<EdgeAnamnesisSnapshotDto>(text)
+                cachedSnapshot = dto
+                return@runCatching dto.sections.map { it.toDomain() }
+            } catch (e: Exception) {
+                SecureLog.warn("[Health] Edge getAnamnesisSections fallback to Postgrest: ${e.message}")
+            }
+
             supabaseClient.postgrest
                 .from("anamnesis_sections")
                 .select(Columns.ALL) {
@@ -147,6 +192,22 @@ class HealthRepositoryImpl @Inject constructor(
         section: String,
         data: Map<String, String>,
     ): Result<Unit> = runCatching {
+        try {
+            val payload = buildJsonObject {
+                put("action", "save_section")
+                put("section", section)
+                put("data", buildJsonObject {
+                    data.forEach { (k, v) -> put(k, v) }
+                })
+                put("completed", false)
+            }
+            supabaseClient.functions("patients-anamnesis", payload)
+            cachedSnapshot = null
+            return@runCatching
+        } catch (e: Exception) {
+            SecureLog.warn("[Health] Edge saveSection fallback to Postgrest: ${e.message}")
+        }
+
         requireEditableAnamnesis(anamnesisId)
         val jsonData = JsonObject(data.mapValues { JsonPrimitive(it.value) })
         val now = OffsetDateTime.now(ZoneOffset.UTC)
@@ -169,6 +230,19 @@ class HealthRepositoryImpl @Inject constructor(
         anamnesisId: String,
         section: String,
     ): Result<Unit> = runCatching {
+        try {
+            val payload = buildJsonObject {
+                put("action", "save_section")
+                put("section", section)
+                put("completed", true)
+            }
+            supabaseClient.functions("patients-anamnesis", payload)
+            cachedSnapshot = null
+            return@runCatching
+        } catch (e: Exception) {
+            SecureLog.warn("[Health] Edge completeSection fallback to Postgrest: ${e.message}")
+        }
+
         val currentSummary = requireEditableAnamnesis(anamnesisId)
         val now = OffsetDateTime.now(ZoneOffset.UTC)
             .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
@@ -205,6 +279,17 @@ class HealthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun submitAnamnesis(anamnesisId: String): Result<Unit> = runCatching {
+        try {
+            val payload = buildJsonObject {
+                put("action", "submit")
+            }
+            supabaseClient.functions("patients-anamnesis", payload)
+            cachedSnapshot = null
+            return@runCatching
+        } catch (e: Exception) {
+            SecureLog.warn("[Health] Edge submitAnamnesis fallback to Postgrest: ${e.message}")
+        }
+
         requireEditableAnamnesis(anamnesisId)
         val sections = fetchSectionStatuses(anamnesisId)
         val total = sections.size.coerceAtLeast(1)
@@ -233,6 +318,20 @@ class HealthRepositoryImpl @Inject constructor(
         Unit
     }.onFailure {
         SecureLog.error("[Health] Failed submitting anamnesis", it)
+    }
+
+    override suspend fun getAnamnesisPreload(): Result<Map<String, String>> = runCatching {
+        cachedSnapshot?.preload?.let { return@runCatching it.toMap() }
+        try {
+            val response = supabaseClient.functions.invoke("patients-anamnesis")
+            val text = response.bodyAsText()
+            val dto = json.decodeFromString<EdgeAnamnesisSnapshotDto>(text)
+            cachedSnapshot = dto
+            return@runCatching dto.preload?.toMap() ?: emptyMap()
+        } catch (e: Exception) {
+            SecureLog.warn("[Health] Edge getAnamnesisPreload failed: ${e.message}")
+            emptyMap()
+        }
     }
 
     // ────────────────────────────────────────────────────────────
@@ -418,4 +517,84 @@ private data class PatientPreventiveProfileDto(
         val section: String,
         val completed: Boolean = false,
     )
+
+    @Serializable
+    private data class EdgeAnamnesisSnapshotDto(
+        val anamnesis: EdgeAnamnesisHeaderDto,
+        val sections: List<EdgeAnamnesisSectionDto> = emptyList(),
+        val preload: EdgeAnamnesisPreloadDto? = null,
+    )
+
+    @Serializable
+    private data class EdgeAnamnesisHeaderDto(
+        val id: String,
+        @SerialName("patientId") val patientId: String = "",
+        val status: String = "in_progress",
+        @SerialName("completionPercentage") val completionPercentage: Int = 0,
+        val locked: Boolean = false,
+        @SerialName("createdAt") val createdAt: String = "",
+        @SerialName("updatedAt") val updatedAt: String = "",
+        @SerialName("completedAt") val completedAt: String? = null,
+        @SerialName("totalSections") val totalSections: Int = 13,
+        @SerialName("completedSectionsCount") val completedSectionsCount: Int = 0,
+    ) {
+        fun toDomain(): AnamnesisSummary = AnamnesisSummary(
+            id = id,
+            status = status,
+            completionPercentage = completionPercentage,
+            locked = locked,
+            updatedAt = updatedAt,
+            completedSections = completedSectionsCount,
+            totalSections = totalSections,
+        )
+    }
+
+    @Serializable
+    private data class EdgeAnamnesisSectionDto(
+        val id: String = "",
+        @SerialName("anamnesisId") val anamnesisId: String = "",
+        val section: String,
+        val data: JsonObject = JsonObject(emptyMap()),
+        val completed: Boolean = false,
+        @SerialName("completedAt") val completedAt: String? = null,
+        @SerialName("updatedAt") val updatedAt: String? = null,
+    ) {
+        fun toDomain(): AnamnesisSection {
+            val stringData = data.mapValues { (_, v) ->
+                runCatching { v.jsonPrimitive.contentOrNull }.getOrNull() ?: v.toString()
+            }
+            return AnamnesisSection(
+                id = id,
+                anamnesisId = anamnesisId,
+                section = section,
+                data = stringData,
+                completed = completed,
+                completedAt = completedAt,
+                updatedAt = updatedAt,
+            )
+        }
+    }
+
+    @Serializable
+    private data class EdgeAnamnesisPreloadDto(
+        val firstName: String = "",
+        val lastName: String = "",
+        val phone: String = "",
+        val email: String = "",
+        val birthDate: String = "",
+        val gender: String = "",
+        val dni: String = "",
+        val age: String = "",
+    ) {
+        fun toMap(): Map<String, String> = mapOf(
+            "firstName" to firstName,
+            "lastName" to lastName,
+            "phone" to phone,
+            "email" to email,
+            "birthDate" to birthDate,
+            "gender" to gender,
+            "dni" to dni,
+            "age" to age,
+        )
+    }
 }

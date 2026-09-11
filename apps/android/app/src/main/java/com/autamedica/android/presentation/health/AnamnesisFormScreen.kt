@@ -27,12 +27,18 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import android.app.Activity
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -677,6 +683,18 @@ private fun AnamnesisFieldRenderer(
         if (field.required) append(" *")
     }
 
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            if (!spokenText.isNullOrBlank()) {
+                val updated = if (value.isBlank()) spokenText else "$value $spokenText"
+                onValueChange(updated)
+            }
+        }
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
         when (field.type) {
             FieldType.BOOLEAN -> {
@@ -938,6 +956,24 @@ private fun AnamnesisFieldRenderer(
                     enabled = enabled,
                     label = { Text(displayLabel) },
                     placeholder = { Text(field.hint, color = AuTextTertiary) },
+                    trailingIcon = {
+                        if (enabled) {
+                            IconButton(onClick = {
+                                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-AR")
+                                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Dictá tus síntomas o antecedentes...")
+                                }
+                                runCatching { speechLauncher.launch(intent) }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Mic,
+                                    contentDescription = "Dictar por voz",
+                                    tint = AuAccent,
+                                )
+                            }
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     isError = isError,
                     minLines = 3,
@@ -1065,6 +1101,8 @@ private fun StatusChip(
             style = MaterialTheme.typography.labelMedium,
             color = color,
             fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            softWrap = false,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
         )
     }

@@ -38,6 +38,9 @@ private class FakeHealthRepository : HealthRepository {
     var saveCallCount = 0
     var completeCallCount = 0
     var submitCallCount = 0
+    var preloadData: Map<String, String> = emptyMap()
+
+    override suspend fun getAnamnesisPreload(): Result<Map<String, String>> = Result.success(preloadData)
 
     override suspend fun getAnamnesisSummary(): Result<AnamnesisSummary?> = Result.success(summary)
 
@@ -184,6 +187,34 @@ class AnamnesisFormViewModelTest {
         assertThat(viewModel.uiState.value.submitted).isTrue()
         assertThat(viewModel.uiState.value.summary?.status).isEqualTo("under_review")
         assertThat(viewModel.uiState.value.summary?.locked).isTrue()
+    }
+
+    @Test
+    fun `auto preloads personal info into field values`() = runTest(testDispatcher.scheduler) {
+        fakeRepository.preloadData = mapOf(
+            "fecha_nacimiento" to "1980-05-15",
+            "edad" to "45",
+            "genero" to "masculino",
+            "telefono" to "+5491144445555"
+        )
+        val viewModel = AnamnesisFormViewModel(fakeRepository)
+
+        assertThat(viewModel.uiState.value.fieldValues["fecha_nacimiento"]).isEqualTo("1980-05-15")
+        assertThat(viewModel.uiState.value.fieldValues["edad"]).isEqualTo("45")
+        assertThat(viewModel.uiState.value.fieldValues["genero"]).isEqualTo("masculino")
+        assertThat(viewModel.uiState.value.fieldValues["telefono"]).isEqualTo("+5491144445555")
+    }
+
+    @Test
+    fun `goToSection auto-saves current section in background`() = runTest(testDispatcher.scheduler) {
+        val viewModel = AnamnesisFormViewModel(fakeRepository)
+        viewModel.updateField("emergency_contact_name", "Juan Perez")
+        viewModel.updateField("emergency_contact_phone", "+54 11 4444 3333")
+
+        viewModel.goToSection(1)
+
+        assertThat(fakeRepository.saveCallCount).isAtLeast(1)
+        assertThat(viewModel.uiState.value.currentSectionIndex).isEqualTo(1)
     }
 
     private fun validDataForSection(section: String): Map<String, String> = when (section) {

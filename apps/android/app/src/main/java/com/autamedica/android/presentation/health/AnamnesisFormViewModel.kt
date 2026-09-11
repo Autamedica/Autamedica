@@ -7,6 +7,8 @@ import com.autamedica.android.domain.model.AnamnesisSummary
 import com.autamedica.android.domain.repository.HealthRepository
 import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -72,6 +74,8 @@ class AnamnesisFormViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AnamnesisFormUiState())
     val uiState: StateFlow<AnamnesisFormUiState> = _uiState.asStateFlow()
 
+    private var autoSaveJob: Job? = null
+
     init {
         loadForm()
     }
@@ -84,17 +88,34 @@ class AnamnesisFormViewModel @Inject constructor(
                 .onSuccess { summary ->
                     healthRepository.getAnamnesisSections(summary.id)
                         .onSuccess { sections ->
+                            val preload = healthRepository.getAnamnesisPreload().getOrDefault(emptyMap())
+
                             val selectedIndex = sections.indexOfFirst { !it.completed }
                                 .takeIf { it >= 0 }
                                 ?: sections.lastIndex.coerceAtLeast(0)
                             val currentSection = sections.getOrNull(selectedIndex)
+
+                            // Initial field values with auto-preload for edad/filiación if empty
+                            val initialFields = (currentSection?.data ?: emptyMap()).toMutableMap()
+                            if (currentSection?.section == "edad" && initialFields.isEmpty()) {
+                                val birthDate = (preload["birthDate"] ?: preload["fecha_nacimiento"])?.takeIf { it.isNotBlank() }
+                                val age = (preload["age"] ?: preload["edad"])?.takeIf { it.isNotBlank() }
+                                val gender = (preload["gender"] ?: preload["genero"])?.takeIf { it.isNotBlank() }
+                                val phone = (preload["phone"] ?: preload["telefono"])?.takeIf { it.isNotBlank() }
+
+                                birthDate?.let { initialFields["fecha_nacimiento"] = it }
+                                age?.let { initialFields["edad"] = it }
+                                gender?.let { initialFields["genero"] = it }
+                                phone?.let { initialFields["telefono"] = it }
+                            }
+
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
                                     summary = summary,
                                     sections = sections,
                                     currentSectionIndex = selectedIndex,
-                                    fieldValues = currentSection?.data ?: emptyMap(),
+                                    fieldValues = initialFields,
                                     fieldErrors = emptyMap(),
                                 )
                             }
@@ -124,6 +145,19 @@ class AnamnesisFormViewModel @Inject constructor(
                 error = null,
                 saveSuccessMessage = null,
             )
+        }
+        triggerDebouncedAutoSave()
+    }
+
+    private fun triggerDebouncedAutoSave() {
+        autoSaveJob?.cancel()
+        autoSaveJob = viewModelScope.launch {
+            delay(1000) // 1s debounce
+            val state = _uiState.value
+            val currentSection = state.currentSection ?: return@launch
+            val summary = state.summary ?: return@launch
+            if (state.isReadOnly || state.isSaving) return@launch
+            healthRepository.saveSection(summary.id, currentSection.section, state.fieldValues)
         }
     }
 
@@ -238,7 +272,19 @@ class AnamnesisFormViewModel @Inject constructor(
     }
 
     fun goToSection(index: Int) {
-        val section = _uiState.value.sections.getOrNull(index) ?: return
+        val state = _uiState.value
+        val section = state.sections.getOrNull(index) ?: return
+        val currentSection = state.currentSection
+        val summary = state.summary
+
+        // If there are unsaved changes, trigger silent background save before switching
+        if (currentSection != null && summary != null && !state.isReadOnly && state.hasUnsavedChanges) {
+            val pendingData = state.fieldValues
+            viewModelScope.launch {
+                healthRepository.saveSection(summary.id, currentSection.section, pendingData)
+            }
+        }
+
         _uiState.update {
             it.copy(
                 currentSectionIndex = index,
