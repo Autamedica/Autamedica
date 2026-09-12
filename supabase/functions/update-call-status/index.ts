@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { callId, status, reason } = await req.json()
+    const { callId, status, reason } = await req.json().catch(() => ({}))
 
     if (!callId || !status) {
       return new Response(
@@ -37,7 +37,12 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.info('Updating call status:', { callId, status, reason })
+    // Normalize incoming status to match public.call_status enum
+    let normalizedStatus = status
+    if (status === 'in_progress') normalizedStatus = 'connected'
+    if (status === 'completed') normalizedStatus = 'ended'
+
+    console.info('Updating call status:', { callId, status, normalizedStatus, reason })
 
     // Create Supabase client with service role key
     const supabaseAdmin = createClient(
@@ -79,7 +84,7 @@ Deno.serve(async (req) => {
     const { data: updated, error: updateError } = await supabaseAdmin
       .rpc('update_call_status', {
         p_call_id: callId,
-        p_status: status,
+        p_status: normalizedStatus,
         p_reason: reason || null
       })
 

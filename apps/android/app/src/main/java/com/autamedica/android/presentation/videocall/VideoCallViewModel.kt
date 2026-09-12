@@ -15,6 +15,7 @@ import com.autamedica.android.domain.model.StreamQualitySummary
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.signaling.SignalingClient
 import com.autamedica.android.logging.SecureLog
@@ -75,9 +76,11 @@ data class VideoCallUiState(
     val isSavingSoap: Boolean = false,
     val soapSaved: Boolean = false,
     val soapError: String? = null,
-    val doctorName: String = "Dr. Felipe Silva",
+    val doctorName: String = "Profesional Médico",
     val doctorRole: String = "Clínica Médica & Telemedicina",
-    val doctorCrm: String = "CRM/SP 184.920",
+    val doctorCrm: String = "",
+    val patientId: String = "",
+    val patientName: String = "",
     val clinicName: String = "AutaMedica",
     val preconsultationReason: String = "",
     val preconsultationSymptoms: String = "",
@@ -97,6 +100,7 @@ class VideoCallViewModel @Inject constructor(
     private val signalingClient: SignalingClient,
     private val telemedicineRepository: TelemedicineRepository,
     private val appointmentRepository: AppointmentRepository,
+    private val doctorRepository: DoctorRepository,
     private val videoCallStateHolder: VideoCallStateHolder,
     private val supabaseClient: SupabaseClient,
 ) : ViewModel() {
@@ -179,16 +183,19 @@ class VideoCallViewModel @Inject constructor(
                 val isDoc = currentUser.role == UserRole.DOCTOR
 
                 var apptNotes: String? = null
-                var docName = "Dr. Felipe Silva"
-                var docRole = "Clínica Médica & Telemedicina"
-                var docCrm = "CRM/SP 184.920"
+                var docName = ""
+                var docRole = ""
+                var docCrm = ""
                 var preReason = ""
                 var preSaved = false
+                var resolvedPatientId = ""
+                var resolvedPatientName = ""
 
                 if (!previewOnlyMode && appointmentId.isNotBlank()) {
                     runCatching {
                         val appt = appointmentRepository.getAppointmentById(appointmentId).getOrNull()
                         if (appt != null) {
+                            resolvedPatientId = appt.patientId.orEmpty()
                             apptNotes = appt.notes
                             appt.doctorName?.takeIf { it.isNotBlank() }?.let { docName = it }
                             appt.doctorSpecialty?.takeIf { it.isNotBlank() }?.let { docRole = it }
@@ -201,14 +208,33 @@ class VideoCallViewModel @Inject constructor(
                     }
                 }
 
+                if (resolvedPatientId.isNotBlank() && isDoc) {
+                    resolvedPatientName = runCatching {
+                        doctorRepository.resolvePatientNames(listOf(resolvedPatientId)).getOrNull()?.get(resolvedPatientId).orEmpty()
+                    }.getOrDefault("")
+                }
+
+                if (isDoc) {
+                    val profile = runCatching { doctorRepository.getDoctorProfile(currentUser.id).getOrNull() }.getOrNull()
+                    docName = currentUser.displayName.ifBlank { "Dr. ${currentUser.lastName}".trim().ifBlank { "Médico Tratante" } }
+                    docRole = profile?.specialty?.takeIf { it.isNotBlank() } ?: "Clínica Médica & Telemedicina"
+                    docCrm = profile?.licenseNumber?.takeIf { it.isNotBlank() } ?: "Matrícula profesional"
+                } else {
+                    if (docName.isBlank()) docName = "Profesional Médico"
+                    if (docRole.isBlank()) docRole = "Telemedicina"
+                    if (docCrm.isBlank()) docCrm = ""
+                }
+
                 _uiState.update {
                     it.copy(
                         isDoctor = isDoc,
+                        patientId = resolvedPatientId,
+                        patientName = resolvedPatientName,
                         appointmentNotes = apptNotes,
                         consultationNotes = apptNotes.orEmpty(),
                         isWaitingRoom = !isDoc,
                         sessionStatusMessage = when {
-                            isDoc -> "Conectando consultorio..."
+                            isDoc -> "Conectando consultorio y llamando al paciente..."
                             callRequestedByPatient -> "Conectando con tu consulta..."
                             else -> "Esperando al médico..."
                         },
@@ -275,7 +301,7 @@ class VideoCallViewModel @Inject constructor(
         val callId = _uiState.value.activeCallId ?: appointmentId
         if (callId.isNotBlank() && !previewOnlyMode) {
             viewModelScope.launch {
-                telemedicineRepository.updateCallStatus(callId, "completed")
+                telemedicineRepository.updateCallStatus(callId, "ended")
             }
         }
         callStarted = false
@@ -398,7 +424,7 @@ class VideoCallViewModel @Inject constructor(
 
                 val callId = _uiState.value.activeCallId ?: targetAppointmentId
                 if (callId.isNotBlank()) {
-                    telemedicineRepository.updateCallStatus(callId, "completed")
+                    telemedicineRepository.updateCallStatus(callId, "ended")
                 }
 
                 appointmentRepository.clearCachedAppointmentsForCurrentUser()
@@ -606,7 +632,7 @@ class VideoCallViewModel @Inject constructor(
                     val callId = _uiState.value.activeCallId ?: appointmentId
                     if (callId.isNotBlank() && !previewOnlyMode) {
                         viewModelScope.launch {
-                            telemedicineRepository.updateCallStatus(callId, "in_progress")
+                            telemedicineRepository.updateCallStatus(callId, "connected")
                         }
                     }
                     if (callStartTimeMs == 0L) {
@@ -773,7 +799,13 @@ class VideoCallViewModel @Inject constructor(
             return
         }
 
-        telemedicineRepository.getSession(appointmentId)
+        val sessionResult = if (_uiState.value.isDoctor && !previewOnlyMode && appointmentId.isNotBlank()) {
+            telemedicineRepository.startDoctorCall(appointmentId, _uiState.value.patientId.takeIf { it.isNotBlank() })
+        } else {
+            telemedicineRepository.getSession(appointmentId)
+        }
+
+        sessionResult
             .onSuccess { sessionInfo ->
                 sessionRetryJob?.cancel()
 
@@ -798,7 +830,7 @@ class VideoCallViewModel @Inject constructor(
                         connectionState = ConnectionState.CONNECTING,
                         isPreviewOnlyMode = false,
                         isWaitingRoom = !it.isDoctor,
-                        sessionStatusMessage = if (it.isDoctor) "Conectando con la sala..." else patientStatusMessage(manualRetry),
+                        sessionStatusMessage = if (it.isDoctor) "Conectando con la sala y llamando al paciente..." else patientStatusMessage(manualRetry),
                     )
                 }
                 engine.connect(sessionInfo.roomId, sessionInfo.signalingUrl)

@@ -17,6 +17,8 @@ data class IceServerInfo(
 
 interface TelemedicineRepository {
     suspend fun getSession(sessionId: String): Result<TelemedicineSessionInfo>
+    suspend fun startDoctorCall(appointmentId: String, patientId: String? = null): Result<TelemedicineSessionInfo> =
+        getSession(appointmentId)
     suspend fun getJoinableAppointmentIds(appointments: List<Appointment>): Result<Set<String>>
     suspend fun updateCallStatus(callId: String, status: String): Result<Unit>
     suspend fun getIceServers(): Result<List<IceServerInfo>> = Result.success(emptyList())

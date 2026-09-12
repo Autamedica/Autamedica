@@ -178,6 +178,12 @@ fun AppNavHost(
                 isIncomingCall = route.isIncomingCall,
                 onCallEnd = { navController.popBackStack() },
                 isInPipMode = isInPipMode,
+                onNavigateToCreatePrescription = { patientId ->
+                    navController.navigate(Route.CreatePrescription(patientId))
+                },
+                onNavigateToCreateCertificate = { patientId ->
+                    navController.navigate(Route.CreateCertificate(patientId))
+                },
             )
         }
 

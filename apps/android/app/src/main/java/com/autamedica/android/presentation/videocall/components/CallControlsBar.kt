@@ -22,7 +22,9 @@ import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -58,6 +60,8 @@ fun CallControlsBar(
     isDoctor: Boolean = false,
     isClinicalNotesOpen: Boolean = false,
     onToggleClinicalNotes: (() -> Unit)? = null,
+    onEmitPrescription: (() -> Unit)? = null,
+    onEmitCertificate: (() -> Unit)? = null,
     unreadMessages: Int = 0,
     modifier: Modifier = Modifier,
 ) {
@@ -139,15 +143,35 @@ fun CallControlsBar(
                 }
             }
 
-            // Doctor Clinical Notes
-            if (isDoctor && onToggleClinicalNotes != null) {
-                ControlDockButton(
-                    icon = Icons.Outlined.Description,
-                    contentDescription = "Notas clínicas",
-                    isActive = isClinicalNotesOpen,
-                    activeColor = Color(0xFF0D9488),
-                    onClick = onToggleClinicalNotes,
-                )
+            // Doctor Clinical Actions (Notes, Prescription, Certificate)
+            if (isDoctor) {
+                if (onToggleClinicalNotes != null) {
+                    ControlDockButton(
+                        icon = Icons.Outlined.Description,
+                        contentDescription = "Notas clínicas",
+                        isActive = isClinicalNotesOpen,
+                        activeColor = Color(0xFF0D9488),
+                        onClick = onToggleClinicalNotes,
+                    )
+                }
+                if (onEmitPrescription != null) {
+                    ControlDockButton(
+                        icon = Icons.Outlined.Medication,
+                        contentDescription = "Emitir receta",
+                        isActive = false,
+                        activeColor = Color(0xFF0284C7),
+                        onClick = onEmitPrescription,
+                    )
+                }
+                if (onEmitCertificate != null) {
+                    ControlDockButton(
+                        icon = Icons.AutoMirrored.Outlined.Assignment,
+                        contentDescription = "Emitir atestado",
+                        isActive = false,
+                        activeColor = Color(0xFF10B981),
+                        onClick = onEmitCertificate,
+                    )
+                }
             }
 
             // Divider line

@@ -19,7 +19,9 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -76,14 +78,70 @@ class TelemedicineRepositoryImpl @Inject constructor(
         SecureLog.error("[Telemedicine] Failed fetching session", it)
     }
 
+    override suspend fun startDoctorCall(
+        appointmentId: String,
+        patientId: String?,
+    ): Result<TelemedicineSessionInfo> = runCatching {
+        val trimmedApptId = appointmentId.trim()
+        val trimmedPatientId = patientId?.trim()?.takeIf { it.isNotEmpty() }
+
+        SecureLog.info("[Telemedicine] Starting doctor call: apptId=$trimmedApptId, patientId=$trimmedPatientId")
+
+        // 1. Invocar Edge Function create-call (crea registro en calls, pasa turno a in_progress y envía push FCM al paciente)
+        val edgeFunctionResult = runCatching {
+            val payload = buildJsonObject {
+                if (trimmedApptId.isNotEmpty()) put("appointmentId", trimmedApptId)
+                if (trimmedPatientId != null) put("patientId", trimmedPatientId)
+            }
+            val response = supabaseClient.functions.invoke("create-call", payload)
+            val text = response.bodyAsText()
+            SecureLog.info("[Telemedicine] create-call response: $text")
+            val jsonObj = Json.parseToJsonElement(text) as? JsonObject
+            val callObj = jsonObj?.get("call") as? JsonObject
+            val id = (callObj?.get("id") as? JsonPrimitive)?.contentOrNull
+            val roomId = (callObj?.get("room_id") as? JsonPrimitive)?.contentOrNull
+            if (!id.isNullOrBlank() && !roomId.isNullOrBlank()) {
+                TelemedicineSessionInfo(
+                    sessionId = id,
+                    roomId = roomId,
+                    signalingUrl = BuildConfig.SIGNALING_URL,
+                    iceServers = fetchTurnIceServers(),
+                )
+            } else {
+                null
+            }
+        }.getOrNull()
+
+        if (edgeFunctionResult != null) {
+            return@runCatching edgeFunctionResult
+        }
+
+        // 2. Fallback: Si la Edge Function falló, buscar si ya existe la llamada en BD
+        val existingSession = getSession(trimmedApptId).getOrNull()
+        if (existingSession != null && existingSession.roomId != trimmedApptId) {
+            return@runCatching existingSession
+        }
+
+        // 3. Fallback directo a getSession
+        getSession(trimmedApptId).getOrThrow()
+    }.onFailure {
+        SecureLog.error("[Telemedicine] Failed starting doctor call", it)
+    }
+
     override suspend fun updateCallStatus(callId: String, status: String): Result<Unit> = runCatching {
         val trimmedCallId = callId.trim()
         if (trimmedCallId.isEmpty()) return@runCatching
 
+        val normalizedStatus = when (status) {
+            "in_progress" -> "connected"
+            "completed" -> "ended"
+            else -> status
+        }
+
         runCatching {
             supabaseClient.postgrest
                 .from("calls")
-                .update(mapOf("status" to status)) {
+                .update(mapOf("status" to normalizedStatus)) {
                     filter { eq("id", trimmedCallId) }
                 }
         }
@@ -91,7 +149,7 @@ class TelemedicineRepositoryImpl @Inject constructor(
         runCatching {
             supabaseClient.postgrest
                 .from("telemedicine_sessions")
-                .update(mapOf("status" to status)) {
+                .update(mapOf("status" to normalizedStatus)) {
                     filter {
                         or {
                             eq("appointment_id", trimmedCallId)
@@ -100,6 +158,15 @@ class TelemedicineRepositoryImpl @Inject constructor(
                     }
                 }
         }
+
+        runCatching {
+            val payload = buildJsonObject {
+                put("callId", trimmedCallId)
+                put("status", normalizedStatus)
+            }
+            supabaseClient.functions.invoke("update-call-status", payload)
+        }
+
         Unit
     }.onFailure {
         SecureLog.warn("[Telemedicine] Failed updating call status", it)

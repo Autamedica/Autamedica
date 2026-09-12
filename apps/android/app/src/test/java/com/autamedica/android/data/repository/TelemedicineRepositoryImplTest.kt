@@ -151,4 +151,23 @@ class TelemedicineRepositoryImplTest {
         val malformedJson = """not valid json"""
         assertThat(repository.parseTurnIceServersJson(malformedJson)).isNull()
     }
+
+    @Test
+    fun startDoctorCallFallsBackToGetSessionWhenEdgeFunctionFails() = runTest {
+        repository.sessionInfoFinder = { null }
+        val result = repository.startDoctorCall("appt-test-123", "patient-456")
+        assertThat(result.isSuccess).isTrue()
+        val session = result.getOrNull()
+        assertThat(session).isNotNull()
+        assertThat(session?.sessionId).isEqualTo("appt-test-123")
+    }
+
+    @Test
+    fun updateCallStatusNormalizesLegacyStatusStrings() = runTest {
+        val result1 = repository.updateCallStatus("call-123", "in_progress")
+        assertThat(result1.isSuccess).isTrue()
+
+        val result2 = repository.updateCallStatus("call-123", "completed")
+        assertThat(result2.isSuccess).isTrue()
+    }
 }

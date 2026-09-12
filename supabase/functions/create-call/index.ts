@@ -23,21 +23,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { doctorId, patientId, appointmentId } = await req.json()
-
-    if (!doctorId || !patientId) {
-      return new Response(
-        JSON.stringify({
-          error: 'Missing required fields: doctorId and patientId are required'
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    console.info('Creating call for:', { doctorId, patientId, appointmentId })
+    const { doctorId: inputDoctorId, patientId: inputPatientId, appointmentId } = await req.json().catch(() => ({}))
 
     // Create Supabase client with service role key
     const supabaseAdmin = createClient(
@@ -73,52 +59,202 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.info('Authenticated user:', user.id)
+    console.info('Authenticated user starting call:', user.id)
 
-    // Verify the authenticated user is actually this doctor
-    const { data: doctorRecord, error: doctorError } = await supabaseAdmin
-      .from('doctors')
-      .select('id, user_id')
-      .or(`id.eq.${doctorId},user_id.eq.${doctorId}`)
-      .maybeSingle()
+    // Verify the authenticated user is a doctor and get their doctor record
+    let doctorRecord = null
+    if (inputDoctorId) {
+      const { data, error } = await supabaseAdmin
+        .from('doctors')
+        .select('id, user_id')
+        .or(`id.eq.${inputDoctorId},user_id.eq.${inputDoctorId}`)
+        .maybeSingle()
+      if (error) console.error('Error finding doctor by inputDoctorId:', error)
+      doctorRecord = data
+    }
 
-    if (doctorError || !doctorRecord || (doctorRecord.user_id !== user.id)) {
-      console.error('Doctor identity mismatch:', { userId: user.id, doctorId, doctorRecord })
+    if (!doctorRecord) {
+      const { data, error } = await supabaseAdmin
+        .from('doctors')
+        .select('id, user_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (error) console.error('Error finding doctor by user.id:', error)
+      doctorRecord = data
+    }
+
+    if (!doctorRecord || (doctorRecord.user_id !== user.id)) {
+      console.error('Doctor identity mismatch or not a doctor:', { userId: user.id, inputDoctorId, doctorRecord })
       return new Response(
         JSON.stringify({ error: 'Forbidden: authenticated user is not the specified doctor' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Call the create_call function using admin privileges
-    const { data: callData, error: callError } = await supabaseAdmin
-      .rpc('create_call', {
-        p_doctor_id: doctorId,
-        p_patient_id: patientId,
-        p_appointment_id: appointmentId || null
-      })
+    // Resolve patientId if not provided directly
+    let resolvedPatientId = inputPatientId || null
+    if (!resolvedPatientId && appointmentId) {
+      const { data: appt } = await supabaseAdmin
+        .from('appointments')
+        .select('patient_id')
+        .eq('id', appointmentId)
+        .maybeSingle()
+      if (appt?.patient_id) {
+        resolvedPatientId = appt.patient_id
+      }
+    }
 
-    if (callError) {
-      console.error('Error creating call:', callError)
+    if (!resolvedPatientId) {
       return new Response(
         JSON.stringify({
-          error: 'Failed to create call',
-          details: callError.message
+          error: 'Missing required patient: patientId or a valid appointmentId with a patient is required'
         }),
         {
-          status: 500,
+          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
 
-    console.info('Call created successfully:', callData)
+    console.info('Creating/reusing call for:', {
+      doctorId: doctorRecord.id,
+      patientId: resolvedPatientId,
+      appointmentId
+    })
 
-    // Return the call data
+    // Check if an active call already exists for this appointment to avoid duplicate key violations
+    let targetCall: any = null
+    let reused = false
+
+    if (appointmentId) {
+      const { data: existingCall } = await supabaseAdmin
+        .from('calls')
+        .select('id, room_id, doctor_id, patient_id, status, created_at, appointment_id')
+        .eq('appointment_id', appointmentId)
+        .not('status', 'in', '("declined","canceled","ended")')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (existingCall) {
+        targetCall = existingCall
+        reused = true
+        if (existingCall.status === 'requested') {
+          await supabaseAdmin
+            .from('calls')
+            .update({ status: 'ringing' })
+            .eq('id', existingCall.id)
+          targetCall.status = 'ringing'
+        }
+      }
+    }
+
+    if (!targetCall) {
+      // Call create_call RPC using admin privileges
+      const { data: callData, error: callError } = await supabaseAdmin
+        .rpc('create_call', {
+          p_doctor_id: doctorRecord.id,
+          p_patient_id: resolvedPatientId,
+          p_appointment_id: appointmentId || null
+        })
+
+      if (callError || !callData || !callData[0]) {
+        console.error('Error creating call via RPC:', callError)
+        return new Response(
+          JSON.stringify({
+            error: 'Failed to create call',
+            details: callError?.message || 'No call returned'
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      targetCall = callData[0]
+      // Set to ringing
+      await supabaseAdmin
+        .from('calls')
+        .update({ status: 'ringing' })
+        .eq('id', targetCall.id)
+      targetCall.status = 'ringing'
+    }
+
+    // Transition appointment to in_progress if applicable
+    if (appointmentId) {
+      await supabaseAdmin
+        .from('appointments')
+        .update({ status: 'in_progress', updated_at: new Date().toISOString() })
+        .eq('id', appointmentId)
+        .neq('status', 'in_progress')
+    }
+
+    // Resolve patient user_id for high-priority push notification
+    let patientUserId: string | null = null
+    if (resolvedPatientId) {
+      const { data: patientRow } = await supabaseAdmin
+        .from('patients')
+        .select('user_id')
+        .eq('id', resolvedPatientId)
+        .maybeSingle()
+
+      if (patientRow?.user_id) {
+        patientUserId = patientRow.user_id
+      } else {
+        const { data: profileRow } = await supabaseAdmin
+          .from('profiles')
+          .select('user_id')
+          .eq('user_id', resolvedPatientId)
+          .maybeSingle()
+        if (profileRow?.user_id) {
+          patientUserId = profileRow.user_id
+        }
+      }
+    }
+
+    // Resolve doctor display name for notification copy
+    const { data: doctorProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    const doctorDisplayName = doctorProfile && (doctorProfile.first_name || doctorProfile.last_name)
+      ? `Dr. ${doctorProfile.first_name || ''} ${doctorProfile.last_name || ''}`.trim()
+      : 'Tu médico'
+
+    // Send FCM push notification so patient's device rings immediately
+    if (patientUserId) {
+      try {
+        await supabaseAdmin.functions.invoke('send-push-notification', {
+          body: {
+            userId: patientUserId,
+            title: 'Videoconsulta iniciada',
+            body: `${doctorDisplayName} te está llamando a la consulta`,
+            data: {
+              type: 'CALL_STARTED',
+              call_id: targetCall.id,
+              room_id: targetCall.room_id,
+              doctor_id: doctorRecord.id,
+              doctor_name: doctorDisplayName,
+              appointment_id: appointmentId || '',
+            }
+          }
+        })
+        console.info('[create-call] Dispatched CALL_STARTED push notification to patient:', patientUserId)
+      } catch (pushErr) {
+        console.warn('[create-call] Push notification dispatch non-blocking error:', pushErr)
+      }
+    }
+
+    console.info('Call ready:', { callId: targetCall.id, roomId: targetCall.room_id, reused })
+
     return new Response(
       JSON.stringify({
         success: true,
-        call: callData[0] // RPC returns array, get first result
+        call: targetCall,
+        reused
       }),
       {
         status: 200,
@@ -127,7 +263,7 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Unexpected error:', error)
+    console.error('Unexpected error in create-call:', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
       JSON.stringify({

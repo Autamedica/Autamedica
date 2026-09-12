@@ -78,6 +78,8 @@ fun VideoCallScreen(
     isInPipMode: Boolean = false,
     roomId: String = "",
     isIncomingCall: Boolean = false,
+    onNavigateToCreatePrescription: ((patientId: String) -> Unit)? = null,
+    onNavigateToCreateCertificate: ((patientId: String) -> Unit)? = null,
     modifier: Modifier = Modifier,
     viewModel: VideoCallViewModel = hiltViewModel(),
 ) {
@@ -493,6 +495,12 @@ fun VideoCallScreen(
                         isDoctor = uiState.isDoctor,
                         isClinicalNotesOpen = uiState.isClinicalNotesOpen,
                         onToggleClinicalNotes = viewModel::toggleClinicalNotes,
+                        onEmitPrescription = if (uiState.patientId.isNotBlank() && onNavigateToCreatePrescription != null) {
+                            { onNavigateToCreatePrescription(uiState.patientId) }
+                        } else null,
+                        onEmitCertificate = if (uiState.patientId.isNotBlank() && onNavigateToCreateCertificate != null) {
+                            { onNavigateToCreateCertificate(uiState.patientId) }
+                        } else null,
                         unreadMessages = 0,
                         onEndCall = {
                             viewModel.handleCallEnd(onCallEnd)
