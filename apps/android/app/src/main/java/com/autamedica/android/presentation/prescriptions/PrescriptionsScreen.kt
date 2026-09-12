@@ -8,6 +8,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -283,7 +284,9 @@ fun PrescriptionsScreen(
             onDismiss = viewModel::clearSelectedPrescription,
             onOpenPdf = { pdfUrl ->
                 runCatching {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl))
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
                     context.startActivity(intent)
                 }.onFailure {
                     Toast.makeText(context, "No se pudo abrir el PDF oficial.", Toast.LENGTH_SHORT).show()
@@ -426,36 +429,44 @@ private fun PrescriptionCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "Mostrar en farmacia",
+                            text = "QR Farmacia",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A),
                         )
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
                         prescription.cuir?.takeIf { it.isNotBlank() }?.let { cuir ->
                             Text(
-                                text = "CUIR: ${cuir.takeLast(8)}",
+                                text = "· ${cuir.takeLast(8)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Medium,
                                 color = Color(0xFF475569),
                             )
                         }
-                        if (downloadablePdfUrl != null) {
-                            IconButton(
-                                onClick = { onOpenPdf(downloadablePdfUrl) },
-                                modifier = Modifier.size(24.dp),
+                    }
+
+                    if (downloadablePdfUrl != null) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFFEE2E2),
+                            modifier = Modifier.clickable { onOpenPdf(downloadablePdfUrl) },
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.PictureAsPdf,
-                                    contentDescription = "Ver PDF",
-                                    tint = Color(0xFF64748B),
-                                    modifier = Modifier.size(16.dp),
+                                    contentDescription = "Descargar PDF",
+                                    tint = Color(0xFFDC2626),
+                                    modifier = Modifier.size(13.dp),
+                                )
+                                Text(
+                                    text = "PDF",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFDC2626),
                                 )
                             }
                         }
@@ -781,34 +792,26 @@ private fun PrescriptionDetailBottomSheet(
 
                     // Botón de PDF oficial si está disponible
                     if (downloadablePdfUrl != null) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        OutlinedButton(
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
                             onClick = { onOpenPdf(downloadablePdfUrl) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = Color(0xFF334155),
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFDC2626),
+                                contentColor = Color.White,
                             ),
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.PictureAsPdf,
                                 contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = AuDanger,
+                                modifier = Modifier.size(20.dp),
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Ver Receta Oficial (PDF)",
-                                style = MaterialTheme.typography.labelMedium,
+                                text = "Descargar Receta (PDF)",
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Outlined.OpenInNew,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = Color(0xFF64748B),
                             )
                         }
                     }
@@ -1085,8 +1088,14 @@ private fun formatPrescriptionDate(dateStr: String?): String {
 }
 
 private fun getDownloadablePdfUrl(signedPdfUrl: String?, cuir: String?): String? {
-    if (signedPdfUrl.isNullOrBlank()) return null
-    if (signedPdfUrl.contains("/verify/")) return null
-    if (cuir != null && signedPdfUrl.contains(cuir)) return null
-    return signedPdfUrl
+    if (!signedPdfUrl.isNullOrBlank()) {
+        // Exclude verification page URLs that are not direct PDFs
+        if (signedPdfUrl.contains("/verify/") && !signedPdfUrl.contains("/storage/")) return null
+        return signedPdfUrl
+    }
+    // Fallback: if CUIR exists, provide online verification and PDF portal
+    if (!cuir.isNullOrBlank()) {
+        return "https://autamedica.com/verify/$cuir"
+    }
+    return null
 }
