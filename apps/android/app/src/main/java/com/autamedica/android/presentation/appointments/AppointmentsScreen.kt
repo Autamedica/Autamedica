@@ -387,11 +387,12 @@ fun AppointmentsScreen(
                         // A. TURNO ACTIVO (si ya tiene uno o más)
                         if (activeAppointments.isNotEmpty()) {
                             val primary = activeAppointments.first()
+                            val isPrimaryJoinable = primary.isTelemedicineJoinCandidate() || primary.id in uiState.joinableAppointmentIds
                             item {
                                 ActiveAppointmentCard(
                                     appointment = primary,
-                                    isJoinable = false,
-                                    onJoinCall = {},
+                                    isJoinable = isPrimaryJoinable,
+                                    onJoinCall = { onNavigateToVideoCall(primary.id) },
                                     onCancel = { appointmentToCancel = primary },
                                     onReschedule = { appointmentToReschedule = primary },
                                 )
@@ -408,9 +409,12 @@ fun AppointmentsScreen(
                                             fontWeight = FontWeight.SemiBold,
                                         )
                                         activeAppointments.drop(1).forEach { extraApt ->
+                                            val isExtraJoinable = extraApt.isTelemedicineJoinCandidate() || extraApt.id in uiState.joinableAppointmentIds
                                             AppointmentCard(
                                                 appointment = extraApt,
-                                                onJoinCall = null,
+                                                onJoinCall = if (isExtraJoinable) {
+                                                    { onNavigateToVideoCall(extraApt.id) }
+                                                } else null,
                                                 onCancel = { appointmentToCancel = extraApt },
                                                 onReschedule = { appointmentToReschedule = extraApt },
                                             )

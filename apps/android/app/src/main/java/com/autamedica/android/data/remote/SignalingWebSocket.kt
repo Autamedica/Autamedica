@@ -27,7 +27,7 @@ import kotlin.math.min
  * WebSocket connection to the AutaMedica signaling server.
  * Handles connection lifecycle, message serialization, and reconnection with exponential backoff.
  *
- * Protocol matches: wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling
+ * Protocol matches: wss://signaling.autamedica.com/signaling
  */
 class SignalingWebSocket(
     private val signalingUrl: String,
