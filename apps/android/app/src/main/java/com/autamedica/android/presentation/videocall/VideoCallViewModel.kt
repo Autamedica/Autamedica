@@ -19,6 +19,7 @@ import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.signaling.SignalingClient
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
+import com.autamedica.android.presentation.videocall.webrtc.TurnManager
 import com.autamedica.android.presentation.videocall.webrtc.WebRTCEngine
 import com.autamedica.android.service.CallNotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -114,6 +115,12 @@ class VideoCallViewModel @Inject constructor(
         signalingClient = signalingClient,
         scope = viewModelScope,
         json = json,
+    )
+
+    private val turnManager = TurnManager(
+        fetchTurnServers = {
+            telemedicineRepository.getIceServers().getOrDefault(emptyList())
+        }
     )
 
     private val _uiState = MutableStateFlow(VideoCallUiState())
@@ -274,6 +281,7 @@ class VideoCallViewModel @Inject constructor(
         callStarted = false
         timerJob?.cancel()
         sessionRetryJob?.cancel()
+        turnManager.stopTurnCredentialRefresh()
         engine.disconnect()
         restoreAudio()
         CallNotificationService.stop(context)
@@ -744,6 +752,23 @@ class VideoCallViewModel @Inject constructor(
                     sessionStatusMessage = if (it.isDoctor) "Conectando con la sala..." else patientStatusMessage(manualRetry),
                 )
             }
+            viewModelScope.launch {
+                telemedicineRepository.getIceServers().onSuccess { servers ->
+                    val dynamicIce = servers.map { it.toPeerConnectionIceServer() }
+                    if (dynamicIce.isNotEmpty()) {
+                        engine.updateIceServers(dynamicIce)
+                    }
+                }
+            }
+            turnManager.startTurnCredentialRefresh(
+                scope = viewModelScope,
+                onRefreshed = { freshServers ->
+                    val ice = freshServers.map { it.toPeerConnectionIceServer() }
+                    if (ice.isNotEmpty()) {
+                        engine.updateIceServers(ice)
+                    }
+                }
+            )
             engine.connect(incomingRoomId, null)
             return
         }
@@ -754,10 +779,18 @@ class VideoCallViewModel @Inject constructor(
 
                 val dynamicIce = sessionInfo.iceServers.map { it.toPeerConnectionIceServer() }
                 if (dynamicIce.isNotEmpty()) {
-                    engine.config = engine.config.copy(
-                        iceServers = dynamicIce
-                    )
+                    engine.updateIceServers(dynamicIce)
                 }
+
+                turnManager.startTurnCredentialRefresh(
+                    scope = viewModelScope,
+                    onRefreshed = { freshServers ->
+                        val ice = freshServers.map { it.toPeerConnectionIceServer() }
+                        if (ice.isNotEmpty()) {
+                            engine.updateIceServers(ice)
+                        }
+                    }
+                )
 
                 _uiState.update {
                     it.copy(

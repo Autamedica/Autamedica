@@ -75,6 +75,8 @@ fun AppointmentStatusBadge(
             fontWeight = FontWeight.Bold,
             fontSize = 10.sp,
             letterSpacing = 0.5.sp,
+            maxLines = 1,
+            softWrap = false,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
         )
     }

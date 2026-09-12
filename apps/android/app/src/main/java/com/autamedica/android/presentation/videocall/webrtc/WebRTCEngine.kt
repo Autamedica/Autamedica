@@ -199,6 +199,24 @@ class WebRTCEngine(
         cleanup()
     }
 
+    /**
+     * Updates ICE servers on active peer connections and saves them to config.
+     * Essential for mid-call TURN credential refresh and dynamic ICE provisioning.
+     */
+    fun updateIceServers(newServers: List<PeerConnection.IceServer>) {
+        if (newServers.isEmpty()) return
+        if (::config.isInitialized) {
+            config = config.copy(iceServers = newServers)
+        }
+        peers.values.forEach { peerState ->
+            val rtcConfig = PeerConnection.RTCConfiguration(newServers).apply {
+                sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
+            }
+            peerState.pc.setConfiguration(rtcConfig)
+        }
+        Timber.i("[WebRTC] Updated ICE servers on ${peers.size} peer connection(s) (${newServers.size} servers)")
+    }
+
     // -- Media capture --
 
     fun startLocalMedia() {

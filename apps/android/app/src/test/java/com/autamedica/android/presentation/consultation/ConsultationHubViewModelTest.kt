@@ -1,5 +1,6 @@
 package com.autamedica.android.presentation.consultation
 
+import com.autamedica.android.data.repository.PatientClinicStore
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
@@ -16,6 +17,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -81,6 +83,7 @@ class ConsultationHubViewModelTest {
     private lateinit var fakeAuthRepo: FakeAuthRepo
     private lateinit var fakeAppointmentRepo: FakeAppointmentRepo
     private lateinit var fakeTelemedicineRepo: FakeTelemedicineRepo
+    private lateinit var clinicStore: PatientClinicStore
 
     @Before
     fun setUp() {
@@ -93,6 +96,7 @@ class ConsultationHubViewModelTest {
         fakeTelemedicineRepo = FakeTelemedicineRepo(
             joinableIds = setOf("apt-1"),
         )
+        clinicStore = PatientClinicStore(fakeAppointmentRepo, fakeTelemedicineRepo, testDispatcher)
     }
 
     @After
@@ -100,51 +104,28 @@ class ConsultationHubViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private fun createViewModel(): ConsultationHubViewModel =
+        ConsultationHubViewModel(clinicStore, fakeAppointmentRepo)
+
     @Test
     fun `initial load classifies active and pending payment appointments`() = runTest(testDispatcher) {
-        val viewModel = ConsultationHubViewModel(
-            appointmentRepository = fakeAppointmentRepo,
-            authRepository = fakeAuthRepo,
-            telemedicineRepository = fakeTelemedicineRepo,
-        )
-        testDispatcher.scheduler.advanceUntilIdle()
+        val viewModel = createViewModel()
+        advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertThat(state.isLoading).isFalse()
-        assertThat(state.userName).isEqualTo("Juan Pérez")
         assertThat(state.activeTelemedicineAppointment?.id).isEqualTo("apt-1")
         assertThat(state.pendingPaymentAppointment?.id).isEqualTo("apt-pending")
         assertThat(state.availableDoctors).isNotEmpty()
     }
 
     @Test
-    fun `selectReason toggles consultation reason filter`() = runTest(testDispatcher) {
-        val viewModel = ConsultationHubViewModel(
-            appointmentRepository = fakeAppointmentRepo,
-            authRepository = fakeAuthRepo,
-            telemedicineRepository = fakeTelemedicineRepo,
-        )
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.selectReason(ConsultationReason.PEDIATRICS)
-        assertThat(viewModel.uiState.value.selectedReason).isEqualTo(ConsultationReason.PEDIATRICS)
-
-        // Selecting same reason clears the filter
-        viewModel.selectReason(ConsultationReason.PEDIATRICS)
-        assertThat(viewModel.uiState.value.selectedReason).isNull()
-    }
-
-    @Test
     fun `payAppointment marks appointment as CONFIRMED and updates state`() = runTest(testDispatcher) {
-        val viewModel = ConsultationHubViewModel(
-            appointmentRepository = fakeAppointmentRepo,
-            authRepository = fakeAuthRepo,
-            telemedicineRepository = fakeTelemedicineRepo,
-        )
-        testDispatcher.scheduler.advanceUntilIdle()
+        val viewModel = createViewModel()
+        advanceUntilIdle()
 
         viewModel.payAppointment(samplePendingPayment)
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertThat(state.pendingPaymentAppointment).isNull()
@@ -153,18 +134,14 @@ class ConsultationHubViewModelTest {
 
     @Test
     fun `requestEmergencyConsultation assigns on-call doctor immediately`() = runTest(testDispatcher) {
-        val viewModel = ConsultationHubViewModel(
-            appointmentRepository = fakeAppointmentRepo,
-            authRepository = fakeAuthRepo,
-            telemedicineRepository = fakeTelemedicineRepo,
-        )
-        testDispatcher.scheduler.advanceUntilIdle()
+        val viewModel = createViewModel()
+        advanceUntilIdle()
 
         var enteredAppointmentId: String? = null
         viewModel.requestEmergencyConsultation("Fiebre alta") { id ->
             enteredAppointmentId = id
         }
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceUntilIdle()
 
         assertThat(enteredAppointmentId).isNotNull()
         val state = viewModel.uiState.value
@@ -179,23 +156,42 @@ class ConsultationHubViewModelTest {
             doctors = listOf(sampleDoctor),
             bookAppointmentReturnsError = true,
         )
-        val viewModel = ConsultationHubViewModel(
-            appointmentRepository = failingRepo,
-            authRepository = fakeAuthRepo,
-            telemedicineRepository = fakeTelemedicineRepo,
-        )
-        testDispatcher.scheduler.advanceUntilIdle()
+        val failingStore = PatientClinicStore(failingRepo, fakeTelemedicineRepo, testDispatcher)
+        val viewModel = ConsultationHubViewModel(failingStore, failingRepo)
+        advanceUntilIdle()
 
         var enteredAppointmentId: String? = null
         viewModel.requestEmergencyConsultation("Dolor de pecho") { id ->
             enteredAppointmentId = id
         }
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceUntilIdle()
 
         assertThat(enteredAppointmentId).isNull()
         val state = viewModel.uiState.value
         assertThat(state.isEmergencyQueueLoading).isFalse()
         assertThat(state.paymentMessage).contains("No fue posible conectar con la guardia médica")
+    }
+
+    @Test
+    fun `requestEmergencyConsultation displays honest error when no doctors available`() = runTest(testDispatcher) {
+        val noDoctorsRepo = FakeAppointmentRepo(
+            appointments = emptyList(),
+            doctors = emptyList(),
+        )
+        val noDoctorsStore = PatientClinicStore(noDoctorsRepo, fakeTelemedicineRepo, testDispatcher)
+        val viewModel = ConsultationHubViewModel(noDoctorsStore, noDoctorsRepo)
+        advanceUntilIdle()
+
+        var enteredAppointmentId: String? = null
+        viewModel.requestEmergencyConsultation("Fiebre alta") { id ->
+            enteredAppointmentId = id
+        }
+        advanceUntilIdle()
+
+        assertThat(enteredAppointmentId).isNull()
+        val state = viewModel.uiState.value
+        assertThat(state.isEmergencyQueueLoading).isFalse()
+        assertThat(state.paymentMessage).contains("no hay médicos de guardia disponibles")
     }
 
     // ── FAKES ──

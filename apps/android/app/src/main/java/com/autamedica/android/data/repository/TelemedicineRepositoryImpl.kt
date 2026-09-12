@@ -15,6 +15,11 @@ import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -285,19 +290,7 @@ class TelemedicineRepositoryImpl @Inject constructor(
         val fetched = runCatching {
             val response = supabaseClient.functions.invoke("turn-credentials")
             val text = response.bodyAsText()
-            val json = Json { ignoreUnknownKeys = true }
-            val dto = json.decodeFromString<TurnCredentialsResponseDto>(text)
-            if (dto.ok && !dto.iceServers.isNullOrEmpty()) {
-                dto.iceServers.map { entry ->
-                    IceServerInfo(
-                        urls = entry.urls,
-                        username = entry.username,
-                        credential = entry.credential,
-                    )
-                }
-            } else {
-                null
-            }
+            parseTurnIceServersJson(text)
         }.getOrNull()
 
         if (!fetched.isNullOrEmpty()) {
@@ -306,20 +299,37 @@ class TelemedicineRepositoryImpl @Inject constructor(
 
         return getDefaultIceServers()
     }
+
+    internal fun parseTurnIceServersJson(jsonText: String): List<IceServerInfo>? {
+        return runCatching {
+            val json = Json { ignoreUnknownKeys = true }
+            val root = json.parseToJsonElement(jsonText) as? JsonObject ?: return null
+            val ok = (root["ok"] as? JsonPrimitive)?.booleanOrNull ?: false
+            if (!ok) return null
+            val servers = root["iceServers"] as? JsonArray ?: return null
+            val list = servers.mapNotNull { serverElement ->
+                val obj = serverElement as? JsonObject ?: return@mapNotNull null
+                val urlsElement = obj["urls"]
+                val urls = when (urlsElement) {
+                    is JsonArray -> urlsElement.mapNotNull { (it as? JsonPrimitive)?.content?.trim()?.takeIf { s -> s.isNotEmpty() } }
+                    is JsonPrimitive -> urlsElement.content.trim().takeIf { it.isNotEmpty() }?.let { listOf(it) } ?: emptyList()
+                    else -> emptyList()
+                }
+                val cleanUrls = urls.filter { !it.contains(":53") }
+                if (cleanUrls.isNotEmpty()) {
+                    val username = (obj["username"] as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf { it.isNotEmpty() }
+                    val credential = (obj["credential"] as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf { it.isNotEmpty() }
+                    IceServerInfo(
+                        urls = cleanUrls,
+                        username = username,
+                        credential = credential,
+                    )
+                } else null
+            }
+            list.takeIf { it.isNotEmpty() }
+        }.getOrNull()
+    }
 }
-
-@Serializable
-private data class TurnCredentialsResponseDto(
-    val ok: Boolean = false,
-    @SerialName("iceServers") val iceServers: List<TurnIceServerDto>? = null,
-)
-
-@Serializable
-private data class TurnIceServerDto(
-    val urls: List<String>,
-    val username: String? = null,
-    val credential: String? = null,
-)
 
 
 

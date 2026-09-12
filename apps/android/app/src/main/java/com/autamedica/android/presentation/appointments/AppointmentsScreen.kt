@@ -82,7 +82,6 @@ import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.DoctorBookingInfo
-import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.presentation.dashboard.components.AppointmentCard
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
@@ -387,12 +386,11 @@ fun AppointmentsScreen(
                         // A. TURNO ACTIVO (si ya tiene uno o más)
                         if (activeAppointments.isNotEmpty()) {
                             val primary = activeAppointments.first()
-                            val isJoinable = primary.id in uiState.joinableAppointmentIds || primary.isTelemedicineJoinCandidate()
                             item {
                                 ActiveAppointmentCard(
                                     appointment = primary,
-                                    isJoinable = isJoinable,
-                                    onJoinCall = { onNavigateToVideoCall(primary.id) },
+                                    isJoinable = false,
+                                    onJoinCall = {},
                                     onCancel = { appointmentToCancel = primary },
                                     onReschedule = { appointmentToReschedule = primary },
                                 )
@@ -409,12 +407,9 @@ fun AppointmentsScreen(
                                             fontWeight = FontWeight.SemiBold,
                                         )
                                         activeAppointments.drop(1).forEach { extraApt ->
-                                            val extraJoinable = extraApt.id in uiState.joinableAppointmentIds || extraApt.isTelemedicineJoinCandidate()
                                             AppointmentCard(
                                                 appointment = extraApt,
-                                                onJoinCall = if (extraJoinable) {
-                                                    { onNavigateToVideoCall(extraApt.id) }
-                                                } else null,
+                                                onJoinCall = null,
                                                 onCancel = { appointmentToCancel = extraApt },
                                                 onReschedule = { appointmentToReschedule = extraApt },
                                             )
@@ -799,31 +794,14 @@ private fun ActiveAppointmentCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = PortalPatients.copy(alpha = 0.18f),
+                DoctorAvatar(
+                    name = appointment.doctorName ?: "Profesional Médico",
+                    avatarUrl = appointment.doctorAvatarUrl,
+                    doctorId = appointment.doctorId,
+                    size = 48.dp,
+                    accentColor = PortalPatients,
                     border = BorderStroke(1.dp, PortalPatients.copy(alpha = 0.35f)),
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        val initials = (appointment.doctorName ?: "Dr.")
-                            .replace("Dr.", "")
-                            .replace("Dra.", "")
-                            .trim()
-                            .split(" ")
-                            .take(2)
-                            .mapNotNull { it.firstOrNull()?.toString() }
-                            .joinToString("")
-                            .ifBlank { "MD" }
-
-                        Text(
-                            text = initials,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = PortalPatients,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                }
+                )
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -1280,7 +1258,7 @@ private fun BookingCalendarCard(
                                     DayOfWeek.SATURDAY -> 6
                                 }
                                 val hasAttention = selectedDoctor?.availableDays?.let { days ->
-                                    days.isEmpty() || dayOfWeekInt in days
+                                    days.isNotEmpty() && dayOfWeekInt in days
                                 } ?: true
 
                                 DatePill(

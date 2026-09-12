@@ -96,4 +96,59 @@ class TelemedicineRepositoryImplTest {
         assertThat(session?.roomId).isEqualTo("custom-room-456")
         assertThat(session?.signalingUrl).isNotEmpty()
     }
+
+    @Test
+    fun parseTurnIceServersJsonDecodesUrlsArrayAndExcludesPort53() {
+        val jsonText = """
+            {
+                "ok": true,
+                "iceServers": [
+                    {
+                        "urls": ["turn:turn.cloudflare.com:3478", "turn:turn.cloudflare.com:53"],
+                        "username": "user1",
+                        "credential": "pass1"
+                    }
+                ]
+            }
+        """.trimIndent()
+        val result = repository.parseTurnIceServersJson(jsonText)
+        assertThat(result).isNotNull()
+        assertThat(result).hasSize(1)
+        val server = result!!.first()
+        assertThat(server.urls).containsExactly("turn:turn.cloudflare.com:3478")
+        assertThat(server.username).isEqualTo("user1")
+        assertThat(server.credential).isEqualTo("pass1")
+    }
+
+    @Test
+    fun parseTurnIceServersJsonDecodesSingleUrlString() {
+        val jsonText = """
+            {
+                "ok": true,
+                "iceServers": [
+                    {
+                        "urls": "turn:turn.cloudflare.com:3478",
+                        "username": "user2",
+                        "credential": "pass2"
+                    }
+                ]
+            }
+        """.trimIndent()
+        val result = repository.parseTurnIceServersJson(jsonText)
+        assertThat(result).isNotNull()
+        assertThat(result).hasSize(1)
+        val server = result!!.first()
+        assertThat(server.urls).containsExactly("turn:turn.cloudflare.com:3478")
+        assertThat(server.username).isEqualTo("user2")
+        assertThat(server.credential).isEqualTo("pass2")
+    }
+
+    @Test
+    fun parseTurnIceServersJsonReturnsNullWhenNotOkOrEmpty() {
+        val notOkJson = """{"ok": false, "iceServers": []}"""
+        assertThat(repository.parseTurnIceServersJson(notOkJson)).isNull()
+
+        val malformedJson = """not valid json"""
+        assertThat(repository.parseTurnIceServersJson(malformedJson)).isNull()
+    }
 }

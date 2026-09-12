@@ -96,6 +96,8 @@ fun UpcomingAppointmentHeroCard(
                             else -> Color.White
                         },
                         letterSpacing = 0.5.sp,
+                        maxLines = 1,
+                        softWrap = false,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                     )
                 }

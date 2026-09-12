@@ -1,7 +1,6 @@
 package com.autamedica.android.presentation.consultation
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,24 +16,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.CreditCard
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.HealthAndSafety
-import androidx.compose.material.icons.outlined.MedicalServices
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -60,40 +49,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.autamedica.android.R
 import com.autamedica.android.domain.model.Appointment
-import com.autamedica.android.domain.model.AppointmentStatus
-import com.autamedica.android.domain.model.DoctorBookingInfo
-import com.autamedica.android.presentation.dashboard.components.AppointmentCard
-import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
-import com.autamedica.android.presentation.theme.AuDanger
 import com.autamedica.android.presentation.theme.AuSuccess
 import com.autamedica.android.presentation.theme.AuSurface
 import com.autamedica.android.presentation.theme.AuSurfaceHover
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
-import com.autamedica.android.presentation.theme.PortalDoctors
 import com.autamedica.android.presentation.theme.PortalPatients
 import com.autamedica.android.presentation.theme.SuccessContainer
-import com.autamedica.android.presentation.theme.WarningContainer
 import java.text.NumberFormat
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,20 +90,6 @@ fun ConsultationHubScreen(
             context.startActivity(intent)
         }
         viewModel.clearCheckoutUrl()
-    }
-
-    // Filter doctors based on selected reason
-    val filteredDoctors = remember(uiState.availableDoctors, uiState.selectedReason) {
-        val selected = uiState.selectedReason
-        if (selected == null) {
-            uiState.availableDoctors
-        } else {
-            val matches = uiState.availableDoctors.filter { doc ->
-                doc.specialty.contains(selected.specialtyMatch, ignoreCase = true) ||
-                    doc.specialty.contains(selected.title, ignoreCase = true)
-            }
-            if (matches.isNotEmpty()) matches else uiState.availableDoctors
-        }
     }
 
     Scaffold(
@@ -225,8 +185,7 @@ fun ConsultationHubScreen(
                         // ── 1. Hero Superior: Telemedicina y Consulta Online ──
                         item {
                             TelemedicineHeroCard(
-                                onDutyDoctorsCount = uiState.onDutyDoctorsCount,
-                                emergencyWaitMinutes = uiState.emergencyWaitMinutes,
+                                availableDoctorsCount = uiState.availableDoctors.size,
                             )
                         }
 
@@ -264,7 +223,7 @@ fun ConsultationHubScreen(
                             }
                         }
 
-                        // ── 2. Acceso Inmediato a Videoconsulta Activa (Si hay turno joinable o live) ──
+                        // ── 2. Acceso Inmediato a Videoconsulta Activa (único punto de ingreso del paciente) ──
                         uiState.activeTelemedicineAppointment?.let { activeApt ->
                             item {
                                 ActiveTelemedicineCard(
@@ -274,7 +233,7 @@ fun ConsultationHubScreen(
                             }
                         }
 
-                        // ── 3. Banner Prioritario de Pago Pendiente (Si hay turno pendiente) ──
+                        // ── 3. Banner Prioritario de Pago Pendiente ──
                         uiState.pendingPaymentAppointment?.let { pendingApt ->
                             item {
                                 PendingPaymentBanner(
@@ -288,62 +247,17 @@ fun ConsultationHubScreen(
                         // ── 4. Guardia / Médico Online 24/7: Atención Inmediata Sin Turno Previo ──
                         item {
                             EmergencyOnCallCard(
-                                waitMinutes = uiState.emergencyWaitMinutes,
-                                onDutyCount = uiState.onDutyDoctorsCount,
+                                availableDoctorsCount = uiState.availableDoctors.size,
                                 isLoading = uiState.isEmergencyQueueLoading,
                                 onStartConsultation = { showEmergencyConfirmDialog = true },
                             )
                         }
 
-                        // ── 5. Filtro Rápido por Motivo de Consulta ──
-                        item {
-                            ConsultationReasonSelector(
-                                selectedReason = uiState.selectedReason,
-                                onSelectReason = viewModel::selectReason,
-                            )
-                        }
-
-                        // Si seleccionó Receta Express: banner informativo
-                        if (uiState.selectedReason == ConsultationReason.EXPRESS_PRESCRIPTION) {
-                            item {
-                                ExpressPrescriptionNotice(
-                                    onConsultNow = { showEmergencyConfirmDialog = true },
-                                )
-                            }
-                        }
-
-                        // ── 6. Carrusel / Grilla de Profesionales con Disponibilidad Hoy ──
-                        item {
-                            AvailableTodaySection(
-                                doctors = filteredDoctors,
-                                onSelectDoctor = { onNavigateToBookAppointment() },
-                            )
-                        }
-
-                        // ── 7. Mis Videoconsultas Agendadas (Próximos turnos online) ──
-                        item {
-                            UpcomingConsultationsHeader(
-                                count = uiState.upcomingTelemedicineAppointments.size,
-                                onScheduleNew = onNavigateToBookAppointment,
-                            )
-                        }
-
-                        if (uiState.upcomingTelemedicineAppointments.isEmpty() && uiState.activeTelemedicineAppointment == null) {
+                        // ── 5. Estado honesto: sin consultas activas ──
+                        if (uiState.activeTelemedicineAppointment == null && uiState.pendingPaymentAppointment == null) {
                             item {
                                 EmptyConsultationsCard(
                                     onScheduleNew = onNavigateToBookAppointment,
-                                )
-                            }
-                        } else {
-                            items(
-                                items = uiState.upcomingTelemedicineAppointments,
-                                key = { it.id },
-                            ) { apt ->
-                                AppointmentCard(
-                                    appointment = apt,
-                                    onJoinCall = if (apt.id in uiState.joinableAppointmentIds) {
-                                        { onNavigateToVideoCall(apt.id) }
-                                    } else null,
                                 )
                             }
                         }
@@ -394,7 +308,7 @@ fun ConsultationHubScreen(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = "• Tiempo estimado de espera: ~${uiState.emergencyWaitMinutes} minutos",
+                                text = "• La asignación se hace por orden de llegada entre los médicos disponibles",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextPrimary,
                                 fontWeight = FontWeight.SemiBold,
@@ -405,7 +319,7 @@ fun ConsultationHubScreen(
                                 color = AuTextSecondary,
                             )
                             Text(
-                                text = "• Emisión de receta digital oficial si corresponde",
+                                text = "• Si ahora no hay médicos de guardia, te lo avisamos claro y podés agendar desde Agenda",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextSecondary,
                             )
@@ -442,8 +356,7 @@ fun ConsultationHubScreen(
 
 @Composable
 private fun TelemedicineHeroCard(
-    onDutyDoctorsCount: Int,
-    emergencyWaitMinutes: Int,
+    availableDoctorsCount: Int,
 ) {
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -533,14 +446,14 @@ private fun TelemedicineHeroCard(
                         fontSize = 22.sp,
                     )
                     Text(
-                        text = "Videoconsultas y recetas digitales con validez nacional.",
+                        text = "Videoconsultas médicas online, seguras y cifradas.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF94A3B8),
                         lineHeight = 20.sp,
                     )
                 }
 
-                // Stats strip
+                // Stats strip: datos reales de disponibilidad
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -551,13 +464,13 @@ private fun TelemedicineHeroCard(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "$onDutyDoctorsCount+",
+                            text = "$availableDoctorsCount",
                             style = MaterialTheme.typography.titleMedium,
                             color = Color(0xFF38BDF8),
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Médicos online",
+                            text = "Médicos disponibles",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF94A3B8),
                             fontSize = 10.sp,
@@ -571,13 +484,13 @@ private fun TelemedicineHeroCard(
                     )
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "~$emergencyWaitMinutes min",
+                            text = "24/7",
                             style = MaterialTheme.typography.titleMedium,
                             color = Color(0xFF34D399),
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Espera guardia",
+                            text = "Guardia médica",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF94A3B8),
                             fontSize = 10.sp,
@@ -591,13 +504,13 @@ private fun TelemedicineHeroCard(
                     )
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "100%",
+                            text = "HD",
                             style = MaterialTheme.typography.titleMedium,
                             color = Color(0xFFFBBF24),
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Receta digital",
+                            text = "Video HD",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF94A3B8),
                             fontSize = 10.sp,
@@ -803,8 +716,7 @@ private fun PendingPaymentBanner(
 
 @Composable
 private fun EmergencyOnCallCard(
-    waitMinutes: Int,
-    onDutyCount: Int,
+    availableDoctorsCount: Int,
     isLoading: Boolean,
     onStartConsultation: () -> Unit,
 ) {
@@ -874,7 +786,11 @@ private fun EmergencyOnCallCard(
                                 .background(Color(0xFF10B981)),
                         )
                         Text(
-                            text = "~$waitMinutes min",
+                            text = if (availableDoctorsCount > 0) {
+                                "$availableDoctorsCount disponible${if (availableDoctorsCount == 1) "" else "s"}"
+                            } else {
+                                "En espera"
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF065F46),
                             fontSize = 10.sp,
@@ -885,7 +801,7 @@ private fun EmergencyOnCallCard(
             }
 
             Text(
-                text = "Videoconsulta al instante con médico clínico de guardia.",
+                text = "Videoconsulta inmediata con un médico de guardia. La asignación se hace por orden de llegada entre los profesionales disponibles.",
                 style = MaterialTheme.typography.bodySmall,
                 color = AuTextSecondary,
                 lineHeight = 18.sp,
@@ -926,376 +842,6 @@ private fun EmergencyOnCallCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ConsultationReasonSelector(
-    selectedReason: ConsultationReason?,
-    onSelectReason: (ConsultationReason?) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Motivo de consulta",
-                style = MaterialTheme.typography.titleMedium,
-                color = AuTextPrimary,
-                fontWeight = FontWeight.Bold,
-            )
-            if (selectedReason != null) {
-                Text(
-                    text = "Limpiar filtro",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PortalPatients,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable { onSelectReason(null) },
-                )
-            }
-        }
-
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(ConsultationReason.values()) { reason ->
-                val isSelected = selectedReason == reason
-                val icon: ImageVector = when (reason) {
-                    ConsultationReason.GENERAL -> Icons.Outlined.MedicalServices
-                    ConsultationReason.PEDIATRICS -> Icons.Outlined.FavoriteBorder
-                    ConsultationReason.MENTAL_HEALTH -> Icons.Outlined.Psychology
-                    ConsultationReason.EXPRESS_PRESCRIPTION -> Icons.Outlined.Description
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = if (isSelected) PortalPatients else AuSurface,
-                    border = BorderStroke(
-                        1.dp,
-                        if (isSelected) PortalPatients else AuBorder,
-                    ),
-                    modifier = Modifier.clickable { onSelectReason(reason) },
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = if (isSelected) Color.White else PortalPatients,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Column {
-                            Text(
-                                text = reason.title,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isSelected) Color.White else AuTextPrimary,
-                            )
-                            Text(
-                                text = reason.subtitle,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 9.sp,
-                                color = if (isSelected) Color.White.copy(alpha = 0.8f) else AuTextTertiary,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ExpressPrescriptionNotice(
-    onConsultNow: () -> Unit,
-) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFFF8FAFC),
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Description,
-                contentDescription = null,
-                tint = PortalPatients,
-                modifier = Modifier.size(24.dp),
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Renovación de Receta Express",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = AuTextPrimary,
-                )
-                Text(
-                    text = "Recibí tu receta oficial firmada digitalmente con homologación Farmalink en tu celular.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AuTextSecondary,
-                    fontSize = 11.sp,
-                )
-            }
-            Button(
-                onClick = onConsultNow,
-                colors = ButtonDefaults.buttonColors(containerColor = PortalPatients),
-                shape = RoundedCornerShape(10.dp),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-            ) {
-                Text("Pedir", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-
-@Composable
-private fun AvailableTodaySection(
-    doctors: List<DoctorBookingInfo>,
-    onSelectDoctor: (DoctorBookingInfo) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column {
-                Text(
-                    text = "Médicos disponibles",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = AuTextPrimary,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Atención en el día",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AuTextTertiary,
-                )
-            }
-
-            Surface(
-                shape = RoundedCornerShape(999.dp),
-                color = Color(0xFFECFDF5),
-                border = BorderStroke(1.dp, Color(0xFFA7F3D0)),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = "${doctors.size} disponibles",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF065F46),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
-        }
-
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items(doctors) { doctor ->
-                DoctorConsultationCard(
-                    doctor = doctor,
-                    onConsultClick = { onSelectDoctor(doctor) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DoctorConsultationCard(
-    doctor: DoctorBookingInfo,
-    onConsultClick: () -> Unit,
-) {
-    val avatarRes = remember(doctor.name, doctor.id) {
-        getDoctorAvatarRes(doctor.name, doctor.id)
-    }
-
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
-        shadowElevation = 1.dp,
-        modifier = Modifier
-            .width(220.dp)
-            .clickable { onConsultClick() },
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            // Header with Avatar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Image(
-                    painter = painterResource(id = avatarRes),
-                    contentDescription = doctor.name,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop,
-                )
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFECFDF5),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        horizontalArrangement = Arrangement.spacedBy(3.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.CheckCircle,
-                            contentDescription = null,
-                            tint = Color(0xFF059669),
-                            modifier = Modifier.size(11.dp),
-                        )
-                        Text(
-                            text = "Hoy",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF065F46),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp,
-                        )
-                    }
-                }
-            }
-
-            // Doctor Info
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = doctor.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = AuTextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = doctor.specialty,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = PortalPatients,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = doctor.licenseNumber,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AuTextTertiary,
-                    fontSize = 10.sp,
-                )
-            }
-
-            // Next slot pill
-            val nextSlot = doctor.availableSlots.firstOrNull() ?: "En 20 min"
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = AuSurfaceHover,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Schedule,
-                        contentDescription = null,
-                        tint = AuTextSecondary,
-                        modifier = Modifier.size(12.dp),
-                    )
-                    Text(
-                        text = "Turno hoy: $nextSlot",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AuTextSecondary,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
-            }
-
-            // Price & Button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = formatArs(doctor.consultationFee ?: 15000.0),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = AuTextPrimary,
-                )
-
-                Button(
-                    onClick = onConsultClick,
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PortalPatients),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    modifier = Modifier.height(32.dp),
-                ) {
-                    Text(
-                        text = "Consultar",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun UpcomingConsultationsHeader(
-    count: Int,
-    onScheduleNew: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column {
-            Text(
-                text = "Mis Videoconsultas Agendadas",
-                style = MaterialTheme.typography.titleMedium,
-                color = AuTextPrimary,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = "$count consulta${if (count == 1) "" else "s"} online en curso",
-                style = MaterialTheme.typography.labelSmall,
-                color = AuTextTertiary,
-            )
-        }
-
-        Text(
-            text = "Nueva",
-            style = MaterialTheme.typography.labelMedium,
-            color = PortalPatients,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.clickable { onScheduleNew() },
-        )
     }
 }
 
@@ -1358,34 +904,6 @@ private fun EmptyConsultationsCard(
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                 )
-            }
-        }
-    }
-}
-
-// ── UTILIDADES ──
-
-private fun getDoctorAvatarRes(name: String, doctorId: String): Int {
-    val isFemale = name.contains("Dra.", ignoreCase = true) ||
-        name.contains("Mariana", ignoreCase = true) ||
-        name.contains("Camila", ignoreCase = true) ||
-        name.contains("Valentina", ignoreCase = true) ||
-        name.contains("Valeria", ignoreCase = true)
-    val isMale = name.contains("Dr.", ignoreCase = true) && !isFemale
-    val hash = abs(doctorId.hashCode() xor name.hashCode())
-    return when {
-        isFemale && !isMale -> {
-            when (hash % 3) {
-                0 -> R.drawable.avatar_doctor_f1
-                1 -> R.drawable.avatar_doctor_f2
-                else -> R.drawable.avatar_doctor_f3
-            }
-        }
-        else -> {
-            when (hash % 3) {
-                0 -> R.drawable.avatar_doctor_m1
-                1 -> R.drawable.avatar_doctor_m2
-                else -> R.drawable.avatar_doctor_m3
             }
         }
     }

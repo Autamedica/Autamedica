@@ -52,7 +52,16 @@ fun AppointmentListItem(
     val startDt = runCatching { OffsetDateTime.parse(appointment.startTime) }.getOrNull()
     val timeStr = startDt?.format(DateTimeFormatter.ofPattern("HH:mm", spanishLocale)) ?: ""
 
-    val cleanNotes = appointment.notes?.replace(Regex("\\[INVITADO:[^\\]]+\\]"), "")?.trim().orEmpty()
+    val cleanNotes = appointment.notes?.let { notes ->
+        val cleaned = notes
+            .replace(Regex("\\[INVITADO:[^\\]]+\\]", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("(?i)^(Videoconsulta|Consulta|Turno)(?:\\s+m[eé]dica)?(?:\\s+de\\s+.*?)?\\s+con\\s+.*?$"), "")
+            .trim()
+        if (cleaned.startsWith("Videoconsulta de", ignoreCase = true) && cleaned.contains(" con ", ignoreCase = true)) ""
+        else if (cleaned.startsWith("Consulta de", ignoreCase = true) && cleaned.contains(" con ", ignoreCase = true)) ""
+        else if (cleaned.equals("Consulta programada", ignoreCase = true) || cleaned.equals("Videoconsulta médica", ignoreCase = true)) ""
+        else cleaned
+    }.orEmpty()
 
     val (cardBg, borderStroke) = when {
         isSelected -> Color(0xFFF0FDF4) to BorderStroke(1.dp, Color(0xFF86EFAC)) // green tint if selected
@@ -93,6 +102,8 @@ fun AppointmentListItem(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
+                        maxLines = 1,
+                        softWrap = false,
                     )
                     if (isTelemed) {
                         Text(
@@ -101,6 +112,8 @@ fun AppointmentListItem(
                             color = PortalDoctors,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            softWrap = false,
                         )
                     }
                 }

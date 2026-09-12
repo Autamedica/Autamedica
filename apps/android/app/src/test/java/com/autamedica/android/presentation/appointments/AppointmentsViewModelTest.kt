@@ -1,5 +1,6 @@
 package com.autamedica.android.presentation.appointments
 
+import com.autamedica.android.data.repository.PatientClinicStore
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
@@ -16,7 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -27,7 +29,21 @@ import java.time.LocalDate
 
 private class TestAppointmentRepository : AppointmentRepository {
     var upcomingAppointmentsResult: Result<List<Appointment>> = Result.success(emptyList())
-    var availableDoctorsResult: Result<List<DoctorBookingInfo>> = Result.success(emptyList())
+    var availableDoctorsResult: Result<List<DoctorBookingInfo>> = Result.success(
+        listOf(
+            DoctorBookingInfo(
+                id = "doc-1",
+                userId = "user-doc-1",
+                name = "Dra. Sofía Martínez",
+                specialty = "Medicina General",
+                licenseNumber = "MN 12345",
+                subspecialty = "Atención Primaria",
+                avatarUrl = null,
+                consultationFee = 15000.0,
+            )
+        )
+    )
+    var availableSlotsResult: Result<List<String>> = Result.success(listOf("09:00", "10:00", "11:00"))
     var bookAppointmentResult: Result<Appointment>? = null
     var lastBookedDoctorId: String? = null
     var lastBookedStartTime: String? = null
@@ -38,6 +54,7 @@ private class TestAppointmentRepository : AppointmentRepository {
     override suspend fun updateAppointmentStatus(id: String, status: AppointmentStatus): Result<Unit> = Result.success(Unit)
     override suspend fun clearCachedAppointmentsForCurrentUser(): Result<Unit> = Result.success(Unit)
     override suspend fun getAvailableDoctors(specialty: String?): Result<List<DoctorBookingInfo>> = availableDoctorsResult
+    override suspend fun getAvailableSlots(doctorId: String, date: String): Result<List<String>> = availableSlotsResult
 
     override suspend fun bookAppointment(
         doctorId: String,
@@ -89,11 +106,11 @@ private class TestTelemedicineRepository : TelemedicineRepository {
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppointmentsViewModelTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
+    private val testDispatcher = StandardTestDispatcher()
     private lateinit var appointmentRepository: TestAppointmentRepository
     private lateinit var authRepository: TestAuthRepository
     private lateinit var telemedicineRepository: TestTelemedicineRepository
-    private lateinit var viewModel: AppointmentsViewModel
+    private lateinit var clinicStore: PatientClinicStore
 
     @Before
     fun setUp() {
@@ -101,6 +118,7 @@ class AppointmentsViewModelTest {
         appointmentRepository = TestAppointmentRepository()
         authRepository = TestAuthRepository()
         telemedicineRepository = TestTelemedicineRepository()
+        clinicStore = PatientClinicStore(appointmentRepository, telemedicineRepository, testDispatcher)
     }
 
     @After
@@ -108,24 +126,47 @@ class AppointmentsViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private fun createViewModel(): AppointmentsViewModel =
+        AppointmentsViewModel(clinicStore, appointmentRepository, authRepository)
+
     @Test
-    fun `initializes with available dates, doctors, and slots ready for quick booking`() = runTest {
-        viewModel = AppointmentsViewModel(appointmentRepository, authRepository, telemedicineRepository)
+    fun `initializes with available dates and doctors, selectedDoctor is null by default`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertThat(state.availableDates).isNotEmpty()
         assertThat(state.availableDoctors).isNotEmpty()
-        assertThat(state.selectedDoctor).isNotNull()
-        assertThat(state.availableSlots).isNotEmpty()
-        assertThat(state.selectedSlot).isNotNull()
+        assertThat(state.selectedDoctor).isNull()
+        assertThat(state.isBookingExpanded).isFalse()
     }
 
     @Test
-    fun `selecting another date updates slots and auto-selects first slot`() = runTest {
-        viewModel = AppointmentsViewModel(appointmentRepository, authRepository, telemedicineRepository)
+    fun `selecting a doctor loads available slots from repository`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val doctor = viewModel.uiState.value.availableDoctors.first()
+        viewModel.selectDoctor(doctor)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.selectedDoctor).isEqualTo(doctor)
+        assertThat(state.availableSlots).containsExactly("09:00", "10:00", "11:00")
+        assertThat(state.selectedSlot).isEqualTo("09:00")
+    }
+
+    @Test
+    fun `selecting another date updates slots from backend`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        val doctor = viewModel.uiState.value.availableDoctors.first()
+        viewModel.selectDoctor(doctor)
+        advanceUntilIdle()
 
         val tomorrow = LocalDate.now().plusDays(1)
         viewModel.selectDate(tomorrow)
+        advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertThat(state.selectedDate).isEqualTo(tomorrow)
@@ -134,25 +175,63 @@ class AppointmentsViewModelTest {
     }
 
     @Test
-    fun `confirmQuickBooking creates appointment and sets success message`() = runTest {
-        viewModel = AppointmentsViewModel(appointmentRepository, authRepository, telemedicineRepository)
+    fun `toggleBookingSection expands and collapses booking section`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.isBookingExpanded).isFalse()
+
+        viewModel.toggleBookingSection()
+        assertThat(viewModel.uiState.value.isBookingExpanded).isTrue()
+
+        viewModel.toggleBookingSection()
+        assertThat(viewModel.uiState.value.isBookingExpanded).isFalse()
+    }
+
+    @Test
+    fun `confirmQuickBooking creates appointment and collapses booking section`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.toggleBookingSection()
+        val doctor = viewModel.uiState.value.availableDoctors.first()
+        viewModel.selectDoctor(doctor)
+        advanceUntilIdle()
 
         val selectedSlot = viewModel.uiState.value.selectedSlot
         assertThat(selectedSlot).isNotNull()
 
         viewModel.confirmQuickBooking()
+        advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertThat(state.isBooking).isFalse()
         assertThat(state.bookingSuccessMessage).isNotNull()
         assertThat(state.bookingErrorMessage).isNull()
-        assertThat(appointmentRepository.lastBookedDoctorId).isEqualTo(state.selectedDoctor?.id)
+        assertThat(state.isBookingExpanded).isFalse()
+        assertThat(appointmentRepository.lastBookedDoctorId).isEqualTo(doctor.id)
     }
 
     @Test
-    fun `dismissBookingMessages clears message banners`() = runTest {
-        viewModel = AppointmentsViewModel(appointmentRepository, authRepository, telemedicineRepository)
+    fun `confirmQuickBooking fails if no doctor is selected`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.selectedDoctor).isNull()
+
         viewModel.confirmQuickBooking()
+
+        val state = viewModel.uiState.value
+        assertThat(state.bookingErrorMessage).isNotNull()
+        assertThat(state.bookingSuccessMessage).isNull()
+    }
+
+    @Test
+    fun `dismissBookingMessages clears message banners`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        val doctor = viewModel.uiState.value.availableDoctors.first()
+        viewModel.selectDoctor(doctor)
+        advanceUntilIdle()
+        viewModel.confirmQuickBooking()
+        advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.bookingSuccessMessage).isNotNull()
         viewModel.dismissBookingMessages()
