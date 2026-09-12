@@ -1,6 +1,11 @@
 package com.autamedica.android.presentation.prescriptions
 
+import com.autamedica.android.domain.model.CertificateType
+import com.autamedica.android.domain.model.CreateCertificateRequest
+import com.autamedica.android.domain.model.MedicalCertificate
 import com.autamedica.android.domain.model.Prescription
+import com.autamedica.android.domain.model.PrescriptionPatientItem
+import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +23,7 @@ class PrescriptionsViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var fakeRepository: FakePrescriptionRepository
+    private lateinit var fakeCertificateRepository: FakeMedicalCertificateRepository
     private lateinit var viewModel: PrescriptionsViewModel
 
     private val samplePrescriptions = listOf(
@@ -71,11 +77,35 @@ class PrescriptionsViewModelTest {
         ),
     )
 
+    private val sampleCertificates = listOf(
+        MedicalCertificate(
+            id = "cert-1",
+            cuir = "AR-CERT-001",
+            status = "signed",
+            certificateType = CertificateType.REPOSO_LABORAL,
+            daysOfRest = 2,
+            startDate = "2026-09-11",
+            endDate = "2026-09-13",
+            diagnosis = "Gastroenteritis aguda",
+            hideDiagnosis = false,
+            observations = "Reposo en domicilio con hidratación",
+            doctorName = "Dr. Eduardo Marques",
+            doctorLicense = "MN 12345",
+            patientName = "Maximiliano",
+            patientDni = "34567890",
+            signedPdfUrl = "https://storage.autamedica.com/cert1.pdf",
+            qrCodeContent = "https://autamedica.com/verify/AR-CERT-001",
+            countryCode = "AR",
+            createdAt = "2026-09-11T12:00:00Z",
+        ),
+    )
+
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         fakeRepository = FakePrescriptionRepository(samplePrescriptions)
-        viewModel = PrescriptionsViewModel(fakeRepository)
+        fakeCertificateRepository = FakeMedicalCertificateRepository(sampleCertificates)
+        viewModel = PrescriptionsViewModel(fakeRepository, fakeCertificateRepository)
     }
 
     @After
@@ -88,9 +118,19 @@ class PrescriptionsViewModelTest {
         val state = viewModel.uiState.value
         assertThat(state.isLoading).isFalse()
         assertThat(state.prescriptions).hasSize(3)
+        assertThat(state.certificates).hasSize(1)
         assertThat(state.activeCount).isEqualTo(1)
+        assertThat(state.activeCertificatesCount).isEqualTo(1)
+        assertThat(state.selectedTab).isEqualTo(DocumentTab.RECETAS)
         assertThat(state.selectedFilter).isEqualTo(PrescriptionFilter.TODAS)
         assertThat(state.filteredPrescriptions).hasSize(3)
+    }
+
+    @Test
+    fun switchingTabsUpdatesSelectedTab() = runTest {
+        viewModel.selectTab(DocumentTab.ATESTADOS)
+        val state = viewModel.uiState.value
+        assertThat(state.selectedTab).isEqualTo(DocumentTab.ATESTADOS)
     }
 
     @Test
@@ -129,6 +169,16 @@ class PrescriptionsViewModelTest {
         viewModel.clearSelectedPrescription()
         assertThat(viewModel.uiState.value.selectedPrescription).isNull()
     }
+
+    @Test
+    fun selectingAndClearingCertificateUpdatesState() = runTest {
+        val target = sampleCertificates.first()
+        viewModel.selectCertificate(target)
+        assertThat(viewModel.uiState.value.selectedCertificate).isEqualTo(target)
+
+        viewModel.clearSelectedCertificate()
+        assertThat(viewModel.uiState.value.selectedCertificate).isNull()
+    }
 }
 
 private class FakePrescriptionRepository(
@@ -139,4 +189,38 @@ private class FakePrescriptionRepository(
         val item = items.find { it.id == id }
         return if (item != null) Result.success(item) else Result.failure(NoSuchElementException())
     }
+
+    override suspend fun getDoctorPrescriptions(patientId: String?, status: String?): Result<List<Prescription>> =
+        Result.success(items)
+
+    override suspend fun createPrescription(request: com.autamedica.android.domain.model.CreatePrescriptionRequest): Result<Prescription> =
+        Result.success(items.first())
+
+    override suspend fun cancelPrescription(prescriptionId: String, reason: String): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>> =
+        Result.success(emptyList())
+
+    override suspend fun getDoctorEligibility(): Result<com.autamedica.android.domain.model.DoctorEligibility> =
+        Result.success(com.autamedica.android.domain.model.DoctorEligibility(true, "MN 12345", "valid"))
+}
+
+private class FakeMedicalCertificateRepository(
+    private val items: List<MedicalCertificate> = emptyList(),
+) : MedicalCertificateRepository {
+    override suspend fun getPatientCertificates(): Result<List<MedicalCertificate>> = Result.success(items)
+    override suspend fun getCertificateById(id: String): Result<MedicalCertificate> {
+        val item = items.find { it.id == id }
+        return if (item != null) Result.success(item) else Result.failure(NoSuchElementException())
+    }
+
+    override suspend fun getDoctorCertificates(patientId: String?): Result<List<MedicalCertificate>> =
+        Result.success(items)
+
+    override suspend fun createCertificate(request: CreateCertificateRequest): Result<MedicalCertificate> =
+        Result.success(items.first())
+
+    override suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>> =
+        Result.success(emptyList())
 }

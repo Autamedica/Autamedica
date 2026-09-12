@@ -7,9 +7,12 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import com.autamedica.android.domain.model.MedicalCertificate
+import com.autamedica.android.domain.model.CertificateType
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -110,16 +113,22 @@ fun PrescriptionsScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Mis Recetas",
+                            text = if (uiState.selectedTab == DocumentTab.RECETAS) "Mis Recetas" else "Mis Atestados",
                             style = MaterialTheme.typography.titleLarge,
                             color = AuTextPrimary,
                             fontWeight = FontWeight.Bold,
                         )
-                        val active = uiState.activeCount
+                        val subtitle = if (uiState.selectedTab == DocumentTab.RECETAS) {
+                            val active = uiState.activeCount
+                            if (active > 0) "$active ${if (active == 1) "activa" else "activas"} para farmacia" else "Sin recetas pendientes"
+                        } else {
+                            val active = uiState.activeCertificatesCount
+                            if (active > 0) "$active ${if (active == 1) "atestado válido" else "atestados válidos"}" else "Sin atestados emitidos"
+                        }
                         Text(
-                            text = if (active > 0) "$active ${if (active == 1) "activa" else "activas"} para farmacia" else "Sin recetas pendientes",
+                            text = subtitle,
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (active > 0) Color(0xFF15803D) else AuTextSecondary,
+                            color = if (uiState.activeCount > 0 || uiState.activeCertificatesCount > 0) Color(0xFF15803D) else AuTextSecondary,
                             fontWeight = FontWeight.Medium,
                         )
                     }
@@ -158,126 +167,159 @@ fun PrescriptionsScreen(
                 .padding(innerPadding),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Filtros rápidos: Todas, Activas, Dispensadas, Completadas
-                PrescriptionsFilterChips(
-                    selectedFilter = uiState.selectedFilter,
-                    onSelectFilter = viewModel::setFilter,
+                // Selector de pestañas: Recetas vs Atestados
+                DocumentTabSelector(
+                    selectedTab = uiState.selectedTab,
+                    prescriptionsCount = uiState.prescriptions.size,
+                    certificatesCount = uiState.certificates.size,
+                    onSelectTab = viewModel::selectTab,
                 )
 
-                // Contenido de recetas
-                when {
-                    uiState.isLoading && uiState.prescriptions.isEmpty() -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularProgressIndicator(
-                                color = Color(0xFF171717),
-                                strokeWidth = 3.dp,
+                if (uiState.selectedTab == DocumentTab.RECETAS) {
+                    // Filtros rápidos: Todas, Activas, Dispensadas, Completadas
+                    PrescriptionsFilterChips(
+                        selectedFilter = uiState.selectedFilter,
+                        onSelectFilter = viewModel::setFilter,
+                    )
+
+                    // Contenido de recetas
+                    when {
+                        uiState.isLoading && uiState.prescriptions.isEmpty() -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(
+                                    color = Color(0xFF171717),
+                                    strokeWidth = 3.dp,
+                                )
+                            }
+                        }
+
+                        uiState.error != null && uiState.prescriptions.isEmpty() -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .padding(24.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Medication,
+                                        contentDescription = null,
+                                        tint = AuDanger,
+                                        modifier = Modifier.size(54.dp),
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = "No se pudieron cargar las recetas",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = AuTextPrimary,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = uiState.error ?: "",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = AuTextSecondary,
+                                        textAlign = TextAlign.Center,
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(
+                                        onClick = viewModel::loadDocuments,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF171717),
+                                            contentColor = Color.White,
+                                        ),
+                                        shape = CircleShape,
+                                    ) {
+                                        Text("Reintentar")
+                                    }
+                                }
+                            }
+                        }
+
+                        uiState.filteredPrescriptions.isEmpty() -> {
+                            EmptyPrescriptionsView(
+                                filter = uiState.selectedFilter,
+                                onRequestConsultation = onRequestConsultation,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
                             )
                         }
-                    }
 
-                    uiState.error != null && uiState.prescriptions.isEmpty() -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .padding(24.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Medication,
-                                    contentDescription = null,
-                                    tint = AuDanger,
-                                    modifier = Modifier.size(54.dp),
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = "No se pudieron cargar las recetas",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = AuTextPrimary,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = uiState.error ?: "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = AuTextSecondary,
-                                    textAlign = TextAlign.Center,
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Button(
-                                    onClick = viewModel::loadPrescriptions,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFF171717),
-                                        contentColor = Color.White,
-                                    ),
-                                    shape = CircleShape,
-                                ) {
-                                    Text("Reintentar")
+                                items(
+                                    items = uiState.filteredPrescriptions,
+                                    key = { it.id },
+                                ) { prescription ->
+                                    PrescriptionCard(
+                                        prescription = prescription,
+                                        onClick = { viewModel.selectPrescription(prescription) },
+                                        onOpenPdf = { pdfUrl ->
+                                            runCatching {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
+                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                }
+                                                context.startActivity(intent)
+                                            }.onFailure {
+                                                Toast.makeText(context, "No se pudo abrir el PDF oficial.", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        onCopyCuir = { cuir ->
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                            val clip = ClipData.newPlainText("CUIR", cuir)
+                                            clipboard.setPrimaryClip(clip)
+                                            Toast.makeText(context, "CUIR copiado al portapapeles", Toast.LENGTH_SHORT).show()
+                                        },
+                                    )
                                 }
                             }
                         }
                     }
-
-                    uiState.filteredPrescriptions.isEmpty() -> {
-                        EmptyPrescriptionsView(
-                            filter = uiState.selectedFilter,
-                            onRequestConsultation = onRequestConsultation,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                        )
-                    }
-
-                    else -> {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            items(
-                                items = uiState.filteredPrescriptions,
-                                key = { it.id },
-                            ) { prescription ->
-                                PrescriptionCard(
-                                    prescription = prescription,
-                                    onClick = { viewModel.selectPrescription(prescription) },
-                                    onOpenPdf = { pdfUrl ->
-                                        runCatching {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
-                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                            }
-                                            context.startActivity(intent)
-                                        }.onFailure {
-                                            Toast.makeText(context, "No se pudo abrir el PDF oficial.", Toast.LENGTH_SHORT).show()
-                                        }
-                                    },
-                                    onCopyCuir = { cuir ->
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("CUIR", cuir)
-                                        clipboard.setPrimaryClip(clip)
-                                        Toast.makeText(context, "CUIR copiado al portapapeles", Toast.LENGTH_SHORT).show()
-                                    },
-                                )
+                } else {
+                    // Contenido de Atestados
+                    CertificatesContentView(
+                        certificates = uiState.certificates,
+                        isLoading = uiState.isLoading,
+                        error = uiState.error,
+                        onSelectCertificate = viewModel::selectCertificate,
+                        onOpenPdf = { pdfUrl ->
+                            runCatching {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            }.onFailure {
+                                Toast.makeText(context, "No se pudo abrir el atestado oficial.", Toast.LENGTH_SHORT).show()
                             }
-                        }
-                    }
+                        },
+                        onRequestConsultation = onRequestConsultation,
+                        onRetry = viewModel::loadDocuments,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    )
                 }
             }
         }
     }
 
-    // Detail BottomSheet
+    // Detail BottomSheet de Recetas
     uiState.selectedPrescription?.let { selected ->
         PrescriptionDetailBottomSheet(
             prescription = selected,
@@ -290,6 +332,30 @@ fun PrescriptionsScreen(
                     context.startActivity(intent)
                 }.onFailure {
                     Toast.makeText(context, "No se pudo abrir el PDF oficial.", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onCopyCuir = { cuir ->
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("CUIR", cuir)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(context, "CUIR copiado al portapapeles", Toast.LENGTH_SHORT).show()
+            },
+        )
+    }
+
+    // Detail BottomSheet de Atestados
+    uiState.selectedCertificate?.let { selectedCert ->
+        CertificateDetailBottomSheet(
+            certificate = selectedCert,
+            onDismiss = viewModel::clearSelectedCertificate,
+            onOpenPdf = { pdfUrl ->
+                runCatching {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl)).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                }.onFailure {
+                    Toast.makeText(context, "No se pudo abrir el atestado oficial.", Toast.LENGTH_SHORT).show()
                 }
             },
             onCopyCuir = { cuir ->
@@ -1098,4 +1164,668 @@ private fun getDownloadablePdfUrl(signedPdfUrl: String?, cuir: String?): String?
         return "https://autamedica.com/verify/$cuir"
     }
     return null
+}
+
+@Composable
+private fun DocumentTabSelector(
+    selectedTab: DocumentTab,
+    prescriptionsCount: Int,
+    certificatesCount: Int,
+    onSelectTab: (DocumentTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = if (selectedTab == DocumentTab.RECETAS) Color(0xFF0F172A) else Color.White,
+            border = BorderStroke(1.dp, if (selectedTab == DocumentTab.RECETAS) Color(0xFF0F172A) else Color(0xFFCBD5E1)),
+            modifier = Modifier
+                .weight(1f)
+                .clickable { onSelectTab(DocumentTab.RECETAS) },
+        ) {
+            Row(
+                modifier = Modifier.padding(vertical = 9.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Medication,
+                    contentDescription = null,
+                    tint = if (selectedTab == DocumentTab.RECETAS) Color.White else Color(0xFF475569),
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Recetas ($prescriptionsCount)",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (selectedTab == DocumentTab.RECETAS) Color.White else Color(0xFF334155),
+                )
+            }
+        }
+
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = if (selectedTab == DocumentTab.ATESTADOS) Color(0xFF0F172A) else Color.White,
+            border = BorderStroke(1.dp, if (selectedTab == DocumentTab.ATESTADOS) Color(0xFF0F172A) else Color(0xFFCBD5E1)),
+            modifier = Modifier
+                .weight(1f)
+                .clickable { onSelectTab(DocumentTab.ATESTADOS) },
+        ) {
+            Row(
+                modifier = Modifier.padding(vertical = 9.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Description,
+                    contentDescription = null,
+                    tint = if (selectedTab == DocumentTab.ATESTADOS) Color.White else Color(0xFF475569),
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Atestados ($certificatesCount)",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (selectedTab == DocumentTab.ATESTADOS) Color.White else Color(0xFF334155),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CertificatesContentView(
+    certificates: List<MedicalCertificate>,
+    isLoading: Boolean,
+    error: String?,
+    onSelectCertificate: (MedicalCertificate) -> Unit,
+    onOpenPdf: (String) -> Unit,
+    onRequestConsultation: () -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when {
+        isLoading && certificates.isEmpty() -> {
+            Box(
+                modifier = modifier,
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(
+                    color = Color(0xFF171717),
+                    strokeWidth = 3.dp,
+                )
+            }
+        }
+
+        error != null && certificates.isEmpty() -> {
+            Box(
+                modifier = modifier.padding(24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Description,
+                        contentDescription = null,
+                        tint = AuDanger,
+                        modifier = Modifier.size(54.dp),
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "No se pudieron cargar los atestados",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = AuTextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onRetry,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF171717),
+                            contentColor = Color.White,
+                        ),
+                        shape = CircleShape,
+                    ) {
+                        Text("Reintentar")
+                    }
+                }
+            }
+        }
+
+        certificates.isEmpty() -> {
+            Box(
+                modifier = modifier.padding(24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Description,
+                        contentDescription = null,
+                        tint = Color(0xFF94A3B8),
+                        modifier = Modifier.size(52.dp),
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Sin atestados médicos",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF1E293B),
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Los certificados de reposo laboral, escolar o aptitud física emitidos en tus consultas aparecerán aquí.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF64748B),
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onRequestConsultation,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF0F172A),
+                            contentColor = Color.White,
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Text("Consultar a un médico")
+                    }
+                }
+            }
+        }
+
+        else -> {
+            LazyColumn(
+                modifier = modifier,
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items(
+                    items = certificates,
+                    key = { it.id },
+                ) { certificate ->
+                    CertificateCard(
+                        certificate = certificate,
+                        onClick = { onSelectCertificate(certificate) },
+                        onOpenPdf = onOpenPdf,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CertificateCard(
+    certificate: MedicalCertificate,
+    onClick: () -> Unit,
+    onOpenPdf: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val pdfUrl = certificate.effectivePdfUrl
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shadowElevation = 1.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            // Fila 1: Tipo de certificado y Badge de estado
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = certificate.certificateType.displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    color = Color(0xFF0F172A),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (certificate.isActive) Color(0xFFDCFCE7) else Color(0xFFF1F5F9),
+                ) {
+                    Text(
+                        text = if (certificate.isActive) "Válido" else "Vencido",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (certificate.isActive) Color(0xFF15803D) else Color(0xFF64748B),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    )
+                }
+            }
+
+            // Fila 2: Período o Días de reposo
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = if (certificate.daysOfRest > 0) "${certificate.displayDaysOfRest} · Desde ${certificate.startDate}" else "Emitido el ${certificate.startDate}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF334155),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            // Fila 3: Médico
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "${certificate.doctorName ?: "Dr. Médico Tratante"}${certificate.doctorLicense?.let { " · $it" } ?: ""}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF64748B),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Fila 4: Banda de acción
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFFF1F5F9),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onClick() },
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.QrCode,
+                            contentDescription = null,
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = "QR Atestado",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A),
+                        )
+                        Text(
+                            text = "· ${certificate.cuir.takeLast(8)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF475569),
+                        )
+                    }
+
+                    if (pdfUrl != null) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFFEE2E2),
+                            modifier = Modifier.clickable { onOpenPdf(pdfUrl) },
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.PictureAsPdf,
+                                    contentDescription = "Descargar PDF",
+                                    tint = Color(0xFFDC2626),
+                                    modifier = Modifier.size(13.dp),
+                                )
+                                Text(
+                                    text = "PDF",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFDC2626),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CertificateDetailBottomSheet(
+    certificate: MedicalCertificate,
+    onDismiss: () -> Unit,
+    onOpenPdf: (String) -> Unit,
+    onCopyCuir: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val pdfUrl = certificate.effectivePdfUrl
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFFF8FAFC),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 36.dp)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = certificate.certificateType.displayName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A),
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (certificate.isActive) Color(0xFFDCFCE7) else Color(0xFFF1F5F9),
+                        ) {
+                            Text(
+                                text = if (certificate.isActive) "Válido" else "Vencido",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (certificate.isActive) Color(0xFF15803D) else Color(0xFF64748B),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            )
+                        }
+                        Text(
+                            text = "Emitido: ${certificate.startDate}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF64748B),
+                        )
+                    }
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = "Cerrar",
+                        tint = Color(0xFF64748B),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Card QR de validación institucional
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color.White,
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                shadowElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "PRESENTÁ ESTE CÓDIGO ANTE TU INSTITUCIÓN",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0284C7),
+                        letterSpacing = 0.5.sp,
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    QrCodeView(
+                        content = certificate.effectiveQrContent,
+                        modifier = Modifier
+                            .size(210.dp)
+                            .background(Color.White, RoundedCornerShape(12.dp)),
+                        contentDescription = "Código QR de Validación Institucional",
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.VerifiedUser,
+                            contentDescription = null,
+                            tint = Color(0xFF16A34A),
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = "Validación oficial Decreto 63 / SISA REFEPS",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF1E293B),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // CUIR
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "CÓDIGO CUIR:",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF64748B),
+                                )
+                                Text(
+                                    text = certificate.cuir,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0F172A),
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = { onCopyCuir(certificate.cuir) },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.ContentCopy,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Copiar",
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                        }
+                    }
+
+                    // Botón Descargar PDF
+                    if (pdfUrl != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { onOpenPdf(pdfUrl) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFDC2626),
+                                contentColor = Color.White,
+                            ),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.PictureAsPdf,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Descargar Atestado (PDF)",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Detalle Médico
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "DETALLE DEL REPOSO / CERTIFICACIÓN",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF64748B),
+                    letterSpacing = 0.5.sp,
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color.White,
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        if (certificate.daysOfRest > 0) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Schedule,
+                                    contentDescription = null,
+                                    tint = Color(0xFF0284C7),
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = certificate.displayDaysOfRest,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0F172A),
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
+
+                        val diagText = when {
+                            certificate.hideDiagnosis -> "Diagnóstico reservado por secreto médico (Ley 26.529)"
+                            !certificate.diagnosis.isNullOrBlank() -> certificate.diagnosis
+                            else -> "Afección clínica que requiere reposo psicofísico"
+                        }
+                        Text(
+                            text = diagText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF334155),
+                        )
+
+                        certificate.observations?.takeIf { it.isNotBlank() }?.let { obs ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Observaciones: $obs",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF64748B),
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Profesional firmante
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Color.White,
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color(0xFFEFF6FF), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF16A34A),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = certificate.doctorName ?: "Dr. Médico Tratante",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A),
+                        )
+                        Text(
+                            text = "Matrícula: ${certificate.doctorLicense ?: "Verificada en SISA REFEPS"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF64748B),
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

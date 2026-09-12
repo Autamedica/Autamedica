@@ -1,0 +1,76 @@
+package com.autamedica.android.domain.model
+
+/**
+ * Domain model representing an official digital medical certificate (Atestado Médico Digital).
+ * Conforms to Ley 27.553 / Decreto 63/2024 (Argentina) and Resolução CFM nº 2.299/2021 (Brasil).
+ */
+data class MedicalCertificate(
+    val id: String,
+    val cuir: String,
+    val status: String,
+    val certificateType: CertificateType,
+    val daysOfRest: Int = 0,
+    val startDate: String,
+    val endDate: String? = null,
+    val diagnosis: String? = null,
+    val hideDiagnosis: Boolean = false,
+    val observations: String? = null,
+    val doctorName: String? = null,
+    val doctorLicense: String? = null,
+    val patientName: String? = null,
+    val patientDni: String? = null,
+    val signedPdfUrl: String? = null,
+    val qrCodeContent: String? = null,
+    val countryCode: String = "AR",
+    val createdAt: String,
+) {
+    val isActive: Boolean
+        get() = status.equals("signed", ignoreCase = true) ||
+                status.equals("activa", ignoreCase = true) ||
+                status.equals("active", ignoreCase = true) ||
+                status.equals("emitida", ignoreCase = true)
+
+    val effectiveQrContent: String
+        get() = qrCodeContent?.takeIf { it.isNotBlank() }
+            ?: "https://autamedica.com/verify/$cuir"
+
+    val effectivePdfUrl: String?
+        get() = signedPdfUrl?.takeIf { it.isNotBlank() }
+            ?: "https://autamedica.com/verify/$cuir"
+
+    val displayDaysOfRest: String
+        get() = when {
+            daysOfRest <= 0 -> "Sin reposo requerido"
+            daysOfRest == 1 -> "1 día (24 horas)"
+            daysOfRest == 2 -> "2 días (48 horas)"
+            daysOfRest == 3 -> "3 días (72 horas)"
+            else -> "$daysOfRest días"
+        }
+}
+
+enum class CertificateType(val code: String, val displayName: String) {
+    REPOSO_LABORAL("reposo_laboral", "Reposo Laboral"),
+    REPOSO_ESCOLAR("reposo_escolar", "Reposo Escolar / Universitario"),
+    APTITUD_FISICA("aptitud_fisica", "Aptitud Física"),
+    CONSTANCIA_ATENCION("constancia_atencion", "Constancia de Atención"),
+    TRATAMIENTO("tratamiento", "Tratamiento Prolongado"),
+    OTRO("otro", "Certificado Médico");
+
+    companion object {
+        fun fromCode(code: String?): CertificateType {
+            return entries.firstOrNull { it.code.equals(code, ignoreCase = true) } ?: OTRO
+        }
+    }
+}
+
+data class CreateCertificateRequest(
+    val patientId: String,
+    val certificateType: CertificateType,
+    val daysOfRest: Int,
+    val startDate: String,
+    val endDate: String? = null,
+    val diagnosis: String? = null,
+    val hideDiagnosis: Boolean = false,
+    val observations: String? = null,
+    val countryCode: String = "AR",
+)

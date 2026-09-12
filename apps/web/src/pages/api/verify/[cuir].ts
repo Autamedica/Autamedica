@@ -26,7 +26,91 @@ export const GET: APIRoute = async ({ params, locals }) => {
       return internalError();
     }
 
-    if (!rx) return jsonOk({ valid: false, prescription: null });
+    if (!rx) {
+      const { data: cert, error: certError } = await admin
+        .from('medical_certificates')
+        .select('id, cuir, status, certificate_type, days_of_rest, start_date, end_date, diagnosis, hide_diagnosis, observations, doctor_id, patient_id, signed_pdf_url, qr_code_content, created_at, country_code')
+        .eq('cuir', cuir)
+        .maybeSingle();
+
+      if (certError) {
+        logger.error('[verify] Certificate query error', certError);
+        return internalError();
+      }
+
+      if (!cert) return jsonOk({ valid: false, prescription: null, certificate: null });
+
+      let prescriberName = 'Médico';
+      let prescriberLicense = '';
+      const { data: doctor } = await admin
+        .from('doctors')
+        .select('user_id, license_number, specialty, license_type, uf_brazil')
+        .eq('id', cert.doctor_id)
+        .maybeSingle();
+
+      if (doctor) {
+        let licPrefix = 'Matrícula';
+        if (doctor.license_type === 'CRM' || doctor.uf_brazil) {
+          licPrefix = `CRM-${doctor.uf_brazil ?? 'BR'}`;
+        } else if (doctor.license_type === 'MSP') {
+          licPrefix = 'MSP (Uruguay)';
+        } else if (doctor.license_type === 'MN') {
+          licPrefix = 'MN';
+        } else if (doctor.license_type === 'MP') {
+          licPrefix = 'MP';
+        }
+
+        prescriberLicense = `${licPrefix}: ${doctor.license_number ?? 'N/D'}`;
+        if (doctor.specialty) prescriberLicense += ` | ${doctor.specialty}`;
+        const { data: dProfile } = await admin
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('user_id', doctor.user_id)
+          .maybeSingle();
+        if (dProfile) prescriberName = `Dr. ${dProfile.first_name ?? ''} ${dProfile.last_name ?? ''}`.trim();
+      }
+
+      let patientName = 'Paciente';
+      let patientDni = '';
+      const { data: patient } = await admin
+        .from('patients')
+        .select('user_id, dni')
+        .eq('id', cert.patient_id)
+        .maybeSingle();
+      if (patient) {
+        patientDni = patient.dni ?? '';
+        const { data: pProfile } = await admin
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('user_id', patient.user_id)
+          .maybeSingle();
+        if (pProfile) patientName = `${pProfile.first_name ?? ''} ${pProfile.last_name ?? ''}`.trim();
+      }
+
+      return jsonOk({
+        valid: true,
+        documentType: 'certificate',
+        certificate: {
+          cuir: cert.cuir,
+          status: cert.status,
+          countryCode: (cert as { country_code?: string })?.country_code ?? 'AR',
+          certificateType: cert.certificate_type,
+          daysOfRest: cert.days_of_rest,
+          startDate: cert.start_date,
+          endDate: cert.end_date,
+          diagnosis: cert.hide_diagnosis ? null : cert.diagnosis,
+          observations: cert.observations,
+          prescriberName,
+          prescriberLicense,
+          patientName,
+          patientDni,
+          issuedAt: cert.created_at,
+          pdfUrl: cert.signed_pdf_url,
+          qrContent: cert.qr_code_content,
+        },
+        prescription: null,
+      });
+    }
 
     const clinicalData = rx.clinical_data as {
       items?: Array<{ generic_name?: string; dosage?: string; quantity?: number }>;

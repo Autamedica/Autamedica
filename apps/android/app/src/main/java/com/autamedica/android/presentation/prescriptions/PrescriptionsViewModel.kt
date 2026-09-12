@@ -2,7 +2,9 @@ package com.autamedica.android.presentation.prescriptions
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.domain.model.MedicalCertificate
 import com.autamedica.android.domain.model.Prescription
+import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
 import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,6 +14,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+enum class DocumentTab(val label: String) {
+    RECETAS("Recetas"),
+    ATESTADOS("Atestados"),
+}
 
 enum class PrescriptionFilter(val label: String) {
     TODAS("Todas"),
@@ -23,13 +30,19 @@ enum class PrescriptionFilter(val label: String) {
 data class PrescriptionsUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
+    val selectedTab: DocumentTab = DocumentTab.RECETAS,
     val prescriptions: List<Prescription> = emptyList(),
+    val certificates: List<MedicalCertificate> = emptyList(),
     val selectedFilter: PrescriptionFilter = PrescriptionFilter.TODAS,
     val selectedPrescription: Prescription? = null,
+    val selectedCertificate: MedicalCertificate? = null,
     val error: String? = null,
 ) {
     val activeCount: Int
         get() = prescriptions.count { it.isActive }
+
+    val activeCertificatesCount: Int
+        get() = certificates.count { it.isActive }
 
     val filteredPrescriptions: List<Prescription>
         get() = when (selectedFilter) {
@@ -43,51 +56,54 @@ data class PrescriptionsUiState(
 @HiltViewModel
 class PrescriptionsViewModel @Inject constructor(
     private val prescriptionRepository: PrescriptionRepository,
+    private val certificateRepository: MedicalCertificateRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PrescriptionsUiState())
     val uiState: StateFlow<PrescriptionsUiState> = _uiState.asStateFlow()
 
     init {
-        loadPrescriptions()
+        loadDocuments()
     }
 
-    fun loadPrescriptions() {
+    fun loadDocuments() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            fetchPrescriptionsInternal()
+            fetchDocumentsInternal()
         }
     }
 
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true, error = null) }
-            fetchPrescriptionsInternal()
+            fetchDocumentsInternal()
         }
     }
 
-    private suspend fun fetchPrescriptionsInternal() {
-        prescriptionRepository.getPatientPrescriptions()
-            .onSuccess { list ->
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        isRefreshing = false,
-                        prescriptions = list,
-                        error = null,
-                    )
-                }
-            }
-            .onFailure { err ->
-                SecureLog.error("[PrescriptionsVM] Error fetching prescriptions", err)
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        isRefreshing = false,
-                        error = err.message ?: "No se pudieron cargar las recetas.",
-                    )
-                }
-            }
+    private suspend fun fetchDocumentsInternal() {
+        val rxResult = prescriptionRepository.getPatientPrescriptions()
+        val certResult = certificateRepository.getPatientCertificates()
+
+        val prescriptions = rxResult.getOrDefault(emptyList())
+        val certificates = certResult.getOrDefault(emptyList())
+
+        val error = if (rxResult.isFailure && certResult.isFailure) {
+            rxResult.exceptionOrNull()?.message ?: "No se pudieron cargar los documentos."
+        } else null
+
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                isRefreshing = false,
+                prescriptions = prescriptions,
+                certificates = certificates,
+                error = error,
+            )
+        }
+    }
+
+    fun selectTab(tab: DocumentTab) {
+        _uiState.update { it.copy(selectedTab = tab) }
     }
 
     fun selectPrescription(prescription: Prescription) {
@@ -96,6 +112,14 @@ class PrescriptionsViewModel @Inject constructor(
 
     fun clearSelectedPrescription() {
         _uiState.update { it.copy(selectedPrescription = null) }
+    }
+
+    fun selectCertificate(certificate: MedicalCertificate) {
+        _uiState.update { it.copy(selectedCertificate = certificate) }
+    }
+
+    fun clearSelectedCertificate() {
+        _uiState.update { it.copy(selectedCertificate = null) }
     }
 
     fun setFilter(filter: PrescriptionFilter) {
