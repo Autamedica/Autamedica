@@ -31,6 +31,8 @@ private class FakeAuthRepository : AuthRepository {
     override fun observeSession(): Flow<User?> = sessionFlow
     override suspend fun login(email: String, password: String, selectedRole: UserRole?): Result<User> = Result.failure(Exception())
     override suspend fun loginWithGoogle(idToken: String, selectedRole: UserRole?): Result<User> = Result.failure(Exception())
+    override suspend fun register(email: String, password: String, selectedRole: UserRole): Result<com.autamedica.android.domain.repository.UserRegistrationResult> =
+        Result.success(com.autamedica.android.domain.repository.UserRegistrationResult(User(id = "user-1", email = email, role = selectedRole), false))
     override suspend fun logout() {}
     override suspend fun getCurrentUser(): User? = User(id = "user-1", email = "ecucondor@gmail.com", role = UserRole.PATIENT)
 }
@@ -48,6 +50,15 @@ private class FakeNotificationRepository : NotificationRepository {
     override suspend fun registerFcmToken(token: String): Result<Unit> = Result.success(Unit)
     override suspend fun clearFcmToken(): Result<Unit> = Result.success(Unit)
     override fun getCachedToken(): String? = "fake-fcm-token"
+    override suspend fun getNotifications(limit: Int): Result<List<com.autamedica.android.domain.model.PortalNotification>> = Result.success(emptyList())
+    override fun observeNotifications(): kotlinx.coroutines.flow.StateFlow<List<com.autamedica.android.domain.model.PortalNotification>> =
+        kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+    override fun observeUnreadCount(): kotlinx.coroutines.flow.StateFlow<Int> =
+        kotlinx.coroutines.flow.MutableStateFlow(0)
+    override suspend fun markAsRead(id: String): Result<Unit> = Result.success(Unit)
+    override suspend fun markAllAsRead(): Result<Unit> = Result.success(Unit)
+    override suspend fun startRealtimeListener() {}
+    override fun showLocalNotification(title: String, body: String, category: String, deepLink: String?) {}
 }
 
 private class FakeAppointmentRepository : AppointmentRepository {
