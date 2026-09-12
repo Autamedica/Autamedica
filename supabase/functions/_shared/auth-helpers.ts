@@ -5,9 +5,6 @@ import { createClient, type SupabaseClient, type User } from '@supabase/supabase
 //
 // Other edge functions still use _shared/cors.ts (Access-Control-Allow-Origin: *) for
 // backwards compatibility and should be migrated only with coordinated frontend rollout.
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 const ALLOWED_ORIGINS = new Set([
   'https://autamedica.com',
@@ -61,7 +58,11 @@ export async function requireAuth(
   req: Request,
   corsHeaders: Record<string, string>,
 ): Promise<AuthContext> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
     throw jsonResponse(
       {
         error: 'Missing Supabase environment variables',
@@ -84,7 +85,7 @@ export async function requireAuth(
     );
   }
 
-  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
     auth: {
       persistSession: false,
@@ -104,7 +105,7 @@ export async function requireAuth(
     );
   }
 
-  const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  const serviceClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,

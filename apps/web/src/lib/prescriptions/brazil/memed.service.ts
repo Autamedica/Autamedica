@@ -1,4 +1,15 @@
-import { logger } from '@autamedica/shared';
+import { ensureEnv, logger } from '@autamedica/shared';
+
+function readEnv(name: string, env?: Record<string, string | undefined>): string {
+  if (env && typeof env[name] === 'string') {
+    return env[name];
+  }
+  try {
+    return ensureEnv(name);
+  } catch {
+    return '';
+  }
+}
 
 export interface MemedConfig {
   apiKey: string;
@@ -33,15 +44,27 @@ export class MemedService {
   private config: MemedConfig;
 
   constructor(env?: Record<string, string | undefined>) {
+    const apiKey = readEnv('MEMED_API_KEY', env);
+    const secretKey = readEnv('MEMED_SECRET_KEY', env);
+    const apiUrl = readEnv('MEMED_API_URL', env) || 'https://integrations.api.memed.com.br/v1';
+    const scriptUrl = readEnv('MEMED_SCRIPT_URL', env) || 'https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js';
+
     this.config = {
-      apiKey: env?.MEMED_API_KEY || 'iJGiB4kjDGOLeDFPWMG3no9VnN7Abpqe3w1jEFm6olkhkZD6oSfSmYCm',
-      secretKey: env?.MEMED_SECRET_KEY || 'Xe8M5GvBGCr4FStKfxXKisRo3SfYKI7KrTMkJpCAstzu2yXVN4av5nmL',
-      apiUrl: env?.MEMED_API_URL || 'https://integrations.api.memed.com.br/v1',
-      scriptUrl: env?.MEMED_SCRIPT_URL || 'https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js',
+      apiKey,
+      secretKey,
+      apiUrl,
+      scriptUrl,
     };
   }
 
+  private ensureCredentials(): void {
+    if (!this.config.apiKey || !this.config.secretKey) {
+      throw new Error('Missing Memed API key or Secret key in runtime environment (MEMED_API_KEY / MEMED_SECRET_KEY)');
+    }
+  }
+
   private buildUrl(path: string): string {
+    this.ensureCredentials();
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
     const separator = cleanPath.includes('?') ? '&' : '?';
     return `${this.config.apiUrl}${cleanPath}${separator}api-key=${encodeURIComponent(this.config.apiKey)}&secret-key=${encodeURIComponent(this.config.secretKey)}`;
@@ -51,6 +74,7 @@ export class MemedService {
    * Obtiene o registra el médico en Memed para retornar su data-token
    */
   async getOrCreateDoctorToken(doctor: MemedDoctorData): Promise<MemedTokenResponse> {
+    this.ensureCredentials();
     const identifier = doctor.cpf || doctor.externalId || `${doctor.crm}${doctor.uf}`;
 
     // 1. Intentar consultar si el usuario ya existe en Memed
