@@ -37,6 +37,8 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.VerifiedUser
@@ -105,12 +107,21 @@ fun PrescriptionsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "Mis Recetas",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = AuTextPrimary,
-                        fontWeight = FontWeight.Bold,
-                    )
+                    Column {
+                        Text(
+                            text = "Mis Recetas",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = AuTextPrimary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        val active = uiState.activeCount
+                        Text(
+                            text = if (active > 0) "$active ${if (active == 1) "activa" else "activas"} para farmacia" else "Sin recetas pendientes",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (active > 0) Color(0xFF15803D) else AuTextSecondary,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -146,9 +157,6 @@ fun PrescriptionsScreen(
                 .padding(innerPadding),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Header: Título, Subtítulo y Badge Contador
-                PrescriptionsHeader(activeCount = uiState.activeCount)
-
                 // Filtros rápidos: Todas, Activas, Dispensadas, Completadas
                 PrescriptionsFilterChips(
                     selectedFilter = uiState.selectedFilter,
@@ -234,7 +242,7 @@ fun PrescriptionsScreen(
                                 .fillMaxWidth()
                                 .weight(1f),
                             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             items(
                                 items = uiState.filteredPrescriptions,
@@ -292,60 +300,6 @@ fun PrescriptionsScreen(
 }
 
 @Composable
-private fun PrescriptionsHeader(
-    activeCount: Int,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        // Badge contador de recetas activas
-        Surface(
-            shape = CircleShape,
-            color = Color(0xFF171717), // dark neutral
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Medication,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(14.dp),
-                )
-                Text(
-                    text = "$activeCount ${if (activeCount == 1) "receta activa" else "recetas activas"}",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Text(
-            text = "Mis Recetas",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = AuTextPrimary,
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "Prescripciones registradas y recetas electrónicas",
-            style = MaterialTheme.typography.bodyMedium,
-            color = AuTextSecondary,
-        )
-    }
-}
-
-@Composable
 private fun PrescriptionsFilterChips(
     selectedFilter: PrescriptionFilter,
     onSelectFilter: (PrescriptionFilter) -> Unit,
@@ -355,7 +309,7 @@ private fun PrescriptionsFilterChips(
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         PrescriptionFilter.entries.forEach { filter ->
@@ -363,15 +317,15 @@ private fun PrescriptionsFilterChips(
             Surface(
                 onClick = { onSelectFilter(filter) },
                 shape = CircleShape,
-                color = if (isSelected) Color(0xFF171717) else Color(0xFFF8FAFC),
-                border = if (isSelected) null else BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                color = if (isSelected) Color(0xFF1E293B) else Color.White,
+                border = BorderStroke(1.dp, if (isSelected) Color(0xFF1E293B) else Color(0xFFCBD5E1)),
             ) {
                 Text(
                     text = filter.label,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isSelected) Color.White else Color(0xFF475569),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    color = if (isSelected) Color.White else Color(0xFF334155),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                 )
             }
         }
@@ -389,184 +343,123 @@ private fun PrescriptionCard(
     val doctorText = formatDoctorName(prescription.doctorName)
     val dateStr = formatPrescriptionDate(prescription.prescribedDate ?: prescription.createdAt)
     val downloadablePdfUrl = getDownloadablePdfUrl(prescription.signedPdfUrl, prescription.cuir)
+    val formattedMedication = formatMedicationName(prescription.medicationName)
+    val formattedPosology = formatPosologySummary(prescription.dosage, prescription.frequency, prescription.duration)
 
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         color = Color.White,
-        border = BorderStroke(1.dp, Color(0xFFE5E5E5)), // neutral-200
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)), // slate-200
         shadowElevation = 0.5.dp,
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            // Header: Título del medicamento y Badge de estado
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            // Fila 1: Nombre del medicamento y Badge de estado
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = prescription.medicationName.ifBlank { "Prescripción médica" },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF171717),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "$doctorText · $dateStr",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF737373), // neutral-500
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-
+                Text(
+                    text = formattedMedication,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    color = Color(0xFF0F172A), // slate-900
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
                 Spacer(modifier = Modifier.width(8.dp))
-
                 PrescriptionStatusBadge(status = prescription.status)
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Posología destacada: Dosis, Frecuencia y Duración
-            if (prescription.dosage.isNotBlank()) {
+            // Fila 2: Posología legible (ej. "600 mg · Cada 8 hs · 7 días")
+            if (formattedPosology.isNotBlank()) {
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
-                    text = prescription.dosage,
+                    text = formattedPosology,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF404040), // neutral-700
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF334155), // slate-700
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(modifier = Modifier.height(2.dp))
             }
 
-            val freqAndDuration = listOf(prescription.frequency, prescription.duration)
-                .filter { it.isNotBlank() }
-                .joinToString(" · ")
-            if (freqAndDuration.isNotBlank()) {
-                Text(
-                    text = freqAndDuration,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF737373), // neutral-500
-                )
-                Spacer(modifier = Modifier.height(14.dp))
-            } else if (prescription.dosage.isNotBlank()) {
-                Spacer(modifier = Modifier.height(14.dp))
-            }
+            // Fila 3: Médico y fecha
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "$doctorText · $dateStr",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF64748B), // slate-500
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
 
-            // Caja de código CUIR institucional monoespaciado con acción de copiar
-            prescription.cuir?.takeIf { it.isNotBlank() }?.let { cuir ->
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFF9FAFB), // neutral-50
-                    border = BorderStroke(1.dp, Color(0xFFF3F4F6)), // neutral-100
-                    modifier = Modifier.fillMaxWidth(),
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Fila 4: Banda de acción directa "Mostrar en farmacia" con QR + CUIR
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFFF1F5F9), // slate-100
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f, fill = false),
-                        ) {
-                            Text(
-                                text = "CUIR: ",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF525252),
-                                fontWeight = FontWeight.Normal,
-                            )
-                            Text(
-                                text = cuir,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF171717),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        IconButton(
-                            onClick = { onCopyCuir(cuir) },
-                            modifier = Modifier.size(32.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.ContentCopy,
-                                contentDescription = "Copiar CUIR",
-                                tint = Color(0xFF737373),
-                                modifier = Modifier.size(16.dp),
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(14.dp))
-            }
-
-            // Acciones: PDF y Ver detalle
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (downloadablePdfUrl != null) {
-                    OutlinedButton(
-                        onClick = { onOpenPdf(downloadablePdfUrl) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp),
-                        shape = CircleShape,
-                        border = BorderStroke(1.dp, Color(0xFFE5E5E5)),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFF404040),
-                        ),
-                        contentPadding = PaddingValues(horizontal = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.OpenInNew,
+                            imageVector = Icons.Outlined.QrCode,
                             contentDescription = null,
-                            modifier = Modifier.size(15.dp),
-                            tint = Color(0xFF404040),
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(16.dp),
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "PDF",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF404040),
+                            text = "Mostrar en farmacia",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A),
                         )
                     }
-                }
 
-                Button(
-                    onClick = onClick,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF171717), // neutral-900
-                        contentColor = Color.White,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 12.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Description,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = Color.White,
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Ver detalle",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        prescription.cuir?.takeIf { it.isNotBlank() }?.let { cuir ->
+                            Text(
+                                text = "CUIR: ${cuir.takeLast(8)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF475569),
+                            )
+                        }
+                        if (downloadablePdfUrl != null) {
+                            IconButton(
+                                onClick = { onOpenPdf(downloadablePdfUrl) },
+                                modifier = Modifier.size(24.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.PictureAsPdf,
+                                    contentDescription = "Ver PDF",
+                                    tint = Color(0xFF64748B),
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -590,6 +483,8 @@ private fun PrescriptionStatusBadge(
             color = style.contentColor,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            softWrap = false,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
@@ -701,6 +596,8 @@ private fun PrescriptionDetailBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val doctorText = formatDoctorName(prescription.doctorName)
     val dateStr = formatPrescriptionDate(prescription.prescribedDate ?: prescription.createdAt)
+    val formattedMedication = formatMedicationName(prescription.medicationName)
+    val downloadablePdfUrl = getDownloadablePdfUrl(prescription.signedPdfUrl, prescription.cuir)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -712,10 +609,10 @@ private fun PrescriptionDetailBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 20.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Drag indicator visual bar
+            // Indicador de arrastre superior
             Box(
                 modifier = Modifier
                     .size(width = 36.dp, height = 4.dp)
@@ -723,281 +620,197 @@ private fun PrescriptionDetailBottomSheet(
                     .background(AuTextTertiary.copy(alpha = 0.4f)),
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Header: Icon + Title + Close Button
+            // Encabezado: Nombre del medicamento en grande + Estado + Cerrar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0x26F97316), // rgba(249, 115, 22, 0.15)
-                        modifier = Modifier.size(40.dp),
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = formattedMedication,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = Color(0xFF0F172A),
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Outlined.Medication,
-                                contentDescription = null,
-                                tint = Color(0xFFEA580C),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    }
-                    Column {
+                        PrescriptionStatusBadge(status = prescription.status)
                         Text(
-                            text = "Receta médica",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = AuTextPrimary,
-                        )
-                        Text(
-                            text = "Prescripción #${prescription.id.take(8)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = AuTextTertiary,
+                            text = "$doctorText · $dateStr",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF64748B),
                         )
                     }
                 }
 
-                IconButton(onClick = onDismiss) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(36.dp),
+                ) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
                         contentDescription = "Cerrar",
-                        tint = AuTextTertiary,
+                        tint = AuTextSecondary,
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Doctor & Date badges
-            Row(
+            // ─────────────────────────────────────────────────────────────
+            // MODO FARMACIA — QR GRANDE + CUIR MONOSPACE (zona principal)
+            // ─────────────────────────────────────────────────────────────
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                border = BorderStroke(1.5.dp, Color(0xFFE2E8F0)), // slate-200
+                shadowElevation = 1.dp,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(16.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Person,
-                        contentDescription = null,
-                        tint = AuTextTertiary,
-                        modifier = Modifier.size(15.dp),
-                    )
                     Text(
-                        text = doctorText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AuTextTertiary,
+                        text = "PRESENTÁ ESTE CÓDIGO EN LA FARMACIA",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0284C7), // sky-600
+                        letterSpacing = 0.5.sp,
                     )
-                }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.CalendarMonth,
-                        contentDescription = null,
-                        tint = AuTextTertiary,
-                        modifier = Modifier.size(15.dp),
-                    )
-                    Text(
-                        text = dateStr,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AuTextTertiary,
-                    )
-                }
-            }
+                    Spacer(modifier = Modifier.height(12.dp))
 
-            Spacer(modifier = Modifier.height(20.dp))
+                    // QR Code centrado y de alto contraste
+                    Box(
+                        modifier = Modifier
+                            .size(210.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        QrCodeView(
+                            content = prescription.effectiveQrContent,
+                            size = 200.dp,
+                        )
+                    }
 
-            // ALTA PRIORIDAD: Información Clínica / Medicación Activa
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "MEDICACIÓN ACTIVA",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0284C7), // sky-600
-                    letterSpacing = 1.sp,
-                )
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.VerifiedUser,
+                            contentDescription = null,
+                            tint = AuSuccess,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Validación oficial Decreto 63 / SISA REFEPS",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF1E293B),
+                        )
+                    }
 
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
-                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    // Caja de CUIR grande y legible con botón copiar
+                    prescription.cuir?.takeIf { it.isNotBlank() }?.let { cuir ->
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFF8FAFC), // slate-50
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color(0xFFECFDF5), // emerald-50
-                                modifier = Modifier.size(40.dp),
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Medication,
-                                        contentDescription = null,
-                                        tint = Color(0xFF059669), // emerald-600
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                }
-                            }
-                            Column {
-                                Text(
-                                    text = prescription.medicationName.ifBlank { "Prescripción médica" },
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = AuTextPrimary,
-                                )
-                                if (prescription.dosage.isNotBlank()) {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = prescription.dosage,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Medium,
-                                        color = AuTextSecondary,
-                                    )
-                                }
-                            }
-                        }
-
-                        if (prescription.frequency.isNotBlank() || prescription.duration.isNotBlank()) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFFF8FAFC),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    if (prescription.frequency.isNotBlank()) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Schedule,
-                                                contentDescription = null,
-                                                tint = Color(0xFF94A3B8),
-                                                modifier = Modifier.size(16.dp),
-                                            )
-                                            Text(
-                                                text = prescription.frequency,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.Medium,
-                                                color = Color(0xFF334155),
-                                            )
-                                        }
-                                    }
-                                    if (prescription.duration.isNotBlank()) {
-                                        Text(
-                                            text = "Por: ${prescription.duration}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = Color(0xFF334155),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        if (prescription.instructions.isNotBlank()) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFFF0F9FF), // sky-50
-                                border = BorderStroke(1.dp, Color(0xFFE0F2FE)), // sky-100
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                    Text(
-                                        text = "INDICACIÓN MÉDICA",
+                                        text = "CÓDIGO CUIR:",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0369A1), // sky-700
+                                        color = Color(0xFF64748B),
                                         fontSize = 10.sp,
                                     )
-                                    Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = prescription.instructions,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color(0xFF0C4A6E), // sky-900
+                                        text = cuir,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F172A),
+                                    )
+                                }
+                                OutlinedButton(
+                                    onClick = { onCopyCuir(cuir) },
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ContentCopy,
+                                        contentDescription = "Copiar",
+                                        tint = Color(0xFF334155),
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Copiar",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFF334155),
                                     )
                                 }
                             }
                         }
                     }
-                }
-            }
 
-            // Diagnóstico si está presente
-            prescription.diagnosis?.takeIf { it.isNotBlank() }?.let { diag ->
-                Spacer(modifier = Modifier.height(16.dp))
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color.White,
-                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Text(
-                            text = "DIAGNÓSTICO",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF64748B),
-                            fontSize = 10.sp,
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = diag,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = AuTextPrimary,
-                        )
-                    }
-                }
-            }
-
-            // Indicaciones generales / Notas si están presentes
-            prescription.notes?.takeIf { it.isNotBlank() }?.let { notes ->
-                Spacer(modifier = Modifier.height(16.dp))
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color.White,
-                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Text(
-                            text = "INDICACIONES GENERALES",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF64748B),
-                            fontSize = 10.sp,
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = notes,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = AuTextPrimary,
-                        )
+                    // Botón de PDF oficial si está disponible
+                    if (downloadablePdfUrl != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedButton(
+                            onClick = { onOpenPdf(downloadablePdfUrl) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color(0xFF334155),
+                            ),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.PictureAsPdf,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = AuDanger,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Ver Receta Oficial (PDF)",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Outlined.OpenInNew,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = Color(0xFF64748B),
+                            )
+                        }
                     }
                 }
             }
@@ -1006,148 +819,118 @@ private fun PrescriptionDetailBottomSheet(
             HorizontalDivider(color = AuBorder, thickness = 0.5.dp)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // SEGUIMIENTO / DISPENSA EN FARMACIA
+            // ─────────────────────────────────────────────────────────────
+            // SECCIÓN SECUNDARIA: INDICACIONES MÉDICAS (CÓMO TOMARLO)
+            // ─────────────────────────────────────────────────────────────
             Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "PRESENTACIÓN EN FARMACIA",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF64748B),
-                        letterSpacing = 1.sp,
-                    )
-                    PrescriptionStatusBadge(status = prescription.status)
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // QR Code Container
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
-                    border = BorderStroke(1.5.dp, Color(0xFFE2E8F0)),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(16.dp),
-                    ) {
-                        QrCodeView(
-                            content = prescription.effectiveQrContent,
-                            size = 200.dp,
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.VerifiedUser,
-                                contentDescription = null,
-                                tint = AuSuccess,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Código de Validación Farmacéutica",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF1E293B),
-                            )
-                        }
-                    }
-                }
+                Text(
+                    text = "CÓMO TOMARLO (INDICACIONES MÉDICAS)",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF64748B),
+                    letterSpacing = 0.5.sp,
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Presenta este código en la farmacia para verificación y dispensa oficial (SISA WS020 / Farmalink).",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AuTextTertiary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                )
-            }
 
-            // CUIR Card con botón de copiar
-            prescription.cuir?.takeIf { it.isNotBlank() }?.let { cuir ->
-                Spacer(modifier = Modifier.height(16.dp))
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = AuBackground,
-                    border = BorderStroke(1.dp, AuBorder),
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color.White,
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        // Dosis y posología
+                        if (prescription.dosage.isNotBlank() || prescription.frequency.isNotBlank() || prescription.duration.isNotBlank()) {
+                            val posologyText = formatPosologySummary(prescription.dosage, prescription.frequency, prescription.duration)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Schedule,
+                                    contentDescription = null,
+                                    tint = Color(0xFF0284C7),
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Text(
+                                    text = posologyText.ifBlank { prescription.dosage },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF1E293B),
+                                )
+                            }
+                        }
+
+                        // Indicaciones de administración
+                        if (prescription.instructions.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF0F9FF),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text(
+                                        text = "INDICACIÓN",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0369A1),
+                                        fontSize = 10.sp,
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = prescription.instructions,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color(0xFF0C4A6E),
+                                    )
+                                }
+                            }
+                        }
+
+                        // Diagnóstico si existe
+                        prescription.diagnosis?.takeIf { it.isNotBlank() }?.let { diag ->
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "CUIR (CÓDIGO ÚNICO DE IDENTIFICACIÓN)",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = AuTextTertiary,
-                                fontSize = 10.sp,
-                            )
-                            Text(
-                                text = cuir,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold,
-                                color = AuTextPrimary,
+                                text = "Diagnóstico: $diag",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF64748B),
                             )
                         }
-                        OutlinedButton(
-                            onClick = { onCopyCuir(cuir) },
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, PortalPatients),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.ContentCopy,
-                                contentDescription = "Copiar",
-                                tint = PortalPatients,
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
+
+                        // Notas si existen
+                        prescription.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Copiar",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PortalPatients,
+                                text = "Notas: $notes",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF64748B),
                             )
                         }
                     }
                 }
             }
 
-            // Médico tratante y matrícula profesional
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Tarjeta del médico tratante
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = Color.White,
-                modifier = Modifier.fillMaxWidth(),
                 border = BorderStroke(0.5.dp, Color(0xFFE2E8F0)),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
-                    modifier = Modifier.padding(14.dp),
+                    modifier = Modifier.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.CheckCircle,
                         contentDescription = null,
                         tint = AuSuccess,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(18.dp),
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
                             text = doctorText,
@@ -1155,50 +938,14 @@ private fun PrescriptionDetailBottomSheet(
                             fontWeight = FontWeight.SemiBold,
                             color = AuTextPrimary,
                         )
-                        prescription.doctorLicense?.let { license ->
+                        prescription.doctorLicense?.takeIf { it.isNotBlank() }?.let { license ->
                             Text(
-                                text = "Matrícula Profesional: $license",
+                                text = "Matrícula: $license",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextSecondary,
                             )
                         }
                     }
-                }
-            }
-
-            // PDF Button para descarga oficial
-            prescription.signedPdfUrl?.takeIf { it.isNotBlank() }?.let { pdfUrl ->
-                Spacer(modifier = Modifier.height(20.dp))
-                Button(
-                    onClick = { onOpenPdf(pdfUrl) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF171717),
-                        contentColor = Color.White,
-                    ),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Description,
-                        contentDescription = null,
-                        tint = Color.White,
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Ver Receta Oficial (PDF)",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.Outlined.OpenInNew,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp),
-                    )
                 }
             }
 
@@ -1219,57 +966,89 @@ private data class StatusBadgeStyle(
 
 private fun getPrescriptionStatusStyle(status: String): StatusBadgeStyle {
     return when (status.lowercase()) {
-        "activa", "active", "sent" -> StatusBadgeStyle(
+        "activa", "active", "sent", "signed", "firmada" -> StatusBadgeStyle(
             label = "Activa",
-            containerColor = Color(0xFF171717), // Dark neutral
-            contentColor = Color.White,
-        )
-        "signed", "firmada" -> StatusBadgeStyle(
-            label = "Firmada",
-            containerColor = Color(0xFF171717),
-            contentColor = Color.White,
+            containerColor = Color(0xFFDCFCE7), // emerald-100
+            contentColor = Color(0xFF15803D), // emerald-700
         )
         "dispensed", "dispensada", "dispensed_total" -> StatusBadgeStyle(
             label = "Dispensada",
-            containerColor = Color(0xFF0EA5E9), // sky-500
-            contentColor = Color.White,
+            containerColor = Color(0xFFE0F2FE), // sky-100
+            contentColor = Color(0xFF0369A1), // sky-700
         )
         "dispensed_partial" -> StatusBadgeStyle(
             label = "Parcial",
-            containerColor = Color(0xFF525252), // neutral-600
-            contentColor = Color.White,
+            containerColor = Color(0xFFFEF3C7), // amber-100
+            contentColor = Color(0xFFB45309), // amber-700
         )
         "completed", "completada" -> StatusBadgeStyle(
             label = "Completada",
-            containerColor = Color(0xFFA8A29E), // stone-400
-            contentColor = Color.White,
+            containerColor = Color(0xFFF1F5F9), // slate-100
+            contentColor = Color(0xFF475569), // slate-600
         )
         "expired", "vencida" -> StatusBadgeStyle(
             label = "Vencida",
-            containerColor = Color(0xFFE5E5E5), // neutral-200
-            contentColor = Color(0xFF737373), // neutral-500
+            containerColor = Color(0xFFFEE2E2), // red-100
+            contentColor = Color(0xFFB91C1C), // red-700
         )
         "cancelled", "cancelada" -> StatusBadgeStyle(
             label = "Cancelada",
-            containerColor = Color(0xFFE5E5E5),
-            contentColor = Color(0xFF737373),
+            containerColor = Color(0xFFFEE2E2),
+            contentColor = Color(0xFFB91C1C),
         )
         "draft" -> StatusBadgeStyle(
             label = "Borrador",
-            containerColor = Color(0xFFF5F5F5),
-            contentColor = Color(0xFF737373),
+            containerColor = Color(0xFFF1F5F9),
+            contentColor = Color(0xFF64748B),
         )
         "pausada" -> StatusBadgeStyle(
             label = "Pausada",
-            containerColor = Color(0xFFE5E5E5),
-            contentColor = Color(0xFF525252),
+            containerColor = Color(0xFFFEF3C7),
+            contentColor = Color(0xFFB45309),
         )
         else -> StatusBadgeStyle(
             label = status.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
-            containerColor = Color(0xFFF5F5F5),
-            contentColor = Color(0xFF737373),
+            containerColor = Color(0xFFF1F5F9),
+            contentColor = Color(0xFF64748B),
         )
     }
+}
+
+private fun formatMedicationName(raw: String?): String {
+    if (raw.isNullOrBlank()) return "Prescripción médica"
+    val words = raw.trim().split(Regex("\\s+"))
+    return words.joinToString(" ") { word ->
+        val lower = word.lowercase()
+        when {
+            lower in listOf("mg", "ml", "g", "mcg", "ui", "comprimidos", "capsulas", "gotas") -> lower
+            word.all { it.isDigit() } -> word
+            else -> lower.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        }
+    }
+}
+
+private fun formatPosologySummary(dosage: String?, frequency: String?, duration: String?): String {
+    val parts = mutableListOf<String>()
+    val cleanDosage = dosage?.trim().orEmpty()
+    if (cleanDosage.isNotBlank()) {
+        val formattedDosage = if (cleanDosage.all { it.isDigit() }) "$cleanDosage mg" else cleanDosage
+        parts.add(formattedDosage)
+    }
+    val cleanFreq = frequency?.trim().orEmpty()
+    if (cleanFreq.isNotBlank()) {
+        val formattedFreq = when {
+            cleanFreq.all { it.isDigit() } -> "Cada $cleanFreq hs"
+            cleanFreq.startsWith("cada", ignoreCase = true) -> cleanFreq
+            else -> cleanFreq
+        }
+        parts.add(formattedFreq)
+    }
+    val cleanDuration = duration?.trim().orEmpty()
+    if (cleanDuration.isNotBlank()) {
+        val formattedDur = if (cleanDuration.all { it.isDigit() }) "$cleanDuration días" else cleanDuration
+        parts.add(formattedDur)
+    }
+    return parts.joinToString(" · ")
 }
 
 private fun formatDoctorName(rawDoctor: String?): String {
