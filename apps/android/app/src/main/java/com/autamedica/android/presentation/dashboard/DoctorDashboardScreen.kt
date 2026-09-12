@@ -40,9 +40,11 @@ import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material3.Button
@@ -110,6 +112,10 @@ fun DoctorDashboardScreen(
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
     onNavigateToTab: (Int) -> Unit = {},
     onNavigateToDoctorSignature: () -> Unit = {},
+    onNavigateToDoctorPrescriptions: () -> Unit = {},
+    onNavigateToCreatePrescription: (patientId: String) -> Unit = {},
+    onNavigateToDoctorCertificates: () -> Unit = {},
+    onNavigateToCreateCertificate: (patientId: String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: DoctorDashboardViewModel = hiltViewModel(),
 ) {
@@ -227,6 +233,22 @@ fun DoctorDashboardScreen(
                             StatsSection(stats = uiState.stats)
                         }
 
+                        // 3b. Prescriptions Quick Command Card
+                        item {
+                            DoctorPrescriptionsQuickCard(
+                                onViewPrescriptions = onNavigateToDoctorPrescriptions,
+                                onCreatePrescription = { onNavigateToCreatePrescription("") },
+                            )
+                        }
+
+                        // 3c. Certificates Quick Command Card
+                        item {
+                            DoctorCertificatesQuickCard(
+                                onViewCertificates = onNavigateToDoctorCertificates,
+                                onCreateCertificate = { onNavigateToCreateCertificate("") },
+                            )
+                        }
+
                         // 4. Today's schedule
                         if (uiState.todayAppointments.isNotEmpty()) {
                             item {
@@ -234,6 +256,7 @@ fun DoctorDashboardScreen(
                                     appointments = uiState.todayAppointments,
                                     joinableAppointmentIds = uiState.joinableAppointmentIds,
                                     onJoinCall = onNavigateToVideoCall,
+                                    onPrescribe = onNavigateToCreatePrescription,
                                 )
                             }
                         }
@@ -818,6 +841,7 @@ private fun TodayScheduleSection(
     appointments: List<Appointment>,
     joinableAppointmentIds: Set<String>,
     onJoinCall: (appointmentId: String) -> Unit,
+    onPrescribe: (patientId: String) -> Unit = {},
 ) {
     Column {
         Row(
@@ -852,6 +876,9 @@ private fun TodayScheduleSection(
                 onJoinCall = if (appointment.id in joinableAppointmentIds) {
                     { onJoinCall(appointment.id) }
                 } else null,
+                onPrescribe = appointment.patientId?.takeIf { it.isNotBlank() }?.let { patId ->
+                    { onPrescribe(patId) }
+                },
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -862,6 +889,7 @@ private fun TodayScheduleSection(
 private fun DoctorAppointmentRow(
     appointment: Appointment,
     onJoinCall: (() -> Unit)?,
+    onPrescribe: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -926,26 +954,219 @@ private fun DoctorAppointmentRow(
                 }
             }
 
-            if (onJoinCall != null) {
-                Button(
-                    onClick = onJoinCall,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                if (onPrescribe != null) {
+                    androidx.compose.material3.IconButton(
+                        onClick = onPrescribe,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Medication,
+                            contentDescription = "Emitir receta",
+                            tint = PortalDoctors,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                if (onJoinCall != null) {
+                    Button(
+                        onClick = onJoinCall,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PortalDoctors,
+                            contentColor = Color.White,
+                        ),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Videocam,
+                            contentDescription = "Iniciar consulta",
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            "Iniciar",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DoctorPrescriptionsQuickCard(
+    onViewPrescriptions: () -> Unit,
+    onCreatePrescription: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = AuSurface,
+        border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.25f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Surface(
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PortalDoctors,
-                        contentColor = Color.White,
-                    ),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                    color = PortalDoctors.copy(alpha = 0.15f),
+                    modifier = Modifier.size(40.dp)
                 ) {
-                    Icon(
-                        Icons.Default.Videocam,
-                        contentDescription = "Iniciar consulta",
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.Medication,
+                            contentDescription = null,
+                            tint = PortalDoctors,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Iniciar",
+                        text = "Recetas Médicas Digitales",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = AuTextPrimary
+                    )
+                    Text(
+                        text = "Emisión oficial con CUIR · Decreto 63/2024",
                         style = MaterialTheme.typography.labelSmall,
+                        color = AuTextTertiary
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = onViewPrescriptions,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, AuBorder),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        "Ver Recetas",
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
+                        color = AuTextPrimary
+                    )
+                }
+
+                Button(
+                    onClick = onCreatePrescription,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        "Emitir Receta",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DoctorCertificatesQuickCard(
+    onViewCertificates: () -> Unit,
+    onCreateCertificate: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = AuSurface,
+        border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.25f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = PortalDoctors.copy(alpha = 0.15f),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.Description,
+                            contentDescription = null,
+                            tint = PortalDoctors,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Atestados Médicos Digitales",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = AuTextPrimary
+                    )
+                    Text(
+                        text = "Reposos y aptitudes · Firma y secreto médico",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AuTextTertiary
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = onViewCertificates,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, AuBorder),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        "Ver Atestados",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AuTextPrimary
+                    )
+                }
+
+                Button(
+                    onClick = onCreateCertificate,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        "Emitir Atestado",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                 }
             }

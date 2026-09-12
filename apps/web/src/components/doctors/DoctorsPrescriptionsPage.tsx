@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Plus,
   Search,
@@ -16,10 +16,15 @@ import {
   FileText,
   ClipboardList,
   AlertTriangle,
+  Download,
+  Shield,
+  FileCheck,
+  ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DoctorsPortalFrame } from "@/components/doctors/DoctorsPortalFrame";
 import { PrescriptionCreateModal } from "@/components/doctors/medical/PrescriptionCreateModal";
+import { CertificateCreateModal, type CreatedCertificate } from "@/components/doctors/medical/CertificateCreateModal";
 import { MemedPrescriptionWidget } from "@/components/doctors/medical/MemedPrescriptionWidget";
 import { useRealPatients } from "@/hooks/doctors/useRealPatients";
 import { usePrescriptionsCore } from "@/hooks/doctors/usePrescriptionsCore";
@@ -159,8 +164,11 @@ function matchesPatientSearch(patient: PatientWithProfile, query: string): boole
 }
 
 function getSignedPdfUrl(rx: IssuedPrescription): string | undefined {
-  const value = (rx as unknown as Record<string, unknown>).signed_pdf_url;
-  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+  const direct = (rx as unknown as Record<string, unknown>).signed_pdf_url;
+  if (typeof direct === "string" && direct.trim().length > 0) return direct;
+  const fromArtifacts = rx.artifacts?.signedPdfUrl;
+  if (typeof fromArtifacts === "string" && fromArtifacts.trim().length > 0) return fromArtifacts;
+  return undefined;
 }
 
 function getPrescriptionViewUrl(rx: IssuedPrescription): string | undefined {
@@ -185,6 +193,21 @@ function printPrescriptionArtifact(rx: IssuedPrescription): boolean {
 
   return true;
 }
+
+type CertificateItem = CreatedCertificate & {
+  patientName?: string;
+  patientDni?: string;
+  signed_pdf_url?: string | null;
+};
+
+const CERT_TYPE_LABELS: Record<string, string> = {
+  reposo_laboral: "Reposo Laboral",
+  reposo_escolar: "Reposo Escolar",
+  aptitud_fisica: "Aptitud Física",
+  constancia_atencion: "Constancia de Atención",
+  tratamiento: "Tratamiento Prolongado",
+  otro: "Atestado Médico",
+};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -213,12 +236,53 @@ export function DoctorsPrescriptionsPage() {
 
   // UI state
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
   const [showMemedWidget, setShowMemedWidget] = useState(false);
   const [editingPrescription, setEditingPrescription] = useState<IssuedPrescription | null>(null);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<IssuedPrescription | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [search, setSearch] = useState("");
+  const [docMode, setDocMode] = useState<"prescriptions" | "certificates">("prescriptions");
+  const [certificates, setCertificates] = useState<CertificateItem[]>([]);
+  const [certLoading, setCertLoading] = useState(false);
+  const [certError, setCertError] = useState<string | null>(null);
+
+  const fetchCertificates = useCallback(async () => {
+    if (!selectedPatientId) {
+      setCertificates([]);
+      return;
+    }
+    setCertLoading(true);
+    setCertError(null);
+    try {
+      const res = await fetch(`/api/doctors/certificates?patientId=${encodeURIComponent(selectedPatientId)}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setCertificates(json.data);
+      }
+    } catch {
+      setCertError("No se pudieron cargar los atestados médicos.");
+    } finally {
+      setCertLoading(false);
+    }
+  }, [selectedPatientId]);
+
+  useEffect(() => {
+    if (selectedPatientId) {
+      void fetchCertificates();
+    } else {
+      setCertificates([]);
+    }
+  }, [selectedPatientId, fetchCertificates]);
+
+  const selectedPatient = useMemo(
+    () => patients.find((p) => p.id === selectedPatientId),
+    [patients, selectedPatientId]
+  );
 
   // ─── Derived data ────────────────────────────────────────────────────────
 
@@ -336,6 +400,13 @@ export function DoctorsPrescriptionsPage() {
               <Plus className="h-4 w-4" />
               Nueva receta
             </button>
+            <button
+              onClick={() => setShowCertificateModal(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-teal-700 active:scale-[0.97]"
+            >
+              <FileText className="h-4 w-4" />
+              Emitir atestado
+            </button>
           </div>
         </motion.div>
 
@@ -406,21 +477,84 @@ export function DoctorsPrescriptionsPage() {
             <p className="mt-1 text-sm text-neutral-400">
               Elegí un paciente para ver su historial o creá una receta cargando sus datos manualmente.
             </p>
-            <button
-              onClick={() => { setEditingPrescription(null); setShowCreateModal(true); }}
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
-            >
-              <Plus className="h-4 w-4" />
-              Nueva receta
-            </button>
+            <div className="mt-4 flex flex-wrap gap-2 justify-center">
+              <button
+                onClick={() => { setEditingPrescription(null); setShowCreateModal(true); }}
+                className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800"
+              >
+                <Plus className="h-4 w-4" />
+                Nueva receta
+              </button>
+              <button
+                onClick={() => setShowCertificateModal(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700"
+              >
+                <FileText className="h-4 w-4" />
+                Emitir atestado
+              </button>
+            </div>
           </motion.div>
         )}
 
         {/* ── Content when patient selected ── */}
         {selectedPatientId && (
           <>
-            {/* Stats */}
-            <motion.div
+            {/* Document Mode Selector: Recetas vs Atestados */}
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 pb-4">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDocMode("prescriptions")}
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                    docMode === "prescriptions"
+                      ? "bg-neutral-900 text-white shadow-sm"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                  }`}
+                >
+                  <Pill className="h-4 w-4" />
+                  Recetas Médicas
+                  <span className={`ml-1 rounded-full px-2 py-0.5 text-xs ${
+                    docMode === "prescriptions" ? "bg-white/20 text-white" : "bg-neutral-200 text-neutral-700"
+                  }`}>
+                    {stats.total}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDocMode("certificates")}
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                    docMode === "certificates"
+                      ? "bg-teal-700 text-white shadow-sm"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                  }`}
+                >
+                  <FileText className="h-4 w-4" />
+                  Atestados Médicos
+                  <span className={`ml-1 rounded-full px-2 py-0.5 text-xs ${
+                    docMode === "certificates" ? "bg-white/20 text-white" : "bg-neutral-200 text-neutral-700"
+                  }`}>
+                    {certificates.length}
+                  </span>
+                </button>
+              </div>
+
+              {docMode === "certificates" && (
+                <button
+                  type="button"
+                  onClick={() => setShowCertificateModal(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-teal-700 transition"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Emitir atestado
+                </button>
+              )}
+            </div>
+
+            {docMode === "prescriptions" && (
+              <>
+                {/* Stats */}
+                <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
@@ -563,7 +697,19 @@ export function DoctorsPrescriptionsPage() {
                                 )}
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {viewUrl && (
+                                <a
+                                  href={viewUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-neutral-800 shadow-sm"
+                                  title="Descargar o ver PDF oficial"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                  Descargar PDF
+                                </a>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => viewPrescription(rx)}
@@ -601,6 +747,137 @@ export function DoctorsPrescriptionsPage() {
                 )}
               </motion.div>
             )}
+              </>
+            )}
+
+            {docMode === "certificates" && (
+              <div className="space-y-4">
+                {certLoading && (
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+                  </div>
+                )}
+
+                {certError && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                    {certError}
+                  </div>
+                )}
+
+                {!certLoading && certificates.length === 0 && (
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 px-6 py-16 text-center">
+                    <FileCheck className="mb-4 h-12 w-12 text-neutral-300" />
+                    <p className="text-lg font-medium text-neutral-600">No hay atestados emitidos</p>
+                    <p className="mt-1 text-sm text-neutral-400">
+                      Emití reposos laborales, escolares o certificados de aptitud física para este paciente.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowCertificateModal(true)}
+                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700 shadow-sm"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Emitir atestado
+                    </button>
+                  </div>
+                )}
+
+                {!certLoading && certificates.length > 0 && (
+                  <div className="space-y-3">
+                    {certificates.map((cert) => {
+                      const certUrl = cert.signed_pdf_url || (cert.cuir ? `/verify/${encodeURIComponent(cert.cuir)}` : undefined);
+                      const typeLabel = CERT_TYPE_LABELS[cert.certificate_type] || "Atestado Médico";
+                      return (
+                        <div
+                          key={cert.id}
+                          className="rounded-xl border border-neutral-200 bg-white p-4 transition-all hover:border-neutral-300 hover:shadow-sm sm:p-5"
+                        >
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 border border-teal-200">
+                                  <FileCheck className="h-3 w-3" />
+                                  {typeLabel}
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  {cert.status === "signed" ? "Firmado / Válido" : cert.status}
+                                </span>
+                              </div>
+
+                              <h3 className="text-base font-semibold text-neutral-900">
+                                {cert.days_of_rest > 0
+                                  ? `${cert.days_of_rest} ${cert.days_of_rest === 1 ? "día" : "días"} de reposo médico`
+                                  : "Constancia de atención / Sin reposo"}
+                              </h3>
+
+                              <p className="mt-1 text-sm text-neutral-600">
+                                Período: <span className="font-medium text-neutral-800">{cert.start_date}</span>
+                                {cert.end_date ? ` hasta ${cert.end_date}` : ""}
+                              </p>
+
+                              {cert.hide_diagnosis ? (
+                                <p className="mt-1 text-xs font-semibold text-emerald-700 flex items-center gap-1.5">
+                                  <Shield className="h-3.5 w-3.5" />
+                                  Reservado por Secreto Médico (Ley 26.529 / Dec. 63/2024)
+                                </p>
+                              ) : cert.diagnosis ? (
+                                <p className="mt-1 text-sm text-neutral-700">
+                                  <span className="font-medium">Diagnóstico:</span> {cert.diagnosis}
+                                </p>
+                              ) : null}
+
+                              {cert.observations && (
+                                <p className="mt-1 text-xs text-neutral-500 italic">
+                                  Obs: {cert.observations}
+                                </p>
+                              )}
+
+                              <div className="mt-2 flex items-center gap-2 text-[11px] text-neutral-400">
+                                <Clock className="h-3 w-3" />
+                                <span>{formatDateTime(cert.created_at)}</span>
+                                {cert.cuir && (
+                                  <span className="font-mono text-[10px] text-teal-600 font-semibold bg-teal-50 px-2 py-0.5 rounded border border-teal-100">
+                                    CUIR: {cert.cuir}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              {certUrl && (
+                                <a
+                                  href={certUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-teal-700 px-3 py-2 text-xs font-medium text-white transition hover:bg-teal-800 shadow-sm"
+                                  title="Descargar o ver PDF oficial del atestado"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                  Descargar PDF
+                                </a>
+                              )}
+                              {cert.cuir && (
+                                <a
+                                  href={`/verify/${encodeURIComponent(cert.cuir)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 hover:border-neutral-300"
+                                  title="Ver verificador oficial público con QR"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                  Verificador QR
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -622,6 +899,21 @@ export function DoctorsPrescriptionsPage() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           editingPrescription={editingPrescription as any}
           submitLabel={editingPrescription ? "Guardar cambios" : "Crear y emitir receta"}
+        />
+      )}
+
+      {/* ── CertificateCreateModal ── */}
+      {showCertificateModal && (
+        <CertificateCreateModal
+          patientId={selectedPatientId ?? undefined}
+          patientName={selectedPatient ? getPatientDisplayName(selectedPatient) : undefined}
+          patientDni={selectedPatient?.dni ?? undefined}
+          onClose={() => setShowCertificateModal(false)}
+          onCreated={() => {
+            setShowCertificateModal(false);
+            setDocMode("certificates");
+            void fetchCertificates();
+          }}
         />
       )}
 
@@ -706,7 +998,10 @@ function PrescriptionDetailPanel({
   const cuir = getCuir(prescription);
   const status = getStatusField(prescription);
   const createdAt = getCreatedAt(prescription);
-  const signedPdfUrl = (prescription as unknown as Record<string, unknown>).signed_pdf_url as string | undefined;
+  const signedPdfUrl =
+    ((prescription as unknown as Record<string, unknown>).signed_pdf_url as string | undefined) ||
+    prescription.artifacts?.signedPdfUrl ||
+    (cuir ? `/verify/${encodeURIComponent(cuir)}` : undefined);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -769,10 +1064,10 @@ function PrescriptionDetailPanel({
               href={signedPdfUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 transition"
+              className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 transition shadow-sm"
             >
-              <Printer className="h-4 w-4" />
-              Descargar PDF
+              <Download className="h-4 w-4" />
+              Descargar PDF oficial
             </a>
           )}
         </div>

@@ -1155,8 +1155,6 @@ private fun formatPrescriptionDate(dateStr: String?): String {
 
 private fun getDownloadablePdfUrl(signedPdfUrl: String?, cuir: String?): String? {
     if (!signedPdfUrl.isNullOrBlank()) {
-        // Exclude verification page URLs that are not direct PDFs
-        if (signedPdfUrl.contains("/verify/") && !signedPdfUrl.contains("/storage/")) return null
         return signedPdfUrl
     }
     // Fallback: if CUIR exists, provide online verification and PDF portal

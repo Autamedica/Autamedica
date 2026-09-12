@@ -1,22 +1,406 @@
 package com.autamedica.android.presentation.doctors.prescriptions
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.autamedica.android.domain.model.CreatePrescriptionRequest
+import com.autamedica.android.domain.model.DoctorEligibility
+import com.autamedica.android.domain.model.Prescription
+import com.autamedica.android.domain.model.PrescriptionItem
+import com.autamedica.android.domain.model.PrescriptionPatientItem
+import com.autamedica.android.domain.repository.PrescriptionRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+data class PrescriptionItemFormState(
+    val medicationName: String = "",
+    val genericName: String = "",
+    val dosage: String = "",
+    val frequency: String = "",
+    val duration: String = "",
+    val instructions: String = "",
+)
 
 data class DoctorPrescriptionsUiState(
     val isLoading: Boolean = false,
-    val issuedPrescriptions: List<String> = emptyList(),
-    val associatedPatients: List<String> = emptyList(),
-    val statuses: List<String> = emptyList() // emitida, dispensada, vencida
+    val prescriptions: List<Prescription> = emptyList(),
+    val filteredPrescriptions: List<Prescription> = emptyList(),
+    val selectedStatusFilter: String = "todas", // todas, activa, dispensada, cancelada
+    val searchQuery: String = "",
+    val totalCount: Int = 0,
+    val activeCount: Int = 0,
+    val dispensedCount: Int = 0,
+    val cancelledCount: Int = 0,
+
+    // Cancellation
+    val prescriptionToCancel: Prescription? = null,
+    val isCancelling: Boolean = false,
+    val cancellationError: String? = null,
+
+    // Creation
+    val patientId: String = "",
+    val selectedPatient: PrescriptionPatientItem? = null,
+    val eligiblePatients: List<PrescriptionPatientItem> = emptyList(),
+    val isLoadingPatients: Boolean = false,
+    val doctorEligibility: DoctorEligibility? = null,
+    val isLoadingEligibility: Boolean = false,
+    val items: List<PrescriptionItemFormState> = listOf(PrescriptionItemFormState()),
+    val diagnosis: String = "",
+    val diagnosisCode: String? = null,
+    val notes: String = "",
+    val isSubmitting: Boolean = false,
+    val createdPrescription: Prescription? = null,
+    val createError: String? = null,
+    val userMessage: String? = null,
 )
 
-class DoctorPrescriptionsViewModel : ViewModel() {
+@HiltViewModel
+class DoctorPrescriptionsViewModel @Inject constructor(
+    private val prescriptionRepository: PrescriptionRepository,
+) : ViewModel() {
+
     private val _uiState = MutableStateFlow(DoctorPrescriptionsUiState())
     val uiState: StateFlow<DoctorPrescriptionsUiState> = _uiState.asStateFlow()
 
-    fun emitPrescription() {
-        // Implement logic
+    init {
+        loadPrescriptions()
+        loadEligibility()
+    }
+
+    fun loadPrescriptions() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, cancellationError = null) }
+            prescriptionRepository.getDoctorPrescriptions()
+                .onSuccess { list ->
+                    val total = list.size
+                    val active = list.count { it.isActive }
+                    val dispensed = list.count { it.isDispensed || it.isCompleted }
+                    val cancelled = list.count { it.isCancelled }
+
+                    _uiState.update { current ->
+                        val filtered = applyFilterAndSearch(list, current.selectedStatusFilter, current.searchQuery)
+                        current.copy(
+                            isLoading = false,
+                            prescriptions = list,
+                            filteredPrescriptions = filtered,
+                            totalCount = total,
+                            activeCount = active,
+                            dispensedCount = dispensed,
+                            cancelledCount = cancelled,
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            userMessage = "Error al cargar recetas: ${error.message ?: "Error desconocido"}"
+                        )
+                    }
+                }
+        }
+    }
+
+    fun loadEligibility() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingEligibility = true) }
+            prescriptionRepository.getDoctorEligibility()
+                .onSuccess { eligibility ->
+                    _uiState.update {
+                        it.copy(
+                            doctorEligibility = eligibility,
+                            isLoadingEligibility = false,
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update { it.copy(isLoadingEligibility = false) }
+                }
+        }
+    }
+
+    fun onSearchQueryChanged(query: String) {
+        _uiState.update { current ->
+            val filtered = applyFilterAndSearch(current.prescriptions, current.selectedStatusFilter, query)
+            current.copy(searchQuery = query, filteredPrescriptions = filtered)
+        }
+    }
+
+    fun onStatusFilterChanged(status: String) {
+        _uiState.update { current ->
+            val filtered = applyFilterAndSearch(current.prescriptions, status, current.searchQuery)
+            current.copy(selectedStatusFilter = status, filteredPrescriptions = filtered)
+        }
+    }
+
+    fun onRequestCancelPrescription(prescription: Prescription) {
+        _uiState.update { it.copy(prescriptionToCancel = prescription, cancellationError = null) }
+    }
+
+    fun onDismissCancelDialog() {
+        _uiState.update { it.copy(prescriptionToCancel = null, cancellationError = null) }
+    }
+
+    fun onConfirmCancelPrescription(reason: String) {
+        val target = _uiState.value.prescriptionToCancel ?: return
+        if (reason.isBlank()) {
+            _uiState.update { it.copy(cancellationError = "Debe indicar el motivo clínico de anulación") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCancelling = true, cancellationError = null) }
+            prescriptionRepository.cancelPrescription(target.id, reason.trim())
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isCancelling = false,
+                            prescriptionToCancel = null,
+                            userMessage = "Receta ${target.cuir ?: target.id.take(8)} cancelada correctamente",
+                        )
+                    }
+                    loadPrescriptions()
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isCancelling = false,
+                            cancellationError = "Error al cancelar: ${error.message ?: "No se pudo actualizar"}"
+                        )
+                    }
+                }
+        }
+    }
+
+    fun initCreatePrescription(preselectedPatientId: String = "") {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    patientId = preselectedPatientId,
+                    isLoadingPatients = true,
+                    createError = null,
+                    createdPrescription = null,
+                    items = listOf(PrescriptionItemFormState()),
+                    diagnosis = "",
+                    diagnosisCode = null,
+                    notes = "",
+                )
+            }
+
+            prescriptionRepository.getEligiblePatients()
+                .onSuccess { patients ->
+                    val matchedPatient = if (preselectedPatientId.isNotBlank()) {
+                        patients.firstOrNull { it.patientId == preselectedPatientId }
+                    } else null
+
+                    _uiState.update {
+                        it.copy(
+                            eligiblePatients = patients,
+                            selectedPatient = matchedPatient,
+                            isLoadingPatients = false,
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update { it.copy(isLoadingPatients = false) }
+                }
+
+            loadEligibility()
+        }
+    }
+
+    fun onSelectPatient(patient: PrescriptionPatientItem) {
+        _uiState.update {
+            it.copy(
+                patientId = patient.patientId,
+                selectedPatient = patient,
+                createError = null,
+            )
+        }
+    }
+
+    fun onAddMedicationItem() {
+        _uiState.update { current ->
+            if (current.items.size < 3) {
+                current.copy(items = current.items + PrescriptionItemFormState())
+            } else current
+        }
+    }
+
+    fun onRemoveMedicationItem(index: Int) {
+        _uiState.update { current ->
+            if (current.items.size > 1 && index in current.items.indices) {
+                val updated = current.items.toMutableList()
+                updated.removeAt(index)
+                current.copy(items = updated)
+            } else current
+        }
+    }
+
+    fun onMedicationNameChanged(index: Int, name: String) {
+        updateItemAt(index) { it.copy(medicationName = name) }
+    }
+
+    fun onGenericNameChanged(index: Int, genericName: String) {
+        updateItemAt(index) { it.copy(genericName = genericName) }
+    }
+
+    fun onDosageChanged(index: Int, dosage: String) {
+        updateItemAt(index) { it.copy(dosage = dosage) }
+    }
+
+    fun onFrequencyChanged(index: Int, frequency: String) {
+        updateItemAt(index) { it.copy(frequency = frequency) }
+    }
+
+    fun onDurationChanged(index: Int, duration: String) {
+        updateItemAt(index) { it.copy(duration = duration) }
+    }
+
+    fun onInstructionsChanged(index: Int, instructions: String) {
+        updateItemAt(index) { it.copy(instructions = instructions) }
+    }
+
+    fun onDiagnosisChanged(diagnosis: String, code: String? = null) {
+        _uiState.update { it.copy(diagnosis = diagnosis, diagnosisCode = code, createError = null) }
+    }
+
+    fun onNotesChanged(notes: String) {
+        _uiState.update { it.copy(notes = notes) }
+    }
+
+    fun onSubmitPrescription(onSuccess: (Prescription) -> Unit = {}) {
+        val state = _uiState.value
+
+        // Validations
+        if (state.patientId.isBlank()) {
+            _uiState.update { it.copy(createError = "Debe seleccionar un paciente") }
+            return
+        }
+
+        if (state.items.isEmpty()) {
+            _uiState.update { it.copy(createError = "Debe indicar al menos un medicamento") }
+            return
+        }
+
+        for ((idx, item) in state.items.withIndex()) {
+            if (item.medicationName.isBlank()) {
+                _uiState.update { it.copy(createError = "Complete el nombre del medicamento #${idx + 1}") }
+                return
+            }
+            if (item.dosage.isBlank()) {
+                _uiState.update { it.copy(createError = "Indique la dosis para ${item.medicationName}") }
+                return
+            }
+            if (item.frequency.isBlank()) {
+                _uiState.update { it.copy(createError = "Indique la frecuencia de toma para ${item.medicationName}") }
+                return
+            }
+        }
+
+        if (state.diagnosis.isBlank()) {
+            _uiState.update { it.copy(createError = "Indique el diagnóstico clínico (CIE-10)") }
+            return
+        }
+
+        // Regulatory check warning
+        val eligibility = state.doctorEligibility
+        if (eligibility != null && !eligibility.isEligible && eligibility.doctorLicense.isNullOrBlank()) {
+            _uiState.update {
+                it.copy(createError = "Debe configurar su matrícula médica antes de emitir recetas")
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmitting = true, createError = null) }
+
+            val domainItems = state.items.map { item ->
+                PrescriptionItem(
+                    medicationName = item.medicationName.trim(),
+                    genericName = item.genericName.trim().ifBlank { item.medicationName.trim() },
+                    dosage = item.dosage.trim(),
+                    frequency = item.frequency.trim(),
+                    duration = item.duration.trim(),
+                    instructions = item.instructions.trim(),
+                )
+            }
+
+            val request = CreatePrescriptionRequest(
+                patientId = state.patientId,
+                items = domainItems,
+                diagnosis = if (state.diagnosisCode != null) "${state.diagnosisCode} - ${state.diagnosis.trim()}" else state.diagnosis.trim(),
+                notes = state.notes.trim().takeIf { it.isNotEmpty() },
+                countryCode = "AR",
+            )
+
+            prescriptionRepository.createPrescription(request)
+                .onSuccess { created ->
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            createdPrescription = created,
+                            userMessage = "Receta emitida con éxito: CUIR ${created.cuir ?: created.id.take(8)}",
+                        )
+                    }
+                    loadPrescriptions()
+                    onSuccess(created)
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            createError = "Error al emitir: ${error.message ?: "No se pudo completar la emisión"}"
+                        )
+                    }
+                }
+        }
+    }
+
+    fun clearCreatedPrescription() {
+        _uiState.update { it.copy(createdPrescription = null) }
+    }
+
+    fun clearUserMessage() {
+        _uiState.update { it.copy(userMessage = null) }
+    }
+
+    private fun updateItemAt(index: Int, transform: (PrescriptionItemFormState) -> PrescriptionItemFormState) {
+        _uiState.update { current ->
+            if (index in current.items.indices) {
+                val updated = current.items.toMutableList()
+                updated[index] = transform(updated[index])
+                current.copy(items = updated, createError = null)
+            } else current
+        }
+    }
+
+    private fun applyFilterAndSearch(
+        list: List<Prescription>,
+        statusFilter: String,
+        searchQuery: String,
+    ): List<Prescription> {
+        val filteredByStatus = when (statusFilter.lowercase()) {
+            "activa", "activas" -> list.filter { it.isActive }
+            "dispensada", "dispensadas" -> list.filter { it.isDispensed || it.isCompleted }
+            "cancelada", "canceladas" -> list.filter { it.isCancelled }
+            else -> list
+        }
+
+        if (searchQuery.isBlank()) return filteredByStatus
+
+        val q = searchQuery.trim().lowercase()
+        return filteredByStatus.filter { rx ->
+            (rx.patientName?.lowercase()?.contains(q) == true) ||
+            (rx.patientDni?.lowercase()?.contains(q) == true) ||
+            (rx.cuir?.lowercase()?.contains(q) == true) ||
+            (rx.medicationName.lowercase().contains(q)) ||
+            (rx.diagnosis?.lowercase()?.contains(q) == true) ||
+            rx.items.any { it.medicationName.lowercase().contains(q) || it.genericName.lowercase().contains(q) }
+        }
     }
 }

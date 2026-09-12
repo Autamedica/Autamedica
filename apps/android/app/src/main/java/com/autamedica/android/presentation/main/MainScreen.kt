@@ -73,7 +73,6 @@ import com.autamedica.android.presentation.appointments.AppointmentsScreen
 import com.autamedica.android.presentation.consultation.ConsultationHubScreen
 import com.autamedica.android.presentation.dashboard.DashboardScreen
 import com.autamedica.android.presentation.dashboard.DoctorDashboardScreen
-import com.autamedica.android.presentation.health.HealthScreen
 import com.autamedica.android.presentation.patients.PatientsScreen
 import com.autamedica.android.presentation.profile.ProfileScreen
 import com.autamedica.android.presentation.theme.AuAccent
@@ -146,6 +145,10 @@ fun MainScreen(
     onNavigateToCommunity: () -> Unit = {},
     onNavigateToContinuityStatus: () -> Unit = {},
     onNavigateToDoctorSignature: () -> Unit = {},
+    onNavigateToDoctorPrescriptions: () -> Unit = {},
+    onNavigateToCreatePrescription: (patientId: String) -> Unit = {},
+    onNavigateToDoctorCertificates: () -> Unit = {},
+    onNavigateToCreateCertificate: (patientId: String) -> Unit = {},
     onNavigateToPatientProfile: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel(),
@@ -330,6 +333,10 @@ fun MainScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,
                         onNavigateToTab = { selectedTab = it },
                         onNavigateToDoctorSignature = onNavigateToDoctorSignature,
+                        onNavigateToDoctorPrescriptions = onNavigateToDoctorPrescriptions,
+                        onNavigateToCreatePrescription = onNavigateToCreatePrescription,
+                        onNavigateToDoctorCertificates = onNavigateToDoctorCertificates,
+                        onNavigateToCreateCertificate = onNavigateToCreateCertificate,
                     )
                     1 -> com.autamedica.android.presentation.chat.ChatListScreen(
                         onNavigateToConversation = onNavigateToChatConversation,
@@ -361,7 +368,7 @@ fun MainScreen(
                             onNavigateToPatientProfile = onNavigateToPatientProfile,
                             onNavigateToAnamnesisForm = onNavigateToAnamnesisForm,
                             onNavigateToPreventiveHealth = onNavigateToPreventiveHealth,
-                            onNavigateToBookAppointment = onNavigateToBookAppointment,
+                            onNavigateToBookAppointment = { selectedTab = 1 },
                             onNavigateToPrescriptions = onNavigateToPrescriptions,
                             onNavigateToClinicalDocuments = onNavigateToClinicalDocuments,
                             onNavigateToChatConversation = onNavigateToChatConversation,
@@ -379,11 +386,11 @@ fun MainScreen(
                         )
                         1 -> AppointmentsScreen(
                             onNavigateToVideoCall = onNavigateToVideoCall,
-                            onNavigateToBookAppointment = onNavigateToBookAppointment,
+                            onNavigateToBookAppointment = { selectedTab = 1 },
                         )
                         2 -> ConsultationHubScreen(
                             onNavigateToVideoCall = onNavigateToVideoCall,
-                            onNavigateToBookAppointment = onNavigateToBookAppointment,
+                            onNavigateToBookAppointment = { selectedTab = 1 },
                         )
                         3 -> PrescriptionsScreen(
                             onBack = { selectedTab = 2 },

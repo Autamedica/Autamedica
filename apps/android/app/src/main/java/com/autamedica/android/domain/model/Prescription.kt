@@ -22,6 +22,9 @@ data class Prescription(
     val diagnosis: String? = null,
     val notes: String? = null,
     val prescribedDate: String? = null,
+    val patientName: String? = null,
+    val patientDni: String? = null,
+    val items: List<PrescriptionItem> = emptyList(),
 ) {
     /**
      * Determines whether this prescription is currently active and valid.
@@ -51,6 +54,13 @@ data class Prescription(
                 status.equals("completada", ignoreCase = true)
 
     /**
+     * Determines whether this prescription is cancelled.
+     */
+    val isCancelled: Boolean
+        get() = status.equals("cancelled", ignoreCase = true) ||
+                status.equals("cancelada", ignoreCase = true)
+
+    /**
      * Determines whether this prescription is expired.
      */
     val isExpired: Boolean
@@ -64,4 +74,61 @@ data class Prescription(
         get() = qrCodeContent?.takeIf { it.isNotBlank() }
             ?: cuir?.let { "https://autamedica.com/verify/$it" }
             ?: "https://autamedica.com/prescriptions/$id"
+
+    /**
+     * Resolved list of items, falling back to primary medication if items list is empty.
+     */
+    val displayItems: List<PrescriptionItem>
+        get() = if (items.isNotEmpty()) items else listOf(
+            PrescriptionItem(
+                medicationName = medicationName,
+                dosage = dosage,
+                frequency = frequency,
+                duration = duration,
+                instructions = instructions,
+            )
+        )
 }
+
+/**
+ * Individual medication item in a digital prescription.
+ */
+data class PrescriptionItem(
+    val medicationName: String,
+    val genericName: String = "",
+    val dosage: String,
+    val frequency: String,
+    val duration: String,
+    val instructions: String = "",
+)
+
+/**
+ * Request payload for doctors issuing a new digital prescription.
+ */
+data class CreatePrescriptionRequest(
+    val patientId: String,
+    val items: List<PrescriptionItem>,
+    val diagnosis: String,
+    val notes: String? = null,
+    val countryCode: String = "AR",
+)
+
+/**
+ * Doctor qualification and regulatory status for prescribing under Decreto 63 / SISA REFEPS.
+ */
+data class DoctorEligibility(
+    val isEligible: Boolean,
+    val doctorLicense: String?,
+    val validationStatus: String?,
+    val reason: String? = null,
+)
+
+/**
+ * Selectable patient for prescription issuance.
+ */
+data class PrescriptionPatientItem(
+    val patientId: String,
+    val fullName: String,
+    val dni: String? = null,
+    val birthDate: String? = null,
+)

@@ -80,6 +80,12 @@ sealed interface Route {
     data class CreatePrescription(val patientId: String = "") : Route
 
     @Serializable
+    data object DoctorCertificates : Route
+
+    @Serializable
+    data class CreateCertificate(val patientId: String = "") : Route
+
+    @Serializable
     data object DoctorMedicalOrders : Route
 
     @Serializable

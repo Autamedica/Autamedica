@@ -138,6 +138,18 @@ fun AppNavHost(
                         launchSingleTop = true
                     }
                 },
+                onNavigateToDoctorPrescriptions = {
+                    navController.navigate(Route.DoctorPrescriptions)
+                },
+                onNavigateToCreatePrescription = { patientId ->
+                    navController.navigate(Route.CreatePrescription(patientId))
+                },
+                onNavigateToDoctorCertificates = {
+                    navController.navigate(Route.DoctorCertificates)
+                },
+                onNavigateToCreateCertificate = { patientId ->
+                    navController.navigate(Route.CreateCertificate(patientId))
+                },
                 onNavigateToPatientProfile = {
                     navController.navigate(Route.PatientProfile) {
                         launchSingleTop = true
@@ -271,6 +283,23 @@ fun AppNavHost(
         composable<Route.CreatePrescription> { backStackEntry ->
             val route = backStackEntry.toRoute<Route.CreatePrescription>()
             com.autamedica.android.presentation.doctors.prescriptions.CreatePrescriptionScreen(
+                patientId = route.patientId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.DoctorCertificates> {
+            com.autamedica.android.presentation.doctors.certificates.DoctorCertificatesScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToCreateCertificate = {
+                    navController.navigate(Route.CreateCertificate(""))
+                }
+            )
+        }
+
+        composable<Route.CreateCertificate> { backStackEntry ->
+            val route = backStackEntry.toRoute<Route.CreateCertificate>()
+            com.autamedica.android.presentation.doctors.certificates.CreateCertificateScreen(
                 patientId = route.patientId,
                 onBack = { navController.popBackStack() }
             )
