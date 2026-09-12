@@ -116,6 +116,8 @@ fun DoctorDashboardScreen(
     onNavigateToCreatePrescription: (patientId: String) -> Unit = {},
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToCreateCertificate: (patientId: String) -> Unit = {},
+    onNavigateToDoctorMedicalOrders: () -> Unit = {},
+    onNavigateToCreateMedicalOrder: (patientId: String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: DoctorDashboardViewModel = hiltViewModel(),
 ) {
@@ -246,6 +248,14 @@ fun DoctorDashboardScreen(
                             DoctorCertificatesQuickCard(
                                 onViewCertificates = onNavigateToDoctorCertificates,
                                 onCreateCertificate = { onNavigateToCreateCertificate("") },
+                            )
+                        }
+
+                        // 3d. Medical Orders Quick Command Card
+                        item {
+                            DoctorMedicalOrdersQuickCard(
+                                onViewMedicalOrders = onNavigateToDoctorMedicalOrders,
+                                onCreateMedicalOrder = { onNavigateToCreateMedicalOrder("") },
                             )
                         }
 
@@ -1164,6 +1174,93 @@ private fun DoctorCertificatesQuickCard(
                 ) {
                     Text(
                         "Emitir Atestado",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DoctorMedicalOrdersQuickCard(
+    onViewMedicalOrders: () -> Unit,
+    onCreateMedicalOrder: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = AuSurface,
+        border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.25f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = PortalDoctors.copy(alpha = 0.15f),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.MedicalServices,
+                            contentDescription = null,
+                            tint = PortalDoctors,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Órdenes Médicas Digitales",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = AuTextPrimary
+                    )
+                    Text(
+                        text = "Laboratorio, imágenes y cardiología · CUIR",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AuTextTertiary
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = onViewMedicalOrders,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, AuBorder),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        "Ver Órdenes",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AuTextPrimary
+                    )
+                }
+
+                Button(
+                    onClick = onCreateMedicalOrder,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        "Emitir Orden",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White

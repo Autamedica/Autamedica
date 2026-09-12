@@ -149,6 +149,8 @@ fun MainScreen(
     onNavigateToCreatePrescription: (patientId: String) -> Unit = {},
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToCreateCertificate: (patientId: String) -> Unit = {},
+    onNavigateToDoctorMedicalOrders: () -> Unit = {},
+    onNavigateToCreateMedicalOrder: (patientId: String) -> Unit = {},
     onNavigateToPatientProfile: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel(),
@@ -337,6 +339,8 @@ fun MainScreen(
                         onNavigateToCreatePrescription = onNavigateToCreatePrescription,
                         onNavigateToDoctorCertificates = onNavigateToDoctorCertificates,
                         onNavigateToCreateCertificate = onNavigateToCreateCertificate,
+                        onNavigateToDoctorMedicalOrders = onNavigateToDoctorMedicalOrders,
+                        onNavigateToCreateMedicalOrder = onNavigateToCreateMedicalOrder,
                     )
                     1 -> com.autamedica.android.presentation.chat.ChatListScreen(
                         onNavigateToConversation = onNavigateToChatConversation,

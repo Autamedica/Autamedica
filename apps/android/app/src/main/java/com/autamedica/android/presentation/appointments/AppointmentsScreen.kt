@@ -82,6 +82,7 @@ import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.DoctorBookingInfo
+import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.presentation.dashboard.components.AppointmentCard
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
@@ -1962,7 +1963,7 @@ private fun DoctorAgendaDaySection(
                 day.appointments.forEach { appointment ->
                     AppointmentCard(
                         appointment = appointment,
-                        onJoinCall = if (appointment.id in joinableAppointmentIds) {
+                        onJoinCall = if (appointment.isTelemedicineJoinCandidate() || appointment.id in joinableAppointmentIds) {
                             { onNavigateToVideoCall(appointment.id) }
                         } else null,
                     )
@@ -1989,7 +1990,7 @@ private fun buildDoctorAgendaDays(
                 key = date.toString(),
                 date = date,
                 appointments = dayAppointments,
-                hasJoinableAppointment = dayAppointments.any { it.id in joinableAppointmentIds },
+                hasJoinableAppointment = dayAppointments.any { it.isTelemedicineJoinCandidate() || it.id in joinableAppointmentIds },
             )
         }
         .sortedBy { it.date }

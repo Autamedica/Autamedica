@@ -21,3 +21,5 @@ screenshot*.png
 keystore/
 keystore.properties
 google-services.json
+window_dump*.xml
+infinix_*.png

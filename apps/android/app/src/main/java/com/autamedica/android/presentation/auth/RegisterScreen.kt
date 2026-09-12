@@ -51,6 +51,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,6 +59,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.autamedica.android.BuildConfig
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -103,33 +112,62 @@ fun RegisterScreen(
     onNavigateToLogin: () -> Unit,
     onRegisterSuccess: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: RegisterViewModel = hiltViewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val coroutineScope = rememberCoroutineScope()
 
-    var selectedRole by remember { 
-        mutableStateOf(UserRole.entries.find { it.wireName == initialRoleName } ?: UserRole.PATIENT) 
-    }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
-    var acceptedTerms by remember { mutableStateOf(false) }
-    
-    var isLoading by remember { mutableStateOf(false) }
-    var isGoogleLoading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var message by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(initialRoleName) {
+        val role = UserRole.entries.find { it.wireName == initialRoleName } ?: UserRole.PATIENT
+        viewModel.onRoleChange(role)
+    }
+
+    LaunchedEffect(uiState.isRegistered, uiState.loggedInUser) {
+        if (uiState.isRegistered && uiState.loggedInUser != null) {
+            onRegisterSuccess()
+        }
+    }
 
     val scrollState = rememberScrollState()
-    val activeColor = when (selectedRole) {
+    val activeColor = when (uiState.selectedRole) {
         UserRole.PATIENT -> PortalPatients
         UserRole.DOCTOR -> PortalDoctors
         UserRole.PHARMACIST -> PortalPharmacists
         else -> PortalCompanies
+    }
+
+    val launchGoogleSignIn: () -> Unit = remember(context) {
+        {
+            coroutineScope.launch {
+                try {
+                    val credentialManager = CredentialManager.create(context)
+                    val googleIdOption = GetGoogleIdOption.Builder()
+                        .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+                        .setFilterByAuthorizedAccounts(false)
+                        .build()
+                    val request = GetCredentialRequest.Builder()
+                        .addCredentialOption(googleIdOption)
+                        .build()
+                    val result = credentialManager.getCredential(
+                        request = request,
+                        context = context as Activity,
+                    )
+                    val googleIdTokenCredential = GoogleIdTokenCredential
+                        .createFrom(result.credential.data)
+                    viewModel.onGoogleSignIn(googleIdTokenCredential.idToken)
+                } catch (e: GetCredentialCancellationException) {
+                    viewModel.onGoogleSignInError(e)
+                } catch (e: Exception) {
+                    viewModel.onGoogleSignInError(e)
+                }
+            }
+        }
     }
 
     Box(
@@ -150,62 +188,36 @@ fun RegisterScreen(
             AutamedicaHeader()
 
             RoleSegmentedPicker(
-                selectedRole = selectedRole,
-                onRoleSelected = { selectedRole = it },
+                selectedRole = uiState.selectedRole,
+                onRoleSelected = { viewModel.onRoleChange(it) },
             )
 
             RoleHeading(
-                selectedRole = selectedRole,
+                selectedRole = uiState.selectedRole,
             )
 
             RegisterFormCard(
-                email = email,
-                onEmailChange = { email = it },
-                password = password,
-                onPasswordChange = { password = it },
-                confirmPassword = confirmPassword,
-                onConfirmPasswordChange = { confirmPassword = it },
+                email = uiState.email,
+                onEmailChange = { viewModel.onEmailChange(it) },
+                password = uiState.password,
+                onPasswordChange = { viewModel.onPasswordChange(it) },
+                confirmPassword = uiState.confirmPassword,
+                onConfirmPasswordChange = { viewModel.onConfirmPasswordChange(it) },
                 passwordVisible = passwordVisible,
                 onPasswordVisibilityToggle = { passwordVisible = !passwordVisible },
                 confirmPasswordVisible = confirmPasswordVisible,
                 onConfirmPasswordVisibilityToggle = { confirmPasswordVisible = !confirmPasswordVisible },
-                acceptedTerms = acceptedTerms,
-                onAcceptedTermsChange = { acceptedTerms = it },
+                acceptedTerms = uiState.acceptedTerms,
+                onAcceptedTermsChange = { viewModel.onTermsToggle(it) },
                 activeColor = activeColor,
-                isLoading = isLoading,
-                isGoogleLoading = isGoogleLoading,
-                error = error,
-                message = message,
-                onGoogleSignIn = {
-                    coroutineScope.launch {
-                        isGoogleLoading = true
-                        error = null
-                        // Mock Google Sign in
-                        delay(1000)
-                        isGoogleLoading = false
-                        onRegisterSuccess()
-                    }
-                },
+                isLoading = uiState.isLoading,
+                isGoogleLoading = uiState.isGoogleLoading,
+                error = uiState.error,
+                message = uiState.successMessage,
+                onGoogleSignIn = launchGoogleSignIn,
                 onSubmit = {
-                    coroutineScope.launch {
-                        error = null
-                        message = null
-                        if (password != confirmPassword) {
-                            error = "Las contraseñas no coinciden"
-                            return@launch
-                        }
-                        if (password.length < 6) {
-                            error = "La contraseña debe tener al menos 6 caracteres"
-                            return@launch
-                        }
-                        isLoading = true
-                        // Mock registration
-                        delay(1500)
-                        isLoading = false
-                        message = "Revisa tu correo para confirmar la cuenta."
-                        delay(1000)
-                        onRegisterSuccess()
-                    }
+                    focusManager.clearFocus()
+                    viewModel.onRegister()
                 },
                 onTermsClick = { uriHandler.openUri("https://www.autamedica.com/terms") },
                 onPrivacyClick = { uriHandler.openUri("https://www.autamedica.com/privacidad") }

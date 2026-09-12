@@ -23,6 +23,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -52,6 +53,7 @@ fun ClinicalNotesSheet(
     onSaveNotes: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenFullSoap: (() -> Unit)? = null,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -202,27 +204,47 @@ fun ClinicalNotesSheet(
                     }
                 }
 
-                Button(
-                    onClick = onSaveNotes,
-                    enabled = !isSaving && notes.isNotBlank(),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PortalDoctor,
-                        contentColor = Color.White,
-                    ),
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        Text(
-                            text = "Guardar evolución",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                    if (onOpenFullSoap != null) {
+                        OutlinedButton(
+                            onClick = onOpenFullSoap,
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, PortalDoctor),
+                        ) {
+                            Text(
+                                text = "SOAP",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = PortalDoctor,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = onSaveNotes,
+                        enabled = !isSaving && notes.isNotBlank(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PortalDoctor,
+                            contentColor = Color.White,
+                        ),
+                    ) {
+                        if (isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Text(
+                                text = "Guardar evolución",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     }
                 }
             }

@@ -6,6 +6,7 @@ import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
+import timber.log.Timber
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -102,13 +103,14 @@ class PatientClinicStore @Inject constructor(
                         }
                     }
                     .onFailure { err ->
-                        _data.update {
-                            it.copy(
+                        Timber.e(err, "[PatientClinicStore] Failed to load appointments")
+                        _data.update { current ->
+                            current.copy(
                                 availableDoctors = rawDoctors,
                                 isLoading = false,
                                 isRefreshing = false,
-                                error = sanitizeError(err.message),
-                                telemedicineError = "No se pudieron cargar tus turnos. Reintentá.",
+                                error = if (current.appointments.isEmpty()) sanitizeError(err.message) else null,
+                                telemedicineError = "No se pudieron actualizar los turnos.",
                             )
                         }
                     }

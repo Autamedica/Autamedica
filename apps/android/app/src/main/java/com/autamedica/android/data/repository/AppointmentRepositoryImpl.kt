@@ -129,12 +129,21 @@ class AppointmentRepositoryImpl @Inject constructor(
     }.recoverCatching {
         SecureLog.error("[Appointments] Network failed, falling back to offline cache", it)
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
-            ?: throw IllegalStateException("No authenticated user available for offline appointments")
+            ?: return@recoverCatching emptyList<Appointment>()
         val role = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: "patient"
-        val cachedEntities = appointmentDao.getAppointmentsForUser(userId).firstOrNull() ?: emptyList()
+        val cachedEntities = try {
+            appointmentDao.getAppointmentsForUser(userId).firstOrNull() ?: emptyList()
+        } catch (dbErr: Exception) {
+            SecureLog.warn("[Appointments] Failed to read from cache", dbErr)
+            emptyList()
+        }
         val domainModels = cachedEntities.map { entity -> entity.toDomain() }
         if (role != "doctor") {
-            filterActiveWindow(domainModels)
+            try {
+                filterActiveWindow(domainModels)
+            } catch (_: Exception) {
+                domainModels
+            }
         } else {
             domainModels
         }

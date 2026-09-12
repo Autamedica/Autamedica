@@ -359,14 +359,21 @@ class VideoCallViewModel @Inject constructor(
             runCatching {
                 var resolvedPatientId: String? = null
                 var resolvedDoctorId: String? = null
+                var resolvedAppointmentId: String? = null
 
                 val appt = appointmentRepository.getAppointmentById(targetAppointmentId).getOrNull()
                 if (appt != null) {
+                    resolvedAppointmentId = appt.id
                     resolvedPatientId = appt.patientId
                     resolvedDoctorId = appt.doctorId
                 }
 
-                if (resolvedDoctorId == null && callUserId.isNotBlank()) {
+                // Prioritize authenticated doctor record to strictly satisfy RLS medical_records_insert_doctor
+                val uid = callUserId.ifBlank { authRepository.getCurrentUser()?.id.orEmpty() }
+                val myDoctorProfile = if (uid.isNotBlank()) doctorRepository.getDoctorProfile(uid).getOrNull() else null
+                if (myDoctorProfile != null) {
+                    resolvedDoctorId = myDoctorProfile.id
+                } else if (resolvedDoctorId == null && callUserId.isNotBlank()) {
                     resolvedDoctorId = runCatching {
                         supabaseClient.postgrest.from("doctors")
                             .select(Columns.list("id")) { filter { eq("user_id", callUserId) } }
@@ -374,10 +381,10 @@ class VideoCallViewModel @Inject constructor(
                     }.getOrNull()
                 }
 
-                if (resolvedPatientId == null) {
+                if (resolvedPatientId == null || resolvedAppointmentId == null) {
                     val session = runCatching {
                         supabaseClient.postgrest.from("telemedicine_sessions")
-                            .select(Columns.list("patient_id", "doctor_id")) {
+                            .select(Columns.list("patient_id", "doctor_id", "appointment_id")) {
                                 filter {
                                     or {
                                         eq("appointment_id", targetAppointmentId)
@@ -390,9 +397,14 @@ class VideoCallViewModel @Inject constructor(
                             .decodeSingleOrNull<SessionParticipantDto>()
                     }.getOrNull()
                     if (session != null) {
-                        resolvedPatientId = session.patientId
+                        if (resolvedPatientId == null) resolvedPatientId = session.patientId
                         if (resolvedDoctorId == null) resolvedDoctorId = session.doctorId
+                        if (resolvedAppointmentId == null) resolvedAppointmentId = session.appointmentId
                     }
+                }
+
+                if (resolvedAppointmentId == null && runCatching { java.util.UUID.fromString(targetAppointmentId) }.isSuccess) {
+                    resolvedAppointmentId = targetAppointmentId
                 }
 
                 val soapContent = buildJsonObject {
@@ -407,20 +419,59 @@ class VideoCallViewModel @Inject constructor(
                 val insertPayload = buildJsonObject {
                     if (resolvedPatientId != null) put("patient_id", resolvedPatientId)
                     if (resolvedDoctorId != null) put("doctor_id", resolvedDoctorId)
+                    if (resolvedAppointmentId != null) put("appointment_id", resolvedAppointmentId)
                     put("type", "consultation")
                     put("title", "Evolución SOAP - Consulta Telemedicina")
                     put("content", soapContent)
                 }
 
-                supabaseClient.postgrest
-                    .from("medical_records")
-                    .insert(insertPayload)
-
-                supabaseClient.postgrest
-                    .from("appointments")
-                    .update(mapOf("status" to "completed")) {
-                        filter { eq("id", targetAppointmentId) }
+                if (resolvedPatientId != null && resolvedDoctorId != null) {
+                    runCatching {
+                        supabaseClient.postgrest.from("patient_care_team")
+                            .upsert(buildJsonObject {
+                                put("patient_id", resolvedPatientId)
+                                put("doctor_id", resolvedDoctorId)
+                                put("role", "consultant")
+                                put("active", true)
+                            })
                     }
+                }
+
+                val existingRecordId = if (resolvedAppointmentId != null) {
+                    runCatching {
+                        supabaseClient.postgrest.from("medical_records")
+                            .select(Columns.list("id")) {
+                                filter {
+                                    eq("appointment_id", resolvedAppointmentId)
+                                    exact("deleted_at", null)
+                                }
+                                limit(1)
+                            }.decodeSingleOrNull<DoctorRecordIdDto>()?.id
+                    }.getOrNull()
+                } else null
+
+                if (existingRecordId != null) {
+                    supabaseClient.postgrest
+                        .from("medical_records")
+                        .update(insertPayload) {
+                            filter { eq("id", existingRecordId) }
+                        }
+                } else {
+                    supabaseClient.postgrest
+                        .from("medical_records")
+                        .insert(insertPayload)
+                }
+
+                val finalAppointmentIdToComplete = resolvedAppointmentId ?: targetAppointmentId.takeIf {
+                    runCatching { java.util.UUID.fromString(it) }.isSuccess
+                }
+                if (finalAppointmentIdToComplete != null) {
+                    supabaseClient.postgrest
+                        .from("appointments")
+                        .update(mapOf("status" to "completed")) {
+                            filter { eq("id", finalAppointmentIdToComplete) }
+                        }
+                }
 
                 val callId = _uiState.value.activeCallId ?: targetAppointmentId
                 if (callId.isNotBlank()) {
@@ -509,13 +560,96 @@ class VideoCallViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingNotes = true) }
-            appointmentRepository.updateAppointmentNotes(appointmentId, notes)
-                .onSuccess {
-                    _uiState.update { it.copy(isSavingNotes = false, notesSaved = true) }
+            runCatching {
+                appointmentRepository.updateAppointmentNotes(appointmentId, notes)
+
+                _uiState.update { current ->
+                    current.copy(
+                        soapData = current.soapData.copy(
+                            subjective = if (current.soapData.subjective.isBlank()) notes else current.soapData.subjective
+                        )
+                    )
                 }
-                .onFailure {
-                    _uiState.update { it.copy(isSavingNotes = false) }
+
+                val uid = callUserId.ifBlank { authRepository.getCurrentUser()?.id.orEmpty() }
+                val myDoctorProfile = if (uid.isNotBlank()) doctorRepository.getDoctorProfile(uid).getOrNull() else null
+                var resolvedDoctorId = myDoctorProfile?.id
+                if (resolvedDoctorId == null && uid.isNotBlank()) {
+                    resolvedDoctorId = runCatching {
+                        supabaseClient.postgrest.from("doctors")
+                            .select(Columns.list("id")) { filter { eq("user_id", uid) } }
+                            .decodeSingleOrNull<DoctorRecordIdDto>()?.id
+                    }.getOrNull()
                 }
+
+                var resolvedPatientId = _uiState.value.patientId.takeIf { it.isNotBlank() }
+                var resolvedAppointmentId: String? = appointmentId.takeIf {
+                    runCatching { java.util.UUID.fromString(it) }.isSuccess
+                }
+
+                if (resolvedPatientId == null || resolvedAppointmentId == null) {
+                    val appt = appointmentRepository.getAppointmentById(appointmentId).getOrNull()
+                    if (appt != null) {
+                        resolvedPatientId = appt.patientId
+                        resolvedAppointmentId = appt.id
+                    }
+                }
+
+                if (resolvedPatientId != null && resolvedDoctorId != null) {
+                    runCatching {
+                        supabaseClient.postgrest.from("patient_care_team")
+                            .upsert(buildJsonObject {
+                                put("patient_id", resolvedPatientId)
+                                put("doctor_id", resolvedDoctorId)
+                                put("role", "consultant")
+                                put("active", true)
+                            })
+                    }
+
+                    val contentJson = buildJsonObject {
+                        put("notes", notes)
+                        put("subjective", notes)
+                    }
+                    val insertPayload = buildJsonObject {
+                        put("patient_id", resolvedPatientId)
+                        put("doctor_id", resolvedDoctorId)
+                        if (resolvedAppointmentId != null) put("appointment_id", resolvedAppointmentId)
+                        put("type", "consultation")
+                        put("title", "Evolución Clínica - Consulta Telemedicina")
+                        put("content", contentJson)
+                    }
+
+                    val existingRecordId = if (resolvedAppointmentId != null) {
+                        runCatching {
+                            supabaseClient.postgrest.from("medical_records")
+                                .select(Columns.list("id")) {
+                                    filter {
+                                        eq("appointment_id", resolvedAppointmentId)
+                                        exact("deleted_at", null)
+                                    }
+                                    limit(1)
+                                }.decodeSingleOrNull<DoctorRecordIdDto>()?.id
+                        }.getOrNull()
+                    } else null
+
+                    if (existingRecordId != null) {
+                        supabaseClient.postgrest
+                            .from("medical_records")
+                            .update(insertPayload) {
+                                filter { eq("id", existingRecordId) }
+                            }
+                    } else {
+                        supabaseClient.postgrest
+                            .from("medical_records")
+                            .insert(insertPayload)
+                    }
+                }
+            }.onSuccess {
+                _uiState.update { it.copy(isSavingNotes = false, notesSaved = true) }
+            }.onFailure { error ->
+                SecureLog.error("[Telemedicine] Failed saving clinical notes", error)
+                _uiState.update { it.copy(isSavingNotes = false) }
+            }
         }
     }
 
@@ -900,4 +1034,5 @@ private data class DoctorRecordIdDto(val id: String)
 private data class SessionParticipantDto(
     @SerialName("patient_id") val patientId: String? = null,
     @SerialName("doctor_id") val doctorId: String? = null,
+    @SerialName("appointment_id") val appointmentId: String? = null,
 )

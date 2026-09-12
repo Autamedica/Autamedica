@@ -236,7 +236,7 @@ class DashboardViewModel @Inject constructor(
                         doctorsLoading = false,
                         isLoading = false,
                         isRefreshing = false,
-                        error = appointmentsResult.exceptionOrNull()?.let { sanitizeErrorMessage(it.message) },
+                        error = appointmentsResult.exceptionOrNull()?.takeIf { resolvedAppointments.isEmpty() }?.let { sanitizeErrorMessage(it.message) },
                         telemedicineError = joinableResult.second,
                         preventiveError = preventiveResult.exceptionOrNull()?.let { sanitizePreventiveError(it.message) },
                         anamnesisSummary = anamnesisResult.getOrNull() ?: current.anamnesisSummary,
@@ -268,7 +268,7 @@ class DashboardViewModel @Inject constructor(
     private fun sanitizeErrorMessage(raw: String?): String {
         if (raw == null) return "Error al cargar consultas"
         return when {
-            "infinite recursion" in raw -> "Error temporal del servidor. Intenta de nuevo."
+            "infinite recursion" in raw -> "No se pudieron sincronizar las consultas"
             "network" in raw.lowercase() || "timeout" in raw.lowercase() ->
                 "Error de conexion. Verifica tu internet."
             "unauthorized" in raw.lowercase() || "JWT" in raw ->

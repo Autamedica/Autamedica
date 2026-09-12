@@ -65,6 +65,12 @@ sealed interface Route {
     data object ConsultationReports : Route
 
     @Serializable
+    data object Prescriptions : Route
+
+    @Serializable
+    data object ClinicalDocuments : Route
+
+    @Serializable
     data object ReproductiveHealth : Route
 
     @Serializable

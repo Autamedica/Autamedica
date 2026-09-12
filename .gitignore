@@ -104,6 +104,8 @@ apps/android/local.properties
 *.aab
 apps/android/.kotlin/
 apps/android/keystore/
+apps/android/window_dump*.xml
+apps/android/infinix_*.png
 
 # Firebase
 firebase-debug.log

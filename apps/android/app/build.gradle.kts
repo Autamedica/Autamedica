@@ -46,8 +46,8 @@ android {
         applicationId = "com.autamedica.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 17
-        versionName = "1.2.7"
+        versionCode = 18
+        versionName = "1.2.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -67,7 +67,7 @@ android {
             quoteForBuildConfig(
                 optionalBuildProperty(
                     "SIGNALING_URL",
-                    "wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling"
+                    "wss://signaling.autamedica.com/signaling"
                 )
             )
         )

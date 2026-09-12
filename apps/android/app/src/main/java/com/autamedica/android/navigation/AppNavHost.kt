@@ -125,10 +125,10 @@ fun AppNavHost(
                     navController.navigate(Route.PatientCommunity)
                 },
                 onNavigateToPrescriptions = {
-                    navController.navigate(Route.ConsultationReports)
+                    navController.navigate(Route.Prescriptions)
                 },
                 onNavigateToClinicalDocuments = {
-                    navController.navigate(Route.ConsultationReports)
+                    navController.navigate(Route.ClinicalDocuments)
                 },
                 onNavigateToContinuityStatus = {
                     navController.navigate(Route.ContinuityStatus)
@@ -149,6 +149,12 @@ fun AppNavHost(
                 },
                 onNavigateToCreateCertificate = { patientId ->
                     navController.navigate(Route.CreateCertificate(patientId))
+                },
+                onNavigateToDoctorMedicalOrders = {
+                    navController.navigate(Route.DoctorMedicalOrders)
+                },
+                onNavigateToCreateMedicalOrder = { patientId ->
+                    navController.navigate(Route.CreateMedicalOrder(patientId))
                 },
                 onNavigateToPatientProfile = {
                     navController.navigate(Route.PatientProfile) {
@@ -351,6 +357,21 @@ fun AppNavHost(
         composable<Route.TdahEvaluation> {
             com.autamedica.android.presentation.patients.psychiatry.TdahEvaluationScreen(
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.Prescriptions> {
+            com.autamedica.android.presentation.prescriptions.PrescriptionsScreen(
+                onBack = { navController.popBackStack() },
+                onRequestConsultation = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<Route.ClinicalDocuments> {
+            com.autamedica.android.presentation.documents.ClinicalDocumentsScreen(
+                onBack = { navController.popBackStack() }
             )
         }
     }

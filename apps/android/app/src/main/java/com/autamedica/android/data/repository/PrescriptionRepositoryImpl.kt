@@ -9,11 +9,14 @@ import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.repository.PrescriptionRepository
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -245,34 +248,86 @@ class PrescriptionRepositoryImpl @Inject constructor(
             put("country_code", request.countryCode)
         }
 
-        // 3. Insert prescription record into public.prescriptions
-        val insertPayload = buildJsonObject {
-            put("id", prescriptionId)
+        // 3. Invocar Edge Function issue-prescription
+        val issuePayload = buildJsonObject {
+            put("prescriptionId", prescriptionId)
+            put("prescription_id", prescriptionId)
+            put("doctorId", doctor.id)
             put("doctor_id", doctor.id)
+            put("patientId", request.patientId)
             put("patient_id", request.patientId)
-            put("cuir", cuir)
-            put("status", "signed")
+            put("clinicalData", clinicalData)
             put("clinical_data", clinicalData)
-            put("vendor_name", "autamedica")
-            put("vendor_id", cuir)
-            put("qr_code_content", qrContent)
-            put("created_at", now)
-            put("updated_at", now)
+            put("items", itemsArray)
+            put("diagnosis", request.diagnosis)
+            request.notes?.takeIf { it.isNotBlank() }?.let { put("notes", it) }
+            put("countryCode", request.countryCode)
+            put("country_code", request.countryCode)
         }
 
-        supabaseClient.postgrest.from("prescriptions").insert(insertPayload)
+        var finalCuir = cuir
+        var finalPdfUrl: String? = null
+        var finalStatus = "sent"
+        var finalQr = qrContent
 
-        // 4. Record audit event into public.prescription_audit_events
-        runCatching {
-            val auditPayload = buildJsonObject {
-                put("id", UUID.randomUUID().toString())
-                put("prescription_id", prescriptionId)
-                put("event_type", "ACT_DIGITAL_SIGNATURE")
-                put("user_id", userId)
-                put("timestamp", now)
-                put("user_agent", "AutaMedica-Android/1.2.7")
+        val edgeSuccess = runCatching {
+            val response = supabaseClient.functions("issue-prescription", issuePayload)
+            val responseText = response.bodyAsText()
+            SecureLog.info("[Prescriptions] issue-prescription Edge Function response: $responseText")
+            val jsonElement = Json.parseToJsonElement(responseText)
+            val jsonObj = (jsonElement as? JsonObject)
+                ?: (jsonElement as? JsonArray)?.firstOrNull() as? JsonObject
+            val targetObj = jsonObj?.get("data") as? JsonObject
+                ?: jsonObj?.get("prescription") as? JsonObject
+                ?: jsonObj
+
+            val returnedCuir = targetObj?.get("cuir")?.jsonPrimitive?.contentOrNull
+            val returnedPdf = targetObj?.get("signed_pdf_url")?.jsonPrimitive?.contentOrNull
+                ?: targetObj?.get("signedPdfUrl")?.jsonPrimitive?.contentOrNull
+            val returnedStatus = targetObj?.get("status")?.jsonPrimitive?.contentOrNull ?: "sent"
+            val returnedQr = targetObj?.get("qr_code_content")?.jsonPrimitive?.contentOrNull
+                ?: targetObj?.get("qrContent")?.jsonPrimitive?.contentOrNull
+
+            if (!returnedCuir.isNullOrBlank()) {
+                finalCuir = returnedCuir
+                finalPdfUrl = returnedPdf
+                finalStatus = returnedStatus
+                finalQr = returnedQr ?: "https://autamedica.com/verify/$returnedCuir"
+                true
+            } else {
+                false
             }
-            supabaseClient.postgrest.from("prescription_audit_events").insert(auditPayload)
+        }.getOrDefault(false)
+
+        // 4. Fallback seguro en caso de error o modo offline
+        if (!edgeSuccess) {
+            finalStatus = "signed"
+            val insertPayload = buildJsonObject {
+                put("id", prescriptionId)
+                put("doctor_id", doctor.id)
+                put("patient_id", request.patientId)
+                put("cuir", cuir)
+                put("status", "signed")
+                put("clinical_data", clinicalData)
+                put("vendor_name", "autamedica")
+                put("vendor_id", cuir)
+                put("qr_code_content", qrContent)
+                put("created_at", now)
+                put("updated_at", now)
+            }
+            supabaseClient.postgrest.from("prescriptions").insert(insertPayload)
+
+            runCatching {
+                val auditPayload = buildJsonObject {
+                    put("id", UUID.randomUUID().toString())
+                    put("prescription_id", prescriptionId)
+                    put("event_type", "ACT_DIGITAL_SIGNATURE")
+                    put("user_id", userId)
+                    put("timestamp", now)
+                    put("user_agent", "AutaMedica-Android/1.2.7")
+                }
+                supabaseClient.postgrest.from("prescription_audit_events").insert(auditPayload)
+            }
         }
 
         // 5. Resolve patient info for returning the fully hydrated Prescription
@@ -281,10 +336,10 @@ class PrescriptionRepositoryImpl @Inject constructor(
 
         Prescription(
             id = prescriptionId,
-            status = "signed",
-            cuir = cuir,
-            signedPdfUrl = null,
-            qrCodeContent = qrContent,
+            status = finalStatus,
+            cuir = finalCuir,
+            signedPdfUrl = finalPdfUrl,
+            qrCodeContent = finalQr,
             medicationName = firstItem.medicationName,
             dosage = firstItem.dosage,
             frequency = firstItem.frequency,

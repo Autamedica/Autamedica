@@ -150,4 +150,12 @@ class RegisterViewModel @Inject constructor(
             }
         }
     }
+
+    fun onGoogleSignInError(e: Throwable) {
+        if (e !is androidx.credentials.exceptions.GetCredentialCancellationException) {
+            _uiState.update { it.copy(isGoogleLoading = false, error = e.message ?: "Error al autenticar con Google") }
+        } else {
+            _uiState.update { it.copy(isGoogleLoading = false) }
+        }
+    }
 }

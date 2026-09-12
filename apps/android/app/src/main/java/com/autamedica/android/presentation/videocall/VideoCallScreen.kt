@@ -525,6 +525,12 @@ fun VideoCallScreen(
                         onNotesChange = viewModel::updateConsultationNotes,
                         onSaveNotes = viewModel::saveConsultationNotes,
                         onClose = viewModel::toggleClinicalNotes,
+                        onOpenFullSoap = if (!isPreviewRoute) {
+                            {
+                                viewModel.toggleClinicalNotes()
+                                viewModel.openSoapEvolution()
+                            }
+                        } else null,
                     )
                 }
             }
