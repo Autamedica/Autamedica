@@ -18,6 +18,7 @@ export type DbAppointmentRow = {
   reason: string | null
   meeting_url?: string | null
   location?: string | null
+  created_by?: string | null
   created_at: string
   updated_at: string
   doctor?: {
@@ -96,6 +97,7 @@ export function mapAppointment(row: DbAppointmentRow): AppointmentWithDoctor {
     reason: row.reason ?? row.notes ?? null,
     meeting_url: row.meeting_url ?? null,
     location: row.location ?? null,
+    created_by: row.created_by ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
     doctor: row.doctor

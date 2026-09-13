@@ -3,6 +3,7 @@ package com.autamedica.android.presentation.doctors.agenda.components
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -78,6 +79,10 @@ fun AppointmentDetailsBottomSheet(
     onStatusChange: (AppointmentStatus) -> Unit,
     modifier: Modifier = Modifier,
     onOpenAnamnesis: (() -> Unit)? = null,
+    onNavigateToCreatePrescription: ((patientId: String) -> Unit)? = null,
+    onNavigateToCreateMedicalOrder: ((patientId: String) -> Unit)? = null,
+    onNavigateToCreateCertificate: ((patientId: String) -> Unit)? = null,
+    onNavigateToConsultationReport: ((appointmentId: String) -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
@@ -441,6 +446,200 @@ fun AppointmentDetailsBottomSheet(
                             }
                         }
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Section: COCKPIT CLÍNICO (ACTO MÉDICO)
+            Text(
+                text = "COCKPIT CLÍNICO (ACTO MÉDICO)",
+                style = MaterialTheme.typography.labelSmall,
+                color = AuTextTertiary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 10.sp,
+                letterSpacing = 1.5.sp,
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // Receta
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(enabled = appointment.patientId != null) {
+                                appointment.patientId?.let { pid ->
+                                    onDismiss()
+                                    onNavigateToCreatePrescription?.invoke(pid)
+                                }
+                            },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Description,
+                                contentDescription = null,
+                                tint = if (appointment.patientId != null) PortalDoctors else AuTextTertiary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Emitir Receta",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (appointment.patientId != null) PortalDoctors else AuTextTertiary,
+                            )
+                        }
+                    }
+
+                    // Orden Médica
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(enabled = appointment.patientId != null) {
+                                appointment.patientId?.let { pid ->
+                                    onDismiss()
+                                    onNavigateToCreateMedicalOrder?.invoke(pid)
+                                }
+                            },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Description,
+                                contentDescription = null,
+                                tint = if (appointment.patientId != null) PortalDoctors else AuTextTertiary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Crear Orden",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (appointment.patientId != null) PortalDoctors else AuTextTertiary,
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // Certificado
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(enabled = appointment.patientId != null) {
+                                appointment.patientId?.let { pid ->
+                                    onDismiss()
+                                    onNavigateToCreateCertificate?.invoke(pid)
+                                }
+                            },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Description,
+                                contentDescription = null,
+                                tint = if (appointment.patientId != null) PortalDoctors else AuTextTertiary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Certificado",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (appointment.patientId != null) PortalDoctors else AuTextTertiary,
+                            )
+                        }
+                    }
+
+                    // Evolución SOAP / Reporte
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                onDismiss()
+                                onNavigateToConsultationReport?.invoke(appointment.id)
+                            },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Description,
+                                contentDescription = null,
+                                tint = PortalDoctors,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Evolución SOAP",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = PortalDoctors,
+                            )
+                        }
+                    }
+                }
+
+                // Avisar Demora (+15 min)
+                OutlinedButton(
+                    onClick = {
+                        val delayMsg = "Estimado/a $patientName, le aviso desde el consultorio de AutaMedica que estamos con una demora de aproximadamente 15 minutos en la atención previa. Le atenderé a la brevedad."
+                        val sendIntent = Intent(Intent.ACTION_VIEW).apply {
+                            data = Uri.parse("https://wa.me/?text=" + Uri.encode(delayMsg))
+                        }
+                        context.startActivity(sendIntent)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Schedule,
+                        contentDescription = null,
+                        tint = Color(0xFFD97706),
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Avisar demora de 15 min por WhatsApp",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFD97706),
+                    )
                 }
             }
 

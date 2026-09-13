@@ -19,6 +19,17 @@ interface AppointmentRepository {
         reason: String? = null
     ): Result<Appointment>
 
+    suspend fun createDoctorAppointment(
+        doctorId: String,
+        patientId: String?,
+        startTime: String,
+        endTime: String,
+        type: String = "telemedicine",
+        notes: String? = null,
+        guestName: String? = null,
+        guestPhone: String? = null,
+    ): Result<Appointment> = Result.failure(NotImplementedError("createDoctorAppointment not implemented"))
+
     suspend fun getAvailableSlots(
         doctorId: String,
         date: String,

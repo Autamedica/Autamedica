@@ -79,6 +79,8 @@ Usa el template estándar:
 ## 🔗 ADRs Existentes
 
 - [ADR-0001: Telemedicina Web + Mobile con arquitectura canonica de llamada](./ADR-0001-telemedicine-web-mobile-canonical-call-architecture.md)
+- [ADR-0002: Hexagonal Layered Architecture](./ADR-0002-hexagonal-layered-architecture.md)
+- [ADR-0003: Cloudflare Calls SFU como plano de medios canonico (web + Android)](./ADR-0003-cloudflare-calls-sfu-canonical-media-plane.md)
 
 ---
 

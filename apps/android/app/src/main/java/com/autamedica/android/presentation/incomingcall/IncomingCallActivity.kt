@@ -134,6 +134,8 @@ class IncomingCallActivity : ComponentActivity() {
             putExtra(NotificationRouteResolver.EXTRA_APPOINTMENT_ID, appointmentId)
             putExtra(NotificationRouteResolver.EXTRA_ROOM_ID, roomId)
             putExtra(NotificationRouteResolver.EXTRA_NOTIFICATION_TYPE, "CALL_STARTED")
+            putExtra(IncomingCallNotificationManager.EXTRA_CALL_ID, callId)
+            putExtra(IncomingCallNotificationManager.EXTRA_IS_INCOMING_CALL, true)
         }
         startActivity(launchIntent)
         finish()

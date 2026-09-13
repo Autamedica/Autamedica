@@ -17,11 +17,10 @@ import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
-import com.autamedica.android.domain.signaling.SignalingClient
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.presentation.videocall.webrtc.TurnManager
-import com.autamedica.android.presentation.videocall.webrtc.WebRTCEngine
+import com.autamedica.android.presentation.videocall.webrtc.sfu.CloudflareCallsEngine
 import com.autamedica.android.service.CallNotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -97,7 +96,6 @@ class VideoCallViewModel @Inject constructor(
     private val json: Json,
     savedStateHandle: SavedStateHandle,
     private val authRepository: AuthRepository,
-    private val signalingClient: SignalingClient,
     private val telemedicineRepository: TelemedicineRepository,
     private val appointmentRepository: AppointmentRepository,
     private val doctorRepository: DoctorRepository,
@@ -112,11 +110,11 @@ class VideoCallViewModel @Inject constructor(
 
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-    val engine = WebRTCEngine(
+    val engine = CloudflareCallsEngine(
         context = context,
         peerConnectionFactory = peerConnectionFactory,
         eglBase = eglBase,
-        signalingClient = signalingClient,
+        supabaseClient = supabaseClient,
         scope = viewModelScope,
         json = json,
     )
@@ -145,6 +143,7 @@ class VideoCallViewModel @Inject constructor(
     private var callUserId: String = ""
     private var callUserType: String = ""
     private var callUserName: String = ""
+    private var explicitRoomId: String = ""
 
     init {
         _uiState.update {
@@ -157,10 +156,11 @@ class VideoCallViewModel @Inject constructor(
         setupAudioForCall()
     }
 
-    fun startCall(isIncomingCall: Boolean = false) {
+    fun startCall(roomId: String = "", isIncomingCall: Boolean = false) {
         if (callStarted) return
         callStarted = true
         callRequestedByPatient = isIncomingCall
+        if (roomId.isNotBlank()) explicitRoomId = roomId
         _uiState.update {
             it.copy(
                 connectionState = if (it.isDoctor || isIncomingCall) ConnectionState.CONNECTING else ConnectionState.DISCONNECTED,
@@ -246,9 +246,12 @@ class VideoCallViewModel @Inject constructor(
                     )
                 }
 
+                val effectiveRoomId = explicitRoomId.takeIf { it.isNotBlank() }
+                    ?: incomingRoomId.takeIf { it.isNotBlank() }
+                    ?: appointmentId
                 engine.initialize(
-                    WebRTCEngine.Config(
-                        roomId = appointmentId,
+                    CloudflareCallsEngine.Config(
+                        roomId = effectiveRoomId,
                         userId = callUserId,
                         userType = callUserType,
                         userName = callUserName,
@@ -899,13 +902,12 @@ class VideoCallViewModel @Inject constructor(
             )
         }
 
-        // Fast path: si tenemos el roomId real de la llamada entrante, conectar directamente
-        // sin hacer lookup en Supabase. Evita el bug donde appointmentId != roomId de la call.
-        if (incomingRoomId.isNotBlank()) {
+        val effectiveRoom = explicitRoomId.takeIf { it.isNotBlank() } ?: incomingRoomId
+        if (effectiveRoom.isNotBlank()) {
             sessionRetryJob?.cancel()
             _uiState.update {
                 it.copy(
-                    activeCallId = incomingRoomId,
+                    activeCallId = effectiveRoom,
                     connectionState = ConnectionState.CONNECTING,
                     isPreviewOnlyMode = false,
                     isWaitingRoom = !it.isDoctor,
@@ -929,7 +931,7 @@ class VideoCallViewModel @Inject constructor(
                     }
                 }
             )
-            engine.connect(incomingRoomId, null)
+            engine.connect(effectiveRoom, null)
             return
         }
 

@@ -514,6 +514,65 @@ class AppointmentRepositoryImpl @Inject constructor(
         SecureLog.error("[Appointments] Failed booking appointment", it)
     }
 
+    override suspend fun createDoctorAppointment(
+        doctorId: String,
+        patientId: String?,
+        startTime: String,
+        endTime: String,
+        type: String,
+        notes: String?,
+        guestName: String?,
+        guestPhone: String?,
+    ): Result<Appointment> = runCatching {
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: throw IllegalStateException("No authenticated user found")
+
+        val formattedNotes = buildString {
+            if (!guestName.isNullOrBlank()) {
+                append("[INVITADO: ${guestName.trim()}")
+                if (!guestPhone.isNullOrBlank()) {
+                    append(" - Tel: ${guestPhone.trim()}")
+                }
+                append("] ")
+            }
+            if (!notes.isNullOrBlank()) {
+                append(notes.trim())
+            }
+        }.trim().ifBlank { null }
+
+        val roomId = "room-${UUID.randomUUID()}"
+
+        val dto = supabaseClient.postgrest
+            .from("appointments")
+            .insert(
+                CreateAppointmentDto(
+                    patientId = patientId,
+                    doctorId = doctorId,
+                    startTime = startTime,
+                    endTime = endTime,
+                    status = "confirmed",
+                    type = type,
+                    notes = formattedNotes,
+                    meetingUrl = roomId,
+                )
+            ) {
+                select(Columns.ALL)
+            }
+            .decodeSingle<AppointmentDto>()
+
+        val domain = dto.toDomain()
+
+        try {
+            appointmentDao.insertAppointments(listOf(domain.toEntity(ownerUserId = userId)))
+        } catch (e: Exception) {
+            SecureLog.warn("[Appointments] Failed to cache doctor appointment in Room: ${e.message}")
+        }
+
+        domain
+    }.onFailure {
+        SecureLog.error("[Appointments] Failed creating doctor appointment", it)
+    }
+
     override suspend fun getAvailableSlots(
         doctorId: String,
         date: String,
@@ -931,7 +990,7 @@ private data class DoctorSpecialtyBookingDto(
 
 @Serializable
 private data class CreateAppointmentDto(
-    @SerialName("patient_id") val patientId: String,
+    @SerialName("patient_id") val patientId: String? = null,
     @SerialName("doctor_id") val doctorId: String,
     @SerialName("start_time") val startTime: String,
     @SerialName("end_time") val endTime: String,

@@ -27,12 +27,18 @@ object NotificationRouteResolver {
         val normalizedAppointmentId = appointmentId.normalizedOrNull()
         val normalizedRoomId = roomId.normalizedOrNull()
 
-        if (isCallNotification(notificationType) && normalizedAppointmentId != null) {
-            return Route.VideoCall(
-                appointmentId = normalizedAppointmentId,
-                roomId = normalizedRoomId ?: "",
-                isIncomingCall = isIncomingCallNotificationType(notificationType),
-            )
+        if (isCallNotification(notificationType)) {
+            // Las llamadas directas (creadas sin appointment) llegan con appointment_id
+            // vacío pero con room_id. El flujo de VideoCall resuelve la sala por
+            // incomingRoomId en el fast path, así que hay que navegar igual.
+            val hasRoomOnly = normalizedRoomId != null
+            if (normalizedAppointmentId != null || hasRoomOnly) {
+                return Route.VideoCall(
+                    appointmentId = normalizedAppointmentId ?: "",
+                    roomId = normalizedRoomId ?: "",
+                    isIncomingCall = isIncomingCallNotificationType(notificationType),
+                )
+            }
         }
 
         val normalizedChatId = chatRoomId.normalizedOrNull()

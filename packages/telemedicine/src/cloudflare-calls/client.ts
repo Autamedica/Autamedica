@@ -62,6 +62,16 @@ export class CloudflareCallsClient implements CallProvider {
   private pendingRemoteSessionIds: Array<{ sessionId: string; userId: string }> = []
   /** Peer user IDs who joined while we were still connecting — re-announce our session to them once ready */
   private pendingPeerAnnouncements: string[] = []
+  /** Remote users whose last subscribeToSession came back without tracks (peer announced its
+   *  cf-session before its local tracks/new finished). Keeps a duplicate cf-session from that
+   *  peer from being discarded idempotently, so we can re-subscribe once the publisher is live. */
+  private remoteSubscribeNoTracks = new Set<string>()
+  /** Backoff budget for re-subscribing to peers who announced early. Bounded so a dead session
+   *  cannot loop the signaling handler forever. */
+  private resubscribeAttempts = new Map<string, number>()
+  private resubscribeTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  private static readonly REMOTE_RESUBSCRIBE_MAX_ATTEMPTS = 3
+  private static readonly REMOTE_RESUBSCRIBE_BACKOFF_MS = 2_000
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private listeners = new Map<keyof WebRTCEvents, ((...args: any[]) => void)[]>()
   private readonly config: Required<Omit<CloudflareCallsClientConfig, 'userName'>> & { userName?: string }
@@ -318,14 +328,7 @@ export class CloudflareCallsClient implements CallProvider {
       this.pendingRemoteSessionIds = []
       for (const { sessionId: remoteSessionId, userId: remoteUserId } of pending) {
         this.debugLogger.info('Subscribing to pending peer session', { remoteSessionId })
-        try {
-          const pulled = await this.cfSession.subscribeToSession(remoteSessionId, (mid) => {
-            this.midToUserId.set(mid, remoteUserId)
-          })
-          this.recordPulledMids(pulled, remoteUserId)
-        } catch (err) {
-          this.debugLogger.error('Draining pending subscribe failed', err, { remoteSessionId })
-        }
+        await this.subscribeToRemoteSession(remoteUserId, remoteSessionId)
       }
 
       // Re-announce our cf-session to peers who joined while we were still connecting
@@ -371,6 +374,10 @@ export class CloudflareCallsClient implements CallProvider {
     this.pendingRemoteUserIds = []
     this.pendingRemoteSessionIds = []
     this.pendingPeerAnnouncements = []
+    for (const timer of this.resubscribeTimers.values()) clearTimeout(timer)
+    this.resubscribeTimers.clear()
+    this.remoteSubscribeNoTracks.clear()
+    this.resubscribeAttempts.clear()
     this.connectedPeerIds.clear()
     this.signalingReconnectAttempt = 0
   }
@@ -517,7 +524,7 @@ export class CloudflareCallsClient implements CallProvider {
           from: this.config.userId,
           data: { userType: this.config.userType },
         })
-        if (this.cfSession?.getSessionId()) {
+        if (this.cfSession?.isReady()) {
           this.sendSignal({
             type: 'cf-session',
             from: this.config.userId,
@@ -572,7 +579,7 @@ export class CloudflareCallsClient implements CallProvider {
 
       case 'user-joined': {
         this.emit('user-joined', msg.from, msg.data.userType)
-        if (this.cfSession?.getSessionId()) {
+        if (this.cfSession?.isReady()) {
           // We're ready — announce our session immediately
           this.sendSignal({
             type: 'cf-session',
@@ -604,8 +611,20 @@ export class CloudflareCallsClient implements CallProvider {
         const previousSessionId = this.userIdToSessionId.get(remoteUserId)
 
         if (previousSessionId && previousSessionId === remoteSessionId) {
-          // Idempotent replay (signaling replay or re-announce) — nothing to do.
-          this.debugLogger.info('Ignoring duplicate cf-session for peer', { remoteUserId, remoteSessionId })
+          // Duplicate announce for the current peer session. Normally an
+          // idempotent replay (signaling re-broadcast, reconnect on our side),
+          // so we do nothing — EXCEPT when our last subscribe to that session
+          // came back with zero tracks: the peer announced its cf-session
+          // before its local tracks/new finished (sessionId is non-null right
+          // after sessions/new, before publish), so the SFU had nothing to
+          // subscribe to. Re-subscribe with bounded backoff so the peer's
+          // re-announce finally attaches real media (remote video never
+          // appearing bug).
+          if (this.remoteSubscribeNoTracks.has(remoteUserId)) {
+            this.scheduleRemoteResubscribe(remoteUserId, remoteSessionId)
+          } else {
+            this.debugLogger.info('Ignoring duplicate cf-session for peer', { remoteUserId, remoteSessionId })
+          }
           break
         }
 
@@ -633,17 +652,7 @@ export class CloudflareCallsClient implements CallProvider {
         // initial tracks/new completes, which used to trigger the
         // "no conectado aún" throw (ASTRO-B/C).
         if (this.cfSession?.isReady()) {
-          try {
-            this.debugLogger.info('Subscribing to remote tracks', { remoteSessionId })
-            const pulled = await this.cfSession.subscribeToSession(remoteSessionId, (mid) => {
-              this.midToUserId.set(mid, remoteUserId)
-            })
-            this.recordPulledMids(pulled, remoteUserId)
-          } catch (err) {
-            // Don't let a failed subscribe for one peer tear down the whole
-            // signaling loop — log and move on; the peer will re-announce.
-            this.debugLogger.error('subscribeToSession failed', err, { remoteSessionId })
-          }
+          await this.subscribeToRemoteSession(remoteUserId, remoteSessionId)
         } else {
           this.debugLogger.info('CF session not ready yet, queueing remote session', { remoteSessionId })
           if (!this.pendingRemoteSessionIds.some((p) => p.sessionId === remoteSessionId)) {
@@ -672,6 +681,76 @@ export class CloudflareCallsClient implements CallProvider {
         this.midToUserId.set(t.mid, remoteUserId)
       }
     }
+  }
+
+  /**
+   * Subscribe to a remote peer's Cloudflare session and remember whether any
+   * tracks actually came back. An empty result usually means the peer published
+   * its cf-session before its local tracks/new finished; without a marker the
+   * duplicate cf-session that follows gets discarded idempotently and remote
+   * media never appears (the bug fixed here).
+   */
+  private async subscribeToRemoteSession(remoteUserId: string, remoteSessionId: string): Promise<void> {
+    try {
+      this.debugLogger.info('Subscribing to remote tracks', { remoteSessionId })
+      const pulled = await this.cfSession?.subscribeToSession(remoteSessionId, (mid) => {
+        this.midToUserId.set(mid, remoteUserId)
+      }) ?? []
+      this.recordPulledMids(pulled, remoteUserId)
+      if (pulled.length === 0) {
+        this.remoteSubscribeNoTracks.add(remoteUserId)
+        this.debugLogger.warn('Remote subscribe returned no tracks; scheduling retry', {
+          remoteUserId, remoteSessionId, pulledTracks: pulled.length,
+        })
+        this.scheduleRemoteResubscribe(remoteUserId, remoteSessionId)
+      } else {
+        this.remoteSubscribeNoTracks.delete(remoteUserId)
+        this.resubscribeAttempts.delete(remoteUserId)
+        const timer = this.resubscribeTimers.get(remoteUserId)
+        if (timer) clearTimeout(timer)
+        this.resubscribeTimers.delete(remoteUserId)
+      }
+    } catch (err) {
+      this.remoteSubscribeNoTracks.add(remoteUserId)
+      this.scheduleRemoteResubscribe(remoteUserId, remoteSessionId)
+      this.debugLogger.error('subscribeToSession failed, scheduled retry', err, { remoteSessionId })
+    }
+  }
+
+  /**
+   * Re-subscribe to a peer whose earlier subscribe came back empty (announced
+   * before publishing). Bounded backoff so a dead session cannot loop forever;
+   * a later successful subscribe clears the budget via subscribeToRemoteSession.
+   */
+  private scheduleRemoteResubscribe(remoteUserId: string, remoteSessionId: string): void {
+    if (this.intentionalClose || this.connectionState === 'closed') return
+    if (this.resubscribeTimers.has(remoteUserId)) return
+
+    const attempt = (this.resubscribeAttempts.get(remoteUserId) ?? 0) + 1
+    if (attempt > CloudflareCallsClient.REMOTE_RESUBSCRIBE_MAX_ATTEMPTS) {
+      this.remoteSubscribeNoTracks.delete(remoteUserId)
+      this.resubscribeAttempts.delete(remoteUserId)
+      this.debugLogger.warn('Remote re-subscribe attempts exhausted without tracks', { remoteUserId, remoteSessionId })
+      return
+    }
+
+    this.resubscribeAttempts.set(remoteUserId, attempt)
+    const delayMs = CloudflareCallsClient.REMOTE_RESUBSCRIBE_BACKOFF_MS * attempt
+    this.debugLogger.info('Scheduling re-subscribe to early-announced peer', {
+      remoteUserId, remoteSessionId, attempt, delayMs,
+    })
+    const timer = setTimeout(() => {
+      this.resubscribeTimers.delete(remoteUserId)
+      if (this.intentionalClose || this.connectionState === 'closed') return
+      if (this.cfSession?.isReady()) {
+        void this.subscribeToRemoteSession(remoteUserId, remoteSessionId)
+      } else {
+        // Still not ready — keep the no-tracks marker so the next duplicate
+        // cf-session tries again a bounded number of times.
+        this.debugLogger.info('CF session not ready for re-subscribe yet', { remoteUserId, remoteSessionId })
+      }
+    }, delayMs)
+    this.resubscribeTimers.set(remoteUserId, timer)
   }
 
   /**
@@ -714,6 +793,13 @@ export class CloudflareCallsClient implements CallProvider {
     // Remove any pending announcement for this user so we don't re-consume it
     // from the heuristic fallback in handleRemoteTrack.
     this.pendingRemoteUserIds = this.pendingRemoteUserIds.filter((u) => u !== remoteUserId)
+
+    // Cancel any scheduled re-subscribe for this peer (fresh session next).
+    const timer = this.resubscribeTimers.get(remoteUserId)
+    if (timer) clearTimeout(timer)
+    this.resubscribeTimers.delete(remoteUserId)
+    this.remoteSubscribeNoTracks.delete(remoteUserId)
+    this.resubscribeAttempts.delete(remoteUserId)
 
     this.connectedPeerIds.delete(remoteUserId)
 

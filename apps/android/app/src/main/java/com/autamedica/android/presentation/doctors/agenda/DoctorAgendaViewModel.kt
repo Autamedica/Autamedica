@@ -8,6 +8,7 @@ import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentTransitionRules
 import com.autamedica.android.domain.model.DoctorAvailabilitySlot
 import com.autamedica.android.domain.model.PatientClinicalContext
+import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
@@ -51,8 +52,13 @@ data class DoctorAgendaUiState(
     val selectedAppointment: Appointment? = null,
     val isDetailsSheetOpen: Boolean = false,
     val selectedFilter: AgendaFilter = AgendaFilter.ALL,
-    val selectedDate: LocalDate? = null,
+    val selectedDate: LocalDate = LocalDate.now(),
     val showWaffleCalendar: Boolean = false,
+    val isTimelineView: Boolean = true,
+    val isCreateSheetOpen: Boolean = false,
+    val createSheetInitialTime: String = "09:00",
+    val isSubmittingAppointment: Boolean = false,
+    val doctorPatients: List<PatientSummary> = emptyList(),
     val error: String? = null,
 ) {
     val currentTurno: Appointment?
@@ -81,31 +87,11 @@ data class DoctorAgendaUiState(
 
     val filteredAppointments: List<Appointment>
         get() {
-            val today = LocalDate.now()
             val nowDt = OffsetDateTime.now()
-
-            var list = appointments
-
-            if (selectedDate != null) {
-                list = list.filter { appt ->
-                    runCatching {
-                        OffsetDateTime.parse(appt.startTime).toLocalDate() == selectedDate
-                    }.getOrDefault(false)
-                }
-            } else {
-                list = when (selectedFilter) {
-                    AgendaFilter.TODAY -> list.filter { appt ->
-                        runCatching {
-                            OffsetDateTime.parse(appt.startTime).toLocalDate() == today
-                        }.getOrDefault(false)
-                    }
-                    AgendaFilter.UPCOMING -> list.filter { appt ->
-                        runCatching {
-                            OffsetDateTime.parse(appt.startTime).isAfter(nowDt.minusMinutes(30))
-                        }.getOrDefault(false)
-                    }
-                    AgendaFilter.ALL -> list
-                }
+            val list = appointments.filter { appt ->
+                runCatching {
+                    OffsetDateTime.parse(appt.startTime).toLocalDate() == selectedDate
+                }.getOrDefault(false)
             }
 
             return list.sortedWith { a, b ->
@@ -259,11 +245,81 @@ class DoctorAgendaViewModel @Inject constructor(
     }
 
     fun setFilter(filter: AgendaFilter) {
-        _uiState.update { it.copy(selectedFilter = filter, selectedDate = null) }
+        _uiState.update { it.copy(selectedFilter = filter) }
     }
 
     fun selectDate(date: LocalDate?) {
-        _uiState.update { it.copy(selectedDate = date) }
+        _uiState.update { it.copy(selectedDate = date ?: LocalDate.now()) }
+    }
+
+    fun toggleViewMode() {
+        _uiState.update { it.copy(isTimelineView = !it.isTimelineView) }
+    }
+
+    fun openCreateAppointment(initialTime: String? = null) {
+        _uiState.update {
+            it.copy(
+                isCreateSheetOpen = true,
+                createSheetInitialTime = initialTime ?: "09:00",
+            )
+        }
+        loadPatients()
+    }
+
+    fun closeCreateAppointment() {
+        _uiState.update { it.copy(isCreateSheetOpen = false) }
+    }
+
+    fun createDoctorAppointment(
+        patientId: String?,
+        guestName: String?,
+        guestPhone: String?,
+        startTime: String,
+        endTime: String,
+        type: String,
+        reason: String?,
+    ) {
+        val doctorId = _uiState.value.doctorId
+        if (doctorId.isBlank()) {
+            SecureLog.error("[DoctorAgenda] doctorId is blank, cannot create appointment")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingAppointment = true) }
+            appointmentRepository.createDoctorAppointment(
+                doctorId = doctorId,
+                patientId = patientId,
+                startTime = startTime,
+                endTime = endTime,
+                type = type,
+                notes = reason,
+                guestName = guestName,
+                guestPhone = guestPhone,
+            ).onSuccess {
+                _uiState.update {
+                    it.copy(
+                        isSubmittingAppointment = false,
+                        isCreateSheetOpen = false,
+                    )
+                }
+                loadAppointments()
+            }.onFailure { err ->
+                SecureLog.error("[DoctorAgenda] Failed creating appointment", err)
+                _uiState.update { it.copy(isSubmittingAppointment = false) }
+            }
+        }
+    }
+
+    fun loadPatients() {
+        val doctorId = _uiState.value.doctorId
+        if (doctorId.isBlank() || _uiState.value.doctorPatients.isNotEmpty()) return
+
+        viewModelScope.launch {
+            doctorRepository.getDoctorPatients(doctorId).onSuccess { patients ->
+                _uiState.update { it.copy(doctorPatients = patients) }
+            }
+        }
     }
 
     fun toggleWaffleCalendar() {

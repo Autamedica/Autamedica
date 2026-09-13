@@ -16,6 +16,7 @@ import { getBrowserSupabaseClient } from "@/lib/supabase-browser";
 import { resolvePatientNameMap } from "@/lib/doctors/services/appointment.service";
 import type { Locale } from "@/i18n/index";
 import { getOnboardingStatus } from "@/lib/onboarding-grace";
+import { canStartTelemedicineCall } from "@/lib/doctors/queries/doctor-appointments.selectors";
 import { 
   ArrowRight, 
   ArrowUpRight, 
@@ -382,7 +383,7 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
           {/* Col 1: Telemedicina & Cockpit Activo */}
           <div className="border-b border-neutral-800/40 pb-5 lg:border-b-0 lg:pb-0 lg:pr-6 lg:border-r lg:border-neutral-800/40">
             {(() => {
-              const activeTelemedAppt = todayAppointments.find((a: any) => a.type === 'telemedicine' && a.status !== 'completed');
+              const activeTelemedAppt = todayAppointments.find((a: any) => canStartTelemedicineCall(a));
               const activeTelemedPatientId = activeTelemedAppt?.patient_id || "";
               const activeTelemedPatientName = activeTelemedAppt ? resolvePatientName(activeTelemedPatientId) : "";
               

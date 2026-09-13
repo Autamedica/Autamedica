@@ -50,6 +50,20 @@ describe('TransitionAppointmentUseCase', () => {
     expect(repo.update).toHaveBeenCalledWith('apt-1', { status: 'no_show' });
   });
 
+  it('should successfully transition from no_show to in_progress', async () => {
+    const mockAppointment = { id: 'apt-1', status: 'no_show' } as AppointmentView;
+    const repo = createMockRepo({
+      findById: vi.fn().mockResolvedValue(mockAppointment),
+      update: vi.fn().mockResolvedValue({ ...mockAppointment, status: 'in_progress' }),
+    });
+    const useCase = new TransitionAppointmentUseCase({ appointmentRepo: repo });
+
+    const result = await useCase.execute('apt-1', 'in_progress');
+
+    expect(result.status).toBe('in_progress');
+    expect(repo.update).toHaveBeenCalledWith('apt-1', { status: 'in_progress' });
+  });
+
   it('should throw an error if appointment not found', async () => {
     const repo = createMockRepo({
       findById: vi.fn().mockResolvedValue(null),

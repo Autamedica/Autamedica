@@ -24,6 +24,7 @@ export interface Appointment {
   reason: string | null;
   meeting_url?: string | null;
   location?: string | null;
+  created_by?: string | null;
   created_at: string;
   updated_at: string;
 }

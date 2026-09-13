@@ -148,7 +148,7 @@ fun VideoCallScreen(
     val remoteTrack by viewModel.remoteVideoTrack.collectAsStateWithLifecycle()
 
     DisposableEffect(hasMediaPermissions) {
-        viewModel.startCall(isIncomingCall = isIncomingCall)
+        viewModel.startCall(roomId = roomId, isIncomingCall = isIncomingCall)
         onDispose { viewModel.endCall() }
     }
 

@@ -16,9 +16,15 @@ import javax.inject.Inject
 
 data class PatientsUiState(
     val patients: List<PatientSummary> = emptyList(),
+    val searchQuery: String = "",
+    val filter: PatientFilter = PatientFilter.ALL,
+    val groups: PatientGroups = PatientGroups(),
+    val totalCount: Int = 0,
+    val upcomingCount: Int = 0,
+    val recentCount: Int = 0,
     val isLoading: Boolean = true,
-    val error: String? = null,
     val isRefreshing: Boolean = false,
+    val error: String? = null,
 )
 
 @HiltViewModel
@@ -39,6 +45,14 @@ class PatientsViewModel @Inject constructor(
         loadPatients()
     }
 
+    fun onSearchQueryChange(query: String) {
+        _uiState.update { recompute(it.copy(searchQuery = query)) }
+    }
+
+    fun onFilterSelected(filter: PatientFilter) {
+        _uiState.update { recompute(it.copy(filter = filter)) }
+    }
+
     private fun loadPatients() {
         viewModelScope.launch {
             val user = authRepository.getCurrentUser()
@@ -56,11 +70,13 @@ class PatientsViewModel @Inject constructor(
             doctorRepository.getDoctorProfile(user.id).onSuccess { profile ->
                 doctorRepository.getDoctorPatients(profile.id).onSuccess { patients ->
                     _uiState.update {
-                        it.copy(
-                            patients = patients,
-                            isLoading = false,
-                            isRefreshing = false,
-                            error = null,
+                        recompute(
+                            it.copy(
+                                patients = patients,
+                                isLoading = false,
+                                isRefreshing = false,
+                                error = null,
+                            )
                         )
                     }
                 }.onFailure { error ->
@@ -84,5 +100,15 @@ class PatientsViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun recompute(state: PatientsUiState): PatientsUiState {
+        val groups = PatientListLogic.buildResults(state.patients, state.searchQuery, state.filter)
+        return state.copy(
+            groups = groups,
+            totalCount = state.patients.size,
+            upcomingCount = PatientListLogic.upcomingCount(state.patients),
+            recentCount = PatientListLogic.recentCount(state.patients),
+        )
     }
 }
