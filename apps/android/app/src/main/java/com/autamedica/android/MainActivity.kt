@@ -59,20 +59,21 @@ class MainActivity : ComponentActivity() {
             val activeIntent = incomingIntent
 
             LaunchedEffect(activeIntent) {
-                val route = NotificationRouteResolver.resolve(activeIntent)
-
-                if (route != null) {
-                    val currentDest = navController.currentDestination?.route
-                    val isAlreadyPastLogin = currentDest != null && !currentDest.contains("Login")
-                    if (isAlreadyPastLogin) {
-                        navController.navigate(route) {
-                            launchSingleTop = true
+                if (activeIntent != null) {
+                    val route = NotificationRouteResolver.resolve(activeIntent)
+                    if (route != null) {
+                        val currentDest = navController.currentDestination?.route
+                        val isOnLogin = currentDest?.contains("Login") == true
+                        if (!isOnLogin) {
+                            navController.navigate(route) {
+                                launchSingleTop = true
+                            }
+                        } else {
+                            pendingPostLoginRoute = route
                         }
-                    } else {
-                        pendingPostLoginRoute = route
                     }
+                    incomingIntent = null
                 }
-                incomingIntent = null
             }
 
             AutamedicaTheme {

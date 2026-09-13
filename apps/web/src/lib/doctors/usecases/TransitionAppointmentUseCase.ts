@@ -80,7 +80,7 @@ export class TransitionAppointmentUseCase {
       in_progress: ['completed'],
       completed: [],
       cancelled: [],
-      no_show: [],
+      no_show: ['in_progress', 'cancelled'],
     };
 
     return transitions[current]?.includes(next) ?? false;

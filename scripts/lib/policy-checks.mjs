@@ -42,14 +42,20 @@ const ALLOWED_PROCESS_ENV_SUBSTRINGS = [
   'apps/clinical-ai-orchestrator/',
   'apps/signaling-server/',
   'apps/mobile/',
+  'apps/captive-portal/',
+  'apps/telegram-bot/',
+  'apps/newsletter-worker/',
   '/lib/supabase',
   '/lib/env.',
+  '/lib/runtime-env.',
   '/lib/monitoring.',
   '/middleware/',
   '/oauth-handler.',
   '/components/auth/',
   '/components/layout/VSCodeLayout.',
   'apps/web/src/components/ErrorBoundary.tsx',
+  'apps/web/scripts/',
+  'apps/web/src/pages/api/patients/anamnesis/live-token.ts',
 ];
 
 function normalizePath(filePath) {

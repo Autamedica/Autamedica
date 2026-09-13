@@ -10,6 +10,8 @@
  *   (peer A)                     (relay)                    (peer B)
  */
 
+import { createTelemedicineLogger } from '../debug'
+
 export interface CFSessionDescription {
   type: 'offer' | 'answer'
   sdp: string
@@ -25,6 +27,8 @@ export interface TrackEntry {
   trackName: string
   mid?: string
   sessionId?: string
+  errorCode?: string
+  errorDescription?: string
 }
 
 interface NewTracksResponse {
@@ -67,6 +71,7 @@ export class CloudflareCallsSession {
    * after subscribeToSession returned, the race would be unwinnable).
    */
   private preTrackHandler: ((mid: string, kind: string) => void) | null = null
+  private readonly debugLogger = createTelemedicineLogger({ source: 'CloudflareCallsSession' })
 
   constructor(config: CFSessionConfig) {
     this.cfg = config
@@ -77,9 +82,14 @@ export class CloudflareCallsSession {
    * @returns El CF session ID que debe compartirse con el peer remoto.
    */
   async connect(localStream: MediaStream): Promise<string> {
-    // Cloudflare Calls provee sus propios candidatos ICE dentro del SDP.
-    // No hace falta configurar ICE servers externos para la conexión al SFU.
-    this.pc = new RTCPeerConnection(this.cfg.iceServers ? { iceServers: this.cfg.iceServers } : undefined)
+    const defaultIceServers: RTCIceServer[] = [
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      { urls: 'stun:stun.l.google.com:19302' },
+    ]
+    const effectiveIceServers = (this.cfg.iceServers && this.cfg.iceServers.length > 0)
+      ? this.cfg.iceServers
+      : defaultIceServers
+    this.pc = new RTCPeerConnection({ iceServers: effectiveIceServers })
 
     // Pre-handler MUST be registered before cfg.onTrack so it runs first
     // (Chrome dispatches listeners in addEventListener order).
@@ -150,6 +160,10 @@ export class CloudflareCallsSession {
       )
     }
 
+    // Esperar a que la PeerConnection con Cloudflare SFU esté conectada (DTLS + ICE)
+    // ANTES de llamar a tracks/new. Cloudflare Calls rechaza tracks/new con 425 si no está conectada.
+    await this.waitForMediaConnection()
+
     // 2. Publicar los tracks locales con nombres canónicos (audio0, video0).
     // Include every sendonly transceiver — even the ones without a track yet —
     // so the SFU binds the canonical slot now; later replaceTrack() calls will
@@ -169,12 +183,27 @@ export class CloudflareCallsSession {
     if (localTracks.length > 0) {
       await this.enqueueNegotiation(async () => {
         await this.waitForStableSignaling()
-        const result = await this.cfApi<NewTracksResponse>(
-          'POST',
-          `sessions/${sessionId}/tracks/new`,
-          { tracks: localTracks }
-        )
-        if (result.requiresImmediateRenegotiation && result.sessionDescription) {
+        let result: NewTracksResponse | null = null
+        const MAX_PUBLISH_ATTEMPTS = 3
+        for (let attempt = 0; attempt < MAX_PUBLISH_ATTEMPTS; attempt++) {
+          try {
+            result = await this.cfApi<NewTracksResponse>(
+              'POST',
+              `sessions/${sessionId}/tracks/new`,
+              { tracks: localTracks }
+            )
+            break
+          } catch (err: unknown) {
+            const errMsg = err instanceof Error ? err.message : String(err)
+            const is425 = errMsg.includes('425') || errMsg.includes('Session is not ready')
+            if (is425 && attempt < MAX_PUBLISH_ATTEMPTS - 1) {
+              await new Promise((r) => setTimeout(r, (attempt + 1) * 800))
+              continue
+            }
+            throw err
+          }
+        }
+        if (result && result.requiresImmediateRenegotiation && result.sessionDescription) {
           await this.renegotiate(result.sessionDescription)
         }
       })
@@ -242,20 +271,61 @@ export class CloudflareCallsSession {
         // invalid_session_description when the signaling state is not `stable`
         // (ASTRO-D).
         await this.waitForStableSignaling()
-        if (this.closed || !this.pc || !this.sessionId) return
-        const result = await this.cfApi<NewTracksResponse>(
-          'POST',
-          `sessions/${this.sessionId}/tracks/new`,
-          { tracks: remoteTracks }
-        )
+        let result: NewTracksResponse | null = null
+        const MAX_SUBSCRIBE_RETRIES = 4
+        let attempt = 0
 
-        if (result.requiresImmediateRenegotiation && result.sessionDescription) {
+        while (attempt < MAX_SUBSCRIBE_RETRIES) {
+          try {
+            result = await this.cfApi<NewTracksResponse>(
+              'POST',
+              `sessions/${this.sessionId}/tracks/new`,
+              { tracks: remoteTracks }
+            )
+            const hasNotFoundError = (result?.tracks ?? []).some(
+              (t) => t.errorCode === 'not_found_track_error'
+            )
+            if (hasNotFoundError && attempt < MAX_SUBSCRIBE_RETRIES - 1) {
+              attempt++
+              await new Promise((r) => setTimeout(r, attempt * 500))
+              continue
+            }
+            break
+          } catch (err: unknown) {
+            attempt++
+            const errMsg = err instanceof Error ? err.message : String(err)
+            const isNotFoundError = errMsg.includes('not_found_track_error') ||
+                                    errMsg.includes('404')
+            if (isNotFoundError && attempt < MAX_SUBSCRIBE_RETRIES) {
+              await new Promise((r) => setTimeout(r, attempt * 500))
+              continue
+            }
+            throw err
+          }
+        }
+
+        if (result && result.requiresImmediateRenegotiation && result.sessionDescription) {
           await this.renegotiate(result.sessionDescription)
         }
 
         const newTransceivers = pc
           .getTransceivers()
           .filter((t) => t.mid && !priorMids.has(t.mid) && t.direction === 'recvonly')
+
+        // Observability: distinguish a peer that published its session fine (new
+        // transceivers attached) from an "empty" subscribe — the peer announced its
+        // cf-session before its local tracks/new finished, so the SFU had nothing to
+        // pull and no transceiver was created. Caller retries (bounded) once live.
+        if (newTransceivers.length === 0 && !result.requiresImmediateRenegotiation) {
+          this.debugLogger.warn(
+            'Remote subscribe returned no tracks (peer announced before publishing?)',
+            {
+              remoteSessionId,
+              requiresImmediateRenegotiation: result.requiresImmediateRenegotiation,
+              hasSessionDescription: !!result.sessionDescription,
+            }
+          )
+        }
 
         // Backstop: if any transceiver fired ontrack before its mid was stable,
         // the pre-handler still covers the common path, but we re-emit here too
@@ -353,6 +423,30 @@ export class CloudflareCallsSession {
         }
       }
       this.pc.addEventListener('icegatheringstatechange', onStateChange)
+    })
+  }
+
+  /** Espera que la conexión WebRTC con Cloudflare SFU esté conectada */
+  private waitForMediaConnection(timeoutMs = 10000): Promise<void> {
+    return new Promise<void>((resolve) => {
+      if (!this.pc || this.pc.connectionState === 'connected') {
+        resolve()
+        return
+      }
+      const pc = this.pc
+      const timeout = setTimeout(() => {
+        pc.removeEventListener('connectionstatechange', onStateChange)
+        this.debugLogger.warn('waitForMediaConnection timed out before connected state', { state: pc.connectionState })
+        resolve() // Best-effort: no bloquear si tarda
+      }, timeoutMs)
+      const onStateChange = () => {
+        if (pc.connectionState === 'connected') {
+          clearTimeout(timeout)
+          pc.removeEventListener('connectionstatechange', onStateChange)
+          resolve()
+        }
+      }
+      pc.addEventListener('connectionstatechange', onStateChange)
     })
   }
 

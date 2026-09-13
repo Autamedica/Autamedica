@@ -1,6 +1,7 @@
 package com.autamedica.android.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -30,6 +31,20 @@ fun AppNavHost(
     navController: NavHostController = rememberNavController(),
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(postLoginRoute) {
+        val route = postLoginRoute
+        if (route != null) {
+            val currentDest = navController.currentDestination?.route
+            val isOnLogin = currentDest?.contains("Login") == true
+            if (!isOnLogin) {
+                navController.navigate(route) {
+                    launchSingleTop = true
+                }
+                onPostLoginRouteConsumed()
+            }
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -141,20 +156,11 @@ fun AppNavHost(
                 onNavigateToDoctorPrescriptions = {
                     navController.navigate(Route.DoctorPrescriptions)
                 },
-                onNavigateToCreatePrescription = { patientId ->
-                    navController.navigate(Route.CreatePrescription(patientId))
-                },
                 onNavigateToDoctorCertificates = {
                     navController.navigate(Route.DoctorCertificates)
                 },
-                onNavigateToCreateCertificate = { patientId ->
-                    navController.navigate(Route.CreateCertificate(patientId))
-                },
                 onNavigateToDoctorMedicalOrders = {
                     navController.navigate(Route.DoctorMedicalOrders)
-                },
-                onNavigateToCreateMedicalOrder = { patientId ->
-                    navController.navigate(Route.CreateMedicalOrder(patientId))
                 },
                 onNavigateToPatientProfile = {
                     navController.navigate(Route.PatientProfile) {
@@ -279,7 +285,19 @@ fun AppNavHost(
                     navController.navigate(Route.VideoCall(appointmentId)) {
                         launchSingleTop = true
                     }
-                }
+                },
+                onNavigateToCreatePrescription = { patientId ->
+                    navController.navigate(Route.CreatePrescription(patientId))
+                },
+                onNavigateToCreateMedicalOrder = { patientId ->
+                    navController.navigate(Route.CreateMedicalOrder(patientId))
+                },
+                onNavigateToCreateCertificate = { patientId ->
+                    navController.navigate(Route.CreateCertificate(patientId))
+                },
+                onNavigateToConsultationReport = { appointmentId ->
+                    navController.navigate(Route.DoctorConsultationReport(appointmentId))
+                },
             )
         }
 

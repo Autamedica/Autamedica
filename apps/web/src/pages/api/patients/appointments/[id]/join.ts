@@ -72,11 +72,6 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return conflict('appointment_not_joinable')
     }
 
-    const hasApprovedPayment = await appointmentPaymentsService.hasApprovedPayment(admin, appointment.id)
-    if (!hasApprovedPayment) {
-      return conflict('appointment_payment_required')
-    }
-
     if (!isTelemedicineCallWindowOpen(appointment)) {
       return conflict('appointment_outside_call_window')
     }
@@ -93,6 +88,19 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       ?? (participantCall && isCallAlignedWithAppointmentWindow(participantCall, appointment)
         ? participantCall
         : null)
+
+    const wasCreatedByDoctor = Boolean(
+      appointment.created_by &&
+      appointment.created_by !== context.userId &&
+      appointment.created_by !== context.patientId,
+    )
+
+    if (!existingCall && !wasCreatedByDoctor) {
+      const hasApprovedPayment = await appointmentPaymentsService.hasApprovedPayment(admin, appointment.id)
+      if (!hasApprovedPayment) {
+        return conflict('appointment_payment_required')
+      }
+    }
 
     if (existingCall) {
       const status = await ensurePatientJoined(actorSupabase, existingCall.id, existingCall.status)

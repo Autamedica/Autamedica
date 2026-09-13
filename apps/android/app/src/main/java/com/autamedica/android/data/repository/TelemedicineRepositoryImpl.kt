@@ -129,8 +129,8 @@ class TelemedicineRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateCallStatus(callId: String, status: String): Result<Unit> = runCatching {
-        val trimmedCallId = callId.trim()
-        if (trimmedCallId.isEmpty()) return@runCatching
+        val trimmedRawId = callId.trim()
+        if (trimmedRawId.isEmpty()) return@runCatching
 
         val normalizedStatus = when (status) {
             "in_progress" -> "connected"
@@ -138,39 +138,88 @@ class TelemedicineRepositoryImpl @Inject constructor(
             else -> status
         }
 
-        runCatching {
-            supabaseClient.postgrest
-                .from("calls")
-                .update(mapOf("status" to normalizedStatus)) {
-                    filter { eq("id", trimmedCallId) }
-                }
-        }
+        // El fast path de llamada entrante entrega el room_id (room_xxxx) como call id.
+        // La RPC canónica update_call_status keyea sobre calls.id, así que se resuelve
+        // el id real antes de actualizar para no escribir sobre una fila inexistente.
+        val resolvedCallId = resolveCallId(trimmedRawId)
 
-        runCatching {
-            supabaseClient.postgrest
-                .from("telemedicine_sessions")
-                .update(mapOf("status" to normalizedStatus)) {
-                    filter {
-                        or {
-                            eq("appointment_id", trimmedCallId)
-                            eq("id", trimmedCallId)
+        // 1. Camino canónico: la RPC update_call_status setea accepted_at/ended_at y
+        //    registra el evento status_changed de forma atómica. Antes se escribía el
+        //    status con UPDATE directo y sin accepted_at ni evento (estado corrupto).
+        val rpcSucceeded = runCatching {
+            supabaseClient.postgrest.rpc(
+                "update_call_status",
+                buildJsonObject {
+                    put("p_call_id", resolvedCallId)
+                    put("p_status", normalizedStatus)
+                }
+            )
+        }.isSuccess
+
+        if (rpcSucceeded) {
+            // Sincronización best-effort de la tabla paralela (no bloqueante).
+            runCatching {
+                supabaseClient.postgrest
+                    .from("telemedicine_sessions")
+                    .update(mapOf("status" to normalizedStatus)) {
+                        filter {
+                            or {
+                                eq("appointment_id", resolvedCallId)
+                                eq("id", resolvedCallId)
+                            }
                         }
                     }
-                }
-        }
-
-        runCatching {
-            val payload = buildJsonObject {
-                put("callId", trimmedCallId)
-                put("status", normalizedStatus)
             }
-            supabaseClient.functions.invoke("update-call-status", payload)
-        }
+            Unit
+        } else {
+            // 2. Fallback directo replicando la semántica de la RPC: el status nunca
+            //    se escribe sin su timestamp correspondiente (accepted_at/ended_at).
+            val nowIso = java.time.OffsetDateTime.now().toString()
+            val updates = buildMap {
+                put("status", normalizedStatus)
+                if (normalizedStatus == "accepted") put("accepted_at", nowIso)
+                if (normalizedStatus == "ended") put("ended_at", nowIso)
+            }
+            runCatching {
+                supabaseClient.postgrest
+                    .from("calls")
+                    .update(updates) {
+                        filter { eq("id", resolvedCallId) }
+                    }
+            }
 
-        Unit
+            runCatching {
+                supabaseClient.postgrest
+                    .from("telemedicine_sessions")
+                    .update(mapOf("status" to normalizedStatus)) {
+                        filter {
+                            or {
+                                eq("appointment_id", resolvedCallId)
+                                eq("id", resolvedCallId)
+                            }
+                        }
+                    }
+            }
+
+            // Último recurso: edge function con service role para el mismo camino RPC.
+            runCatching {
+                supabaseClient.functions.invoke(
+                    "update-call-status",
+                    buildJsonObject {
+                        put("callId", resolvedCallId)
+                        put("status", normalizedStatus)
+                    }
+                )
+            }
+
+            Unit
+        }
     }.onFailure {
         SecureLog.warn("[Telemedicine] Failed updating call status", it)
     }
+
+    private suspend fun resolveCallId(identifier: String): String =
+        runCatching { findCallForIdentifier(identifier)?.id }.getOrNull() ?: identifier
 
     override suspend fun getJoinableAppointmentIds(appointments: List<Appointment>): Result<Set<String>> = runCatching {
         val candidateAppointments = appointments

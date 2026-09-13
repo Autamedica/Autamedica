@@ -25,7 +25,7 @@ export type DoctorDailyAgendaView = {
   weekCount: number
 }
 
-const CALLABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
+export const CALLABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress', 'no_show'])
 
 function isSameLocalDay(iso: string, referenceDate: Date): boolean {
   if (!iso) return false
@@ -43,7 +43,7 @@ function safeTimestamp(iso: string | null | undefined): number {
   return Number.isNaN(value) ? 0 : value
 }
 
-function canStartTelemedicineCall(appointment: Appointment): boolean {
+export function canStartTelemedicineCall(appointment: Appointment): boolean {
   return (
     appointment.type === 'telemedicine' &&
     CALLABLE_APPOINTMENT_STATUSES.has(appointment.status ?? 'scheduled') &&

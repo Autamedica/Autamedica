@@ -186,6 +186,32 @@ class NotificationRouteResolverTest {
     }
 
     @Test
+    fun `call started notification without appointment id resolves to VideoCall via room id`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = "",
+            roomId = "room-001",
+            chatRoomId = null,
+            deepLink = null,
+            notificationType = "CALL_STARTED",
+        )
+
+        assertThat(route).isEqualTo(Route.VideoCall("", "room-001", true))
+    }
+
+    @Test
+    fun `call notification without appointment and room id resolves to null`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = "   ",
+            roomId = null,
+            chatRoomId = null,
+            deepLink = null,
+            notificationType = "CALL_STARTED",
+        )
+
+        assertThat(route).isNull()
+    }
+
+    @Test
     fun `isCallNotification detects call events`() {
         assertThat(NotificationRouteResolver.isCallNotification("incoming_call")).isTrue()
         assertThat(NotificationRouteResolver.isCallNotification("call_started")).isTrue()
