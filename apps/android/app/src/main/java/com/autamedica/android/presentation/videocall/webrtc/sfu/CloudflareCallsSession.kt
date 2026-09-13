@@ -5,6 +5,7 @@ import com.autamedica.android.logging.SecureLog
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -114,7 +115,12 @@ class CloudflareCallsSession(
         val rtcConfig = PeerConnection.RTCConfiguration(effectiveIceServers).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
             continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_ONCE
+            bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
+            rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
+            tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED
+            iceTransportsType = PeerConnection.IceTransportsType.ALL
         }
+        SecureLog.info("[SFU] Creating PeerConnection with ${effectiveIceServers.size} ICE servers: ${effectiveIceServers.map { it.urls }}")
         val newPc = factory.createPeerConnection(rtcConfig, pcObserver)
             ?: throw IllegalStateException("[SFU] No se pudo crear PeerConnection")
         pc = newPc
@@ -230,8 +236,63 @@ class CloudflareCallsSession(
             }
         }
 
+        // Configure RtpSender parameters after tracks are set up
+        localVideoSender?.let { sender ->
+            val params = sender.parameters
+            if (params != null) {
+                params.degradationPreference = org.webrtc.RtpParameters.DegradationPreference.BALANCED
+                sender.parameters = params
+            }
+        }
+
         ready = true
+        startStatsLoop()
         return newSession.sessionId
+    }
+
+    private var statsJob: kotlinx.coroutines.Job? = null
+
+    private fun startStatsLoop() {
+        statsJob?.cancel()
+        statsJob = scope.launch {
+            while (isActive && pc != null) {
+                pc?.getStats { report ->
+                    var vBytesSent = 0L
+                    var vPacketsSent = 0L
+                    var vFrames = 0L
+                    var aBytesSent = 0L
+                    var aPacketsSent = 0L
+                    var qLimitationReason = "none"
+                    var cBytesSent = 0L
+                    var cBytesRecv = 0L
+                    var rtt = 0.0
+
+                    for (stat in report.statsMap.values) {
+                        if (stat.type == "outbound-rtp") {
+                            val kind = stat.members["kind"]?.toString()
+                            val bytes = (stat.members["bytesSent"] as? Number)?.toLong() ?: (stat.members["bytesSent"] as? java.math.BigInteger)?.toLong() ?: 0L
+                            val packets = (stat.members["packetsSent"] as? Number)?.toLong() ?: (stat.members["packetsSent"] as? java.math.BigInteger)?.toLong() ?: 0L
+                            
+                            if (kind == "video") {
+                                vBytesSent = bytes
+                                vPacketsSent = packets
+                                vFrames = (stat.members["framesEncoded"] as? Number)?.toLong() ?: (stat.members["framesEncoded"] as? java.math.BigInteger)?.toLong() ?: 0L
+                                qLimitationReason = stat.members["qualityLimitationReason"]?.toString() ?: "none"
+                            } else if (kind == "audio") {
+                                aBytesSent = bytes
+                                aPacketsSent = packets
+                            }
+                        } else if (stat.type == "candidate-pair" && stat.members["state"] == "succeeded" && stat.members["nominated"] == true) {
+                            cBytesSent = (stat.members["bytesSent"] as? Number)?.toLong() ?: (stat.members["bytesSent"] as? java.math.BigInteger)?.toLong() ?: 0L
+                            cBytesRecv = (stat.members["bytesReceived"] as? Number)?.toLong() ?: (stat.members["bytesReceived"] as? java.math.BigInteger)?.toLong() ?: 0L
+                            rtt = (stat.members["currentRoundTripTime"] as? Number)?.toDouble() ?: 0.0
+                        }
+                    }
+                    SecureLog.info("[SFU-STATS] outbound video bytesSent=$vBytesSent, packetsSent=$vPacketsSent, framesEncoded=$vFrames, qLimit=$qLimitationReason | audio bytesSent=$aBytesSent, packetsSent=$aPacketsSent | cp bytesSent=$cBytesSent, bytesReceived=$cBytesRecv, rtt=$rtt")
+                }
+                delay(3000)
+            }
+        }
     }
 
     suspend fun subscribeToSession(
@@ -432,13 +493,24 @@ class CloudflareCallsSession(
         withTimeoutOrNull(timeoutMs) { signal.await() }
     }
 
-    private suspend fun waitForMediaConnection(timeoutMs: Long = 10_000L) {
+    private suspend fun waitForMediaConnection(timeoutMs: Long = 15_000L) {
         val pcRef = pc ?: return
-        if (pcRef.connectionState() == PeerConnection.PeerConnectionState.CONNECTED) return
+        if (pcRef.connectionState() == PeerConnection.PeerConnectionState.CONNECTED ||
+            pcRef.iceConnectionState() == PeerConnection.IceConnectionState.CONNECTED ||
+            pcRef.iceConnectionState() == PeerConnection.IceConnectionState.COMPLETED
+        ) {
+            SecureLog.info("[SFU] PeerConnection already connected (state=${pcRef.connectionState()}, iceState=${pcRef.iceConnectionState()})")
+            return
+        }
 
         val signal = CompletableDeferred<Unit>()
         connectionSignal = signal
-        withTimeoutOrNull(timeoutMs) { signal.await() }
+        val connected = withTimeoutOrNull(timeoutMs) { signal.await() }
+        if (connected == null) {
+            SecureLog.warn("[SFU] waitForMediaConnection timed out after ${timeoutMs}ms (current state=${pcRef.connectionState()}, iceState=${pcRef.iceConnectionState()})")
+        } else {
+            SecureLog.info("[SFU] Media connection established successfully (state=${pcRef.connectionState()}, iceState=${pcRef.iceConnectionState()})")
+        }
     }
 
     private val pcObserver = object : PeerConnection.Observer {
@@ -480,6 +552,10 @@ class CloudflareCallsSession(
         override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>) {}
         override fun onIceConnectionChange(state: PeerConnection.IceConnectionState) {
             SecureLog.info("[SFU] ICE Connection State changed: $state")
+            if (state == PeerConnection.IceConnectionState.CONNECTED || state == PeerConnection.IceConnectionState.COMPLETED) {
+                connectionSignal?.complete(Unit)
+                connectionSignal = null
+            }
         }
         override fun onIceConnectionReceivingChange(receiving: Boolean) {}
         override fun onAddStream(stream: MediaStream) {}

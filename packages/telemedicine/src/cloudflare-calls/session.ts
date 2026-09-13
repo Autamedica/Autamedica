@@ -104,9 +104,13 @@ export class CloudflareCallsSession {
       if (this.pc) this.cfg.onConnectionStateChange(this.pc.connectionState)
     })
     this.pc.addEventListener('icecandidateerror', (ev) => {
-      // Loguear pero no bloquear: CF SFU incluye todos los candidates en el SDP
+      // Loguear pero no bloquear: CF SFU incluye todos los candidates en el SDP (Full ICE)
       const e = ev as RTCPeerConnectionIceErrorEvent
-      this.cfg.onError?.(new Error(`ICE candidate error ${e.errorCode}: ${e.errorText}`))
+      this.debugLogger.warn('ICE candidate error (non-fatal, ignored)', {
+        errorCode: e.errorCode,
+        errorText: e.errorText,
+        url: e.url,
+      })
     })
 
     // Añadir tracks locales como sendonly para publicarlos
@@ -172,7 +176,9 @@ export class CloudflareCallsSession {
     const localTracks: TrackEntry[] = transceivers
       .filter((t) => t.direction === 'sendonly')
       .map((t) => {
-        const kind = t.sender.track?.kind ?? t.receiver.track?.kind ?? 'audio'
+        // The receiver track always exists and accurately reflects the transceiver's media type,
+        // even if the sender has no track currently attached (e.g. camera disabled).
+        const kind = t.receiver.track.kind
         return {
           location: 'local' as const,
           mid: t.mid ?? undefined,
@@ -272,7 +278,10 @@ export class CloudflareCallsSession {
         // (ASTRO-D).
         await this.waitForStableSignaling()
         let result: NewTracksResponse | null = null
-        const MAX_SUBSCRIBE_RETRIES = 4
+        // El peer Android puede demorar entre 5 y 8 segundos en inicializar la cámara (Camera2 API)
+        // y comenzar a enviar paquetes RTP. Cloudflare Calls rechazará la suscripción hasta
+        // que haya flujo real de paquetes. Incrementamos significativamente la ventana de espera (aprox 12-15s).
+        const MAX_SUBSCRIBE_RETRIES = 15
         let attempt = 0
 
         while (attempt < MAX_SUBSCRIBE_RETRIES) {
@@ -287,7 +296,7 @@ export class CloudflareCallsSession {
             )
             if (hasNotFoundError && attempt < MAX_SUBSCRIBE_RETRIES - 1) {
               attempt++
-              await new Promise((r) => setTimeout(r, attempt * 500))
+              await new Promise((r) => setTimeout(r, 1500))
               continue
             }
             break
@@ -297,7 +306,7 @@ export class CloudflareCallsSession {
             const isNotFoundError = errMsg.includes('not_found_track_error') ||
                                     errMsg.includes('404')
             if (isNotFoundError && attempt < MAX_SUBSCRIBE_RETRIES) {
-              await new Promise((r) => setTimeout(r, attempt * 500))
+              await new Promise((r) => setTimeout(r, 1500))
               continue
             }
             throw err
@@ -466,7 +475,6 @@ export class CloudflareCallsSession {
         detail = await res.text()
       }
       const err = new Error(`Cloudflare Calls error ${res.status} (${path}): ${detail}`)
-      this.cfg.onError?.(err)
       throw err
     }
     return res.json() as Promise<T>
