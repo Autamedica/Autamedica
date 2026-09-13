@@ -137,6 +137,7 @@ class CloudflareCallsEngine(
 
     private val resubscribeAttempts = ConcurrentHashMap<String, Int>()
     private val resubscribeJobs = ConcurrentHashMap<String, Job>()
+    private val activeSubscribeJobs = ConcurrentHashMap<String, Job>()
 
     /** mid del transceiver remoto -> userId que lo publica. */
     private val midOwner = ConcurrentHashMap<String, String>()
@@ -594,12 +595,15 @@ class CloudflareCallsEngine(
         val sfu = session ?: return
 
         resubscribeJobs.remove(userId)?.cancel()
+        activeSubscribeJobs.remove(userId)?.cancel()
 
-        scope.launch {
+        val job = scope.launch {
             try {
+                if (userIdToSessionId[userId] != remoteSessionId) return@launch
                 val result = sfu.subscribeToSession(remoteSessionId) { mid, _ ->
                     midOwner[mid] = userId
                 }
+                if (userIdToSessionId[userId] != remoteSessionId) return@launch
                 val pulled = result.tracks
                 for (entry in pulled) {
                     entry.mid?.let { midOwner[it] = userId }
@@ -608,7 +612,9 @@ class CloudflareCallsEngine(
                 if (pulled.isEmpty() || result.errorTracks.isNotEmpty()) {
                     remoteSubscribeNoTracks.add(userId)
                     SecureLog.warn("[SFU] Suscripción a $userId retornó tracks vacíos o con error (pulled=${pulled.size}, errors=${result.errorTracks}). Programando reintento...")
-                    scheduleRemoteResubscribe(userId, remoteSessionId)
+                    if (userIdToSessionId[userId] == remoteSessionId) {
+                        scheduleRemoteResubscribe(userId, remoteSessionId)
+                    }
                 } else {
                     remoteSubscribeNoTracks.remove(userId)
                     resubscribeAttempts.remove(userId)
@@ -618,15 +624,22 @@ class CloudflareCallsEngine(
                 userIdToSessionId[userId] = remoteSessionId
                 emitChatReady()
             } catch (err: Throwable) {
+                if (err is kotlinx.coroutines.CancellationException) throw err
                 remoteSubscribeNoTracks.add(userId)
                 SecureLog.warn("[SFU] Subscribe al peer $userId falló con excepción. Programando reintento...", err)
-                scheduleRemoteResubscribe(userId, remoteSessionId)
+                if (userIdToSessionId[userId] == remoteSessionId) {
+                    scheduleRemoteResubscribe(userId, remoteSessionId)
+                }
+            } finally {
+                activeSubscribeJobs.remove(userId)
             }
         }
+        activeSubscribeJobs[userId] = job
     }
 
     private fun forgetRemotePeer(userId: String) {
         resubscribeJobs.remove(userId)?.cancel()
+        activeSubscribeJobs.remove(userId)?.cancel()
         resubscribeAttempts.remove(userId)
         midOwner.entries.removeAll { it.value == userId }
         userIdToSessionId.remove(userId)
@@ -640,14 +653,17 @@ class CloudflareCallsEngine(
     private fun handleRemoteTrack(event: CloudflareCallsSession.RemoteTrackEvent) {
         val mid = event.mid
         var ownerId = mid?.let { midOwner[it] }
-        if (ownerId == null && userIdToSessionId.size == 1) {
+        if (ownerId == null && userIdToSessionId.isNotEmpty()) {
             ownerId = userIdToSessionId.keys.first()
             if (mid != null) {
                 midOwner[mid] = ownerId
             }
-            Timber.i("[SFU] Fallback 1:1 asignó mid=$mid al único peer=$ownerId")
+            Timber.i("[SFU] Fallback asignó mid=$mid al peer=$ownerId (total peers=${userIdToSessionId.size})")
         }
-        if (ownerId == null) return
+        if (ownerId == null) {
+            Timber.w("[SFU] No se pudo determinar el owner para track mid=$mid (peers=${userIdToSessionId.keys})")
+            return
+        }
 
         when (event.kind) {
             MediaStreamTrack.VIDEO_TRACK_KIND -> {
@@ -749,6 +765,8 @@ class CloudflareCallsEngine(
         pendingPeerAnnouncements.clear()
         resubscribeJobs.values.forEach { it.cancel() }
         resubscribeJobs.clear()
+        activeSubscribeJobs.values.forEach { it.cancel() }
+        activeSubscribeJobs.clear()
         resubscribeAttempts.clear()
         _chatReady.value = false
         _remoteVideoTrack.value = null

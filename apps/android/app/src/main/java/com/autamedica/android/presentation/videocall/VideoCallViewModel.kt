@@ -914,13 +914,9 @@ class VideoCallViewModel @Inject constructor(
                     sessionStatusMessage = if (it.isDoctor) "Conectando con la sala..." else patientStatusMessage(manualRetry),
                 )
             }
-            viewModelScope.launch {
-                telemedicineRepository.getIceServers().onSuccess { servers ->
-                    val dynamicIce = servers.map { it.toPeerConnectionIceServer() }
-                    if (dynamicIce.isNotEmpty()) {
-                        engine.updateIceServers(dynamicIce)
-                    }
-                }
+            val dynamicIce = telemedicineRepository.getIceServers().getOrNull()?.map { it.toPeerConnectionIceServer() }
+            if (!dynamicIce.isNullOrEmpty()) {
+                engine.updateIceServers(dynamicIce)
             }
             turnManager.startTurnCredentialRefresh(
                 scope = viewModelScope,
@@ -945,7 +941,11 @@ class VideoCallViewModel @Inject constructor(
             .onSuccess { sessionInfo ->
                 sessionRetryJob?.cancel()
 
-                val dynamicIce = sessionInfo.iceServers.map { it.toPeerConnectionIceServer() }
+                val dynamicIce = if (sessionInfo.iceServers.isNotEmpty()) {
+                    sessionInfo.iceServers.map { it.toPeerConnectionIceServer() }
+                } else {
+                    telemedicineRepository.getIceServers().getOrNull()?.map { it.toPeerConnectionIceServer() } ?: emptyList()
+                }
                 if (dynamicIce.isNotEmpty()) {
                     engine.updateIceServers(dynamicIce)
                 }
