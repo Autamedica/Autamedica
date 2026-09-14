@@ -195,10 +195,14 @@ class CloudflareCallsSession(
             .filter { it.direction == RtpTransceiver.RtpTransceiverDirection.SEND_ONLY }
             .mapNotNull { t ->
                 val mid = t.mid ?: return@mapNotNull null
+                val senderTrack: MediaStreamTrack = t.sender.track() ?: return@mapNotNull null
                 val kind = when (t.mediaType) {
                     MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO -> "video"
                     MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO -> "audio"
-                    else -> t.sender.track()?.kind() ?: "audio"
+                    else -> senderTrack.kind()
+                }
+                if (senderTrack.id().isBlank()) {
+                    SecureLog.warn("[SFU] Transceiver mid=$mid con sender.track sin id real; usando trackName=${kind}0 de todas formas")
                 }
                 TrackEntry(location = "local", mid = mid, trackName = "${kind}0")
             }
