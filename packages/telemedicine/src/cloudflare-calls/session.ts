@@ -186,6 +186,8 @@ export class CloudflareCallsSession {
         }
       })
 
+    this.debugLogger.info('SFU local tracks registered', { sessionId, tracks: localTracks })
+
     if (localTracks.length > 0) {
       await this.enqueueNegotiation(async () => {
         await this.waitForStableSignaling()
@@ -313,6 +315,14 @@ export class CloudflareCallsSession {
           }
         }
 
+        this.debugLogger.info('SFU track subscribe response', {
+          remoteSessionId,
+          requiresImmediateRenegotiation: result?.requiresImmediateRenegotiation,
+          hasSessionDescription: !!result?.sessionDescription,
+          tracks: result?.tracks,
+          attempt,
+        })
+
         if (result && result.requiresImmediateRenegotiation && result.sessionDescription) {
           await this.renegotiate(result.sessionDescription)
         }
@@ -320,6 +330,15 @@ export class CloudflareCallsSession {
         const newTransceivers = pc
           .getTransceivers()
           .filter((t) => t.mid && !priorMids.has(t.mid) && t.direction === 'recvonly')
+
+        this.debugLogger.info('SFU new recv transceivers', {
+          remoteSessionId,
+          mids: newTransceivers.map((t) => ({
+            mid: t.mid,
+            kind: t.receiver?.track?.kind,
+            direction: t.direction,
+          })),
+        })
 
         // Observability: distinguish a peer that published its session fine (new
         // transceivers attached) from an "empty" subscribe — the peer announced its
@@ -355,6 +374,8 @@ export class CloudflareCallsSession {
     } finally {
       this.preTrackHandler = null
     }
+
+    this.debugLogger.info('SFU subscribe result', { remoteSessionId, pulledTracks })
 
     return pulledTracks
   }
