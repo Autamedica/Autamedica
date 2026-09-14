@@ -462,6 +462,8 @@ class CloudflareCallsSession(
     suspend fun close() {
         closed = true
         ready = false
+        statsJob?.cancel()
+        statsJob = null
 
         val pcRef = pc
         val sessionRef = sessionId
