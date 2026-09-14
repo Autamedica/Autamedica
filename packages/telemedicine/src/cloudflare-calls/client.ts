@@ -639,7 +639,7 @@ export class CloudflareCallsClient implements CallProvider {
         }
 
         this.userIdToSessionId.set(remoteUserId, remoteSessionId)
-        this.debugLogger.info('Remote CF session announced', { remoteUserId, remoteSessionId })
+        this.debugLogger.info('Remote CF session announced', { remoteUserId, remoteSessionId, previousSessionId, nextSessionId: remoteSessionId })
         this.emit('user-joined', remoteUserId, remoteUserType)
         if (!this.pendingRemoteUserIds.includes(remoteUserId)) {
           this.pendingRemoteUserIds.push(remoteUserId)
@@ -696,6 +696,7 @@ export class CloudflareCallsClient implements CallProvider {
       const pulled = await this.cfSession?.subscribeToSession(remoteSessionId, (mid) => {
         this.midToUserId.set(mid, remoteUserId)
       }) ?? []
+      this.debugLogger.info('Remote subscribe pulled', { remoteUserId, remoteSessionId, tracks: pulled })
       this.recordPulledMids(pulled, remoteUserId)
       if (pulled.length === 0) {
         this.remoteSubscribeNoTracks.add(remoteUserId)
@@ -851,7 +852,7 @@ export class CloudflareCallsClient implements CallProvider {
       userStream.addTrack(event.track)
     }
 
-    this.debugLogger.info('Remote track received', { userId, trackKind: event.track.kind, tracksCount: userStream.getTracks().length })
+    this.debugLogger.info('Remote track received', { userId, trackKind: event.track.kind, tracksCount: userStream.getTracks().length, trackId: event.track.id, mid })
     
     // Breaking referential equality so React triggers the useCallLifecycleEffects hook and updates srcObject
     const clonedStreamForReact = new MediaStream(userStream.getTracks())

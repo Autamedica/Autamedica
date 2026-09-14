@@ -2,6 +2,7 @@ package com.autamedica.android.presentation.videocall.webrtc.sfu
 
 import android.util.Log
 import com.autamedica.android.logging.SecureLog
+import timber.log.Timber
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -206,7 +207,20 @@ class CloudflareCallsSession(
                 }
                 TrackEntry(location = "local", mid = mid, trackName = "${kind}0")
             }
-        SecureLog.info("[SFU] Local tracks to register in Cloudflare (session $sessionId): $localTracks")
+        Timber.i("[SFU] Local tracks total count to register (session $sessionId): ${localTracks.size}")
+        for (t in transceivers) {
+            if (t.direction != RtpTransceiver.RtpTransceiverDirection.SEND_ONLY) continue
+            val mid = t.mid ?: continue
+            val senderTrack = t.sender.track()
+            val viaMediaType = when (t.mediaType) {
+                MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO -> "video"
+                MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO -> "audio"
+                else -> "unknown"
+            }
+            val kind = senderTrack?.kind() ?: viaMediaType
+            Timber.i("[SFU] Local track: location=local, mid=$mid, trackName=${kind}0, senderTrackId=${senderTrack?.id() ?: "null"}, kind=${senderTrack?.kind() ?: "null"}")
+        }
+        Timber.i("[SFU] Local tracks to register in Cloudflare (session $sessionId): $localTracks")
 
         if (localTracks.isNotEmpty()) {
             enqueueNegotiation {
@@ -242,11 +256,13 @@ class CloudflareCallsSession(
 
         // Configure RtpSender parameters after tracks are set up
         localVideoSender?.let { sender ->
-            val params = sender.parameters
-            if (params != null) {
-                params.degradationPreference = org.webrtc.RtpParameters.DegradationPreference.BALANCED
-                sender.parameters = params
-            }
+            runCatching { sender.parameters }.onSuccess { params ->
+                if (params != null) {
+                    params.degradationPreference = org.webrtc.RtpParameters.DegradationPreference.BALANCED
+                    runCatching { sender.parameters = params }
+                        .onFailure { Timber.d(it, "[SFU] sender.parameters set failed") }
+                }
+            }.onFailure { Timber.d(it, "[SFU] sender.parameters get failed") }
         }
 
         ready = true
@@ -338,8 +354,10 @@ class CloudflareCallsSession(
                 if (closed || !isReady()) return@enqueueNegotiation
 
                 var result: NewTracksResponse? = null
+                var attemptsUsed = 0
                 val maxAttempts = 4
                 for (attempt in 0 until maxAttempts) {
+                    attemptsUsed++
                     try {
                         val rawResult = api.call(
                             method = "POST",
@@ -365,7 +383,12 @@ class CloudflareCallsSession(
                     }
                 }
 
-                if (result == null) return@enqueueNegotiation
+                if (result == null) {
+                    Timber.w("[SFU] Subscribe tracks/new exhausted all $maxAttempts attempts without a result (remoteSession=$remoteSessionId, attemptsUsed=$attemptsUsed); hitting early-return")
+                    return@enqueueNegotiation
+                }
+
+                Timber.i("[SFU] Subscribe negotiation result (remoteSession=$remoteSessionId): requiresImmediateRenegotiation=${result.requiresImmediateRenegotiation}, hasSessionDescription=${result.sessionDescription != null}, errorTracks=${result.errorTracks}, attemptsUsed=$attemptsUsed")
 
                 errorTracks = result.errorTracks
                 if (result.errorTracks.isNotEmpty()) {
@@ -383,6 +406,14 @@ class CloudflareCallsSession(
                             t.sender != localVideoSender &&
                             t.sender != localAudioSender
                     }
+
+                for (t in newTransceivers) {
+                    val kind = t.receiver.track()?.kind() ?: when (t.mediaType) {
+                        MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO -> "video"
+                        else -> "audio"
+                    }
+                    Timber.i("[SFU] New remote transceiver: mid=${t.mid}, direction=${t.direction}, kind=$kind, receiverTrackId=${t.receiver.track()?.id()}")
+                }
 
                 if (onTrackMid != null) {
                     for (t in newTransceivers) {
@@ -416,6 +447,7 @@ class CloudflareCallsSession(
             }
         }
 
+        SecureLog.info("[SFU] Subscribe result: pulled=${pulled.size}, mids=${pulled.mapNotNull { it.mid }}")
         return SubscriptionResult(tracks = pulled, errorTracks = errorTracks)
     }
 
@@ -481,10 +513,13 @@ class CloudflareCallsSession(
 
     private suspend fun waitForStableSignaling(timeoutMs: Long = 5_000L) {
         val pcRef = pc ?: return
-        withTimeoutOrNull(timeoutMs) {
+        val result = withTimeoutOrNull(timeoutMs) {
             while (pcRef.signalingState() != PeerConnection.SignalingState.STABLE) {
                 delay(50)
             }
+        }
+        if (result == null) {
+            SecureLog.warn("[SFU] TIMEOUT waitForStableSignaling after ${timeoutMs}ms (state=${pcRef.signalingState()}, iceState=${pcRef.iceConnectionState()})")
         }
     }
 
@@ -511,7 +546,7 @@ class CloudflareCallsSession(
         connectionSignal = signal
         val connected = withTimeoutOrNull(timeoutMs) { signal.await() }
         if (connected == null) {
-            SecureLog.warn("[SFU] waitForMediaConnection timed out after ${timeoutMs}ms (current state=${pcRef.connectionState()}, iceState=${pcRef.iceConnectionState()})")
+            SecureLog.warn("[SFU] TIMEOUT waitForMediaConnection after ${timeoutMs}ms (state=${pcRef.connectionState()}, iceState=${pcRef.iceConnectionState()})")
         } else {
             SecureLog.info("[SFU] Media connection established successfully (state=${pcRef.connectionState()}, iceState=${pcRef.iceConnectionState()})")
         }
@@ -539,8 +574,19 @@ class CloudflareCallsSession(
 
             val videoTrack = track as? VideoTrack
             val audioTrack = track as? AudioTrack
-            SecureLog.info("[SFU] onAddTrack recibido: kind=$kind, mid=$mid, hasVideo=${videoTrack != null}, hasAudio=${audioTrack != null}")
-            onTrack(RemoteTrackEvent(kind = kind, videoTrack = videoTrack, audioTrack = audioTrack, mid = mid))
+            val transceiverCount = pc?.getTransceivers()?.size ?: 0
+            val signalingState = pc?.signalingState()
+            Timber.i("[SFU] onAddTrack: receiverId=$receiverId, trackId=$trackId, kind=$kind, mid=$mid, transceivers=$transceiverCount, signalingState=$signalingState, hasVideo=${videoTrack != null}, hasAudio=${audioTrack != null}")
+            this@CloudflareCallsSession.onTrack(RemoteTrackEvent(kind = kind, videoTrack = videoTrack, audioTrack = audioTrack, mid = mid))
+        }
+
+        override fun onTrack(transceiver: RtpTransceiver) {
+            val kind = transceiver.receiver.track()?.kind() ?: when (transceiver.mediaType) {
+                MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO -> "video"
+                MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO -> "audio"
+                else -> "unknown"
+            }
+            Timber.i("[SFU] onTrack(transceiver): mid=${transceiver.mid}, direction=${transceiver.direction}, kind=$kind, receiverTrackId=${transceiver.receiver.track()?.id()}, signalingState=${pc?.signalingState()}")
         }
 
         override fun onConnectionChange(state: PeerConnection.PeerConnectionState) {
