@@ -614,7 +614,7 @@ class CloudflareCallsEngine(
                     remoteSubscribeNoTracks.add(userId)
                     val localSess = session?.sessionId ?: "none"
                     val sfuReadyNow = userIdToSessionId[userId] == remoteSessionId
-                    Timber.w("[SFU] Subscribe a $userId: remoteSessionId=$remoteSessionId, myLocalSession=$localSess, peerAnnounced=$sfuReadyNow, pulled=${pulled.size}, errors=${result.errorTracks}, tracks=${result.tracks}. Programando reintento...")
+                    SecureLog.warn("[SFU] Subscribe a $userId: remoteSessionId=$remoteSessionId, myLocalSession=$localSess, peerAnnounced=$sfuReadyNow, pulled=${pulled.size}, errors=${result.errorTracks}, tracks=${result.tracks}. Programando reintento...")
                     if (userIdToSessionId[userId] == remoteSessionId) {
                         scheduleRemoteResubscribe(userId, remoteSessionId)
                     }
@@ -667,7 +667,7 @@ class CloudflareCallsEngine(
             Timber.i("[SFU] Fallback asignó mid=$mid al peer=$ownerId (total peers=${userIdToSessionId.size})")
         }
         if (ownerId == null) {
-            Timber.w("[SFU] No se pudo determinar el owner para track mid=$mid (peers=${userIdToSessionId.keys})")
+            SecureLog.warn("[SFU] No se pudo determinar el owner para track mid=$mid (peers=${userIdToSessionId.keys})")
             return
         }
 
