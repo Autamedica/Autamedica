@@ -611,7 +611,9 @@ class CloudflareCallsEngine(
 
                 if (pulled.isEmpty() || result.errorTracks.isNotEmpty()) {
                     remoteSubscribeNoTracks.add(userId)
-                    SecureLog.warn("[SFU] Suscripción a $userId retornó tracks vacíos o con error (pulled=${pulled.size}, errors=${result.errorTracks}). Programando reintento...")
+                    val localSess = session?.sessionId ?: "none"
+                    val sfuReadyNow = userIdToSessionId[userId] == remoteSessionId
+                    SecureLog.warn("[SFU] Subscribe a $userId: remoteSessionId=$remoteSessionId, myLocalSession=$localSess, peerAnnounced=$sfuReadyNow, pulled=${pulled.size}, errors=${result.errorTracks}. Programando reintento...")
                     if (userIdToSessionId[userId] == remoteSessionId) {
                         scheduleRemoteResubscribe(userId, remoteSessionId)
                     }
