@@ -54,10 +54,32 @@ class NotificationRouteResolverTest {
         val route = NotificationRouteResolver.resolve(
             appointmentId = null,
             chatRoomId = null,
-            deepLink = "/prescriptions/presc-123",
+            deepLink = "/desconocido/foo-123",
         )
 
         assertThat(route).isNull()
+    }
+
+    @Test
+    fun `prescriptions deep link resolves to prescriptions route`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = "/prescriptions/presc-123",
+        )
+
+        assertThat(route).isEqualTo(Route.Prescriptions)
+    }
+
+    @Test
+    fun `clinical documents deep link resolves to clinical documents route`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = "autamedica://atestados/atest-1",
+        )
+
+        assertThat(route).isEqualTo(Route.ClinicalDocuments)
     }
 
     @Test

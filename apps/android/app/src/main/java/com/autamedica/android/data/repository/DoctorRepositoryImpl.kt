@@ -22,6 +22,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.time.Period
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -382,10 +383,22 @@ class DoctorRepositoryImpl @Inject constructor(
             }
             .decodeList<AnamnesisContextSectionDto>()
 
+        val identity = supabaseClient.postgrest
+            .from("patients")
+            .select(Columns.list("birth_date", "gender")) {
+                filter { eq("id", patientId) }
+                limit(1)
+            }
+            .decodeSingleOrNull<PatientClinicalIdentityDto>()
+
         var chiefComplaint: String? = null
         val allergies = mutableListOf<String>()
         var medications: String? = null
         val chronicDiseases = mutableListOf<String>()
+        var presentIllness: String? = null
+        val physiologicalHistory = mutableListOf<String>()
+        val pathologicalHistory = mutableListOf<String>()
+        val familyHistory = mutableListOf<String>()
 
         for (sec in sections) {
             val sectionName = sec.section.lowercase()
@@ -408,7 +421,7 @@ class DoctorRepositoryImpl @Inject constructor(
                     }
                 }
                 sectionName.contains("medicamento") || sectionName.contains("medication") -> {
-                    val medStr = stringValues.firstOrNull { 
+                    val medStr = stringValues.firstOrNull {
                         it.isNotBlank() && !it.contains("no documentado", ignoreCase = true) && !it.contains("niega", ignoreCase = true)
                     }
                     if (medStr != null) {
@@ -419,6 +432,30 @@ class DoctorRepositoryImpl @Inject constructor(
                     stringValues.forEach { valStr ->
                         if (!valStr.contains("no documentado", ignoreCase = true) && !valStr.contains("niega", ignoreCase = true)) {
                             chronicDiseases.addAll(valStr.split(",").map { it.trim() }.filter { it.isNotBlank() })
+                            pathologicalHistory.addAll(valStr.split(",").map { it.trim() }.filter { it.isNotBlank() })
+                        }
+                    }
+                }
+                sectionName.contains("relato") || sectionName.contains("enfermedad actual") ||
+                    sectionName.contains("resumen") || sectionName.contains("evolucion") -> {
+                    val relato = stringValues.firstOrNull {
+                        it.isNotBlank() && !it.contains("no documentado", ignoreCase = true)
+                    }
+                    if (relato != null) {
+                        presentIllness = relato
+                    }
+                }
+                sectionName.contains("fisiol") -> {
+                    stringValues.forEach { valStr ->
+                        if (!valStr.contains("no documentado", ignoreCase = true) && !valStr.contains("niega", ignoreCase = true)) {
+                            physiologicalHistory.addAll(valStr.split(",").map { it.trim() }.filter { it.isNotBlank() })
+                        }
+                    }
+                }
+                sectionName.contains("familiar") -> {
+                    stringValues.forEach { valStr ->
+                        if (!valStr.contains("no documentado", ignoreCase = true) && !valStr.contains("niega", ignoreCase = true)) {
+                            familyHistory.addAll(valStr.split(",").map { it.trim() }.filter { it.isNotBlank() })
                         }
                     }
                 }
@@ -431,6 +468,13 @@ class DoctorRepositoryImpl @Inject constructor(
             allergies = allergies.distinct(),
             medications = medications,
             chronicDiseases = chronicDiseases.distinct(),
+            ageYears = identity?.ageYears,
+            gender = identity?.gender,
+            presentIllness = presentIllness,
+            physiologicalHistory = physiologicalHistory.distinct(),
+            pathologicalHistory = pathologicalHistory.distinct(),
+            familyHistory = familyHistory.distinct(),
+            anamnesisCompletion = anamnesis.completionPercentage,
         )
     }.onFailure {
         SecureLog.error("[DoctorRepo] Failed fetching patient clinical context", it)
@@ -639,6 +683,7 @@ private data class AnamnesisContextDto(
     val id: String,
     @SerialName("patient_id") val patientId: String,
     val status: String = "in_progress",
+    @SerialName("completion_percentage") val completionPercentage: Int? = null,
 )
 
 @Serializable
@@ -647,6 +692,21 @@ private data class AnamnesisContextSectionDto(
     val section: String,
     val data: JsonObject = JsonObject(emptyMap()),
 )
+
+@Serializable
+private data class PatientClinicalIdentityDto(
+    @SerialName("birth_date") val birthDate: String? = null,
+    val gender: String? = null,
+) {
+    val ageYears: Int?
+        get() {
+            val raw = birthDate?.trim()?.takeIf { it.isNotBlank() } ?: return null
+            val parsed = runCatching { LocalDate.parse(raw) }
+                .getOrElse { runCatching { LocalDate.parse(raw.take(10), DateTimeFormatter.ISO_LOCAL_DATE) }.getOrNull() }
+                ?: return null
+            return Period.between(parsed, LocalDate.now()).years.takeIf { it >= 0 }
+        }
+}
 
 @Serializable
 private data class PatientIdUserDto(

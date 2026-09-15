@@ -101,4 +101,47 @@ class VideoCallUiStateClinicalHierarchyTest {
         assertThat(guidance.suggestedQuestions).isNotEmpty()
         assertThat(guidance.suggestedQuestions.any { it.question.contains("evolucionó") }).isTrue()
     }
+
+    @Test
+    fun clinicalGuidance_prefersChiefComplaintOverPresentIllness() {
+        val guidance = CallClinicalGuidanceBuilder.fromLocalContext(
+            context = PatientClinicalContext(
+                hasAnamnesis = true,
+                chiefComplaint = "Cefalea de 3 días",
+                presentIllness = "Dolor de cabeza bifrontal con náuseas.",
+            ),
+            appointmentNotes = null,
+            preconsultationReason = null,
+        )
+        assertThat(guidance.chiefComplaint).isEqualTo("Cefalea de 3 días")
+        assertThat(guidance.presentIllness).isEqualTo("Dolor de cabeza bifrontal con náuseas.")
+    }
+
+    @Test
+    fun clinicalGuidance_presentIllnessFallback_whenChiefComplaintMissing() {
+        val guidance = CallClinicalGuidanceBuilder.fromLocalContext(
+            context = PatientClinicalContext(
+                hasAnamnesis = true,
+                presentIllness = "Dolor torácico opresivo con disnea de esfuerzo.",
+                familyHistory = listOf("IAM en padre a los 55", "DM2 en hermano"),
+            ),
+            appointmentNotes = "Motivo genérico",
+            preconsultationReason = null,
+        )
+        assertThat(guidance.chiefComplaint).isEqualTo("Dolor torácico opresivo con disnea de esfuerzo.")
+        assertThat(guidance.familyHistory).containsExactly("IAM en padre a los 55", "DM2 en hermano")
+        assertThat(guidance.suggestedQuestions.any { it.question.contains("factores de riesgo cardiovascular", ignoreCase = true) }).isTrue()
+    }
+
+    @Test
+    fun patientClinicalContext_defaultsEnrichedFields() {
+        val context = PatientClinicalContext(hasAnamnesis = true, chiefComplaint = "Chequeo")
+        assertThat(context.ageYears).isNull()
+        assertThat(context.gender).isNull()
+        assertThat(context.presentIllness).isNull()
+        assertThat(context.physiologicalHistory).isEmpty()
+        assertThat(context.pathologicalHistory).isEmpty()
+        assertThat(context.familyHistory).isEmpty()
+        assertThat(context.anamnesisCompletion).isNull()
+    }
 }

@@ -14,12 +14,16 @@ data class SuggestedClinicalQuestion(
  */
 data class CallClinicalGuidance(
     val chiefComplaint: String? = null,
+    val presentIllness: String? = null,
     val redFlags: List<String> = emptyList(),
+    val familyHistory: List<String> = emptyList(),
     val suggestedQuestions: List<SuggestedClinicalQuestion> = emptyList(),
 ) {
     val hasContent: Boolean
         get() = !chiefComplaint.isNullOrBlank() ||
+            !presentIllness.isNullOrBlank() ||
             redFlags.isNotEmpty() ||
+            familyHistory.isNotEmpty() ||
             suggestedQuestions.isNotEmpty()
 }
 
@@ -30,6 +34,7 @@ object CallClinicalGuidanceBuilder {
         preconsultationReason: String?,
     ): CallClinicalGuidance {
         val motivo = context?.chiefComplaint?.takeIf { it.isNotBlank() }
+            ?: context?.presentIllness?.takeIf { it.isNotBlank() }
             ?: appointmentNotes?.takeIf { it.isNotBlank() }
             ?: preconsultationReason?.takeIf { it.isNotBlank() }
 
@@ -48,7 +53,9 @@ object CallClinicalGuidanceBuilder {
 
         return CallClinicalGuidance(
             chiefComplaint = motivo,
+            presentIllness = context?.presentIllness?.takeIf { it.isNotBlank() },
             redFlags = redFlags,
+            familyHistory = context?.familyHistory.orEmpty().filter { it.isNotBlank() },
             suggestedQuestions = questions,
         )
     }
