@@ -18,6 +18,7 @@ import android.media.AudioAttributes
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -65,6 +66,9 @@ object IncomingCallNotificationManager {
 
     @Volatile
     private var activeVibrator: Vibrator? = null
+
+    @Volatile
+    private var activeWakeLock: PowerManager.WakeLock? = null
 
     private var timeoutJob: Job? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -233,19 +237,41 @@ object IncomingCallNotificationManager {
     }
 
     /**
-     * Downloads a doctor avatar and crops it as a circle.
+     * Downloads a doctor avatar and crops it as a circle using downsampling to avoid OOM or slow network freezes.
      */
     suspend fun loadCircularAvatarCompat(url: String): Bitmap? = withContext(Dispatchers.IO) {
         try {
             val connection = URL(url).openConnection() as HttpURLConnection
-            connection.connectTimeout = 6_000
-            connection.readTimeout = 6_000
+            connection.connectTimeout = 3_500
+            connection.readTimeout = 3_500
+            connection.instanceFollowRedirects = true
             connection.connect()
-            val input = connection.inputStream
-            val src = BitmapFactory.decodeStream(input)
-            input.close()
+            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                connection.disconnect()
+                return@withContext null
+            }
+            val bytes = connection.inputStream.readBytes()
             connection.disconnect()
-            if (src == null) return@withContext null
+            if (bytes.isEmpty()) return@withContext null
+
+            // Decode image bounds first to calculate sample size
+            val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, boundsOptions)
+
+            var inSampleSize = 1
+            if (boundsOptions.outHeight > AVATAR_SIZE_PX || boundsOptions.outWidth > AVATAR_SIZE_PX) {
+                val halfHeight = boundsOptions.outHeight / 2
+                val halfWidth = boundsOptions.outWidth / 2
+                while ((halfHeight / inSampleSize) >= AVATAR_SIZE_PX && (halfWidth / inSampleSize) >= AVATAR_SIZE_PX) {
+                    inSampleSize *= 2
+                }
+            }
+
+            val decodeOptions = BitmapFactory.Options().apply {
+                this.inSampleSize = inSampleSize
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+            }
+            val src = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions) ?: return@withContext null
 
             val size = AVATAR_SIZE_PX.coerceAtMost(src.width.coerceAtMost(src.height))
             val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
@@ -266,11 +292,33 @@ object IncomingCallNotificationManager {
     }
 
     /**
-     * Plays looping ringtone and sustained vibration until answered, rejected, or timed out.
+     * Plays looping ringtone, activates physical screen WakeLock, and runs sustained vibration.
      */
     @Synchronized
     fun startRingtoneAndVibration(context: Context, notificationId: Int) {
         try {
+            // 1. Physical Screen Hardware WakeLock (causes screen to turn on even in motion/locked)
+            try {
+                if (activeWakeLock?.isHeld != true) {
+                    val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                    if (powerManager != null) {
+                        @Suppress("DEPRECATION")
+                        val wakeLock = powerManager.newWakeLock(
+                            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                                    PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                                    PowerManager.ON_AFTER_RELEASE,
+                            "autamedica:incoming_call_wake",
+                        )
+                        wakeLock.acquire(CALL_TIMEOUT_MS)
+                        activeWakeLock = wakeLock
+                        Timber.i("[IncomingCall] Acquired hardware SCREEN_BRIGHT_WAKE_LOCK for incoming call")
+                    }
+                }
+            } catch (wakeErr: Exception) {
+                Timber.w(wakeErr, "[IncomingCall] Failed acquiring WakeLock")
+            }
+
+            // 2. Continuous Ringtone
             if (activeRingtone?.isPlaying != true) {
                 val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
                 val ringtone = RingtoneManager.getRingtone(context.applicationContext, ringtoneUri)?.apply {
@@ -288,7 +336,7 @@ object IncomingCallNotificationManager {
                 activeRingtone = ringtone
             }
 
-            // Sustained vibration
+            // 3. Sustained vibration
             val vibrator = getVibrator(context)
             if (vibrator != null && vibrator.hasVibrator()) {
                 activeVibrator = vibrator
@@ -314,12 +362,25 @@ object IncomingCallNotificationManager {
     }
 
     /**
-     * Silences ringtone and cancels vibration immediately.
+     * Silences ringtone, cancels vibration, and releases hardware WakeLock immediately.
      */
     @Synchronized
     fun stopRingtone() {
         timeoutJob?.cancel()
         timeoutJob = null
+
+        try {
+            activeWakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    Timber.d("[IncomingCall] Released hardware WakeLock")
+                }
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "[IncomingCall] Failed releasing WakeLock")
+        } finally {
+            activeWakeLock = null
+        }
 
         try {
             activeRingtone?.let {
