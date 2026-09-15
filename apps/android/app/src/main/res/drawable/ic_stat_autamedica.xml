@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Pulso ECG monocromo AutaMedica para notification small icon.
+    Silueta blanca sobre transparente: Android la tiñe con el accent color (notification_accent).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M2,14 L7,14 L9,9 L11,19 L13,6 L15,14 L22,14" />
+</vector>

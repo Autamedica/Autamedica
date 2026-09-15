@@ -8,6 +8,8 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.Build
 import android.os.IBinder
 import com.autamedica.android.MainActivity
@@ -87,7 +89,9 @@ class CallNotificationService : Service() {
         return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.notification_call_title))
             .setContentText(getString(R.string.notification_call_text))
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_stat_autamedica)
+            .setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.ic_notification_large))
+            .setColor(Color.parseColor("#0EA5E9"))
             .setContentIntent(returnIntent)
             .setOngoing(true)
             .addAction(

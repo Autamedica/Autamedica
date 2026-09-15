@@ -17,6 +17,7 @@ import android.graphics.RectF
 import android.media.AudioAttributes
 import android.media.Ringtone
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -58,7 +59,7 @@ object IncomingCallNotificationManager {
 
     private const val CALL_TIMEOUT_MS = 45_000L
     private const val AVATAR_SIZE_PX = 192
-    private val VIBRATION_PATTERN = longArrayOf(0, 1000, 1000, 1000, 1000, 1000)
+    private val VIBRATION_PATTERN = longArrayOf(0, 1500, 1500)
 
     @Volatile
     private var activeRingtone: Ringtone? = null
@@ -74,7 +75,7 @@ object IncomingCallNotificationManager {
      */
     fun createChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
-        val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+        val ringtoneUri = incomingCallRingtoneUri(context)
         val audioAttrs = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -167,7 +168,7 @@ object IncomingCallNotificationManager {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+        val ringtoneUri = incomingCallRingtoneUri(context)
 
         // Custom layout with circular doctor avatar and colored answer/decline actions.
         val views = RemoteViews(context.packageName, R.layout.notification_incoming_call)
@@ -178,7 +179,11 @@ object IncomingCallNotificationManager {
         views.setOnClickPendingIntent(R.id.call_container, fullScreenPendingIntent)
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_stat_autamedica)
+            .setLargeIcon(
+                BitmapFactory.decodeResource(context.resources, R.drawable.ic_notification_large)
+            )
+            .setColor(android.graphics.Color.parseColor("#0EA5E9"))
             .setContentTitle(callerName)
             .setContentText(context.getString(R.string.notification_incoming_call_text))
             .setPriority(NotificationCompat.PRIORITY_MAX)
@@ -272,7 +277,7 @@ object IncomingCallNotificationManager {
     fun startRingtoneAndVibration(context: Context, notificationId: Int) {
         try {
             if (activeRingtone?.isPlaying != true) {
-                val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+                val ringtoneUri = incomingCallRingtoneUri(context)
                 val ringtone = RingtoneManager.getRingtone(context.applicationContext, ringtoneUri)?.apply {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                         isLooping = true
@@ -354,6 +359,9 @@ object IncomingCallNotificationManager {
                 .forEach { manager.cancel(it.id) }
         }
     }
+
+    private fun incomingCallRingtoneUri(context: Context): Uri =
+        Uri.parse("android.resource://${context.packageName}/${R.raw.jingle_incoming_call}")
 
     @Suppress("DEPRECATION")
     private fun getVibrator(context: Context): Vibrator? {

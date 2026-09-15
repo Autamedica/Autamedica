@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import androidx.core.app.NotificationCompat
@@ -121,7 +123,11 @@ object NotificationHelper {
         val contentIntent = buildContentIntent(context, payload)
 
         val builder = NotificationCompat.Builder(context, payload.type.channelId)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_stat_autamedica)
+            .setLargeIcon(
+                BitmapFactory.decodeResource(context.resources, R.drawable.ic_notification_large)
+            )
+            .setColor(Color.parseColor("#0EA5E9"))
             .setContentTitle(payload.title)
             .setContentText(payload.body)
             .setAutoCancel(true)

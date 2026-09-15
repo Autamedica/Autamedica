@@ -11,4 +11,5 @@
     <color name="success">#22C55E</color>
     <color name="warning">#F59E0B</color>
     <color name="splash_background">#09090B</color>
+    <color name="notification_accent">#0EA5E9</color>
 </resources>

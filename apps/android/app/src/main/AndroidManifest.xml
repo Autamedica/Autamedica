@@ -102,6 +102,15 @@
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="autamedica_general" />
 
+        <!-- FCM default notification icon (logo AutaMedica en background) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_autamedica" />
+        <!-- Color de acento para el ícono de background -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_accent" />
+
     </application>
 
 </manifest>

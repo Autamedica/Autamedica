@@ -127,10 +127,16 @@ object NotificationRouteResolver {
 
         val firstSegment = segments.first().lowercase()
 
-        // Single or multi-segment deep links for continuity / clinical followup:
-        // Handles autamedica://continuity, autamedica://followup, /continuity, /followup
         if (firstSegment == "continuity" || firstSegment == "followup" || firstSegment == "continuity_status") {
             return Route.ContinuityStatus
+        }
+
+        if (firstSegment == "prescriptions" || firstSegment == "recetas") {
+            return Route.Prescriptions
+        }
+
+        if (firstSegment == "certificates" || firstSegment == "certificados" || firstSegment == "atestados") {
+            return Route.ClinicalDocuments
         }
 
         if (segments.size < 2) return null

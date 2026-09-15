@@ -551,6 +551,7 @@ class CloudflareCallsEngine(
                     announceOurSession()
                 }
             } catch (err: Throwable) {
+                Timber.w(err, "[SFU] Session connect failed (stack trace follows)")
                 SecureLog.warn("[SFU] Session connect failed", err)
                 setConnectionState(ConnectionState.FAILED)
             }
@@ -613,7 +614,7 @@ class CloudflareCallsEngine(
                     remoteSubscribeNoTracks.add(userId)
                     val localSess = session?.sessionId ?: "none"
                     val sfuReadyNow = userIdToSessionId[userId] == remoteSessionId
-                    SecureLog.warn("[SFU] Subscribe a $userId: remoteSessionId=$remoteSessionId, myLocalSession=$localSess, peerAnnounced=$sfuReadyNow, pulled=${pulled.size}, errors=${result.errorTracks}. Programando reintento...")
+                    Timber.w("[SFU] Subscribe a $userId: remoteSessionId=$remoteSessionId, myLocalSession=$localSess, peerAnnounced=$sfuReadyNow, pulled=${pulled.size}, errors=${result.errorTracks}, tracks=${result.tracks}. Programando reintento...")
                     if (userIdToSessionId[userId] == remoteSessionId) {
                         scheduleRemoteResubscribe(userId, remoteSessionId)
                     }
@@ -621,7 +622,10 @@ class CloudflareCallsEngine(
                     remoteSubscribeNoTracks.remove(userId)
                     resubscribeAttempts.remove(userId)
                     resubscribeJobs.remove(userId)?.cancel()
-                    SecureLog.info("[SFU] Suscripción a $userId completada con éxito: ${pulled.size} tracks recibidos")
+                    Timber.i("[SFU] Suscripción a $userId completada con éxito: ${pulled.size} tracks recibidos, mids=${result.tracks.mapNotNull { it.mid }}")
+                    for (entry in result.tracks) {
+                        Timber.i("[SFU] Suscripción exitosa: userId=$userId, location=${entry.location}, mid=${entry.mid}, trackName=${entry.trackName}")
+                    }
                 }
                 userIdToSessionId[userId] = remoteSessionId
                 emitChatReady()

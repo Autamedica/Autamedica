@@ -8,8 +8,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.VideoCallStateHolder
+import com.autamedica.android.domain.model.CallClinicalGuidance
+import com.autamedica.android.domain.model.CallClinicalGuidanceBuilder
 import com.autamedica.android.domain.model.ChatMessage
 import com.autamedica.android.domain.model.ConnectionState
+import com.autamedica.android.domain.model.PatientClinicalContext
 import com.autamedica.android.domain.model.StreamQualityLevel
 import com.autamedica.android.domain.model.StreamQualitySummary
 import com.autamedica.android.domain.model.UserRole
@@ -54,6 +57,7 @@ data class VideoCallUiState(
     val chatMessages: List<ChatMessage> = emptyList(),
     val isChatOpen: Boolean = false,
     val chatReady: Boolean = false,
+    val unreadChatMessages: Int = 0,
     val qualitySummary: StreamQualitySummary = StreamQualitySummary(
         "", StreamQualityLevel.UNKNOWN, emptyList()
     ),
@@ -69,6 +73,11 @@ data class VideoCallUiState(
     val isSavingNotes: Boolean = false,
     val notesSaved: Boolean = false,
     val isClinicalNotesOpen: Boolean = false,
+    val isClinicalFichaOpen: Boolean = false,
+    val isActionsOverflowOpen: Boolean = false,
+    val patientClinicalContext: PatientClinicalContext? = null,
+    val clinicalGuidance: CallClinicalGuidance = CallClinicalGuidance(),
+    val isLoadingClinicalContext: Boolean = false,
     val activeCallId: String? = null,
     val showSoapEvolution: Boolean = false,
     val soapData: SoapEvolutionData = SoapEvolutionData(),
@@ -86,7 +95,26 @@ data class VideoCallUiState(
     val preconsultationEvolution: String = "",
     val isPreconsultationSaved: Boolean = false,
     val isAutoDegradedToAudio: Boolean = false,
-)
+) {
+    val chiefComplaintPeek: String?
+        get() = patientClinicalContext?.chiefComplaint?.takeIf { it.isNotBlank() }
+            ?: appointmentNotes?.takeIf { it.isNotBlank() }
+            ?: preconsultationReason.takeIf { it.isNotBlank() }
+
+    val allergyAlerts: List<String>
+        get() = patientClinicalContext?.allergies.orEmpty().filter { it.isNotBlank() }
+
+    val safetyAlertLabel: String?
+        get() = when {
+            allergyAlerts.isEmpty() -> clinicalGuidance.redFlags.firstOrNull()
+            allergyAlerts.size == 1 -> allergyAlerts.first()
+            else -> "${allergyAlerts.size} alergias"
+        }
+
+    val safetyAlertCount: Int
+        get() = allergyAlerts.size +
+            (patientClinicalContext?.chronicDiseases.orEmpty().count { it.isNotBlank() })
+}
 
 @HiltViewModel
 class VideoCallViewModel @Inject constructor(
@@ -243,7 +271,21 @@ class VideoCallViewModel @Inject constructor(
                         doctorCrm = docCrm,
                         preconsultationReason = if (preReason.isNotBlank()) preReason else it.preconsultationReason,
                         isPreconsultationSaved = preSaved || it.isPreconsultationSaved,
+                        isLoadingClinicalContext = isDoc && resolvedPatientId.isNotBlank(),
+                        clinicalGuidance = if (isDoc) {
+                            CallClinicalGuidanceBuilder.fromLocalContext(
+                                context = null,
+                                appointmentNotes = apptNotes,
+                                preconsultationReason = preReason,
+                            )
+                        } else {
+                            CallClinicalGuidance()
+                        },
                     )
+                }
+
+                if (isDoc && resolvedPatientId.isNotBlank()) {
+                    loadPatientClinicalContext(resolvedPatientId)
                 }
 
                 val effectiveRoomId = explicitRoomId.takeIf { it.isNotBlank() }
@@ -550,7 +592,23 @@ class VideoCallViewModel @Inject constructor(
     }
 
     fun toggleClinicalNotes() {
-        _uiState.update { it.copy(isClinicalNotesOpen = !it.isClinicalNotesOpen) }
+        _uiState.update { state ->
+            state.copy(
+                isClinicalNotesOpen = !state.isClinicalNotesOpen,
+                isClinicalFichaOpen = false,
+                isActionsOverflowOpen = false,
+            )
+        }
+    }
+
+    fun openClinicalNotesFromFicha() {
+        _uiState.update {
+            it.copy(
+                isClinicalFichaOpen = false,
+                isClinicalNotesOpen = true,
+                isActionsOverflowOpen = false,
+            )
+        }
     }
 
     fun updateConsultationNotes(text: String) {
@@ -686,7 +744,60 @@ class VideoCallViewModel @Inject constructor(
     }
 
     fun toggleChat() {
-        _uiState.update { it.copy(isChatOpen = !it.isChatOpen) }
+        _uiState.update { state ->
+            val opening = !state.isChatOpen
+            state.copy(
+                isChatOpen = opening,
+                unreadChatMessages = if (opening) 0 else state.unreadChatMessages,
+                isActionsOverflowOpen = false,
+            )
+        }
+    }
+
+    fun toggleClinicalFicha() {
+        _uiState.update { state ->
+            state.copy(
+                isClinicalFichaOpen = !state.isClinicalFichaOpen,
+                isActionsOverflowOpen = false,
+                isClinicalNotesOpen = false,
+            )
+        }
+    }
+
+    fun closeClinicalFicha() {
+        _uiState.update { it.copy(isClinicalFichaOpen = false) }
+    }
+
+    fun toggleActionsOverflow() {
+        _uiState.update { state ->
+            state.copy(
+                isActionsOverflowOpen = !state.isActionsOverflowOpen,
+                isClinicalFichaOpen = false,
+            )
+        }
+    }
+
+    fun closeActionsOverflow() {
+        _uiState.update { it.copy(isActionsOverflowOpen = false) }
+    }
+
+    private fun loadPatientClinicalContext(patientId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingClinicalContext = true) }
+            val context = doctorRepository.getPatientClinicalContext(patientId).getOrNull()
+            _uiState.update { state ->
+                val guidance = CallClinicalGuidanceBuilder.fromLocalContext(
+                    context = context,
+                    appointmentNotes = state.appointmentNotes,
+                    preconsultationReason = state.preconsultationReason,
+                )
+                state.copy(
+                    patientClinicalContext = context,
+                    clinicalGuidance = guidance,
+                    isLoadingClinicalContext = false,
+                )
+            }
+        }
     }
 
     fun sendMessage(text: String) {
@@ -802,7 +913,12 @@ class VideoCallViewModel @Inject constructor(
         viewModelScope.launch {
             engine.chatMessages.collect { msg ->
                 _uiState.update { state ->
-                    state.copy(chatMessages = state.chatMessages + msg)
+                    val isOwnMessage = msg.senderId == callUserId
+                    val unreadDelta = if (!state.isChatOpen && !isOwnMessage && msg.senderType != "system") 1 else 0
+                    state.copy(
+                        chatMessages = state.chatMessages + msg,
+                        unreadChatMessages = state.unreadChatMessages + unreadDelta,
+                    )
                 }
             }
         }
