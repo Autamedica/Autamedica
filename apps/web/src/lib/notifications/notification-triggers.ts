@@ -419,6 +419,10 @@ function registerNotificationTriggers() {
             doctorDisplay = `Dr. ${fullName}`;
           }
           doctorAvatarUrl = profile?.avatar_url ?? undefined;
+          if (doctorAvatarUrl?.includes('supabase.co/storage/v1/object/public')) {
+            // Transform original large PNG (~1.9MB) to an ultra-lightweight ~15KB WebP thumbnail
+            doctorAvatarUrl = `${doctorAvatarUrl}?width=192&height=192&resize=cover&quality=80`;
+          }
         }
 
         const { publicSupabaseUrl } = resolvePublicSupabaseEnv();

@@ -1,9 +1,11 @@
 package com.autamedica.android.presentation.incomingcall
 
+import android.app.KeyguardManager
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -90,6 +92,17 @@ class IncomingCallActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
+        }
+        @Suppress("DEPRECATION")
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+            WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val keyguardManager = getSystemService(KeyguardManager::class.java)
+            keyguardManager?.requestDismissKeyguard(this, null)
         }
         enableEdgeToEdge()
         setContent {
@@ -374,19 +387,42 @@ private fun CallerAvatar(
             if (bitmap != null) {
                 Image(
                     bitmap = bitmap.asImageBitmap(),
-                    contentDescription = null,
+                    contentDescription = callerName,
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(CircleShape),
                     contentScale = ContentScale.Crop,
                 )
             } else {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = Color(0xFF475569),
-                )
+                val initials = callerName
+                    .replace("Dr.", "", ignoreCase = true)
+                    .replace("Dra.", "", ignoreCase = true)
+                    .trim()
+                    .split("\\s+".toRegex())
+                    .filter { it.isNotBlank() }
+                    .take(2)
+                    .map { it.first().uppercaseChar() }
+                    .joinToString("")
+                    .ifBlank { "DR" }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(Color(0xFF0284C7), Color(0xFF0369A1))
+                            )
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = initials,
+                        color = Color.White,
+                        fontSize = 38.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                    )
+                }
             }
         }
     }

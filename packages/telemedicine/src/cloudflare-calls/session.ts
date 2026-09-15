@@ -237,11 +237,11 @@ export class CloudflareCallsSession {
     if (this.closed) {
       // Session was torn down (user navigated away, disconnect() already ran)
       // while a signaling message was still in flight. Returning an empty
-      // result is the only sane thing here — throwing would surface as an
-      // unhandled promise rejection on a call the caller can no longer use.
-      this.cfg.onError?.(
-        new Error('CloudflareCallsSession: subscribe after close (ignored)')
-      )
+      // result is the only sane thing here. This is an expected lifecycle
+      // race, not a transport failure: reporting it through onError makes
+      // CloudflareCallsClient emit a fatal UI error and can restart a call
+      // that is already being cleaned up.
+      this.debugLogger.info('Subscribe ignored after session close')
       return []
     }
     if (!this.pc || !this.sessionId || !this.ready) {
