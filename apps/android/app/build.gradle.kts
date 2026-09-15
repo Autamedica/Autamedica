@@ -27,10 +27,10 @@ fun requiredBuildProperty(name: String): String {
 }
 
 fun optionalBuildProperty(name: String, defaultValue: String): String {
-    return localProperties.getProperty(name)
+    val prop = localProperties.getProperty(name)
         ?: providers.gradleProperty(name).orNull
         ?: System.getenv(name)
-        ?: defaultValue
+    return if (prop.isNullOrBlank()) defaultValue else prop
 }
 
 fun quoteForBuildConfig(value: String): String {
@@ -46,8 +46,8 @@ android {
         applicationId = "com.autamedica.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 21
-        versionName = "1.2.11"
+        versionCode = 22
+        versionName = "1.2.12"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
