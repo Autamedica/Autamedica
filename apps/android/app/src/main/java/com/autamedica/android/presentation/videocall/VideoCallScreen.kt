@@ -62,9 +62,7 @@ import com.autamedica.android.presentation.videocall.components.CallActionsOverf
 import com.autamedica.android.presentation.videocall.components.CallControlsBar
 import com.autamedica.android.presentation.videocall.components.CallTopBar
 import com.autamedica.android.presentation.videocall.components.ChatPanel
-import com.autamedica.android.presentation.videocall.components.ClinicalFichaSheet
-import com.autamedica.android.presentation.videocall.components.ClinicalNotesSheet
-import com.autamedica.android.presentation.videocall.components.DoctorClinicalGuidePanel
+import com.autamedica.android.presentation.videocall.components.ClinicalHudLayer
 import com.autamedica.android.presentation.videocall.components.ManagedVideoRenderer
 import com.autamedica.android.presentation.videocall.components.PatientWaitingRoomOverlay
 import com.autamedica.android.presentation.videocall.components.RemoteAvatarFallback
@@ -427,13 +425,13 @@ fun VideoCallScreen(
                     )
                 }
 
-                // Doctor: guía clínica permanente (motivo + alertas + preguntas).
-                // Mic/cam/timer viven en overflow / top bar reducida — fuera de 1ª vista.
+                // Doctor: HUD clínico morph reposo→sheet (resumen/preguntas/notas) sobre
+                // el video full-bleed. Compartido con AntaMedici web (ConsultationContextPanel):
+                // motivo + alertas + preguntas + relato + antecedentes + receta/atestado/SOAP,
+                // sin modal que tape la pantalla. Mic/cam/timer viven en overflow / top bar.
                 if (uiState.isDoctor) {
                     AnimatedVisibility(
-                        visible = !uiState.isClinicalFichaOpen &&
-                            !uiState.isClinicalNotesOpen &&
-                            !uiState.isActionsOverflowOpen,
+                        visible = !uiState.isActionsOverflowOpen,
                         enter = fadeIn() + slideInVertically { it },
                         exit = fadeOut() + slideOutVertically { it },
                         modifier = Modifier
@@ -441,9 +439,33 @@ fun VideoCallScreen(
                             .navigationBarsPadding()
                             .padding(start = 16.dp, end = 16.dp, bottom = 84.dp),
                     ) {
-                        DoctorClinicalGuidePanel(
+                        ClinicalHudLayer(
+                            panel = uiState.clinicalSheetPanel,
                             guidance = uiState.clinicalGuidance,
-                            onOpenFicha = viewModel::toggleClinicalFicha,
+                            clinicalContext = uiState.patientClinicalContext,
+                            fallbackMotivo = uiState.chiefComplaintPeek,
+                            patientName = uiState.patientName,
+                            hasPatient = uiState.patientId.isNotBlank(),
+                            isLoading = uiState.isLoadingClinicalContext,
+                            consultationNotes = uiState.consultationNotes,
+                            initialNotes = uiState.appointmentNotes,
+                            isSavingNotes = uiState.isSavingNotes,
+                            notesSaved = uiState.notesSaved,
+                            onNotesChange = viewModel::updateConsultationNotes,
+                            onSaveNotes = viewModel::saveConsultationNotes,
+                            onRequestPanelChange = viewModel::setClinicalSheetPanel,
+                            onOpenSoap = if (!isPreviewRoute) {
+                                {
+                                    viewModel.setClinicalSheetPanel(ClinicalSheetPanel.GUIDANCE)
+                                    viewModel.openSoapEvolution()
+                                }
+                            } else null,
+                            onEmitPrescription = if (uiState.patientId.isNotBlank() && onNavigateToCreatePrescription != null) {
+                                { onNavigateToCreatePrescription(uiState.patientId) }
+                            } else null,
+                            onEmitCertificate = if (uiState.patientId.isNotBlank() && onNavigateToCreateCertificate != null) {
+                                { onNavigateToCreateCertificate(uiState.patientId) }
+                            } else null,
                         )
                     }
                 }
@@ -464,9 +486,9 @@ fun VideoCallScreen(
                         onToggleVideo = viewModel::toggleVideo,
                         onEndCall = { viewModel.handleCallEnd(onCallEnd) },
                         isDoctor = uiState.isDoctor,
-                        isFichaOpen = uiState.isClinicalFichaOpen,
+                        isFichaOpen = uiState.isClinicalSheetExpanded,
                         hasSafetyAlerts = uiState.safetyAlertCount > 0,
-                        onOpenFicha = if (uiState.isDoctor) viewModel::toggleClinicalFicha else null,
+                        onOpenFicha = if (uiState.isDoctor) viewModel::toggleClinicalSheet else null,
                         isOverflowOpen = uiState.isActionsOverflowOpen,
                         overflowBadgeCount = uiState.unreadChatMessages,
                         onOpenOverflow = if (uiState.isDoctor) viewModel::toggleActionsOverflow else null,
@@ -477,53 +499,8 @@ fun VideoCallScreen(
                         onToggleChat = if (!uiState.isDoctor) viewModel::toggleChat else null,
                     )
                 }
-
-                // Clinical Notes Sheet (Doctor only)
-                AnimatedVisibility(
-                    visible = uiState.isClinicalNotesOpen,
-                    enter = fadeIn() + slideInVertically { it },
-                    exit = fadeOut() + slideOutVertically { it },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .navigationBarsPadding(),
-                ) {
-                    ClinicalNotesSheet(
-                        notes = uiState.consultationNotes,
-                        initialNotes = uiState.appointmentNotes,
-                        isSaving = uiState.isSavingNotes,
-                        isSaved = uiState.notesSaved,
-                        onNotesChange = viewModel::updateConsultationNotes,
-                        onSaveNotes = viewModel::saveConsultationNotes,
-                        onClose = viewModel::toggleClinicalNotes,
-                        onOpenFullSoap = if (!isPreviewRoute) {
-                            {
-                                viewModel.toggleClinicalNotes()
-                                viewModel.openSoapEvolution()
-                            }
-                        } else null,
-                    )
-                }
             }
         }
-    }
-
-    if (uiState.isDoctor && uiState.isClinicalFichaOpen) {
-        ClinicalFichaSheet(
-            patientName = uiState.patientName,
-            clinicalContext = uiState.patientClinicalContext,
-            fallbackReason = uiState.chiefComplaintPeek,
-            guidance = uiState.clinicalGuidance,
-            hasPatient = uiState.patientId.isNotBlank(),
-            isLoading = uiState.isLoadingClinicalContext,
-            onDismiss = viewModel::closeClinicalFicha,
-            onOpenNotes = viewModel::openClinicalNotesFromFicha,
-            onEmitPrescription = if (uiState.patientId.isNotBlank() && onNavigateToCreatePrescription != null) {
-                { onNavigateToCreatePrescription(uiState.patientId) }
-            } else null,
-            onEmitCertificate = if (uiState.patientId.isNotBlank() && onNavigateToCreateCertificate != null) {
-                { onNavigateToCreateCertificate(uiState.patientId) }
-            } else null,
-        )
     }
 
     if (uiState.isDoctor && uiState.isActionsOverflowOpen) {

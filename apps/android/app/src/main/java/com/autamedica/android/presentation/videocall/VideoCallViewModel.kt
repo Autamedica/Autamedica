@@ -72,8 +72,7 @@ data class VideoCallUiState(
     val consultationNotes: String = "",
     val isSavingNotes: Boolean = false,
     val notesSaved: Boolean = false,
-    val isClinicalNotesOpen: Boolean = false,
-    val isClinicalFichaOpen: Boolean = false,
+    val clinicalSheetPanel: ClinicalSheetPanel = ClinicalSheetPanel.GUIDANCE,
     val isActionsOverflowOpen: Boolean = false,
     val patientClinicalContext: PatientClinicalContext? = null,
     val clinicalGuidance: CallClinicalGuidance = CallClinicalGuidance(),
@@ -114,6 +113,9 @@ data class VideoCallUiState(
     val safetyAlertCount: Int
         get() = allergyAlerts.size +
             (patientClinicalContext?.chronicDiseases.orEmpty().count { it.isNotBlank() })
+
+    val isClinicalSheetExpanded: Boolean
+        get() = clinicalSheetPanel != ClinicalSheetPanel.GUIDANCE
 }
 
 @HiltViewModel
@@ -591,21 +593,19 @@ class VideoCallViewModel @Inject constructor(
         engine.switchCamera()
     }
 
-    fun toggleClinicalNotes() {
-        _uiState.update { state ->
-            state.copy(
-                isClinicalNotesOpen = !state.isClinicalNotesOpen,
-                isClinicalFichaOpen = false,
-                isActionsOverflowOpen = false,
-            )
+    fun toggleClinicalSheet() {
+        val next = if (_uiState.value.isClinicalSheetExpanded) {
+            ClinicalSheetPanel.GUIDANCE
+        } else {
+            ClinicalSheetPanel.RESUMEN
         }
+        setClinicalSheetPanel(next)
     }
 
-    fun openClinicalNotesFromFicha() {
+    fun setClinicalSheetPanel(panel: ClinicalSheetPanel) {
         _uiState.update {
             it.copy(
-                isClinicalFichaOpen = false,
-                isClinicalNotesOpen = true,
+                clinicalSheetPanel = panel,
                 isActionsOverflowOpen = false,
             )
         }
@@ -754,25 +754,11 @@ class VideoCallViewModel @Inject constructor(
         }
     }
 
-    fun toggleClinicalFicha() {
-        _uiState.update { state ->
-            state.copy(
-                isClinicalFichaOpen = !state.isClinicalFichaOpen,
-                isActionsOverflowOpen = false,
-                isClinicalNotesOpen = false,
-            )
-        }
-    }
-
-    fun closeClinicalFicha() {
-        _uiState.update { it.copy(isClinicalFichaOpen = false) }
-    }
-
     fun toggleActionsOverflow() {
         _uiState.update { state ->
             state.copy(
                 isActionsOverflowOpen = !state.isActionsOverflowOpen,
-                isClinicalFichaOpen = false,
+                clinicalSheetPanel = ClinicalSheetPanel.GUIDANCE,
             )
         }
     }
