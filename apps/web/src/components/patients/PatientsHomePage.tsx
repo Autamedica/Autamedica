@@ -245,6 +245,14 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
   const services = useMemo(() => [
     {
+      label: locale === 'pt' ? 'Farmácia e Receita Rápida' : 'Farmacia y Receta Exprés',
+      desc: locale === 'pt' ? 'Atendimento imediato por plantão para emitir sua receita no balcão' : 'Atención inmediata de guardia para emitir tu receta en mostrador',
+      href: '/farmacia/solicitar',
+      bgImage: '/images/cards/card_bg_recetas.jpg',
+      iconImage: '/images/cards/icon_recetas.jpg',
+      icon: Stethoscope,
+    },
+    {
       label: dict.patientPortal.services.onlineDoctor,
       desc: dict.patientPortal.services.onlineDoctorDesc,
       href: '/patients/appointments?type=telemedicine',
@@ -627,18 +635,36 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               {dict.patientPortal.metrics.allReady}
             </motion.p>
 
-            <motion.a
-              href="/patients/appointments?type=telemedicine"
-              className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-neutral-900 rounded-full text-base font-medium hover:bg-neutral-50 transition-all shadow-xl hover:shadow-2xl active:scale-[0.98]"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {dict.patientPortal.metrics.bookAppointment}
-              <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
-            </motion.a>
+            <div className="flex flex-wrap items-center gap-4">
+              <motion.a
+                href="/patients/appointments?type=telemedicine"
+                className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-neutral-900 rounded-full text-base font-medium hover:bg-neutral-50 transition-all shadow-xl hover:shadow-2xl active:scale-[0.98]"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {dict.patientPortal.metrics.bookAppointment}
+                <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
+              </motion.a>
+
+              <motion.a
+                href="/farmacia/solicitar"
+                className="group inline-flex items-center gap-3 px-7 py-4 bg-emerald-500/20 backdrop-blur-md text-white border border-emerald-400/40 rounded-full text-base font-medium hover:bg-emerald-500/30 hover:border-emerald-400 transition-all shadow-lg active:scale-[0.98]"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.1 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
+                </span>
+                <span>{locale === 'pt' ? 'Consulta Rápida na Farmácia' : 'Consulta Exprés en Farmacia'}</span>
+              </motion.a>
+            </div>
           </motion.div>
         </div>
 

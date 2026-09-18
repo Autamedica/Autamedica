@@ -219,4 +219,7 @@
     <string name="pharmacy_on_demand_pharmacy_label">Farmácia:</string>
     <string name="pharmacy_on_demand_reason_label">Motivo:</string>
     <string name="pharmacy_on_demand_dni_label">CPF / Doc:</string>
+    <string name="patient_pharmacy_express_button">Consulta Rápida na Farmácia</string>
+    <string name="patient_pharmacy_express_desc">Atendimento imediato por plantão para receitas no balcão</string>
+    <string name="patient_pharmacy_express_badge">Plantão ativo</string>
 </resources>

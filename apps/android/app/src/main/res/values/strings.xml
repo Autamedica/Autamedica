@@ -105,4 +105,7 @@
     <string name="pharmacy_on_demand_pharmacy_label">Farmacia:</string>
     <string name="pharmacy_on_demand_reason_label">Motivo:</string>
     <string name="pharmacy_on_demand_dni_label">DNI:</string>
+    <string name="patient_pharmacy_express_button">Consulta Exprés en Farmacia</string>
+    <string name="patient_pharmacy_express_desc">Atención inmediata con médico de guardia para recetas en mostrador</string>
+    <string name="patient_pharmacy_express_badge">Guardia activa</string>
 </resources>
