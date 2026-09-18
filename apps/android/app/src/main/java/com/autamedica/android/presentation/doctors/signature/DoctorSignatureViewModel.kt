@@ -17,6 +17,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import com.autamedica.android.util.CountryContext
+import com.autamedica.android.util.CpfValidator
+import java.util.Locale
 import javax.inject.Inject
 
 data class DoctorSignatureState(
@@ -37,36 +40,82 @@ class DoctorSignatureViewModel @Inject constructor(
     val state: StateFlow<DoctorSignatureState> = _state.asStateFlow()
 
     fun validateWithSisaRefeps(dni: String, medicalLicense: String) {
-        val normalizedDni = dni.trim()
-        val normalizedLicense = medicalLicense.trim()
+        validateProfessionalDocument(
+            documentNumber = dni,
+            medicalLicense = medicalLicense,
+            countryCode = "AR",
+        )
+    }
 
-        if (!normalizedDni.matches(Regex("^\\d{7,9}$"))) {
-            _state.update {
-                it.copy(
-                    isLoading = false,
-                    sisaValidated = false,
-                    errorMessage = "Ingresá un DNI válido (7 a 9 dígitos)",
-                )
+    fun validateProfessionalDocument(
+        documentNumber: String,
+        medicalLicense: String,
+        countryCode: String? = null,
+        locale: Locale = Locale.getDefault(),
+    ) {
+        val normalizedDoc = documentNumber.trim()
+        val normalizedLicense = medicalLicense.trim()
+        val isBrazil = CountryContext.isBrazil(countryCode = countryCode, locale = locale)
+
+        if (isBrazil) {
+            val cleanedCpf = CpfValidator.clean(normalizedDoc)
+            if (!CpfValidator.isValid(cleanedCpf)) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        sisaValidated = false,
+                        errorMessage = "Informe um CPF válido (11 dígitos)",
+                    )
+                }
+                return
             }
-            return
-        }
-        if (normalizedLicense.length < 3) {
-            _state.update {
-                it.copy(
-                    isLoading = false,
-                    sisaValidated = false,
-                    errorMessage = "Ingresá una matrícula válida",
-                )
+            if (normalizedLicense.length < 3) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        sisaValidated = false,
+                        errorMessage = "Informe um CRM válido",
+                    )
+                }
+                return
             }
-            return
+        } else {
+            if (!normalizedDoc.matches(Regex("^\\d{7,9}$"))) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        sisaValidated = false,
+                        errorMessage = "Ingrese un DNI válido (7 a 9 dígitos)",
+                    )
+                }
+                return
+            }
+            if (normalizedLicense.length < 3) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        sisaValidated = false,
+                        errorMessage = "Ingrese una matrícula válida",
+                    )
+                }
+                return
+            }
         }
 
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null, validationMessage = null) }
             val result = runCatching {
                 val payload = buildJsonObject {
-                    put("dni", normalizedDni)
-                    put("matricula", normalizedLicense)
+                    if (isBrazil) {
+                        val cleanedCpf = CpfValidator.clean(normalizedDoc)
+                        put("cpf", cleanedCpf)
+                        put("crm", normalizedLicense)
+                        put("dni", cleanedCpf)
+                        put("matricula", normalizedLicense)
+                    } else {
+                        put("dni", normalizedDoc)
+                        put("matricula", normalizedLicense)
+                    }
                 }
                 val response = supabaseClient.functions("verify-doctor-license", payload)
                 val text = response.bodyAsText()
@@ -79,9 +128,9 @@ class DoctorSignatureViewModel @Inject constructor(
                     val status = dto.data?.status
                     val verified = status == "valid" || status == "exempt"
                     val message = when (status) {
-                        "valid" -> "Matrícula verificada en SISA/REFEPS"
-                        "exempt" -> "Matrícula exceptuada de verificación"
-                        else -> (dto.message ?: dto.code ?: "Matrícula sin verificar").takeIf { it.isNotBlank() }
+                        "valid" -> if (isBrazil) "CRM verificado com sucesso" else "Matrícula verificada en SISA/REFEPS"
+                        "exempt" -> if (isBrazil) "CRM dispensado de validação prévia" else "Matrícula exceptuada de verificación"
+                        else -> (dto.message ?: dto.code ?: if (isBrazil) "CRM sem verificação" else "Matrícula sin verificar").takeIf { it.isNotBlank() }
                     }
                     _state.update {
                         it.copy(
@@ -95,8 +144,12 @@ class DoctorSignatureViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
-                    val message = error.message?.takeIf { it.isNotBlank() }
-                        ?: "No se pudo verificar la matrícula. Probá nuevamente."
+                    val fallbackMessage = if (isBrazil) {
+                        "Não foi possível verificar o documento. Tente novamente."
+                    } else {
+                        "No se pudo verificar la matrícula. Intente nuevamente."
+                    }
+                    val message = error.message?.takeIf { it.isNotBlank() } ?: fallbackMessage
                     _state.update {
                         it.copy(
                             isLoading = false,

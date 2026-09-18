@@ -106,15 +106,17 @@ class WebRTCEngine(
     val isAutoDegradedToAudio: StateFlow<Boolean> = _isAutoDegradedToAudio.asStateFlow()
 
     private val autoDegradeService = AutoDegradeService(
-        poorQualityThresholdMs = 30_000L,
-        recoveryThresholdMs = 15_000L,
+        poorQualityThresholdMs = 12_000L,
+        recoveryThresholdMs = 10_000L,
         onDegrade = {
-            Timber.w("[WebRTC] Quality poor for 30s: auto-degrading to audio-only")
+            Timber.w("[WebRTC] Quality poor for 12s window: auto-degrading to audio-only")
             _isAutoDegradedToAudio.value = true
             toggleVideo(false)
         },
         onRecover = {
-            Timber.i("[WebRTC] Quality recovered for 15s")
+            Timber.i("[WebRTC] Quality recovered: restoring local video")
+            _isAutoDegradedToAudio.value = false
+            toggleVideo(true)
             adaptCaptureFormat(lowPressure = false)
         },
     )

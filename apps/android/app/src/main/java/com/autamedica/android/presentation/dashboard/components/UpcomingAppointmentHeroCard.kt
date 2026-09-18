@@ -41,6 +41,7 @@ import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalPatients
+import com.autamedica.android.util.CountryContext
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -209,7 +210,9 @@ fun UpcomingAppointmentHeroCard(
 
 private fun formatDate(isoString: String): String = try {
     val dt = OffsetDateTime.parse(isoString)
-    val formatter = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale("es", "AR"))
+    val locale = CountryContext.getLocale()
+    val pattern = if (CountryContext.isBrazil(locale = locale)) "EEEE, d 'de' MMMM" else "EEEE d 'de' MMMM"
+    val formatter = DateTimeFormatter.ofPattern(pattern, locale)
     dt.format(formatter).replaceFirstChar { it.uppercase() }
 } catch (_: Exception) {
     isoString.take(10)
@@ -217,17 +220,23 @@ private fun formatDate(isoString: String): String = try {
 
 private fun formatTime(isoString: String): String = try {
     val dt = OffsetDateTime.parse(isoString)
-    val formatter = DateTimeFormatter.ofPattern("HH:mm 'hs'", Locale("es", "AR"))
+    val locale = CountryContext.getLocale()
+    val isPt = CountryContext.isBrazil(locale = locale)
+    val pattern = if (isPt) "HH:mm" else "HH:mm 'hs'"
+    val formatter = DateTimeFormatter.ofPattern(pattern, locale)
     dt.format(formatter)
 } catch (_: Exception) {
     ""
 }
 
-private fun AppointmentType.displayName(): String = when (this) {
-    AppointmentType.TELEMEDICINE -> "Videoconsulta Clínica"
-    AppointmentType.CONSULTATION -> "Consulta Médica"
-    AppointmentType.FOLLOW_UP -> "Control de Seguimiento"
-    AppointmentType.EMERGENCY -> "Guardia Médica"
-    AppointmentType.LAB_TEST -> "Estudio de Laboratorio"
-    AppointmentType.CHECKUP -> "Chequeo de Rutina"
+private fun AppointmentType.displayName(): String {
+    val isPt = CountryContext.isBrazil()
+    return when (this) {
+        AppointmentType.TELEMEDICINE -> if (isPt) "Teleconsulta Clínica" else "Videoconsulta Clínica"
+        AppointmentType.CONSULTATION -> if (isPt) "Consulta Médica" else "Consulta Médica"
+        AppointmentType.FOLLOW_UP -> if (isPt) "Retorno e Acompanhamento" else "Control de Seguimiento"
+        AppointmentType.EMERGENCY -> if (isPt) "Plantão Médico de Urgência" else "Guardia Médica"
+        AppointmentType.LAB_TEST -> if (isPt) "Exame Laboratorial" else "Estudio de Laboratorio"
+        AppointmentType.CHECKUP -> if (isPt) "Check-up de Rotina" else "Chequeo de Rutina"
+    }
 }

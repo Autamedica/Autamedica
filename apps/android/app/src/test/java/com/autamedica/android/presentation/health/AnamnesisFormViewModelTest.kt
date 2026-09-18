@@ -217,6 +217,28 @@ class AnamnesisFormViewModelTest {
         assertThat(viewModel.uiState.value.currentSectionIndex).isEqualTo(1)
     }
 
+    @Test
+    fun `applyQuickAction populates values and triggers save`() = runTest(testDispatcher.scheduler) {
+        val viewModel = AnamnesisFormViewModel(fakeRepository)
+        val quickAction = SectionQuickAction(
+            label = "Niega alergias conocidas",
+            values = mapOf("tiene_alergias" to "false", "lista_alergias" to "")
+        )
+
+        viewModel.applyQuickAction(quickAction)
+
+        assertThat(viewModel.uiState.value.fieldValues["tiene_alergias"]).isEqualTo("false")
+        assertThat(viewModel.uiState.value.fieldValues["lista_alergias"]).isEqualTo("")
+    }
+
+    @Test
+    fun `cardiovascular quick action validates section completely`() = runTest(testDispatcher.scheduler) {
+        val quickAction = getSectionQuickAction("cardiovascular")
+        assertThat(quickAction).isNotNull()
+        val result = validateSection("cardiovascular", quickAction!!.values)
+        assertThat(result.isValid).isTrue()
+    }
+
     private fun validDataForSection(section: String): Map<String, String> = when (section) {
         "edad" -> mapOf(
             "fecha_nacimiento" to "1958-03-12",

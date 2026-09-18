@@ -24,6 +24,7 @@ data class LoginUiState(
     val isLoading: Boolean = false,
     val isGoogleLoading: Boolean = false,
     val error: String? = null,
+    val errorResId: Int? = null,
     val isCheckingSession: Boolean = true,
     val loggedInUser: User? = null,
 )
@@ -65,15 +66,15 @@ class LoginViewModel @Inject constructor(
     }
 
     fun onRoleChange(role: com.autamedica.android.domain.model.UserRole) {
-        _uiState.update { it.copy(selectedRole = role, error = null) }
+        _uiState.update { it.copy(selectedRole = role, error = null, errorResId = null) }
     }
 
     fun onEmailChange(email: String) {
-        _uiState.update { it.copy(email = email, error = null) }
+        _uiState.update { it.copy(email = email, error = null, errorResId = null) }
     }
 
     fun onPasswordChange(password: String) {
-        _uiState.update { it.copy(password = password, error = null) }
+        _uiState.update { it.copy(password = password, error = null, errorResId = null) }
     }
 
     private fun mapErrorMessage(error: Throwable): String {
@@ -125,24 +126,44 @@ class LoginViewModel @Inject constructor(
         val password = state.password
 
         if (email.isBlank()) {
-            _uiState.update { it.copy(error = "Por favor ingresá tu correo electrónico") }
+            _uiState.update {
+                it.copy(
+                    error = "Por favor, ingresa tu correo electrónico",
+                    errorResId = com.autamedica.android.R.string.login_error_empty_email,
+                )
+            }
             return
         }
         if (!email.contains("@") || !email.contains(".")) {
-            _uiState.update { it.copy(error = "El formato de correo no es válido (ej: usuario@correo.com)") }
+            _uiState.update {
+                it.copy(
+                    error = "El formato de correo no es válido (ej: usuario@correo.com)",
+                    errorResId = com.autamedica.android.R.string.login_error_invalid_email,
+                )
+            }
             return
         }
         if (password.isBlank()) {
-            _uiState.update { it.copy(error = "Por favor ingresá tu contraseña") }
+            _uiState.update {
+                it.copy(
+                    error = "Por favor, ingresa tu contraseña",
+                    errorResId = com.autamedica.android.R.string.login_error_empty_password,
+                )
+            }
             return
         }
         if (password.length < 6) {
-            _uiState.update { it.copy(error = "La contraseña debe tener al menos 6 caracteres") }
+            _uiState.update {
+                it.copy(
+                    error = "La contraseña debe tener al menos 6 caracteres",
+                    errorResId = com.autamedica.android.R.string.login_error_password_too_short,
+                )
+            }
             return
         }
         if (state.isLoading || state.isGoogleLoading) return
 
-        _uiState.update { it.copy(isLoading = true, error = null) }
+        _uiState.update { it.copy(isLoading = true, error = null, errorResId = null) }
 
         viewModelScope.launch {
             try {
@@ -215,18 +236,24 @@ class LoginViewModel @Inject constructor(
     fun onGoogleSignInError(error: Throwable) {
         SecureLog.error("[Auth] Google sign-in error", error)
         Timber.e(error, "[Auth] Google sign-in error: %s", error.message)
+        var errorResId: Int? = null
         val friendlyMessage = when {
-            error is androidx.credentials.exceptions.GetCredentialCancellationException ->
-                "Inicio con Google cancelado o interrumpido. Podés ingresar con tu correo y contraseña."
+            error is androidx.credentials.exceptions.GetCredentialCancellationException -> {
+                errorResId = com.autamedica.android.R.string.auth_google_cancelled_hint
+                "Inicio con Google cancelado o interrumpido. Puedes ingresar con tu correo y contraseña."
+            }
             error is androidx.credentials.exceptions.NoCredentialException ||
-                error.message?.contains("no credential", ignoreCase = true) == true ->
-                "No se encontró ninguna cuenta de Google disponible en este dispositivo. Ingresá con correo y contraseña."
+                error.message?.contains("no credential", ignoreCase = true) == true -> {
+                errorResId = com.autamedica.android.R.string.auth_google_no_account_hint
+                "No se encontró ninguna cuenta de Google disponible en este dispositivo. Ingresa con correo y contraseña."
+            }
             else -> mapErrorMessage(error)
         }
         _uiState.update {
             it.copy(
                 isGoogleLoading = false,
                 error = friendlyMessage,
+                errorResId = errorResId,
             )
         }
     }

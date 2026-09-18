@@ -20,6 +20,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.autamedica.android.util.CountryContext
 import javax.inject.Inject
 
 data class AppointmentsUiState(
@@ -341,10 +342,15 @@ class AppointmentsViewModel @Inject constructor(
 
     private fun formatConfirmationDate(date: LocalDate): String {
         val today = LocalDate.now()
+        val locale = CountryContext.getLocale()
+        val isPt = CountryContext.isBrazil(locale = locale)
         return when (date) {
-            today -> "hoy"
-            today.plusDays(1) -> "mañana"
-            else -> date.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale("es", "AR")))
+            today -> if (isPt) "hoje" else "hoy"
+            today.plusDays(1) -> if (isPt) "amanhã" else "mañana"
+            else -> {
+                val pattern = if (isPt) "EEEE, d 'de' MMMM" else "EEEE d 'de' MMMM"
+                date.format(DateTimeFormatter.ofPattern(pattern, locale))
+            }
         }
     }
 

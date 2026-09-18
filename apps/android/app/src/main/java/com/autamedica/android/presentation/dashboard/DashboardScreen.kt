@@ -232,6 +232,7 @@ fun DashboardScreen(
                                 benefitBalanceCredits = uiState.benefitBalanceCredits,
                                 maxCapCredits = uiState.maxCapCredits,
                                 isVisible = uiState.showReserveBanner,
+                                userPhone = uiState.userPhone,
                                 onToggleVisibility = viewModel::toggleReserveBanner,
                                 onSubscribeClick = {
                                     onOpenHealthReserveDetail(

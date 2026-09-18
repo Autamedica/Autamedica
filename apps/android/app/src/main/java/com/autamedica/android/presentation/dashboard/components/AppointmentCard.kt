@@ -60,6 +60,7 @@ import com.autamedica.android.presentation.theme.SuccessContainer
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.autamedica.android.util.CountryContext
 
 @Composable
 fun AppointmentCard(
@@ -432,7 +433,7 @@ private fun cleanNotesContent(notes: String?): String {
 private fun formatDate(isoString: String): String {
     return try {
         val dt = OffsetDateTime.parse(isoString)
-        dt.format(DateTimeFormatter.ofPattern("d 'de' MMMM, yyyy", Locale("es", "AR")))
+        dt.format(DateTimeFormatter.ofPattern("d 'de' MMMM, yyyy", CountryContext.getLocale()))
     } catch (_: Exception) {
         isoString
     }
@@ -441,7 +442,7 @@ private fun formatDate(isoString: String): String {
 private fun formatTime(isoString: String): String {
     return try {
         val dt = OffsetDateTime.parse(isoString)
-        dt.format(DateTimeFormatter.ofPattern("HH:mm", Locale("es", "AR")))
+        dt.format(DateTimeFormatter.ofPattern("HH:mm", CountryContext.getLocale()))
     } catch (_: Exception) {
         ""
     }

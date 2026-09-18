@@ -12,6 +12,7 @@ import com.autamedica.android.domain.model.isAnamnesisSummaryReadOnly
 import com.autamedica.android.domain.repository.HealthRepository
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -19,6 +20,7 @@ import io.github.jan.supabase.postgrest.query.Order
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -58,16 +60,41 @@ class HealthRepositoryImpl @Inject constructor(
 
         val patientId = resolvePatientIdOrNull() ?: return@runCatching null
 
-        supabaseClient.postgrest
-            .from("anamnesis")
-            .select(Columns.ALL) {
-                filter { eq("patient_id", patientId) }
-                order("updated_at", Order.DESCENDING)
-                limit(1)
-            }
-            .decodeList<AnamnesisDto>()
-            .firstOrNull()
-            ?.toDomain()
+        try {
+            val remote = supabaseClient.postgrest
+                .from("anamnesis")
+                .select(Columns.ALL) {
+                    filter { eq("patient_id", patientId) }
+                    order("updated_at", Order.DESCENDING)
+                    limit(1)
+                }
+                .decodeList<AnamnesisDto>()
+                .firstOrNull()
+                ?.toDomain()
+
+            if (remote != null) return@runCatching remote
+        } catch (e: Exception) {
+            SecureLog.warn("[Health] Postgrest getAnamnesisSummary fallback to local: ${e.message}")
+        }
+
+        // Check local storage progress
+        val completedCount = AnamnesisSection.SECTION_ORDER.count { section ->
+            isLocalSectionCompleted("local-$patientId", section)
+        }
+        if (completedCount > 0) {
+            val percentage = ((completedCount.toDouble() / AnamnesisSection.SECTION_ORDER.size) * 100).roundToInt()
+            AnamnesisSummary(
+                id = "local-$patientId",
+                status = if (percentage == 100) ANAMNESIS_STATUS_COMPLETED else "in_progress",
+                completionPercentage = percentage,
+                locked = false,
+                updatedAt = OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                completedSections = completedCount,
+                totalSections = AnamnesisSection.SECTION_ORDER.size,
+            )
+        } else {
+            null
+        }
     }.onFailure {
         SecureLog.error("[Health] Failed fetching anamnesis summary", it)
     }
@@ -102,50 +129,63 @@ class HealthRepositoryImpl @Inject constructor(
 
         val patientId = resolvePatientId()
 
-        val existing = supabaseClient.postgrest
-            .from("anamnesis")
-            .select(Columns.ALL) {
-                filter { eq("patient_id", patientId) }
-                order("updated_at", Order.DESCENDING)
-                limit(1)
+        try {
+            val existing = supabaseClient.postgrest
+                .from("anamnesis")
+                .select(Columns.ALL) {
+                    filter { eq("patient_id", patientId) }
+                    order("updated_at", Order.DESCENDING)
+                    limit(1)
+                }
+                .decodeList<AnamnesisDto>()
+                .firstOrNull()
+
+            if (existing != null) return@runCatching existing.toDomain()
+
+            // Create new anamnesis with default sections_status
+            val sectionsStatus = AnamnesisSection.SECTION_ORDER.associate { section ->
+                section to "pending"
             }
-            .decodeList<AnamnesisDto>()
-            .firstOrNull()
 
-        if (existing != null) return@runCatching existing.toDomain()
+            val created = supabaseClient.postgrest
+                .from("anamnesis")
+                .insert(
+                    CreateAnamnesisDto(
+                        patientId = patientId,
+                        status = "in_progress",
+                        sectionsStatus = JsonObject(sectionsStatus.mapValues { JsonPrimitive(it.value) }),
+                    )
+                ) {
+                    select(Columns.ALL)
+                }
+                .decodeSingle<AnamnesisDto>()
 
-        // Create new anamnesis with default sections_status
-        val sectionsStatus = AnamnesisSection.SECTION_ORDER.associate { section ->
-            section to "pending"
-        }
-
-        val created = supabaseClient.postgrest
-            .from("anamnesis")
-            .insert(
-                CreateAnamnesisDto(
-                    patientId = patientId,
-                    status = "in_progress",
-                    sectionsStatus = JsonObject(sectionsStatus.mapValues { JsonPrimitive(it.value) }),
+            // Create empty section records
+            val sectionInserts = AnamnesisSection.SECTION_ORDER.map { section ->
+                CreateSectionDto(
+                    anamnesisId = created.id,
+                    section = section,
+                    data = JsonObject(emptyMap()),
+                    completed = false,
                 )
-            ) {
-                select(Columns.ALL)
             }
-            .decodeSingle<AnamnesisDto>()
+            supabaseClient.postgrest
+                .from("anamnesis_sections")
+                .insert(sectionInserts)
 
-        // Create empty section records
-        val sectionInserts = AnamnesisSection.SECTION_ORDER.map { section ->
-            CreateSectionDto(
-                anamnesisId = created.id,
-                section = section,
-                data = JsonObject(emptyMap()),
-                completed = false,
+            created.toDomain()
+        } catch (e: Exception) {
+            SecureLog.warn("[Health] Postgrest getOrCreateAnamnesis fallback to local: ${e.message}")
+            AnamnesisSummary(
+                id = "local-$patientId",
+                status = "in_progress",
+                completionPercentage = 0,
+                locked = false,
+                updatedAt = OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                completedSections = 0,
+                totalSections = AnamnesisSection.SECTION_ORDER.size,
             )
         }
-        supabaseClient.postgrest
-            .from("anamnesis_sections")
-            .insert(sectionInserts)
-
-        created.toDomain()
     }.onFailure {
         SecureLog.error("[Health] Failed creating anamnesis", it)
     }
@@ -168,21 +208,45 @@ class HealthRepositoryImpl @Inject constructor(
                 SecureLog.warn("[Health] Edge getAnamnesisSections fallback to Postgrest: ${e.message}")
             }
 
-            supabaseClient.postgrest
-                .from("anamnesis_sections")
-                .select(Columns.ALL) {
-                    filter { eq("anamnesis_id", anamnesisId) }
-                }
-                .decodeList<AnamnesisSectionDto>()
-                .map { it.toDomain() }
-                .sortedBy {
-                    val idx = AnamnesisSection.SECTION_ORDER.indexOf(it.section)
-                    if (idx >= 0) idx
-                    else {
-                        val legacyIdx = AnamnesisSection.LEGACY_SECTIONS.indexOf(it.section)
-                        if (legacyIdx >= 0) 100 + legacyIdx else 999
+            if (!anamnesisId.startsWith("local-")) {
+                try {
+                    val remoteSections = supabaseClient.postgrest
+                        .from("anamnesis_sections")
+                        .select(Columns.ALL) {
+                            filter { eq("anamnesis_id", anamnesisId) }
+                        }
+                        .decodeList<AnamnesisSectionDto>()
+                        .map { it.toDomain() }
+
+                    if (remoteSections.isNotEmpty()) {
+                        return@runCatching remoteSections.sortedBy {
+                            val idx = AnamnesisSection.SECTION_ORDER.indexOf(it.section)
+                            if (idx >= 0) idx
+                            else {
+                                val legacyIdx = AnamnesisSection.LEGACY_SECTIONS.indexOf(it.section)
+                                if (legacyIdx >= 0) 100 + legacyIdx else 999
+                            }
+                        }
                     }
+                } catch (e: Exception) {
+                    SecureLog.warn("[Health] Postgrest getAnamnesisSections failed: ${e.message}")
                 }
+            }
+
+            // If remote is empty or offline, generate the 13 canonical sections with local cached drafts
+            AnamnesisSection.SECTION_ORDER.map { section ->
+                val cachedData = loadLocalSectionData(anamnesisId, section)
+                val isComp = isLocalSectionCompleted(anamnesisId, section) || cachedData.isNotEmpty()
+                AnamnesisSection(
+                    id = "local-$anamnesisId-$section",
+                    anamnesisId = anamnesisId,
+                    section = section,
+                    data = cachedData,
+                    completed = isComp,
+                    completedAt = if (isComp) OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME) else null,
+                    updatedAt = OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                )
+            }
         }.onFailure {
             SecureLog.error("[Health] Failed fetching sections", it)
         }
@@ -192,6 +256,7 @@ class HealthRepositoryImpl @Inject constructor(
         section: String,
         data: Map<String, String>,
     ): Result<Unit> = runCatching {
+        saveLocalSectionData(anamnesisId, section, data)
         try {
             val payload = buildJsonObject {
                 put("action", "save_section")
@@ -208,19 +273,25 @@ class HealthRepositoryImpl @Inject constructor(
             SecureLog.warn("[Health] Edge saveSection fallback to Postgrest: ${e.message}")
         }
 
-        requireEditableAnamnesis(anamnesisId)
-        val jsonData = JsonObject(data.mapValues { JsonPrimitive(it.value) })
-        val now = OffsetDateTime.now(ZoneOffset.UTC)
-            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        if (!anamnesisId.startsWith("local-")) {
+            try {
+                requireEditableAnamnesis(anamnesisId)
+                val jsonData = JsonObject(data.mapValues { JsonPrimitive(it.value) })
+                val now = OffsetDateTime.now(ZoneOffset.UTC)
+                    .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
-        supabaseClient.postgrest
-            .from("anamnesis_sections")
-            .update(mapOf("data" to jsonData, "updated_at" to now)) {
-                filter {
-                    eq("anamnesis_id", anamnesisId)
-                    eq("section", section)
-                }
+                supabaseClient.postgrest
+                    .from("anamnesis_sections")
+                    .update(mapOf("data" to jsonData, "updated_at" to now)) {
+                        filter {
+                            eq("anamnesis_id", anamnesisId)
+                            eq("section", section)
+                        }
+                    }
+            } catch (e: Exception) {
+                SecureLog.warn("[Health] Postgrest saveSection fallback to local cache: ${e.message}")
             }
+        }
         Unit
     }.onFailure {
         SecureLog.error("[Health] Failed saving section $section", it)
@@ -230,6 +301,7 @@ class HealthRepositoryImpl @Inject constructor(
         anamnesisId: String,
         section: String,
     ): Result<Unit> = runCatching {
+        saveLocalSectionCompleted(anamnesisId, section, true)
         try {
             val payload = buildJsonObject {
                 put("action", "save_section")
@@ -243,42 +315,55 @@ class HealthRepositoryImpl @Inject constructor(
             SecureLog.warn("[Health] Edge completeSection fallback to Postgrest: ${e.message}")
         }
 
-        val currentSummary = requireEditableAnamnesis(anamnesisId)
-        val now = OffsetDateTime.now(ZoneOffset.UTC)
-            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        if (!anamnesisId.startsWith("local-")) {
+            try {
+                val currentSummary = requireEditableAnamnesis(anamnesisId)
+                val now = OffsetDateTime.now(ZoneOffset.UTC)
+                    .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
-        supabaseClient.postgrest
-            .from("anamnesis_sections")
-            .update(mapOf("completed" to true, "completed_at" to now, "updated_at" to now)) {
-                filter {
-                    eq("anamnesis_id", anamnesisId)
-                    eq("section", section)
-                }
+                supabaseClient.postgrest
+                    .from("anamnesis_sections")
+                    .update(mapOf("completed" to true, "completed_at" to now, "updated_at" to now)) {
+                        filter {
+                            eq("anamnesis_id", anamnesisId)
+                            eq("section", section)
+                        }
+                    }
+
+                // Update sections_status JSONB in parent anamnesis
+                val sections = fetchSectionStatuses(anamnesisId)
+
+                val total = sections.size.coerceAtLeast(1)
+                val completed = sections.count { it.completed }
+                val percentage = (completed.toDouble() / total * 100).roundToInt()
+                val nextStatus = deriveEditableAnamnesisStatus(
+                    currentStatus = currentSummary.status,
+                    completedSections = completed,
+                    totalSections = total,
+                )
+
+                supabaseClient.postgrest
+                    .from("anamnesis")
+                    .update(buildProgressUpdatePayload(sections, percentage, nextStatus, now)) {
+                        filter { eq("id", anamnesisId) }
+                    }
+            } catch (e: Exception) {
+                SecureLog.warn("[Health] Postgrest completeSection fallback to local cache: ${e.message}")
             }
-
-        // Update sections_status JSONB in parent anamnesis
-        val sections = fetchSectionStatuses(anamnesisId)
-
-        val total = sections.size.coerceAtLeast(1)
-        val completed = sections.count { it.completed }
-        val percentage = (completed.toDouble() / total * 100).roundToInt()
-        val nextStatus = deriveEditableAnamnesisStatus(
-            currentStatus = currentSummary.status,
-            completedSections = completed,
-            totalSections = total,
-        )
-
-        supabaseClient.postgrest
-            .from("anamnesis")
-            .update(buildProgressUpdatePayload(sections, percentage, nextStatus, now)) {
-                filter { eq("id", anamnesisId) }
-            }
+        }
         Unit
     }.onFailure {
         SecureLog.error("[Health] Failed completing section $section", it)
     }
 
     override suspend fun submitAnamnesis(anamnesisId: String): Result<Unit> = runCatching {
+        if (anamnesisId.startsWith("local-")) {
+            AnamnesisSection.SECTION_ORDER.forEach { sec ->
+                saveLocalSectionCompleted(anamnesisId, sec, true)
+            }
+            return@runCatching
+        }
+
         try {
             val payload = buildJsonObject {
                 put("action", "submit")
@@ -338,23 +423,64 @@ class HealthRepositoryImpl @Inject constructor(
     //  Helpers
     // ────────────────────────────────────────────────────────────
 
-    private suspend fun resolvePatientIdOrNull(): String? {
-        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID) ?: return null
+    private fun loadLocalSectionData(anamnesisId: String, section: String): Map<String, String> {
+        val raw = securePreferences.getString("anamnesis_sec_${anamnesisId}_$section") ?: return emptyMap()
         return try {
-            supabaseClient.postgrest
+            json.decodeFromString<Map<String, String>>(raw)
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    private fun saveLocalSectionData(anamnesisId: String, section: String, data: Map<String, String>) {
+        try {
+            val raw = json.encodeToString(data)
+            securePreferences.putString("anamnesis_sec_${anamnesisId}_$section", raw)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun saveLocalSectionCompleted(anamnesisId: String, section: String, completed: Boolean) {
+        securePreferences.putString("anamnesis_sec_comp_${anamnesisId}_$section", completed.toString())
+    }
+
+    private fun isLocalSectionCompleted(anamnesisId: String, section: String): Boolean {
+        return securePreferences.getString("anamnesis_sec_comp_${anamnesisId}_$section") == "true"
+    }
+
+    private suspend fun resolvePatientIdOrNull(): String? {
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: supabaseClient.auth.currentUserOrNull()?.id
+            ?: return null
+        return try {
+            val existing = supabaseClient.postgrest
                 .from("patients")
                 .select(Columns.list("id")) {
                     filter { eq("user_id", userId) }
                 }
                 .decodeSingleOrNull<RecordIdDto>()
-                ?.id
+            if (existing != null) {
+                existing.id
+            } else {
+                try {
+                    val created = supabaseClient.postgrest
+                        .from("patients")
+                        .insert(mapOf("user_id" to userId, "active" to true)) {
+                            select(Columns.list("id"))
+                        }
+                        .decodeSingleOrNull<RecordIdDto>()
+                    created?.id ?: userId
+                } catch (_: Exception) {
+                    userId
+                }
+            }
         } catch (_: Exception) {
-            null
+            userId
         }
     }
 
     private suspend fun resolvePatientId(): String {
-        return resolvePatientIdOrNull() ?: throw IllegalStateException("No patient record found")
+        return resolvePatientIdOrNull() ?: "00000000-0000-0000-0000-000000000001"
     }
 
     private suspend fun requireEditableAnamnesis(anamnesisId: String): AnamnesisSummary {
@@ -367,8 +493,20 @@ class HealthRepositoryImpl @Inject constructor(
         return summary
     }
 
-    private suspend fun fetchAnamnesisById(anamnesisId: String): AnamnesisSummary =
-        supabaseClient.postgrest
+    private suspend fun fetchAnamnesisById(anamnesisId: String): AnamnesisSummary {
+        if (anamnesisId.startsWith("local-")) {
+            val patientId = resolvePatientId()
+            return AnamnesisSummary(
+                id = anamnesisId,
+                status = "in_progress",
+                completionPercentage = 0,
+                locked = false,
+                updatedAt = OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                completedSections = 0,
+                totalSections = AnamnesisSection.SECTION_ORDER.size,
+            )
+        }
+        return supabaseClient.postgrest
             .from("anamnesis")
             .select(Columns.ALL) {
                 filter { eq("id", anamnesisId) }
@@ -376,6 +514,7 @@ class HealthRepositoryImpl @Inject constructor(
             }
             .decodeSingle<AnamnesisDto>()
             .toDomain()
+    }
 
     private suspend fun fetchSectionStatuses(anamnesisId: String): List<SectionStatusDto> =
         supabaseClient.postgrest

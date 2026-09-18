@@ -14,8 +14,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.autamedica.android.R
+import com.autamedica.android.util.CountryContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,15 +27,16 @@ fun DoctorSignatureScreen(
     viewModel: DoctorSignatureViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val isBrazil = remember { CountryContext.isBrazil() }
     var paths by remember { mutableStateOf(mutableListOf<Path>()) }
     var currentPath by remember { mutableStateOf<Path?>(null) }
-    var dni by remember { mutableStateOf("") }
+    var documentNumber by remember { mutableStateOf("") }
     var licenseNumber by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Firma digital") }
+                title = { Text(if (isBrazil) "Assinatura digital" else "Firma digital") }
             )
         }
     ) { paddingValues ->
@@ -43,9 +47,12 @@ fun DoctorSignatureScreen(
                 .padding(16.dp)
         ) {
             OutlinedTextField(
-                value = dni,
-                onValueChange = { dni = it.filter(Char::isDigit).take(9) },
-                label = { Text("DNI del profesional") },
+                value = documentNumber,
+                onValueChange = {
+                    val maxLen = if (isBrazil) 11 else 9
+                    documentNumber = it.filter(Char::isDigit).take(maxLen)
+                },
+                label = { Text(stringResource(R.string.doctor_sig_dni_label)) },
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -55,27 +62,27 @@ fun DoctorSignatureScreen(
             OutlinedTextField(
                 value = licenseNumber,
                 onValueChange = { licenseNumber = it },
-                label = { Text("Matrícula profesional") },
+                label = { Text(stringResource(R.string.doctor_sig_license_label)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(8.dp))
             
             Button(
-                onClick = { viewModel.validateWithSisaRefeps(dni, licenseNumber) },
+                onClick = { viewModel.validateProfessionalDocument(documentNumber, licenseNumber) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !state.isLoading
             ) {
                 Text(
                     if (state.isLoading) "Verificando…" else
-                        if (state.sisaValidated) "Matrícula verificada" else "Verificar matrícula"
+                        if (state.sisaValidated) stringResource(R.string.doctor_sig_verified_button) else stringResource(R.string.doctor_sig_verify_button)
                 )
             }
 
             when {
                 state.isLoading -> Unit
                 state.sisaValidated -> Text(
-                    state.validationMessage ?: "Matrícula verificada en SISA/REFEPS",
+                    state.validationMessage ?: if (isBrazil) "CRM verificado com sucesso" else "Matrícula verificada en SISA/REFEPS",
                     color = Color(0xFF00C853),
                 )
                 state.errorMessage != null -> Text(

@@ -59,8 +59,8 @@
     <string name="doctor_dashboard_no_active_call">No hay consultas activas en este momento.</string>
     <string name="doctor_dashboard_waiting_room_hint">Puedes iniciar la sala y esperar a que el paciente se conecte.</string>
     <string name="dashboard_open_appointments">Abrir mis turnos</string>
-    <string name="dashboard_no_upcoming_appointments">No tenés consultas programadas.</string>
-    <string name="dashboard_no_upcoming_appointments_hint">Podés solicitar un turno desde la sección de turnos.</string>
+    <string name="dashboard_no_upcoming_appointments">No tienes consultas programadas.</string>
+    <string name="dashboard_no_upcoming_appointments_hint">Puedes solicitar un turno desde la sección de turnos.</string>
 
     <!-- Videocall & Permissions -->
     <string name="permissions_grant">Conceder permisos</string>
@@ -90,4 +90,116 @@
     <string name="welcome_feature_consultation_desc">Entrá a tu consulta cuando llegue el horario del turno.</string>
     <string name="welcome_feature_followup_title">Seguimiento clínico</string>
     <string name="welcome_feature_followup_desc">Accedé a tus recetas, estudios y controles preventivos.</string>
+    <!-- Auth Additions -->
+    <string name="auth_forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="auth_login_with_google">Continuar con Google</string>
+    <string name="auth_no_account">¿No tienes cuenta?</string>
+    <string name="auth_register_now">Registrarse</string>
+    <string name="auth_role_patients">Pacientes</string>
+    <string name="auth_role_doctors">Médicos</string>
+    <string name="auth_role_companies">Empresas</string>
+    <string name="auth_role_pharmacists">Farmacias</string>
+    <string name="auth_cpf_label">CPF</string>
+    <string name="auth_cpf_hint">000.000.000-00</string>
+    <string name="auth_cpf_invalid">CPF inválido</string>
+    <string name="auth_crm_label">CRM</string>
+    <string name="auth_crm_hint">Ej: CRM-RS 12345</string>
+
+    <!-- Triage & Guardia 24/7 -->
+    <string name="triage_guard_title">Guardia Médica 24/7</string>
+    <string name="triage_guard_subtitle">Atención inmediata con triage previo</string>
+    <string name="triage_doctors_available">%1$d de guardia</string>
+    <string name="triage_complaint_prompt">¿Cuál es tu síntoma o molestia principal hoy?</string>
+    <string name="triage_complaint_hint">Ej: Fiebre desde anoche, dolor de garganta al tragar...</string>
+    <string name="triage_red_flag_alert">SIGNO DE ALARMA MÉDICA DETECTADO</string>
+    <string name="triage_emergency_call_action">Llamar al %1$s (%2$s)</string>
+    <string name="triage_bypass_warning">Comprendo el riesgo, deseo consultar por guardia médica</string>
+    <string name="triage_request_guard">Solicitar médico de guardia con triage</string>
+    <string name="triage_dispatching_guard">Asignando profesional de guardia...</string>
+    <string name="triage_symptom_fever">Fiebre</string>
+    <string name="triage_symptom_sore_throat">Dolor de garganta</string>
+    <string name="triage_symptom_gastro">Gastrointestinal</string>
+    <string name="triage_symptom_rash">Erupción cutánea</string>
+    <string name="triage_symptom_cough">Tos persistente</string>
+    <string name="triage_symptom_prescription">Receta / Control</string>
+
+    <!-- Videocall & Waiting Room -->
+    <string name="waiting_room_title">AutaMedica</string>
+    <string name="waiting_room_status">En espera</string>
+    <string name="waiting_room_ringing">Llamando al médico...</string>
+    <string name="waiting_room_preconsult_title">Completá tu ficha previa mientras aguardás</string>
+    <string name="waiting_room_reason_label">Motivo de la consulta</string>
+    <string name="waiting_room_symptoms_label">Describe tus síntomas</string>
+    <string name="waiting_room_save_preconsult">Guardar ficha previa</string>
+    <string name="waiting_room_cancel_call">Cancelar llamada</string>
+    <string name="videocall_encrypted_access">Acceso cifrado WebRTC</string>
+    <string name="videocall_room_ready">SALA LISTA PARA ATENCIÓN</string>
+    <string name="videocall_enter_button">Ingresar a la videoconsulta cifrada</string>
+    <string name="videocall_auto_degraded_notice">Calidad de red inestable: cambiado temporalmente a solo-audio</string>
+    <string name="videocall_recovering_notice">Conexión recuperada: restableciendo video</string>
+
+    <!-- Prescriptions (ICP-Brasil & SISA REFEPS) -->
+    <string name="rx_title_prescriptions">Mis Recetas</string>
+    <string name="rx_title_certificates">Mis Atestados</string>
+    <string name="rx_tab_prescriptions">Recetas</string>
+    <string name="rx_tab_certificates">Atestados</string>
+    <string name="rx_filter_all">Todas</string>
+    <string name="rx_filter_active">Activas</string>
+    <string name="rx_filter_dispensed">Dispensadas</string>
+    <string name="rx_filter_completed">Completadas</string>
+    <string name="rx_show_at_pharmacy">PRESENTÁ ESTE CÓDIGO EN LA FARMACIA</string>
+    <string name="rx_cuir_label">CÓDIGO CUIR:</string>
+    <string name="rx_download_pdf">Descargar Receta (PDF)</string>
+    <string name="rx_instructions_title">CÓMO TOMARLO (INDICACIONES MÉDICAS)</string>
+    <string name="rx_regulatory_sisa">Validación oficial Decreto 63 / SISA REFEPS</string>
+    <string name="rx_regulatory_icp_brasil">Prescrição Eletrônica ICP-Brasil (Lei 14.063/2020)</string>
+    <string name="rx_regulatory_pades_iti">Validada com Certificação Digital PAdES / ITI</string>
+    <string name="rx_license_crm_rs">CRM-RS: %1$s</string>
+    <string name="rx_license_mn">Matrícula: %1$s</string>
+    <string name="rx_emergency_samu">SAMU 192</string>
+    <string name="rx_emergency_same">SAME 107</string>
+
+    <!-- Auth & Login Validation (Neutral & Localized) -->
+    <string name="login_error_empty_email">Por favor, ingresa tu correo electrónico</string>
+    <string name="login_error_invalid_email">El formato de correo no es válido (ej: usuario@correo.com)</string>
+    <string name="login_error_empty_password">Por favor, ingresa tu contraseña</string>
+    <string name="login_error_password_too_short">La contraseña debe tener al menos 6 caracteres</string>
+    <string name="auth_google_cancelled_hint">Inicio con Google cancelado o interrumpido. Puedes ingresar con tu correo y contraseña.</string>
+    <string name="auth_google_no_account_hint">No se encontró ninguna cuenta de Google disponible en este dispositivo. Ingresa con correo y contraseña.</string>
+
+    <!-- Doctor Dashboard, Appointments & Chat (De-voseo & i18n) -->
+    <string name="doctor_dashboard_patient_ready_action">El paciente está listo en sala de espera. Ingresa para iniciar la consulta.</string>
+    <string name="doctor_agenda_no_patients">No tienes pacientes agendados actualmente.</string>
+    <string name="appointments_no_scheduled">No tienes turnos programados</string>
+    <string name="appointments_no_scheduled_hint">Tu agenda está al día. Puedes solicitar un nuevo turno cuando lo necesites.</string>
+    <string name="booking_no_slots_for_date">Sin turnos disponibles para esta fecha. Prueba con otro día.</string>
+    <string name="chat_empty_title">No tienes conversaciones</string>
+    <string name="chat_empty_description">Tus conversaciones con profesionales médicos aparecerán aquí.</string>
+
+    <!-- Doctor Signature & Professional Document Validation -->
+    <string name="doctor_sig_dni_label">DNI del profesional</string>
+    <string name="doctor_sig_license_label">Matrícula profesional</string>
+    <string name="doctor_sig_invalid_dni">Ingrese un DNI válido (7 a 9 dígitos)</string>
+    <string name="doctor_sig_invalid_cpf">Informe um CPF válido (11 dígitos)</string>
+    <string name="doctor_sig_invalid_license">Ingrese una matrícula válida</string>
+    <string name="doctor_sig_verify_button">Verificar matrícula</string>
+    <string name="doctor_sig_verified_button">Matrícula verificada</string>
+    <string name="doctor_sig_verify_error">No se pudo verificar la matrícula. Intente nuevamente.</string>
+
+    <!-- Health Reserve & Plano Cuidado (Regionalized AR / BR) -->
+    <string name="health_reserve_title">Reserva de Salud AutaMedica</string>
+    <string name="health_reserve_subtitle">1 consulta mensual + 22 créditos acumulables</string>
+    <string name="health_reserve_badge">RESERVA DE SALUD</string>
+    <string name="health_reserve_plans_pill">Reserva de Salud y Planes</string>
+    <string name="health_reserve_cuidado_plan">Plan Cuidado</string>
+    <string name="health_reserve_cuidado_payment_tag">Pix o Tarjeta</string>
+    <string name="health_reserve_cuidado_cta">Activar Plan Cuidado</string>
+    <string name="health_reserve_view_details">Detalles</string>
+    <string name="health_reserve_balance_available">SALDO DISPONIBLE</string>
+    <string name="health_reserve_capacity_accumulated">Capacidad acumulada</string>
+    <string name="health_reserve_tag_specialists">Especialistas y farmacia</string>
+    <string name="health_reserve_tag_accrual">Acumulación mensual</string>
+    <string name="health_reserve_tag_no_expiration">Sin vencimiento</string>
+    <string name="health_reserve_catalog_title">Catálogo Red</string>
+    <string name="health_reserve_history_title">Movimientos</string>
 </resources>

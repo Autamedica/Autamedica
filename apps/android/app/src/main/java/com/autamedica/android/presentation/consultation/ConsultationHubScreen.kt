@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.consultation
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,16 +22,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.CreditCard
-import androidx.compose.material.icons.outlined.HealthAndSafety
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -41,51 +41,57 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.autamedica.android.domain.model.Appointment
+import com.autamedica.android.presentation.consultation.components.ActivePrescriptionsSection
+import com.autamedica.android.presentation.consultation.components.ClinicalConstantsBar
+import com.autamedica.android.presentation.consultation.components.ContinuityCheckInCard
+import com.autamedica.android.presentation.consultation.components.PendingOrdersSection
+import com.autamedica.android.presentation.consultation.components.RealTimeConsoleCard
+import com.autamedica.android.presentation.prescriptions.components.QrCodeView
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuSuccess
 import com.autamedica.android.presentation.theme.AuSurface
-import com.autamedica.android.presentation.theme.AuSurfaceHover
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalPatients
 import com.autamedica.android.presentation.theme.SuccessContainer
-import java.text.NumberFormat
-import java.util.Locale
 
+/**
+ * Pantalla principal "Consultar" del paciente.
+ * Diseñada bajo la filosofía de máxima densidad y transparencia clínica (Nubank)
+ * y despacho determinista de atención en tiempo real (Uber). Cero relleno publicitario.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConsultationHubScreen(
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
     onNavigateToBookAppointment: () -> Unit = {},
+    onNavigateToAnamnesis: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: ConsultationHubViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showEmergencyConfirmDialog by remember { mutableStateOf(false) }
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
 
+    // Redirección segura para checkout de MercadoPago
     LaunchedEffect(uiState.checkoutUrlToLaunch) {
         val url = uiState.checkoutUrlToLaunch ?: return@LaunchedEffect
         runCatching {
-            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
-                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
         }
@@ -114,7 +120,7 @@ fun ConsultationHubScreen(
                                     .background(AuSuccess),
                             )
                             Text(
-                                text = "Telemedicina y Consulta Online",
+                                text = "Atención Médica y Telemedicina",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = PortalPatients,
                                 fontWeight = FontWeight.Medium,
@@ -180,26 +186,27 @@ fun ConsultationHubScreen(
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        // ── 1. Hero Superior: Telemedicina y Consulta Online ──
+                        // ── 1. TIRA DE CONSTANTES CLÍNICAS (Nubank style: Alergias, Medicamentos, Anamnesis) ──
                         item {
-                            TelemedicineHeroCard(
-                                availableDoctorsCount = uiState.availableDoctors.size,
+                            ClinicalConstantsBar(
+                                constants = uiState.clinicalConstants,
+                                onNavigateToAnamnesis = onNavigateToAnamnesis,
                             )
                         }
 
-                        // ── Mensaje de confirmación/pago si existe ──
-                        uiState.paymentMessage?.let { msg ->
+                        // ── Toast informativo clínico si existe ──
+                        uiState.toastMessage?.let { msg ->
                             item {
                                 Surface(
-                                    shape = RoundedCornerShape(14.dp),
+                                    shape = RoundedCornerShape(12.dp),
                                     color = SuccessContainer,
                                     border = BorderStroke(1.dp, AuSuccess.copy(alpha = 0.4f)),
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(14.dp),
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     ) {
@@ -207,7 +214,7 @@ fun ConsultationHubScreen(
                                             imageVector = Icons.Outlined.CheckCircle,
                                             contentDescription = null,
                                             tint = AuSuccess,
-                                            modifier = Modifier.size(20.dp),
+                                            modifier = Modifier.size(18.dp),
                                         )
                                         Text(
                                             text = msg,
@@ -215,7 +222,7 @@ fun ConsultationHubScreen(
                                             color = AuTextPrimary,
                                             modifier = Modifier.weight(1f),
                                         )
-                                        TextButton(onClick = viewModel::clearPaymentMessage) {
+                                        TextButton(onClick = viewModel::clearToast) {
                                             Text("OK", color = AuSuccess, fontWeight = FontWeight.Bold)
                                         }
                                     }
@@ -223,46 +230,56 @@ fun ConsultationHubScreen(
                             }
                         }
 
-                        // ── 2. Acceso Inmediato a Videoconsulta Activa (único punto de ingreso del paciente) ──
-                        uiState.activeTelemedicineAppointment?.let { activeApt ->
-                            item {
-                                ActiveTelemedicineCard(
-                                    appointment = activeApt,
-                                    onEnterVideoCall = { onNavigateToVideoCall(activeApt.id) },
-                                )
-                            }
-                        }
-
-                        // ── 3. Banner Prioritario de Pago Pendiente ──
-                        uiState.pendingPaymentAppointment?.let { pendingApt ->
-                            item {
-                                PendingPaymentBanner(
-                                    appointment = pendingApt,
-                                    isPaying = uiState.payingAppointmentId == pendingApt.id,
-                                    onPayNow = { viewModel.payAppointment(pendingApt) },
-                                )
-                            }
-                        }
-
-                        // ── 4. Guardia / Médico Online 24/7: Atención Inmediata Sin Turno Previo ──
+                        // ── 2. CONSOLA DE ATENCIÓN EN TIEMPO REAL (Uber style: FSM) ──
                         item {
-                            EmergencyOnCallCard(
-                                availableDoctorsCount = uiState.availableDoctors.size,
-                                isLoading = uiState.isEmergencyQueueLoading,
-                                onStartConsultation = { showEmergencyConfirmDialog = true },
+                            RealTimeConsoleCard(
+                                state = uiState.consoleState,
+                                onEnterVideoCall = onNavigateToVideoCall,
+                                onPayAppointment = viewModel::payAppointment,
+                                onChiefComplaintChanged = viewModel::onChiefComplaintChanged,
+                                onSymptomChipToggled = viewModel::onSymptomChipToggled,
+                                onBypassRedFlags = viewModel::bypassRedFlags,
+                                onRequestEmergencyDispatch = { onReady ->
+                                    viewModel.requestEmergencyDispatch { appointmentId ->
+                                        onReady(appointmentId)
+                                        onNavigateToVideoCall(appointmentId)
+                                    }
+                                },
+                                onNavigateToSchedule = onNavigateToBookAppointment,
                             )
                         }
 
-                        // ── 5. Estado honesto: sin consultas activas ──
-                        if (uiState.activeTelemedicineAppointment == null && uiState.pendingPaymentAppointment == null) {
+                        // ── 3. CONTINUIDAD ASISTENCIAL (Check-in 48h Post-Consulta) ──
+                        uiState.pendingFollowupCheckIn?.let { followup ->
                             item {
-                                EmptyConsultationsCard(
-                                    onScheduleNew = onNavigateToBookAppointment,
+                                ContinuityCheckInCard(
+                                    followup = followup,
+                                    isSubmitting = uiState.isSubmittingCheckIn,
+                                    onSubmitEvolution = viewModel::submitFollowupEvolution,
                                 )
                             }
                         }
 
-                        // Bottom space
+                        // ── 4. FARMACOTERAPIA ACTIVA (Recetas vigentes con CUIR y QR) ──
+                        if (uiState.activePrescriptions.isNotEmpty()) {
+                            item {
+                                ActivePrescriptionsSection(
+                                    prescriptions = uiState.activePrescriptions,
+                                    onSelectPrescriptionForQr = viewModel::selectPrescriptionForQr,
+                                )
+                            }
+                        }
+
+                        // ── 5. ÓRDENES DE ESTUDIOS MÉDICOS Y LABORATORIO PENDIENTES ──
+                        if (uiState.pendingMedicalOrders.isNotEmpty()) {
+                            item {
+                                PendingOrdersSection(
+                                    orders = uiState.pendingMedicalOrders,
+                                )
+                            }
+                        }
+
+                        // Espaciado inferior de seguridad
                         item {
                             Spacer(modifier = Modifier.height(24.dp))
                         }
@@ -272,645 +289,97 @@ fun ConsultationHubScreen(
         }
     }
 
-    // ── Dialog de confirmación de Guardia 24/7 ──
-    if (showEmergencyConfirmDialog) {
+    // ── DIÁLOGO EMERGENTE: CÓDIGO QR PARA MOSTRADOR DE FARMACIA (DECRETO 63) ──
+    uiState.selectedPrescriptionForQr?.let { prescription ->
         AlertDialog(
-            onDismissRequest = { showEmergencyConfirmDialog = false },
+            onDismissRequest = { viewModel.selectPrescriptionForQr(null) },
             title = {
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(AuSuccess),
-                    )
-                    Text(
-                        text = "Guardia Médica 24/7",
-                        fontWeight = FontWeight.Bold,
-                        color = AuTextPrimary,
-                    )
+                    Column {
+                        Text(
+                            text = "Código QR de Validación",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = AuTextPrimary,
+                        )
+                        Text(
+                            text = "Para presentar en mostrador de farmacia",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AuTextTertiary,
+                        )
+                    }
+                    IconButton(onClick = { viewModel.selectPrescriptionForQr(null) }) {
+                        Icon(imageVector = Icons.Outlined.Close, contentDescription = "Cerrar")
+                    }
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "Te asignaremos de inmediato con el próximo profesional médico de guardia disponible.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AuTextSecondary,
-                    )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    // QR de farmacia en alta definición
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = AuSurfaceHover,
-                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, AuBorder),
+                        modifier = Modifier.padding(vertical = 8.dp),
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = "• La asignación se hace por orden de llegada entre los médicos disponibles",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AuTextPrimary,
-                                fontWeight = FontWeight.SemiBold,
+                        Box(
+                            modifier = Modifier.padding(16.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            val qrPayload = prescription.qrCodeContent
+                                ?: prescription.cuir
+                                ?: prescription.id
+
+                            QrCodeView(
+                                content = qrPayload,
+                                size = 200.dp,
                             )
+                        }
+                    }
+
+                    // Detalle del fármaco y CUIR legal
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = prescription.medicationName,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = AuTextPrimary,
+                        )
+                        Text(
+                            text = "${prescription.dosage} · ${prescription.frequency}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AuTextSecondary,
+                        )
+                        prescription.cuir?.let { cuir ->
                             Text(
-                                text = "• Videoconsulta directa y segura cifrada punto a punto",
+                                text = "CUIR: $cuir",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = AuTextSecondary,
-                            )
-                            Text(
-                                text = "• Si ahora no hay médicos de guardia, te lo avisamos claro y podés agendar desde Agenda",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AuTextSecondary,
+                                fontFamily = FontFamily.Monospace,
+                                color = AuTextTertiary,
+                                fontSize = 11.sp,
                             )
                         }
                     }
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        showEmergencyConfirmDialog = false
-                        viewModel.requestEmergencyConsultation { appointmentId ->
-                            onNavigateToVideoCall(appointmentId)
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PortalPatients),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Text("Ingresar a la sala ahora", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEmergencyConfirmDialog = false }) {
-                    Text("Cancelar", color = AuTextTertiary)
+                TextButton(onClick = { viewModel.selectPrescriptionForQr(null) }) {
+                    Text("Cerrar", fontWeight = FontWeight.Bold, color = PortalPatients)
                 }
             },
             containerColor = AuSurface,
             shape = RoundedCornerShape(20.dp),
         )
     }
-}
-
-// ── COMPONENTES DEL CENTRO DE CONSULTA Y TELEMEDICINA ──
-
-@Composable
-private fun TelemedicineHeroCard(
-    availableDoctorsCount: Int,
-) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xFF0F172A), // Dark slate / navy premium hero
-        shadowElevation = 4.dp,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF0284C7).copy(alpha = 0.35f),
-                            Color(0xFF0F172A),
-                        ),
-                    ),
-                )
-                .padding(20.dp),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                // Top tag row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(999.dp),
-                        color = Color.White.copy(alpha = 0.12f),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Videocam,
-                                contentDescription = null,
-                                tint = Color(0xFF38BDF8),
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Text(
-                                text = "Centro de Telemedicina",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
-
-                    // Online pill
-                    Surface(
-                        shape = RoundedCornerShape(999.dp),
-                        color = Color(0xFF065F46).copy(alpha = 0.4f),
-                        border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.6f)),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF34D399)),
-                            )
-                            Text(
-                                text = "Guardia activa 24/7",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFA7F3D0),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                            )
-                        }
-                    }
-                }
-
-                // Main headline
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "Telemedicina",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
-                    )
-                    Text(
-                        text = "Videoconsultas médicas online, seguras y cifradas.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF94A3B8),
-                        lineHeight = 20.sp,
-                    )
-                }
-
-                // Stats strip: datos reales de disponibilidad
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = 0.07f))
-                        .padding(vertical = 10.dp, horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "$availableDoctorsCount",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color(0xFF38BDF8),
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = "Médicos disponibles",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF94A3B8),
-                            fontSize = 10.sp,
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .height(26.dp)
-                            .width(1.dp)
-                            .background(Color.White.copy(alpha = 0.15f)),
-                    )
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "24/7",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color(0xFF34D399),
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = "Guardia médica",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF94A3B8),
-                            fontSize = 10.sp,
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .height(26.dp)
-                            .width(1.dp)
-                            .background(Color.White.copy(alpha = 0.15f)),
-                    )
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "HD",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color(0xFFFBBF24),
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = "Video HD",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF94A3B8),
-                            fontSize = 10.sp,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ActiveTelemedicineCard(
-    appointment: Appointment,
-    onEnterVideoCall: () -> Unit,
-) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xFFF0F9FF), // Sky-50
-        border = BorderStroke(1.5.dp, Color(0xFF0284C7)),
-        shadowElevation = 3.dp,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = Color(0xFF0284C7).copy(alpha = 0.14f),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF0284C7)),
-                        )
-                        Text(
-                            text = "VIDEOCONSULTA LISTA",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF0369A1),
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp,
-                        )
-                    }
-                }
-
-                Text(
-                    text = "Acceso directo",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AuTextTertiary,
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = appointment.doctorName ?: "Profesional médico asignado",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = AuTextPrimary,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "${appointment.doctorSpecialty ?: "Medicina General"} · Turno confirmado",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AuTextSecondary,
-                )
-            }
-
-            // CTA Button to enter video room
-            Button(
-                onClick = onEnterVideoCall,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Videocam,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Entrar a la sala de videollamada",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PendingPaymentBanner(
-    appointment: Appointment,
-    isPaying: Boolean,
-    onPayNow: () -> Unit,
-) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xFFFFFBEB), // Amber-50
-        border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.5f)),
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFFEF3C7),
-                    border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.3f)),
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Outlined.CreditCard,
-                            contentDescription = null,
-                            tint = Color(0xFFD97706),
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Pago pendiente",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color(0xFF92400E),
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = "Confirmá para habilitar la videoconsulta.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFB45309),
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column {
-                    Text(
-                        text = "Total:",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AuTextTertiary,
-                    )
-                    Text(
-                        text = formatArs(appointment.doctorFee ?: 15000.0),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = AuTextPrimary,
-                    )
-                }
-
-                Button(
-                    onClick = onPayNow,
-                    enabled = !isPaying,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFD97706),
-                        contentColor = Color.White,
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    if (isPaying) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Confirmando...")
-                    } else {
-                        Text("Pagar consulta", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmergencyOnCallCard(
-    availableDoctorsCount: Int,
-    isLoading: Boolean,
-    onStartConsultation: () -> Unit,
-) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xFFF0FDF4), // Emerald-50
-        border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFDCFCE7),
-                        modifier = Modifier.size(36.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Outlined.HealthAndSafety,
-                                contentDescription = null,
-                                tint = Color(0xFF059669),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    }
-                    Column {
-                        Text(
-                            text = "Guardia Médica 24/7",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = AuTextPrimary,
-                        )
-                        Text(
-                            text = "Atención inmediata sin turno",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF059669),
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = Color(0xFFDCFCE7),
-                    border = BorderStroke(1.dp, Color(0xFFA7F3D0)),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF10B981)),
-                        )
-                        Text(
-                            text = if (availableDoctorsCount > 0) {
-                                "$availableDoctorsCount disponible${if (availableDoctorsCount == 1) "" else "s"}"
-                            } else {
-                                "En espera"
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF065F46),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                }
-            }
-
-            Text(
-                text = "Videoconsulta inmediata con un médico de guardia. La asignación se hace por orden de llegada entre los profesionales disponibles.",
-                style = MaterialTheme.typography.bodySmall,
-                color = AuTextSecondary,
-                lineHeight = 18.sp,
-            )
-
-            Button(
-                onClick = onStartConsultation,
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF059669),
-                    contentColor = Color.White,
-                ),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Conectando con guardia...")
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Videocam,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Ingresar a guardia",
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmptyConsultationsCard(
-    onScheduleNew: () -> Unit,
-) {
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Surface(
-                modifier = Modifier.size(56.dp),
-                shape = CircleShape,
-                color = Color(0xFFF0F9FF),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Videocam,
-                        contentDescription = null,
-                        tint = PortalPatients,
-                        modifier = Modifier.size(28.dp),
-                    )
-                }
-            }
-            Text(
-                text = "Sin videoconsultas programadas",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = AuTextPrimary,
-            )
-            Text(
-                text = "Agendá tu primera consulta online o conectate de inmediato con la guardia 24/7.",
-                style = MaterialTheme.typography.bodySmall,
-                color = AuTextSecondary,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Button(
-                onClick = onScheduleNew,
-                colors = ButtonDefaults.buttonColors(containerColor = PortalPatients),
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = Color.White,
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Agendar videoconsulta",
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-            }
-        }
-    }
-}
-
-private fun formatArs(amount: Double): String {
-    val format = NumberFormat.getCurrencyInstance(Locale("es", "AR"))
-    format.maximumFractionDigits = 0
-    return format.format(amount)
 }

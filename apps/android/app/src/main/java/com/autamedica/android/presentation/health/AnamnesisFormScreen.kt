@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.app.Activity
@@ -70,6 +71,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.domain.model.AnamnesisSection
+import com.autamedica.android.presentation.health.components.ClinicalAuditSummaryCard
+import com.autamedica.android.presentation.health.components.QuickActionBanner
+import com.autamedica.android.presentation.health.components.SuggestionChipsRow
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -182,14 +186,25 @@ fun AnamnesisFormScreen(
                         .padding(innerPadding),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                    ) {
                         Text(
                             text = uiState.error ?: "Error desconocido",
                             color = Color(0xFFB91C1C),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = onBack) { Text(stringResource(com.autamedica.android.R.string.common_back)) }
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedButton(onClick = onBack) {
+                                Text(stringResource(com.autamedica.android.R.string.common_back))
+                            }
+                            Button(onClick = viewModel::retry) {
+                                Text("Reintentar")
+                            }
+                        }
                     }
                 }
             }
@@ -197,6 +212,7 @@ fun AnamnesisFormScreen(
                 AnamnesisFormContent(
                     uiState = uiState,
                     onFieldChange = viewModel::updateField,
+                    onApplyQuickAction = viewModel::applyQuickAction,
                     onSaveAndNext = viewModel::saveAndNext,
                     onPrevious = viewModel::goToPrevious,
                     onGoToSection = { index ->
@@ -218,6 +234,7 @@ fun AnamnesisFormScreen(
 private fun AnamnesisFormContent(
     uiState: AnamnesisFormUiState,
     onFieldChange: (String, String) -> Unit,
+    onApplyQuickAction: (SectionQuickAction) -> Unit,
     onSaveAndNext: () -> Unit,
     onPrevious: () -> Unit,
     onGoToSection: (Int) -> Unit,
@@ -351,9 +368,16 @@ private fun AnamnesisFormContent(
             if (currentSection != null) {
                 val sectionFields = getSectionFieldDefinitions(currentSection.section)
                 val validationHint = getSectionValidationHint(currentSection.section)
+                val quickAction = getSectionQuickAction(currentSection.section)
                 val readOnlyMessage = uiState.readOnlyMessage
 
+                val listState = rememberLazyListState()
+                LaunchedEffect(uiState.currentSectionIndex) {
+                    listState.scrollToItem(0)
+                }
+
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
@@ -447,6 +471,27 @@ private fun AnamnesisFormContent(
                                 text = validationHint,
                                 backgroundColor = AuSurfaceHover,
                                 contentColor = AuTextSecondary,
+                            )
+                        }
+                    }
+
+                    if (quickAction != null && !uiState.isReadOnly) {
+                        item {
+                            QuickActionBanner(
+                                quickAction = quickAction,
+                                currentValues = uiState.fieldValues,
+                                enabled = !uiState.isReadOnly,
+                                onApply = { onApplyQuickAction(quickAction) },
+                            )
+                        }
+                    }
+
+                    if (currentSection.section == "resumen_final") {
+                        item {
+                            ClinicalAuditSummaryCard(
+                                sections = uiState.sections,
+                                currentFieldValues = uiState.fieldValues,
+                                onEditSection = onGoToSection,
                             )
                         }
                     }
@@ -986,6 +1031,15 @@ private fun AnamnesisFieldRenderer(
                     colors = outlinedColors(),
                     shape = RoundedCornerShape(10.dp),
                 )
+                if (field.suggestions.isNotEmpty() && enabled) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SuggestionChipsRow(
+                        suggestions = field.suggestions,
+                        currentValue = value,
+                        enabled = enabled,
+                        onSelectSuggestion = onValueChange,
+                    )
+                }
             }
 
             FieldType.TEXT, FieldType.NUMBER -> {
@@ -1006,6 +1060,15 @@ private fun AnamnesisFieldRenderer(
                     colors = outlinedColors(),
                     shape = RoundedCornerShape(10.dp),
                 )
+                if (field.suggestions.isNotEmpty() && enabled) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SuggestionChipsRow(
+                        suggestions = field.suggestions,
+                        currentValue = value,
+                        enabled = enabled,
+                        onSelectSuggestion = onValueChange,
+                    )
+                }
             }
         }
 

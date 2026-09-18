@@ -54,6 +54,7 @@ import com.autamedica.android.presentation.theme.PortalDoctors
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.autamedica.android.util.CountryContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -309,7 +310,7 @@ private fun PatientCard(
 private fun formatDate(isoString: String): String {
     return try {
         val dt = OffsetDateTime.parse(isoString)
-        dt.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale("es", "AR")))
+        dt.format(DateTimeFormatter.ofPattern("d MMM yyyy", CountryContext.getLocale()))
     } catch (_: Exception) {
         isoString
     }

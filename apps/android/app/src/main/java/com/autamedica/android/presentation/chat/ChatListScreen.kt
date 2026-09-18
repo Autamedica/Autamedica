@@ -22,12 +22,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.presentation.chat.components.ChatListItem
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
@@ -103,14 +105,14 @@ private fun EmptyChatsState(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "No tenés conversaciones",
+            text = stringResource(R.string.chat_empty_title),
             color = AuTextSecondary,
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Tus conversaciones con profesionales médicos aparecerán acá.",
+            text = stringResource(R.string.chat_empty_description),
             color = AuTextTertiary,
             fontSize = 14.sp,
             textAlign = TextAlign.Center,

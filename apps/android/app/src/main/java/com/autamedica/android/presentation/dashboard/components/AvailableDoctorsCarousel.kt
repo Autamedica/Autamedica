@@ -59,6 +59,7 @@ import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
+import com.autamedica.android.util.CountryContext
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.abs
@@ -307,10 +308,8 @@ private fun DoctorCard(
                         color = AuTextTertiary,
                     )
                     val feeText = doctor.consultationFee?.takeIf { it > 0 }?.let { fee ->
-                        NumberFormat.getCurrencyInstance(Locale("es", "AR")).apply {
-                            maximumFractionDigits = 0
-                        }.format(fee)
-                    } ?: "A consultar"
+                        CountryContext.formatCurrency(fee.toDouble(), maxFractionDigits = 0)
+                    } ?: if (CountryContext.isBrazil()) "A consultar" else "A consultar"
                     Text(
                         text = feeText,
                         fontSize = 13.sp,

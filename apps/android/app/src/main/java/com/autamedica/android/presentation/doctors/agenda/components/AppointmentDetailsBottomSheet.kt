@@ -64,8 +64,7 @@ import com.autamedica.android.presentation.theme.PortalDoctors
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-private val spanishLocale = Locale("es", "AR")
+import com.autamedica.android.util.CountryContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,8 +91,11 @@ fun AppointmentDetailsBottomSheet(
     val isGuest = appointment.patientId == null && appointment.notes?.contains("[INVITADO:") == true
 
     val startDt = runCatching { OffsetDateTime.parse(appointment.startTime) }.getOrNull()
-    val timeStr = startDt?.format(DateTimeFormatter.ofPattern("HH:mm", spanishLocale)) ?: ""
-    val dateStr = startDt?.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", spanishLocale))
+    val locale = CountryContext.getLocale()
+    val isPt = CountryContext.isBrazil(locale = locale)
+    val timeStr = startDt?.format(DateTimeFormatter.ofPattern("HH:mm", locale)) ?: ""
+    val datePattern = if (isPt) "EEEE, d 'de' MMMM" else "EEEE d 'de' MMMM"
+    val dateStr = startDt?.format(DateTimeFormatter.ofPattern(datePattern, locale))
         ?.replaceFirstChar { it.uppercase() }
         ?: ""
 

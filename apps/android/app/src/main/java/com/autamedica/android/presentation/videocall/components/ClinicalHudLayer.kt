@@ -12,6 +12,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -28,7 +29,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -270,6 +270,14 @@ private fun SheetSurface(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.fillMaxWidth().imePadding()) {
+            val panelScroll = remember(panel) { ScrollState(0) }
+            LaunchedEffect(panelScroll.value, panelScroll.maxValue, anchorFull) {
+                if (!anchorFull && panelScroll.maxValue > 0 &&
+                    panelScroll.value >= panelScroll.maxValue - 2
+                ) {
+                    onExpand()
+                }
+            }
             SheetHeader(
                 patientName = patientName,
                 motivo = motivo,
@@ -291,11 +299,13 @@ private fun SheetSurface(
                 ClinicalSheetPanel.RESUMEN -> SheetResumen(
                     context = clinicalContext,
                     motivo = motivo,
+                    scrollState = panelScroll,
                     onEmitPrescription = onEmitPrescription,
                     onEmitCertificate = onEmitCertificate,
                 )
                 ClinicalSheetPanel.PREGUNTAS -> SheetPreguntas(
                     guidance = guidance,
+                    scrollState = panelScroll,
                     onEmitPrescription = onEmitPrescription,
                     onEmitCertificate = onEmitCertificate,
                 )
@@ -444,13 +454,14 @@ private fun SheetTabs(
 private fun SheetResumen(
     context: PatientClinicalContext?,
     motivo: String,
+    scrollState: ScrollState,
     onEmitPrescription: () -> Unit,
     onEmitCertificate: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = 16.dp)
             .padding(bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -534,13 +545,14 @@ private fun SheetResumen(
 @Composable
 private fun SheetPreguntas(
     guidance: CallClinicalGuidance,
+    scrollState: ScrollState,
     onEmitPrescription: () -> Unit,
     onEmitCertificate: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = 16.dp)
             .padding(bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),

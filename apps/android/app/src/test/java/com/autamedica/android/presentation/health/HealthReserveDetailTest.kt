@@ -115,4 +115,71 @@ class HealthReserveDetailTest {
         assertThat(formatted).contains("15.000")
         assertThat(formatted).contains("$")
     }
+
+    @Test
+    fun `calculateEstimatedBrl calculates realistic Brazilian healthcare equivalents`() {
+        assertThat(calculateEstimatedBrl(0)).isEqualTo(0.0)
+        assertThat(calculateEstimatedBrl(22)).isEqualTo(33.0)
+        assertThat(calculateEstimatedBrl(55)).isEqualTo(82.5)
+        assertThat(calculateEstimatedBrl(60)).isEqualTo(90.0)
+        assertThat(calculateEstimatedBrl(100)).isEqualTo(150.0)
+        assertThat(calculateEstimatedBrl(600)).isEqualTo(900.0)
+    }
+
+    @Test
+    fun `formatEstimatedValue branches accurately between Argentina and Brazil`() {
+        val arsFormatted = formatEstimatedValue(22, isBrazil = false)
+        assertThat(arsFormatted).contains("3.300")
+        assertThat(arsFormatted).contains("$")
+
+        val brlFormatted = formatEstimatedValue(22, isBrazil = true)
+        assertThat(brlFormatted).contains("R$")
+        assertThat(brlFormatted).contains("33")
+    }
+
+    @Test
+    fun `defaultReservePlansBrazil contains faithful Brazilian plans and features in Reais`() {
+        assertThat(defaultReservePlansBrazil).hasSize(3)
+
+        val tiers = defaultReservePlansBrazil.map { it.tierKey }
+        assertThat(tiers).containsExactly("free", "cuidado", "familiar").inOrder()
+
+        val cuidadoBrazil = defaultReservePlansBrazil[1]
+        assertThat(cuidadoBrazil.priceFormatted).isEqualTo("R$ 49,90 / mês via Pix")
+        assertThat(cuidadoBrazil.monthlyCredits).isEqualTo(22)
+        assertThat(cuidadoBrazil.maxCapCredits).isEqualTo(600)
+        assertThat(cuidadoBrazil.isPopular).isTrue()
+
+        // Brazilian plan contains "Use ou Acumule"
+        val accrualFeature = cuidadoBrazil.features.firstOrNull { it.label.contains("Use ou Acumule") }
+        assertThat(accrualFeature?.included).isTrue()
+    }
+
+    @Test
+    fun `getPlanByTier resolves Brazilian plans when isBrazil is true`() {
+        val plan = getPlanByTier("cuidado", isBrazil = true)
+        assertThat(plan.tierKey).isEqualTo("cuidado")
+        assertThat(plan.priceFormatted).isEqualTo("R$ 49,90 / mês via Pix")
+        assertThat(plan.badgeText).isEqualTo("Mais Escolhido")
+    }
+
+    @Test
+    fun `defaultBenefitCategoriesBrazil contains specialists, labs and pharmacy in Reais`() {
+        assertThat(defaultBenefitCategoriesBrazil).hasSize(3)
+
+        val keys = defaultBenefitCategoriesBrazil.map { it.categoryKey }
+        assertThat(keys).containsExactly("specialists", "labs", "pharmacy").inOrder()
+
+        val specialists = defaultBenefitCategoriesBrazil[0]
+        assertThat(specialists.creditsCost).isEqualTo(100)
+        assertThat(specialists.referenceMarketPriceFormatted).isEqualTo("R$ 150,00")
+
+        val labs = defaultBenefitCategoriesBrazil[1]
+        assertThat(labs.creditsCost).isEqualTo(60)
+        assertThat(labs.referenceMarketPriceFormatted).isEqualTo("R$ 90,00")
+
+        val pharmacy = defaultBenefitCategoriesBrazil[2]
+        assertThat(pharmacy.creditsCost).isEqualTo(55)
+        assertThat(pharmacy.referenceMarketPriceFormatted).isEqualTo("R$ 80,00")
+    }
 }

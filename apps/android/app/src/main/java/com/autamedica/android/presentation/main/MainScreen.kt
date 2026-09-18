@@ -389,6 +389,7 @@ fun MainScreen(
                         2 -> ConsultationHubScreen(
                             onNavigateToVideoCall = onNavigateToVideoCall,
                             onNavigateToBookAppointment = { selectedTab = 1 },
+                            onNavigateToAnamnesis = onNavigateToAnamnesisForm,
                         )
                         3 -> PrescriptionsScreen(
                             onBack = { selectedTab = 2 },

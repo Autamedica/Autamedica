@@ -28,6 +28,7 @@ data class AnamnesisFieldDefinition(
     val required: Boolean = false,
     val type: FieldType = FieldType.TEXT,
     val options: List<FieldOption> = emptyList(),
+    val suggestions: List<String> = emptyList(),
     val scaleMin: Int = 1,
     val scaleMax: Int = 10,
     val scaleMinLabel: String = "Leve",
@@ -35,6 +36,11 @@ data class AnamnesisFieldDefinition(
     val dependsOnKey: String? = null,
     val dependsOnValue: String? = null,
     val tooltip: String? = null,
+)
+
+data class SectionQuickAction(
+    val label: String,
+    val values: Map<String, String>,
 )
 
 data class SectionValidationResult(
@@ -47,6 +53,7 @@ private data class SectionRule(
     val fields: List<AnamnesisFieldDefinition>,
     val requiredKeys: Set<String> = emptySet(),
     val atLeastOneOf: Set<String> = emptySet(),
+    val quickAction: SectionQuickAction? = null,
     val message: String? = null,
 )
 
@@ -107,6 +114,16 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
                 label = "¿A qué te dedicás?",
                 hint = "Ej: Docente, administrativo, comercio...",
                 required = true,
+                suggestions = listOf(
+                    "Empleado administrativo",
+                    "Docente / Educador",
+                    "Comercio / Ventas",
+                    "Estudiante",
+                    "Salud / Médico / Enfermero",
+                    "Construcción / Oficios",
+                    "Transporte / Conductor",
+                    "Jubilado / Retirado",
+                ),
             ),
             AnamnesisFieldDefinition(
                 key = "años_ocupacion",
@@ -142,6 +159,15 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
                 hint = "Ej: Me duele la cabeza del lado derecho, palpitaciones, ardor...",
                 type = FieldType.TEXTAREA,
                 required = true,
+                suggestions = listOf(
+                    "Control clínico de rutina",
+                    "Dolor de cabeza persistente (Cefalea)",
+                    "Fiebre o febrícula con decaimiento",
+                    "Dolor de garganta / Disfonía",
+                    "Dolor lumbar / Lumbalgia",
+                    "Malestar estomacal / Acidez",
+                    "Renovación de recetas crónicas",
+                ),
             ),
             AnamnesisFieldDefinition(
                 key = "cuando_empezo",
@@ -196,9 +222,22 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
                 label = "Aclaraciones o tratamientos específicos",
                 hint = "Detalle adicional si tenés alguna condición diagnosticada",
                 type = FieldType.TEXTAREA,
+                suggestions = listOf(
+                    "Bajo tratamiento regular con medicación",
+                    "Control anual sin complicaciones",
+                    "Diagnóstico reciente (< 1 año)",
+                    "Sin internaciones previas",
+                ),
             ),
         ),
         requiredKeys = setOf("enfermedades_cronicas"),
+        quickAction = SectionQuickAction(
+            label = "Sin antecedentes crónicos (Ninguna)",
+            values = mapOf(
+                "enfermedades_cronicas" to "ninguna",
+                "enfermedades_detalle" to "Sin antecedentes patológicos crónicos",
+            ),
+        ),
         message = "Seleccioná tus antecedentes patológicos o indicá 'Ninguna'.",
     ),
 
@@ -219,9 +258,28 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
                 required = false,
                 dependsOnKey = "toma_medicamentos",
                 dependsOnValue = "true",
+                suggestions = listOf(
+                    "Enalapril",
+                    "Losartán",
+                    "Metformina",
+                    "Levotiroxina",
+                    "Omeprazol",
+                    "Atorvastatina",
+                    "Aspirina 100mg",
+                    "Clonazepam",
+                    "Paracetamol",
+                    "Ibuprofeno",
+                ),
             ),
         ),
         requiredKeys = setOf("toma_medicamentos"),
+        quickAction = SectionQuickAction(
+            label = "Niega medicación habitual (No toma)",
+            values = mapOf(
+                "toma_medicamentos" to "false",
+                "lista_medicamentos" to "",
+            ),
+        ),
         message = "Indicá si tomás medicamentos y detallalos si corresponde.",
     ),
 
@@ -242,6 +300,16 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
                 required = false,
                 dependsOnKey = "tiene_alergias",
                 dependsOnValue = "true",
+                suggestions = listOf(
+                    "Penicilina / Amoxicilina",
+                    "Aspirina / AINEs",
+                    "Sulfas",
+                    "Ibuprofeno",
+                    "Contraste iodado",
+                    "Látex",
+                    "Mariscos / Pescados",
+                    "Frutos secos",
+                ),
             ),
             // Legacy field compatibility
             AnamnesisFieldDefinition(
@@ -253,6 +321,13 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
         ),
         requiredKeys = setOf("tiene_alergias"),
         atLeastOneOf = setOf("tiene_alergias", "medication_allergies", "food_allergies"),
+        quickAction = SectionQuickAction(
+            label = "Niega alergias conocidas (Ninguna)",
+            values = mapOf(
+                "tiene_alergias" to "false",
+                "lista_alergias" to "",
+            ),
+        ),
         message = "Indicá si presentás alergias conocidas.",
     ),
 
@@ -311,6 +386,16 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
             ),
         ),
         requiredKeys = setOf("padre_vivo", "madre_viva"),
+        quickAction = SectionQuickAction(
+            label = "Sin antecedentes familiares de relevancia",
+            values = mapOf(
+                "padre_vivo" to "true",
+                "padre_enfermedades" to "ninguna",
+                "madre_viva" to "true",
+                "madre_enfermedades" to "ninguna",
+                "hermanos_enfermedades" to "ninguna",
+            ),
+        ),
         message = "Completá los antecedentes de tus padres o indicá si están vivos.",
     ),
 
@@ -385,6 +470,16 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
             ),
         ),
         requiredKeys = setOf("fuma", "alcohol", "ejercicio", "horas_sueno", "dieta"),
+        quickAction = SectionQuickAction(
+            label = "Hábitos saludables (No fuma / Sin alcohol / Ejercicio)",
+            values = mapOf(
+                "fuma" to "nunca",
+                "alcohol" to "nunca",
+                "ejercicio" to "moderado",
+                "horas_sueno" to "7",
+                "dieta" to "buena",
+            ),
+        ),
         message = "Completá tabaquismo, alcohol, ejercicio, horas de sueño y alimentación.",
     ),
 
@@ -404,6 +499,12 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
                 type = FieldType.TEXTAREA,
                 dependsOnKey = "dolor_pecho",
                 dependsOnValue = "true",
+                suggestions = listOf(
+                    "Opresión precordial al esfuerzo físico",
+                    "Puntadas intercostales con la respiración",
+                    "Sensación de ardor retroesternal",
+                    "Episodio aislado que cedió espontáneamente",
+                ),
             ),
             AnamnesisFieldDefinition(
                 key = "falta_aire",
@@ -437,6 +538,16 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
             ),
         ),
         requiredKeys = setOf("dolor_pecho", "falta_aire", "palpitaciones", "hinchazon_piernas"),
+        quickAction = SectionQuickAction(
+            label = "Niega síntomas cardiovasculares (Normal)",
+            values = mapOf(
+                "dolor_pecho" to "false",
+                "falta_aire" to "false",
+                "palpitaciones" to "false",
+                "hinchazon_piernas" to "false",
+                "sintomas_cardiovasculares" to "ninguno",
+            ),
+        ),
         message = "Respondé las preguntas sobre dolor de pecho, palpitaciones e hinchazón.",
     ),
 
@@ -456,6 +567,12 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
                 type = FieldType.TEXTAREA,
                 dependsOnKey = "tos",
                 dependsOnValue = "true",
+                suggestions = listOf(
+                    "Tos seca irritativa sin expectoración",
+                    "Tos con flema blanquecina o mucosa",
+                    "Predominio nocturno al acostarse",
+                    "Asociada a cuadro gripal reciente",
+                ),
             ),
             AnamnesisFieldDefinition(
                 key = "falta_aire_respiratorio",
@@ -483,6 +600,15 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
             ),
         ),
         requiredKeys = setOf("tos", "falta_aire_respiratorio", "silbido_pecho"),
+        quickAction = SectionQuickAction(
+            label = "Niega síntomas respiratorios (Normal)",
+            values = mapOf(
+                "tos" to "false",
+                "falta_aire_respiratorio" to "false",
+                "silbido_pecho" to "false",
+                "sintomas_respiratorios" to "ninguno",
+            ),
+        ),
         message = "Completá la evaluación respiratoria (tos, disnea y sibilancias).",
     ),
 
@@ -529,6 +655,15 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
             ),
         ),
         requiredKeys = setOf("acidez", "dolor_abdominal", "cambio_habito_intestinal"),
+        quickAction = SectionQuickAction(
+            label = "Niega síntomas digestivos (Normal)",
+            values = mapOf(
+                "acidez" to "false",
+                "dolor_abdominal" to "false",
+                "cambio_habito_intestinal" to "no",
+                "sintomas_digestivos" to "ninguno",
+            ),
+        ),
         message = "Respondé sobre acidez, dolor abdominal y hábito intestinal.",
     ),
 
@@ -567,6 +702,14 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
             ),
         ),
         requiredKeys = setOf("dolor_orinar", "frecuencia_urinaria"),
+        quickAction = SectionQuickAction(
+            label = "Niega síntomas urinarios (Normal)",
+            values = mapOf(
+                "dolor_orinar" to "false",
+                "frecuencia_urinaria" to "normal",
+                "sintomas_genitourinarios" to "ninguno",
+            ),
+        ),
         message = "Indicá si sentís dolor al orinar o cambios en la frecuencia.",
     ),
 
@@ -584,6 +727,12 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
                 label = "¿Algo más que quieras que el médico sepa?",
                 hint = "Ej: Preferencias personales, temores, dudas previas a la consulta...",
                 type = FieldType.TEXTAREA,
+                suggestions = listOf(
+                    "Aporto estudios complementarios previos",
+                    "Solicito renovación de medicación habitual",
+                    "Primera consulta sobre este cuadro",
+                    "Sin comentarios adicionales",
+                ),
             ),
         ),
         requiredKeys = setOf("confirma_informacion"),
@@ -750,6 +899,8 @@ fun getSectionFieldDefinitions(section: String): List<AnamnesisFieldDefinition> 
     )
 
 fun getSectionValidationHint(section: String): String? = sectionRules[section]?.message
+
+fun getSectionQuickAction(section: String): SectionQuickAction? = sectionRules[section]?.quickAction
 
 fun validateSection(section: String, fieldValues: Map<String, String>): SectionValidationResult {
     val rule = sectionRules[section] ?: return validateFallback(fieldValues)

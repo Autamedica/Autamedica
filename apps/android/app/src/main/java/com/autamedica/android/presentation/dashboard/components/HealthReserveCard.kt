@@ -37,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.presentation.theme.AuSurfaceHover
+import com.autamedica.android.util.CountryContext
 
 @Composable
 fun HealthReserveCard(
@@ -57,7 +59,13 @@ fun HealthReserveCard(
     onSubscribeClick: () -> Unit,
     onViewDetailsClick: () -> Unit,
     modifier: Modifier = Modifier,
+    countryCode: String? = null,
+    userPhone: String? = null,
 ) {
+    val isBrazil = remember(countryCode, userPhone) {
+        CountryContext.isBrazil(countryCode = countryCode, phoneNumber = userPhone)
+    }
+
     if (!isVisible) {
         // Collapsed Sleek Pill (48dp min touch target)
         Surface(
@@ -69,7 +77,7 @@ fun HealthReserveCard(
                 .sizeIn(minHeight = 48.dp)
                 .clip(RoundedCornerShape(999.dp))
                 .clickable(
-                    onClickLabel = "Ver planes y Reserva de Salud de AutaMedica",
+                    onClickLabel = if (isBrazil) "Ver planos e Reserva de Saúde de AutaMedica" else "Ver planes y Reserva de Salud de AutaMedica",
                     onClick = { onToggleVisibility(true) },
                 ),
         ) {
@@ -79,13 +87,13 @@ fun HealthReserveCard(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.AutoAwesome,
-                    contentDescription = "Reserva de Salud",
+                    contentDescription = if (isBrazil) "Reserva de Saúde" else "Reserva de Salud",
                     modifier = Modifier.size(16.dp),
                     tint = Color(0xFF0284C7),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Reserva de Salud y Planes",
+                    text = if (isBrazil) "Reserva de Saúde e Planos" else "Reserva de Salud y Planes",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF0F172A),
@@ -130,7 +138,7 @@ fun HealthReserveCard(
                         )
                         Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            text = "RESERVA DE SALUD",
+                            text = if (isBrazil) "RESERVA DE SAÚDE" else "RESERVA DE SALUD",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFE2E8F0),
@@ -145,7 +153,7 @@ fun HealthReserveCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Cerrar banner de Reserva de Salud",
+                        contentDescription = if (isBrazil) "Fechar banner da Reserva de Saúde" else "Cerrar banner de Reserva de Salud",
                         tint = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier.size(20.dp),
                     )
@@ -155,14 +163,14 @@ fun HealthReserveCard(
             // Title & Value Proposition
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "Reserva de Salud AutaMedica",
+                    text = if (isBrazil) "Reserva de Saúde AutaMedica" else "Reserva de Salud AutaMedica",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Light,
                     color = Color.White,
                     letterSpacing = (-0.3).sp,
                 )
                 Text(
-                    text = "1 consulta mensual + 22 créditos acumulables",
+                    text = if (isBrazil) "1 consulta mensal + 22 créditos acumuláveis" else "1 consulta mensual + 22 créditos acumulables",
                     fontSize = 13.sp,
                     color = Color(0xFFCBD5E1),
                     lineHeight = 19.sp,
@@ -186,7 +194,7 @@ fun HealthReserveCard(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "SALDO DISPONIBLE",
+                            text = if (isBrazil) "SALDO DISPONÍVEL" else "SALDO DISPONIBLE",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF94A3B8),
@@ -225,7 +233,7 @@ fun HealthReserveCard(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                text = "Capacidad acumulada",
+                                text = if (isBrazil) "Capacidade acumulada" else "Capacidad acumulada",
                                 fontSize = 11.sp,
                                 color = Color(0xFF94A3B8),
                             )
@@ -261,7 +269,7 @@ fun HealthReserveCard(
                 }
             }
 
-            // Upsell Box: Plan Cuidado
+            // Upsell Box: Plan Cuidado / Plano Cuidado
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -273,7 +281,7 @@ fun HealthReserveCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "Plan Cuidado",
+                        text = if (isBrazil) "Plano Cuidado" else "Plan Cuidado",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -284,7 +292,7 @@ fun HealthReserveCard(
                         border = BorderStroke(1.dp, Color(0x6606B6D4)),
                     ) {
                         Text(
-                            text = "Pix o Tarjeta",
+                            text = if (isBrazil) "R$ 49,90 / mês via Pix" else "Pix o Tarjeta",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF67E8F9),
@@ -298,7 +306,12 @@ fun HealthReserveCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    listOf("Especialistas y farmacia", "Acumulación mensual", "Sin vencimiento").forEach { tag ->
+                    val tags = if (isBrazil) {
+                        listOf("Especialistas e farmácia", "Acumulação mensal", "Sem vencimento")
+                    } else {
+                        listOf("Especialistas y farmacia", "Acumulación mensual", "Sin vencimiento")
+                    }
+                    tags.forEach { tag ->
                         Surface(
                             shape = RoundedCornerShape(999.dp),
                             color = Color(0x14FFFFFF),
@@ -338,7 +351,7 @@ fun HealthReserveCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Activar Plan Cuidado",
+                            text = if (isBrazil) "Assinar Plano Cuidado com Pix" else "Activar Plan Cuidado",
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
                         )
@@ -358,7 +371,7 @@ fun HealthReserveCard(
                         ),
                     ) {
                         Text(
-                            text = "Detalles",
+                            text = if (isBrazil) "Detalhes" else "Detalles",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 13.sp,
                         )
@@ -398,14 +411,14 @@ fun HealthReserveCard(
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                text = "Catálogo Red",
+                                text = if (isBrazil) "Rede de Parceiros" else "Catálogo Red",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,
                             )
                         }
                         Text(
-                            text = "Especialistas y farmacia.",
+                            text = if (isBrazil) "Especialistas e farmácia." else "Especialistas y farmacia.",
                             fontSize = 10.sp,
                             color = Color(0xFF94A3B8),
                             lineHeight = 14.sp,
@@ -434,14 +447,14 @@ fun HealthReserveCard(
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                text = "Movimientos",
+                                text = if (isBrazil) "Extrato" else "Movimientos",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,
                             )
                         }
                         Text(
-                            text = "Historial de créditos.",
+                            text = if (isBrazil) "Histórico de créditos." else "Historial de créditos.",
                             fontSize = 10.sp,
                             color = Color(0xFF94A3B8),
                             lineHeight = 14.sp,

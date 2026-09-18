@@ -88,8 +88,10 @@ import java.time.LocalDate
 import java.time.Period
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.autamedica.android.util.CountryContext
 
-private val profileLocale = Locale("es", "AR")
+private val profileLocale: Locale
+    get() = CountryContext.getLocale()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -809,11 +811,12 @@ private fun formatDate(value: String?): String {
 }
 
 private fun genderLabel(value: String?): String {
+    val isPt = CountryContext.isBrazil(locale = profileLocale)
     return when (value?.lowercase()) {
-        "male" -> "Masculino"
-        "female" -> "Femenino"
-        "other" -> "Otro"
-        "prefer_not_to_say" -> "Prefiero no decirlo"
+        "male" -> if (isPt) "Masculino" else "Masculino"
+        "female" -> if (isPt) "Feminino" else "Femenino"
+        "other" -> if (isPt) "Outro" else "Otro"
+        "prefer_not_to_say" -> if (isPt) "Prefiro não informar" else "Prefiero no decirlo"
         null, "" -> "—"
         else -> value.replaceFirstChar { it.uppercase() }
     }

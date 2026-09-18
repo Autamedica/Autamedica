@@ -600,6 +600,7 @@ private fun LoginFormCard(
                 enter = fadeIn() + slideInVertically(),
             ) {
                 uiState.error?.let { error ->
+                    val displayedError = uiState.errorResId?.let { stringResource(it) } ?: error
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -617,7 +618,7 @@ private fun LoginFormCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = error,
+                            text = displayedError,
                             color = AuDanger,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium,

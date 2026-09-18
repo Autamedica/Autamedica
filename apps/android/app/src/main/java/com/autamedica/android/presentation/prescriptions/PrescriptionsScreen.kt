@@ -95,6 +95,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.autamedica.android.util.CountryContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -675,6 +676,7 @@ private fun PrescriptionDetailBottomSheet(
     val dateStr = formatPrescriptionDate(prescription.prescribedDate ?: prescription.createdAt)
     val formattedMedication = formatMedicationName(prescription.medicationName)
     val downloadablePdfUrl = getDownloadablePdfUrl(prescription.signedPdfUrl, prescription.cuir)
+    val isBrazil = isBrazilPrescription(prescription.countryCode, prescription.doctorLicense)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -781,23 +783,81 @@ private fun PrescriptionDetailBottomSheet(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.VerifiedUser,
-                            contentDescription = null,
-                            tint = AuSuccess,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Validación oficial Decreto 63 / SISA REFEPS",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF1E293B),
-                        )
+                    if (isBrazil) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(top = 4.dp),
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF0FDF4),
+                                border = BorderStroke(1.dp, Color(0xFF86EFAC)),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.VerifiedUser,
+                                        contentDescription = null,
+                                        tint = Color(0xFF16A34A),
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Text(
+                                        text = "Prescrição Eletrônica ICP-Brasil (Lei 14.063/2020)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF166534),
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF0F9FF),
+                                border = BorderStroke(1.dp, Color(0xFFBAE6FD)),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color(0xFF0284C7),
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Text(
+                                        text = "Validada com Certificação Digital PAdES / ITI",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFF0369A1),
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.VerifiedUser,
+                                contentDescription = null,
+                                tint = AuSuccess,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Validación oficial Decreto 63 / SISA REFEPS",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF1E293B),
+                            )
+                        }
                     }
 
                     // Caja de CUIR grande y legible con botón copiar
@@ -1009,7 +1069,7 @@ private fun PrescriptionDetailBottomSheet(
                         )
                         prescription.doctorLicense?.takeIf { it.isNotBlank() }?.let { license ->
                             Text(
-                                text = "Matrícula: $license",
+                                text = formatDoctorLicense(license, isBrazil),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextSecondary,
                             )
@@ -1146,8 +1206,8 @@ private fun formatPrescriptionDate(dateStr: String?): String {
                 LocalDate.parse(dateStr.take(10))
             }
         }
-        val spanishLocale = Locale("es", "AR")
-        parsedDate.format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", spanishLocale))
+        val targetLocale = CountryContext.getLocale()
+        parsedDate.format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", targetLocale))
     }.getOrElse {
         dateStr
     }
@@ -1528,6 +1588,7 @@ private fun CertificateDetailBottomSheet(
     modifier: Modifier = Modifier,
 ) {
     val pdfUrl = certificate.effectivePdfUrl
+    val isBrazilCert = isBrazilPrescription(null, certificate.doctorLicense)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1621,22 +1682,80 @@ private fun CertificateDetailBottomSheet(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.VerifiedUser,
-                            contentDescription = null,
-                            tint = Color(0xFF16A34A),
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            text = "Validación oficial Decreto 63 / SISA REFEPS",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF1E293B),
-                        )
+                    if (isBrazilCert) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(top = 4.dp),
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF0FDF4),
+                                border = BorderStroke(1.dp, Color(0xFF86EFAC)),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.VerifiedUser,
+                                        contentDescription = null,
+                                        tint = Color(0xFF16A34A),
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Text(
+                                        text = "Prescrição Eletrônica ICP-Brasil (Lei 14.063/2020)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF166534),
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF0F9FF),
+                                border = BorderStroke(1.dp, Color(0xFFBAE6FD)),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color(0xFF0284C7),
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Text(
+                                        text = "Validada com Certificação Digital PAdES / ITI",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFF0369A1),
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.VerifiedUser,
+                                contentDescription = null,
+                                tint = Color(0xFF16A34A),
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "Validación oficial Decreto 63 / SISA REFEPS",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF1E293B),
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -1816,8 +1935,11 @@ private fun CertificateDetailBottomSheet(
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A),
                         )
+                        val certLicenseText = certificate.doctorLicense?.let {
+                            formatDoctorLicense(it, isBrazilCert)
+                        } ?: if (isBrazilCert) "CRM-RS Verificado no CFM/CREMERS" else "Verificada en SISA REFEPS"
                         Text(
-                            text = "Matrícula: ${certificate.doctorLicense ?: "Verificada en SISA REFEPS"}",
+                            text = certLicenseText,
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF64748B),
                         )
@@ -1827,3 +1949,24 @@ private fun CertificateDetailBottomSheet(
         }
     }
 }
+
+fun isBrazilPrescription(countryCode: String?, doctorLicense: String?): Boolean {
+    if (countryCode?.equals("BR", ignoreCase = true) == true) return true
+    if (doctorLicense?.contains("CRM", ignoreCase = true) == true) return true
+    val locale = Locale.getDefault()
+    return locale.language.equals("pt", ignoreCase = true) || locale.country.equals("BR", ignoreCase = true)
+}
+
+fun formatDoctorLicense(license: String?, isBrazil: Boolean): String {
+    if (license.isNullOrBlank()) return ""
+    return when {
+        isBrazil -> {
+            if (license.startsWith("CRM", ignoreCase = true)) license
+            else "CRM-RS: $license"
+        }
+        license.startsWith("CRM", ignoreCase = true) -> license
+        license.startsWith("MN", ignoreCase = true) || license.startsWith("MP", ignoreCase = true) -> license
+        else -> "Matrícula: $license"
+    }
+}
+

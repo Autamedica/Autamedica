@@ -71,6 +71,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,6 +79,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
@@ -102,8 +104,10 @@ import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.autamedica.android.util.CountryContext
 
-private val spanishLocale = Locale("es", "AR")
+private val currentLocale: Locale
+    get() = CountryContext.getLocale()
 
 private data class AgendaDay(
     val key: String,
@@ -273,7 +277,7 @@ fun AppointmentsScreen(
                                         )
                                         Spacer(modifier = Modifier.height(10.dp))
                                         Text(
-                                            text = "No tenés pacientes agendados actualmente.",
+                                            text = stringResource(R.string.doctor_agenda_no_patients),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = AuTextSecondary,
                                         )
@@ -451,13 +455,13 @@ fun AppointmentsScreen(
                                             }
                                         }
                                         Text(
-                                            text = "No tenés turnos programados",
+                                            text = stringResource(R.string.appointments_no_scheduled),
                                             style = MaterialTheme.typography.titleSmall,
                                             color = AuTextPrimary,
                                             fontWeight = FontWeight.SemiBold,
                                         )
                                         Text(
-                                            text = "Tu agenda está al día. Podés solicitar un nuevo turno cuando lo necesites.",
+                                            text = stringResource(R.string.appointments_no_scheduled_hint),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = AuTextSecondary,
                                             textAlign = TextAlign.Center,
@@ -715,8 +719,10 @@ private fun RescheduleSheet(
 }
 
 private fun formatShortDate(date: LocalDate): String {
-    return date.format(DateTimeFormatter.ofPattern("EEE d 'de' MMM", spanishLocale))
-        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(spanishLocale) else it.toString() }
+    val locale = currentLocale
+    val pattern = if (CountryContext.isBrazil(locale = locale)) "EEE, d 'de' MMM" else "EEE d 'de' MMM"
+    return date.format(DateTimeFormatter.ofPattern(pattern, locale))
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
 }
 
 @Composable
@@ -1347,7 +1353,7 @@ private fun BookingCalendarCard(
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
-                                        text = "Sin turnos disponibles para esta fecha. Probá con otro día.",
+                                        text = stringResource(R.string.booking_no_slots_for_date),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = AuTextTertiary,
                                         modifier = Modifier.padding(14.dp),
@@ -1463,13 +1469,15 @@ private fun DatePill(
     onClick: () -> Unit,
 ) {
     val today = LocalDate.now()
+    val locale = currentLocale
+    val isPt = CountryContext.isBrazil(locale = locale)
     val dayName = when (date) {
-        today -> "HOY"
-        today.plusDays(1) -> "MAÑ"
-        else -> date.format(DateTimeFormatter.ofPattern("EEE", spanishLocale)).uppercase()
+        today -> if (isPt) "HOJE" else "HOY"
+        today.plusDays(1) -> if (isPt) "AMAN" else "MAÑ"
+        else -> date.format(DateTimeFormatter.ofPattern("EEE", locale)).uppercase()
     }
     val dayNum = date.dayOfMonth.toString()
-    val monthName = date.format(DateTimeFormatter.ofPattern("MMM", spanishLocale)).uppercase()
+    val monthName = date.format(DateTimeFormatter.ofPattern("MMM", locale)).uppercase()
 
     Surface(
         shape = RoundedCornerShape(14.dp),
@@ -2014,30 +2022,42 @@ private fun formatHeroDate(isoString: String): String {
     val today = LocalDate.now()
     val date = dateTime.toLocalDate()
     val time = dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+    val locale = currentLocale
+    val isPt = CountryContext.isBrazil(locale = locale)
     return when (date) {
-        today -> "Hoy a las $time hs"
-        today.plusDays(1) -> "Mañana a las $time hs"
-        else -> dateTime.format(DateTimeFormatter.ofPattern("EEE d MMM · HH:mm 'hs'", spanishLocale))
-            .replaceFirstChar { it.uppercase() }
+        today -> if (isPt) "Hoje às $time" else "Hoy a las $time hs"
+        today.plusDays(1) -> if (isPt) "Amanhã às $time" else "Mañana a las $time hs"
+        else -> {
+            val pattern = if (isPt) "EEE, d 'de' MMM · HH:mm" else "EEE d MMM · HH:mm 'hs'"
+            dateTime.format(DateTimeFormatter.ofPattern(pattern, locale))
+                .replaceFirstChar { it.uppercase() }
+        }
     }
 }
 
 private fun formatSectionDate(date: LocalDate): String {
     val today = LocalDate.now()
+    val locale = currentLocale
+    val isPt = CountryContext.isBrazil(locale = locale)
     return when {
-        date == today -> "Hoy"
-        date == today.plusDays(1) -> "Mañana"
-        else -> date.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", spanishLocale))
-            .replaceFirstChar { it.uppercase() }
+        date == today -> if (isPt) "Hoje" else "Hoy"
+        date == today.plusDays(1) -> if (isPt) "Amanhã" else "Mañana"
+        else -> {
+            val pattern = if (isPt) "EEEE, d 'de' MMMM" else "EEEE d 'de' MMMM"
+            date.format(DateTimeFormatter.ofPattern(pattern, locale))
+                .replaceFirstChar { it.uppercase() }
+        }
     }
 }
 
 private fun formatSectionDateShort(date: LocalDate): String {
     val today = LocalDate.now()
+    val locale = currentLocale
+    val isPt = CountryContext.isBrazil(locale = locale)
     return when (date) {
-        today -> "Hoy"
-        today.plusDays(1) -> "Mañana"
-        else -> date.format(DateTimeFormatter.ofPattern("d 'de' MMMM", spanishLocale))
+        today -> if (isPt) "Hoje" else "Hoy"
+        today.plusDays(1) -> if (isPt) "Amanhã" else "Mañana"
+        else -> date.format(DateTimeFormatter.ofPattern("d 'de' MMMM", locale))
     }
 }
 

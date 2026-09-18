@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
+import com.autamedica.android.util.CountryContext
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -130,15 +131,16 @@ fun PatientWalletBottomSheet(
                                 modifier = Modifier.size(20.dp),
                             )
                             Text(
-                                text = "Saldo en cuenta",
+                                text = if (CountryContext.isBrazil()) "Saldo da conta" else "Saldo en cuenta",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color(0xFF334155),
                             )
                         }
-                        val formattedBalance = NumberFormat.getCurrencyInstance(Locale("es", "AR")).apply {
-                            maximumFractionDigits = 0
-                        }.format(walletBalanceCents / 100.0)
+                        val formattedBalance = CountryContext.formatCurrencyFromCents(
+                            cents = walletBalanceCents,
+                            maxFractionDigits = 0
+                        )
                         Text(
                             text = formattedBalance,
                             fontSize = 17.sp,

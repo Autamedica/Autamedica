@@ -50,6 +50,7 @@ android {
         versionName = "1.2.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        resourceConfigurations += listOf("es", "pt", "pt-rBR")
 
         buildConfigField(
             "String",

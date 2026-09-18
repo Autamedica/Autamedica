@@ -36,8 +36,7 @@ import com.autamedica.android.presentation.theme.PortalDoctors
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-private val spanishLocale = Locale("es", "AR")
+import com.autamedica.android.util.CountryContext
 
 @Composable
 fun AppointmentListItem(
@@ -50,7 +49,7 @@ fun AppointmentListItem(
 ) {
     val isTelemed = appointment.type == AppointmentType.TELEMEDICINE || appointment.meetingUrl != null
     val startDt = runCatching { OffsetDateTime.parse(appointment.startTime) }.getOrNull()
-    val timeStr = startDt?.format(DateTimeFormatter.ofPattern("HH:mm", spanishLocale)) ?: ""
+    val timeStr = startDt?.format(DateTimeFormatter.ofPattern("HH:mm", CountryContext.getLocale())) ?: ""
 
     val cleanNotes = appointment.notes?.let { notes ->
         val cleaned = notes

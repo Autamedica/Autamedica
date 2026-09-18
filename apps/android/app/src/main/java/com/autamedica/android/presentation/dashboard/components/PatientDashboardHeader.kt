@@ -42,6 +42,7 @@ import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalPatients
+import com.autamedica.android.util.CountryContext
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -205,8 +206,5 @@ fun PatientDashboardHeader(
 }
 
 fun formatCents(cents: Long): String {
-    val amount = cents / 100.0
-    return NumberFormat.getCurrencyInstance(Locale("es", "AR")).apply {
-        maximumFractionDigits = 0
-    }.format(amount)
+    return CountryContext.formatCurrencyFromCents(cents, maxFractionDigits = 0)
 }

@@ -48,8 +48,7 @@ import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-private val spanishLocale = Locale("es", "AR")
+import com.autamedica.android.util.CountryContext
 
 data class WaffleDay(
     val date: LocalDate,
@@ -77,7 +76,9 @@ fun ThirtyDayWaffleCalendar(
                     OffsetDateTime.parse(appt.startTime).toLocalDate() == currentDate
                 }.getOrDefault(false)
             }
-            val formatter = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", spanishLocale)
+            val locale = CountryContext.getLocale()
+            val pattern = if (CountryContext.isBrazil(locale = locale)) "EEEE, d 'de' MMMM" else "EEEE d 'de' MMMM"
+            val formatter = DateTimeFormatter.ofPattern(pattern, locale)
             WaffleDay(
                 date = currentDate,
                 dayNumber = currentDate.dayOfMonth,

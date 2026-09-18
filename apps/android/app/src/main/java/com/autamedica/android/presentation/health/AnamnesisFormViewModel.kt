@@ -123,17 +123,21 @@ class AnamnesisFormViewModel @Inject constructor(
                         .onFailure { e ->
                             SecureLog.error("[Anamnesis] Failed loading sections", e)
                             _uiState.update {
-                                it.copy(isLoading = false, error = "No se pudieron cargar las secciones")
+                                it.copy(isLoading = false, error = e.message ?: "No se pudieron cargar las secciones")
                             }
                         }
                 }
                 .onFailure { e ->
                     SecureLog.error("[Anamnesis] Failed creating anamnesis", e)
                     _uiState.update {
-                        it.copy(isLoading = false, error = "No se pudo iniciar la anamnesis")
+                        it.copy(isLoading = false, error = e.message ?: "No se pudo iniciar la anamnesis")
                     }
                 }
         }
+    }
+
+    fun retry() {
+        loadForm()
     }
 
     fun updateField(key: String, value: String) {
@@ -147,6 +151,23 @@ class AnamnesisFormViewModel @Inject constructor(
             )
         }
         triggerDebouncedAutoSave()
+    }
+
+    fun updateFields(fields: Map<String, String>) {
+        if (_uiState.value.isReadOnly) return
+        _uiState.update { state ->
+            state.copy(
+                fieldValues = state.fieldValues + fields,
+                fieldErrors = state.fieldErrors - fields.keys,
+                error = null,
+                saveSuccessMessage = null,
+            )
+        }
+        triggerDebouncedAutoSave()
+    }
+
+    fun applyQuickAction(quickAction: SectionQuickAction) {
+        updateFields(quickAction.values)
     }
 
     private fun triggerDebouncedAutoSave() {

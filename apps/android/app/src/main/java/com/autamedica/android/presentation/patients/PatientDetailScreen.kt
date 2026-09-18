@@ -78,6 +78,7 @@ import com.autamedica.android.presentation.theme.Secondary
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.autamedica.android.util.CountryContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -553,24 +554,27 @@ private fun displayAppointmentType(type: AppointmentType): String = when (type) 
     AppointmentType.CHECKUP -> "Chequeo"
 }
 
-private fun displayStatus(status: AppointmentStatus): String = when (status) {
-    AppointmentStatus.PAYMENT_PENDING -> "Pago pendiente"
-    AppointmentStatus.SCHEDULED -> "Programada"
-    AppointmentStatus.CONFIRMED -> "Confirmada"
-    AppointmentStatus.IN_PROGRESS -> "En curso"
-    AppointmentStatus.COMPLETED -> "Completada"
-    AppointmentStatus.CANCELLED -> "Cancelada"
-    AppointmentStatus.NO_SHOW -> "Ausente"
+private fun displayStatus(status: AppointmentStatus): String {
+    val isPt = CountryContext.isBrazil()
+    return when (status) {
+        AppointmentStatus.PAYMENT_PENDING -> if (isPt) "Pagamento pendente" else "Pago pendiente"
+        AppointmentStatus.SCHEDULED -> if (isPt) "Agendado" else "Programada"
+        AppointmentStatus.CONFIRMED -> if (isPt) "Confirmada" else "Confirmada"
+        AppointmentStatus.IN_PROGRESS -> if (isPt) "Em andamento" else "En curso"
+        AppointmentStatus.COMPLETED -> if (isPt) "Concluída" else "Completada"
+        AppointmentStatus.CANCELLED -> if (isPt) "Cancelada" else "Cancelada"
+        AppointmentStatus.NO_SHOW -> if (isPt) "Não compareceu" else "Ausente"
+    }
 }
 
 private fun formatDate(isoString: String): String {
     return try {
         val date = java.time.LocalDate.parse(isoString)
-        date.format(DateTimeFormatter.ofPattern("d 'de' MMMM, yyyy", Locale("es", "AR")))
+        date.format(DateTimeFormatter.ofPattern("d 'de' MMMM, yyyy", CountryContext.getLocale()))
     } catch (_: Exception) {
         try {
             val dt = OffsetDateTime.parse(isoString)
-            dt.format(DateTimeFormatter.ofPattern("d 'de' MMMM, yyyy", Locale("es", "AR")))
+            dt.format(DateTimeFormatter.ofPattern("d 'de' MMMM, yyyy", CountryContext.getLocale()))
         } catch (_: Exception) {
             isoString
         }
@@ -580,7 +584,7 @@ private fun formatDate(isoString: String): String {
 private fun formatDayMonth(isoString: String): String {
     return try {
         val dt = OffsetDateTime.parse(isoString)
-        dt.format(DateTimeFormatter.ofPattern("d MMM", Locale("es", "AR")))
+        dt.format(DateTimeFormatter.ofPattern("d MMM", CountryContext.getLocale()))
     } catch (_: Exception) {
         ""
     }
@@ -589,7 +593,7 @@ private fun formatDayMonth(isoString: String): String {
 private fun formatTime(isoString: String): String {
     return try {
         val dt = OffsetDateTime.parse(isoString)
-        dt.format(DateTimeFormatter.ofPattern("HH:mm", Locale("es", "AR")))
+        dt.format(DateTimeFormatter.ofPattern("HH:mm", CountryContext.getLocale()))
     } catch (_: Exception) {
         ""
     }

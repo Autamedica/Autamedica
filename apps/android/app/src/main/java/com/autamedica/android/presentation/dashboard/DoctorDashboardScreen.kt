@@ -51,11 +51,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
@@ -76,6 +78,7 @@ import com.autamedica.android.presentation.theme.PortalDoctors
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.autamedica.android.util.CountryContext
 
 private const val DOCTOR_TAB_CHATS = 1
 
@@ -303,7 +306,7 @@ private fun DoctorNextPatientCard(
                         color = Color.White,
                     )
                     Text(
-                        text = "El paciente está listo en sala de espera. Ingresá para iniciar la consulta.",
+                        text = stringResource(R.string.doctor_dashboard_patient_ready_action),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFA1A1AA),
                     )
@@ -975,7 +978,7 @@ private fun displayStatus(status: AppointmentStatus): String = when (status) {
 private fun formatTime(isoString: String): String {
     return try {
         val dt = OffsetDateTime.parse(isoString)
-        dt.format(DateTimeFormatter.ofPattern("HH:mm", Locale("es", "AR")))
+        dt.format(DateTimeFormatter.ofPattern("HH:mm", CountryContext.getLocale()))
     } catch (_: Exception) {
         ""
     }

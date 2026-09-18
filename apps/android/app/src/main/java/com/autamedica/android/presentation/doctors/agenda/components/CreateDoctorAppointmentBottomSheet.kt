@@ -58,6 +58,7 @@ import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalDoctors
+import com.autamedica.android.util.CountryContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -123,14 +124,15 @@ fun CreateDoctorAppointmentBottomSheet(
             ) {
                 Column {
                     Text(
-                        text = "NUEVO TURNO / SOBRETURNO",
+                        text = if (CountryContext.isBrazil()) "NOVA CONSULTA / ENCAIXE" else "NUEVO TURNO / SOBRETURNO",
                         style = MaterialTheme.typography.labelSmall,
                         color = PortalDoctors,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.2.sp,
                     )
+                    val datePattern = if (CountryContext.isBrazil()) "EEEE, d 'de' MMMM" else "EEEE d 'de' MMMM"
                     Text(
-                        text = selectedDate.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", java.util.Locale("es"))).replaceFirstChar { it.uppercase() },
+                        text = selectedDate.format(DateTimeFormatter.ofPattern(datePattern, CountryContext.getLocale())).replaceFirstChar { it.uppercase() },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
