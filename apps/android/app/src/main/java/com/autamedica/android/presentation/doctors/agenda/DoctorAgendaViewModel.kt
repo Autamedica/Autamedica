@@ -7,11 +7,13 @@ import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentTransitionRules
 import com.autamedica.android.domain.model.DoctorAvailabilitySlot
+import com.autamedica.android.domain.model.DoctorOnDutyPharmacyState
 import com.autamedica.android.domain.model.PatientClinicalContext
 import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
+import com.autamedica.android.domain.repository.PharmacyOnDemandRepository
 import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -59,6 +61,8 @@ data class DoctorAgendaUiState(
     val createSheetInitialTime: String = "09:00",
     val isSubmittingAppointment: Boolean = false,
     val doctorPatients: List<PatientSummary> = emptyList(),
+    val pharmacyOnDutyState: DoctorOnDutyPharmacyState = DoctorOnDutyPharmacyState(),
+    val claimingPharmacyRequestId: String? = null,
     val error: String? = null,
 ) {
     val currentTurno: Appointment?
@@ -122,6 +126,7 @@ class DoctorAgendaViewModel @Inject constructor(
     private val doctorRepository: DoctorRepository,
     private val authRepository: AuthRepository,
     private val securePreferences: SecurePreferences,
+    private val pharmacyOnDemandRepository: PharmacyOnDemandRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DoctorAgendaUiState())
@@ -129,12 +134,47 @@ class DoctorAgendaViewModel @Inject constructor(
 
     init {
         loadInitialData()
+        observePharmacyDuty()
+    }
+
+    private fun observePharmacyDuty() {
+        viewModelScope.launch {
+            pharmacyOnDemandRepository.observeOnDutyState().collect { state ->
+                _uiState.update { it.copy(pharmacyOnDutyState = state) }
+            }
+        }
+        viewModelScope.launch {
+            pharmacyOnDemandRepository.getOnDutyStatus()
+        }
+    }
+
+    fun togglePharmacyOnDuty(onDuty: Boolean) {
+        viewModelScope.launch {
+            pharmacyOnDemandRepository.toggleOnDuty(onDuty)
+        }
+    }
+
+    fun claimPharmacyRequest(requestId: String, onNavigateToCall: (String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(claimingPharmacyRequestId = requestId) }
+            pharmacyOnDemandRepository.claimRequest(requestId)
+                .onSuccess { result ->
+                    _uiState.update { it.copy(claimingPharmacyRequestId = null) }
+                    onNavigateToCall(result.roomId)
+                }
+                .onFailure {
+                    _uiState.update { it.copy(claimingPharmacyRequestId = null) }
+                }
+        }
     }
 
     fun refresh() {
         _uiState.update { it.copy(isRefreshing = true) }
         loadAppointments()
         loadAvailability()
+        viewModelScope.launch {
+            pharmacyOnDemandRepository.getOnDutyStatus()
+        }
     }
 
     fun toggleAvailabilityOpen() {

@@ -5,6 +5,7 @@
 import { OnboardingReminder } from "@/components/doctors/OnboardingReminder";
 import { DoctorsPortalFrame } from "@/components/doctors/DoctorsPortalFrame";
 import { LicenseStatusBanner } from "@/components/doctors/LicenseStatusBanner";
+import { DoctorOnDutyWidget } from "@/components/doctors/pharmacy/DoctorOnDutyWidget";
 import { ThirtyDayWaffleCalendar } from "@/components/doctors/ThirtyDayWaffleCalendar";
 import { useAuthenticatedUser } from "@/hooks/doctors/useAuthenticatedUser";
 import { useCheckDoctorExists } from "@/hooks/doctors/useCheckDoctorExists";
@@ -568,6 +569,10 @@ export function DoctorsDashboardPage({ locale: _locale }: DoctorsDashboardPagePr
       </div>
 
       <LicenseStatusBanner />
+
+      <div className="mb-6">
+        <DoctorOnDutyWidget />
+      </div>
 
       {/* ── Stat cards / Rich Dashboard Widgets ── */}
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">

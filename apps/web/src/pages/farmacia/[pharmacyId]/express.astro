@@ -1,0 +1,38 @@
+---
+import CallLayout from '@/layouts/CallLayout.astro';
+import { PharmacyExpressConsultation } from '@/components/pharmacy/PharmacyExpressConsultation';
+import { createAstroAdminClient } from '@/lib/supabase';
+
+export const prerender = false;
+
+const { pharmacyId } = Astro.params;
+let pharmacyName = 'Farmacia Adherida';
+
+if (pharmacyId) {
+  try {
+    const admin = createAstroAdminClient(Astro.locals.runtime?.env);
+    const { data } = await admin
+      .from('pharmacies')
+      .select('name')
+      .eq('id', pharmacyId)
+      .maybeSingle();
+
+    if (data?.name) {
+      pharmacyName = data.name;
+    }
+  } catch {
+    // Si falla o el id no es uuid, mantiene default
+  }
+}
+
+const title = `Consulta Exprés • ${pharmacyName} | AutaMedica`;
+const description = 'Videoconsulta médica bajo demanda en farmacia y emisión de receta digital oficial.';
+---
+
+<CallLayout title={title} description={description}>
+  <PharmacyExpressConsultation
+    client:load
+    pharmacyId={pharmacyId}
+    pharmacyName={pharmacyName}
+  />
+</CallLayout>

@@ -7131,6 +7131,47 @@ export type Database = {
           },
         ]
       }
+      doctor_on_duty_sessions: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          duty_type: string
+          ended_at: string | null
+          id: string
+          is_active: boolean
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          duty_type?: string
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          duty_type?: string
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean
+          started_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_on_duty_sessions_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_specialties: {
         Row: {
           certification_entity: string | null
@@ -7338,6 +7379,8 @@ export type Database = {
           languages: Json | null
           license_number: string
           license_type: string | null
+          on_duty_pharmacy: boolean | null
+          on_duty_since: string | null
           payout_alias: string | null
           payout_cbu: string | null
           payout_pix_key: string | null
@@ -7378,6 +7421,8 @@ export type Database = {
           languages?: Json | null
           license_number: string
           license_type?: string | null
+          on_duty_pharmacy?: boolean | null
+          on_duty_since?: string | null
           payout_alias?: string | null
           payout_cbu?: string | null
           payout_pix_key?: string | null
@@ -7418,6 +7463,8 @@ export type Database = {
           languages?: Json | null
           license_number?: string
           license_type?: string | null
+          on_duty_pharmacy?: boolean | null
+          on_duty_since?: string | null
           payout_alias?: string | null
           payout_cbu?: string | null
           payout_pix_key?: string | null
@@ -9926,6 +9973,81 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "dispensation_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pharmacy_consultation_requests: {
+        Row: {
+          call_id: string | null
+          cancelled_at: string | null
+          claimed_at: string | null
+          completed_at: string | null
+          created_at: string
+          doctor_id: string | null
+          id: string
+          medication_requested: string | null
+          patient_full_name: string
+          patient_id_document: string
+          patient_phone: string
+          pharmacy_id: string
+          prescription_id: string | null
+          reason: string
+          requested_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          call_id?: string | null
+          cancelled_at?: string | null
+          claimed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          id?: string
+          medication_requested?: string | null
+          patient_full_name: string
+          patient_id_document: string
+          patient_phone: string
+          pharmacy_id: string
+          prescription_id?: string | null
+          reason: string
+          requested_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          call_id?: string | null
+          cancelled_at?: string | null
+          claimed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          id?: string
+          medication_requested?: string | null
+          patient_full_name?: string
+          patient_id_document?: string
+          patient_phone?: string
+          pharmacy_id?: string
+          prescription_id?: string | null
+          reason?: string
+          requested_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pharmacy_consultation_requests_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pharmacy_consultation_requests_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
         ]

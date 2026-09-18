@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AutaMedica</string>
+    <string name="login_title">Iniciar Sessão</string>
+    <string name="login_email_label">E-mail</string>
+    <string name="login_password_label">Senha</string>
+    <string name="login_button">Entrar</string>
+    <string name="login_error_invalid_credentials">Credenciais inválidas</string>
+    <string name="login_error_network">Erro de conexão. Verifique sua internet.</string>
+    <string name="dashboard_title">Início</string>
+    <string name="dashboard_upcoming">Próximas consultas</string>
+    <string name="dashboard_no_appointments">Você não tem consultas agendadas</string>
+    <string name="videocall_connecting">Conectando...</string>
+    <string name="videocall_connected">Conectado</string>
+    <string name="videocall_end">Encerrar chamada</string>
+    <string name="videocall_mute">Silenciar microfone</string>
+    <string name="videocall_unmute">Ativar microfone</string>
+    <string name="videocall_camera_on">Ligar câmera</string>
+    <string name="videocall_camera_off">Desligar câmera</string>
+    <string name="videocall_chat">Mensagens</string>
+    <string name="videocall_speaker_on">Alto-falante ativado</string>
+    <string name="videocall_speaker_off">Alto-falante desativado</string>
+    <string name="profile_title">Perfil</string>
+    <string name="nav_home">Início</string>
+    <string name="nav_messages">Mensagens</string>
+    <string name="nav_appointments">Consultas</string>
+    <string name="nav_health">Saúde</string>
+    <string name="nav_patients">Pacientes</string>
+    <string name="nav_profile">Perfil</string>
+    <string name="nav_patient_home">Início</string>
+    <string name="nav_patient_agenda">Agenda</string>
+    <string name="nav_patient_consult">Consultar</string>
+    <string name="nav_patient_prescriptions">Prescrições</string>
+    <string name="nav_patient_community">Comunidade</string>
+    <string name="notification_call_channel">Chamada em andamento</string>
+    <string name="notification_call_title">Consulta médica em andamento</string>
+    <string name="notification_call_text">Toque para retornar à chamada</string>
+    <string name="notification_end_call">Encerrar</string>
+    <string name="notification_incoming_call_channel">Chamadas recebidas</string>
+    <string name="notification_incoming_call_title">Chamada médica recebida</string>
+    <string name="notification_incoming_call_text">Videoconsulta médica</string>
+    <string name="notification_answer_call">Atender</string>
+    <string name="notification_decline_call">Recusar</string>
+    <string name="notification_permission_title">Ativar notificações</string>
+    <string name="notification_permission_message">Você receberá avisos de novas consultas, mensagens e receitas</string>
+
+    <!-- Profile -->
+    <string name="profile_name_label">Nome</string>
+    <string name="profile_last_name_label">Sobrenome</string>
+    <string name="profile_phone_label">Telefone</string>
+
+    <!-- Chat -->
+    <string name="chat_input_placeholder">Digite sua mensagem...</string>
+
+    <!-- Dashboards -->
+    <string name="doctor_dashboard_start_call">Iniciar videoconsulta</string>
+    <string name="doctor_dashboard_open_waiting_room">Abrir sala de espera</string>
+    <string name="doctor_dashboard_test_camera">Testar câmera</string>
+    <string name="doctor_dashboard_no_active_call">Não há consultas ativas no momento.</string>
+    <string name="doctor_dashboard_waiting_room_hint">Você pode iniciar a sala e aguardar a conexão do paciente.</string>
+    <string name="dashboard_open_appointments">Ver minhas consultas</string>
+    <string name="dashboard_no_upcoming_appointments">Você não tem consultas agendadas.</string>
+    <string name="dashboard_no_upcoming_appointments_hint">Você pode agendar uma consulta na aba de consultas.</string>
+
+    <!-- Videocall & Permissions -->
+    <string name="permissions_grant">Conceder permissões</string>
+    <string name="common_back">Voltar</string>
+    <string name="common_next">Avançar</string>
+    <string name="common_save">Salvar</string>
+    <string name="common_save_changes">Salvar alterações</string>
+    <string name="common_retry_connection">Tentar reconectar</string>
+    <string name="common_try_connect">Tentar conectar</string>
+    <string name="common_retry">Tentar novamente</string>
+    <string name="videocall_use_current_mode">Usar modo atual</string>
+    <string name="videocall_hang_up">Desligar</string>
+
+    <!-- Health / Anamnesis -->
+    <string name="common_previous">Anterior</string>
+    <string name="health_submit_anamnesis">Enviar ficha médica</string>
+    <string name="health_your_age">Sua idade</string>
+    <string name="health_age_example">Ex: 45</string>
+    <!-- Welcome / Hero -->
+    <string name="welcome_subtitle">Plataforma integrada de videoconsultas médicas, agendamentos e prontuário clínico.</string>
+    <string name="welcome_tag_appointments">Consultas online</string>
+    <string name="welcome_tag_videocall">Videoconsultas</string>
+    <string name="welcome_tag_history">Histórico clínico</string>
+    <string name="welcome_feature_agenda_title">Agenda em dia</string>
+    <string name="welcome_feature_agenda_desc">Consulte suas datas, horários e profissionais disponíveis.</string>
+    <string name="welcome_feature_consultation_title">Videoconsulta direta</string>
+    <string name="welcome_feature_consultation_desc">Entre na sua consulta no horário agendado.</string>
+    <string name="welcome_feature_followup_title">Acompanhamento clínico</string>
+    <string name="welcome_feature_followup_desc">Acesse suas prescrições, exames e avaliações preventivas.</string>
+
+    <!-- Auth Additions -->
+    <string name="auth_forgot_password">Esqueceu sua senha?</string>
+    <string name="auth_login_with_google">Continuar com o Google</string>
+    <string name="auth_no_account">Não tem uma conta?</string>
+    <string name="auth_register_now">Cadastre-se</string>
+    <string name="auth_role_patients">Pacientes</string>
+    <string name="auth_role_doctors">Médicos</string>
+    <string name="auth_role_companies">Empresas</string>
+    <string name="auth_role_pharmacists">Farmácias</string>
+    <string name="auth_cpf_label">CPF</string>
+    <string name="auth_cpf_hint">000.000.000-00</string>
+    <string name="auth_cpf_invalid">CPF inválido</string>
+    <string name="auth_crm_label">CRM</string>
+    <string name="auth_crm_hint">Ex: CRM-RS 12345</string>
+
+    <!-- Triage & Guardia 24/7 -->
+    <string name="triage_guard_title">Plantão Médico 24/7</string>
+    <string name="triage_guard_subtitle">Atendimento imediato com triagem prévia</string>
+    <string name="triage_doctors_available">%1$d no plantão</string>
+    <string name="triage_complaint_prompt">Qual é o seu sintoma ou queixa principal hoje?</string>
+    <string name="triage_complaint_hint">Ex: Febre desde ontem, dor de garganta ao engolir...</string>
+    <string name="triage_red_flag_alert">SINAL DE ALARME MÉDICO DETECTADO</string>
+    <string name="triage_emergency_call_action">Ligar para o %1$s (%2$s)</string>
+    <string name="triage_bypass_warning">Compreendo o risco, desejo consultar o plantão médico</string>
+    <string name="triage_request_guard">Solicitar médico de plantão com triagem</string>
+    <string name="triage_dispatching_guard">Designando médico de plantão...</string>
+    <string name="triage_symptom_fever">Febre</string>
+    <string name="triage_symptom_sore_throat">Dor de garganta</string>
+    <string name="triage_symptom_gastro">Gastrointestinal</string>
+    <string name="triage_symptom_rash">Manchas na pele</string>
+    <string name="triage_symptom_cough">Tosse persistente</string>
+    <string name="triage_symptom_prescription">Receita / Acompanhamento</string>
+
+    <!-- Videocall & Waiting Room -->
+    <string name="waiting_room_title">AutaMedica</string>
+    <string name="waiting_room_status">Aguardando</string>
+    <string name="waiting_room_ringing">Chamando o médico...</string>
+    <string name="waiting_room_preconsult_title">Preencha sua ficha prévia enquanto aguarda</string>
+    <string name="waiting_room_reason_label">Motivo da consulta</string>
+    <string name="waiting_room_symptoms_label">Descreva seus sintomas</string>
+    <string name="waiting_room_save_preconsult">Salvar ficha prévia</string>
+    <string name="waiting_room_cancel_call">Cancelar chamada</string>
+    <string name="videocall_encrypted_access">Consulta com criptografia de ponta a ponta</string>
+    <string name="videocall_room_ready">SALA PRONTA PARA ATENDIMENTO</string>
+    <string name="videocall_enter_button">Entrar na videoconsulta</string>
+    <string name="videocall_auto_degraded_notice">Conexão instável: alterado temporariamente para somente áudio</string>
+    <string name="videocall_recovering_notice">Conexão restabelecida: reativando vídeo</string>
+
+    <!-- Prescriptions (ICP-Brasil & CFM 2.314/2022) -->
+    <string name="rx_title_prescriptions">Minhas Prescrições</string>
+    <string name="rx_title_certificates">Meus Atestados</string>
+    <string name="rx_tab_prescriptions">Prescrições</string>
+    <string name="rx_tab_certificates">Atestados</string>
+    <string name="rx_filter_all">Todas</string>
+    <string name="rx_filter_active">Ativas</string>
+    <string name="rx_filter_dispensed">Dispensadas</string>
+    <string name="rx_filter_completed">Concluídas</string>
+    <string name="rx_show_at_pharmacy">APRESENTE ESTE CÓDIGO NA FARMÁCIA</string>
+    <string name="rx_cuir_label">CÓDIGO CUIR:</string>
+    <string name="rx_download_pdf">Baixar Prescrição (PDF)</string>
+    <string name="rx_instructions_title">COMO TOMAR (INSTRUÇÕES MÉDICAS)</string>
+    <string name="rx_regulatory_sisa">Validação Oficial CFM nº 2.314/2022 / ICP-Brasil</string>
+    <string name="rx_regulatory_icp_brasil">Prescrição Eletrônica ICP-Brasil (Lei 14.063/2020)</string>
+    <string name="rx_regulatory_pades_iti">Validada com Certificação Digital PAdES / ITI</string>
+    <string name="rx_license_crm_rs">CRM-RS: %1$s</string>
+    <string name="rx_license_mn">Matrícula: %1$s</string>
+    <string name="rx_emergency_samu">SAMU 192</string>
+    <string name="rx_emergency_same">SAMU 192</string>
+
+    <!-- Auth & Login Validation (Neutral & Localized) -->
+    <string name="login_error_empty_email">Por favor, informe seu e-mail</string>
+    <string name="login_error_invalid_email">O formato de e-mail não é válido (ex: usuario@email.com)</string>
+    <string name="login_error_empty_password">Por favor, informe sua senha</string>
+    <string name="login_error_password_too_short">A senha deve ter pelo menos 6 caracteres</string>
+    <string name="auth_google_cancelled_hint">Início com o Google cancelado ou interrompido. Você pode entrar com seu e-mail e senha.</string>
+    <string name="auth_google_no_account_hint">Nenhuma conta do Google disponível neste dispositivo. Entre com e-mail e senha.</string>
+
+    <!-- Doctor Dashboard, Appointments & Chat (De-voseo & i18n) -->
+    <string name="doctor_dashboard_patient_ready_action">O paciente está pronto na sala de espera. Entre para iniciar a consulta.</string>
+    <string name="doctor_agenda_no_patients">Você não tem pacientes agendados no momento.</string>
+    <string name="appointments_no_scheduled">Você não tem consultas agendadas</string>
+    <string name="appointments_no_scheduled_hint">Sua agenda está em dia. Você pode solicitar uma nova consulta quando precisar.</string>
+    <string name="booking_no_slots_for_date">Sem horários disponíveis para esta data. Tente outro dia.</string>
+    <string name="chat_empty_title">Você não tem conversas</string>
+    <string name="chat_empty_description">Suas conversas com profissionais de saúde aparecerão aqui.</string>
+
+    <!-- Doctor Signature & Professional Document Validation -->
+    <string name="doctor_sig_dni_label">CPF do profissional</string>
+    <string name="doctor_sig_license_label">CRM profissional</string>
+    <string name="doctor_sig_invalid_dni">Informe um CPF válido (11 dígitos)</string>
+    <string name="doctor_sig_invalid_cpf">Informe um CPF válido (11 dígitos)</string>
+    <string name="doctor_sig_invalid_license">Informe um CRM válido</string>
+    <string name="doctor_sig_verify_button">Verificar CRM</string>
+    <string name="doctor_sig_verified_button">Documento verificado</string>
+    <string name="doctor_sig_verify_error">Não foi possível verificar o documento. Tente novamente.</string>
+
+    <!-- Health Reserve & Plano Cuidado (Regionalized AR / BR) -->
+    <string name="health_reserve_title">Reserva de Saúde AutaMedica</string>
+    <string name="health_reserve_subtitle">1 consulta mensal + 22 créditos acumuláveis</string>
+    <string name="health_reserve_badge">RESERVA DE SAÚDE</string>
+    <string name="health_reserve_plans_pill">Reserva de Saúde e Planos</string>
+    <string name="health_reserve_cuidado_plan">Plano Cuidado</string>
+    <string name="health_reserve_cuidado_payment_tag">R$ 49,90 / mês via Pix</string>
+    <string name="health_reserve_cuidado_cta">Assinar Plano Cuidado com Pix</string>
+    <string name="health_reserve_view_details">Detalhes</string>
+    <string name="health_reserve_balance_available">SALDO DISPONÍVEL</string>
+    <string name="health_reserve_capacity_accumulated">Capacidade acumulada</string>
+    <string name="health_reserve_tag_specialists">Especialistas e farmácia</string>
+    <string name="health_reserve_tag_accrual">Acumulação mensal</string>
+    <string name="health_reserve_tag_no_expiration">Sem vencimento</string>
+    <string name="health_reserve_catalog_title">Rede de Parceiros</string>
+    <string name="health_reserve_history_title">Extrato</string>
+
+    <!-- Pharmacy On-Demand / Consultas Rápidas Farmácia -->
+    <string name="pharmacy_on_demand_title">Plantão Farmácia</string>
+    <string name="pharmacy_on_demand_subtitle">Atendimento rápido para receitas faltantes em farmácia</string>
+    <string name="pharmacy_on_demand_toggle_on">Disponível para plantão</string>
+    <string name="pharmacy_on_demand_toggle_off">Fora de plantão</string>
+    <string name="pharmacy_on_demand_status_active">Em plantão ativo</string>
+    <string name="pharmacy_on_demand_status_inactive">Desconectado</string>
+    <string name="pharmacy_on_demand_pending_badge">%1$d paciente(s) em espera</string>
+    <string name="pharmacy_on_demand_no_pending">Não há solicitações pendentes nas farmácias</string>
+    <string name="pharmacy_on_demand_claim_btn">Atender Consulta Rápida</string>
+    <string name="pharmacy_on_demand_claiming">Conectando ao paciente...</string>
+    <string name="pharmacy_on_demand_patient_label">Paciente:</string>
+    <string name="pharmacy_on_demand_pharmacy_label">Farmácia:</string>
+    <string name="pharmacy_on_demand_reason_label">Motivo:</string>
+    <string name="pharmacy_on_demand_dni_label">CPF / Doc:</string>
+</resources>

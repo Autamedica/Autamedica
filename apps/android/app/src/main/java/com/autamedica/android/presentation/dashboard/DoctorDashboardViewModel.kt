@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
+import com.autamedica.android.domain.model.DoctorOnDutyPharmacyState
+import com.autamedica.android.domain.repository.PharmacyOnDemandRepository
 import kotlinx.coroutines.launch
 import java.time.OffsetDateTime
 import javax.inject.Inject
@@ -33,6 +35,8 @@ data class DoctorDashboardUiState(
     val joinableAppointmentIds: Set<String> = emptySet(),
     val unreadMessagesCount: Int = 0,
     val urgentChats: List<MedicalChat> = emptyList(),
+    val pharmacyOnDutyState: DoctorOnDutyPharmacyState = DoctorOnDutyPharmacyState(),
+    val claimingPharmacyRequestId: String? = null,
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val error: String? = null,
@@ -49,6 +53,7 @@ class DoctorDashboardViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val telemedicineRepository: TelemedicineRepository,
     private val chatRepository: ChatRepository,
+    private val pharmacyOnDemandRepository: PharmacyOnDemandRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DoctorDashboardUiState())
@@ -111,6 +116,8 @@ class DoctorDashboardViewModel @Inject constructor(
                         telemedicineError = joinableResult.second,
                     )
                 }
+                // Load pharmacy on duty status
+                loadPharmacyDuty()
             }.onFailure { error ->
                 SecureLog.error("[DoctorDashboard] Failed loading doctor profile", error)
                 _uiState.update {
@@ -121,6 +128,49 @@ class DoctorDashboardViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    fun togglePharmacyOnDuty(onDuty: Boolean) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(pharmacyOnDutyState = it.pharmacyOnDutyState.copy(isLoading = true)) }
+            pharmacyOnDemandRepository.toggleOnDuty(onDuty)
+                .onSuccess { state ->
+                    _uiState.update { it.copy(pharmacyOnDutyState = state) }
+                }
+                .onFailure { error ->
+                    SecureLog.error("[DoctorDashboard] Error toggling pharmacy duty", error)
+                    _uiState.update {
+                        it.copy(pharmacyOnDutyState = it.pharmacyOnDutyState.copy(isLoading = false, error = error.message))
+                    }
+                }
+        }
+    }
+
+    fun claimPharmacyRequest(requestId: String, onNavigateToVideoCall: (String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(claimingPharmacyRequestId = requestId) }
+            pharmacyOnDemandRepository.claimRequest(requestId)
+                .onSuccess { claim ->
+                    _uiState.update { it.copy(claimingPharmacyRequestId = null) }
+                    onNavigateToVideoCall(claim.roomId)
+                }
+                .onFailure { error ->
+                    SecureLog.error("[DoctorDashboard] Error claiming pharmacy request", error)
+                    _uiState.update { it.copy(claimingPharmacyRequestId = null) }
+                }
+        }
+    }
+
+    private fun loadPharmacyDuty() {
+        viewModelScope.launch {
+            pharmacyOnDemandRepository.getOnDutyStatus()
+                .onSuccess { state ->
+                    _uiState.update { it.copy(pharmacyOnDutyState = state) }
+                }
+                .onFailure { error ->
+                    SecureLog.warn("[DoctorDashboard] Failed loading pharmacy duty status: ${error.message}")
+                }
         }
     }
 

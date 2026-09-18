@@ -89,4 +89,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindMedicalOrderRepository(impl: com.autamedica.android.data.repository.MedicalOrderRepositoryImpl): com.autamedica.android.domain.repository.MedicalOrderRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPharmacyOnDemandRepository(impl: com.autamedica.android.data.repository.PharmacyOnDemandRepositoryImpl): com.autamedica.android.domain.repository.PharmacyOnDemandRepository
 }
