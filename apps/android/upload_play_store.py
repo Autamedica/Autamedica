@@ -37,6 +37,13 @@ RELEASE_NOTES = {
         "• Real-time clinical notes and documentation directly from the video call\n"
         "• Critical WebRTC performance optimizations and system stability"
     ),
+    "pt-BR": (
+        "v1.2.8 — Suporte Brasil (Quaraí), Validação CPF e Telemedicina Integrada\n\n"
+        "• Localização completa em português (pt-BR) e suporte regional Brasil\n"
+        "• Validação algorítmica de CPF e suporte a prescrições ICP-Brasil\n"
+        "• Números de emergência adaptativos SAMU 192 e planos de cuidado\n"
+        "• Evolução clínica SOAP integrada e otimizações de videoconsulta WebRTC"
+    ),
 }
 
 SCOPES = ["https://www.googleapis.com/auth/androidpublisher"]
