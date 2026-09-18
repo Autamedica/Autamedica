@@ -1,14 +1,12 @@
 'use client'
 import { useState, useEffect, useCallback, useId, type FormEvent } from 'react'
 import {
-  Activity,
   AlertCircle,
   Building2,
   CheckCircle2,
   Clock,
   FileText,
   Phone,
-  Pill,
   ShieldCheck,
   User,
   Video,
@@ -16,6 +14,8 @@ import {
   Loader2,
   ArrowRight,
   RefreshCw,
+  FileCheck,
+  Lock,
 } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
 import type { CreatePharmacyRequestInput, RequestStatusResponse } from '@/lib/pharmacy/types'
@@ -174,9 +174,16 @@ export function PharmacyExpressConsultation({
   if (step === 'CALL' && callRoomId) {
     return (
       <div className="w-full h-full min-h-[100dvh] bg-am-surface-900">
-        <div className="fixed top-3 left-4 z-50 flex items-center gap-2 bg-am-surface-800/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-am-surface-700/60 shadow-lg text-xs font-semibold text-emerald-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          <span>Atención Médica Exprés • {pharmacyName}</span>
+        <div className="fixed top-3 left-4 z-50 flex items-center gap-2.5 bg-zinc-950/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 shadow-2xl text-xs font-medium text-white">
+          <img src="/logo_bioceramic.png" alt="AutaMedica" className="w-5 h-5 rounded-md object-contain" />
+          <span className="font-bold tracking-tight text-white">AutaMedica</span>
+          <span className="text-zinc-500">•</span>
+          <span className="text-emerald-400 flex items-center gap-1.5 font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+            Guardia Exprés
+          </span>
+          <span className="text-zinc-500 hidden sm:inline">•</span>
+          <span className="text-zinc-300 hidden sm:inline font-normal">{pharmacyName}</span>
         </div>
         <GuestCallPage roomId={callRoomId} />
       </div>
@@ -194,24 +201,36 @@ export function PharmacyExpressConsultation({
       <div className="w-full max-w-xl flex flex-col items-center relative z-10 my-auto">
         {/* Brand & Pharmacy Header */}
         <header className="flex flex-col items-center text-center mb-6">
-          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-am-surface-800/90 border border-am-surface-700/60 text-am-surface-200 text-xs font-medium mb-3 shadow-md">
-            <Building2 className="w-3.5 h-3.5 text-am-primary-400" />
-            <span>Punto de Atención: <strong className="text-white">{pharmacyName}</strong></span>
+          {/* Official Bioceramic Jewel / Ring Container */}
+          <div className="relative w-16 h-16 rounded-[1.75rem] bg-zinc-950 p-1 ring-1 ring-white/10 shadow-am-glass-logo flex items-center justify-center overflow-hidden mb-3.5 group">
+            <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/15 via-transparent to-am-primary-500/15 opacity-80 transition-opacity group-hover:opacity-100" />
+            <img
+              src="/logo_bioceramic.png"
+              alt="AutaMedica"
+              width={52}
+              height={52}
+              className="relative z-10 object-contain rounded-2xl transition-transform duration-500 group-hover:scale-105"
+            />
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-am-primary-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-am-primary-950/40">
-              <Pill className="w-5 h-5 text-white" />
-            </div>
-            <div className="text-left">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                Consulta Exprés en Farmacia
-              </h1>
-              <p className="text-xs text-am-surface-400">
-                Guardia médica remota con emisión de receta digital oficial
-              </p>
-            </div>
+          {/* Institutional Partnership Badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-am-surface-800/90 border border-am-surface-700/60 text-xs font-medium mb-2 shadow-md">
+            <span className="font-bold text-white tracking-wide">AutaMedica</span>
+            <span className="text-am-surface-500">•</span>
+            <span className="text-emerald-400 font-medium">Red de Farmacias Asociadas</span>
           </div>
+
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+            Consulta Exprés en Farmacia
+          </h1>
+
+          <div className="flex items-center justify-center gap-2 mt-1.5 text-xs text-am-surface-300">
+            <Building2 className="w-3.5 h-3.5 text-am-primary-400 shrink-0" />
+            <span>Punto de Atención Digital: <strong className="text-white font-semibold">{pharmacyName}</strong></span>
+          </div>
+          <p className="text-xs text-am-surface-400 mt-1 max-w-md">
+            Guardia médica remota inmediata y emisión de recetas oficiales con firma digital verificable.
+          </p>
         </header>
 
         {/* STEP: FORM */}
@@ -219,10 +238,10 @@ export function PharmacyExpressConsultation({
           <div className="w-full rounded-3xl border border-am-surface-700/60 bg-am-surface-800/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-black/50">
             <div className="flex items-center justify-between border-b border-am-surface-700/50 pb-4 mb-5">
               <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Atención Inmediata con Médico Matriculado</span>
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Atención Inmediata • Red Médica AutaMedica</span>
               </div>
-              <span className="text-[11px] text-am-surface-400">Paso 1 de 2</span>
+              <span className="text-[11px] text-am-surface-400 font-medium">Paso 1 de 2</span>
             </div>
 
             {formError && (
@@ -337,8 +356,33 @@ export function PharmacyExpressConsultation({
               </div>
 
               <p className="text-[10px] text-center text-am-surface-400 pt-1">
-                Al solicitar la consulta aceptas la atención bajo la Ley de Telemedicina y firma digital de prescripciones con validez oficial.
+                Al solicitar la consulta aceptas la atención bajo la Ley 27.553 de Telemedicina y firma digital de prescripciones con validez oficial.
               </p>
+
+              {/* Institutional Trust & Regulatory Seals */}
+              <div className="pt-4 mt-2 border-t border-am-surface-700/50 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-am-surface-900/80 border border-am-surface-700/50">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[11px] font-semibold text-white">Plataforma Homologada</p>
+                    <p className="text-[10px] text-am-surface-400 leading-tight">Telemedicina y prescripción clínica oficial</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-am-surface-900/80 border border-am-surface-700/50">
+                  <FileCheck className="w-4 h-4 text-am-primary-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[11px] font-semibold text-white">Firma Digital Oficial</p>
+                    <p className="text-[10px] text-am-surface-400 leading-tight">Ley 27.553 y Decreto 63 • SISA / REFEPS</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-am-surface-900/80 border border-am-surface-700/50">
+                  <Lock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[11px] font-semibold text-white">Protección de Datos</p>
+                    <p className="text-[10px] text-am-surface-400 leading-tight">Ley 25.326 • Cifrado clínico hospitalario</p>
+                  </div>
+                </div>
+              </div>
             </form>
           </div>
         )}
@@ -346,25 +390,31 @@ export function PharmacyExpressConsultation({
         {/* STEP: WAITING */}
         {step === 'WAITING' && (
           <div className="w-full rounded-3xl border border-am-surface-700/60 bg-am-surface-800/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-black/50 text-center flex flex-col items-center">
-            {/* Animated Radar Pulse */}
+            {/* Animated Radar Pulse with AutaMedica Bioceramic Jewel */}
             <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
               <div className="absolute inset-2 rounded-full bg-am-primary-500/30 animate-pulse" />
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-am-primary-600 to-emerald-500 flex items-center justify-center shadow-xl shadow-emerald-950/60 relative z-10">
-                <Activity className="w-7 h-7 text-white animate-pulse" />
+              <div className="w-16 h-16 rounded-2xl bg-zinc-950 p-1 ring-1 ring-white/15 shadow-am-glass-logo flex items-center justify-center relative z-10">
+                <img
+                  src="/logo_bioceramic.png"
+                  alt="AutaMedica"
+                  width={48}
+                  height={48}
+                  className="object-contain rounded-xl"
+                />
               </div>
             </div>
 
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-700/50 text-emerald-400 text-xs font-semibold mb-3">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Guardia Médica Asignando Profesional
+              Guardia Médica AutaMedica Asignando Profesional
             </span>
 
             <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
-              Estás en Sala de Espera Exprés
+              Sala de Espera Exprés AutaMedica
             </h2>
             <p className="text-sm text-am-surface-300 max-w-sm mb-6">
-              Por favor aguarda unos instantes frente a la pantalla. La videollamada comenzará automáticamente en cuanto el médico tome tu consulta.
+              Por favor aguarda unos instantes frente a la pantalla. Un médico de la Red AutaMedica tomará tu consulta para <strong className="text-white">{pharmacyName}</strong>.
             </p>
 
             <div className="w-full max-w-xs grid grid-cols-2 gap-3 mb-6">
@@ -392,12 +442,18 @@ export function PharmacyExpressConsultation({
                 <strong className="text-white">{formData.name} (DNI {formData.dni})</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-am-surface-400">Farmacia:</span>
-                <span className="text-white">{pharmacyName}</span>
+                <span className="text-am-surface-400">Red Médica:</span>
+                <span className="text-white font-medium">AutaMedica • {pharmacyName}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-am-surface-400">Motivo:</span>
                 <span className="text-am-primary-300 truncate max-w-[200px]">{formData.reason}</span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-am-surface-800">
+                <span className="text-am-surface-400">Seguridad:</span>
+                <span className="text-emerald-400 font-medium flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Videoconsulta Cifrada Punto a Punto
+                </span>
               </div>
             </div>
 
@@ -424,14 +480,24 @@ export function PharmacyExpressConsultation({
         {/* STEP: ENDED */}
         {step === 'ENDED' && (
           <div className="w-full rounded-3xl border border-am-surface-700/60 bg-am-surface-800/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-black/50 text-center flex flex-col items-center">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mb-4">
-              <CheckCircle2 className="w-8 h-8" />
+            {/* Bioceramic Success Container */}
+            <div className="relative w-16 h-16 rounded-[1.5rem] bg-zinc-950 p-1 ring-1 ring-white/10 shadow-am-glass-logo flex items-center justify-center overflow-hidden mb-4">
+              <img
+                src="/logo_bioceramic.png"
+                alt="AutaMedica"
+                width={48}
+                height={48}
+                className="object-contain rounded-xl"
+              />
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white border-2 border-zinc-950 shadow-md">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              </div>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
-              Atención Médica Concluida
+              Atención Concluida • Red AutaMedica
             </h2>
-            <p className="text-sm text-am-surface-300 max-w-sm mb-6">
-              Tu consulta fue finalizada con éxito. Si el médico te prescribió medicamentos, recibirás la receta digital con firma electrónica en tu WhatsApp registrado y podrás retirarla directamente en este mostrador.
+            <p className="text-sm text-am-surface-300 max-w-sm mb-6 leading-relaxed">
+              Tu consulta fue finalizada con éxito. Si el médico te prescribió medicamentos, tu receta digital oficial con firma electrónica y código QR llegará a tu WhatsApp para que puedas retirarla directamente en el mostrador de <strong className="text-white">{pharmacyName}</strong>.
             </p>
             <button
               type="button"
@@ -456,7 +522,7 @@ export function PharmacyExpressConsultation({
               Consulta Cancelada
             </h2>
             <p className="text-sm text-am-surface-400 max-w-xs mb-6">
-              La solicitud fue dada de baja de la cola de guardia.
+              La solicitud fue dada de baja de la Red de Guardia AutaMedica.
             </p>
             <button
               type="button"
@@ -467,6 +533,19 @@ export function PharmacyExpressConsultation({
             </button>
           </div>
         )}
+
+        {/* Official Institutional Footer */}
+        <footer className="mt-8 text-center text-xs text-am-surface-400 flex flex-col items-center gap-2 z-10 relative">
+          <div className="flex items-center gap-2 text-am-surface-300 font-medium">
+            <img src="/logo_bioceramic.png" alt="AutaMedica" className="w-4 h-4 rounded object-contain opacity-80" />
+            <span className="font-semibold text-white">AutaMedica</span>
+            <span className="text-am-surface-600">•</span>
+            <span>Red de Farmacias Asociadas</span>
+          </div>
+          <p className="text-[10px] text-am-surface-500 max-w-md leading-normal">
+            Punto de Atención Digital operado bajo Ley 27.553 de Recetas Electrónicas, Decreto 63/2024 y Ley 25.326 de Protección de Datos Personales con certificación profesional SISA / REFEPS.
+          </p>
+        </footer>
       </div>
     </div>
   )

@@ -108,4 +108,6 @@
     <string name="patient_pharmacy_express_button">Consulta Exprés en Farmacia</string>
     <string name="patient_pharmacy_express_desc">Atención inmediata con médico de guardia para recetas en mostrador</string>
     <string name="patient_pharmacy_express_badge">Guardia activa</string>
+    <string name="pharmacy_on_demand_network_badge">Red de Farmacias</string>
+    <string name="pharmacy_on_demand_compliance_footer">Plataforma Homologada SISA / REFEPS • Firma Digital Oficial</string>
 </resources>

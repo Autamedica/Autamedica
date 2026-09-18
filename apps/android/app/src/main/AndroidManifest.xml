@@ -63,6 +63,20 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="autamedica" />
             </intent-filter>
+            <!-- Android App Links verificados para mostrador de farmacias -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="autamedica.com"
+                    android:pathPrefix="/farmacia" />
+                <data
+                    android:scheme="https"
+                    android:host="www.autamedica.com"
+                    android:pathPrefix="/farmacia" />
+            </intent-filter>
         </activity>
 
         <activity

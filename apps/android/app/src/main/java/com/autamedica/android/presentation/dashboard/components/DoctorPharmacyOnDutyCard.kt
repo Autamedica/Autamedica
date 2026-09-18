@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.LocalPharmacy
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,6 +37,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,6 +55,8 @@ import com.autamedica.android.presentation.theme.AuSurface
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
+import com.autamedica.android.presentation.theme.LogoObsidianBg
+import com.autamedica.android.presentation.theme.LogoRingBorder
 
 @Composable
 fun DoctorPharmacyOnDutyCard(
@@ -85,27 +91,50 @@ fun DoctorPharmacyOnDutyCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (state.isOnDuty) AuAccent.copy(alpha = 0.12f)
-                                else MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                        contentAlignment = Alignment.Center
+                    // Bioceramic Logo Container (AutaMedica Official Jewel)
+                    Surface(
+                        modifier = Modifier.size(46.dp),
+                        shape = RoundedCornerShape(13.dp),
+                        color = LogoObsidianBg,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = if (state.isOnDuty) AuAccent.copy(alpha = 0.6f) else LogoRingBorder
+                        ),
+                        shadowElevation = if (state.isOnDuty) 4.dp else 1.dp
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.LocalPharmacy,
-                            contentDescription = stringResource(R.string.pharmacy_on_demand_title),
-                            tint = if (state.isOnDuty) AuAccent else AuTextSecondary,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Image(
+                                painter = painterResource(id = R.drawable.logo_autamedica),
+                                contentDescription = "AutaMedica",
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "AutaMedica",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = AuAccent,
+                                    letterSpacing = 0.5.sp
+                                )
+                            )
+                            Text(
+                                text = " • " + stringResource(R.string.pharmacy_on_demand_network_badge),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = AuTextTertiary,
+                                    fontSize = 11.sp
+                                )
+                            )
+                        }
+
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = stringResource(R.string.pharmacy_on_demand_title),
@@ -207,6 +236,34 @@ fun DoctorPharmacyOnDutyCard(
                         }
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Regulatory & Clinical Trust Seal
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.VerifiedUser,
+                    contentDescription = null,
+                    tint = AuTextTertiary,
+                    modifier = Modifier.size(13.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = stringResource(R.string.pharmacy_on_demand_compliance_footer),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = AuTextTertiary,
+                        fontSize = 10.5.sp
+                    )
+                )
             }
         }
     }
