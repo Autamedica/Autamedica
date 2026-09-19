@@ -86,8 +86,28 @@
     <string name="welcome_tag_history">Historial clínico</string>
     <string name="welcome_feature_agenda_title">Agenda al día</string>
     <string name="welcome_feature_agenda_desc">Consultá tus fechas, horarios y profesionales disponibles.</string>
-    <string name="welcome_feature_consultation_title">Videoconsulta directa</string>
     <string name="welcome_feature_consultation_desc">Entrá a tu consulta cuando llegue el horario del turno.</string>
     <string name="welcome_feature_followup_title">Seguimiento clínico</string>
     <string name="welcome_feature_followup_desc">Accedé a tus recetas, estudios y controles preventivos.</string>
+
+    <!-- Pharmacy On-Demand / Consultas Exprés Farmacia -->
+    <string name="pharmacy_on_demand_title">Guardia Farmacia</string>
+    <string name="pharmacy_on_demand_subtitle">Atención exprés para recetas faltantes en farmacia</string>
+    <string name="pharmacy_on_demand_toggle_on">Disponible para guardia</string>
+    <string name="pharmacy_on_demand_toggle_off">Fuera de guardia</string>
+    <string name="pharmacy_on_demand_status_active">En guardia activa</string>
+    <string name="pharmacy_on_demand_status_inactive">Desconectado</string>
+    <string name="pharmacy_on_demand_pending_badge">%1$d paciente(s) en espera</string>
+    <string name="pharmacy_on_demand_no_pending">No hay solicitudes pendientes en farmacias</string>
+    <string name="pharmacy_on_demand_claim_btn">Atender Consulta Exprés</string>
+    <string name="pharmacy_on_demand_claiming">Conectando con paciente...</string>
+    <string name="pharmacy_on_demand_patient_label">Paciente:</string>
+    <string name="pharmacy_on_demand_pharmacy_label">Farmacia:</string>
+    <string name="pharmacy_on_demand_reason_label">Motivo:</string>
+    <string name="pharmacy_on_demand_dni_label">DNI:</string>
+    <string name="patient_pharmacy_express_button">Consulta Exprés en Farmacia</string>
+    <string name="patient_pharmacy_express_desc">Atención inmediata con médico de guardia para recetas en mostrador</string>
+    <string name="patient_pharmacy_express_badge">Guardia activa</string>
+    <string name="pharmacy_on_demand_network_badge">Red de Farmacias</string>
+    <string name="pharmacy_on_demand_compliance_footer">Plataforma Homologada SISA / REFEPS • Firma Digital Oficial</string>
 </resources>

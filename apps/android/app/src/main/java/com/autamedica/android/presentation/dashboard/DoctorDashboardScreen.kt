@@ -62,6 +62,7 @@ import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.DoctorStats
 import com.autamedica.android.domain.model.MedicalChat
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
+import com.autamedica.android.presentation.dashboard.components.DoctorPharmacyOnDutyCard
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -181,6 +182,18 @@ fun DoctorDashboardScreen(
                                     onVerifyLicense = onNavigateToDoctorSignature,
                                 )
                             }
+                        }
+
+                        // 1.5 Pharmacy On-Duty / Express Consultations
+                        item {
+                            DoctorPharmacyOnDutyCard(
+                                state = uiState.pharmacyOnDutyState,
+                                onToggleDuty = viewModel::togglePharmacyOnDuty,
+                                onClaimRequest = { requestId ->
+                                    viewModel.claimPharmacyRequest(requestId, onNavigateToVideoCall)
+                                },
+                                claimingRequestId = uiState.claimingPharmacyRequestId,
+                            )
                         }
 
                         // 2. Next patient for telemedicine (hero only with a real turn)

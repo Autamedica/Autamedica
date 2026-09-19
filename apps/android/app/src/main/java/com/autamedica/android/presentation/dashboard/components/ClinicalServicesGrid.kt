@@ -42,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
@@ -65,9 +67,16 @@ fun ClinicalServicesGrid(
     onReproductiveHealthClick: () -> Unit,
     onCommunityClick: () -> Unit,
     onContinuityClick: () -> Unit = {},
+    onPharmacyExpressClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val services = listOf(
+        ServiceItem(
+            title = stringResource(id = R.string.patient_pharmacy_express_button),
+            description = stringResource(id = R.string.patient_pharmacy_express_desc),
+            icon = Icons.Outlined.HealthAndSafety,
+            onClick = onPharmacyExpressClick,
+        ),
         ServiceItem(
             title = "Médico online",
             description = "Atención inmediata",

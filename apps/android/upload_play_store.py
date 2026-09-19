@@ -15,27 +15,27 @@ from google.oauth2 import service_account
 # ── Config ────────────────────────────────────────────────────────────────────
 
 SERVICE_ACCOUNT_FILE = Path("/home/edu/.android-secrets/autamedica-play-store-service-account.json")
-AAB_PATH = Path("/mnt/data/Autamedica/apps/android/app/build/outputs/bundle/release/app-release.aab")
+AAB_PATH = Path(__file__).parent / "app/build/outputs/bundle/release/app-release.aab"
 PACKAGE_NAME = "com.autamedica.android"
-TRACK = "internal"  # internal → alpha → beta → production
-VERSION_NAME = "1.2.8"
+TRACK = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] in ["internal", "alpha", "beta", "production"] else "internal"
+VERSION_NAME = "1.2.13"
 
 RELEASE_NOTES = {
     "es-419": (
-        "v1.2.8 — Evolución SOAP en Consulta, Cierre Clínico y Estabilidad RLS\n\n"
-        "• Evolución clínica SOAP interactiva integrada en videollamada con selector CIE-10\n"
-        "• Vinculación atómica en equipo de atención médica y resolución de permisos RLS\n"
-        "• Cierre automatizado de sala y sincronización de estado de consulta en base de datos\n"
-        "• Hoja de notas y registro clínico en tiempo real sin salir de la videollamada\n"
-        "• Optimizaciones críticas de rendimiento WebRTC y compatibilidad del sistema"
+        "v1.2.13 — Consultas Exprés en Farmacia Bajo Demanda e Identidad Institucional\n\n"
+        "• Atención médica inmediata en mostrador de farmacias asociadas\n"
+        "• Guardia médica activa con cola de espera y notificación en tiempo real\n"
+        "• Identidad visual oficial AutaMedica con contenedor biocerámico y sello de confianza\n"
+        "• Sellos regulatorios de receta digital y validación SISA / REFEPS\n"
+        "• Optimizaciones de estabilidad en videollamada y enlaces directos App Links"
     ),
     "en-US": (
-        "v1.2.8 — In-Call SOAP Evolution, Clinical Closing and RLS Stability\n\n"
-        "• In-call interactive SOAP clinical evolution with ICD-10 diagnosis picker\n"
-        "• Atomic care team linking resolving database RLS permissions\n"
-        "• Automated room closure and real-time consultation state synchronization\n"
-        "• Real-time clinical notes and documentation directly from the video call\n"
-        "• Critical WebRTC performance optimizations and system stability"
+        "v1.2.13 — On-Demand Pharmacy Express Consultations and Institutional Identity\n\n"
+        "• Immediate medical attention at partner pharmacy counters\n"
+        "• Active on-duty medical queue with real-time notifications\n"
+        "• Official AutaMedica visual identity with bioceramic container and trust badges\n"
+        "• Regulatory digital prescription compliance and SISA / REFEPS validation\n"
+        "• Video call stability optimizations and verified App Links"
     ),
 }
 

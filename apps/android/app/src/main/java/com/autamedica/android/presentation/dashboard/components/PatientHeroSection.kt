@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import com.autamedica.android.R
 import java.util.Calendar
 
@@ -48,6 +49,7 @@ fun PatientHeroSection(
     benefitBalanceCredits: Int,
     onBookConsultation: () -> Unit,
     onOpenReserveDetails: () -> Unit,
+    onPharmacyExpressClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val firstName = userName.split(" ").firstOrNull()?.ifBlank { "Paciente" } ?: "Paciente"
@@ -175,31 +177,72 @@ fun PatientHeroSection(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Large Hero CTA Button (48dp min touch target)
-                Button(
-                    onClick = onBookConsultation,
-                    shape = RoundedCornerShape(999.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color(0xFF09090B),
-                    ),
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        horizontal = 24.dp,
-                        vertical = 14.dp,
-                    ),
+                // Hero Action Buttons
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(
-                        text = "Consultar ahora",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
+                    // Large Hero CTA Button (48dp min touch target)
+                    Button(
+                        onClick = onBookConsultation,
+                        shape = RoundedCornerShape(999.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF09090B),
+                        ),
+                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                            horizontal = 20.dp,
+                            vertical = 14.dp,
+                        ),
+                    ) {
+                        Text(
+                            text = "Consultar ahora",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+
+                    // Pharmacy On-Demand Express Button
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = Color(0x3310B981),
+                        border = BorderStroke(1.dp, Color(0x6634D399)),
+                        modifier = Modifier
+                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .clickable(
+                                onClickLabel = stringResource(id = R.string.patient_pharmacy_express_button),
+                                onClick = onPharmacyExpressClick,
+                            ),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(Color(0xFF34D399))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(id = R.string.patient_pharmacy_express_button),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                                maxLines = 1,
+                            )
+                        }
+                    }
                 }
             }
         }

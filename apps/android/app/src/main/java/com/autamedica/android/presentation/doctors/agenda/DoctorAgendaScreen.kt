@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.presentation.dashboard.components.DoctorPharmacyOnDutyCard
 import com.autamedica.android.presentation.doctors.agenda.components.AppointmentDetailsBottomSheet
 import com.autamedica.android.presentation.doctors.agenda.components.AppointmentListItem
 import com.autamedica.android.presentation.doctors.agenda.components.AvailabilityEditor
@@ -266,6 +267,18 @@ fun DoctorAgendaScreen(
                                         onSelectDate = viewModel::selectDate,
                                     )
                                 }
+                            }
+
+                            // 2.5 Guardia Farmacia On-Demand
+                            item {
+                                DoctorPharmacyOnDutyCard(
+                                    state = uiState.pharmacyOnDutyState,
+                                    onToggleDuty = viewModel::togglePharmacyOnDuty,
+                                    onClaimRequest = { reqId ->
+                                        viewModel.claimPharmacyRequest(reqId, onNavigateToVideoCall)
+                                    },
+                                    claimingRequestId = uiState.claimingPharmacyRequestId,
+                                )
                             }
 
                             // 3. Turno Actual Hero Card (si estamos viendo el día de hoy)

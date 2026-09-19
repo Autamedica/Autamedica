@@ -133,6 +133,12 @@ object NotificationRouteResolver {
             return Route.ContinuityStatus
         }
 
+        // On-demand pharmacy counter intake deep link:
+        // Handles https://autamedica.com/farmacia/*, https://www.autamedica.com/farmacia/*, autamedica://farmacia/*
+        if (segments.any { it.equals("farmacia", ignoreCase = true) }) {
+            return Route.Main
+        }
+
         if (segments.size < 2) return null
 
         val identifier = segments.last().normalizedOrNull() ?: return null

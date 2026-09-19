@@ -6,6 +6,7 @@ import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.DoctorAvailabilitySlot
 import com.autamedica.android.domain.model.DoctorBookingInfo
+import com.autamedica.android.domain.model.DoctorOnDutyPharmacyState
 import com.autamedica.android.domain.model.DoctorProfile
 import com.autamedica.android.domain.model.DoctorStats
 import com.autamedica.android.domain.model.PatientClinicalContext
@@ -16,6 +17,7 @@ import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
+import com.autamedica.android.domain.repository.PharmacyOnDemandRepository
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every
@@ -128,6 +130,10 @@ class DoctorAgendaViewModelTest {
         every { getString("cached_record_id") } returns "doc-profile-1"
     }
 
+    private val pharmacyOnDemandRepository: PharmacyOnDemandRepository = mockk(relaxed = true) {
+        every { observeOnDutyState() } returns flowOf(DoctorOnDutyPharmacyState())
+    }
+
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
@@ -145,6 +151,7 @@ class DoctorAgendaViewModelTest {
             doctorRepository = doctorRepository,
             authRepository = authRepository,
             securePreferences = securePreferences,
+            pharmacyOnDemandRepository = pharmacyOnDemandRepository,
         )
         advanceUntilIdle()
 
@@ -161,6 +168,7 @@ class DoctorAgendaViewModelTest {
             doctorRepository = doctorRepository,
             authRepository = authRepository,
             securePreferences = securePreferences,
+            pharmacyOnDemandRepository = pharmacyOnDemandRepository,
         )
         advanceUntilIdle()
 
@@ -180,6 +188,7 @@ class DoctorAgendaViewModelTest {
             doctorRepository = doctorRepository,
             authRepository = authRepository,
             securePreferences = securePreferences,
+            pharmacyOnDemandRepository = pharmacyOnDemandRepository,
         )
         advanceUntilIdle()
 
@@ -195,6 +204,7 @@ class DoctorAgendaViewModelTest {
             doctorRepository = doctorRepository,
             authRepository = authRepository,
             securePreferences = securePreferences,
+            pharmacyOnDemandRepository = pharmacyOnDemandRepository,
         )
         advanceUntilIdle()
 
@@ -217,6 +227,7 @@ class DoctorAgendaViewModelTest {
             doctorRepository = doctorRepository,
             authRepository = authRepository,
             securePreferences = securePreferences,
+            pharmacyOnDemandRepository = pharmacyOnDemandRepository,
         )
         advanceUntilIdle()
 
@@ -238,5 +249,25 @@ class DoctorAgendaViewModelTest {
         assertThat(viewModel.uiState.value.isCreateSheetOpen).isFalse()
         assertThat(viewModel.uiState.value.appointments).hasSize(1)
         assertThat(viewModel.uiState.value.appointments.first().id).isEqualTo("created-appt-1")
+    }
+
+    @Test
+    fun `observes pharmacy on duty state correctly`() = runTest {
+        val onDutyRepo: PharmacyOnDemandRepository = mockk(relaxed = true) {
+            every { observeOnDutyState() } returns flowOf(
+                DoctorOnDutyPharmacyState(isOnDuty = true, waitingQueueCount = 3)
+            )
+        }
+        val viewModel = DoctorAgendaViewModel(
+            appointmentRepository = appointmentRepository,
+            doctorRepository = doctorRepository,
+            authRepository = authRepository,
+            securePreferences = securePreferences,
+            pharmacyOnDemandRepository = onDutyRepo,
+        )
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.pharmacyOnDutyState.isOnDuty).isTrue()
+        assertThat(viewModel.uiState.value.pharmacyOnDutyState.waitingQueueCount).isEqualTo(3)
     }
 }

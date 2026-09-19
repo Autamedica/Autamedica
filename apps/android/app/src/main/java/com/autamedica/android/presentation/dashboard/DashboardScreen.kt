@@ -151,6 +151,10 @@ fun DashboardScreen(
         )
     }
 
+    val onOpenPharmacyExpress: () -> Unit = {
+        runCatching { uriHandler.openUri("https://www.autamedica.com/farmacia/solicitar") }
+    }
+
     Scaffold(
         topBar = {
             PatientDashboardHeader(
@@ -208,6 +212,7 @@ fun DashboardScreen(
                                     )
                                     onNavigateToHealthReserve()
                                 },
+                                onPharmacyExpressClick = onOpenPharmacyExpress,
                             )
                         }
 
@@ -333,6 +338,7 @@ fun DashboardScreen(
                                 onContinuityClick = {
                                     onNavigateToContinuityStatus()
                                 },
+                                onPharmacyExpressClick = onOpenPharmacyExpress,
                             )
                         }
 
