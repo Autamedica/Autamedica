@@ -187,11 +187,11 @@ fun PatientWaitingRoomOverlay(
                     )
                 }
 
-                // Minimalist Room Status (Green Dot + Text)
+                // Minimalist Room Status (Green Dot / Cyan Pulsing + Text)
                 Surface(
                     shape = RoundedCornerShape(999.dp),
                     color = Color(0x66000000),
-                    border = BorderStroke(1.dp, Color(0x33FFFFFF)),
+                    border = BorderStroke(1.dp, if (isConnecting) Color(0x4D38BDF8) else Color(0x33FFFFFF)),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -202,10 +202,10 @@ fun PatientWaitingRoomOverlay(
                             modifier = Modifier
                                 .size(7.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF22C55E)),
+                                .background(if (isConnecting) Color(0xFF38BDF8) else Color(0xFF22C55E)),
                         )
                         Text(
-                            text = "En espera",
+                            text = if (isConnecting) "Conectando..." else "En espera",
                             color = Color(0xFFF1F5F9),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -454,6 +454,44 @@ fun PatientWaitingRoomOverlay(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                         )
+                    }
+                }
+
+                // Feedback claro del estado de la sala / conexión
+                if (!statusMessage.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = Color(0xCC0F172A),
+                        border = BorderStroke(1.dp, if (isConnecting) Color(0x4D38BDF8) else Color(0x26FFFFFF)),
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            if (isConnecting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    color = Color(0xFF38BDF8),
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF22C55E)),
+                                )
+                            }
+                            Text(
+                                text = statusMessage,
+                                color = if (isConnecting) Color(0xFFE2E8F0) else Color(0xFF94A3B8),
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
                     }
                 }
 

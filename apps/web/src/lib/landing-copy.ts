@@ -1,4 +1,3 @@
-// @ts-nocheck
 import landingCopyEs from '@/config/landing-copy.json';
 import { buildRoleAuthPath } from './auth-flow';
 import type { AuthPage, EntryRole } from './auth-flow';
@@ -37,24 +36,24 @@ const landingCopyPt = {
   variants: {
     a: {
       seo: {
-        title: 'AutaMedica | Telemedicina, Receita Digital e Saúde Online',
+        title: 'AutaMedica | Especialistas de Referência e Telemedicina',
         description:
-          'Conecte-se com um médico verificado em menos de 15 minutos. Receita digital, acompanhamento clínico e sem filas de espera. Disponível no Brasil, Argentina, Equador, Colômbia e mais.',
+          'Atendimento com médicos especialistas certificados sem deslocamentos. Prontuário unificado, triagem prévia e receita digital oficial válida em farmácias.',
       },
       hero: {
-        badge: 'Telemedicina feita para o Brasil',
-        title: 'Seu médico,',
-        titleAccent: 'sem pronto-socorro.',
+        badge: 'Infraestrutura Clínica e Telemedicina',
+        title: 'Especialistas de referência,',
+        titleAccent: 'onde você estiver.',
         subtitle:
-          'No Brasil, uma consulta no PS pode levar horas. Na AutaMedica, a consulta começa quando você quiser.',
-        primaryCtaLabel: 'Buscar médico agora',
+          'Acesso direto a médicos certificados sem filas ou deslocamentos. Prontuário unificado, triagem prévia e receitas digitais aceitas em todas as farmácias.',
+        primaryCtaLabel: 'Consultar com especialista',
         primaryCtaHref: '#portales',
-        secondaryCtaLabel: 'Já tenho conta',
+        secondaryCtaLabel: 'Acessar portais',
         secondaryCtaHref: '/auth/select-role',
         metrics: [
-          { value: '< 15 min', label: 'até falar com um médico' },
-          { value: '6 países', label: 'BR · AR · CO · PE · MX · EC' },
-          { value: '94%', label: 'consultas resolvidas sem pronto-socorro' },
+          { value: '100%', label: 'médicos com CRM ativo e verificado' },
+          { value: 'Oficial', label: 'receita digital válida em farmácias' },
+          { value: 'Seguimento', label: 'acompanhamento clínico e evolução' },
         ],
         roleQuickAccess: [
           { label: 'Paciente', role: 'patient', authPage: 'login', accent: 'var(--portal-patients)' },
@@ -67,6 +66,13 @@ const landingCopyPt = {
         subtitle: 'Mais de 150 profissionais com CRM ativo disponíveis hoje. Sem deslocamentos, sem filas.',
         buttonLabel: 'Reservar minha consulta',
         buttonHref: '/auth/select-role',
+      },
+      pricing: {
+        freeBadge: 'Sem mensalidade',
+        cuidadoBadge: 'Mais escolhido por famílias',
+        headline: 'Sua saúde cuidada hoje. E o que você não usa, vira crédito.',
+        reserveDescription: 'O que você não usa em consultas, acumula para farmácias e laboratórios.',
+        guarantee: 'Cancele quando quiser com 1 clique · Garantia de 30 dias',
       },
     },
     b: {
@@ -86,7 +92,7 @@ const landingCopyPt = {
         secondaryCtaLabel: 'Ver como funciona',
         secondaryCtaHref: '#proceso',
         metrics: [
-          { value: '< 15 min', label: 'para conectar com um médico' },
+          { value: '100%', label: 'médicos verificados com CRM' },
           { value: '24/7', label: 'inclusive feriados e fins de semana' },
           { value: '94%', label: 'casos resolvidos sem pronto-socorro' },
         ],
@@ -101,6 +107,13 @@ const landingCopyPt = {
         subtitle: 'Agende agora e receba a receita digital no seu celular. Sem esperar no pronto-socorro.',
         buttonLabel: 'Começar agora',
         buttonHref: '/auth/select-role',
+      },
+      pricing: {
+        freeBadge: 'Sem mensalidade',
+        cuidadoBadge: 'Mais escolhido por famílias',
+        headline: 'Sua saúde cuidada hoje. E o que você não usa, vira crédito.',
+        reserveDescription: 'O que você não usa em consultas, acumula para farmácias e laboratórios.',
+        guarantee: 'Cancele quando quiser com 1 clique · Garantia de 30 dias',
       },
     },
   },

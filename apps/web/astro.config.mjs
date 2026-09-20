@@ -36,7 +36,10 @@ export default defineConfig({
       tsconfigPaths: true
     },
     server: {
-      forwardConsole: true
+      forwardConsole: true,
+      fs: {
+        allow: ['..', '/mnt/data/Autamedica']
+      }
     },
     ssr: {
       external: [

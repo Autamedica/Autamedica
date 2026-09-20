@@ -1,15 +1,4 @@
-import { ensureEnv, logger } from '@autamedica/shared';
-
-function readEnv(name: string, env?: Record<string, string | undefined>): string {
-  if (env && typeof env[name] === 'string') {
-    return env[name];
-  }
-  try {
-    return ensureEnv(name);
-  } catch {
-    return '';
-  }
-}
+import { logger } from '@autamedica/shared';
 
 export interface MemedConfig {
   apiKey: string;
@@ -44,10 +33,12 @@ export class MemedService {
   private config: MemedConfig;
 
   constructor(env?: Record<string, string | undefined>) {
-    const apiKey = readEnv('MEMED_API_KEY', env);
-    const secretKey = readEnv('MEMED_SECRET_KEY', env);
-    const apiUrl = readEnv('MEMED_API_URL', env) || 'https://integrations.api.memed.com.br/v1';
-    const scriptUrl = readEnv('MEMED_SCRIPT_URL', env) || 'https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js';
+    // eslint-disable-next-line no-restricted-properties
+    const _processEnv = typeof process !== 'undefined' ? process.env : {};
+    const apiKey = env?.MEMED_API_KEY ?? _processEnv?.MEMED_API_KEY ?? '';
+    const secretKey = env?.MEMED_SECRET_KEY ?? _processEnv?.MEMED_SECRET_KEY ?? '';
+    const apiUrl = (env?.MEMED_API_URL ?? _processEnv?.MEMED_API_URL) || 'https://integrations.api.memed.com.br/v1';
+    const scriptUrl = (env?.MEMED_SCRIPT_URL ?? _processEnv?.MEMED_SCRIPT_URL) || 'https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js';
 
     this.config = {
       apiKey,

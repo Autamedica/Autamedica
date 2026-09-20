@@ -109,6 +109,15 @@ const autamedicaPreset = {
         ],
       },
 
+      borderRadius: {
+        'am-sm': 'var(--radius-sm, 8px)',
+        'am-md': 'var(--radius-md, 12px)',
+        'am-lg': 'var(--radius-lg, 16px)',
+        'am-xl': 'var(--radius-xl, 20px)',
+        'am-2xl': 'var(--radius-2xl, 24px)',
+        '2xl': 'var(--radius-2xl, 24px)',
+      },
+
       boxShadow: {
         'am-xs': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
         'am-sm': '0 1px 3px 0 rgb(0 0 0 / 0.10), 0 1px 2px -1px rgb(0 0 0 / 0.08)',

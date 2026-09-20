@@ -11,5 +11,4 @@ data class DoctorBookingInfo(
     val subspecialty: String? = null,
     val availableSlots: List<String> = emptyList(),
     val availableDays: Set<Int> = emptySet(),
-    val sssValidationStatus: String? = null,
 )
