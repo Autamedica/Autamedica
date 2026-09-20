@@ -28,6 +28,7 @@ import {
   getValidityPeriodDays,
   requiresStrictPrescriptionValidation,
 } from './strict-validation';
+import { orchestrateRepmRegistration } from '@/lib/datasus/repm-orchestrator';
 
 interface ClinicalItem {
   generic_name?: string;
@@ -661,6 +662,44 @@ export async function issuePrescription(
         qrDataUrl: '',
         qrContent: verificationUrl,
       };
+
+      // RNDS (DATASUS) REPM registration: non-blocking, disabled by default.
+      // Controlados (Portaria 344) quedan fuera del envio electronico.
+      if (!isControlledSubstance) {
+        void (async () => {
+          try {
+            await orchestrateRepmRegistration({
+              prescriptionId,
+              cuir: generated.cuir,
+              cns: (patient as { cns?: string }).cns ?? (externalPatient as { cns?: string })?.cns ?? null,
+              cpf: (patient as { cpf?: string }).cpf
+                || (externalPatient as { cpf?: string })?.cpf
+                || patient.dni
+                || externalPatient?.dni
+                || null,
+              medicamento: {
+                nome: medicationName,
+                dosagem: item.dosage,
+                formaFarmaceutica: item.presentation,
+                quantidade: item.quantity,
+                unidade: 'und',
+                codigoCmed: (item as { codigo_cmed?: string }).codigo_cmed,
+              },
+              prescritorCpf: (doctor as { cpf?: string }).cpf || '',
+              prescritorConselhoTipo: (doctor.license_type as 'CRM' | 'COREN' | 'CRF' | 'CRO' | 'CRMV') || 'CRM',
+              prescritorConselhoUf: doctor.uf_brazil || 'RS',
+              prescritorConselhoNumero: doctor.license_number,
+              dataPrescricao: now,
+              validadeDias: validityDays,
+            }, { supabase });
+          } catch (err) {
+            logger.warn('[issuePrescription] RNDS REPM registration skipped (non-blocking)', {
+              prescriptionId,
+              error: err,
+            });
+          }
+        })();
+      }
     } else {
       artifacts = await generatePrescriptionPdf({
         prescriptionId,

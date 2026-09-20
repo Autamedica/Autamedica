@@ -382,6 +382,83 @@ export type Database = {
           },
         ]
       }
+      mfa_recovery_code_sets: {
+        Row: {
+          created_at: string
+          failed_verification_count: number
+          id: string
+          mfa_factor_id: string
+          updated_at: string
+          user_id: string
+          verification_locked_until: string | null
+        }
+        Insert: {
+          created_at?: string
+          failed_verification_count?: number
+          id: string
+          mfa_factor_id: string
+          updated_at?: string
+          user_id: string
+          verification_locked_until?: string | null
+        }
+        Update: {
+          created_at?: string
+          failed_verification_count?: number
+          id?: string
+          mfa_factor_id?: string
+          updated_at?: string
+          user_id?: string
+          verification_locked_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_recovery_code_sets_mfa_factor_id_fkey"
+            columns: ["mfa_factor_id"]
+            isOneToOne: true
+            referencedRelation: "mfa_factors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mfa_recovery_code_sets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mfa_recovery_codes: {
+        Row: {
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          id: string
+          mfa_recovery_code_set_id: string
+        }
+        Insert: {
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          id: string
+          mfa_recovery_code_set_id: string
+        }
+        Update: {
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          id?: string
+          mfa_recovery_code_set_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mfa_recovery_codes_mfa_recovery_code_set_id_fkey"
+            columns: ["mfa_recovery_code_set_id"]
+            isOneToOne: false
+            referencedRelation: "mfa_recovery_code_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       oauth_authorizations: {
         Row: {
           approved_at: string | null
@@ -577,6 +654,7 @@ export type Database = {
       one_time_tokens: {
         Row: {
           created_at: string
+          expires_at: string | null
           id: string
           relates_to: string
           token_hash: string
@@ -586,6 +664,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          expires_at?: string | null
           id: string
           relates_to: string
           token_hash: string
@@ -595,6 +674,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          expires_at?: string | null
           id?: string
           relates_to?: string
           token_hash?: string
@@ -759,6 +839,101 @@ export type Database = {
           version?: string
         }
         Relationships: []
+      }
+      scim_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          last_used_at: string | null
+          prefix: string
+          revoked_at: string | null
+          sso_provider_id: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id: string
+          last_used_at?: string | null
+          prefix: string
+          revoked_at?: string | null
+          sso_provider_id: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          prefix?: string
+          revoked_at?: string | null
+          sso_provider_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scim_tokens_sso_provider_id_fkey"
+            columns: ["sso_provider_id"]
+            isOneToOne: false
+            referencedRelation: "sso_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scim_users: {
+        Row: {
+          active: boolean
+          created_at: string
+          deleted_at: string | null
+          external_id: string | null
+          id: string
+          resource: Json
+          sso_provider_id: string
+          updated_at: string
+          user_id: string | null
+          user_name: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          external_id?: string | null
+          id: string
+          resource: Json
+          sso_provider_id: string
+          updated_at?: string
+          user_id?: string | null
+          user_name?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          external_id?: string | null
+          id?: string
+          resource?: Json
+          sso_provider_id?: string
+          updated_at?: string
+          user_id?: string | null
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scim_users_sso_provider_id_fkey"
+            columns: ["sso_provider_id"]
+            isOneToOne: false
+            referencedRelation: "sso_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scim_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sessions: {
         Row: {
@@ -1107,7 +1282,7 @@ export type Database = {
       aal_level: "aal1" | "aal2" | "aal3"
       code_challenge_method: "s256" | "plain"
       factor_status: "unverified" | "verified"
-      factor_type: "totp" | "webauthn" | "phone"
+      factor_type: "totp" | "webauthn" | "phone" | "recovery_code"
       oauth_authorization_status: "pending" | "approved" | "denied" | "expired"
       oauth_client_type: "public" | "confidential"
       oauth_registration_type: "dynamic" | "manual"
@@ -6362,6 +6537,44 @@ export type Database = {
           },
         ]
       }
+      doctor_duty_status: {
+        Row: {
+          active_tiers: Database["public"]["Enums"]["dispatch_tier_category"][]
+          current_active_request_id: string | null
+          doctor_id: string
+          duty_started_at: string | null
+          is_on_duty: boolean
+          last_heartbeat_at: string
+          updated_at: string
+        }
+        Insert: {
+          active_tiers?: Database["public"]["Enums"]["dispatch_tier_category"][]
+          current_active_request_id?: string | null
+          doctor_id: string
+          duty_started_at?: string | null
+          is_on_duty?: boolean
+          last_heartbeat_at?: string
+          updated_at?: string
+        }
+        Update: {
+          active_tiers?: Database["public"]["Enums"]["dispatch_tier_category"][]
+          current_active_request_id?: string | null
+          doctor_id?: string
+          duty_started_at?: string | null
+          is_on_duty?: boolean
+          last_heartbeat_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_duty_status_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: true
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_earnings: {
         Row: {
           appointment_id: string
@@ -6835,6 +7048,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "doctor_licenses_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_on_duty_sessions: {
+        Row: {
+          doctor_id: string
+          ended_at: string | null
+          id: string
+          last_heartbeat_at: string
+          metadata: Json
+          started_at: string
+          status: string
+        }
+        Insert: {
+          doctor_id: string
+          ended_at?: string | null
+          id?: string
+          last_heartbeat_at?: string
+          metadata?: Json
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          doctor_id?: string
+          ended_at?: string | null
+          id?: string
+          last_heartbeat_at?: string
+          metadata?: Json
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_on_duty_sessions_doctor_id_fkey"
             columns: ["doctor_id"]
             isOneToOne: false
             referencedRelation: "doctors"
@@ -7320,6 +7571,7 @@ export type Database = {
         Row: {
           accepted_insurance: Json | null
           active: boolean | null
+          active_duty_tiers: string[]
           bank_alias: string | null
           bank_cbu_cvu: string | null
           bank_name: string | null
@@ -7331,6 +7583,7 @@ export type Database = {
           cpf: string | null
           created_at: string | null
           education: Json | null
+          enabled_service_tiers: string[]
           enrollment_entity: string | null
           enrollment_jurisdiction: string | null
           free_videoconsultas_remaining: number
@@ -7338,6 +7591,8 @@ export type Database = {
           languages: Json | null
           license_number: string
           license_type: string | null
+          on_duty_pharmacy: boolean
+          on_duty_since: string | null
           payout_alias: string | null
           payout_cbu: string | null
           payout_pix_key: string | null
@@ -7360,6 +7615,7 @@ export type Database = {
         Insert: {
           accepted_insurance?: Json | null
           active?: boolean | null
+          active_duty_tiers?: string[]
           bank_alias?: string | null
           bank_cbu_cvu?: string | null
           bank_name?: string | null
@@ -7371,6 +7627,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string | null
           education?: Json | null
+          enabled_service_tiers?: string[]
           enrollment_entity?: string | null
           enrollment_jurisdiction?: string | null
           free_videoconsultas_remaining?: number
@@ -7378,6 +7635,8 @@ export type Database = {
           languages?: Json | null
           license_number: string
           license_type?: string | null
+          on_duty_pharmacy?: boolean
+          on_duty_since?: string | null
           payout_alias?: string | null
           payout_cbu?: string | null
           payout_pix_key?: string | null
@@ -7400,6 +7659,7 @@ export type Database = {
         Update: {
           accepted_insurance?: Json | null
           active?: boolean | null
+          active_duty_tiers?: string[]
           bank_alias?: string | null
           bank_cbu_cvu?: string | null
           bank_name?: string | null
@@ -7411,6 +7671,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string | null
           education?: Json | null
+          enabled_service_tiers?: string[]
           enrollment_entity?: string | null
           enrollment_jurisdiction?: string | null
           free_videoconsultas_remaining?: number
@@ -7418,6 +7679,8 @@ export type Database = {
           languages?: Json | null
           license_number?: string
           license_type?: string | null
+          on_duty_pharmacy?: boolean
+          on_duty_since?: string | null
           payout_alias?: string | null
           payout_cbu?: string | null
           payout_pix_key?: string | null
@@ -8768,6 +9031,60 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_queue: {
+        Row: {
+          attempts: number
+          body: string
+          created_at: string
+          data: Json | null
+          dedupe_key: string | null
+          deep_link: string | null
+          id: string
+          last_error: string | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          body: string
+          created_at?: string
+          data?: Json | null
+          dedupe_key?: string | null
+          deep_link?: string | null
+          id?: string
+          last_error?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          body?: string
+          created_at?: string
+          data?: Json | null
+          dedupe_key?: string | null
+          deep_link?: string | null
+          id?: string
+          last_error?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       org_members: {
         Row: {
           created_at: string
@@ -9738,6 +10055,66 @@ export type Database = {
           },
         ]
       }
+      patients_cadsus_profile: {
+        Row: {
+          cns: string | null
+          cpf: string | null
+          created_at: string
+          last_synced_at: string | null
+          municipio_nascimento: string | null
+          nascimento: string | null
+          nome: string | null
+          nome_mae: string | null
+          patient_id: string
+          rnds_source: string
+          sexo: string | null
+          updated_at: string
+        }
+        Insert: {
+          cns?: string | null
+          cpf?: string | null
+          created_at?: string
+          last_synced_at?: string | null
+          municipio_nascimento?: string | null
+          nascimento?: string | null
+          nome?: string | null
+          nome_mae?: string | null
+          patient_id: string
+          rnds_source?: string
+          sexo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cns?: string | null
+          cpf?: string | null
+          created_at?: string
+          last_synced_at?: string | null
+          municipio_nascimento?: string | null
+          nascimento?: string | null
+          nome?: string | null
+          nome_mae?: string | null
+          patient_id?: string
+          rnds_source?: string
+          sexo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patients_cadsus_profile_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "patients_cadsus_profile_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: true
+            referencedRelation: "user_identifiers"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       payment_transactions: {
         Row: {
           amount_cents: number
@@ -9926,6 +10303,250 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "dispensation_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pharmacy_consultation_requests: {
+        Row: {
+          assigned_at: string | null
+          call_id: string | null
+          completed_at: string | null
+          created_at: string
+          doctor_id: string | null
+          guest_invite_id: string | null
+          id: string
+          metadata: Json
+          patient_dni: string
+          patient_name: string
+          patient_phone: string
+          pharmacy_id: string | null
+          pharmacy_name: string
+          reason: string
+          requested_specialty: string
+          room_id: string | null
+          service_tier: string
+          status: string
+          tier_category: string
+          transfer_from_doctor_id: string | null
+          transfer_status: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          call_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          guest_invite_id?: string | null
+          id?: string
+          metadata?: Json
+          patient_dni: string
+          patient_name: string
+          patient_phone: string
+          pharmacy_id?: string | null
+          pharmacy_name: string
+          reason: string
+          requested_specialty?: string
+          room_id?: string | null
+          service_tier?: string
+          status?: string
+          tier_category?: string
+          transfer_from_doctor_id?: string | null
+          transfer_status?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          call_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          guest_invite_id?: string | null
+          id?: string
+          metadata?: Json
+          patient_dni?: string
+          patient_name?: string
+          patient_phone?: string
+          pharmacy_id?: string | null
+          pharmacy_name?: string
+          reason?: string
+          requested_specialty?: string
+          room_id?: string | null
+          service_tier?: string
+          status?: string
+          tier_category?: string
+          transfer_from_doctor_id?: string | null
+          transfer_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pharmacy_consultation_requests_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pharmacy_consultation_requests_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pharmacy_consultation_requests_guest_invite_id_fkey"
+            columns: ["guest_invite_id"]
+            isOneToOne: false
+            referencedRelation: "call_guest_invites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pharmacy_consultation_requests_pharmacy_id_fkey"
+            columns: ["pharmacy_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pharmacy_consultation_requests_transfer_from_doctor_id_fkey"
+            columns: ["transfer_from_doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pharmacy_dispatch_requests: {
+        Row: {
+          assigned_doctor_id: string | null
+          call_ended_at: string | null
+          call_started_at: string | null
+          cloudflare_room_id: string
+          created_at: string
+          doctor_cf_session_id: string | null
+          id: string
+          kiosk_id: string | null
+          matched_at: string | null
+          patient_cf_session_id: string | null
+          patient_dni: string
+          patient_name: string | null
+          patient_phone: string
+          pharmacy_id: string | null
+          previous_doctor_id: string | null
+          search_timeout_at: string
+          status: Database["public"]["Enums"]["dispatch_request_status"]
+          symptom_summary: string | null
+          tier_requested: Database["public"]["Enums"]["dispatch_tier_category"]
+        }
+        Insert: {
+          assigned_doctor_id?: string | null
+          call_ended_at?: string | null
+          call_started_at?: string | null
+          cloudflare_room_id: string
+          created_at?: string
+          doctor_cf_session_id?: string | null
+          id?: string
+          kiosk_id?: string | null
+          matched_at?: string | null
+          patient_cf_session_id?: string | null
+          patient_dni: string
+          patient_name?: string | null
+          patient_phone: string
+          pharmacy_id?: string | null
+          previous_doctor_id?: string | null
+          search_timeout_at?: string
+          status?: Database["public"]["Enums"]["dispatch_request_status"]
+          symptom_summary?: string | null
+          tier_requested?: Database["public"]["Enums"]["dispatch_tier_category"]
+        }
+        Update: {
+          assigned_doctor_id?: string | null
+          call_ended_at?: string | null
+          call_started_at?: string | null
+          cloudflare_room_id?: string
+          created_at?: string
+          doctor_cf_session_id?: string | null
+          id?: string
+          kiosk_id?: string | null
+          matched_at?: string | null
+          patient_cf_session_id?: string | null
+          patient_dni?: string
+          patient_name?: string | null
+          patient_phone?: string
+          pharmacy_id?: string | null
+          previous_doctor_id?: string | null
+          search_timeout_at?: string
+          status?: Database["public"]["Enums"]["dispatch_request_status"]
+          symptom_summary?: string | null
+          tier_requested?: Database["public"]["Enums"]["dispatch_tier_category"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pharmacy_dispatch_requests_assigned_doctor_id_fkey"
+            columns: ["assigned_doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pharmacy_dispatch_requests_kiosk_id_fkey"
+            columns: ["kiosk_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacy_kiosks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pharmacy_dispatch_requests_pharmacy_id_fkey"
+            columns: ["pharmacy_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pharmacy_dispatch_requests_previous_doctor_id_fkey"
+            columns: ["previous_doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pharmacy_kiosks: {
+        Row: {
+          active: boolean
+          created_at: string
+          device_fingerprint: string
+          friendly_name: string
+          hardware_type: string
+          id: string
+          last_ping_at: string
+          pharmacy_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          device_fingerprint: string
+          friendly_name: string
+          hardware_type?: string
+          id?: string
+          last_ping_at?: string
+          pharmacy_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          device_fingerprint?: string
+          friendly_name?: string
+          hardware_type?: string
+          id?: string
+          last_ping_at?: string
+          pharmacy_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pharmacy_kiosks_pharmacy_id_fkey"
+            columns: ["pharmacy_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacies"
             referencedColumns: ["id"]
           },
         ]
@@ -11852,6 +12473,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_pharmacy_request_tier: {
+        Args: { p_doctor_id: string; p_request_id: string }
+        Returns: Json
+      }
       cleanup_stuck_conversation_sessions: {
         Args: { threshold_interval: string }
         Returns: Json
@@ -11930,6 +12555,10 @@ export type Database = {
         Args: { patient_user_id: string }
         Returns: boolean
       }
+      drain_notification_queue: {
+        Args: { p_batch_size?: number }
+        Returns: Json
+      }
       dropgeometrycolumn:
         | {
             Args: {
@@ -11961,6 +12590,19 @@ export type Database = {
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
+      enqueue_notification: {
+        Args: {
+          p_body: string
+          p_data?: Json
+          p_dedupe_key?: string
+          p_deep_link?: string
+          p_scheduled_at?: string
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       ensure_patient_health_reserve: {
         Args: { p_patient_id: string }
         Returns: {
@@ -12159,6 +12801,7 @@ export type Database = {
         Args: { p_doctor_id: string; p_end_date: string; p_start_date: string }
         Returns: number
       }
+      get_duty_doctors_summary: { Args: never; Returns: Json }
       get_my_doctor_id: { Args: never; Returns: string }
       get_my_patient_id: { Args: never; Returns: string }
       get_next_numeric_id: { Args: never; Returns: number }
@@ -12186,6 +12829,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_pharmacy_tiers_status: { Args: never; Returns: Json }
       get_recommended_screenings: {
         Args: { include_overdue?: boolean; patient_id_param: string }
         Returns: {
@@ -12458,6 +13102,14 @@ export type Database = {
       set_content_piece_status: {
         Args: { p_id: string; p_status: string }
         Returns: undefined
+      }
+      set_doctor_duty_status: {
+        Args: {
+          p_active_tiers?: Database["public"]["Enums"]["dispatch_tier_category"][]
+          p_doctor_id: string
+          p_is_on_duty: boolean
+        }
+        Returns: Json
       }
       set_portal_and_role: {
         Args: { p_organization_id?: string; p_portal: string; p_role?: string }
@@ -13120,6 +13772,28 @@ export type Database = {
         | "connected"
         | "ended"
       clinical_setting: "uti" | "guardia" | "ward" | "outpatient"
+      dispatch_request_status:
+        | "searching"
+        | "matched"
+        | "in_call"
+        | "transferring"
+        | "transferred"
+        | "completed"
+        | "cancelled"
+        | "expired"
+      dispatch_tier_category:
+        | "general"
+        | "cardiologia"
+        | "salud_mental"
+        | "pediatria"
+        | "dermatologia"
+        | "traumatologia"
+        | "salud_femenina"
+        | "oftalmo_otorrino"
+        | "neumonologia"
+        | "gastroenterologia"
+        | "urologia"
+        | "endocrinologia"
       equipment_status:
         | "active"
         | "review_required"
@@ -13313,7 +13987,7 @@ export const Constants = {
       aal_level: ["aal1", "aal2", "aal3"],
       code_challenge_method: ["s256", "plain"],
       factor_status: ["unverified", "verified"],
-      factor_type: ["totp", "webauthn", "phone"],
+      factor_type: ["totp", "webauthn", "phone", "recovery_code"],
       oauth_authorization_status: ["pending", "approved", "denied", "expired"],
       oauth_client_type: ["public", "confidential"],
       oauth_registration_type: ["dynamic", "manual"],
@@ -13371,6 +14045,30 @@ export const Constants = {
         "ended",
       ],
       clinical_setting: ["uti", "guardia", "ward", "outpatient"],
+      dispatch_request_status: [
+        "searching",
+        "matched",
+        "in_call",
+        "transferring",
+        "transferred",
+        "completed",
+        "cancelled",
+        "expired",
+      ],
+      dispatch_tier_category: [
+        "general",
+        "cardiologia",
+        "salud_mental",
+        "pediatria",
+        "dermatologia",
+        "traumatologia",
+        "salud_femenina",
+        "oftalmo_otorrino",
+        "neumonologia",
+        "gastroenterologia",
+        "urologia",
+        "endocrinologia",
+      ],
       equipment_status: [
         "active",
         "review_required",

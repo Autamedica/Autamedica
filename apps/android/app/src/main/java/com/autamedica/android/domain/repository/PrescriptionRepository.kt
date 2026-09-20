@@ -3,6 +3,7 @@ package com.autamedica.android.domain.repository
 import com.autamedica.android.domain.model.CreatePrescriptionRequest
 import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.Prescription
+import com.autamedica.android.domain.model.PrescriptionDispensation
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 
 /**
@@ -19,6 +20,14 @@ interface PrescriptionRepository {
      * Retrieves a single digital prescription by its unique identifier.
      */
     suspend fun getPrescriptionById(id: String): Result<Prescription>
+
+    /**
+     * Retrieves the dispensation tracking for a prescription owned by the authenticated patient.
+     *
+     * Returns the last dispensation order (if any), its recent dispensation events and the
+     * pharmacy name. Empty when the prescription never entered the pharmacy circuit.
+     */
+    suspend fun getPrescriptionDispensation(prescriptionId: String): Result<PrescriptionDispensation>
 
     /**
      * Retrieves all prescriptions issued by the authenticated doctor, optionally filtered by patient or status.

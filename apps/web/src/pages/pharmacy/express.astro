@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { PharmacyExpressConsultation } from '@/components/pharmacy/PharmacyExpressConsultation';
+
+const title = 'Consulta Médica Express en Farmacia | AutaMedica';
+const description = 'Atención médica inmediata con médicos universitarios matriculados y emisión de receta electrónica en menos de 2 minutos.';
+---
+
+<Layout title={title} description={description}>
+  <PharmacyExpressConsultation client:load />
+</Layout>

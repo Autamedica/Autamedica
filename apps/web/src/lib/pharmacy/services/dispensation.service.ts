@@ -5,6 +5,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { dispensationRepo } from '../repos/dispensation.repo';
 import { requiresStrictPrescriptionValidation } from '@/lib/prescriptions/strict-validation';
+import { orchestrateRedfmRegistration } from '@/lib/datasus/redfm-orchestrator';
+import { logger } from '@autamedica/shared';
 
 type Client = SupabaseClient;
 
@@ -307,6 +309,41 @@ export const dispensationService = {
         new_status: newStatus,
       },
     });
+
+    // RNDS (DATASUS) REDFM dispense registration: non-blocking, disabled by default.
+    void (async () => {
+      try {
+        const { data: pharmacistRow } = await supabase
+          .from('pharmacists')
+          .select('license_number, name')
+          .eq('id', pharmacist.id)
+          .maybeSingle();
+
+        const licenseNumber = pharmacistRow?.license_number;
+        if (!licenseNumber) return;
+
+        await orchestrateRedfmRegistration({
+          dispenseOrderId: orderId,
+          prescriptionId: order.prescription_id,
+          medicamento: {
+            nome: order.medication ?? input.dispensed_medication,
+            formaFarmaceutica: input.dispensed_formulation,
+            quantidade: input.dispensed_quantity,
+          },
+          farmaceutico: {
+            cpf: '',
+            conselhoTipo: 'CRF',
+            conselhoUf: 'RS',
+            conselhoNumero: licenseNumber,
+          },
+        }, supabase);
+      } catch (err) {
+        logger.warn('[dispensation] RNDS REDFM dispense registration skipped (non-blocking)', {
+          orderId,
+          error: err,
+        });
+      }
+    })();
 
     return ok({
       status: newStatus,

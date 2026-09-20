@@ -170,6 +170,17 @@ fun AppNavHost(
             )
         }
 
+        composable<Route.DoctorOnDemand> {
+            com.autamedica.android.presentation.ondemand.DoctorOnDemandScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToCall = { roomId ->
+                    navController.navigate(Route.VideoCall(appointmentId = "", roomId = roomId)) {
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+
         composable<Route.PatientProfile> {
             PatientProfileScreen(
                 onBack = { navController.popBackStack() },

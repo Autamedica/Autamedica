@@ -80,6 +80,9 @@ sealed interface Route {
     data object DoctorAgenda : Route
 
     @Serializable
+    data object DoctorOnDemand : Route
+
+    @Serializable
     data object DoctorPrescriptions : Route
 
     @Serializable

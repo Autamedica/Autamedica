@@ -2,8 +2,11 @@ package com.autamedica.android.data.repository
 
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.CreatePrescriptionRequest
+import com.autamedica.android.domain.model.DispensationEvent
+import com.autamedica.android.domain.model.DispensationOrder
 import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.Prescription
+import com.autamedica.android.domain.model.PrescriptionDispensation
 import com.autamedica.android.domain.model.PrescriptionItem
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.repository.PrescriptionRepository
@@ -86,6 +89,75 @@ class PrescriptionRepositoryImpl @Inject constructor(
         }
     }.onFailure {
         SecureLog.error("[Prescriptions] Failed fetching prescriptions", it)
+    }
+
+    override suspend fun getPrescriptionDispensation(prescriptionId: String): Result<PrescriptionDispensation> = runCatching {
+        val patientId = resolvePatientId()
+
+        // Guardia de propiedad: la receta debe pertenecer al paciente autenticado (espeja el BFF web).
+        val prescription = supabaseClient.postgrest
+            .from("prescriptions")
+            .select(Columns.list("id", "status", "patient_id")) {
+                filter { eq("id", prescriptionId) }
+            }
+            .decodeSingleOrNull<DispensationPrescriptionRowDto>()
+            ?: throw IllegalStateException("Prescription not found")
+
+        require(prescription.patientId == patientId) { "No tienes acceso a esta receta" }
+
+        val order = supabaseClient.postgrest
+            .from("dispensation_orders")
+            .select(Columns.ALL) {
+                filter { eq("prescription_id", prescriptionId) }
+                order("created_at", Order.DESCENDING)
+                limit(1)
+            }
+            .decodeSingleOrNull<DispensationOrderRowDto>()
+
+        if (order == null) {
+            return@runCatching PrescriptionDispensation(prescriptionStatus = prescription.status)
+        }
+
+        val events = runCatching {
+            supabaseClient.postgrest
+                .from("dispensation_events")
+                .select(Columns.ALL) {
+                    filter { eq("order_id", order.id) }
+                    order("dispensed_at", Order.DESCENDING)
+                }
+                .decodeList<DispensationEventRowDto>()
+                .map { event ->
+                    DispensationEvent(
+                        id = event.id,
+                        dispenseStatus = event.dispenseStatus,
+                        dispensedMedication = event.dispensedMedication,
+                        dispensedFormulation = event.dispensedFormulation,
+                        dispensedQuantity = event.dispensedQuantity,
+                        substitutionType = event.substitutionType,
+                        pharmacyNotes = event.pharmacyNotes,
+                        dispensedAt = event.dispensedAt,
+                    )
+                }
+        }.getOrDefault(emptyList())
+
+        val pharmacyName = order.pharmacyId?.let { pharmacyId ->
+            runCatching {
+                supabaseClient.postgrest
+                    .from("pharmacies")
+                    .select(Columns.list("name")) {
+                        filter { eq("id", pharmacyId) }
+                    }
+                    .decodeSingleOrNull<PharmacyNameDto>()?.name
+            }.getOrNull()
+        }
+
+        PrescriptionDispensation(
+            prescriptionStatus = prescription.status,
+            dispensation = order.toDomain(pharmacyName),
+            events = events,
+        )
+    }.onFailure {
+        SecureLog.error("[Prescriptions] Failed fetching dispensation for $prescriptionId", it)
     }
 
     override suspend fun getPrescriptionById(id: String): Result<Prescription> = runCatching {
@@ -854,4 +926,58 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val dni: String? = null,
         @SerialName("birth_date") val birthDate: String? = null,
     )
+
+    @Serializable
+    private data class DispensationPrescriptionRowDto(
+        val id: String,
+        val status: String = "activa",
+        @SerialName("patient_id") val patientId: String? = null,
+    )
+
+    @Serializable
+    private data class DispensationOrderRowDto(
+        val id: String,
+        val status: String = "pending",
+        @SerialName("prescription_type") val prescriptionType: String = "standard",
+        @SerialName("clinical_semaphore") val clinicalSemaphore: String? = null,
+        val medication: String,
+        val formulation: String,
+        @SerialName("quantity_units") val quantityUnits: Int = 0,
+        @SerialName("pharmacy_id") val pharmacyId: String? = null,
+        @SerialName("dispense_window_start") val dispenseWindowStart: String? = null,
+        @SerialName("dispense_window_end") val dispenseWindowEnd: String? = null,
+        @SerialName("created_at") val createdAt: String,
+        @SerialName("updated_at") val updatedAt: String,
+    ) {
+        fun toDomain(pharmacyName: String?): DispensationOrder = DispensationOrder(
+            id = id,
+            status = status,
+            prescriptionType = prescriptionType,
+            clinicalSemaphore = clinicalSemaphore,
+            medication = medication,
+            formulation = formulation,
+            quantityUnits = quantityUnits,
+            pharmacyId = pharmacyId,
+            dispenseWindowStart = dispenseWindowStart,
+            dispenseWindowEnd = dispenseWindowEnd,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+            pharmacyName = pharmacyName,
+        )
+    }
+
+    @Serializable
+    private data class DispensationEventRowDto(
+        val id: String,
+        @SerialName("dispense_status") val dispenseStatus: String? = null,
+        @SerialName("dispensed_medication") val dispensedMedication: String? = null,
+        @SerialName("dispensed_formulation") val dispensedFormulation: String? = null,
+        @SerialName("dispensed_quantity") val dispensedQuantity: Int? = null,
+        @SerialName("substitution_type") val substitutionType: String? = null,
+        @SerialName("pharmacy_notes") val pharmacyNotes: String? = null,
+        @SerialName("dispensed_at") val dispensedAt: String? = null,
+    )
+
+    @Serializable
+    private data class PharmacyNameDto(val name: String)
 }

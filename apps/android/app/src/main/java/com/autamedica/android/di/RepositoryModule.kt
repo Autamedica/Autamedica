@@ -5,12 +5,14 @@ import com.autamedica.android.data.repository.AuthRepositoryImpl
 import com.autamedica.android.data.repository.DoctorRepositoryImpl
 import com.autamedica.android.data.repository.HealthRepositoryImpl
 import com.autamedica.android.data.repository.NotificationRepositoryImpl
+import com.autamedica.android.data.repository.PharmacyDispatchRepositoryImpl
 import com.autamedica.android.data.repository.ProfileRepositoryImpl
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.HealthRepository
 import com.autamedica.android.domain.repository.NotificationRepository
+import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.repository.StorageRepository
@@ -89,4 +91,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindMedicalOrderRepository(impl: com.autamedica.android.data.repository.MedicalOrderRepositoryImpl): com.autamedica.android.domain.repository.MedicalOrderRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPharmacyDispatchRepository(impl: PharmacyDispatchRepositoryImpl): PharmacyDispatchRepository
 }
