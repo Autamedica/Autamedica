@@ -202,7 +202,7 @@ const {
         }
 
         try {
-          const growth = (window as any).AutaGrowth;
+          const growth = window.AutaGrowth;
           const vertical = form.dataset.vertical || 'general';
           const intent = form.dataset.intent || 'newsletter';
           const form_id = form.dataset.formId || 'newsletter';

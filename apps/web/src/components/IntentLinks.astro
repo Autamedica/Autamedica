@@ -96,14 +96,14 @@ const intents = dict.landing.intentLinks.items.map((item, i) => ({
     color: var(--au-text-primary);
     font-size: var(--text-sm);
     font-weight: var(--font-semibold);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    border-bottom: 1px solid var(--au-border);
     width: fit-content;
     transition: border-color var(--transition-fast), color var(--transition-fast);
   }
 
   .intent-card a:hover {
-    color: white;
-    border-color: white;
+    color: var(--au-accent);
+    border-color: var(--au-accent);
   }
 
   @media (max-width: 820px) {

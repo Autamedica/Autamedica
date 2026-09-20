@@ -3,22 +3,22 @@
   "variants": {
     "a": {
       "seo": {
-        "title": "AutaMedica | Telemedicina, Receta Digital y Portal de Salud",
-        "description": "Conecta con un médico verificado en menos de 15 minutos. Receta digital, seguimiento clínico y sin salas de espera. Disponible en Argentina, Ecuador, Colombia, Perú y más."
+        "title": "AutaMedica | Especialistas de Referencia y Telemedicina en LATAM",
+        "description": "Atención médica con especialistas certificados sin traslados ni esperas. Historia clínica unificada, triaje previo y receta digital oficial para farmacias."
       },
       "hero": {
-        "badge": "Telemedicina hecha para LATAM",
-        "title": "Tu médico,",
-        "titleAccent": "sin salas de guardia.",
-        "subtitle": "En Argentina, Colombia y Perú, una guardia puede demorar 4 horas. En AutaMedica, la consulta empieza cuando tú quieres.",
-        "primaryCtaLabel": "Buscar un médico ahora",
+        "badge": "Infraestructura Clínica para LATAM",
+        "title": "Especialistas de referencia,",
+        "titleAccent": "estés donde estés.",
+        "subtitle": "Acceso directo a médicos certificados sin traslados ni listas de espera. Historia clínica unificada, triaje previo y recetas digitales con validez oficial en farmacias.",
+        "primaryCtaLabel": "Consultar con un especialista",
         "primaryCtaHref": "#portales",
-        "secondaryCtaLabel": "Ya tengo cuenta",
+        "secondaryCtaLabel": "Ingreso a portales",
         "secondaryCtaHref": "/auth/select-role",
         "metrics": [
-          { "value": "< 15 min", "label": "hasta hablar con un médico" },
-          { "value": "6 países", "label": "AR · CO · PE · MX · EC · CL" },
-          { "value": "94%", "label": "consultas resueltas sin guardia" }
+          { "value": "100%", "label": "médicos con matrícula verificada" },
+          { "value": "Oficial", "label": "receta digital válida en farmacias" },
+          { "value": "Seguimiento", "label": "continuidad clínica y evolución" }
         ],
         "roleQuickAccess": [
           {
@@ -46,26 +46,33 @@
         "subtitle": "Más de 150 profesionales matriculados disponibles hoy. Sin traslados, sin salas de espera.",
         "buttonLabel": "Reservar mi consulta",
         "buttonHref": "/auth/select-role"
+      },
+      "pricing": {
+        "freeBadge": "Sin costo mensual",
+        "cuidadoBadge": "Más elegido por familias",
+        "headline": "Tu salud protegida hoy. Y lo que no usas, se acumula.",
+        "reserveDescription": "Lo que no usas en consultas, se acumula para farmacia y laboratorios.",
+        "guarantee": "Cancela cuando quieras con 1 clic · Garantía 30 días"
       }
     },
     "b": {
       "seo": {
-        "title": "AutaMedica | Habla con un médico hoy en minutos",
-        "description": "Consulta médica online en minutos, con receta digital y seguimiento. Médicos verificados en Argentina, Ecuador, Colombia y Perú. Sin turno, sin traslado."
+        "title": "AutaMedica | Atención Médica y Especialistas en Directo",
+        "description": "Consulta médica con especialistas certificados, receta digital oficial y seguimiento. Sin esperas ni traslados innecesarios."
       },
       "hero": {
-        "badge": "Disponible en Argentina, Colombia y Perú",
-        "title": "Consulta médica hoy,",
-        "titleAccent": "no la semana que viene.",
-        "subtitle": "Encuentra turno en minutos con un médico certificado. Receta digital al celular. Sin salir de casa.",
-        "primaryCtaLabel": "Quiero mi consulta",
+        "badge": "Telemedicina e Infraestructura Clínica",
+        "title": "Atención médica especializada,",
+        "titleAccent": "sin demoras ni traslados.",
+        "subtitle": "Acceso directo a especialistas matriculados. Receta médica oficial y seguimiento clínico activo de tu evolución.",
+        "primaryCtaLabel": "Comenzar consulta",
         "primaryCtaHref": "/auth/select-role",
         "secondaryCtaLabel": "Ver cómo funciona",
         "secondaryCtaHref": "#proceso",
         "metrics": [
-          { "value": "< 15 min", "label": "para conectar con un médico" },
-          { "value": "24/7", "label": "incluso feriados y fines de semana" },
-          { "value": "94%", "label": "casos resueltos sin ir a guardia" }
+          { "value": "100%", "label": "especialistas matriculados" },
+          { "value": "24/7", "label": "continuidad y guardia virtual" },
+          { "value": "Oficial", "label": "receta válida en farmacias" }
         ],
         "roleQuickAccess": [
           {
@@ -93,6 +100,13 @@
         "subtitle": "Agenda ahora y recibe la receta digital en tu celular. Sin esperar en una guardia.",
         "buttonLabel": "Empezar ahora",
         "buttonHref": "/auth/select-role"
+      },
+      "pricing": {
+        "freeBadge": "Sin costo mensual",
+        "cuidadoBadge": "Más elegido por familias",
+        "headline": "Tu salud protegida hoy. Y lo que no usas, se acumula.",
+        "reserveDescription": "Lo que no usas en consultas, se acumula para farmacia y laboratorios.",
+        "guarantee": "Cancela cuando quieras con 1 clic · Garantía 30 días"
       }
     }
   }

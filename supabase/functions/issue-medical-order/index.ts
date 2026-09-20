@@ -89,7 +89,6 @@ export async function handler(req: Request): Promise<Response> {
     let practices: MedicalOrderPractice[] = Array.isArray(body.practices) ? body.practices : [];
     let diagnosis = typeof body.diagnosis === 'string' ? body.diagnosis.trim() : '';
     let notes = typeof body.notes === 'string' ? body.notes.trim() : '';
-    let orderCreatedAt = new Date().toISOString();
 
     // 3. Check existing draft or validate draft payload
     if (orderId) {
@@ -129,7 +128,6 @@ export async function handler(req: Request): Promise<Response> {
         );
       }
 
-      orderCreatedAt = existingOrder.created_at || orderCreatedAt;
       patientId = patientId || existingOrder.patient_id;
       studyType = studyType || existingOrder.study_type;
 
@@ -192,7 +190,6 @@ export async function handler(req: Request): Promise<Response> {
       }
 
       orderId = insertedOrder.id;
-      orderCreatedAt = insertedOrder.created_at;
     }
 
     // 5. Query patient details for PDF header
@@ -239,7 +236,7 @@ export async function handler(req: Request): Promise<Response> {
 
     const pdfBytes = generateMedicalOrderPdfBytes({
       cuir,
-      issuedAt: orderCreatedAt,
+      issuedAt: new Date().toISOString(),
       studyType,
       doctor: {
         name: doctorName,

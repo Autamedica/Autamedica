@@ -35,9 +35,13 @@ import org.webrtc.EglBase
 import org.webrtc.IceCandidate
 import org.webrtc.MediaConstraints
 import org.webrtc.MediaStream
+import org.webrtc.MediaStreamTrack
 import org.webrtc.PeerConnection
 import org.webrtc.PeerConnectionFactory
 import org.webrtc.RtpParameters
+import org.webrtc.RtpReceiver
+import org.webrtc.RtpSender
+import org.webrtc.RtpTransceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 import org.webrtc.SurfaceTextureHelper
@@ -189,6 +193,22 @@ class WebRTCEngine(
         setConnectionState(ConnectionState.CONNECTING)
         val finalRoomId = roomId ?: config.roomId
         signalingClient.connect(finalRoomId, signalingUrl)
+    }
+
+    fun updateIceServers(iceServers: List<PeerConnection.IceServer>) {
+        if (iceServers.isEmpty()) return
+        config = config.copy(iceServers = iceServers)
+        val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
+            sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
+        }
+        for ((_, peerState) in peers) {
+            try {
+                peerState.pc.setConfiguration(rtcConfig)
+                Timber.i("[WebRTC] Updated active PeerConnection with ${iceServers.size} ICE servers")
+            } catch (e: Exception) {
+                Timber.w(e, "[WebRTC] Failed updating PeerConnection configuration")
+            }
+        }
     }
 
     fun disconnect() {
@@ -404,28 +424,75 @@ class WebRTCEngine(
     }
 
     private fun attachLocalTracks(pc: PeerConnection) {
-        val existingIds = pc.senders.mapNotNull { it.track()?.id() }.toSet()
-
         localAudioTrack?.let { track ->
-            if (track.id() !in existingIds) {
-                pc.addTrack(track, listOf("stream0"))
-            }
+            attachTrackToPeerConnection(pc, track, MediaStreamTrack.MediaType.MEDIA_TYPE_AUDIO)
         }
 
         localVideoTrackInternal?.let { track ->
-            if (track.id() !in existingIds) {
-                val sender = pc.addTrack(track, listOf("stream0"))
-                // Max bitrate 1.5 Mbps, 30fps
-                val params = sender.parameters
-                if (params.encodings.isEmpty()) {
-                    params.encodings.add(RtpParameters.Encoding(null, true, null))
-                }
-                params.encodings.firstOrNull()?.let { encoding ->
-                    encoding.maxBitrateBps = 1_500_000
-                    encoding.maxFramerate = 30
-                }
-                sender.parameters = params
+            val sender = attachTrackToPeerConnection(pc, track, MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO)
+            sender?.let { applyVideoEncodingParameters(it) }
+        }
+    }
+
+    private fun attachTrackToPeerConnection(
+        pc: PeerConnection,
+        track: MediaStreamTrack,
+        mediaType: MediaStreamTrack.MediaType,
+    ): RtpSender? {
+        // 1. Reusar transceiver existente en Unified Plan si ya fue negociado o creado
+        val existingTransceiver = try {
+            pc.transceivers.firstOrNull { it.mediaType == mediaType && !it.isStopped }
+        } catch (e: Exception) {
+            Timber.w(e, "[WebRTC] Failed inspecting transceivers")
+            null
+        }
+
+        if (existingTransceiver != null) {
+            val sender = existingTransceiver.sender
+            if (sender.track()?.id() != track.id()) {
+                sender.setTrack(track, false)
             }
+            if (existingTransceiver.direction == RtpTransceiver.RtpTransceiverDirection.RECV_ONLY ||
+                existingTransceiver.direction == RtpTransceiver.RtpTransceiverDirection.INACTIVE
+            ) {
+                existingTransceiver.direction = RtpTransceiver.RtpTransceiverDirection.SEND_RECV
+            }
+            return sender
+        }
+
+        // 2. Verificar si ya existe un sender con este track
+        val existingSender = pc.senders.firstOrNull { it.track()?.id() == track.id() }
+        if (existingSender != null) {
+            return existingSender
+        }
+
+        // 3. Crear transceiver con dirección SEND_RECV (Unified Plan estándar)
+        return try {
+            val init = RtpTransceiver.RtpTransceiverInit(
+                RtpTransceiver.RtpTransceiverDirection.SEND_RECV,
+                listOf("stream0"),
+            )
+            val transceiver = pc.addTransceiver(track, init)
+            transceiver.sender
+        } catch (e: Exception) {
+            Timber.w(e, "[WebRTC] addTransceiver failed, falling back to addTrack")
+            pc.addTrack(track, listOf("stream0"))
+        }
+    }
+
+    private fun applyVideoEncodingParameters(sender: RtpSender) {
+        try {
+            val params = sender.parameters
+            if (params.encodings.isEmpty()) {
+                params.encodings.add(RtpParameters.Encoding(null, true, null))
+            }
+            params.encodings.firstOrNull()?.let { encoding ->
+                encoding.maxBitrateBps = 1_500_000
+                encoding.maxFramerate = 30
+            }
+            sender.parameters = params
+        } catch (e: Exception) {
+            Timber.w(e, "[WebRTC] Failed setting video sender parameters")
         }
     }
 
@@ -679,7 +746,40 @@ class WebRTCEngine(
             if (videoTrack != null) {
                 remoteVideoOwnerId = userId
                 _remoteVideoTrack.value = videoTrack
-                Timber.i("[WebRTC] Remote video track received")
+                Timber.i("[WebRTC] Remote video track received via onAddStream")
+            }
+        }
+
+        override fun onTrack(transceiver: RtpTransceiver) {
+            val track = transceiver.receiver?.track()
+            if (track is VideoTrack) {
+                remoteVideoOwnerId = userId
+                _remoteVideoTrack.value = track
+                Timber.i("[WebRTC] Remote video track received via onTrack (transceiver, Unified Plan)")
+            } else if (transceiver.mediaType == MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO) {
+                val videoTrack = transceiver.receiver?.track() as? VideoTrack
+                if (videoTrack != null) {
+                    remoteVideoOwnerId = userId
+                    _remoteVideoTrack.value = videoTrack
+                    Timber.i("[WebRTC] Remote video track received via onTrack mediaType fallback")
+                }
+            }
+        }
+
+        override fun onAddTrack(receiver: RtpReceiver, mediaStreams: Array<out MediaStream>) {
+            val track = receiver.track()
+            if (track is VideoTrack) {
+                remoteVideoOwnerId = userId
+                _remoteVideoTrack.value = track
+                Timber.i("[WebRTC] Remote video track received via onAddTrack (Unified Plan)")
+            }
+        }
+
+        override fun onRemoveTrack(receiver: RtpReceiver) {
+            val track = receiver.track()
+            if (track is VideoTrack && (_remoteVideoTrack.value == null || _remoteVideoTrack.value?.id() == track.id())) {
+                clearRemoteVideoForPeer(userId)
+                Timber.i("[WebRTC] Remote video track removed via onRemoveTrack")
             }
         }
 

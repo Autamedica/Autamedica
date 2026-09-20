@@ -114,7 +114,6 @@ export async function handler(req: Request): Promise<Response> {
     let items: PrescriptionItem[] = Array.isArray(body.items) ? body.items : [];
     let diagnosis = typeof body.diagnosis === 'string' ? body.diagnosis.trim() : '';
     let notes = typeof body.notes === 'string' ? body.notes.trim() : '';
-    let prescriptionCreatedAt = new Date().toISOString();
 
     // 4. Handle existing draft or create new prescription
     if (prescriptionId) {
@@ -154,7 +153,6 @@ export async function handler(req: Request): Promise<Response> {
         );
       }
 
-      prescriptionCreatedAt = existingRx.created_at || prescriptionCreatedAt;
       patientId = patientId || existingRx.patient_id;
 
       const clinical = (existingRx.clinical_data || {}) as Record<string, unknown>;
@@ -208,7 +206,6 @@ export async function handler(req: Request): Promise<Response> {
       }
 
       prescriptionId = insertedRx.id;
-      prescriptionCreatedAt = insertedRx.created_at;
     }
 
     // 5. Query patient details for PDF header
@@ -249,7 +246,7 @@ export async function handler(req: Request): Promise<Response> {
     const qrCodeContent = `https://autamedica.com/verify/${cuir}`;
 
     // 7. Render official PDF
-    const now = new Date(prescriptionCreatedAt);
+    const now = new Date();
     const issuedAt = now.toISOString();
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 

@@ -37,11 +37,11 @@ const PORTAL_META = [
   { color: 'var(--portal-companies)', href: '/auth/select-role', video: '/videos/video3.mp4' },
 ];
 
-const PORTAL_HEX = ['#10b981', '#3b82f6', '#f59e0b'];
+const PORTAL_HEX = ['#10b981', '#0ea5e9', '#38bdf8'];
 
 function CheckIcon({ hex }: { hex: string }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={hex} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={hex} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-90">
       <polyline points="20 6 9 17 4 12" />
     </svg>
   );
@@ -291,7 +291,7 @@ export default function HorizontalScroll({ locale = 'es' }: { locale?: Locale })
                   </h3>
 
                   <p
-                    className="text-base md:text-2xl text-[var(--au-text-secondary)] mb-6 md:mb-10 transition-all duration-700 delay-200"
+                    className="text-base md:text-2xl text-neutral-300 mb-6 md:mb-10 transition-all duration-700 delay-200"
                     style={{
                       transform: isFocused ? 'translateY(0)' : 'translateY(20px)',
                       opacity: isFocused ? 1 : 0,
