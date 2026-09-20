@@ -1,0 +1,10 @@
+{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.autamedica.android",
+    "sha256_cert_fingerprints": [
+      "D4:9C:D3:87:60:9E:AD:75:49:09:61:D4:14:C0:78:2D:07:E0:32:AC:57:87:94:17:6C:7F:51:5C:5C:B7:42:4E"
+    ]
+  }
+}
