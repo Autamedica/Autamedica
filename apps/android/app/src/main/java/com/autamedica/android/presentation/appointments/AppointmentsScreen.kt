@@ -6,7 +6,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -131,6 +133,7 @@ fun AppointmentsScreen(
 
     var appointmentToCancel by remember { mutableStateOf<Appointment?>(null) }
     var appointmentToReschedule by remember { mutableStateOf<Appointment?>(null) }
+    var selectedDoctorFilter by rememberSaveable { mutableStateOf("all") }
 
     // Separar turnos activos vs historial para pacientes
     val activeAppointments = remember(uiState.appointments) {
@@ -252,42 +255,84 @@ fun AppointmentsScreen(
                 }
 
                 isDoctor -> {
-                    // Vista limpia y sin estadísticas para el médico
+                    val todayDate = LocalDate.now()
+                    val todayDay = doctorAgendaDays.firstOrNull { it.date == todayDate }
+                    val todayCount = todayDay?.appointments?.size ?: 0
+                    val filteredAgendaDays = when (selectedDoctorFilter) {
+                        "today" -> doctorAgendaDays.filter { it.date == todayDate }
+                        "upcoming" -> doctorAgendaDays.filter { it.date > todayDate }
+                        else -> doctorAgendaDays
+                    }
+
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        if (doctorAgendaDays.isEmpty()) {
+                        // Chips de filtrado rápido de agenda
+                        if (doctorAgendaDays.isNotEmpty()) {
+                            item {
+                                DoctorAgendaFilterChips(
+                                    selectedFilter = selectedDoctorFilter,
+                                    onSelectFilter = { selectedDoctorFilter = it },
+                                    todayCount = todayCount,
+                                    totalCount = uiState.appointments.size,
+                                )
+                            }
+                        }
+
+                        if (filteredAgendaDays.isEmpty()) {
                             item {
                                 Surface(
                                     shape = RoundedCornerShape(16.dp),
-                                    color = AuSurface,
-                                    border = BorderStroke(1.dp, AuBorder),
+                                    color = Color.White,
+                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                    shadowElevation = 1.dp,
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Column(
-                                        modifier = Modifier.padding(24.dp),
+                                        modifier = Modifier.padding(32.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CalendarMonth,
-                                            contentDescription = null,
-                                            tint = AuTextTertiary,
-                                            modifier = Modifier.size(36.dp),
-                                        )
-                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = Color(0xFFF1F5F9),
+                                            modifier = Modifier.size(56.dp),
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = Icons.Default.CalendarMonth,
+                                                    contentDescription = null,
+                                                    tint = AuTextTertiary,
+                                                    modifier = Modifier.size(28.dp),
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(14.dp))
                                         Text(
-                                            text = stringResource(R.string.doctor_agenda_no_patients),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = AuTextSecondary,
+                                            text = if (selectedDoctorFilter == "today") {
+                                                "Sin turnos programados para hoy"
+                                            } else {
+                                                stringResource(R.string.doctor_agenda_no_patients)
+                                            },
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = AuTextPrimary,
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Los pacientes con turno confirmado aparecerán en tu agenda de guardia.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = AuTextTertiary,
+                                            textAlign = TextAlign.Center,
                                         )
                                     }
                                 }
                             }
                         } else {
-                            items(doctorAgendaDays, key = { it.key }) { day ->
+                            items(filteredAgendaDays, key = { it.key }) { day ->
                                 DoctorAgendaDaySection(
                                     day = day,
+                                    patientNames = uiState.patientNames,
                                     joinableAppointmentIds = uiState.joinableAppointmentIds,
                                     onNavigateToVideoCall = onNavigateToVideoCall,
                                 )
@@ -987,6 +1032,15 @@ private fun BookingCalendarCard(
 ) {
     var showDoctorSheet by remember { mutableStateOf(false) }
 
+    // Autoapertura anti-fricción estilo Uber: al expandir sin médico elegido,
+    // se despliega automáticamente el selector tras una breve pausa para que termine la animación.
+    LaunchedEffect(isExpanded, selectedDoctor) {
+        if (isExpanded && selectedDoctor == null && availableDoctors.isNotEmpty()) {
+            kotlinx.coroutines.delay(280L)
+            showDoctorSheet = true
+        }
+    }
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -1065,68 +1119,107 @@ private fun BookingCalendarCard(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    // Selección de Profesional
+                    // Stepper estilo Nubank (1 acción por paso, transparente e informativo)
+                    val currentStep = when {
+                        selectedDoctor == null -> 1
+                        selectedSlot == null -> 2
+                        else -> 3
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        BookingStepPill(step = 1, title = "Profesional", isActive = currentStep == 1, isCompleted = currentStep > 1, modifier = Modifier.weight(1f))
+                        BookingStepPill(step = 2, title = "Día y hora", isActive = currentStep == 2, isCompleted = currentStep > 2, modifier = Modifier.weight(1f))
+                        BookingStepPill(step = 3, title = "Confirmar", isActive = currentStep == 3, isCompleted = false, modifier = Modifier.weight(1f))
+                    }
+
+                    // Selección de Profesional: CTA Primario inflado estilo Uber
                     if (selectedDoctor == null) {
-                        Surface(
+                        val hasDoctors = availableDoctors.isNotEmpty()
+                        Button(
+                            onClick = { showDoctorSheet = true },
+                            enabled = hasDoctors,
                             shape = RoundedCornerShape(14.dp),
-                            color = AuBackground,
-                            border = BorderStroke(1.dp, PortalPatients.copy(alpha = 0.35f)),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PortalPatients,
+                                disabledContainerColor = AuSurfaceHover,
+                                contentColor = Color.White,
+                                disabledContentColor = AuTextTertiary,
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp, pressedElevation = 0.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable(enabled = availableDoctors.isNotEmpty()) { showDoctorSheet = true },
+                                .height(56.dp),
                         ) {
                             Row(
-                                modifier = Modifier.padding(14.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = PortalPatients.copy(alpha = 0.15f),
-                                    modifier = Modifier.size(40.dp),
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.MedicalServices,
-                                            contentDescription = null,
-                                            tint = PortalPatients,
-                                            modifier = Modifier.size(22.dp),
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = if (hasDoctors) Color.White.copy(alpha = 0.2f) else AuBorder,
+                                        modifier = Modifier.size(32.dp),
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.MedicalServices,
+                                                contentDescription = null,
+                                                tint = if (hasDoctors) Color.White else AuTextTertiary,
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                        }
+                                    }
+                                    Column {
+                                        Text(
+                                            text = if (hasDoctors) {
+                                                if (availableDoctors.size == 1) {
+                                                    "Elegir a ${availableDoctors.first().name.split(" ").take(2).joinToString(" ")}"
+                                                } else {
+                                                    "Elegir doctor"
+                                                }
+                                            } else {
+                                                "Sin médicos disponibles"
+                                            },
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (hasDoctors) Color.White else AuTextTertiary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
                                         )
+                                        if (hasDoctors) {
+                                            Text(
+                                                text = "${availableDoctors.size} especialista${if (availableDoctors.size != 1) "s" else ""} de guardia",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Color.White.copy(alpha = 0.82f),
+                                                maxLines = 1,
+                                            )
+                                        }
                                     }
                                 }
 
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Profesional médico",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = AuTextPrimary,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                    )
-                                    Text(
-                                        text = "Tocá para elegir especialista",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = AuTextSecondary,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
+                                if (hasDoctors) {
+                                    Icon(
+                                        imageVector = Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp),
                                     )
                                 }
-
-                                Icon(
-                                    imageVector = Icons.Default.ChevronRight,
-                                    contentDescription = null,
-                                    tint = PortalPatients,
-                                    modifier = Modifier.size(20.dp),
-                                )
                             }
                         }
                     } else {
-                        // Tarjeta de médico seleccionado con botón "Cambiar"
+                        // Tarjeta de médico seleccionado con botón "Cambiar" pulido estilo Nubank
                         Surface(
                             shape = RoundedCornerShape(14.dp),
-                            color = AuBackground,
-                            border = BorderStroke(1.dp, AuBorder),
+                            color = PortalPatients.copy(alpha = 0.06f),
+                            border = BorderStroke(1.5.dp, PortalPatients.copy(alpha = 0.35f)),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable(enabled = availableDoctors.isNotEmpty()) { showDoctorSheet = true },
@@ -1136,40 +1229,41 @@ private fun BookingCalendarCard(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = PortalPatients.copy(alpha = 0.16f),
-                                    modifier = Modifier.size(38.dp),
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        val initials = selectedDoctor.name
-                                            .replace("Dr.", "")
-                                            .replace("Dra.", "")
-                                            .trim()
-                                            .split(" ")
-                                            .take(2)
-                                            .mapNotNull { it.firstOrNull()?.toString() }
-                                            .joinToString("")
-                                            .ifBlank { "MD" }
-
-                                        Text(
-                                            text = initials,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = PortalPatients,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                    }
-                                }
+                                DoctorAvatar(
+                                    name = selectedDoctor.name,
+                                    avatarUrl = selectedDoctor.avatarUrl,
+                                    doctorId = selectedDoctor.id,
+                                    modifier = Modifier.size(42.dp),
+                                )
 
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = selectedDoctor.name,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = AuTextPrimary,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        Text(
+                                            text = selectedDoctor.name,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = AuTextPrimary,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f, fill = false),
+                                        )
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = AuSuccess.copy(alpha = 0.14f),
+                                        ) {
+                                            Text(
+                                                text = "Elegido",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = AuSuccess,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 9.sp,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                            )
+                                        }
+                                    }
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1219,18 +1313,18 @@ private fun BookingCalendarCard(
                                 if (availableDoctors.isNotEmpty()) {
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
-                                        color = AuSurfaceHover,
+                                        color = PortalPatients.copy(alpha = 0.12f),
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                                         ) {
                                             Text(
-                                                text = if (availableDoctors.size > 1) "Cambiar" else "Ver médico",
+                                                text = if (availableDoctors.size > 1) "Cambiar" else "Ver",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = PortalPatients,
-                                                fontWeight = FontWeight.SemiBold,
+                                                fontWeight = FontWeight.Bold,
                                             )
                                             Icon(
                                                 imageVector = Icons.Default.ExpandMore,
@@ -1594,6 +1688,84 @@ private fun SlotChip(
     }
 }
 
+@Composable
+private fun BookingStepPill(
+    step: Int,
+    title: String,
+    isActive: Boolean,
+    isCompleted: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = when {
+            isActive -> PortalPatients.copy(alpha = 0.14f)
+            isCompleted -> AuSuccess.copy(alpha = 0.12f)
+            else -> AuBackground
+        },
+        border = BorderStroke(
+            width = 1.dp,
+            color = when {
+                isActive -> PortalPatients
+                isCompleted -> AuSuccess
+                else -> AuBorder
+            },
+        ),
+        modifier = modifier.height(34.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = when {
+                    isActive -> PortalPatients
+                    isCompleted -> AuSuccess
+                    else -> AuTextTertiary.copy(alpha = 0.3f)
+                },
+                modifier = Modifier.size(16.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (isCompleted) {
+                        Icon(
+                            imageVector = Icons.Outlined.CheckCircle,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(12.dp),
+                        )
+                    } else {
+                        Text(
+                            text = step.toString(),
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = when {
+                    isActive -> PortalPatients
+                    isCompleted -> AuSuccess
+                    else -> AuTextTertiary
+                },
+                fontWeight = if (isActive || isCompleted) FontWeight.Bold else FontWeight.Medium,
+                fontSize = 10.sp,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DoctorPickerBottomSheet(
@@ -1644,17 +1816,31 @@ private fun DoctorPickerBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "Seleccionar Profesional",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = AuTextPrimary,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "${filteredDoctors.size} disponible${if (filteredDoctors.size != 1) "s" else ""}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AuTextTertiary,
-                )
+                Column {
+                    Text(
+                        text = "Elegir profesional",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = AuTextPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "Tocá un médico para ver sus días y horarios disponibles",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = accentColor.copy(alpha = 0.12f),
+                ) {
+                    Text(
+                        text = "${filteredDoctors.size} disponible${if (filteredDoctors.size != 1) "s" else ""}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = accentColor,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
             }
 
             if (specialties.size > 2) {
@@ -1694,52 +1880,39 @@ private fun DoctorPickerBottomSheet(
                 items(filteredDoctors, key = { it.id }) { doctor ->
                     val isSelected = selectedDoctor?.id == doctor.id
                     Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = if (isSelected) accentColor.copy(alpha = 0.12f) else AuBackground,
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (isSelected) accentColor.copy(alpha = 0.10f) else Color.White,
                         border = BorderStroke(
-                            width = if (isSelected) 1.5.dp else 1.dp,
-                            color = if (isSelected) accentColor else AuBorder,
+                            width = if (isSelected) 2.dp else 1.dp,
+                            color = if (isSelected) accentColor else Color(0xFFE2E8F0),
                         ),
+                        shadowElevation = if (isSelected) 0.dp else 1.dp,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onSelectDoctor(doctor) },
                     ) {
                         Row(
-                            modifier = Modifier.padding(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = accentColor.copy(alpha = 0.16f),
-                                modifier = Modifier.size(42.dp),
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    val initials = doctor.name
-                                        .replace("Dr.", "")
-                                        .replace("Dra.", "")
-                                        .trim()
-                                        .split(" ")
-                                        .take(2)
-                                        .mapNotNull { it.firstOrNull()?.toString() }
-                                        .joinToString("")
-                                        .ifBlank { "MD" }
-
-                                    Text(
-                                        text = initials,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = accentColor,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                }
-                            }
+                            DoctorAvatar(
+                                name = doctor.name,
+                                avatarUrl = doctor.avatarUrl,
+                                doctorId = doctor.id,
+                                modifier = Modifier.size(46.dp),
+                            )
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = doctor.name,
                                     style = MaterialTheme.typography.titleSmall,
                                     color = AuTextPrimary,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -1749,8 +1922,10 @@ private fun DoctorPickerBottomSheet(
                                     Text(
                                         text = doctor.specialty,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = AuTextSecondary,
-                                        fontWeight = FontWeight.Medium,
+                                        color = accentColor,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
                                     )
                                     if (!doctor.subspecialty.isNullOrBlank()) {
                                         Surface(
@@ -1763,6 +1938,8 @@ private fun DoctorPickerBottomSheet(
                                                 color = accentColor,
                                                 fontWeight = FontWeight.Bold,
                                                 modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                                                maxLines = 1,
+                                                softWrap = false,
                                             )
                                         }
                                     }
@@ -1784,8 +1961,8 @@ private fun DoctorPickerBottomSheet(
                                             "Cubierto por plan"
                                         },
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = accentColor,
-                                        fontWeight = FontWeight.Medium,
+                                        color = if (doctor.consultationFee != null && doctor.consultationFee > 0) AuTextSecondary else AuSuccess,
+                                        fontWeight = FontWeight.SemiBold,
                                     )
                                 }
                             }
@@ -1793,10 +1970,34 @@ private fun DoctorPickerBottomSheet(
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Outlined.CheckCircle,
-                                    contentDescription = null,
+                                    contentDescription = "Seleccionado",
                                     tint = accentColor,
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(24.dp),
                                 )
+                            } else {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = accentColor.copy(alpha = 0.08f),
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                    ) {
+                                        Text(
+                                            text = "Elegir",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = accentColor,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.ChevronRight,
+                                            contentDescription = null,
+                                            tint = accentColor,
+                                            modifier = Modifier.size(14.dp),
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -1910,78 +2111,309 @@ private fun PastAppointmentsSection(
 }
 
 @Composable
-private fun DoctorAgendaDaySection(
-    day: AgendaDay,
-    joinableAppointmentIds: Set<String>,
-    onNavigateToVideoCall: (appointmentId: String) -> Unit,
+private fun DoctorAgendaFilterChips(
+    selectedFilter: String,
+    onSelectFilter: (String) -> Unit,
+    todayCount: Int,
+    totalCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        DoctorFilterChip(
+            label = "Todos ($totalCount)",
+            selected = selectedFilter == "all",
+            onClick = { onSelectFilter("all") },
+        )
+        DoctorFilterChip(
+            label = "Hoy ($todayCount)",
+            selected = selectedFilter == "today",
+            onClick = { onSelectFilter("today") },
+        )
+        DoctorFilterChip(
+            label = "Próximos",
+            selected = selectedFilter == "upcoming",
+            onClick = { onSelectFilter("upcoming") },
+        )
+    }
+}
+
+@Composable
+private fun DoctorFilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
+        shape = RoundedCornerShape(999.dp),
+        color = if (selected) PortalDoctors else Color.White,
+        border = BorderStroke(
+            1.dp,
+            if (selected) PortalDoctors else Color(0xFFE2E8F0),
+        ),
+        shadowElevation = if (selected) 1.dp else 0.dp,
+        modifier = modifier.clickable(onClick = onClick),
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column {
-                    Text(
-                        text = formatSectionDate(day.date),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = AuTextPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "${day.appointments.size} turno${if (day.appointments.size == 1) "" else "s"} en agenda",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AuTextTertiary,
-                    )
-                }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (selected) Color.White else AuTextSecondary,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+        )
+    }
+}
 
-                if (day.hasJoinableAppointment) {
-                    Surface(
-                        shape = RoundedCornerShape(999.dp),
-                        color = AuSuccess.copy(alpha = 0.14f),
+@Composable
+private fun DoctorAgendaDaySection(
+    day: AgendaDay,
+    patientNames: Map<String, String>,
+    joinableAppointmentIds: Set<String>,
+    onNavigateToVideoCall: (appointmentId: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text(
+                    text = formatSectionDate(day.date),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = AuTextPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "${day.appointments.size} turno${if (day.appointments.size == 1) "" else "s"} programado${if (day.appointments.size == 1) "" else "s"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AuTextTertiary,
+                )
+            }
+
+            if (day.hasJoinableAppointment) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = Color(0xFFECFDF5),
+                    border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.CheckCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = AuSuccess,
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Sala lista",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AuSuccess,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF10B981)),
+                        )
+                        Text(
+                            text = "Sala lista",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                            color = Color(0xFF047857),
+                            fontWeight = FontWeight.Bold,
+                        )
                     }
                 }
             }
+        }
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                day.appointments.forEach { appointment ->
-                    AppointmentCard(
-                        appointment = appointment,
-                        onJoinCall = if (appointment.isTelemedicineJoinCandidate() || appointment.id in joinableAppointmentIds) {
-                            { onNavigateToVideoCall(appointment.id) }
-                        } else null,
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            day.appointments.forEach { appointment ->
+                val isJoinable = appointment.isTelemedicineJoinCandidate() || appointment.id in joinableAppointmentIds
+                DoctorAgendaAppointmentCard(
+                    appointment = appointment,
+                    patientName = patientNames[appointment.patientId],
+                    isJoinable = isJoinable,
+                    onJoinCall = if (isJoinable) {
+                        { onNavigateToVideoCall(appointment.id) }
+                    } else null,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DoctorAgendaAppointmentCard(
+    appointment: Appointment,
+    patientName: String?,
+    isJoinable: Boolean,
+    onJoinCall: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val isInProgress = appointment.status == AppointmentStatus.IN_PROGRESS
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        border = BorderStroke(
+            1.dp,
+            when {
+                isInProgress -> Color(0xFF10B981)
+                isJoinable -> Color(0xFF38BDF8)
+                else -> Color(0xFFE2E8F0)
+            },
+        ),
+        shadowElevation = if (isInProgress || isJoinable) 2.dp else 1.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Pill con hora y duración
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = when {
+                    isInProgress -> Color(0xFFECFDF5)
+                    isJoinable -> Color(0xFFF0F9FF)
+                    else -> Color(0xFFF8FAFC)
+                },
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = formatAppointmentTime(appointment.startTime),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = when {
+                            isInProgress -> Color(0xFF047857)
+                            isJoinable -> Color(0xFF0284C7)
+                            else -> AuTextPrimary
+                        },
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "${appointment.durationMinutes ?: 15}min",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AuTextTertiary,
+                        fontSize = 9.sp,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Información clínica y nombre del paciente
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = patientName ?: "Paciente #${appointment.id.takeLast(4)}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = AuTextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = displayAppointmentType(appointment.type),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = " · ",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextTertiary,
+                    )
+                    DoctorStatusDot(appointment.status)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = displayDoctorStatus(appointment.status),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AuTextTertiary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                appointment.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = notes,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AuTextTertiary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            // Botón de atención directa si está joinable
+            if (onJoinCall != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = onJoinCall,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF10B981),
+                        contentColor = Color.White,
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Videocam,
+                        contentDescription = "Atender",
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        "Atender",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DoctorStatusDot(status: AppointmentStatus) {
+    val color = when (status) {
+        AppointmentStatus.PAYMENT_PENDING -> Color(0xFFD97706)
+        AppointmentStatus.IN_PROGRESS -> PortalDoctors
+        AppointmentStatus.CONFIRMED -> AuSuccess
+        AppointmentStatus.SCHEDULED -> AuAccent
+        AppointmentStatus.COMPLETED -> AuTextTertiary
+        AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW -> Color(0xFFEF4444)
+    }
+    Box(
+        modifier = Modifier
+            .size(6.dp)
+            .clip(CircleShape)
+            .background(color),
+    )
+}
+
+private fun displayDoctorStatus(status: AppointmentStatus): String = when (status) {
+    AppointmentStatus.PAYMENT_PENDING -> "Pago pendiente"
+    AppointmentStatus.SCHEDULED -> "Programada"
+    AppointmentStatus.CONFIRMED -> "Confirmada"
+    AppointmentStatus.IN_PROGRESS -> "En curso"
+    AppointmentStatus.COMPLETED -> "Completada"
+    AppointmentStatus.CANCELLED -> "Cancelada"
+    AppointmentStatus.NO_SHOW -> "Ausente"
+}
+
+private fun formatAppointmentTime(isoString: String): String {
+    return try {
+        val dt = OffsetDateTime.parse(isoString)
+        dt.format(DateTimeFormatter.ofPattern("HH:mm", CountryContext.getLocale()))
+    } catch (_: Exception) {
+        ""
     }
 }
 
