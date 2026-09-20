@@ -117,7 +117,7 @@ const landingCopyPt = {
       },
     },
   },
-} as const;
+};
 
 function isLandingCopyVariant(value: string): value is LandingCopyVariant {
   return Object.prototype.hasOwnProperty.call(landingCopyEs.variants, value);
@@ -125,9 +125,10 @@ function isLandingCopyVariant(value: string): value is LandingCopyVariant {
 
 export function resolveLandingCopy(url: URL, requestedVariant?: string | null, locale?: Locale): ResolvedLandingCopy {
   const landingCopyConfig = locale === 'pt' ? landingCopyPt : landingCopyEs;
+  const defaultVariant = (landingCopyConfig.defaultVariant as LandingCopyVariant) || 'a';
   const queryVariant = url.searchParams.get('copy');
-  const candidate = queryVariant ?? requestedVariant ?? landingCopyConfig.defaultVariant;
-  const variant = isLandingCopyVariant(candidate) ? candidate : landingCopyConfig.defaultVariant;
+  const candidate = queryVariant ?? requestedVariant ?? defaultVariant;
+  const variant: LandingCopyVariant = isLandingCopyVariant(candidate) ? candidate : defaultVariant;
   const variantConfig = landingCopyConfig.variants[variant];
 
   return {
