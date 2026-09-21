@@ -1,7 +1,5 @@
 package com.autamedica.android.presentation.videocall
 
-import androidx.compose.ui.res.stringResource
-import com.autamedica.android.R
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -29,11 +27,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +42,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,13 +56,13 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.autamedica.android.BuildConfig
 import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
+import com.autamedica.android.presentation.videocall.components.CallActionsOverflowSheet
 import com.autamedica.android.presentation.videocall.components.CallControlsBar
 import com.autamedica.android.presentation.videocall.components.CallTopBar
 import com.autamedica.android.presentation.videocall.components.ChatPanel
-import com.autamedica.android.presentation.videocall.components.ClinicalNotesSheet
+import com.autamedica.android.presentation.videocall.components.ClinicalHudLayer
 import com.autamedica.android.presentation.videocall.components.ManagedVideoRenderer
 import com.autamedica.android.presentation.videocall.components.PatientWaitingRoomOverlay
 import com.autamedica.android.presentation.videocall.components.RemoteAvatarFallback
@@ -120,7 +115,7 @@ fun VideoCallScreen(
                     .padding(horizontal = 24.dp),
             ) {
                 Text(
-                    text = stringResource(R.string.videocall_permission_required),
+                    text = "Se requieren permisos de cámara y micrófono para iniciar la videollamada.",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
@@ -227,7 +222,7 @@ fun VideoCallScreen(
                             }
                         }
                         Text(
-                            text = stringResource(R.string.videocall_camera_turned_off),
+                            text = "Cámara apagada",
                             color = Color(0xFF94A3B8),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
@@ -240,7 +235,7 @@ fun VideoCallScreen(
             PatientWaitingRoomOverlay(
                 isAudioEnabled = uiState.isAudioEnabled,
                 isVideoEnabled = uiState.isVideoEnabled,
-                statusMessage = uiState.sessionStatusMessage ?: stringResource(R.string.videocall_waiting_for_doctor),
+                statusMessage = uiState.sessionStatusMessage ?: "Esperando al médico...",
                 isConnecting = uiState.connectionState == ConnectionState.CONNECTING,
                 onToggleAudio = viewModel::toggleAudio,
                 onToggleVideo = viewModel::toggleVideo,
@@ -275,14 +270,22 @@ fun VideoCallScreen(
                     mirror = false,
                 )
             } else {
+                val remoteDisplayName = when {
+                    uiState.isDoctor -> uiState.patientName.ifBlank { "Paciente" }
+                    else -> uiState.doctorName
+                }
                 val subtitleText = when (uiState.connectionState) {
-                    ConnectionState.CONNECTING -> stringResource(R.string.videocall_calling_doctor)
-                    ConnectionState.RECONNECTING -> stringResource(R.string.videocall_reconnecting_doctor)
-                    ConnectionState.FAILED -> stringResource(R.string.videocall_error_room_connection)
-                    else -> if (uiState.isDoctor) stringResource(R.string.videocall_waiting_patient_camera) else stringResource(R.string.videocall_waiting_doctor_camera)
+                    ConnectionState.CONNECTING -> if (uiState.isDoctor) "Llamando al paciente..." else "Llamando al médico..."
+                    ConnectionState.RECONNECTING -> "Reconectando..."
+                    ConnectionState.FAILED -> "Error de conexión con la sala"
+                    else -> if (uiState.isDoctor) {
+                        "Esperando que el paciente active su cámara..."
+                    } else {
+                        "Esperando que el profesional active su cámara..."
+                    }
                 }
                 RemoteAvatarFallback(
-                    name = if (uiState.isDoctor) stringResource(R.string.videocall_patient_label) else uiState.doctorName,
+                    name = remoteDisplayName,
                     subtitle = subtitleText,
                     isCameraOff = uiState.connectionState == ConnectionState.CONNECTED,
                     isReconnecting = uiState.connectionState == ConnectionState.RECONNECTING,
@@ -290,80 +293,26 @@ fun VideoCallScreen(
                 )
             }
 
-            // Top Pill Overlay: Participant Identity (Inside Video)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(top = 58.dp, start = 16.dp, end = 16.dp)
-                    .align(Alignment.TopCenter),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Left: Green Pulsing Dot + Name
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = Color(0xCC0F172A),
-                    border = BorderStroke(1.dp, Color(0x26FFFFFF)),
-                    shadowElevation = 8.dp,
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(7.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF10B981)),
-                        )
-                        Text(
-                            text = if (uiState.isDoctor) stringResource(R.string.videocall_patient_label) else uiState.doctorName,
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-
-                // Right: Subtle security indicator
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = Color(0x990F172A),
-                    border = BorderStroke(1.dp, Color(0x1FFFFFFF)),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Lock,
-                            contentDescription = stringResource(R.string.videocall_secure_connection),
-                            tint = Color(0xFF38BDF8).copy(alpha = 0.8f),
-                            modifier = Modifier.size(12.dp),
-                        )
-                    }
-                }
-            }
-
             // In PiP mode, hide controls & PiP container
             if (!isInPipMode) {
-                // Consolidated Top Bar (Status dot, Quality bars, Duration timer)
+                val participantLabel = when {
+                    uiState.isDoctor -> uiState.patientName.ifBlank { "Paciente" }
+                    else -> uiState.doctorName.ifBlank { "Profesional" }
+                }
                 AnimatedVisibility(
                     visible = uiState.showControls,
                     enter = fadeIn() + slideInVertically(),
                     exit = fadeOut() + slideOutVertically(),
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .statusBarsPadding(),
+                    modifier = Modifier.align(Alignment.TopCenter),
                 ) {
                     CallTopBar(
                         connectionState = uiState.connectionState,
                         qualityLevel = uiState.qualitySummary.overallLevel,
                         durationSeconds = uiState.callDurationSeconds,
+                        participantLabel = participantLabel,
                         isWaitingRoom = isWaitingRoomActive,
+                        safetyAlert = if (uiState.isDoctor) uiState.safetyAlertLabel else null,
+                        clinicalFirst = uiState.isDoctor,
                     )
                 }
 
@@ -383,7 +332,7 @@ fun VideoCallScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
-                                text = stringResource(R.string.videocall_weak_connection_audio_only),
+                                text = "Conexión débil: llamada en solo audio",
                                 color = Color.White,
                                 fontSize = 12.sp,
                                 modifier = Modifier.weight(1f),
@@ -392,18 +341,19 @@ fun VideoCallScreen(
                                 onClick = { viewModel.reactivateVideo() },
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             ) {
-                                Text(stringResource(R.string.videocall_reactivate_video), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("Reactivar video", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
                     }
                 }
 
-                // Local Video Picture-in-Picture (Bottom-Right, above Dock)
+                // Local PiP: doctor sube el padding para dejar espacio a la guía clínica.
+                val pipBottomPadding = if (uiState.isDoctor) 320.dp else 96.dp
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .navigationBarsPadding()
-                        .padding(bottom = 96.dp, end = 16.dp)
+                        .padding(bottom = pipBottomPadding, end = 16.dp)
                         .size(width = 110.dp, height = 154.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color(0xFF1E293B)),
@@ -446,7 +396,7 @@ fun VideoCallScreen(
                             .padding(6.dp),
                     ) {
                         Text(
-                            text = stringResource(R.string.videocall_you_label),
+                            text = "TÚ",
                             color = Color.White,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
@@ -475,7 +425,52 @@ fun VideoCallScreen(
                     )
                 }
 
-                // Bottom Controls Dock (Matching Web CallControlsBar)
+                // Doctor: HUD clínico morph reposo→sheet (resumen/preguntas/notas) sobre
+                // el video full-bleed. Compartido con AntaMedici web (ConsultationContextPanel):
+                // motivo + alertas + preguntas + relato + antecedentes + receta/atestado/SOAP,
+                // sin modal que tape la pantalla. Mic/cam/timer viven en overflow / top bar.
+                if (uiState.isDoctor) {
+                    AnimatedVisibility(
+                        visible = !uiState.isActionsOverflowOpen,
+                        enter = fadeIn() + slideInVertically { it },
+                        exit = fadeOut() + slideOutVertically { it },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 84.dp),
+                    ) {
+                        ClinicalHudLayer(
+                            panel = uiState.clinicalSheetPanel,
+                            guidance = uiState.clinicalGuidance,
+                            clinicalContext = uiState.patientClinicalContext,
+                            fallbackMotivo = uiState.chiefComplaintPeek,
+                            patientName = uiState.patientName,
+                            hasPatient = uiState.patientId.isNotBlank(),
+                            isLoading = uiState.isLoadingClinicalContext,
+                            consultationNotes = uiState.consultationNotes,
+                            initialNotes = uiState.appointmentNotes,
+                            isSavingNotes = uiState.isSavingNotes,
+                            notesSaved = uiState.notesSaved,
+                            onNotesChange = viewModel::updateConsultationNotes,
+                            onSaveNotes = viewModel::saveConsultationNotes,
+                            onRequestPanelChange = viewModel::setClinicalSheetPanel,
+                            onOpenSoap = if (!isPreviewRoute) {
+                                {
+                                    viewModel.setClinicalSheetPanel(ClinicalSheetPanel.GUIDANCE)
+                                    viewModel.openSoapEvolution()
+                                }
+                            } else null,
+                            onEmitPrescription = if (uiState.patientId.isNotBlank() && onNavigateToCreatePrescription != null) {
+                                { onNavigateToCreatePrescription(uiState.patientId) }
+                            } else null,
+                            onEmitCertificate = if (uiState.patientId.isNotBlank() && onNavigateToCreateCertificate != null) {
+                                { onNavigateToCreateCertificate(uiState.patientId) }
+                            } else null,
+                        )
+                    }
+                }
+
+                // Dock: doctor = ficha + medios(overflow) + colgar; paciente = media + chat
                 AnimatedVisibility(
                     visible = uiState.showControls,
                     enter = fadeIn() + slideInVertically { it },
@@ -487,56 +482,40 @@ fun VideoCallScreen(
                     CallControlsBar(
                         isAudioEnabled = uiState.isAudioEnabled,
                         isVideoEnabled = uiState.isVideoEnabled,
-                        isSpeakerOn = uiState.isSpeakerOn,
-                        isChatOpen = uiState.isChatOpen,
                         onToggleAudio = viewModel::toggleAudio,
                         onToggleVideo = viewModel::toggleVideo,
-                        onToggleSpeaker = viewModel::toggleSpeaker,
-                        onToggleChat = viewModel::toggleChat,
-                        onSwitchCamera = viewModel::switchCamera,
+                        onEndCall = { viewModel.handleCallEnd(onCallEnd) },
                         isDoctor = uiState.isDoctor,
-                        isClinicalNotesOpen = uiState.isClinicalNotesOpen,
-                        onToggleClinicalNotes = viewModel::toggleClinicalNotes,
-                        onEmitPrescription = if (uiState.patientId.isNotBlank() && onNavigateToCreatePrescription != null) {
-                            { onNavigateToCreatePrescription(uiState.patientId) }
-                        } else null,
-                        onEmitCertificate = if (uiState.patientId.isNotBlank() && onNavigateToCreateCertificate != null) {
-                            { onNavigateToCreateCertificate(uiState.patientId) }
-                        } else null,
-                        unreadMessages = 0,
-                        onEndCall = {
-                            viewModel.handleCallEnd(onCallEnd)
-                        },
-                    )
-                }
-
-                // Clinical Notes Sheet (Doctor only)
-                AnimatedVisibility(
-                    visible = uiState.isClinicalNotesOpen,
-                    enter = fadeIn() + slideInVertically { it },
-                    exit = fadeOut() + slideOutVertically { it },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .navigationBarsPadding(),
-                ) {
-                    ClinicalNotesSheet(
-                        notes = uiState.consultationNotes,
-                        initialNotes = uiState.appointmentNotes,
-                        isSaving = uiState.isSavingNotes,
-                        isSaved = uiState.notesSaved,
-                        onNotesChange = viewModel::updateConsultationNotes,
-                        onSaveNotes = viewModel::saveConsultationNotes,
-                        onClose = viewModel::toggleClinicalNotes,
-                        onOpenFullSoap = if (!isPreviewRoute) {
-                            {
-                                viewModel.toggleClinicalNotes()
-                                viewModel.openSoapEvolution()
-                            }
-                        } else null,
+                        isFichaOpen = uiState.isClinicalSheetExpanded,
+                        hasSafetyAlerts = uiState.safetyAlertCount > 0,
+                        onOpenFicha = if (uiState.isDoctor) viewModel::toggleClinicalSheet else null,
+                        isOverflowOpen = uiState.isActionsOverflowOpen,
+                        overflowBadgeCount = uiState.unreadChatMessages,
+                        onOpenOverflow = if (uiState.isDoctor) viewModel::toggleActionsOverflow else null,
+                        isSpeakerOn = uiState.isSpeakerOn,
+                        isChatOpen = uiState.isChatOpen,
+                        unreadMessages = uiState.unreadChatMessages,
+                        onToggleSpeaker = if (!uiState.isDoctor) viewModel::toggleSpeaker else null,
+                        onToggleChat = if (!uiState.isDoctor) viewModel::toggleChat else null,
                     )
                 }
             }
         }
+    }
+
+    if (uiState.isDoctor && uiState.isActionsOverflowOpen) {
+        CallActionsOverflowSheet(
+            isAudioEnabled = uiState.isAudioEnabled,
+            isVideoEnabled = uiState.isVideoEnabled,
+            isSpeakerOn = uiState.isSpeakerOn,
+            unreadMessages = uiState.unreadChatMessages,
+            onToggleAudio = viewModel::toggleAudio,
+            onToggleVideo = viewModel::toggleVideo,
+            onToggleChat = viewModel::toggleChat,
+            onToggleSpeaker = viewModel::toggleSpeaker,
+            onSwitchCamera = viewModel::switchCamera,
+            onDismiss = viewModel::closeActionsOverflow,
+        )
     }
 
     if (uiState.showSoapEvolution) {

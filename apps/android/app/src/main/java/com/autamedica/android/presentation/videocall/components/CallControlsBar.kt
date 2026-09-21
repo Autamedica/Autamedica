@@ -1,7 +1,5 @@
 package com.autamedica.android.presentation.videocall.components
 
-import androidx.compose.ui.res.stringResource
-import com.autamedica.android.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,14 +17,12 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CallEnd
+import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
-import androidx.compose.material.icons.automirrored.outlined.Assignment
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Medication
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -46,26 +42,28 @@ private val DockBorder = Color(0x33FFFFFF)
 private val GlassButtonOn = Color(0x26FFFFFF)
 private val DangerRed = Color(0xFFDC2626)
 private val PrimarySky = Color(0xFF0284C7)
+private val TealFicha = Color(0xFF0D9488)
 
 @Composable
 fun CallControlsBar(
     isAudioEnabled: Boolean,
     isVideoEnabled: Boolean,
-    isSpeakerOn: Boolean,
-    isChatOpen: Boolean,
     onToggleAudio: () -> Unit,
     onToggleVideo: () -> Unit,
-    onToggleSpeaker: () -> Unit,
-    onToggleChat: () -> Unit,
     onEndCall: () -> Unit,
-    onSwitchCamera: (() -> Unit)? = null,
-    isDoctor: Boolean = false,
-    isClinicalNotesOpen: Boolean = false,
-    onToggleClinicalNotes: (() -> Unit)? = null,
-    onEmitPrescription: (() -> Unit)? = null,
-    onEmitCertificate: (() -> Unit)? = null,
-    unreadMessages: Int = 0,
     modifier: Modifier = Modifier,
+    isDoctor: Boolean = false,
+    isFichaOpen: Boolean = false,
+    hasSafetyAlerts: Boolean = false,
+    onOpenFicha: (() -> Unit)? = null,
+    isOverflowOpen: Boolean = false,
+    overflowBadgeCount: Int = 0,
+    onOpenOverflow: (() -> Unit)? = null,
+    isSpeakerOn: Boolean = true,
+    isChatOpen: Boolean = false,
+    unreadMessages: Int = 0,
+    onToggleSpeaker: (() -> Unit)? = null,
+    onToggleChat: (() -> Unit)? = null,
 ) {
     Surface(
         shape = RoundedCornerShape(999.dp),
@@ -81,102 +79,91 @@ fun CallControlsBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Audio toggle
-            ControlDockButton(
-                icon = if (isAudioEnabled) Icons.Filled.Mic else Icons.Filled.MicOff,
-                contentDescription = if (isAudioEnabled) stringResource(R.string.videocall_mute) else stringResource(R.string.videocall_unmute_mic),
-                isActive = isAudioEnabled,
-                isDanger = !isAudioEnabled,
-                onClick = onToggleAudio,
-            )
-
-            // Video toggle
-            ControlDockButton(
-                icon = if (isVideoEnabled) Icons.Filled.Videocam else Icons.Filled.VideocamOff,
-                contentDescription = if (isVideoEnabled) stringResource(R.string.videocall_camera_off) else stringResource(R.string.videocall_camera_on),
-                isActive = isVideoEnabled,
-                isDanger = !isVideoEnabled,
-                onClick = onToggleVideo,
-            )
-
-            // Switch Camera
-            if (onSwitchCamera != null && isVideoEnabled) {
-                ControlDockButton(
-                    icon = Icons.Filled.Refresh,
-                    contentDescription = stringResource(R.string.videocall_switch_camera),
-                    isActive = true,
-                    onClick = onSwitchCamera,
-                )
-            }
-
-            // Speaker toggle
-            ControlDockButton(
-                icon = if (isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                contentDescription = if (isSpeakerOn) stringResource(R.string.videocall_speaker_on) else stringResource(R.string.videocall_earpiece),
-                isActive = isSpeakerOn,
-                onClick = onToggleSpeaker,
-            )
-
-            // Chat toggle with badge
-            Box {
-                ControlDockButton(
-                    icon = Icons.AutoMirrored.Filled.Chat,
-                    contentDescription = stringResource(R.string.videocall_chat),
-                    isActive = isChatOpen,
-                    activeColor = PrimarySky,
-                    onClick = onToggleChat,
-                )
-                if (unreadMessages > 0) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(16.dp)
-                            .clip(CircleShape)
-                            .background(DangerRed),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = unreadMessages.toString(),
-                            color = Color.White,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
+            if (isDoctor) {
+                // Jerarquía clínica: ficha/guía + medios (overflow) + colgar.
+                // Mic/cam NO van en primera vista.
+                if (onOpenFicha != null) {
+                    Box {
+                        ControlDockButton(
+                            icon = Icons.Filled.MedicalServices,
+                            contentDescription = "Guía clínica",
+                            isActive = isFichaOpen,
+                            activeColor = TealFicha,
+                            onClick = onOpenFicha,
                         )
+                        if (hasSafetyAlerts && !isFichaOpen) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(DangerRed),
+                            )
+                        }
+                    }
+                }
+
+                if (onOpenOverflow != null) {
+                    Box {
+                        ControlDockButton(
+                            icon = Icons.Filled.MoreHoriz,
+                            contentDescription = "Medios y chat",
+                            isActive = isOverflowOpen,
+                            activeColor = PrimarySky,
+                            onClick = onOpenOverflow,
+                        )
+                        val mutedOrCamOff = !isAudioEnabled || !isVideoEnabled
+                        if (overflowBadgeCount > 0 || mutedOrCamOff) {
+                            UnreadBadge(
+                                count = if (overflowBadgeCount > 0) overflowBadgeCount else 1,
+                                modifier = Modifier.align(Alignment.TopEnd),
+                                showDotOnly = overflowBadgeCount == 0,
+                            )
+                        }
+                    }
+                }
+            } else {
+                ControlDockButton(
+                    icon = if (isAudioEnabled) Icons.Filled.Mic else Icons.Filled.MicOff,
+                    contentDescription = if (isAudioEnabled) "Silenciar" else "Activar micrófono",
+                    isActive = isAudioEnabled,
+                    isDanger = !isAudioEnabled,
+                    onClick = onToggleAudio,
+                )
+                ControlDockButton(
+                    icon = if (isVideoEnabled) Icons.Filled.Videocam else Icons.Filled.VideocamOff,
+                    contentDescription = if (isVideoEnabled) "Desactivar cámara" else "Activar cámara",
+                    isActive = isVideoEnabled,
+                    isDanger = !isVideoEnabled,
+                    onClick = onToggleVideo,
+                )
+                if (onToggleSpeaker != null) {
+                    ControlDockButton(
+                        icon = if (isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
+                        contentDescription = if (isSpeakerOn) "Altavoz activo" else "Auricular",
+                        isActive = isSpeakerOn,
+                        onClick = onToggleSpeaker,
+                    )
+                }
+                if (onToggleChat != null) {
+                    Box {
+                        ControlDockButton(
+                            icon = Icons.AutoMirrored.Filled.Chat,
+                            contentDescription = "Chat",
+                            isActive = isChatOpen,
+                            activeColor = PrimarySky,
+                            onClick = onToggleChat,
+                        )
+                        if (unreadMessages > 0) {
+                            UnreadBadge(
+                                count = unreadMessages,
+                                modifier = Modifier.align(Alignment.TopEnd),
+                            )
+                        }
                     }
                 }
             }
 
-            // Doctor Clinical Actions (Notes, Prescription, Certificate)
-            if (isDoctor) {
-                if (onToggleClinicalNotes != null) {
-                    ControlDockButton(
-                        icon = Icons.Outlined.Description,
-                        contentDescription = stringResource(R.string.videocall_clinical_notes),
-                        isActive = isClinicalNotesOpen,
-                        activeColor = Color(0xFF0D9488),
-                        onClick = onToggleClinicalNotes,
-                    )
-                }
-                if (onEmitPrescription != null) {
-                    ControlDockButton(
-                        icon = Icons.Outlined.Medication,
-                        contentDescription = stringResource(R.string.videocall_emit_prescription),
-                        isActive = false,
-                        activeColor = Color(0xFF0284C7),
-                        onClick = onEmitPrescription,
-                    )
-                }
-                if (onEmitCertificate != null) {
-                    ControlDockButton(
-                        icon = Icons.AutoMirrored.Outlined.Assignment,
-                        contentDescription = stringResource(R.string.videocall_emit_certificate),
-                        isActive = false,
-                        activeColor = Color(0xFF10B981),
-                        onClick = onEmitCertificate,
-                    )
-                }
-            }
-
-            // Divider line
             Box(
                 modifier = Modifier
                     .width(1.dp)
@@ -184,7 +171,6 @@ fun CallControlsBar(
                     .background(Color(0x26FFFFFF)),
             )
 
-            // End Call Button (Rounded rectangle with red shadow)
             Surface(
                 shape = RoundedCornerShape(18.dp),
                 color = DangerRed,
@@ -197,13 +183,44 @@ fun CallControlsBar(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.CallEnd,
-                        contentDescription = stringResource(R.string.videocall_end),
+                        contentDescription = "Finalizar llamada",
                         tint = Color.White,
                         modifier = Modifier.size(22.dp),
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun UnreadBadge(
+    count: Int,
+    modifier: Modifier = Modifier,
+    showDotOnly: Boolean = false,
+) {
+    if (showDotOnly) {
+        Box(
+            modifier = modifier
+                .size(10.dp)
+                .clip(CircleShape)
+                .background(DangerRed),
+        )
+        return
+    }
+    Box(
+        modifier = modifier
+            .size(16.dp)
+            .clip(CircleShape)
+            .background(DangerRed),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = if (count > 9) "9+" else count.toString(),
+            color = Color.White,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 
