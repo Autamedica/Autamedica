@@ -176,6 +176,11 @@ fun AppNavHost(
                 onNavigateToDoctorMedicalOrders = {
                     navController.navigate(Route.DoctorMedicalOrders)
                 },
+                onNavigateToDoctorOnDemand = {
+                    navController.navigate(Route.DoctorOnDemand) {
+                        launchSingleTop = true
+                    }
+                },
                 onNavigateToPatientProfile = {
                     navController.navigate(Route.PatientProfile) {
                         launchSingleTop = true

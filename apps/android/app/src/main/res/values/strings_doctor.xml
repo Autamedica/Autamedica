@@ -18,23 +18,16 @@
     <!-- Clinical Command Cockpit -->
     <string name="doctor_cockpit_status_active_consultation">CONSULTA ACTIVA EN LÍNEA</string>
     <string name="doctor_cockpit_status_telemedicine_active">SALA DE TELEMEDICINA ACTIVA</string>
-    <string name="doctor_cockpit_tech_badge">HD 1080p · WebRTC</string>
     <string name="doctor_cockpit_active_doctor_label">MÉDICO ACTIVO</string>
     <string name="doctor_cockpit_view_agenda">Ver agenda  →</string>
     <string name="doctor_appointment_time_type">%1$s hs · %2$s</string>
-    <string name="doctor_cockpit_patient_ready_hint">El paciente está listo en sala de espera. Habilitá tu señal para ingresar.</string>
+    <string name="doctor_cockpit_patient_ready_hint">El paciente está listo en sala de espera. Ingresá para iniciar la atención clínica.</string>
     <string name="doctor_cockpit_enter_consultation">Entrar a Consulta</string>
     <string name="doctor_cockpit_candidate_hint">Consulta programada para hoy. Podés habilitar la sala de espera anticipada.</string>
     <string name="doctor_cockpit_open_waiting_room">Abrir Sala de Espera</string>
     <string name="doctor_cockpit_direct_room_title">Sala de Videoconsulta Directa</string>
-    <string name="doctor_cockpit_direct_room_subtitle">Iniciá una videollamada o verificá tus dispositivos de audio y video en tiempo real.</string>
-    <string name="doctor_cockpit_test_camera">Probar Cámara</string>
+    <string name="doctor_cockpit_direct_room_subtitle">Consultorio virtual listo para la atención de turnos agendados o guardia médica.</string>
     <string name="doctor_cockpit_btn_view_agenda">Ver Agenda</string>
-    <string name="doctor_cockpit_camera_on">Cámara ON</string>
-    <string name="doctor_cockpit_camera_off">Cámara OFF</string>
-    <string name="doctor_cockpit_mic_on">Mic ON</string>
-    <string name="doctor_cockpit_mic_off">Mic OFF</string>
-    <string name="doctor_cockpit_signal_label">SEÑAL</string>
     <string name="doctor_cockpit_metric_today">Hoy</string>
     <string name="doctor_cockpit_metric_pending">Pendientes</string>
     <string name="doctor_cockpit_metric_completed">Realizadas</string>

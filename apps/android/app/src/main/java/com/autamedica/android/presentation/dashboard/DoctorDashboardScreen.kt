@@ -33,11 +33,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Groups
@@ -57,9 +54,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,7 +70,6 @@ import androidx.compose.ui.res.stringResource
 import com.autamedica.android.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
@@ -107,6 +100,7 @@ fun DoctorDashboardScreen(
     onNavigateToDoctorPrescriptions: () -> Unit = {},
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToDoctorMedicalOrders: () -> Unit = {},
+    onNavigateToDoctorOnDemand: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: DoctorDashboardViewModel = hiltViewModel(),
 ) {
@@ -222,8 +216,8 @@ fun DoctorDashboardScreen(
                                 onOpenWaitingRoom = previewAppointment?.let { appointment ->
                                     { onNavigateToVideoCall(appointment.id) }
                                 },
-                                onOpenPreview = { onNavigateToVideoCall(VIDEO_PREVIEW_APPOINTMENT_ID) },
                                 onViewAgenda = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
+                                onNavigateToOnDemand = onNavigateToDoctorOnDemand,
                                 validationError = uiState.telemedicineError,
                             )
                         }
@@ -252,11 +246,12 @@ fun DoctorDashboardScreen(
 /**
  * CLINICAL COMMAND COCKPIT (Sala de Telemedicina y Monitoreo):
  * Paridad visual idéntica con el portal médico web (DoctorsDashboardPage.tsx):
- * - Superficie oscura de alto impacto cinematográfico (from-neutral-900 via-neutral-950 to-neutral-900)
+ * - Superficie oscura de alto impacto (from-neutral-900 via-neutral-950 to-neutral-900)
  * - Borde neutral-800 con esquinas redondeadas de 20dp
- * - Top Badge con indicador esmeralda radiante ("CONSULTA ACTIVA EN LÍNEA" o "SALA DE TELEMEDICINA ACTIVA")
- * - Botón de acceso con gradiente esmeralda a cian (from-emerald-500 to-cyan-500)
- * - Barra de telemetría de dispositivos (Cámara ON/OFF, Mic ON/OFF, Nivel de señal)
+ * - Top Badge con indicador clínico ("CONSULTA ACTIVA EN LÍNEA" o "SALA DE TELEMEDICINA ACTIVA")
+ * - Botón de acceso directo a consulta (from-emerald-500 to-cyan-500)
+ * - Acceso a agenda médica y guardia on-demand
+ * - Métricas de actividad clínica en tiempo real
  */
 @Composable
 private fun DoctorClinicalCockpit(
@@ -266,14 +261,11 @@ private fun DoctorClinicalCockpit(
     stats: DoctorStats = DoctorStats(),
     onJoinCall: (() -> Unit)?,
     onOpenWaitingRoom: (() -> Unit)?,
-    onOpenPreview: () -> Unit,
     onViewAgenda: () -> Unit,
+    onNavigateToOnDemand: () -> Unit = {},
     validationError: String?,
     modifier: Modifier = Modifier,
 ) {
-    var cameraActive by remember { mutableStateOf(true) }
-    var micActive by remember { mutableStateOf(true) }
-
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.35f,
@@ -350,9 +342,15 @@ private fun DoctorClinicalCockpit(
                 val hasActive = appointment != null
                 val badgeText = if (hasActive) {
                     stringResource(R.string.doctor_cockpit_status_active_consultation)
+                } else if (candidateAppointment != null) {
+                    "TURNO DE TELEMEDICINA"
                 } else {
                     stringResource(R.string.doctor_cockpit_status_telemedicine_active)
                 }
+                val badgeColor = if (hasActive) Color(0xFF34D399) else Color(0xFF38BDF8)
+                val badgeDotColor = if (hasActive) Color(0xFF10B981) else Color(0xFF0284C7)
+                val badgeBgColor = if (hasActive) Color(0x1F10B981) else Color(0x1F0284C7)
+                val badgeBorderColor = if (hasActive) Color(0x4D10B981) else Color(0x4D0284C7)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -361,8 +359,8 @@ private fun DoctorClinicalCockpit(
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = Color(0x1F10B981),
-                        border = BorderStroke(1.dp, Color(0x4D10B981)),
+                        color = badgeBgColor,
+                        border = BorderStroke(1.dp, badgeBorderColor),
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -373,7 +371,7 @@ private fun DoctorClinicalCockpit(
                                 modifier = Modifier
                                     .size(7.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFF10B981).copy(alpha = pulseAlpha)),
+                                    .background(badgeDotColor.copy(alpha = pulseAlpha)),
                             )
                             Text(
                                 text = badgeText,
@@ -382,19 +380,10 @@ private fun DoctorClinicalCockpit(
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 1.2.sp,
                                 ),
-                                color = Color(0xFF34D399),
+                                color = badgeColor,
                             )
                         }
                     }
-
-                    Text(
-                        text = stringResource(R.string.doctor_cockpit_tech_badge),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium,
-                        ),
-                        color = Color(0xFF71717A),
-                    )
                 }
 
                 // ── Active doctor row (matching Web cockpit column) ──
@@ -570,153 +559,65 @@ private fun DoctorClinicalCockpit(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Button(
-                            onClick = onOpenPreview,
+                            onClick = onViewAgenda,
                             modifier = Modifier
                                 .weight(1f)
-                                .height(44.dp),
+                                .height(46.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF27272A),
-                                contentColor = Color.White,
+                                containerColor = Color(0x1F38BDF8),
+                                contentColor = Color(0xFF38BDF8),
                             ),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Videocam,
+                                    imageVector = Icons.Default.CalendarMonth,
                                     contentDescription = null,
-                                    tint = Color(0xFF22D3EE),
+                                    tint = Color(0xFF38BDF8),
                                     modifier = Modifier.size(16.dp),
                                 )
                                 Text(
-                                    text = stringResource(R.string.doctor_cockpit_test_camera),
-                                    fontWeight = FontWeight.Medium,
+                                    text = stringResource(R.string.doctor_cockpit_btn_view_agenda),
+                                    fontWeight = FontWeight.SemiBold,
                                     style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }
 
                         Button(
-                            onClick = onViewAgenda,
+                            onClick = onNavigateToOnDemand,
                             modifier = Modifier
                                 .weight(1f)
-                                .height(44.dp),
+                                .height(46.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0x1F38BDF8),
-                                contentColor = Color(0xFF38BDF8),
+                                containerColor = Color(0xFF27272A),
+                                contentColor = Color.White,
                             ),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                         ) {
-                            Text(
-                                text = stringResource(R.string.doctor_cockpit_btn_view_agenda),
-                                fontWeight = FontWeight.SemiBold,
-                                style = MaterialTheme.typography.labelMedium,
-                            )
-                        }
-                    }
-                }
-
-                // ── Device Telemetry & Quick Toggles (Matching Web Cockpit Bottom Row) ──
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        // Camera Toggle
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (cameraActive) Color(0x260891B2) else Color(0xFF1F1F23))
-                                .border(
-                                    width = 1.dp,
-                                    color = if (cameraActive) Color(0x6606B6D4) else Color(0xFF27272A),
-                                    shape = RoundedCornerShape(8.dp),
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.MedicalServices,
+                                    contentDescription = null,
+                                    tint = Color(0xFF22D3EE),
+                                    modifier = Modifier.size(16.dp),
                                 )
-                                .clickable { cameraActive = !cameraActive }
-                                .padding(horizontal = 8.dp, vertical = 5.dp),
-                        ) {
-                            Icon(
-                                imageVector = if (cameraActive) Icons.Default.Videocam else Icons.Default.VideocamOff,
-                                contentDescription = null,
-                                tint = if (cameraActive) Color(0xFF22D3EE) else Color(0xFF71717A),
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Text(
-                                text = if (cameraActive) stringResource(R.string.doctor_cockpit_camera_on) else stringResource(R.string.doctor_cockpit_camera_off),
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (cameraActive) Color(0xFF22D3EE) else Color(0xFF71717A),
-                            )
-                        }
-
-                        // Mic Toggle
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (micActive) Color(0x260891B2) else Color(0xFF1F1F23))
-                                .border(
-                                    width = 1.dp,
-                                    color = if (micActive) Color(0x6606B6D4) else Color(0xFF27272A),
-                                    shape = RoundedCornerShape(8.dp),
-                                )
-                                .clickable { micActive = !micActive }
-                                .padding(horizontal = 8.dp, vertical = 5.dp),
-                        ) {
-                            Icon(
-                                imageVector = if (micActive) Icons.Default.Mic else Icons.Default.MicOff,
-                                contentDescription = null,
-                                tint = if (micActive) Color(0xFF22D3EE) else Color(0xFF71717A),
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Text(
-                                text = if (micActive) stringResource(R.string.doctor_cockpit_mic_on) else stringResource(R.string.doctor_cockpit_mic_off),
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (micActive) Color(0xFF22D3EE) else Color(0xFF71717A),
-                            )
-                        }
-                    }
-
-                    // Signal Quality Indicator
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.doctor_cockpit_signal_label),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 9.sp,
-                                letterSpacing = 1.sp,
-                                fontWeight = FontWeight.Bold,
-                            ),
-                            color = Color(0xFF71717A),
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Row(
-                            verticalAlignment = Alignment.Bottom,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            modifier = Modifier.height(12.dp),
-                        ) {
-                            val barHeights = listOf(4.dp, 6.dp, 8.dp, 10.dp, 12.dp)
-                            barHeights.forEach { height ->
-                                Box(
-                                    modifier = Modifier
-                                        .width(3.dp)
-                                        .height(height)
-                                        .clip(RoundedCornerShape(1.dp))
-                                        .background(if (micActive) Color(0xFF22D3EE) else Color(0xFF52525B)),
+                                Text(
+                                    text = "Guardia",
+                                    fontWeight = FontWeight.SemiBold,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }

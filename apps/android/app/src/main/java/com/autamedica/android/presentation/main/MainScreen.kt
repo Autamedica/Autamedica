@@ -148,6 +148,7 @@ fun MainScreen(
     onNavigateToDoctorPrescriptions: () -> Unit = {},
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToDoctorMedicalOrders: () -> Unit = {},
+    onNavigateToDoctorOnDemand: () -> Unit = {},
     onNavigateToPatientProfile: () -> Unit = {},
     onNavigateToPharmacyIntake: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -336,6 +337,7 @@ fun MainScreen(
                         onNavigateToDoctorPrescriptions = onNavigateToDoctorPrescriptions,
                         onNavigateToDoctorCertificates = onNavigateToDoctorCertificates,
                         onNavigateToDoctorMedicalOrders = onNavigateToDoctorMedicalOrders,
+                        onNavigateToDoctorOnDemand = onNavigateToDoctorOnDemand,
                     )
                     1 -> com.autamedica.android.presentation.chat.ChatListScreen(
                         onNavigateToConversation = onNavigateToChatConversation,
