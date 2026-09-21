@@ -89,7 +89,7 @@ export async function resolveRoomParticipants(
     .from('pharmacy_dispatch_requests')
     .select('id, patient_dni, patient_name, assigned_doctor_id, symptom_summary')
     .eq('cloudflare_room_id', roomId)
-    .in('status', ['accepted', 'in_progress'])
+    .in('status', ['matched', 'in_call', 'transferring', 'transferred', 'completed'])
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();

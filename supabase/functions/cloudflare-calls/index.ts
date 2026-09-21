@@ -156,7 +156,7 @@ export async function handler(req: Request): Promise<Response> {
         .order('created_at', { ascending: false })
     }
 
-    const { data: call, error: callError } = await callQuery
+    const { data: callRow, error: callError } = await callQuery
       .limit(1)
       .maybeSingle()
 
@@ -166,6 +166,40 @@ export async function handler(req: Request): Promise<Response> {
         JSON.stringify({ error: 'Failed to resolve room' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    let call = callRow
+    let isDispatchCall = false
+
+    // Fallback: On-Demand Pharmacy Dispatch Room (kiosks / street emergency triage)
+    if (!call) {
+      const { data: dispatch, error: dispatchErr } = await supabaseAdmin
+        .from('pharmacy_dispatch_requests')
+        .select('id, cloudflare_room_id, assigned_doctor_id, status, patient_dni')
+        .eq('cloudflare_room_id', roomId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!dispatchErr && dispatch) {
+        if (dispatch.status === 'completed' || dispatch.status === 'cancelled' || dispatch.status === 'expired') {
+          console.warn('[cloudflare-calls] Dispatch call is terminal:', { dispatchId: dispatch.id, status: dispatch.status })
+          return new Response(
+            JSON.stringify({ error: 'Call is not active', status: dispatch.status }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        call = {
+          id: dispatch.id,
+          room_id: dispatch.cloudflare_room_id,
+          doctor_id: dispatch.assigned_doctor_id,
+          patient_id: null,
+          appointment_id: null,
+          status: dispatch.status,
+        }
+        isDispatchCall = true
+      }
     }
 
     if (!call) {
@@ -247,6 +281,9 @@ export async function handler(req: Request): Promise<Response> {
           isPatient = pat?.user_id === userId
         }
       }
+    if (isDispatchCall && !isDoctor) {
+      // Para consultas de guardia on-demand en farmacia/kiosco, el participante no-médico es el paciente
+      isPatient = true
     }
 
     if (!isDoctor && !isPatient) {

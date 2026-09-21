@@ -176,6 +176,12 @@ class VideoCallViewModel @Inject constructor(
     private var explicitRoomId: String = ""
 
     init {
+        viewModelScope.launch {
+            val currentUser = runCatching { authRepository.getCurrentUser() }.getOrNull()
+            if (currentUser?.role == UserRole.DOCTOR) {
+                _uiState.update { it.copy(isDoctor = true, isWaitingRoom = false) }
+            }
+        }
         _uiState.update {
             it.copy(
                 connectionState = ConnectionState.DISCONNECTED,
@@ -395,7 +401,7 @@ class VideoCallViewModel @Inject constructor(
         soapData: SoapEvolutionData = _uiState.value.soapData,
         onSuccess: (() -> Unit)? = null,
     ) {
-        if (targetAppointmentId.isBlank() || previewOnlyMode) {
+        if (previewOnlyMode) {
             _uiState.update { it.copy(showSoapEvolution = false, soapSaved = true) }
             onSuccess?.invoke()
             return
@@ -408,11 +414,13 @@ class VideoCallViewModel @Inject constructor(
                 var resolvedDoctorId: String? = null
                 var resolvedAppointmentId: String? = null
 
-                val appt = appointmentRepository.getAppointmentById(targetAppointmentId).getOrNull()
-                if (appt != null) {
-                    resolvedAppointmentId = appt.id
-                    resolvedPatientId = appt.patientId
-                    resolvedDoctorId = appt.doctorId
+                if (targetAppointmentId.isNotBlank()) {
+                    val appt = appointmentRepository.getAppointmentById(targetAppointmentId).getOrNull()
+                    if (appt != null) {
+                        resolvedAppointmentId = appt.id
+                        resolvedPatientId = appt.patientId
+                        resolvedDoctorId = appt.doctorId
+                    }
                 }
 
                 // Prioritize authenticated doctor record to strictly satisfy RLS medical_records_insert_doctor
@@ -428,7 +436,7 @@ class VideoCallViewModel @Inject constructor(
                     }.getOrNull()
                 }
 
-                if (resolvedPatientId == null || resolvedAppointmentId == null) {
+                if ((resolvedPatientId == null || resolvedAppointmentId == null) && targetAppointmentId.isNotBlank()) {
                     val session = runCatching {
                         supabaseClient.postgrest.from("telemedicine_sessions")
                             .select(Columns.list("patient_id", "doctor_id", "appointment_id")) {
@@ -450,8 +458,38 @@ class VideoCallViewModel @Inject constructor(
                     }
                 }
 
-                if (resolvedAppointmentId == null && runCatching { java.util.UUID.fromString(targetAppointmentId) }.isSuccess) {
+                if (resolvedAppointmentId == null && targetAppointmentId.isNotBlank() && runCatching { java.util.UUID.fromString(targetAppointmentId) }.isSuccess) {
                     resolvedAppointmentId = targetAppointmentId
+                }
+
+                // Fallback para guardia on-demand (sin appointmentId pero con cloudflare_room_id)
+                var resolvedDispatchId: String? = null
+                var kioskPatientDni: String? = null
+                val effectiveRoom: String = explicitRoomId.ifBlank { _uiState.value.activeCallId.orEmpty() }
+                if (effectiveRoom.isNotBlank()) {
+                    val dispatch = runCatching {
+                        supabaseClient.postgrest.from("pharmacy_dispatch_requests")
+                            .select(Columns.list("id", "assigned_doctor_id", "patient_dni", "symptom_summary")) {
+                                filter { eq("cloudflare_room_id", effectiveRoom) }
+                                limit(1)
+                            }
+                            .decodeSingleOrNull<DispatchRecordDto>()
+                    }.getOrNull()
+                    if (dispatch != null) {
+                        resolvedDispatchId = dispatch.id
+                        kioskPatientDni = dispatch.patientDni
+                        if (resolvedDoctorId == null) resolvedDoctorId = dispatch.assignedDoctorId
+                        // Actualizar resumen en pharmacy_dispatch_requests
+                        runCatching {
+                            supabaseClient.postgrest.from("pharmacy_dispatch_requests").update(
+                                buildJsonObject {
+                                    put("symptom_summary", "${dispatch.symptomSummary.orEmpty()}\n[Evolución médica]: ${soapData.subjective} - ${soapData.assessment}".trim())
+                                }
+                            ) {
+                                filter { eq("id", dispatch.id) }
+                            }
+                        }
+                    }
                 }
 
                 val soapContent = buildJsonObject {
@@ -470,6 +508,13 @@ class VideoCallViewModel @Inject constructor(
                     put("type", "consultation")
                     put("title", "Evolución SOAP - Consulta Telemedicina")
                     put("content", soapContent)
+                    put("source", if (resolvedDispatchId != null) "on_demand_dispatch" else "telemedicine")
+                    if (resolvedDispatchId != null || kioskPatientDni != null) {
+                        put("metadata", buildJsonObject {
+                            if (resolvedDispatchId != null) put("dispatch_id", resolvedDispatchId)
+                            if (kioskPatientDni != null) put("patient_dni", kioskPatientDni)
+                        })
+                    }
                 }
 
                 if (resolvedPatientId != null && resolvedDoctorId != null) {
@@ -617,12 +662,27 @@ class VideoCallViewModel @Inject constructor(
 
     fun saveConsultationNotes() {
         val notes = _uiState.value.consultationNotes
-        if (appointmentId.isBlank() || previewOnlyMode) return
+        if (previewOnlyMode || notes.isBlank()) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingNotes = true) }
             runCatching {
-                appointmentRepository.updateAppointmentNotes(appointmentId, notes)
+                if (appointmentId.isNotBlank()) {
+                    appointmentRepository.updateAppointmentNotes(appointmentId, notes)
+                } else {
+                    val effectiveRoom: String = explicitRoomId.ifBlank { _uiState.value.activeCallId.orEmpty() }
+                    if (effectiveRoom.isNotBlank()) {
+                        runCatching {
+                            supabaseClient.postgrest.from("pharmacy_dispatch_requests").update(
+                                buildJsonObject {
+                                    put("symptom_summary", "[Notas]: $notes")
+                                }
+                            ) {
+                                filter { eq("cloudflare_room_id", effectiveRoom) }
+                            }
+                        }
+                    }
+                }
 
                 _uiState.update { current ->
                     current.copy(
@@ -1139,4 +1199,12 @@ private data class SessionParticipantDto(
     @SerialName("patient_id") val patientId: String? = null,
     @SerialName("doctor_id") val doctorId: String? = null,
     @SerialName("appointment_id") val appointmentId: String? = null,
+)
+
+@Serializable
+private data class DispatchRecordDto(
+    val id: String,
+    @SerialName("assigned_doctor_id") val assignedDoctorId: String? = null,
+    @SerialName("patient_dni") val patientDni: String? = null,
+    @SerialName("symptom_summary") val symptomSummary: String? = null,
 )

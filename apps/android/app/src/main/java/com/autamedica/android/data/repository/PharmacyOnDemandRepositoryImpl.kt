@@ -87,6 +87,12 @@ internal data class DoctorDutyCheckDto(
     @SerialName("on_duty_since") val onDutySince: String? = null,
 )
 
+@Serializable
+internal data class Gen2DutyCheckDto(
+    @SerialName("is_on_duty") val isOnDuty: Boolean = false,
+    @SerialName("updated_at") val updatedAt: String? = null,
+)
+
 @Singleton
 class PharmacyOnDemandRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
@@ -138,11 +144,25 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
             }
             .decodeSingleOrNull<DoctorDutyCheckDto>() ?: throw IllegalStateException("Doctor record not found")
 
+        val gen2Duty = runCatching {
+            supabaseClient.postgrest
+                .from("doctor_duty_status")
+                .select(Columns.list("is_on_duty", "updated_at")) {
+                    filter { eq("doctor_id", doc.id) }
+                }
+                .decodeSingleOrNull<Gen2DutyCheckDto>()
+        }.getOrNull()
+
+        val effectiveOnDuty = gen2Duty?.isOnDuty ?: doc.onDutyPharmacy
+        val effectiveSince = runCatching {
+            (gen2Duty?.updatedAt ?: doc.onDutySince)?.let { OffsetDateTime.parse(it) }
+        }.getOrNull()
+
         val pending = getPendingQueue().getOrDefault(emptyList())
 
         val state = DoctorOnDutyPharmacyState(
-            isOnDuty = doc.onDutyPharmacy,
-            onDutySince = runCatching { doc.onDutySince?.let { OffsetDateTime.parse(it) } }.getOrNull(),
+            isOnDuty = effectiveOnDuty,
+            onDutySince = effectiveSince,
             waitingQueueCount = pending.size,
             pendingRequests = pending,
             isLoading = false
