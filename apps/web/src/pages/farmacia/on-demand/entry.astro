@@ -1,31 +1,151 @@
 ---
 export const prerender = false;
 
+const appSchemeUri = 'autamedica://on-demand/entry';
 const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.autamedica.android';
-
-// 302 redirect directly to Google Play Store
-return Astro.redirect(playStoreUrl, 302);
+const androidIntent = `intent://on-demand/entry#Intent;scheme=autamedica;package=com.autamedica.android;S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end`;
 ---
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="refresh" content={`0;url=${playStoreUrl}`} />
-  <title>Descargar AutaMedica en Google Play</title>
-  <script is:inline define:vars={{ playStoreUrl }}>
-    window.location.href = playStoreUrl;
-  </script>
+  <title>AutaMedica Guardia - Conectando con la App</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #0b132b;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      max-width: 440px;
+      width: 100%;
+      background: #1c2541;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 36px 24px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    p {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 24px auto;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      margin-bottom: 12px;
+    }
+    .btn-primary {
+      background: #3b82f6;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  </style>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 48px 24px; background: #f8fafc; color: #0f172a;">
-  <div style="max-width: 420px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 32px 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
-    <h1 style="font-size: 20px; font-weight: 700; margin-bottom: 12px; color: #0f172a;">AutaMedica Guardia</h1>
-    <p style="font-size: 14px; color: #475569; line-height: 1.5; margin-bottom: 24px;">
-      Redirigiendo a Google Play Store para descargar la app oficial...
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <span class="badge">Guardia Médica On-Demand</span>
+    <h1>Abriendo AutaMedica...</h1>
+    <p>
+      Si ya tenés la app instalada, se abrirá automáticamente. Si aún no la tenés, te redirigiremos a Google Play Store.
     </p>
-    <a href={playStoreUrl} style="display: inline-block; background: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 12px; font-weight: 600; text-decoration: none; font-size: 14px;">
+
+    <a href={appSchemeUri} class="btn btn-primary" id="open-app-btn">
+      Abrir en la App
+    </a>
+    <a href={playStoreUrl} class="btn btn-secondary" id="playstore-btn">
       Descargar en Google Play
     </a>
   </div>
+
+  <script is:inline define:vars={{ appSchemeUri, playStoreUrl, androidIntent }}>
+    (function() {
+      var isAndroid = /Android/i.test(navigator.userAgent);
+
+      // Intento 1: Disparar el simlink / deep link inmediatamente
+      if (isAndroid) {
+        // En Android usamos el intent URI que abre la app si está instalada,
+        // o navega a Play Store vía fallback si no lo está.
+        window.location.href = androidIntent;
+      } else {
+        // En otros dispositivos intentamos el scheme directo y luego el fallback
+        window.location.href = appSchemeUri;
+      }
+
+      // Temporizador de fallback por si el navegador bloquea el intent automático
+      var fallbackTimer = setTimeout(function() {
+        if (!document.hidden && !document.webkitHidden) {
+          window.location.href = playStoreUrl;
+        }
+      }, 2500);
+
+      // Si la app se abre, la página web pasa a background y cancelamos el fallback
+      window.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+          clearTimeout(fallbackTimer);
+        }
+      });
+      window.addEventListener('pagehide', function() {
+        clearTimeout(fallbackTimer);
+      });
+    })();
+  </script>
 </body>
 </html>
