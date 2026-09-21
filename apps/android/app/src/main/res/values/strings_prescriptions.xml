@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Prescriptions & Certificates: Header & Tabs -->
+    <string name="prescriptions_title">Mis Recetas</string>
+    <string name="prescriptions_certificates_title">Mis Atestados</string>
+    <string name="prescriptions_active_count_one">%1$d activa para farmacia</string>
+    <string name="prescriptions_active_count_many">%1$d activas para farmacia</string>
+    <string name="prescriptions_no_pending">Sin recetas pendientes</string>
+    <string name="prescriptions_cert_valid_count_one">%1$d atestado válido</string>
+    <string name="prescriptions_cert_valid_count_many">%1$d atestados válidos</string>
+    <string name="prescriptions_cert_none_issued">Sin atestados emitidos</string>
+    <string name="prescriptions_tab_recipes">Recetas (%1$d)</string>
+    <string name="prescriptions_tab_certificates">Atestados (%1$d)</string>
+
+    <!-- Prescriptions & Certificates: Navigation & Common Actions -->
+    <string name="prescriptions_back">Volver</string>
+    <string name="prescriptions_refresh">Actualizar</string>
+    <string name="prescriptions_close">Cerrar</string>
+    <string name="prescriptions_copy">Copiar</string>
+    <string name="prescriptions_retry">Reintentar</string>
+
+    <!-- Prescriptions: Filter Chips -->
+    <string name="prescriptions_filter_all">Todas</string>
+    <string name="prescriptions_filter_active">Activas</string>
+    <string name="prescriptions_filter_dispensed">Dispensadas</string>
+    <string name="prescriptions_filter_completed">Completadas</string>
+
+    <!-- Prescriptions: Status Badges -->
+    <string name="prescriptions_status_active">Activa</string>
+    <string name="prescriptions_status_dispensed">Dispensada</string>
+    <string name="prescriptions_status_partial">Parcial</string>
+    <string name="prescriptions_status_completed">Completada</string>
+    <string name="prescriptions_status_expired">Vencida</string>
+    <string name="prescriptions_status_cancelled">Cancelada</string>
+    <string name="prescriptions_status_draft">Borrador</string>
+    <string name="prescriptions_status_paused">Pausada</string>
+
+    <!-- Prescriptions: Card & Details BottomSheet -->
+    <string name="prescriptions_error_loading">No se pudieron cargar las recetas</string>
+    <string name="prescriptions_qr_pharmacy">QR Farmacia</string>
+    <string name="prescriptions_download_pdf_cd">Descargar PDF</string>
+    <string name="prescriptions_pdf_badge">PDF</string>
+    <string name="prescriptions_present_code_pharmacy">PRESENTÁ ESTE CÓDIGO EN LA FARMACIA</string>
+    <string name="prescriptions_official_validation">Validación oficial Decreto 63 / SISA REFEPS</string>
+    <string name="prescriptions_cuir_code_label">CÓDIGO CUIR:</string>
+    <string name="prescriptions_download_recipe_pdf">Descargar Receta (PDF)</string>
+    <string name="prescriptions_how_to_take_title">CÓMO TOMARLO (INDICACIONES MÉDICAS)</string>
+    <string name="prescriptions_indication_label">INDICACIÓN</string>
+    <string name="prescriptions_diagnosis_format">Diagnóstico: %1$s</string>
+    <string name="prescriptions_notes_format">Notas: %1$s</string>
+    <string name="prescriptions_license_format">Matrícula: %1$s</string>
+    <string name="prescriptions_default_medication">Prescripción médica</string>
+    <string name="prescriptions_default_doctor">Dr. Médico Tratante</string>
+    <string name="prescriptions_posology_frequency">Cada %1$s hs</string>
+    <string name="prescriptions_posology_duration">%1$s días</string>
+
+    <!-- Prescriptions: Empty States -->
+    <string name="prescriptions_empty_active_title">Sin recetas activas</string>
+    <string name="prescriptions_empty_active_desc">Cuando tu médico te prescriba un medicamento, aparecerá aquí con verificación digital.</string>
+    <string name="prescriptions_empty_dispensed_title">Sin recetas dispensadas</string>
+    <string name="prescriptions_empty_dispensed_desc">No registras recetas retiradas o dispensadas en farmacia en este momento.</string>
+    <string name="prescriptions_empty_completed_title">Sin recetas completadas</string>
+    <string name="prescriptions_empty_completed_desc">No registras tratamientos o prescripciones finalizadas en este momento.</string>
+    <string name="prescriptions_request_consultation">Solicitar consulta médica</string>
+
+    <!-- Certificates: Content, Card & Details -->
+    <string name="prescriptions_cert_error_loading">No se pudieron cargar los atestados</string>
+    <string name="prescriptions_cert_empty_title">Sin atestados médicos</string>
+    <string name="prescriptions_cert_empty_desc">Los certificados de reposo laboral, escolar o aptitud física emitidos en tus consultas aparecerán aquí.</string>
+    <string name="prescriptions_cert_consult_doctor">Consultar a un médico</string>
+    <string name="prescriptions_cert_status_valid">Válido</string>
+    <string name="prescriptions_cert_status_expired">Vencido</string>
+    <string name="prescriptions_cert_period_from">%1$s · Desde %2$s</string>
+    <string name="prescriptions_cert_issued_on">Emitido el %1$s</string>
+    <string name="prescriptions_cert_issued_format">Emitido: %1$s</string>
+    <string name="prescriptions_cert_qr_card">QR Atestado</string>
+    <string name="prescriptions_cert_present_code_institution">PRESENTÁ ESTE CÓDIGO ANTE TU INSTITUCIÓN</string>
+    <string name="prescriptions_cert_qr_content_desc">Código QR de Validación Institucional</string>
+    <string name="prescriptions_cert_download_pdf">Descargar Atestado (PDF)</string>
+    <string name="prescriptions_cert_detail_title">DETALLE DEL REPOSO / CERTIFICACIÓN</string>
+    <string name="prescriptions_cert_diagnosis_reserved">Diagnóstico reservado por secreto médico (Ley 26.529)</string>
+    <string name="prescriptions_cert_default_condition">Afección clínica que requiere reposo psicofísico</string>
+    <string name="prescriptions_cert_observations_format">Observaciones: %1$s</string>
+    <string name="prescriptions_cert_license_verified">Verificada en SISA REFEPS</string>
+    <string name="prescriptions_cert_rest_none">Sin reposo requerido</string>
+    <string name="prescriptions_cert_rest_1_day">1 día (24 horas)</string>
+    <string name="prescriptions_cert_rest_2_days">2 días (48 horas)</string>
+    <string name="prescriptions_cert_rest_3_days">3 días (72 horas)</string>
+    <string name="prescriptions_cert_rest_n_days">%1$d días</string>
+
+    <!-- Certificate Types -->
+    <string name="prescriptions_cert_type_work_rest">Reposo Laboral</string>
+    <string name="prescriptions_cert_type_school_rest">Reposo Escolar / Universitario</string>
+    <string name="prescriptions_cert_type_physical_aptitude">Aptitud Física</string>
+    <string name="prescriptions_cert_type_attendance">Constancia de Atención</string>
+    <string name="prescriptions_cert_type_treatment">Tratamiento Prolongado</string>
+    <string name="prescriptions_cert_type_other">Certificado Médico</string>
+
+    <!-- Prescriptions: Toasts -->
+    <string name="prescriptions_toast_pdf_error">No se pudo abrir el PDF oficial.</string>
+    <string name="prescriptions_toast_cert_pdf_error">No se pudo abrir el atestado oficial.</string>
+    <string name="prescriptions_toast_cuir_copied">CUIR copiado al portapapeles</string>
+
+</resources>

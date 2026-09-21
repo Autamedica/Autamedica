@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall.components
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -147,7 +149,7 @@ fun RemoteAvatarFallback(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Filled.VideocamOff,
-                                contentDescription = "Cámara apagada",
+                                contentDescription = stringResource(R.string.videocall_camera_turned_off),
                                 tint = Color(0xFFF43F5E),
                                 modifier = Modifier.size(15.dp),
                             )
@@ -177,7 +179,7 @@ fun RemoteAvatarFallback(
 
             // Remote Participant Name
             Text(
-                text = name.ifBlank { "Médico" },
+                text = name.ifBlank { stringResource(R.string.videocall_doctor_fallback) },
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,

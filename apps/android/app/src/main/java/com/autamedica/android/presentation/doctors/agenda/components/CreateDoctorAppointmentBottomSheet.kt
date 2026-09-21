@@ -46,9 +46,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -60,6 +62,7 @@ import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalDoctors
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,10 +98,10 @@ fun CreateDoctorAppointmentBottomSheet(
     var validationError by remember { mutableStateOf<String?>(null) }
 
     val appointmentTypes = listOf(
-        Triple("telemedicine", "Telemedicina", "Videoconsulta"),
-        Triple("consultation", "Presencial", "Consultorio"),
-        Triple("follow_up", "Control", "Seguimiento"),
-        Triple("emergency", "Urgencia", "Prioridad"),
+        Triple("telemedicine", stringResource(R.string.doctor_agenda_create_type_telemedicine), "Videoconsulta"),
+        Triple("consultation", stringResource(R.string.doctor_agenda_create_type_presencial), "Consultorio"),
+        Triple("follow_up", stringResource(R.string.doctor_agenda_create_type_control), "Seguimiento"),
+        Triple("emergency", stringResource(R.string.doctor_agenda_create_type_urgencia), "Prioridad"),
     )
 
     ModalBottomSheet(
@@ -123,14 +126,14 @@ fun CreateDoctorAppointmentBottomSheet(
             ) {
                 Column {
                     Text(
-                        text = "NUEVO TURNO / SOBRETURNO",
+                        text = stringResource(R.string.doctor_agenda_create_title),
                         style = MaterialTheme.typography.labelSmall,
                         color = PortalDoctors,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.2.sp,
                     )
                     Text(
-                        text = selectedDate.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", java.util.Locale("es"))).replaceFirstChar { it.uppercase() },
+                        text = selectedDate.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.getDefault())).replaceFirstChar { it.uppercase() },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
@@ -140,7 +143,7 @@ fun CreateDoctorAppointmentBottomSheet(
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Cerrar",
+                        contentDescription = stringResource(R.string.doctor_agenda_create_cd_close),
                         tint = AuTextTertiary,
                     )
                 }
@@ -174,7 +177,7 @@ fun CreateDoctorAppointmentBottomSheet(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Padrón (${patients.size})",
+                            text = stringResource(R.string.doctor_agenda_create_tab_roster, patients.size),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (!isGuestMode) PortalDoctors else AuTextSecondary,
@@ -203,7 +206,7 @@ fun CreateDoctorAppointmentBottomSheet(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Invitado Express",
+                            text = stringResource(R.string.doctor_agenda_create_tab_guest),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (isGuestMode) PortalDoctors else AuTextSecondary,
@@ -218,8 +221,8 @@ fun CreateDoctorAppointmentBottomSheet(
                     OutlinedTextField(
                         value = guestName,
                         onValueChange = { guestName = it },
-                        label = { Text("Nombre y Apellido del paciente") },
-                        placeholder = { Text("Ej: Mario Benedetti") },
+                        label = { Text(stringResource(R.string.doctor_agenda_create_guest_name_label)) },
+                        placeholder = { Text(stringResource(R.string.doctor_agenda_create_guest_name_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -232,8 +235,8 @@ fun CreateDoctorAppointmentBottomSheet(
                     OutlinedTextField(
                         value = guestPhone,
                         onValueChange = { guestPhone = it },
-                        label = { Text("Teléfono o WhatsApp de contacto") },
-                        placeholder = { Text("+54 9 11 ...") },
+                        label = { Text(stringResource(R.string.doctor_agenda_create_guest_phone_label)) },
+                        placeholder = { Text(stringResource(R.string.doctor_agenda_create_guest_phone_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -246,14 +249,14 @@ fun CreateDoctorAppointmentBottomSheet(
             } else {
                 if (patients.isEmpty()) {
                     Text(
-                        text = "No tenés pacientes vinculados aún. Utilizá el modo 'Invitado Express'.",
+                        text = stringResource(R.string.doctor_agenda_create_no_roster_patients),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary,
                     )
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "Seleccionar paciente del padrón:",
+                            text = stringResource(R.string.doctor_agenda_create_select_roster_patient),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextSecondary,
                             fontWeight = FontWeight.SemiBold,
@@ -274,14 +277,16 @@ fun CreateDoctorAppointmentBottomSheet(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                 ) {
                                     Text(
-                                        text = "${patient.firstName} ${patient.lastName}".trim().ifBlank { "Paciente #${patient.id.take(6)}" },
+                                        text = "${patient.firstName} ${patient.lastName}".trim().ifBlank {
+                                            stringResource(R.string.doctor_agenda_create_patient_fallback_id, patient.id.take(6))
+                                        },
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSelected) Color(0xFF15803D) else AuTextPrimary,
                                     )
                                     if (isSelected) {
                                         Text(
-                                            text = "Seleccionado",
+                                            text = stringResource(R.string.doctor_agenda_create_selected_badge),
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFF16A34A),
@@ -303,7 +308,7 @@ fun CreateDoctorAppointmentBottomSheet(
                 OutlinedTextField(
                     value = timeInput,
                     onValueChange = { timeInput = it },
-                    label = { Text("Hora inicio (HH:mm)") },
+                    label = { Text(stringResource(R.string.doctor_agenda_create_start_time_label)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -316,7 +321,7 @@ fun CreateDoctorAppointmentBottomSheet(
                 // Duration selector (15, 30, 45, 60 min)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Duración",
+                        text = stringResource(R.string.doctor_agenda_create_duration_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = AuTextSecondary,
                         fontWeight = FontWeight.Medium,
@@ -350,7 +355,7 @@ fun CreateDoctorAppointmentBottomSheet(
             // Appointment Type Selector
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "Tipo de consulta:",
+                    text = stringResource(R.string.doctor_agenda_create_type_label),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextSecondary,
                     fontWeight = FontWeight.SemiBold,
@@ -390,8 +395,8 @@ fun CreateDoctorAppointmentBottomSheet(
             OutlinedTextField(
                 value = reasonInput,
                 onValueChange = { reasonInput = it },
-                label = { Text("Motivo de consulta (opcional)") },
-                placeholder = { Text("Ej: Control de hipertensión o chequeo general") },
+                label = { Text(stringResource(R.string.doctor_agenda_create_reason_label)) },
+                placeholder = { Text(stringResource(R.string.doctor_agenda_create_reason_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = PortalDoctors,
@@ -400,6 +405,10 @@ fun CreateDoctorAppointmentBottomSheet(
                 shape = RoundedCornerShape(14.dp),
                 maxLines = 3,
             )
+
+            val invalidTimeError = stringResource(R.string.doctor_agenda_create_error_invalid_time)
+            val emptyGuestNameError = stringResource(R.string.doctor_agenda_create_error_empty_guest_name)
+            val emptyPatientSelectionError = stringResource(R.string.doctor_agenda_create_error_empty_patient_selection)
 
             // Validation Error if any
             validationError?.let { err ->
@@ -416,17 +425,17 @@ fun CreateDoctorAppointmentBottomSheet(
                 onClick = {
                     val trimmedTime = timeInput.trim()
                     if (!trimmedTime.matches(Regex("^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"))) {
-                        validationError = "Formato de hora inválido. Usá HH:mm (ej: 09:30)"
+                        validationError = invalidTimeError
                         return@Button
                     }
 
                     if (isGuestMode && guestName.isBlank()) {
-                        validationError = "Ingresá el nombre del paciente invitado"
+                        validationError = emptyGuestNameError
                         return@Button
                     }
 
                     if (!isGuestMode && selectedPatientId.isBlank()) {
-                        validationError = "Seleccioná un paciente del padrón o usá Invitado Express"
+                        validationError = emptyPatientSelectionError
                         return@Button
                     }
 
@@ -469,10 +478,10 @@ fun CreateDoctorAppointmentBottomSheet(
                         modifier = Modifier.size(20.dp),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Agendando...", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.doctor_agenda_create_submitting), fontWeight = FontWeight.Bold)
                 } else {
                     Text(
-                        text = "Confirmar y agendar turno",
+                        text = stringResource(R.string.doctor_agenda_create_btn_confirm),
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                     )

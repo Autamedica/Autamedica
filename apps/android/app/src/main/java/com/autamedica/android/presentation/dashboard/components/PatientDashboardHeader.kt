@@ -206,7 +206,7 @@ fun PatientDashboardHeader(
 
 fun formatCents(cents: Long): String {
     val amount = cents / 100.0
-    return NumberFormat.getCurrencyInstance(Locale("es", "AR")).apply {
+    return NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
         maximumFractionDigits = 0
     }.format(amount)
 }

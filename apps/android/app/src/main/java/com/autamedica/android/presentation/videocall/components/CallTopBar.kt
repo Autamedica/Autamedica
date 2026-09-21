@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall.components
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -58,7 +60,7 @@ fun CallTopBar(
     )
 
     val dotColor = if (isConnected) Color(0xFF10B981) else Color(0xFF38BDF8)
-    val statusText = if (isConnected) "En consulta" else "En espera del médico"
+    val statusText = if (isConnected) stringResource(R.string.videocall_status_in_consultation) else stringResource(R.string.videocall_status_waiting_doctor)
 
     // Format duration
     val hours = durationSeconds / 3600
@@ -142,7 +144,7 @@ fun CallTopBar(
             // Discreet security lock icon
             Icon(
                 imageVector = Icons.Outlined.Lock,
-                contentDescription = "Conexión segura",
+                contentDescription = stringResource(R.string.videocall_secure_connection),
                 tint = Color(0xFF38BDF8).copy(alpha = 0.75f),
                 modifier = Modifier.size(11.dp),
             )

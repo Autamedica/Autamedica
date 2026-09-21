@@ -50,10 +50,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.DoctorAvailabilitySlot
 import com.autamedica.android.presentation.doctors.agenda.SaveStatus
 import com.autamedica.android.presentation.theme.AuBorder
@@ -65,8 +67,25 @@ import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalDoctors
 
-private val DAY_LABELS = listOf("Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb")
-private val DAY_FULL_LABELS = listOf("Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")
+private val DAY_ABBR_RES_IDS = listOf(
+    R.string.doctor_agenda_day_dom_abbr,
+    R.string.doctor_agenda_day_lun_abbr,
+    R.string.doctor_agenda_day_mar_abbr,
+    R.string.doctor_agenda_day_mie_abbr,
+    R.string.doctor_agenda_day_jue_abbr,
+    R.string.doctor_agenda_day_vie_abbr,
+    R.string.doctor_agenda_day_sab_abbr,
+)
+
+private val DAY_FULL_RES_IDS = listOf(
+    R.string.doctor_agenda_day_sunday,
+    R.string.doctor_agenda_day_monday,
+    R.string.doctor_agenda_day_tuesday,
+    R.string.doctor_agenda_day_wednesday,
+    R.string.doctor_agenda_day_thursday,
+    R.string.doctor_agenda_day_friday,
+    R.string.doctor_agenda_day_saturday,
+)
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -124,7 +143,7 @@ fun AvailabilityEditor(
 
                     Column {
                         Text(
-                            text = "DISPONIBILIDAD",
+                            text = stringResource(R.string.doctor_agenda_availability_title),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                             fontWeight = FontWeight.Bold,
@@ -133,9 +152,13 @@ fun AvailabilityEditor(
                         )
                         Text(
                             text = if (hasSlots) {
-                                "${slots.size} bloque${if (slots.size > 1) "s" else ""} configurado${if (slots.size > 1) "s" else ""}"
+                                if (slots.size == 1) {
+                                    stringResource(R.string.doctor_agenda_availability_blocks_single, slots.size)
+                                } else {
+                                    stringResource(R.string.doctor_agenda_availability_blocks_plural, slots.size)
+                                }
                             } else {
-                                "Sin horarios configurados"
+                                stringResource(R.string.doctor_agenda_availability_none)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = if (hasSlots) AuTextPrimary else Color(0xFFB45309),
@@ -182,14 +205,14 @@ fun AvailabilityEditor(
                                 )
                                 Column {
                                     Text(
-                                        text = "Configurá tu disponibilidad",
+                                        text = stringResource(R.string.doctor_agenda_availability_alert_title),
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF92400E),
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
-                                        text = "Sin horarios configurados, los pacientes no pueden agendar turnos. Elegí una plantilla rápida o agregá bloques manualmente.",
+                                        text = stringResource(R.string.doctor_agenda_availability_alert_message),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = Color(0xFFB45309),
                                     )
@@ -201,7 +224,7 @@ fun AvailabilityEditor(
 
                         // Quick templates
                         Text(
-                            text = "PLANTILLAS RÁPIDAS",
+                            text = stringResource(R.string.doctor_agenda_availability_templates_title),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                             fontWeight = FontWeight.Bold,
@@ -217,7 +240,7 @@ fun AvailabilityEditor(
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = PortalDoctors),
                             ) {
                                 Text(
-                                    text = "📅 Lun-Vie 9:00-18:00",
+                                    text = stringResource(R.string.doctor_agenda_availability_template_weekdays),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                 )
@@ -229,7 +252,7 @@ fun AvailabilityEditor(
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = PortalDoctors),
                             ) {
                                 Text(
-                                    text = "🌅 Lun-Vie 8:00-13:00",
+                                    text = stringResource(R.string.doctor_agenda_availability_template_weekdays_half),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                 )
@@ -253,7 +276,7 @@ fun AvailabilityEditor(
                             ) {
                                 // Day Label
                                 Text(
-                                    text = DAY_LABELS[day].uppercase(),
+                                    text = stringResource(DAY_ABBR_RES_IDS[day]).uppercase(),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = if (daySlots.isNotEmpty()) AuTextPrimary else AuTextTertiary,
@@ -268,7 +291,7 @@ fun AvailabilityEditor(
                                 ) {
                                     if (daySlots.isEmpty()) {
                                         Text(
-                                            text = "Sin horario",
+                                            text = stringResource(R.string.doctor_agenda_availability_no_schedule_day),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = AuTextTertiary.copy(alpha = 0.6f),
                                             fontStyle = FontStyle.Italic,
@@ -326,7 +349,7 @@ fun AvailabilityEditor(
                                                         Spacer(modifier = Modifier.width(2.dp))
                                                         Icon(
                                                             imageVector = Icons.Default.Delete,
-                                                            contentDescription = "Eliminar bloque",
+                                                            contentDescription = stringResource(R.string.doctor_agenda_availability_delete_slot_cd),
                                                             tint = Color(0xFFEF4444),
                                                             modifier = Modifier
                                                                 .size(14.dp)
@@ -346,7 +369,10 @@ fun AvailabilityEditor(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Add,
-                                        contentDescription = "Agregar horario para ${DAY_FULL_LABELS[day]}",
+                                        contentDescription = stringResource(
+                                            R.string.doctor_agenda_availability_add_slot_for_day,
+                                            stringResource(DAY_FULL_RES_IDS[day])
+                                        ),
                                         tint = PortalDoctors,
                                         modifier = Modifier.size(16.dp),
                                     )
@@ -375,8 +401,14 @@ fun AvailabilityEditor(
                                     tint = AuDanger,
                                     modifier = Modifier.size(16.dp),
                                 )
+                                val localizedError = when (errorMessage) {
+                                    "Agregá al menos un bloque horario" -> stringResource(R.string.doctor_agenda_availability_error_empty)
+                                    "La hora de inicio debe ser anterior a la de fin" -> stringResource(R.string.doctor_agenda_availability_error_invalid_range)
+                                    "No se pudo guardar la disponibilidad" -> stringResource(R.string.doctor_agenda_availability_error_save_failed)
+                                    else -> errorMessage
+                                }
                                 Text(
-                                    text = errorMessage,
+                                    text = localizedError,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = AuDanger,
                                     fontWeight = FontWeight.Medium,
@@ -394,7 +426,7 @@ fun AvailabilityEditor(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
-                            text = "Duración de turno: 30 min",
+                            text = stringResource(R.string.doctor_agenda_availability_slot_duration),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
@@ -420,7 +452,7 @@ fun AvailabilityEditor(
                                         color = Color.White,
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("GUARDANDO...", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text(stringResource(R.string.doctor_agenda_availability_btn_saving), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 }
                                 SaveStatus.SAVED -> {
                                     Icon(
@@ -429,7 +461,7 @@ fun AvailabilityEditor(
                                         modifier = Modifier.size(16.dp),
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("GUARDADO", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text(stringResource(R.string.doctor_agenda_availability_btn_saved), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 }
                                 else -> {
                                     Icon(
@@ -438,7 +470,7 @@ fun AvailabilityEditor(
                                         modifier = Modifier.size(16.dp),
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("GUARDAR DISPONIBILIDAD", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text(stringResource(R.string.doctor_agenda_availability_btn_save), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 }
                             }
                         }
@@ -456,7 +488,7 @@ fun AvailabilityEditor(
                 onDismissRequest = { editingSlotIndex = null },
                 title = {
                     Text(
-                        text = if (editingIsStartTime) "Hora de inicio" else "Hora de fin",
+                        text = if (editingIsStartTime) stringResource(R.string.doctor_agenda_availability_edit_start_time) else stringResource(R.string.doctor_agenda_availability_edit_end_time),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
@@ -464,7 +496,7 @@ fun AvailabilityEditor(
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "Formato HH:mm (ejemplo: 09:00, 17:30)",
+                            text = stringResource(R.string.doctor_agenda_availability_edit_format_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextTertiary,
                         )
@@ -472,7 +504,7 @@ fun AvailabilityEditor(
                             value = tempTimeText,
                             onValueChange = { tempTimeText = it.take(5) },
                             singleLine = true,
-                            label = { Text("Hora (HH:mm)") },
+                            label = { Text(stringResource(R.string.doctor_agenda_availability_edit_label)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -490,12 +522,12 @@ fun AvailabilityEditor(
                             editingSlotIndex = null
                         }
                     ) {
-                        Text("Aceptar", fontWeight = FontWeight.Bold, color = PortalDoctors)
+                        Text(stringResource(R.string.doctor_agenda_action_accept), fontWeight = FontWeight.Bold, color = PortalDoctors)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { editingSlotIndex = null }) {
-                        Text("Cancelar", color = AuTextTertiary)
+                        Text(stringResource(R.string.doctor_agenda_action_cancel), color = AuTextTertiary)
                     }
                 },
             )

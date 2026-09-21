@@ -6,8 +6,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.autamedica.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,10 +26,13 @@ fun DoctorConsultationReportScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Reporte Clínico") },
+                title = { Text(stringResource(R.string.report_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.clinical_ops_back)
+                        )
                     }
                 }
             )
@@ -39,17 +44,17 @@ fun DoctorConsultationReportScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            Text("Motivo de Consulta y Evolución", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.report_reason_evolution_label), style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
                 modifier = Modifier.fillMaxWidth().height(120.dp),
-                placeholder = { Text("Notas de la consulta...") }
+                placeholder = { Text(stringResource(R.string.report_notes_placeholder)) }
             )
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            Text("Diagnóstico (CIE-10 sugerido)", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.report_diagnosis_label), style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
                 value = diagnosis,
                 onValueChange = { diagnosis = it },
@@ -58,7 +63,7 @@ fun DoctorConsultationReportScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("Plan Terapéutico", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.report_treatment_plan_label), style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
                 value = plan,
                 onValueChange = { plan = it },
@@ -75,17 +80,20 @@ fun DoctorConsultationReportScreen(
                 if (state.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 } else {
-                    Text("Cerrar Historia Clínica")
+                    Text(stringResource(R.string.report_close_record_button))
                 }
             }
 
-            if (state.error != null) {
+            if (state.errorRes != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(stringResource(state.errorRes!!), color = MaterialTheme.colorScheme.error)
+            } else if (state.error != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(state.error!!, color = MaterialTheme.colorScheme.error)
             }
             if (state.isSaved) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Reporte guardado exitosamente.", color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(R.string.report_saved_success), color = MaterialTheme.colorScheme.primary)
             }
         }
     }

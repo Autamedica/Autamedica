@@ -89,8 +89,6 @@ import java.time.Period
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val profileLocale = Locale("es", "AR")
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -133,7 +131,7 @@ fun ProfileScreen(
                     IconButton(onClick = onLogout) {
                         Icon(
                             Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Cerrar sesion",
+                            contentDescription = stringResource(R.string.profile_logout_action),
                             tint = AuDanger,
                         )
                     }
@@ -207,19 +205,19 @@ fun ProfileScreen(
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Eliminar cuenta") },
-                text = { Text("¿Estás seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.") },
+                title = { Text(stringResource(R.string.profile_delete_dialog_title)) },
+                text = { Text(stringResource(R.string.profile_delete_dialog_message)) },
                 confirmButton = {
                     TextButton(onClick = {
                         showDeleteDialog = false
                         onLogout()
                     }) {
-                        Text("Eliminar", color = AuDanger)
+                        Text(stringResource(R.string.profile_delete_dialog_confirm), color = AuDanger)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDeleteDialog = false }) {
-                        Text("Cancelar")
+                        Text(stringResource(R.string.common_cancel))
                     }
                 }
             )
@@ -301,7 +299,7 @@ private fun ProfileHeroCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "Completitud del perfil",
+                        text = stringResource(R.string.profile_completion_title),
                         style = MaterialTheme.typography.titleSmall,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.SemiBold,
@@ -323,9 +321,9 @@ private fun ProfileHeroCard(
                 )
                 Text(
                     text = if (completion < 100) {
-                        "Completá tus datos de contacto para tus turnos y recetas."
+                        stringResource(R.string.profile_completion_hint_incomplete)
                     } else {
-                        "Tu perfil está completo."
+                        stringResource(R.string.profile_completion_hint_complete)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
@@ -356,8 +354,8 @@ private fun ProfileEditCard(
     )
 
     SectionCard(
-        title = "Informacion personal",
-        subtitle = "Actualizá tu nombre y teléfono de contacto.",
+        title = stringResource(R.string.profile_personal_info_title),
+        subtitle = stringResource(R.string.profile_personal_info_subtitle),
         icon = Icons.Default.Person,
     ) {
         OutlinedTextField(
@@ -417,7 +415,7 @@ private fun ProfileEditCard(
                 color = SuccessContainer,
             ) {
                 Text(
-                    text = "Perfil actualizado correctamente",
+                    text = stringResource(R.string.profile_save_success),
                     color = AuSuccess,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
@@ -457,7 +455,7 @@ private fun ProfileEditCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "Guardar cambios",
+                    stringResource(R.string.profile_save_button),
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -471,19 +469,19 @@ private fun ContactSection(
     phone: String,
 ) {
     SectionCard(
-        title = "Contacto",
-        subtitle = "Canales de comunicación para avisos y turnos.",
+        title = stringResource(R.string.profile_contact_title),
+        subtitle = stringResource(R.string.profile_contact_subtitle),
         icon = Icons.Outlined.Email,
     ) {
         InfoRow(
             icon = Icons.Outlined.Email,
-            label = "Email",
+            label = stringResource(R.string.profile_label_email),
             value = email,
         )
         Spacer(modifier = Modifier.height(14.dp))
         InfoRow(
             icon = Icons.Outlined.Phone,
-            label = "Telefono",
+            label = stringResource(R.string.profile_label_phone),
             value = phone.ifBlank { "—" },
         )
     }
@@ -496,25 +494,25 @@ private fun PersonalSummarySection(
     val age = remember(snapshot.birthDate) { computeAge(snapshot.birthDate) }
 
     SectionCard(
-        title = "Resumen personal",
-        subtitle = "Datos registrados en tu cuenta.",
+        title = stringResource(R.string.profile_summary_personal_title),
+        subtitle = stringResource(R.string.profile_summary_personal_subtitle),
         icon = Icons.Outlined.Cake,
     ) {
         InfoRow(
             icon = Icons.Outlined.CalendarMonth,
-            label = "Fecha de nacimiento",
+            label = stringResource(R.string.profile_label_birth_date),
             value = formatDate(snapshot.birthDate),
         )
         Spacer(modifier = Modifier.height(14.dp))
         InfoRow(
             icon = Icons.Outlined.Cake,
-            label = "Edad",
-            value = age?.let { "$it anos" } ?: "—",
+            label = stringResource(R.string.profile_label_age),
+            value = age?.let { stringResource(R.string.profile_age_years, it) } ?: "—",
         )
         Spacer(modifier = Modifier.height(14.dp))
         InfoRow(
             icon = Icons.Outlined.Info,
-            label = "Genero",
+            label = stringResource(R.string.profile_label_gender),
             value = genderLabel(snapshot.gender),
         )
     }
@@ -529,31 +527,31 @@ private fun MedicalSummarySection(
     }
 
     SectionCard(
-        title = "Datos medicos",
-        subtitle = "Información clínica básica.",
+        title = stringResource(R.string.profile_medical_data_title),
+        subtitle = stringResource(R.string.profile_medical_data_subtitle),
         icon = Icons.Outlined.MedicalServices,
     ) {
         InfoRow(
             icon = Icons.Outlined.HealthAndSafety,
-            label = "Tipo de sangre",
+            label = stringResource(R.string.profile_label_blood_type),
             value = snapshot.bloodType ?: "—",
         )
         Spacer(modifier = Modifier.height(14.dp))
         InfoRow(
             icon = Icons.Outlined.MedicalServices,
-            label = "Altura",
+            label = stringResource(R.string.profile_label_height),
             value = snapshot.heightCm?.let { formatMetric(it, "cm") } ?: "—",
         )
         Spacer(modifier = Modifier.height(14.dp))
         InfoRow(
             icon = Icons.Outlined.MedicalServices,
-            label = "Peso",
+            label = stringResource(R.string.profile_label_weight),
             value = snapshot.weightKg?.let { formatMetric(it, "kg") } ?: "—",
         )
         Spacer(modifier = Modifier.height(14.dp))
         InfoRow(
             icon = Icons.Outlined.CheckCircle,
-            label = "IMC",
+            label = stringResource(R.string.profile_label_bmi),
             value = bmi?.toString() ?: "—",
         )
     }
@@ -564,31 +562,31 @@ private fun EmergencyContactSection(
     snapshot: PatientProfileSnapshot,
 ) {
     SectionCard(
-        title = "Contacto de emergencia",
-        subtitle = "Contacto para casos de urgencia médica.",
+        title = stringResource(R.string.profile_emergency_contact_title),
+        subtitle = stringResource(R.string.profile_emergency_contact_subtitle),
         icon = Icons.Outlined.Phone,
     ) {
         InfoRow(
             icon = Icons.Default.Person,
-            label = "Nombre",
+            label = stringResource(R.string.profile_label_name),
             value = snapshot.emergencyContactName ?: "—",
         )
         Spacer(modifier = Modifier.height(14.dp))
         InfoRow(
             icon = Icons.Outlined.Info,
-            label = "Relacion",
+            label = stringResource(R.string.profile_label_relationship),
             value = snapshot.emergencyContactRelationship ?: "—",
         )
         Spacer(modifier = Modifier.height(14.dp))
         InfoRow(
             icon = Icons.Outlined.Phone,
-            label = "Telefono",
+            label = stringResource(R.string.profile_label_phone),
             value = snapshot.emergencyContactPhone ?: "—",
         )
         Spacer(modifier = Modifier.height(14.dp))
         InfoRow(
             icon = Icons.Outlined.Email,
-            label = "Email",
+            label = stringResource(R.string.profile_label_email),
             value = snapshot.emergencyContactEmail ?: "—",
         )
     }
@@ -599,8 +597,8 @@ private fun SessionSection(
     onLogout: () -> Unit,
 ) {
     SectionCard(
-        title = "Sesion",
-        subtitle = "Administra el acceso al dispositivo actual.",
+        title = stringResource(R.string.profile_session_title),
+        subtitle = stringResource(R.string.profile_session_subtitle),
         icon = Icons.AutoMirrored.Filled.ExitToApp,
     ) {
         OutlinedButton(
@@ -621,7 +619,7 @@ private fun SessionSection(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                "Cerrar sesion",
+                stringResource(R.string.profile_logout_action),
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -727,15 +725,16 @@ private fun displayName(user: User, firstName: String, lastName: String): String
         .ifBlank { user.displayName }
 }
 
+@Composable
 private fun roleLabel(role: UserRole): String = when (role) {
-    UserRole.PATIENT -> "Paciente"
-    UserRole.DOCTOR -> "Medico"
-    UserRole.COMPANY -> "Empresa"
-    UserRole.PHARMACIST -> "Farmacia"
-    UserRole.COMPANY_ADMIN -> "Admin empresa"
-    UserRole.ORGANIZATION_ADMIN -> "Admin organizacion"
-    UserRole.ADMIN -> "Admin"
-    UserRole.PLATFORM_ADMIN -> "Admin plataforma"
+    UserRole.PATIENT -> stringResource(R.string.role_label_patient)
+    UserRole.DOCTOR -> stringResource(R.string.role_label_doctor)
+    UserRole.COMPANY -> stringResource(R.string.role_label_company)
+    UserRole.PHARMACIST -> stringResource(R.string.role_label_pharmacist)
+    UserRole.COMPANY_ADMIN -> stringResource(R.string.role_label_company_admin)
+    UserRole.ORGANIZATION_ADMIN -> stringResource(R.string.role_label_organization_admin)
+    UserRole.ADMIN -> stringResource(R.string.role_label_admin)
+    UserRole.PLATFORM_ADMIN -> stringResource(R.string.role_label_platform_admin)
 }
 
 private fun roleAccent(role: UserRole?): Color = when (role) {
@@ -804,16 +803,17 @@ private fun formatMetric(value: Double, suffix: String): String {
 private fun formatDate(value: String?): String {
     if (value.isNullOrBlank()) return "—"
     return runCatching {
-        LocalDate.parse(value).format(DateTimeFormatter.ofPattern("d 'de' MMMM, yyyy", profileLocale))
+        LocalDate.parse(value).format(DateTimeFormatter.ofPattern("d 'de' MMMM, yyyy", Locale.getDefault()))
     }.getOrElse { value }
 }
 
+@Composable
 private fun genderLabel(value: String?): String {
     return when (value?.lowercase()) {
-        "male" -> "Masculino"
-        "female" -> "Femenino"
-        "other" -> "Otro"
-        "prefer_not_to_say" -> "Prefiero no decirlo"
+        "male" -> stringResource(R.string.gender_male)
+        "female" -> stringResource(R.string.gender_female)
+        "other" -> stringResource(R.string.gender_other)
+        "prefer_not_to_say" -> stringResource(R.string.gender_prefer_not_to_say)
         null, "" -> "—"
         else -> value.replaceFirstChar { it.uppercase() }
     }
@@ -824,8 +824,8 @@ private fun SecurityZoneSection(
     onDeleteRequest: () -> Unit,
 ) {
     SectionCard(
-        title = "Zona de seguridad",
-        subtitle = "Gestión de cuenta y privacidad de datos.",
+        title = stringResource(R.string.profile_security_zone_title),
+        subtitle = stringResource(R.string.profile_security_zone_subtitle),
         icon = Icons.Default.Person,
     ) {
         OutlinedButton(
@@ -840,7 +840,7 @@ private fun SecurityZoneSection(
             ),
         ) {
             Text(
-                "Eliminar mi cuenta",
+                stringResource(R.string.profile_delete_account_button),
                 fontWeight = FontWeight.SemiBold,
             )
         }

@@ -73,6 +73,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
@@ -125,7 +126,7 @@ fun DoctorDashboardScreen(
                         )
                         if (uiState.doctorProfile != null) {
                             Text(
-                                text = "Portal Medico",
+                                text = stringResource(R.string.doctor_portal_title),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = PortalDoctors,
                                 fontWeight = FontWeight.Medium,
@@ -141,8 +142,7 @@ fun DoctorDashboardScreen(
                             modifier = Modifier.padding(end = 12.dp),
                         ) {
                             Text(
-                                text = doctorProfile.specialty
-                                    .replaceFirstChar { it.uppercase() },
+                                text = formatDoctorSpecialty(doctorProfile.specialty),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = PortalDoctors,
                                 fontWeight = FontWeight.SemiBold,
@@ -348,7 +348,11 @@ private fun DoctorClinicalCockpit(
             ) {
                 // ── Top Status Badge ──
                 val hasActive = appointment != null
-                val badgeText = if (hasActive) "CONSULTA ACTIVA EN LÍNEA" else "SALA DE TELEMEDICINA ACTIVA"
+                val badgeText = if (hasActive) {
+                    stringResource(R.string.doctor_cockpit_status_active_consultation)
+                } else {
+                    stringResource(R.string.doctor_cockpit_status_telemedicine_active)
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -384,7 +388,7 @@ private fun DoctorClinicalCockpit(
                     }
 
                     Text(
-                        text = "HD 1080p · WebRTC",
+                        text = stringResource(R.string.doctor_cockpit_tech_badge),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium,
@@ -401,7 +405,7 @@ private fun DoctorClinicalCockpit(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "MÉDICO ACTIVO",
+                            text = stringResource(R.string.doctor_cockpit_active_doctor_label),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 9.sp,
                                 letterSpacing = 1.4.sp,
@@ -410,7 +414,7 @@ private fun DoctorClinicalCockpit(
                             color = Color(0xFF3F3F46),
                         )
                         Text(
-                            text = if (doctorName.isNotBlank()) "Dr. ${doctorName.split(" ").first()}" else "Doctor",
+                            text = if (doctorName.isNotBlank()) stringResource(R.string.doctor_greeting_name, doctorName.split(" ").first()) else stringResource(R.string.doctor_greeting_fallback),
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.White,
                             fontWeight = FontWeight.SemiBold,
@@ -423,7 +427,7 @@ private fun DoctorClinicalCockpit(
                         modifier = Modifier.clickable(onClick = onViewAgenda),
                     ) {
                         Text(
-                            text = "Ver agenda  →",
+                            text = stringResource(R.string.doctor_cockpit_view_agenda),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF38BDF8),
                             fontWeight = FontWeight.SemiBold,
@@ -436,7 +440,7 @@ private fun DoctorClinicalCockpit(
                 if (appointment != null) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "${formatTime(appointment.startTime)} hs · ${displayAppointmentType(appointment.type)}",
+                            text = stringResource(R.string.doctor_appointment_time_type, formatTime(appointment.startTime), displayAppointmentType(appointment.type)),
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
@@ -445,7 +449,7 @@ private fun DoctorClinicalCockpit(
                             color = Color.White,
                         )
                         Text(
-                            text = "El paciente está listo en sala de espera. Habilitá tu señal para ingresar.",
+                            text = stringResource(R.string.doctor_cockpit_patient_ready_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFFA1A1AA),
                         )
@@ -487,7 +491,7 @@ private fun DoctorClinicalCockpit(
                                     modifier = Modifier.size(18.dp),
                                 )
                                 Text(
-                                    text = "Entrar a Consulta",
+                                    text = stringResource(R.string.doctor_cockpit_enter_consultation),
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.labelLarge,
@@ -498,7 +502,7 @@ private fun DoctorClinicalCockpit(
                 } else if (candidateAppointment != null) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "${formatTime(candidateAppointment.startTime)} hs · ${displayAppointmentType(candidateAppointment.type)}",
+                            text = stringResource(R.string.doctor_appointment_time_type, formatTime(candidateAppointment.startTime), displayAppointmentType(candidateAppointment.type)),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -506,7 +510,11 @@ private fun DoctorClinicalCockpit(
                             color = Color.White,
                         )
                         Text(
-                            text = validationError ?: "Consulta programada para hoy. Podés habilitar la sala de espera anticipada.",
+                            text = when (validationError) {
+                                "No se pudo validar la sala de telemedicina." -> stringResource(R.string.doctor_telemedicine_validation_error)
+                                null -> stringResource(R.string.doctor_cockpit_candidate_hint)
+                                else -> validationError
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFFA1A1AA),
                         )
@@ -534,7 +542,7 @@ private fun DoctorClinicalCockpit(
                                 modifier = Modifier.size(18.dp),
                             )
                             Text(
-                                text = "Abrir Sala de Espera",
+                                text = stringResource(R.string.doctor_cockpit_open_waiting_room),
                                 fontWeight = FontWeight.SemiBold,
                                 style = MaterialTheme.typography.labelLarge,
                             )
@@ -543,7 +551,7 @@ private fun DoctorClinicalCockpit(
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "Sala de Videoconsulta Directa",
+                            text = stringResource(R.string.doctor_cockpit_direct_room_title),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -551,7 +559,7 @@ private fun DoctorClinicalCockpit(
                             color = Color.White,
                         )
                         Text(
-                            text = "Iniciá una videollamada o verificá tus dispositivos de audio y video en tiempo real.",
+                            text = stringResource(R.string.doctor_cockpit_direct_room_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFFA1A1AA),
                         )
@@ -583,7 +591,7 @@ private fun DoctorClinicalCockpit(
                                     modifier = Modifier.size(16.dp),
                                 )
                                 Text(
-                                    text = "Probar Cámara",
+                                    text = stringResource(R.string.doctor_cockpit_test_camera),
                                     fontWeight = FontWeight.Medium,
                                     style = MaterialTheme.typography.labelMedium,
                                 )
@@ -602,7 +610,7 @@ private fun DoctorClinicalCockpit(
                             ),
                         ) {
                             Text(
-                                text = "Ver Agenda",
+                                text = stringResource(R.string.doctor_cockpit_btn_view_agenda),
                                 fontWeight = FontWeight.SemiBold,
                                 style = MaterialTheme.typography.labelMedium,
                             )
@@ -644,7 +652,7 @@ private fun DoctorClinicalCockpit(
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                text = if (cameraActive) "Cámara ON" else "Cámara OFF",
+                                text = if (cameraActive) stringResource(R.string.doctor_cockpit_camera_on) else stringResource(R.string.doctor_cockpit_camera_off),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (cameraActive) Color(0xFF22D3EE) else Color(0xFF71717A),
@@ -673,7 +681,7 @@ private fun DoctorClinicalCockpit(
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                text = if (micActive) "Mic ON" else "Mic OFF",
+                                text = if (micActive) stringResource(R.string.doctor_cockpit_mic_on) else stringResource(R.string.doctor_cockpit_mic_off),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (micActive) Color(0xFF22D3EE) else Color(0xFF71717A),
@@ -687,7 +695,7 @@ private fun DoctorClinicalCockpit(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text = "SEÑAL",
+                            text = stringResource(R.string.doctor_cockpit_signal_label),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 9.sp,
                                 letterSpacing = 1.sp,
@@ -728,15 +736,15 @@ private fun DoctorClinicalCockpit(
                 ) {
                     CockpitMetric(
                         value = stats.todayAppointments.toString(),
-                        label = "Hoy",
+                        label = stringResource(R.string.doctor_cockpit_metric_today),
                     )
                     CockpitMetric(
                         value = stats.pendingAppointments.toString(),
-                        label = "Pendientes",
+                        label = stringResource(R.string.doctor_cockpit_metric_pending),
                     )
                     CockpitMetric(
                         value = stats.completedToday.toString(),
-                        label = "Realizadas",
+                        label = stringResource(R.string.doctor_cockpit_metric_completed),
                     )
                 }
             }
@@ -775,14 +783,14 @@ private fun DoctorGreeting(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (name.isNotBlank()) "Dr. ${name.split(" ").first()}" else "Doctor",
+                    text = if (name.isNotBlank()) stringResource(R.string.doctor_greeting_name, name.split(" ").first()) else stringResource(R.string.doctor_greeting_fallback),
                     style = MaterialTheme.typography.headlineMedium,
                     color = AuTextPrimary,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Panel de consultas",
+                    text = stringResource(R.string.doctor_dashboard_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = AuTextTertiary,
                 )
@@ -805,7 +813,7 @@ private fun DoctorGreeting(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "MN $licenseNumber",
+                            text = stringResource(R.string.doctor_license_badge, licenseNumber),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuSuccess,
                             fontWeight = FontWeight.SemiBold,
@@ -857,13 +865,17 @@ private fun TodayScheduleSection(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Agenda de hoy",
+                        text = stringResource(R.string.doctor_schedule_today_title),
                         style = MaterialTheme.typography.titleSmall,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = "${appointments.size} turno${if (appointments.size != 1) "s" else ""} programados",
+                        text = if (appointments.size == 1) {
+                            stringResource(R.string.doctor_schedule_count_single, appointments.size)
+                        } else {
+                            stringResource(R.string.doctor_schedule_count_plural, appointments.size)
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = AuTextTertiary,
                     )
@@ -889,13 +901,13 @@ private fun TodayScheduleSection(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Agenda despejada para hoy",
+                            text = stringResource(R.string.doctor_schedule_empty_title),
                             style = MaterialTheme.typography.bodyMedium,
                             color = AuTextSecondary,
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
-                            text = "Los turnos nuevos van a aparecer acá",
+                            text = stringResource(R.string.doctor_schedule_empty_subtitle),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
@@ -927,7 +939,7 @@ private fun TodayScheduleSection(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Gestionar agenda",
+                    text = stringResource(R.string.doctor_schedule_manage),
                     style = MaterialTheme.typography.labelMedium,
                     color = PortalDoctors,
                     fontWeight = FontWeight.SemiBold,
@@ -1003,7 +1015,7 @@ private fun DoctorAppointmentRow(
                     )
                     appointment.durationMinutes?.let {
                         Text(
-                            text = "· ${it}min",
+                            text = stringResource(R.string.doctor_appointment_duration_format, it),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
@@ -1038,12 +1050,12 @@ private fun DoctorAppointmentRow(
                 ) {
                     Icon(
                         Icons.Default.Videocam,
-                        contentDescription = "Iniciar consulta",
+                        contentDescription = stringResource(R.string.doctor_appointment_start_cd),
                         modifier = Modifier.size(14.dp),
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        "Iniciar",
+                        stringResource(R.string.doctor_appointment_start_btn),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -1065,13 +1077,13 @@ private fun RecentPatientsSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Pacientes en seguimiento",
+                text = stringResource(R.string.doctor_patients_section_title),
                 style = MaterialTheme.typography.titleSmall,
                 color = AuTextSecondary,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = "Ver todos →",
+                text = stringResource(R.string.doctor_patients_view_all),
                 style = MaterialTheme.typography.labelMedium,
                 color = PrimaryLight,
                 fontWeight = FontWeight.Medium,
@@ -1123,7 +1135,7 @@ private fun PatientChip(
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = "${patient.firstName} ${patient.lastName}".trim().ifBlank { "Paciente" },
+                text = "${patient.firstName} ${patient.lastName}".trim().ifBlank { stringResource(R.string.doctor_patient_fallback_name) },
                 style = MaterialTheme.typography.bodySmall,
                 color = AuTextPrimary,
                 fontWeight = FontWeight.Medium,
@@ -1131,7 +1143,11 @@ private fun PatientChip(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = "${patient.appointmentCount} consulta${if (patient.appointmentCount != 1) "s" else ""}",
+                text = if (patient.appointmentCount == 1) {
+                    stringResource(R.string.doctor_patient_consultations_count_single, patient.appointmentCount)
+                } else {
+                    stringResource(R.string.doctor_patient_consultations_count_plural, patient.appointmentCount)
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = AuTextTertiary,
             )
@@ -1141,7 +1157,7 @@ private fun PatientChip(
                 color = AuSuccess.copy(alpha = 0.12f),
             ) {
                 Text(
-                    text = "ACTIVO",
+                    text = stringResource(R.string.doctor_patient_active_badge),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 8.sp,
                         letterSpacing = 0.6.sp,
@@ -1188,19 +1204,27 @@ private fun WeeklySummaryCard(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Resumen semanal",
+                    text = stringResource(R.string.doctor_weekly_summary_title),
                     style = MaterialTheme.typography.labelMedium,
                     color = AuTextTertiary,
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
-                    text = "${stats.weeklyAppointments} consultas esta semana",
+                    text = if (stats.weeklyAppointments == 1) {
+                        stringResource(R.string.doctor_weekly_consultations_single, stats.weeklyAppointments)
+                    } else {
+                        stringResource(R.string.doctor_weekly_consultations_plural, stats.weeklyAppointments)
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     color = AuTextPrimary,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "${stats.totalPatients} pacientes activos",
+                    text = if (stats.totalPatients == 1) {
+                        stringResource(R.string.doctor_weekly_patients_single, stats.totalPatients)
+                    } else {
+                        stringResource(R.string.doctor_weekly_patients_plural, stats.totalPatients)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                 )
@@ -1211,23 +1235,38 @@ private fun WeeklySummaryCard(
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-private fun displayAppointmentType(type: AppointmentType): String = when (type) {
-    AppointmentType.CONSULTATION -> "Consulta"
-    AppointmentType.FOLLOW_UP -> "Seguimiento"
-    AppointmentType.EMERGENCY -> "Urgencia"
-    AppointmentType.TELEMEDICINE -> "Telemedicina"
-    AppointmentType.LAB_TEST -> "Laboratorio"
-    AppointmentType.CHECKUP -> "Chequeo"
+@Composable
+private fun formatDoctorSpecialty(specialty: String): String {
+    return if (specialty.equals("general", ignoreCase = true) ||
+        specialty.equals("medicina general", ignoreCase = true) ||
+        specialty.equals("clínica médica", ignoreCase = true) ||
+        specialty.equals("clinica medica", ignoreCase = true)
+    ) {
+        stringResource(R.string.doctor_specialty_general)
+    } else {
+        specialty.replaceFirstChar { it.uppercase() }
+    }
 }
 
+@Composable
+private fun displayAppointmentType(type: AppointmentType): String = when (type) {
+    AppointmentType.CONSULTATION -> stringResource(R.string.doctor_appointment_type_consultation)
+    AppointmentType.FOLLOW_UP -> stringResource(R.string.doctor_appointment_type_follow_up)
+    AppointmentType.EMERGENCY -> stringResource(R.string.doctor_appointment_type_emergency)
+    AppointmentType.TELEMEDICINE -> stringResource(R.string.doctor_appointment_type_telemedicine)
+    AppointmentType.LAB_TEST -> stringResource(R.string.doctor_appointment_type_lab_test)
+    AppointmentType.CHECKUP -> stringResource(R.string.doctor_appointment_type_checkup)
+}
+
+@Composable
 private fun displayStatus(status: AppointmentStatus): String = when (status) {
-    AppointmentStatus.PAYMENT_PENDING -> "Pago pendiente"
-    AppointmentStatus.SCHEDULED -> "Programada"
-    AppointmentStatus.CONFIRMED -> "Confirmada"
-    AppointmentStatus.IN_PROGRESS -> "En curso"
-    AppointmentStatus.COMPLETED -> "Completada"
-    AppointmentStatus.CANCELLED -> "Cancelada"
-    AppointmentStatus.NO_SHOW -> "Ausente"
+    AppointmentStatus.PAYMENT_PENDING -> stringResource(R.string.doctor_status_payment_pending)
+    AppointmentStatus.SCHEDULED -> stringResource(R.string.doctor_status_scheduled)
+    AppointmentStatus.CONFIRMED -> stringResource(R.string.doctor_status_confirmed)
+    AppointmentStatus.IN_PROGRESS -> stringResource(R.string.doctor_status_in_progress)
+    AppointmentStatus.COMPLETED -> stringResource(R.string.doctor_status_completed)
+    AppointmentStatus.CANCELLED -> stringResource(R.string.doctor_status_cancelled)
+    AppointmentStatus.NO_SHOW -> stringResource(R.string.doctor_status_no_show)
 }
 
 private fun appointmentTypeIcon(type: AppointmentType): ImageVector = when (type) {

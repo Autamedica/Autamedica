@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- =================================================================== -->
+    <!-- 1. RECETAS MÉDICAS EMITIDAS (DoctorPrescriptionsScreen)            -->
+    <!-- =================================================================== -->
+    <string name="doctor_rx_title">Recetas Médicas Emitidas</string>
+    <string name="doctor_rx_subtitle">Decreto 63/2024 · Registro CUIR / SISA</string>
+    <string name="doctor_rx_action_back">Volver</string>
+    <string name="doctor_rx_action_refresh">Actualizar</string>
+    <string name="doctor_rx_action_new">Nueva Receta</string>
+    <string name="doctor_rx_search_placeholder">Buscar por paciente, DNI, CUIR o fármaco...</string>
+    <string name="doctor_rx_search_desc">Buscar</string>
+    <string name="doctor_rx_clear_search_desc">Limpiar</string>
+
+    <!-- Metrics -->
+    <string name="doctor_rx_metric_total">Total</string>
+    <string name="doctor_rx_metric_active">Activas</string>
+    <string name="doctor_rx_metric_dispensed">Dispensadas</string>
+    <string name="doctor_rx_metric_cancelled">Canceladas</string>
+
+    <!-- Status Filters -->
+    <string name="doctor_rx_filter_all">Todas (%1$d)</string>
+    <string name="doctor_rx_filter_active">Activas (%1$d)</string>
+    <string name="doctor_rx_filter_dispensed">Dispensadas (%1$d)</string>
+    <string name="doctor_rx_filter_cancelled">Canceladas (%1$d)</string>
+
+    <!-- Empty States -->
+    <string name="doctor_rx_empty_title">Sin recetas emitidas todavía</string>
+    <string name="doctor_rx_empty_filtered_title">No se encontraron recetas con ese criterio</string>
+    <string name="doctor_rx_empty_desc">Las recetas digitales emitidas bajo Decreto 63 aparecerán aquí con su CUIR oficial.</string>
+    <string name="doctor_rx_empty_filtered_desc">Intente buscar con otro nombre, DNI o borre los filtros</string>
+    <string name="doctor_rx_empty_clear_filters">Limpiar filtros</string>
+
+    <!-- Prescription Card -->
+    <string name="doctor_rx_card_copy_cuir">Copiar CUIR</string>
+    <string name="doctor_rx_card_cuir_copied_toast">CUIR copiado: %1$s</string>
+    <string name="doctor_rx_card_default_patient">Paciente Asignado</string>
+    <string name="doctor_rx_card_dni_prefix">DNI: %1$s</string>
+    <string name="doctor_rx_card_diagnosis_label">Diagnóstico:</string>
+    <string name="doctor_rx_card_medications_title">Medicamentos Prescriptos (%1$d):</string>
+    <string name="doctor_rx_card_duration_format">durante %1$s</string>
+    <string name="doctor_rx_card_instruction_prefix">Indicación: %1$s</string>
+    <string name="doctor_rx_card_notes_prefix">Obs: %1$s</string>
+    <string name="doctor_rx_card_download_pdf">Descargar PDF</string>
+    <string name="doctor_rx_card_cancel_action">Anular Receta</string>
+
+    <!-- Status Badges -->
+    <string name="doctor_rx_badge_cancelled">CANCELADA</string>
+    <string name="doctor_rx_badge_dispensed">DISPENSADA</string>
+    <string name="doctor_rx_badge_active">ACTIVA</string>
+    <string name="doctor_rx_badge_expired">VENCIDA</string>
+
+    <!-- Cancellation Dialog -->
+    <string name="doctor_rx_cancel_dialog_title">Anular Receta Digital</string>
+    <string name="doctor_rx_cancel_dialog_body">Está a punto de revocar la receta con CUIR %1$s de %2$s.</string>
+    <string name="doctor_rx_cancel_dialog_legal">Esta acción queda registrada de manera inmutable en el registro de auditoría clínica (Ley 27.553).</string>
+    <string name="doctor_rx_cancel_dialog_reason_label">Motivo clínico de anulación *</string>
+    <string name="doctor_rx_cancel_dialog_reason_placeholder">Ej: Error en posología, cambio de esquema terapéutico</string>
+    <string name="doctor_rx_cancel_dialog_confirm">Confirmar Anulación</string>
+    <string name="doctor_rx_cancel_dialog_dismiss">Cancelar</string>
+    <string name="doctor_rx_pdf_error_toast">No se pudo abrir el documento PDF.</string>
+
+    <!-- =================================================================== -->
+    <!-- 2. EMISIÓN DE RECETA DIGITAL (CreatePrescriptionScreen)              -->
+    <!-- =================================================================== -->
+    <string name="doctor_create_rx_title">Emitir Receta Digital</string>
+    <string name="doctor_create_rx_subtitle">Decreto 63/2024 · Ley 27.553</string>
+    <string name="doctor_create_rx_action_back">Volver</string>
+    <string name="doctor_create_rx_submitting">Firmando y Generando CUIR...</string>
+    <string name="doctor_create_rx_submit_button">Firmar y Emitir Receta Oficial</string>
+
+    <!-- Regulatory Banner -->
+    <string name="doctor_create_rx_regulatory_eligible_title">Prescriptor Habilitado · SISA REFEPS</string>
+    <string name="doctor_create_rx_regulatory_not_eligible_title">Estado de Validación Profesional</string>
+    <string name="doctor_create_rx_regulatory_license_info">Matrícula: MN %1$s · Firma digital y CUIR habilitados</string>
+    <string name="doctor_create_rx_regulatory_fallback_reason">Verifique su matrícula en el perfil para cumplir Decreto 63/2024</string>
+    <string name="doctor_create_rx_regulatory_registered">Registrada</string>
+
+    <!-- Patient Selector -->
+    <string name="doctor_create_rx_patient_section_title">Paciente Destinatario</string>
+    <string name="doctor_create_rx_patient_change">Cambiar</string>
+    <string name="doctor_create_rx_patient_search_label">Buscar paciente por nombre o DNI...</string>
+    <string name="doctor_create_rx_patient_loading">Cargando pacientes...</string>
+    <string name="doctor_create_rx_patient_empty">No se encontraron pacientes</string>
+    <string name="doctor_create_rx_patient_dni_prefix">DNI: %1$s</string>
+
+    <!-- Medication Items Section -->
+    <string name="doctor_create_rx_items_section_title">Fármacos a Prescribir (Máximo 3 por receta)</string>
+    <string name="doctor_create_rx_add_medication">Agregar otro medicamento (%1$d/3)</string>
+    <string name="doctor_create_rx_medication_item_title">Medicamento #%1$d</string>
+    <string name="doctor_create_rx_delete_item_desc">Eliminar</string>
+    <string name="doctor_create_rx_med_name_label">Fármaco o Principio Activo *</string>
+    <string name="doctor_create_rx_med_name_placeholder">Ej: Amoxicilina 500 mg, Losartán 50 mg...</string>
+    <string name="doctor_create_rx_dosage_label">Dosis *</string>
+    <string name="doctor_create_rx_dosage_placeholder">Ej: 500 mg, 1 comprimido...</string>
+    <string name="doctor_create_rx_frequency_label">Frecuencia *</string>
+    <string name="doctor_create_rx_frequency_placeholder">Ej: Cada 8 horas, 1 vez al día...</string>
+    <string name="doctor_create_rx_duration_label">Duración del tratamiento</string>
+    <string name="doctor_create_rx_duration_placeholder">Ej: Por 7 días, Tratamiento crónico...</string>
+    <string name="doctor_create_rx_instructions_label">Instrucciones específicas</string>
+    <string name="doctor_create_rx_instructions_placeholder">Ej: Tomar con abundantes líquidos junto con el almuerzo...</string>
+
+    <!-- Diagnosis Section -->
+    <string name="doctor_create_rx_diagnosis_title">Diagnóstico Principal (CIE-10) *</string>
+    <string name="doctor_create_rx_diagnosis_placeholder">Buscar diagnóstico (ej: Hipertensión, Faringitis, I10...)</string>
+
+    <!-- Notes / Observations -->
+    <string name="doctor_create_rx_notes_label">Observaciones / Indicaciones a farmacia (opcional)</string>
+    <string name="doctor_create_rx_notes_placeholder">Ej: Apto sustitución genérica, uso prolongado...</string>
+
+    <!-- Success Modal Dialog -->
+    <string name="doctor_create_rx_success_title">¡Receta Emitida con Éxito!</string>
+    <string name="doctor_create_rx_success_body">La receta digital ha sido firmada y registrada según normativa vigente.</string>
+    <string name="doctor_create_rx_cuir_label">CÓDIGO ÚNICO (CUIR):</string>
+    <string name="doctor_create_rx_copy_cuir">Copiar</string>
+    <string name="doctor_create_rx_cuir_copied_toast">CUIR copiado</string>
+    <string name="doctor_create_rx_success_validity">Válida en farmacias de todo el país mediante consulta online o lectura del código QR.</string>
+    <string name="doctor_create_rx_success_button">Ver Mis Recetas</string>
+
+    <!-- =================================================================== -->
+    <!-- 3. ÓRDENES MÉDICAS EMITIDAS (DoctorMedicalOrdersScreen)            -->
+    <!-- =================================================================== -->
+    <string name="doctor_orders_title">Órdenes Médicas</string>
+    <string name="doctor_orders_subtitle">%1$d órdenes emitidas</string>
+    <string name="doctor_orders_action_back">Volver</string>
+    <string name="doctor_orders_action_refresh">Actualizar</string>
+    <string name="doctor_orders_action_new">Nueva Orden</string>
+    <string name="doctor_orders_search_placeholder">Buscar por paciente, DNI, práctica o CUIR...</string>
+    <string name="doctor_orders_clear_search_desc">Limpiar</string>
+
+    <!-- Order Filters -->
+    <string name="doctor_orders_filter_all">Todas</string>
+    <string name="doctor_orders_filter_lab">Laboratorio</string>
+    <string name="doctor_orders_filter_imaging">Imágenes</string>
+    <string name="doctor_orders_filter_cardiology">Cardiología</string>
+    <string name="doctor_orders_filter_other">Otros</string>
+
+    <!-- Order Empty States -->
+    <string name="doctor_orders_empty_filtered">No se encontraron órdenes con el criterio de búsqueda</string>
+    <string name="doctor_orders_empty_category">No hay órdenes médicas emitidas en esta categoría</string>
+
+    <!-- Badges -->
+    <string name="doctor_orders_badge_signed">Firmada</string>
+    <string name="doctor_orders_badge_draft">Borrador</string>
+    <string name="doctor_orders_badge_cancelled">Cancelada</string>
+
+    <!-- Medical Order Card -->
+    <string name="doctor_orders_card_patient_default">Paciente</string>
+    <string name="doctor_orders_practices_header">Prácticas y estudios solicitados:</string>
+    <string name="doctor_orders_dx_prefix">Dx: %1$s</string>
+    <string name="doctor_orders_notes_prefix">Indicaciones: %1$s</string>
+    <string name="doctor_orders_cuir_prefix">CUIR: %1$s</string>
+    <string name="doctor_orders_copy_cuir_desc">Copiar</string>
+    <string name="doctor_orders_cuir_copied_toast">CUIR copiado</string>
+    <string name="doctor_orders_view_qr_desc">Ver QR</string>
+    <string name="doctor_orders_view_pdf_desc">Ver PDF</string>
+
+    <!-- QR Dialog -->
+    <string name="doctor_orders_qr_dialog_title">Verificación de Orden Médica</string>
+    <string name="doctor_orders_qr_dialog_close">Cerrar</string>
+    <string name="doctor_orders_qr_dialog_cuir_label">Código CUIR</string>
+    <string name="doctor_orders_qr_dialog_copy_desc">Copiar CUIR</string>
+    <string name="doctor_orders_qr_dialog_copied_toast">CUIR copiado al portapapeles</string>
+    <string name="doctor_orders_qr_dialog_legal">Válido ante centros de diagnóstico, laboratorios e instituciones según Decreto 63/2024.</string>
+    <string name="doctor_orders_pdf_error_toast">No se pudo abrir el documento PDF.</string>
+
+    <!-- =================================================================== -->
+    <!-- 4. CREACIÓN DE ORDEN MÉDICA (CreateMedicalOrderScreen)              -->
+    <!-- =================================================================== -->
+    <string name="doctor_create_order_title">Nueva Orden Médica</string>
+    <string name="doctor_create_order_subtitle">Estudios y Prácticas Diagnósticas</string>
+    <string name="doctor_create_order_action_back">Volver</string>
+    <string name="doctor_create_order_submitting">Emitiendo orden médica...</string>
+    <string name="doctor_create_order_submit_button">Emitir Orden Oficial</string>
+    <string name="doctor_create_order_success_toast">Orden médica emitida con éxito</string>
+
+    <!-- Patient Selector -->
+    <string name="doctor_create_order_patient_title">Paciente destinatario</string>
+    <string name="doctor_create_order_patient_unselected">Seleccionar paciente elegible</string>
+    <string name="doctor_create_order_patient_loading">Cargando pacientes...</string>
+    <string name="doctor_create_order_patient_search_placeholder">Buscar paciente por nombre o DNI...</string>
+    <string name="doctor_create_order_patient_empty">No se encontraron pacientes</string>
+    <string name="doctor_create_order_patient_id_format">DNI: %1$s · ID: %2$s</string>
+    <string name="doctor_create_order_patient_no_dni">Sin DNI</string>
+    <string name="doctor_create_order_patient_dni_short">DNI: %1$s</string>
+    <string name="doctor_create_order_patient_no_dni_short">S/D</string>
+
+    <!-- Study Types -->
+    <string name="doctor_create_order_study_type_title">Tipo de estudio</string>
+    <string name="doctor_create_order_type_lab_name">Laboratorio</string>
+    <string name="doctor_create_order_type_lab_desc">Análisis clínicos, sangre, orina y serologías</string>
+    <string name="doctor_create_order_type_imaging_name">Diagnóstico por Imágenes</string>
+    <string name="doctor_create_order_type_imaging_desc">Ecografías, Rayos X, Tomografías y Resonancias</string>
+    <string name="doctor_create_order_type_cardiology_name">Cardiología</string>
+    <string name="doctor_create_order_type_cardiology_desc">ECG, Ecocardiograma, Ergometría y Holter</string>
+    <string name="doctor_create_order_type_other_name">Otros estudios</string>
+    <string name="doctor_create_order_type_other_desc">Estudios especializados y procedimientos</string>
+
+    <!-- Practices Section -->
+    <string name="doctor_create_order_practices_title">Prácticas solicitadas</string>
+    <string name="doctor_create_order_add_practice">Agregar práctica</string>
+    <string name="doctor_create_order_suggestions_title">Sugerencias frecuentes:</string>
+    <string name="doctor_create_order_practice_label">Práctica #%1$d</string>
+    <string name="doctor_create_order_practice_placeholder">Ej: Hemograma completo</string>
+    <string name="doctor_create_order_delete_practice_desc">Eliminar</string>
+
+    <!-- Diagnosis Section -->
+    <string name="doctor_create_order_diagnosis_title">Diagnóstico presuntivo / CIE-10</string>
+    <string name="doctor_create_order_diagnosis_desc">Indique el motivo clínico o diagnóstico que justifica la solicitud de las prácticas.</string>
+    <string name="doctor_create_order_diagnosis_placeholder">Ej: Control anual de rutina / Hipertensión arterial esencial (I10)</string>
+
+    <!-- Preparation Notes Section -->
+    <string name="doctor_create_order_notes_title">Preparación e indicaciones clínicas (Opcional)</string>
+    <string name="doctor_create_order_notes_desc">Instrucciones de preparación para el paciente (ayuno, hidratación, medicación previa, etc.).</string>
+    <string name="doctor_create_order_notes_placeholder">Ej: Ayuno estricto de 8 horas. No suspender medicación habitual.</string>
+
+    <!-- =================================================================== -->
+    <!-- 5. MENSAJES DE VALIDACIÓN Y VIEWMODEL                               -->
+    <!-- =================================================================== -->
+    <!-- Prescriptions ViewModel Messages -->
+    <string name="doctor_rx_val_cancel_motive_required">Debe indicar el motivo clínico de anulación</string>
+    <string name="doctor_rx_val_cancelled_success">Receta %1$s cancelada correctamente</string>
+    <string name="doctor_rx_val_cancel_error">Error al cancelar: %1$s</string>
+    <string name="doctor_rx_val_patient_required">Debe seleccionar un paciente</string>
+    <string name="doctor_rx_val_medication_required">Debe indicar al menos un medicamento</string>
+    <string name="doctor_rx_val_med_name_required">Complete el nombre del medicamento #%1$d</string>
+    <string name="doctor_rx_val_dosage_required">Indique la dosis para %1$s</string>
+    <string name="doctor_rx_val_frequency_required">Indique la frecuencia de toma para %1$s</string>
+    <string name="doctor_rx_val_diagnosis_required">Indique el diagnóstico clínico (CIE-10)</string>
+    <string name="doctor_rx_val_license_required">Debe configurar su matrícula médica antes de emitir recetas</string>
+    <string name="doctor_rx_val_issued_success">Receta emitida con éxito: CUIR %1$s</string>
+    <string name="doctor_rx_val_issue_error">Error al emitir: %1$s</string>
+    <string name="doctor_rx_val_load_error">Error al cargar recetas: %1$s</string>
+    <string name="doctor_rx_val_unknown_error">Error desconocido</string>
+    <string name="doctor_rx_val_update_error">No se pudo actualizar</string>
+    <string name="doctor_rx_val_complete_issue_error">No se pudo completar la emisión</string>
+
+    <!-- Medical Orders ViewModel Messages -->
+    <string name="doctor_orders_val_load_error">Error al cargar órdenes médicas</string>
+    <string name="doctor_orders_val_patient_required">Seleccione un paciente elegible</string>
+    <string name="doctor_orders_val_practice_required">Ingrese al menos un estudio o práctica médica</string>
+    <string name="doctor_orders_val_diagnosis_required">Ingrese el diagnóstico presuntivo / código CIE-10</string>
+    <string name="doctor_orders_val_issued_success">Orden médica emitida con éxito (CUIR: %1$s)</string>
+    <string name="doctor_orders_val_issued_fallback">Emitida</string>
+    <string name="doctor_orders_val_issue_error">Error al emitir orden médica</string>
+    <string name="doctor_orders_val_cancel_reason_required">Debe especificar un motivo de cancelación</string>
+    <string name="doctor_orders_val_cancelled_success">Orden médica cancelada</string>
+    <string name="doctor_orders_val_cancel_error">No se pudo cancelar la orden</string>
+
+    <string name="doctor_orders_card_notes_prefix">Indicaciones: %1$s</string>
+    <string name="doctor_orders_card_cuir_prefix">CUIR: %1$s</string>
+    <string name="doctor_orders_card_cuir_copied_toast">CUIR copiado al portapapeles</string>
+    <string name="doctor_orders_card_copy_action">Copiar CUIR</string>
+    <string name="doctor_orders_card_view_qr_desc">Ver código QR</string>
+    <string name="doctor_orders_card_view_pdf_desc">Ver orden en PDF</string>
+</resources>

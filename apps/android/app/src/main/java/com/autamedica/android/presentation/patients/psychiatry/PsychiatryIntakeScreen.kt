@@ -23,10 +23,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +44,7 @@ fun PsychiatryIntakeScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Evaluación Psiquiátrica",
+                        text = stringResource(R.string.psychiatry_intake_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -51,7 +53,7 @@ fun PsychiatryIntakeScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
+                            contentDescription = stringResource(R.string.psychiatry_intake_back_cd)
                         )
                     }
                 }
@@ -83,16 +85,16 @@ fun PsychiatryIntakeScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Evaluación en revisión",
+                        text = stringResource(R.string.psychiatry_intake_submitted_title),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Tu evaluación fue enviada al equipo de psiquiatría y está siendo revisada.",
+                        text = stringResource(R.string.psychiatry_intake_submitted_desc),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Button(onClick = onBack) {
-                        Text("Volver al inicio")
+                        Text(stringResource(R.string.psychiatry_intake_back_home_btn))
                     }
                 }
             }
@@ -107,7 +109,7 @@ fun PsychiatryIntakeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Completá tu evaluación",
+                text = stringResource(R.string.psychiatry_intake_form_title),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -115,7 +117,7 @@ fun PsychiatryIntakeScreen(
             OutlinedTextField(
                 value = uiState.reasonForVisit,
                 onValueChange = viewModel::onReasonForVisitChanged,
-                label = { Text("Motivo de consulta") },
+                label = { Text(stringResource(R.string.psychiatry_intake_reason_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
@@ -123,7 +125,7 @@ fun PsychiatryIntakeScreen(
             OutlinedTextField(
                 value = uiState.previousHistory,
                 onValueChange = viewModel::onPreviousHistoryChanged,
-                label = { Text("Antecedentes (Opcional)") },
+                label = { Text(stringResource(R.string.psychiatry_intake_history_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
@@ -131,7 +133,7 @@ fun PsychiatryIntakeScreen(
             OutlinedTextField(
                 value = uiState.currentMedication,
                 onValueChange = viewModel::onCurrentMedicationChanged,
-                label = { Text("Medicación actual (Opcional)") },
+                label = { Text(stringResource(R.string.psychiatry_intake_medication_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
@@ -142,7 +144,10 @@ fun PsychiatryIntakeScreen(
                 shape = RoundedCornerShape(14.dp),
                 enabled = uiState.reasonForVisit.isNotBlank()
             ) {
-                Text("Finalizar evaluación", modifier = Modifier.padding(vertical = 4.dp))
+                Text(
+                    stringResource(R.string.psychiatry_intake_submit_btn),
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
             }
         }
     }

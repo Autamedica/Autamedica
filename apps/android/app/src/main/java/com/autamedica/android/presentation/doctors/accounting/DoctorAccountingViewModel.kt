@@ -2,6 +2,7 @@ package com.autamedica.android.presentation.doctors.accounting
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +15,8 @@ data class TransactionItem(
     val date: String,
     val patientName: String,
     val amount: Double,
-    val status: String
+    val status: String,
+    val statusRes: Int? = null,
 )
 
 data class DoctorAccountingState(
@@ -24,12 +26,13 @@ data class DoctorAccountingState(
     val pendingSettlement: Double = 32000.0,
     val isWithdrawalRequested: Boolean = false,
     val transactions: List<TransactionItem> = listOf(
-        TransactionItem("1", "05/09/2026", "Carlos Benítez", 8500.0, "Acreditado"),
-        TransactionItem("2", "04/09/2026", "María Gómez", 8500.0, "Acreditado"),
-        TransactionItem("3", "03/09/2026", "Lucas Silva", 8500.0, "Acreditado"),
-        TransactionItem("4", "02/09/2026", "Ana Rivas", 8500.0, "En proceso")
+        TransactionItem("1", "05/09/2026", "Carlos Benítez", 8500.0, "Acreditado", R.string.accounting_status_credited),
+        TransactionItem("2", "04/09/2026", "María Gómez", 8500.0, "Acreditado", R.string.accounting_status_credited),
+        TransactionItem("3", "03/09/2026", "Lucas Silva", 8500.0, "Acreditado", R.string.accounting_status_credited),
+        TransactionItem("4", "02/09/2026", "Ana Rivas", 8500.0, "En proceso", R.string.accounting_status_in_process)
     ),
-    val message: String? = null
+    val message: String? = null,
+    val messageRes: Int? = null,
 )
 
 class DoctorAccountingViewModel : ViewModel() {
@@ -38,13 +41,14 @@ class DoctorAccountingViewModel : ViewModel() {
 
     fun requestWithdrawal() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, message = null) }
+            _state.update { it.copy(isLoading = true, message = null, messageRes = null) }
             delay(1200)
             _state.update { 
                 it.copy(
                     isLoading = false,
                     isWithdrawalRequested = true,
-                    message = "Solicitud de retiro enviada exitosamente a tu cuenta bancaria."
+                    message = null,
+                    messageRes = R.string.accounting_withdrawal_success_message,
                 )
             }
         }

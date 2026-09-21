@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -118,7 +120,7 @@ fun VideoCallScreen(
                     .padding(horizontal = 24.dp),
             ) {
                 Text(
-                    text = "Se requieren permisos de cámara y micrófono para iniciar la videollamada.",
+                    text = stringResource(R.string.videocall_permission_required),
                     color = Color.White,
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
@@ -225,7 +227,7 @@ fun VideoCallScreen(
                             }
                         }
                         Text(
-                            text = "Cámara apagada",
+                            text = stringResource(R.string.videocall_camera_turned_off),
                             color = Color(0xFF94A3B8),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
@@ -238,7 +240,7 @@ fun VideoCallScreen(
             PatientWaitingRoomOverlay(
                 isAudioEnabled = uiState.isAudioEnabled,
                 isVideoEnabled = uiState.isVideoEnabled,
-                statusMessage = uiState.sessionStatusMessage ?: "Esperando al médico...",
+                statusMessage = uiState.sessionStatusMessage ?: stringResource(R.string.videocall_waiting_for_doctor),
                 isConnecting = uiState.connectionState == ConnectionState.CONNECTING,
                 onToggleAudio = viewModel::toggleAudio,
                 onToggleVideo = viewModel::toggleVideo,
@@ -274,13 +276,13 @@ fun VideoCallScreen(
                 )
             } else {
                 val subtitleText = when (uiState.connectionState) {
-                    ConnectionState.CONNECTING -> "Llamando al médico..."
-                    ConnectionState.RECONNECTING -> "El profesional se está reconectando..."
-                    ConnectionState.FAILED -> "Error de conexión con la sala"
-                    else -> if (uiState.isDoctor) "Esperando que el paciente active su cámara..." else "Esperando que el profesional active su cámara..."
+                    ConnectionState.CONNECTING -> stringResource(R.string.videocall_calling_doctor)
+                    ConnectionState.RECONNECTING -> stringResource(R.string.videocall_reconnecting_doctor)
+                    ConnectionState.FAILED -> stringResource(R.string.videocall_error_room_connection)
+                    else -> if (uiState.isDoctor) stringResource(R.string.videocall_waiting_patient_camera) else stringResource(R.string.videocall_waiting_doctor_camera)
                 }
                 RemoteAvatarFallback(
-                    name = if (uiState.isDoctor) "Paciente" else uiState.doctorName,
+                    name = if (uiState.isDoctor) stringResource(R.string.videocall_patient_label) else uiState.doctorName,
                     subtitle = subtitleText,
                     isCameraOff = uiState.connectionState == ConnectionState.CONNECTED,
                     isReconnecting = uiState.connectionState == ConnectionState.RECONNECTING,
@@ -317,7 +319,7 @@ fun VideoCallScreen(
                                 .background(Color(0xFF10B981)),
                         )
                         Text(
-                            text = if (uiState.isDoctor) "Paciente" else uiState.doctorName,
+                            text = if (uiState.isDoctor) stringResource(R.string.videocall_patient_label) else uiState.doctorName,
                             color = Color.White,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -338,7 +340,7 @@ fun VideoCallScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Lock,
-                            contentDescription = "Conexión segura",
+                            contentDescription = stringResource(R.string.videocall_secure_connection),
                             tint = Color(0xFF38BDF8).copy(alpha = 0.8f),
                             modifier = Modifier.size(12.dp),
                         )
@@ -381,7 +383,7 @@ fun VideoCallScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
-                                text = "Conexión débil: llamada en solo audio",
+                                text = stringResource(R.string.videocall_weak_connection_audio_only),
                                 color = Color.White,
                                 fontSize = 12.sp,
                                 modifier = Modifier.weight(1f),
@@ -390,7 +392,7 @@ fun VideoCallScreen(
                                 onClick = { viewModel.reactivateVideo() },
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             ) {
-                                Text("Reactivar video", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(stringResource(R.string.videocall_reactivate_video), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
                     }
@@ -444,7 +446,7 @@ fun VideoCallScreen(
                             .padding(6.dp),
                     ) {
                         Text(
-                            text = "TÚ",
+                            text = stringResource(R.string.videocall_you_label),
                             color = Color.White,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,

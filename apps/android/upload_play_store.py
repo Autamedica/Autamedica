@@ -18,24 +18,32 @@ SERVICE_ACCOUNT_FILE = Path("/home/edu/.android-secrets/autamedica-play-store-se
 AAB_PATH = Path(__file__).parent / "app/build/outputs/bundle/release/app-release.aab"
 PACKAGE_NAME = "com.autamedica.android"
 TRACK = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] in ["internal", "alpha", "beta", "production"] else "internal"
-VERSION_NAME = "1.2.14"
+VERSION_NAME = "1.2.16"
 
 RELEASE_NOTES = {
     "es-419": (
-        "v1.2.14 — Consultas Exprés en Farmacia Bajo Demanda y Reducción de Fatiga Visual\n\n"
+        "v1.2.16 — Localización Integral en Portugués y Guardia en Farmacia\n\n"
+        "• Experiencia 100% localizada en portugués para Brasil en todos los portales\n"
         "• Atención médica inmediata en mostrador de farmacias de turno asociadas\n"
-        "• Radar de guardia en vivo con telemetría médica en tiempo real\n"
-        "• Interfaz simplificada con menor carga cognitiva y flujo ágil de consulta\n"
-        "• Validación instantánea por QR y enlaces verificados App Links\n"
-        "• Estabilidad general y optimización de videollamadas clínicas"
+        "• Radar de guardia médica en vivo con telemetría en tiempo real\n"
+        "• Recetas electrónicas, agenda de turnos y perfil totalmente internacionalizados\n"
+        "• Compatibilidad nativa Android 15 con Target SDK 35"
+    ),
+    "pt-BR": (
+        "v1.2.16 — Tradução Integral para Português e Atendimento em Farmácia\n\n"
+        "• Experiência 100% localizada em português para todo o Brasil\n"
+        "• Atendimento médico imediato em balcão de farmácias de plantão parceiras\n"
+        "• Radar de plantão médico ao vivo com telemetria em tempo real\n"
+        "• Receitas digitais, agenda de consultas e perfil totalmente em português\n"
+        "• Compatibilidade nativa Android 15 com Target SDK 35"
     ),
     "en-US": (
-        "v1.2.14 — On-Demand Pharmacy Express Consultations & Streamlined UI\n\n"
-        "• Immediate medical care at partner on-duty pharmacy counters\n"
-        "• Live medical presence radar with real-time dispatch telemetry\n"
-        "• Streamlined interface reducing visual fatigue and cognitive load\n"
-        "• Instant QR intake and verified App Links integration\n"
-        "• General clinical video call performance and stability improvements"
+        "v1.2.16 — Full Portuguese Localization & Pharmacy On-Demand\n\n"
+        "• 100% Portuguese localized experience across all patient & clinical portals\n"
+        "• Immediate on-demand medical care at partner pharmacy counters\n"
+        "• Live medical duty presence radar with real-time dispatch\n"
+        "• Electronic prescriptions, appointments, and profile fully localized\n"
+        "• Native Android 15 compatibility with Target SDK 35"
     ),
 }
 
@@ -84,12 +92,23 @@ def main():
             media_body=media,
         )
 
+        import socket
+        socket.setdefaulttimeout(300)
+
         response = None
+        retries = 0
         while response is None:
-            status, response = upload.next_chunk()
-            if status:
-                pct = int(status.progress() * 100)
-                print(f"   Progreso: {pct}%", end="\r")
+            try:
+                status, response = upload.next_chunk(num_retries=5)
+                if status:
+                    pct = int(status.progress() * 100)
+                    print(f"   Progreso: {pct}%", end="\r", flush=True)
+            except (socket.timeout, TimeoutError) as te:
+                retries += 1
+                if retries > 5:
+                    raise te
+                print(f"\n   Reintentando tras timeout en fragmento ({retries}/5)...")
+                time.sleep(5)
 
         version_code = response["versionCode"]
         print(f"\n   ✓ AAB subido — versionCode: {version_code}")

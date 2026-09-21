@@ -307,7 +307,7 @@ private fun DoctorCard(
                         color = AuTextTertiary,
                     )
                     val feeText = doctor.consultationFee?.takeIf { it > 0 }?.let { fee ->
-                        NumberFormat.getCurrencyInstance(Locale("es", "AR")).apply {
+                        NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
                             maximumFractionDigits = 0
                         }.format(fee)
                     } ?: "A consultar"

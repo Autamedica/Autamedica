@@ -10,9 +10,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.autamedica.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,10 +27,13 @@ fun DoctorAccountingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Liquidaciones y Honorarios") },
+                title = { Text(stringResource(R.string.accounting_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.clinical_ops_back)
+                        )
                     }
                 }
             )
@@ -47,7 +52,10 @@ fun DoctorAccountingScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        Text("Saldo Disponible para Retiro", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            stringResource(R.string.accounting_balance_available_title),
+                            style = MaterialTheme.typography.labelMedium
+                        )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             "$" + String.format("%,.2f", state.balanceAvailable),
@@ -64,7 +72,7 @@ fun DoctorAccountingScreen(
                             if (state.isLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(20.dp))
                             } else {
-                                Text("Solicitar Transferencia")
+                                Text(stringResource(R.string.accounting_request_withdrawal_button))
                             }
                         }
                     }
@@ -78,14 +86,20 @@ fun DoctorAccountingScreen(
                 ) {
                     Card(modifier = Modifier.weight(1f)) {
                         Column(modifier = Modifier.padding(14.dp)) {
-                            Text("Consultas del Mes", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                stringResource(R.string.accounting_monthly_consultations_label),
+                                style = MaterialTheme.typography.labelSmall
+                            )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text("" + state.totalConsultationsMonth, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         }
                     }
                     Card(modifier = Modifier.weight(1f)) {
                         Column(modifier = Modifier.padding(14.dp)) {
-                            Text("Pendiente Liquidar", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                stringResource(R.string.accounting_pending_settlement_label),
+                                style = MaterialTheme.typography.labelSmall
+                            )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text("$" + String.format("%,.0f", state.pendingSettlement), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         }
@@ -93,10 +107,10 @@ fun DoctorAccountingScreen(
                 }
             }
 
-            if (state.message != null) {
+            if (state.messageRes != null || state.message != null) {
                 item {
                     Text(
-                        text = state.message!!,
+                        text = state.messageRes?.let { stringResource(it) } ?: state.message.orEmpty(),
                         color = Color(0xFF00C853),
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -104,7 +118,11 @@ fun DoctorAccountingScreen(
             }
 
             item {
-                Text("Últimas Consultas Liquidadas", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    stringResource(R.string.accounting_recent_settled_consultations),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
 
             items(state.transactions) { tx ->
@@ -125,7 +143,13 @@ fun DoctorAccountingScreen(
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("+$" + String.format("%,.2f", tx.amount), fontWeight = FontWeight.Bold, color = Color(0xFF00C853))
-                            Text(tx.status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            val statusLabel = when {
+                                tx.statusRes != null -> stringResource(tx.statusRes)
+                                tx.status.equals("Acreditado", ignoreCase = true) -> stringResource(R.string.accounting_status_credited)
+                                tx.status.equals("En proceso", ignoreCase = true) -> stringResource(R.string.accounting_status_in_process)
+                                else -> tx.status
+                            }
+                            Text(statusLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

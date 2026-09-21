@@ -30,10 +30,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.PatientClinicalContext
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuSurface
@@ -68,7 +70,7 @@ fun ClinicalContextSummary(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Cargando contexto clínico...",
+                text = stringResource(R.string.doctor_agenda_clinical_loading),
                 style = MaterialTheme.typography.bodySmall,
                 color = AuTextTertiary,
             )
@@ -78,12 +80,12 @@ fun ClinicalContextSummary(
 
     val reason = context?.chiefComplaint?.ifBlank { null }
         ?: fallbackReason?.ifBlank { null }
-        ?: "No especificado"
+        ?: stringResource(R.string.doctor_agenda_clinical_not_specified)
 
     val emptyClinicalText = when {
-        !hasPatient -> "Invitado sin expediente vinculado"
-        context?.hasAnamnesis == true -> "Sin dato registrado"
-        else -> "Sin anamnesis compartida"
+        !hasPatient -> stringResource(R.string.doctor_agenda_clinical_guest_no_file)
+        context?.hasAnamnesis == true -> stringResource(R.string.doctor_agenda_clinical_no_data)
+        else -> stringResource(R.string.doctor_agenda_clinical_no_shared_anamnesis)
     }
 
     val chronicDiseases = context?.chronicDiseases.orEmpty()
@@ -106,7 +108,7 @@ fun ClinicalContextSummary(
                         modifier = Modifier.size(14.dp),
                     )
                     Text(
-                        text = "MOTIVO DE CONSULTA",
+                        text = stringResource(R.string.doctor_agenda_clinical_chief_complaint_title),
                         style = MaterialTheme.typography.labelSmall,
                         color = PortalDoctors,
                         fontWeight = FontWeight.Bold,
@@ -135,7 +137,7 @@ fun ClinicalContextSummary(
                         modifier = Modifier.size(14.dp),
                     )
                     Text(
-                        text = "ANTECEDENTES RELEVANTES",
+                        text = stringResource(R.string.doctor_agenda_clinical_history_title),
                         style = MaterialTheme.typography.labelSmall,
                         color = PortalDoctors,
                         fontWeight = FontWeight.Bold,
@@ -206,7 +208,7 @@ fun ClinicalContextSummary(
                         modifier = Modifier.size(14.dp),
                     )
                     Text(
-                        text = "MEDICACIÓN ACTUAL",
+                        text = stringResource(R.string.doctor_agenda_clinical_medication_title),
                         style = MaterialTheme.typography.labelSmall,
                         color = PortalDoctors,
                         fontWeight = FontWeight.Bold,
@@ -244,7 +246,7 @@ fun ClinicalContextSummary(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "VER ANAMNESIS COMPLETA",
+                        text = stringResource(R.string.doctor_agenda_clinical_btn_view_anamnesis),
                         style = MaterialTheme.typography.labelSmall,
                         color = PortalDoctors,
                         fontWeight = FontWeight.Bold,

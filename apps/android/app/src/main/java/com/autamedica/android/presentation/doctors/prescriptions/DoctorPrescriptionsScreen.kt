@@ -36,12 +36,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.Prescription
 import com.autamedica.android.domain.model.PrescriptionItem
 import com.autamedica.android.presentation.theme.*
@@ -65,14 +67,20 @@ fun DoctorPrescriptionsScreen(
             }
             context.startActivity(intent)
         }.onFailure {
-            Toast.makeText(context, "No se pudo abrir el documento PDF.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.doctor_rx_pdf_error_toast), Toast.LENGTH_SHORT).show()
         }
     }
 
     var cancellationReasonText by remember { mutableStateOf("") }
 
-    LaunchedEffect(uiState.userMessage) {
-        uiState.userMessage?.let { msg ->
+    val resolvedUserMessage = when {
+        uiState.userMessageResId != null -> stringResource(uiState.userMessageResId!!, *uiState.userMessageArgs.toTypedArray())
+        uiState.userMessage != null -> uiState.userMessage
+        else -> null
+    }
+
+    LaunchedEffect(resolvedUserMessage) {
+        resolvedUserMessage?.let { msg ->
             snackbarHostState.showSnackbar(msg)
             viewModel.clearUserMessage()
         }
@@ -87,13 +95,13 @@ fun DoctorPrescriptionsScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Recetas Médicas Emitidas",
+                            text = stringResource(R.string.doctor_rx_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Decreto 63/2024 · Registro CUIR / SISA",
+                            text = stringResource(R.string.doctor_rx_subtitle),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
@@ -103,7 +111,7 @@ fun DoctorPrescriptionsScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.doctor_rx_action_back),
                             tint = AuTextPrimary,
                         )
                     }
@@ -112,12 +120,12 @@ fun DoctorPrescriptionsScreen(
                     IconButton(onClick = { viewModel.loadPrescriptions() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "Actualizar",
+                            contentDescription = stringResource(R.string.doctor_rx_action_refresh),
                             tint = PortalDoctors,
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = AuSurface),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = AuBackground),
             )
         },
         floatingActionButton = {
@@ -126,7 +134,7 @@ fun DoctorPrescriptionsScreen(
                 containerColor = PortalDoctors,
                 contentColor = Color.White,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Nueva Receta", fontWeight = FontWeight.SemiBold) },
+                text = { Text(stringResource(R.string.doctor_rx_action_new), fontWeight = FontWeight.SemiBold) },
             )
         }
     ) { paddingValues ->
@@ -151,14 +159,14 @@ fun DoctorPrescriptionsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                placeholder = { Text("Buscar por paciente, DNI, CUIR o fármaco...", color = AuTextTertiary) },
+                placeholder = { Text(stringResource(R.string.doctor_rx_search_placeholder), color = AuTextTertiary) },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Buscar", tint = AuTextTertiary)
+                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.doctor_rx_search_desc), tint = AuTextTertiary)
                 },
                 trailingIcon = {
                     if (uiState.searchQuery.isNotBlank()) {
                         IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
-                            Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = AuTextTertiary)
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.doctor_rx_clear_search_desc), tint = AuTextTertiary)
                         }
                     }
                 },
@@ -181,24 +189,24 @@ fun DoctorPrescriptionsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilterChipItem(
-                    label = "Todas (${uiState.totalCount})",
+                    label = stringResource(R.string.doctor_rx_filter_all, uiState.totalCount),
                     selected = uiState.selectedStatusFilter == "todas",
                     onClick = { viewModel.onStatusFilterChanged("todas") },
                 )
                 FilterChipItem(
-                    label = "Activas (${uiState.activeCount})",
+                    label = stringResource(R.string.doctor_rx_filter_active, uiState.activeCount),
                     selected = uiState.selectedStatusFilter == "activa",
                     onClick = { viewModel.onStatusFilterChanged("activa") },
                     accentColor = AuSuccess,
                 )
                 FilterChipItem(
-                    label = "Dispensadas (${uiState.dispensedCount})",
+                    label = stringResource(R.string.doctor_rx_filter_dispensed, uiState.dispensedCount),
                     selected = uiState.selectedStatusFilter == "dispensada",
                     onClick = { viewModel.onStatusFilterChanged("dispensada") },
                     accentColor = Color(0xFF0284C7),
                 )
                 FilterChipItem(
-                    label = "Canceladas (${uiState.cancelledCount})",
+                    label = stringResource(R.string.doctor_rx_filter_cancelled, uiState.cancelledCount),
                     selected = uiState.selectedStatusFilter == "cancelada",
                     onClick = { viewModel.onStatusFilterChanged("cancelada") },
                     accentColor = AuDanger,
@@ -241,7 +249,7 @@ fun DoctorPrescriptionsScreen(
                             onCopyCuir = { cuir ->
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 clipboard.setPrimaryClip(ClipData.newPlainText("CUIR", cuir))
-                                Toast.makeText(context, "CUIR copiado: $cuir", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.doctor_rx_card_cuir_copied_toast, cuir), Toast.LENGTH_SHORT).show()
                             },
                             onRequestCancel = { viewModel.onRequestCancelPrescription(rx) },
                         )
@@ -259,20 +267,25 @@ fun DoctorPrescriptionsScreen(
             },
             title = {
                 Text(
-                    text = "Anular Receta Digital",
+                    text = stringResource(R.string.doctor_rx_cancel_dialog_title),
                     fontWeight = FontWeight.Bold,
                     color = AuDanger,
                 )
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val defaultPatient = stringResource(R.string.doctor_rx_card_default_patient)
                     Text(
-                        text = "Está a punto de revocar la receta con CUIR ${target.cuir ?: target.id.take(8)} de ${target.patientName ?: "Paciente"}.",
+                        text = stringResource(
+                            R.string.doctor_rx_cancel_dialog_body,
+                            target.cuir ?: target.id.take(8),
+                            target.patientName ?: defaultPatient
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = AuTextSecondary,
                     )
                     Text(
-                        text = "Esta acción queda registrada de manera inmutable en el registro de auditoría clínica (Ley 27.553).",
+                        text = stringResource(R.string.doctor_rx_cancel_dialog_legal),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary,
                     )
@@ -280,11 +293,20 @@ fun DoctorPrescriptionsScreen(
                     OutlinedTextField(
                         value = cancellationReasonText,
                         onValueChange = { cancellationReasonText = it },
-                        label = { Text("Motivo clínico de anulación *") },
-                        placeholder = { Text("Ej: Error en posología, cambio de esquema terapéutico") },
+                        label = { Text(stringResource(R.string.doctor_rx_cancel_dialog_reason_label)) },
+                        placeholder = { Text(stringResource(R.string.doctor_rx_cancel_dialog_reason_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
-                        isError = uiState.cancellationError != null,
-                        supportingText = uiState.cancellationError?.let { { Text(it, color = AuDanger) } },
+                        isError = uiState.cancellationError != null || uiState.cancellationErrorResId != null,
+                        supportingText = {
+                            val errText = when {
+                                uiState.cancellationErrorResId != null -> stringResource(uiState.cancellationErrorResId!!)
+                                uiState.cancellationError != null -> uiState.cancellationError
+                                else -> null
+                            }
+                            if (errText != null) {
+                                Text(errText, color = AuDanger)
+                            }
+                        },
                         enabled = !uiState.isCancelling,
                     )
                 }
@@ -305,7 +327,7 @@ fun DoctorPrescriptionsScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                     }
-                    Text("Confirmar Anulación")
+                    Text(stringResource(R.string.doctor_rx_cancel_dialog_confirm))
                 }
             },
             dismissButton = {
@@ -313,7 +335,7 @@ fun DoctorPrescriptionsScreen(
                     onClick = { viewModel.onDismissCancelDialog() },
                     enabled = !uiState.isCancelling,
                 ) {
-                    Text("Cancelar")
+                    Text(stringResource(R.string.doctor_rx_cancel_dialog_dismiss))
                 }
             }
         )
@@ -341,13 +363,13 @@ private fun MetricsHeader(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MetricPill(count = total, label = "Total", color = AuTextPrimary)
+            MetricPill(count = total, label = stringResource(R.string.doctor_rx_metric_total), color = AuTextPrimary)
             Box(modifier = Modifier.width(1.dp).height(28.dp).background(AuBorder))
-            MetricPill(count = active, label = "Activas", color = AuSuccess)
+            MetricPill(count = active, label = stringResource(R.string.doctor_rx_metric_active), color = AuSuccess)
             Box(modifier = Modifier.width(1.dp).height(28.dp).background(AuBorder))
-            MetricPill(count = dispensed, label = "Dispensadas", color = Color(0xFF0284C7))
+            MetricPill(count = dispensed, label = stringResource(R.string.doctor_rx_metric_dispensed), color = Color(0xFF0284C7))
             Box(modifier = Modifier.width(1.dp).height(28.dp).background(AuBorder))
-            MetricPill(count = cancelled, label = "Canceladas", color = AuDanger)
+            MetricPill(count = cancelled, label = stringResource(R.string.doctor_rx_metric_cancelled), color = AuDanger)
         }
     }
 }
@@ -452,7 +474,7 @@ private fun DoctorPrescriptionCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ContentCopy,
-                                contentDescription = "Copiar CUIR",
+                                contentDescription = stringResource(R.string.doctor_rx_card_copy_cuir),
                                 modifier = Modifier.size(14.dp),
                                 tint = AuTextTertiary
                             )
@@ -486,14 +508,14 @@ private fun DoctorPrescriptionCard(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = prescription.patientName ?: "Paciente Asignado",
+                        text = prescription.patientName ?: stringResource(R.string.doctor_rx_card_default_patient),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = AuTextPrimary
                     )
                     prescription.patientDni?.takeIf { it.isNotBlank() }?.let { dni ->
                         Text(
-                            text = "DNI: $dni",
+                            text = stringResource(R.string.doctor_rx_card_dni_prefix, dni),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary
                         )
@@ -514,7 +536,7 @@ private fun DoctorPrescriptionCard(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "Diagnóstico:",
+                            text = stringResource(R.string.doctor_rx_card_diagnosis_label),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = AuTextSecondary
@@ -533,7 +555,7 @@ private fun DoctorPrescriptionCard(
             // Medications Multi-Item List
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "Medicamentos Prescriptos (${prescription.displayItems.size}):",
+                    text = stringResource(R.string.doctor_rx_card_medications_title, prescription.displayItems.size),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = AuTextSecondary
@@ -547,7 +569,7 @@ private fun DoctorPrescriptionCard(
             // Notes if any
             prescription.notes?.takeIf { it.isNotBlank() }?.let { notes ->
                 Text(
-                    text = "Obs: $notes",
+                    text = stringResource(R.string.doctor_rx_card_notes_prefix, notes),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                     maxLines = 2,
@@ -592,7 +614,7 @@ private fun DoctorPrescriptionCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Descargar PDF",
+                                text = stringResource(R.string.doctor_rx_card_download_pdf),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -606,7 +628,7 @@ private fun DoctorPrescriptionCard(
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = "Anular Receta",
+                                text = stringResource(R.string.doctor_rx_card_cancel_action),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -648,18 +670,21 @@ private fun MedicationItemRow(item: PrescriptionItem, index: Int) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
+            val durationFormatted = item.duration.takeIf { it.isNotBlank() }?.let {
+                stringResource(R.string.doctor_rx_card_duration_format, it)
+            }
             Text(
                 text = listOfNotNull(
                     item.dosage.takeIf { it.isNotBlank() },
                     item.frequency.takeIf { it.isNotBlank() },
-                    item.duration.takeIf { it.isNotBlank() }?.let { "durante $it" }
+                    durationFormatted
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuTextSecondary
             )
             if (item.instructions.isNotBlank()) {
                 Text(
-                    text = "Indicación: ${item.instructions}",
+                    text = stringResource(R.string.doctor_rx_card_instruction_prefix, item.instructions),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                     maxLines = 2,
@@ -673,10 +698,10 @@ private fun MedicationItemRow(item: PrescriptionItem, index: Int) {
 @Composable
 private fun StatusBadge(prescription: Prescription) {
     val (label, bg, fg) = when {
-        prescription.isCancelled -> Triple("CANCELADA", AuDanger.copy(alpha = 0.12f), AuDanger)
-        prescription.isDispensed -> Triple("DISPENSADA", Color(0xFF0284C7).copy(alpha = 0.12f), Color(0xFF0284C7))
-        prescription.isActive -> Triple("ACTIVA", AuSuccess.copy(alpha = 0.12f), AuSuccess)
-        prescription.isExpired -> Triple("VENCIDA", Color(0xFFEAB308).copy(alpha = 0.12f), Color(0xFFCA8A04))
+        prescription.isCancelled -> Triple(stringResource(R.string.doctor_rx_badge_cancelled), AuDanger.copy(alpha = 0.12f), AuDanger)
+        prescription.isDispensed -> Triple(stringResource(R.string.doctor_rx_badge_dispensed), Color(0xFF0284C7).copy(alpha = 0.12f), Color(0xFF0284C7))
+        prescription.isActive -> Triple(stringResource(R.string.doctor_rx_badge_active), AuSuccess.copy(alpha = 0.12f), AuSuccess)
+        prescription.isExpired -> Triple(stringResource(R.string.doctor_rx_badge_expired), Color(0xFFEAB308).copy(alpha = 0.12f), Color(0xFFCA8A04))
         else -> Triple(prescription.status.uppercase(), AuSurfaceHover, AuTextSecondary)
     }
 
@@ -714,21 +739,21 @@ private fun EmptyPrescriptionsState(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = if (hasFilter) "No se encontraron recetas con ese criterio" else "Sin recetas emitidas todavía",
+            text = if (hasFilter) stringResource(R.string.doctor_rx_empty_filtered_title) else stringResource(R.string.doctor_rx_empty_title),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
             color = AuTextPrimary,
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = if (hasFilter) "Intente buscar con otro nombre, DNI o borre los filtros" else "Las recetas digitales emitidas bajo Decreto 63 aparecerán aquí con su CUIR oficial.",
+            text = if (hasFilter) stringResource(R.string.doctor_rx_empty_filtered_desc) else stringResource(R.string.doctor_rx_empty_desc),
             style = MaterialTheme.typography.bodySmall,
             color = AuTextTertiary,
         )
         if (hasFilter) {
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedButton(onClick = onClearFilters) {
-                Text("Limpiar filtros")
+                Text(stringResource(R.string.doctor_rx_empty_clear_filters))
             }
         }
     }

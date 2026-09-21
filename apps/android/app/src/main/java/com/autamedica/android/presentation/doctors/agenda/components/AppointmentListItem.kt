@@ -22,10 +22,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.presentation.theme.AuBorder
@@ -36,8 +38,6 @@ import com.autamedica.android.presentation.theme.PortalDoctors
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-private val spanishLocale = Locale("es", "AR")
 
 @Composable
 fun AppointmentListItem(
@@ -50,7 +50,7 @@ fun AppointmentListItem(
 ) {
     val isTelemed = appointment.type == AppointmentType.TELEMEDICINE || appointment.meetingUrl != null
     val startDt = runCatching { OffsetDateTime.parse(appointment.startTime) }.getOrNull()
-    val timeStr = startDt?.format(DateTimeFormatter.ofPattern("HH:mm", spanishLocale)) ?: ""
+    val timeStr = startDt?.format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())) ?: ""
 
     val cleanNotes = appointment.notes?.let { notes ->
         val cleaned = notes
@@ -107,7 +107,7 @@ fun AppointmentListItem(
                     )
                     if (isTelemed) {
                         Text(
-                            text = "Video",
+                            text = stringResource(R.string.doctor_agenda_list_item_video_badge),
                             style = MaterialTheme.typography.labelSmall,
                             color = PortalDoctors,
                             fontSize = 9.sp,

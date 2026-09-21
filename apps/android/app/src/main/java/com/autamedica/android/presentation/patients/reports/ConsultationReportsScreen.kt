@@ -9,9 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.autamedica.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,10 +26,10 @@ fun ConsultationReportsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Informes Médicos") },
+                title = { Text(stringResource(R.string.reports_screen_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.reports_back_cd))
                     }
                 }
             )
@@ -42,7 +44,7 @@ fun ConsultationReportsScreen(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (uiState.reports.isEmpty()) {
                 Text(
-                    "No hay informes disponibles.",
+                    stringResource(R.string.reports_empty_desc),
                     modifier = Modifier.align(Alignment.Center),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -83,7 +85,7 @@ fun ReportCard(report: ConsultationReport) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Indicaciones:",
+                text = stringResource(R.string.reports_instructions_label),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -93,7 +95,7 @@ fun ReportCard(report: ConsultationReport) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Atendido por: ${report.doctorName}",
+                text = stringResource(R.string.reports_doctor_name_format, report.doctorName),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

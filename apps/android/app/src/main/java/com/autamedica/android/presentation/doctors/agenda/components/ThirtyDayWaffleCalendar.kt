@@ -35,9 +35,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuSurface
@@ -48,8 +50,6 @@ import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-private val spanishLocale = Locale("es", "AR")
 
 data class WaffleDay(
     val date: LocalDate,
@@ -77,7 +77,7 @@ fun ThirtyDayWaffleCalendar(
                     OffsetDateTime.parse(appt.startTime).toLocalDate() == currentDate
                 }.getOrDefault(false)
             }
-            val formatter = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", spanishLocale)
+            val formatter = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.getDefault())
             WaffleDay(
                 date = currentDate,
                 dayNumber = currentDate.dayOfMonth,
@@ -123,13 +123,13 @@ fun ThirtyDayWaffleCalendar(
 
                     Column {
                         Text(
-                            text = "Agenda del Mes",
+                            text = stringResource(R.string.doctor_agenda_waffle_title),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "30 días rodantes de disponibilidad",
+                            text = stringResource(R.string.doctor_agenda_waffle_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextTertiary,
                             fontSize = 11.sp,
@@ -142,7 +142,7 @@ fun ThirtyDayWaffleCalendar(
                     color = Color(0xFFF1F5F9), // neutral-100
                 ) {
                     Text(
-                        text = "30 DÍAS",
+                        text = stringResource(R.string.doctor_agenda_waffle_badge),
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFF475569),
                         fontWeight = FontWeight.Bold,
@@ -240,7 +240,11 @@ fun ThirtyDayWaffleCalendar(
             ) {
                 Column {
                     Text(
-                        text = if (activeDay.isToday) "Hoy" else activeDay.label.split(" ").firstOrNull().orEmpty(),
+                        text = if (activeDay.isToday) {
+                            stringResource(R.string.doctor_agenda_waffle_legend_today)
+                        } else {
+                            activeDay.label.split(" ").firstOrNull().orEmpty()
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = AuTextTertiary,
                         fontWeight = FontWeight.Bold,
@@ -265,8 +269,13 @@ fun ThirtyDayWaffleCalendar(
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        text = if (activeDay.appointmentsCount == 0) "Sin consultas"
-                        else "${activeDay.appointmentsCount} consulta${if (activeDay.appointmentsCount > 1) "s" else ""}",
+                        text = if (activeDay.appointmentsCount == 0) {
+                            stringResource(R.string.doctor_agenda_waffle_no_appointments)
+                        } else if (activeDay.appointmentsCount == 1) {
+                            stringResource(R.string.doctor_agenda_waffle_consultations_count_single, 1)
+                        } else {
+                            stringResource(R.string.doctor_agenda_waffle_consultations_count_plural, activeDay.appointmentsCount)
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (activeDay.appointmentsCount > 0) Color(0xFF1D4ED8) else AuTextTertiary,
@@ -283,17 +292,17 @@ fun ThirtyDayWaffleCalendar(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Surface(modifier = Modifier.size(8.dp), shape = CircleShape, color = Color(0xFF7C3AED)) {}
-                    Text("Hoy", style = MaterialTheme.typography.labelSmall, color = AuTextTertiary, fontSize = 10.sp)
+                    Text(stringResource(R.string.doctor_agenda_waffle_legend_today), style = MaterialTheme.typography.labelSmall, color = AuTextTertiary, fontSize = 10.sp)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Surface(modifier = Modifier.size(8.dp), shape = CircleShape, color = Color(0xFF3B82F6)) {}
-                    Text("Consultas", style = MaterialTheme.typography.labelSmall, color = AuTextTertiary, fontSize = 10.sp)
+                    Text(stringResource(R.string.doctor_agenda_waffle_legend_consultations), style = MaterialTheme.typography.labelSmall, color = AuTextTertiary, fontSize = 10.sp)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Surface(modifier = Modifier.size(8.dp), shape = CircleShape, color = Color(0xFFE2E8F0)) {}
-                    Text("Libre", style = MaterialTheme.typography.labelSmall, color = AuTextTertiary, fontSize = 10.sp)
+                    Text(stringResource(R.string.doctor_agenda_waffle_legend_free), style = MaterialTheme.typography.labelSmall, color = AuTextTertiary, fontSize = 10.sp)
                 }
             }
         }

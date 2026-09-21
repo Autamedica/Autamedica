@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall.components
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -46,7 +48,7 @@ fun QualityIndicator(
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = "Calidad: $label",
+            contentDescription = stringResource(R.string.videocall_quality_indicator, label),
             tint = color,
             modifier = Modifier.size(16.dp),
         )

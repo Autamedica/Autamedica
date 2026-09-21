@@ -33,15 +33,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
+import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.MedicalCertificate
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
 import com.autamedica.android.presentation.theme.*
+
+@Composable
+fun getCertificateTypeDisplayName(type: CertificateType): String {
+    return when (type) {
+        CertificateType.REPOSO_LABORAL -> stringResource(R.string.cert_type_reposo_laboral)
+        CertificateType.REPOSO_ESCOLAR -> stringResource(R.string.cert_type_reposo_escolar)
+        CertificateType.APTITUD_FISICA -> stringResource(R.string.cert_type_aptitud_fisica)
+        CertificateType.CONSTANCIA_ATENCION -> stringResource(R.string.cert_type_constancia_atencion)
+        CertificateType.TRATAMIENTO -> stringResource(R.string.cert_type_tratamiento)
+        CertificateType.OTRO -> stringResource(R.string.cert_type_otro)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,14 +77,19 @@ fun DoctorCertificatesScreen(
             }
             context.startActivity(intent)
         }.onFailure {
-            Toast.makeText(context, "No se pudo abrir el atestado oficial.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.cert_toast_open_pdf_error), Toast.LENGTH_SHORT).show()
         }
     }
 
     var selectedCertForDetail by remember { mutableStateOf<MedicalCertificate?>(null) }
 
-    LaunchedEffect(uiState.userMessage) {
-        uiState.userMessage?.let { msg ->
+    LaunchedEffect(uiState.userMessage, uiState.userMessageRes) {
+        val msg = uiState.userMessageRes?.let { resId ->
+            if (uiState.userMessageArg != null) context.getString(resId, uiState.userMessageArg)
+            else context.getString(resId)
+        } ?: uiState.userMessage
+
+        if (msg != null) {
             snackbarHostState.showSnackbar(msg)
             viewModel.clearUserMessage()
         }
@@ -84,13 +104,13 @@ fun DoctorCertificatesScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Atestados Médicos Emitidos",
+                            text = stringResource(R.string.cert_screen_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "${uiState.validCount} válidos · ${uiState.totalCount} emitidos",
+                            text = stringResource(R.string.cert_header_counts, uiState.validCount, uiState.totalCount),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
@@ -100,7 +120,7 @@ fun DoctorCertificatesScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.clinical_ops_back),
                             tint = AuTextPrimary,
                         )
                     }
@@ -109,7 +129,7 @@ fun DoctorCertificatesScreen(
                     IconButton(onClick = { viewModel.loadCertificates() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "Actualizar",
+                            contentDescription = stringResource(R.string.clinical_ops_refresh),
                             tint = AuTextSecondary,
                         )
                     }
@@ -121,7 +141,7 @@ fun DoctorCertificatesScreen(
             ExtendedFloatingActionButton(
                 onClick = onNavigateToCreateCertificate,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Nuevo Atestado", fontWeight = FontWeight.Bold) },
+                text = { Text(stringResource(R.string.cert_action_new_certificate), fontWeight = FontWeight.Bold) },
                 containerColor = PortalDoctors,
                 contentColor = Color.White,
                 shape = RoundedCornerShape(16.dp),
@@ -146,7 +166,7 @@ fun DoctorCertificatesScreen(
                     OutlinedTextField(
                         value = uiState.searchQuery,
                         onValueChange = { viewModel.onSearchQueryChange(it) },
-                        placeholder = { Text("Buscar por paciente, DNI, CUIR o diagnóstico...") },
+                        placeholder = { Text(stringResource(R.string.cert_search_placeholder)) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = AuTextTertiary) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
@@ -167,7 +187,7 @@ fun DoctorCertificatesScreen(
                         FilterChip(
                             selected = uiState.selectedStatusFilter == "todos",
                             onClick = { viewModel.onSelectStatusFilter("todos") },
-                            label = { Text("Todos (${uiState.totalCount})") },
+                            label = { Text(stringResource(R.string.cert_filter_all, uiState.totalCount)) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = PortalDoctors,
                                 selectedLabelColor = Color.White,
@@ -176,7 +196,7 @@ fun DoctorCertificatesScreen(
                         FilterChip(
                             selected = uiState.selectedStatusFilter == "validos",
                             onClick = { viewModel.onSelectStatusFilter("validos") },
-                            label = { Text("Válidos (${uiState.validCount})") },
+                            label = { Text(stringResource(R.string.cert_filter_valid, uiState.validCount)) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = PortalDoctors,
                                 selectedLabelColor = Color.White,
@@ -185,7 +205,7 @@ fun DoctorCertificatesScreen(
                         FilterChip(
                             selected = uiState.selectedStatusFilter == "cancelados",
                             onClick = { viewModel.onSelectStatusFilter("cancelados") },
-                            label = { Text("Cancelados (${uiState.cancelledCount})") },
+                            label = { Text(stringResource(R.string.cert_filter_cancelled, uiState.cancelledCount)) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = PortalDoctors,
                                 selectedLabelColor = Color.White,
@@ -221,13 +241,13 @@ fun DoctorCertificatesScreen(
                             modifier = Modifier.size(56.dp)
                         )
                         Text(
-                            text = if (uiState.searchQuery.isNotBlank()) "No hay resultados para la búsqueda" else "Sin atestados médicos emitidos",
+                            text = if (uiState.searchQuery.isNotBlank()) stringResource(R.string.cert_empty_search_title) else stringResource(R.string.cert_empty_list_title),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = AuTextSecondary
                         )
                         Text(
-                            text = "Presione el botón 'Nuevo Atestado' para emitir su primera certificación médica digital.",
+                            text = stringResource(R.string.cert_empty_list_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextTertiary
                         )
@@ -248,7 +268,7 @@ fun DoctorCertificatesScreen(
                             onCopyCuir = {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 clipboard.setPrimaryClip(ClipData.newPlainText("CUIR", cert.cuir))
-                                Toast.makeText(context, "CUIR copiado", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.cert_toast_cuir_copied), Toast.LENGTH_SHORT).show()
                             },
                             onOpenDetail = { selectedCertForDetail = cert }
                         )
@@ -264,7 +284,7 @@ fun DoctorCertificatesScreen(
             onDismissRequest = { selectedCertForDetail = null },
             title = {
                 Text(
-                    text = cert.certificateType.displayName,
+                    text = getCertificateTypeDisplayName(cert.certificateType),
                     fontWeight = FontWeight.Bold,
                     color = AuTextPrimary
                 )
@@ -277,24 +297,27 @@ fun DoctorCertificatesScreen(
                     QrCodeView(
                         content = cert.effectiveQrContent,
                         modifier = Modifier.size(160.dp),
-                        contentDescription = "Código QR de Validación Institucional",
+                        contentDescription = stringResource(R.string.cert_qr_validation_content_desc),
                     )
                     Text(
-                        text = "CUIR: ${cert.cuir}",
+                        text = stringResource(R.string.cert_detail_cuir_label, cert.cuir),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = PortalDoctors
                     )
-                    cert.patientName?.let {
+                    cert.patientName?.let { name ->
+                        val patientText = cert.patientDni?.takeIf { it.isNotBlank() }?.let { dni ->
+                            stringResource(R.string.cert_detail_patient_with_dni, name, dni)
+                        } ?: stringResource(R.string.cert_detail_patient, name)
                         Text(
-                            text = "Paciente: $it ${cert.patientDni?.let { dni -> "($dni)" } ?: ""}",
+                            text = patientText,
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextSecondary
                         )
                     }
                     if (cert.daysOfRest > 0) {
                         Text(
-                            text = "${cert.daysOfRest} días de reposo (Hasta: ${cert.endDate ?: cert.startDate})",
+                            text = stringResource(R.string.cert_days_of_rest_detail, cert.daysOfRest, cert.endDate ?: cert.startDate),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF16A34A)
@@ -302,14 +325,14 @@ fun DoctorCertificatesScreen(
                     }
                     if (cert.diagnosis != null) {
                         Text(
-                            text = "Diagnóstico: ${cert.diagnosis}",
+                            text = stringResource(R.string.cert_detail_diagnosis, cert.diagnosis),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextPrimary
                         )
                     }
                     cert.observations?.let {
                         Text(
-                            text = "Observaciones: $it",
+                            text = stringResource(R.string.cert_detail_observations, it),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary
                         )
@@ -336,10 +359,10 @@ fun DoctorCertificatesScreen(
                     ) {
                         Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Descargar PDF", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.cert_detail_download_pdf), fontWeight = FontWeight.Bold)
                     }
                     TextButton(onClick = { selectedCertForDetail = null }) {
-                        Text("Cerrar", color = PortalDoctors, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.clinical_ops_close), color = PortalDoctors, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -393,7 +416,7 @@ private fun DoctorCertificateCard(
                     }
                     Column {
                         Text(
-                            text = certificate.patientName ?: "Paciente Asignado",
+                            text = certificate.patientName ?: stringResource(R.string.cert_card_default_patient_name),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
@@ -402,7 +425,7 @@ private fun DoctorCertificateCard(
                         )
                         certificate.patientDni?.takeIf { it.isNotBlank() }?.let { dni ->
                             Text(
-                                text = "DNI: $dni",
+                                text = stringResource(R.string.cert_card_dni_label, dni),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextTertiary
                             )
@@ -415,7 +438,7 @@ private fun DoctorCertificateCard(
                     color = if (isValid) Color(0xFFDCFCE7) else Color(0xFFFEE2E2),
                 ) {
                     Text(
-                        text = if (isValid) "Válido" else "Cancelado",
+                        text = if (isValid) stringResource(R.string.cert_status_valid) else stringResource(R.string.cert_status_cancelled),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (isValid) Color(0xFF16A34A) else Color(0xFFDC2626),
@@ -436,13 +459,18 @@ private fun DoctorCertificateCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = certificate.certificateType.displayName,
+                        text = getCertificateTypeDisplayName(certificate.certificateType),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = PortalDoctors
                     )
+                    val restText = when {
+                        certificate.daysOfRest <= 0 -> stringResource(R.string.cert_no_rest)
+                        certificate.daysOfRest == 1 -> stringResource(R.string.cert_days_of_rest_one)
+                        else -> stringResource(R.string.cert_days_of_rest_count, certificate.daysOfRest)
+                    }
                     Text(
-                        text = if (certificate.daysOfRest > 0) "${certificate.daysOfRest} días de reposo" else "Sin reposo",
+                        text = restText,
                         style = MaterialTheme.typography.labelSmall,
                         color = AuTextSecondary
                     )
@@ -460,7 +488,7 @@ private fun DoctorCertificateCard(
                 )
             } else if (certificate.hideDiagnosis) {
                 Text(
-                    text = "🔒 Diagnóstico reservado (Secreto médico)",
+                    text = stringResource(R.string.cert_diagnosis_reserved),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary
                 )
@@ -514,7 +542,7 @@ private fun DoctorCertificateCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "PDF",
+                            text = stringResource(R.string.clinical_ops_pdf),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -531,7 +559,7 @@ private fun DoctorCertificateCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(Icons.Outlined.QrCode, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("QR", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.clinical_ops_qr), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

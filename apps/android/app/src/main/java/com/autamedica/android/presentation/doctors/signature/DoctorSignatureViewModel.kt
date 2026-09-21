@@ -2,6 +2,7 @@ package com.autamedica.android.presentation.doctors.signature
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
@@ -23,9 +24,11 @@ data class DoctorSignatureState(
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
     val errorMessage: String? = null,
+    val errorMessageRes: Int? = null,
     val sisaValidated: Boolean = false,
     val validationStatus: String? = null,
     val validationMessage: String? = null,
+    val validationMessageRes: Int? = null,
     val lastCheckedAt: String? = null,
 )
 
@@ -45,7 +48,8 @@ class DoctorSignatureViewModel @Inject constructor(
                 it.copy(
                     isLoading = false,
                     sisaValidated = false,
-                    errorMessage = "Ingresá un DNI válido (7 a 9 dígitos)",
+                    errorMessage = null,
+                    errorMessageRes = R.string.signature_error_invalid_dni,
                 )
             }
             return
@@ -55,14 +59,23 @@ class DoctorSignatureViewModel @Inject constructor(
                 it.copy(
                     isLoading = false,
                     sisaValidated = false,
-                    errorMessage = "Ingresá una matrícula válida",
+                    errorMessage = null,
+                    errorMessageRes = R.string.signature_error_invalid_license,
                 )
             }
             return
         }
 
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, errorMessage = null, validationMessage = null) }
+            _state.update {
+                it.copy(
+                    isLoading = true,
+                    errorMessage = null,
+                    errorMessageRes = null,
+                    validationMessage = null,
+                    validationMessageRes = null
+                )
+            }
             val result = runCatching {
                 val payload = buildJsonObject {
                     put("dni", normalizedDni)
@@ -78,32 +91,38 @@ class DoctorSignatureViewModel @Inject constructor(
                 .onSuccess { dto ->
                     val status = dto.data?.status
                     val verified = status == "valid" || status == "exempt"
-                    val message = when (status) {
-                        "valid" -> "Matrícula verificada en SISA/REFEPS"
-                        "exempt" -> "Matrícula exceptuada de verificación"
-                        else -> (dto.message ?: dto.code ?: "Matrícula sin verificar").takeIf { it.isNotBlank() }
+                    val (messageStr, messageRes) = when (status) {
+                        "valid" -> Pair(null, R.string.signature_status_sisa_verified)
+                        "exempt" -> Pair(null, R.string.signature_status_exempt)
+                        else -> Pair(
+                            dto.message ?: dto.code,
+                            if (dto.message == null && dto.code == null) R.string.signature_status_unverified else null
+                        )
                     }
                     _state.update {
                         it.copy(
                             isLoading = false,
                             sisaValidated = verified,
                             validationStatus = status ?: "pending_review",
-                            validationMessage = message,
+                            validationMessage = messageStr,
+                            validationMessageRes = messageRes,
                             lastCheckedAt = dto.data?.checkedAt,
-                            errorMessage = if (verified) null else message,
+                            errorMessage = if (verified) null else messageStr,
+                            errorMessageRes = if (verified) null else messageRes,
                         )
                     }
                 }
                 .onFailure { error ->
-                    val message = error.message?.takeIf { it.isNotBlank() }
-                        ?: "No se pudo verificar la matrícula. Probá nuevamente."
+                    val errorMsg = error.message?.takeIf { it.isNotBlank() }
                     _state.update {
                         it.copy(
                             isLoading = false,
                             sisaValidated = false,
                             validationStatus = "pending_review",
-                            validationMessage = message,
-                            errorMessage = message,
+                            validationMessage = errorMsg,
+                            validationMessageRes = if (errorMsg == null) R.string.signature_error_verification_failed else null,
+                            errorMessage = errorMsg,
+                            errorMessageRes = if (errorMsg == null) R.string.signature_error_verification_failed else null,
                         )
                     }
                 }
@@ -112,14 +131,15 @@ class DoctorSignatureViewModel @Inject constructor(
 
     fun saveSignature(signatureData: ByteArray) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, errorMessage = null) }
+            _state.update { it.copy(isLoading = true, errorMessage = null, errorMessageRes = null) }
             if (_state.value.sisaValidated) {
                 _state.update { it.copy(isLoading = false, isSuccess = true) }
             } else {
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = "Debe validar la matrícula con SISA antes de guardar",
+                        errorMessage = null,
+                        errorMessageRes = R.string.signature_error_must_validate_before_saving,
                     )
                 }
             }
@@ -127,7 +147,14 @@ class DoctorSignatureViewModel @Inject constructor(
     }
 
     fun clearError() {
-        _state.update { it.copy(errorMessage = null, validationMessage = null) }
+        _state.update {
+            it.copy(
+                errorMessage = null,
+                errorMessageRes = null,
+                validationMessage = null,
+                validationMessageRes = null
+            )
+        }
     }
 }
 

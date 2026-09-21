@@ -69,6 +69,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -76,6 +77,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 
 // ── Design Tokens AutaMedica ──
 private val DeepSlate = Color(0xFF0F172A)
@@ -133,7 +135,7 @@ fun ContinuityStatusScreen(
                             modifier = Modifier.size(40.dp),
                         )
                         Text(
-                            text = "Sincronizando estado clínico...",
+                            text = stringResource(R.string.continuity_loading_sync),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color(0xFF64748B),
                         )
@@ -247,7 +249,7 @@ private fun ContinuityHeroHeader(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver",
+                        contentDescription = stringResource(R.string.continuity_back_cd),
                         tint = Color.White,
                         modifier = Modifier.size(18.dp),
                     )
@@ -255,12 +257,12 @@ private fun ContinuityHeroHeader(
 
                 // Badge de Estado Clínico
                 val (statusLabel, badgeBg, badgeTextColor, badgeBorder) = when (request.triageStatus) {
-                    "pending" -> Quadruple("Solicitud recibida", SkySoft, SkyPrimary, Color(0x330284C7))
-                    "acknowledged" -> Quadruple("En revisión médica", AmberSoft, AmberPrimary, Color(0x33F59E0B))
-                    "in_progress" -> Quadruple("En proceso", SkySoft, SkyPrimary, Color(0x330284C7))
-                    "resolved" -> Quadruple("Resuelto", EmeraldSoft, EmeraldPrimary, Color(0x3310B981))
-                    "escalated" -> Quadruple("Derivado prioritario", RoseSoft, RosePrimary, Color(0x33EF4444))
-                    else -> Quadruple("En seguimiento", SkySoft, SkyPrimary, Color(0x330284C7))
+                    "pending" -> Quadruple(stringResource(R.string.continuity_status_pending), SkySoft, SkyPrimary, Color(0x330284C7))
+                    "acknowledged" -> Quadruple(stringResource(R.string.continuity_status_acknowledged), AmberSoft, AmberPrimary, Color(0x33F59E0B))
+                    "in_progress" -> Quadruple(stringResource(R.string.continuity_status_in_progress), SkySoft, SkyPrimary, Color(0x330284C7))
+                    "resolved" -> Quadruple(stringResource(R.string.continuity_status_resolved), EmeraldSoft, EmeraldPrimary, Color(0x3310B981))
+                    "escalated" -> Quadruple(stringResource(R.string.continuity_status_escalated), RoseSoft, RosePrimary, Color(0x33EF4444))
+                    else -> Quadruple(stringResource(R.string.continuity_status_default), SkySoft, SkyPrimary, Color(0x330284C7))
                 }
 
                 Surface(
@@ -297,7 +299,7 @@ private fun ContinuityHeroHeader(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
-                        contentDescription = "Actualizar",
+                        contentDescription = stringResource(R.string.continuity_refresh_cd),
                         tint = Color.White,
                         modifier = Modifier.size(18.dp),
                     )
@@ -307,7 +309,7 @@ private fun ContinuityHeroHeader(
             // Título Principal
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Continuidad Asistencial",
+                    text = stringResource(R.string.continuity_hero_title),
                     color = Color.White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
@@ -344,7 +346,7 @@ private fun ContinuityTimelineCard(request: ContinuityRequest) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Línea de Evolución Médica",
+                    text = stringResource(R.string.continuity_timeline_card_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = DeepSlate,
@@ -354,7 +356,7 @@ private fun ContinuityTimelineCard(request: ContinuityRequest) {
                     color = Color(0xFFF1F5F9),
                 ) {
                     Text(
-                        text = "ID: ${request.id}",
+                        text = stringResource(R.string.continuity_timeline_id_badge, request.id),
                         fontSize = 10.sp,
                         fontFamily = FontFamily.Monospace,
                         color = Color(0xFF64748B),
@@ -369,39 +371,46 @@ private fun ContinuityTimelineCard(request: ContinuityRequest) {
             val isStep3Done = request.inProgressAt != null || request.triageStatus in listOf("in_progress", "resolved")
             val isStep4Done = request.resolvedAt != null || request.triageStatus == "resolved"
 
+            val step2Subtitle = if (request.assignedDoctor != null) {
+                stringResource(
+                    R.string.continuity_step2_desc_assigned,
+                    request.assignedDoctor.name,
+                    request.assignedDoctor.specialty,
+                    request.assignedDoctor.licenseNumber,
+                )
+            } else {
+                stringResource(R.string.continuity_step2_desc_assigning)
+            }
+
             Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
                 TimelineStepRow(
                     stepNumber = "1",
-                    title = "Solicitud recibida por el sistema",
-                    subtitle = "Triaje digital completado con éxito.",
+                    title = stringResource(R.string.continuity_step1_title),
+                    subtitle = stringResource(R.string.continuity_step1_desc),
                     timestamp = request.createdAt,
                     isDone = isStep1Done,
                     isLast = false,
                 )
                 TimelineStepRow(
                     stepNumber = "2",
-                    title = "En revisión médica especializada",
-                    subtitle = if (request.assignedDoctor != null) {
-                        "${request.assignedDoctor.name} (${request.assignedDoctor.specialty} • ${request.assignedDoctor.licenseNumber})"
-                    } else {
-                        "Asignando médico especialista según perfil clínico."
-                    },
+                    title = stringResource(R.string.continuity_step2_title),
+                    subtitle = step2Subtitle,
                     timestamp = request.acknowledgedAt,
                     isDone = isStep2Done,
                     isLast = false,
                 )
                 TimelineStepRow(
                     stepNumber = "3",
-                    title = "Ajuste terapéutico & Prescripción",
-                    subtitle = "Evaluación de dosis, tolerancia y emisión de receta electrónica.",
+                    title = stringResource(R.string.continuity_step3_title),
+                    subtitle = stringResource(R.string.continuity_step3_desc),
                     timestamp = request.inProgressAt,
                     isDone = isStep3Done,
                     isLast = false,
                 )
                 TimelineStepRow(
                     stepNumber = "4",
-                    title = "Tratamiento consolidado / Cierre",
-                    subtitle = "Indicaciones cargadas y seguimiento activo a 30 días.",
+                    title = stringResource(R.string.continuity_step4_title),
+                    subtitle = stringResource(R.string.continuity_step4_desc),
                     timestamp = request.resolvedAt,
                     isDone = isStep4Done,
                     isLast = true,
@@ -568,9 +577,9 @@ private fun MedicationAdherenceCard(
 
                 // Badge de Riesgo de Suministro
                 val (riskText, riskBg, riskColor) = when (riskOfInterruption) {
-                    "critical" -> Triple("Riesgo Crítico", RoseSoft, RosePrimary)
-                    "moderate" -> Triple("Riesgo Moderado", AmberSoft, AmberPrimary)
-                    else -> Triple("Suministro OK", EmeraldSoft, EmeraldPrimary)
+                    "critical" -> Triple(stringResource(R.string.continuity_risk_critical), RoseSoft, RosePrimary)
+                    "moderate" -> Triple(stringResource(R.string.continuity_risk_moderate), AmberSoft, AmberPrimary)
+                    else -> Triple(stringResource(R.string.continuity_risk_ok), EmeraldSoft, EmeraldPrimary)
                 }
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -611,13 +620,18 @@ private fun MedicationAdherenceCard(
                                 modifier = Modifier.size(16.dp),
                             )
                             Text(
-                                text = "Suministro restante:",
+                                text = stringResource(R.string.continuity_supply_label),
                                 fontSize = 12.sp,
                                 color = Color(0xFF64748B),
                             )
                         }
+                        val supplyDaysText = if (days == 0) {
+                            stringResource(R.string.continuity_supply_no_stock)
+                        } else {
+                            stringResource(R.string.continuity_supply_days_remaining, days)
+                        }
                         Text(
-                            text = if (days == 0) "¡Sin stock! Renovar urgente" else "$days días disponibles",
+                            text = supplyDaysText,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = daysColor,
@@ -634,13 +648,13 @@ private fun MedicationAdherenceCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "Score de Adherencia (30 días)",
+                        text = stringResource(R.string.continuity_adherence_title),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = DeepSlate,
                     )
                     Text(
-                        text = "$adherenceScore% • $dosesTaken de $totalDoses tomas",
+                        text = stringResource(R.string.continuity_adherence_stat, adherenceScore, dosesTaken, totalDoses),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (adherenceScore >= 80) EmeraldPrimary else if (adherenceScore >= 60) AmberPrimary else RosePrimary,
@@ -659,9 +673,9 @@ private fun MedicationAdherenceCard(
 
                 Text(
                     text = if (adherenceScore >= 80) {
-                        "Nivel Óptimo: Mantenés una continuidad terapéutica excelente que maximiza la efectividad del tratamiento."
+                        stringResource(R.string.continuity_adherence_hint_optimal)
                     } else {
-                        "Importante: Mantener tomas regulares previene rebotes o pérdida de eficacia del fármaco."
+                        stringResource(R.string.continuity_adherence_hint_warning)
                     },
                     fontSize = 11.sp,
                     color = Color(0xFF64748B),
@@ -690,7 +704,7 @@ private fun MedicationAdherenceCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Toma de hoy registrada correctamente",
+                            text = stringResource(R.string.continuity_dose_recorded_success),
                             color = EmeraldPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -711,7 +725,7 @@ private fun MedicationAdherenceCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Registrar toma de hoy",
+                        text = stringResource(R.string.continuity_record_dose_btn),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -751,14 +765,14 @@ private fun PostConsultationCheckInCard(
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
-                        text = "Check-in Post-Consulta (48 hs)",
+                        text = stringResource(R.string.continuity_checkin_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = DeepSlate,
                     )
                 }
                 Text(
-                    text = "¿Cómo te sentís hoy con el tratamiento indicado?",
+                    text = stringResource(R.string.continuity_checkin_question),
                     fontSize = 13.sp,
                     color = Color(0xFF475569),
                     fontWeight = FontWeight.Medium,
@@ -772,7 +786,7 @@ private fun PostConsultationCheckInCard(
             ) {
                 // Opción: Mejor
                 CheckInOptionButton(
-                    label = "Mejor",
+                    label = stringResource(R.string.continuity_checkin_option_better),
                     icon = Icons.Default.ThumbUp,
                     isSelected = currentStatus.equals("better", ignoreCase = true),
                     activeColor = EmeraldPrimary,
@@ -783,7 +797,7 @@ private fun PostConsultationCheckInCard(
 
                 // Opción: Igual
                 CheckInOptionButton(
-                    label = "Igual / Estable",
+                    label = stringResource(R.string.continuity_checkin_option_stable),
                     icon = Icons.Outlined.HourglassEmpty,
                     isSelected = currentStatus.equals("stable", ignoreCase = true),
                     activeColor = SkyPrimary,
@@ -794,7 +808,7 @@ private fun PostConsultationCheckInCard(
 
                 // Opción: Empeoré / Dudas
                 CheckInOptionButton(
-                    label = "Empeoré / Dudas",
+                    label = stringResource(R.string.continuity_checkin_option_worse),
                     icon = Icons.Default.ThumbDown,
                     isSelected = currentStatus.equals("worse", ignoreCase = true),
                     activeColor = RosePrimary,
@@ -892,7 +906,7 @@ private fun EscalatedClinicalAlertCard(
                     }
                 }
                 Text(
-                    text = "Alerta Clínica Prioritaria Activada",
+                    text = stringResource(R.string.continuity_escalated_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = RosePrimary,
@@ -900,7 +914,7 @@ private fun EscalatedClinicalAlertCard(
             }
 
             Text(
-                text = "Tu reporte de descompensación o dudas sobre la medicación fue elevado con máxima prioridad a tu equipo médico tratante. Un profesional revisará tu historial en breve.",
+                text = stringResource(R.string.continuity_escalated_desc),
                 fontSize = 12.sp,
                 color = Color(0xFF991B1B),
                 lineHeight = 16.sp,
@@ -923,7 +937,7 @@ private fun EscalatedClinicalAlertCard(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Videoconsulta de guardia",
+                        text = stringResource(R.string.continuity_escalated_action_btn),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                     )
@@ -960,7 +974,7 @@ private fun ResolutionDeadlineCard(
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = "Compromiso de Respuesta Clínica",
+                    text = stringResource(R.string.continuity_deadline_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = DeepSlate,
@@ -969,7 +983,7 @@ private fun ResolutionDeadlineCard(
 
             if (deadline != null) {
                 Text(
-                    text = "El equipo médico responderá y actualizará tus recetas antes de: $deadline.",
+                    text = stringResource(R.string.continuity_deadline_desc, deadline),
                     fontSize = 12.sp,
                     color = Color(0xFF64748B),
                     lineHeight = 16.sp,
@@ -1056,7 +1070,7 @@ private fun EmptyContinuityState(
             }
 
             Text(
-                text = "Sin solicitudes de continuidad activas",
+                text = stringResource(R.string.continuity_empty_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = DeepSlate,
@@ -1064,7 +1078,7 @@ private fun EmptyContinuityState(
             )
 
             Text(
-                text = "No tenés solicitudes de continuidad de tratamiento en curso. Si completaste tu consulta o evaluación clínica, podés solicitar la continuidad y renovación farmacológica directamente aquí.",
+                text = stringResource(R.string.continuity_empty_desc),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF64748B),
                 textAlign = TextAlign.Center,
@@ -1085,7 +1099,7 @@ private fun EmptyContinuityState(
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Solicitar continuidad de tratamiento")
+                Text(stringResource(R.string.continuity_empty_request_btn))
             }
 
             OutlinedButton(
@@ -1093,7 +1107,7 @@ private fun EmptyContinuityState(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth(0.85f),
             ) {
-                Text("Volver al panel principal")
+                Text(stringResource(R.string.continuity_empty_back_btn))
             }
         }
     }

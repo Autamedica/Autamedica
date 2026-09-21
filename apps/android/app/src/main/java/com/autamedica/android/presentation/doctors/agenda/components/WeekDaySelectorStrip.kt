@@ -34,9 +34,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -107,13 +109,13 @@ fun WeekDaySelectorStrip(
                     val isToday = date == today
                     val count = appointmentsByDate[date]?.size ?: 0
                     val dayOfWeekName = when (date.dayOfWeek) {
-                        DayOfWeek.MONDAY -> "LUN"
-                        DayOfWeek.TUESDAY -> "MAR"
-                        DayOfWeek.WEDNESDAY -> "MIÉ"
-                        DayOfWeek.THURSDAY -> "JUE"
-                        DayOfWeek.FRIDAY -> "VIE"
-                        DayOfWeek.SATURDAY -> "SÁB"
-                        DayOfWeek.SUNDAY -> "DOM"
+                        DayOfWeek.MONDAY -> stringResource(R.string.doctor_agenda_day_monday_short)
+                        DayOfWeek.TUESDAY -> stringResource(R.string.doctor_agenda_day_tuesday_short)
+                        DayOfWeek.WEDNESDAY -> stringResource(R.string.doctor_agenda_day_wednesday_short)
+                        DayOfWeek.THURSDAY -> stringResource(R.string.doctor_agenda_day_thursday_short)
+                        DayOfWeek.FRIDAY -> stringResource(R.string.doctor_agenda_day_friday_short)
+                        DayOfWeek.SATURDAY -> stringResource(R.string.doctor_agenda_day_saturday_short)
+                        DayOfWeek.SUNDAY -> stringResource(R.string.doctor_agenda_day_sunday_short)
                     }
 
                     Surface(
@@ -231,7 +233,7 @@ fun WeekDaySelectorStrip(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Today,
-                            contentDescription = "Ir a hoy",
+                            contentDescription = stringResource(R.string.doctor_agenda_go_to_today),
                             tint = PortalDoctors,
                             modifier = Modifier.padding(8.dp),
                         )

@@ -106,7 +106,7 @@ fun ForgotPasswordScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "Recuperar acceso",
+                    text = stringResource(R.string.forgot_password_title),
                     style = MaterialTheme.typography.headlineMedium,
                     color = AuTextPrimary,
                     fontWeight = FontWeight.Bold,
@@ -114,7 +114,7 @@ fun ForgotPasswordScreen(
                     letterSpacing = (-0.5).sp,
                 )
                 Text(
-                    text = "Ingresá tu correo para restablecer la contraseña.",
+                    text = stringResource(R.string.forgot_password_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                     textAlign = TextAlign.Center,
@@ -259,7 +259,7 @@ fun ForgotPasswordScreen(
                             )
                         } else {
                             Text(
-                                text = "Enviar enlace de recuperación",
+                                text = stringResource(R.string.forgot_password_button_submit),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -279,7 +279,7 @@ fun ForgotPasswordScreen(
                         ),
                     ) {
                         Text(
-                            text = "Volver a iniciar sesión",
+                            text = stringResource(R.string.forgot_password_back_to_login),
                             fontWeight = FontWeight.Medium,
                         )
                     }
@@ -302,7 +302,7 @@ fun ForgotPasswordScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Conexión cifrada de extremo a extremo",
+                    text = stringResource(R.string.auth_encrypted_connection),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                     textAlign = TextAlign.Center,
@@ -332,7 +332,7 @@ private fun AutamedicaHeader() {
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo_autamedica),
-                contentDescription = "AutaMedica",
+                contentDescription = stringResource(R.string.app_name),
                 modifier = Modifier
                     .size(76.dp)
                     .clip(RoundedCornerShape(16.dp)),

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chat List Screen -->
+    <string name="chat_list_title">Mensajes</string>
+    <string name="chat_list_empty_title">No tenés conversaciones</string>
+    <string name="chat_list_empty_subtitle">Tus conversaciones con profesionales médicos aparecerán acá.</string>
+
+    <!-- Chat Conversation Screen -->
+    <string name="chat_conversation_title">Conversación</string>
+    <string name="chat_back">Volver</string>
+    <string name="chat_empty_messages">Enviá el primer mensaje</string>
+    <string name="chat_send">Enviar</string>
+
+    <!-- Chat Statuses & Types -->
+    <string name="chat_status_waiting_response">Esperando respuesta</string>
+    <string name="chat_status_resolved">Resuelto</string>
+    <string name="chat_status_closed">Cerrado</string>
+    <string name="chat_message_type_image">📷 Imagen</string>
+    <string name="chat_message_type_document">📄 Documento</string>
+    <string name="chat_message_type_audio">🎤 Audio</string>
+
+    <!-- Consultation Hub: Header & General -->
+    <string name="consultation_title">Consultar</string>
+    <string name="consultation_subtitle">Telemedicina y Consulta Online</string>
+    <string name="consultation_schedule_button">Agendar Turno</string>
+    <string name="consultation_ok">OK</string>
+    <string name="consultation_cancel">Cancelar</string>
+
+    <!-- Consultation Hub: Emergency / On-Call 24/7 Dialog -->
+    <string name="consultation_emergency_dialog_title">Guardia Médica 24/7</string>
+    <string name="consultation_emergency_dialog_subtitle">Te asignaremos de inmediato con el próximo profesional médico de guardia disponible.</string>
+    <string name="consultation_emergency_bullet_1">• La asignación se hace por orden de llegada entre los médicos disponibles</string>
+    <string name="consultation_emergency_bullet_2">• Videoconsulta directa y segura cifrada punto a punto</string>
+    <string name="consultation_emergency_bullet_3">• Si ahora no hay médicos de guardia, te lo avisamos claro y podés agendar desde Agenda</string>
+    <string name="consultation_emergency_dialog_confirm">Ingresar a la sala ahora</string>
+
+    <!-- Consultation Hub: Hero Card -->
+    <string name="consultation_hero_badge">Centro de Telemedicina</string>
+    <string name="consultation_hero_emergency_active">Guardia activa 24/7</string>
+    <string name="consultation_hero_title">Telemedicina</string>
+    <string name="consultation_hero_subtitle">Videoconsultas médicas online, seguras y cifradas.</string>
+    <string name="consultation_hero_available_doctors">Médicos disponibles</string>
+    <string name="consultation_hero_emergency_label">Guardia médica</string>
+    <string name="consultation_hero_hd_label">Video HD</string>
+
+    <!-- Consultation Hub: Active Telemedicine Card -->
+    <string name="consultation_active_card_ready">VIDEOCONSULTA LISTA</string>
+    <string name="consultation_active_card_direct_access">Acceso directo</string>
+    <string name="consultation_default_doctor_name">Profesional médico asignado</string>
+    <string name="consultation_specialty_confirmed">%s · Turno confirmado</string>
+    <string name="consultation_enter_room_button">Entrar a la sala de videollamada</string>
+
+    <!-- Consultation Hub: Pending Payment Banner -->
+    <string name="consultation_payment_pending_title">Pago pendiente</string>
+    <string name="consultation_payment_pending_subtitle">Confirmá para habilitar la videoconsulta.</string>
+    <string name="consultation_payment_total">Total:</string>
+    <string name="consultation_payment_confirming">Confirmando...</string>
+    <string name="consultation_payment_button">Pagar consulta</string>
+
+    <!-- Consultation Hub: Emergency Card -->
+    <string name="consultation_emergency_card_title">Guardia Médica 24/7</string>
+    <string name="consultation_emergency_card_subtitle">Atención inmediata sin turno</string>
+    <string name="consultation_emergency_available_single">%d disponible</string>
+    <string name="consultation_emergency_available_plural">%d disponibles</string>
+    <string name="consultation_emergency_waiting">En espera</string>
+    <string name="consultation_emergency_card_description">Videoconsulta inmediata con un médico de guardia. La asignación se hace por orden de llegada entre los profesionales disponibles.</string>
+    <string name="consultation_emergency_connecting">Conectando con guardia...</string>
+    <string name="consultation_emergency_enter_button">Ingresar a guardia</string>
+
+    <!-- Consultation Hub: Empty State -->
+    <string name="consultation_empty_title">Sin videoconsultas programadas</string>
+    <string name="consultation_empty_subtitle">Agendá tu primera consulta online o conectate de inmediato con la guardia 24/7.</string>
+    <string name="consultation_empty_button">Agendar videoconsulta</string>
+
+    <!-- Clinical Documents: Header & Navigation -->
+    <string name="clinical_docs_title">Estudios y Documentos</string>
+    <string name="clinical_docs_subtitle">Análisis, imágenes y reportes médicos</string>
+    <string name="clinical_docs_fab_upload">Subir Estudio / Análisis</string>
+    <string name="clinical_docs_back">Volver</string>
+    <string name="clinical_docs_refresh">Actualizar</string>
+    <string name="clinical_docs_retry">Reintentar</string>
+
+    <!-- Clinical Documents: States & Types -->
+    <string name="clinical_docs_error_loading">Error al cargar documentos</string>
+    <string name="clinical_docs_empty_title">Sin estudios clínicos cargados</string>
+    <string name="clinical_docs_empty_desc">Sube tus análisis de sangre, estudios por imágenes o certificados médicos para que tu médico los revise durante la consulta.</string>
+    <string name="clinical_docs_select_file">Seleccionar Archivo</string>
+    <string name="clinical_docs_open">Abrir</string>
+    <string name="clinical_docs_type_lab">Análisis / Laboratorio</string>
+    <string name="clinical_docs_type_imaging">Estudio por Imágenes</string>
+    <string name="clinical_docs_type_other">Documento Médico</string>
+
+    <!-- Clinical Documents: Upload Dialog & Messages -->
+    <string name="clinical_docs_dialog_title">Subir Estudio Clínico</string>
+    <string name="clinical_docs_input_title_label">Título del Estudio</string>
+    <string name="clinical_docs_input_title_placeholder">Ej: Análisis de Sangre, Ecografía</string>
+    <string name="clinical_docs_type_selector_label">Tipo de Estudio:</string>
+    <string name="clinical_docs_chip_lab">Análisis / Lab</string>
+    <string name="clinical_docs_chip_imaging">Imagenología</string>
+    <string name="clinical_docs_chip_document">Informe / Otro</string>
+    <string name="clinical_docs_uploading">Subiendo archivo cifrado...</string>
+    <string name="clinical_docs_confirm_upload">Confirmar y Subir</string>
+    <string name="clinical_docs_cancel">Cancelar</string>
+    <string name="clinical_docs_toast_open_error">No se pudo abrir el documento</string>
+    <string name="clinical_docs_toast_processing">Archivo en procesamiento</string>
+    <string name="clinical_docs_toast_read_error">No se pudo leer el archivo seleccionado</string>
+    <string name="clinical_docs_upload_success">Estudio subido correctamente al historial médico.</string>
+</resources>

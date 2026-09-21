@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.consultation
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -98,7 +100,7 @@ fun ConsultationHubScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Consultar",
+                            text = stringResource(R.string.consultation_title),
                             style = MaterialTheme.typography.titleLarge,
                             color = AuTextPrimary,
                             fontWeight = FontWeight.Bold,
@@ -114,7 +116,7 @@ fun ConsultationHubScreen(
                                     .background(AuSuccess),
                             )
                             Text(
-                                text = "Telemedicina y Consulta Online",
+                                text = stringResource(R.string.consultation_subtitle),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = PortalPatients,
                                 fontWeight = FontWeight.Medium,
@@ -143,7 +145,7 @@ fun ConsultationHubScreen(
                                 modifier = Modifier.size(16.dp),
                             )
                             Text(
-                                text = "Agendar Turno",
+                                text = stringResource(R.string.consultation_schedule_button),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = PortalPatients,
                                 fontWeight = FontWeight.Bold,
@@ -216,7 +218,7 @@ fun ConsultationHubScreen(
                                             modifier = Modifier.weight(1f),
                                         )
                                         TextButton(onClick = viewModel::clearPaymentMessage) {
-                                            Text("OK", color = AuSuccess, fontWeight = FontWeight.Bold)
+                                            Text(stringResource(R.string.consultation_ok), color = AuSuccess, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                 }
@@ -288,7 +290,7 @@ fun ConsultationHubScreen(
                             .background(AuSuccess),
                     )
                     Text(
-                        text = "Guardia Médica 24/7",
+                        text = stringResource(R.string.consultation_emergency_dialog_title),
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
                     )
@@ -297,7 +299,7 @@ fun ConsultationHubScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Te asignaremos de inmediato con el próximo profesional médico de guardia disponible.",
+                        text = stringResource(R.string.consultation_emergency_dialog_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = AuTextSecondary,
                     )
@@ -308,18 +310,18 @@ fun ConsultationHubScreen(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = "• La asignación se hace por orden de llegada entre los médicos disponibles",
+                                text = stringResource(R.string.consultation_emergency_bullet_1),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextPrimary,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = "• Videoconsulta directa y segura cifrada punto a punto",
+                                text = stringResource(R.string.consultation_emergency_bullet_2),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextSecondary,
                             )
                             Text(
-                                text = "• Si ahora no hay médicos de guardia, te lo avisamos claro y podés agendar desde Agenda",
+                                text = stringResource(R.string.consultation_emergency_bullet_3),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextSecondary,
                             )
@@ -338,12 +340,12 @@ fun ConsultationHubScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = PortalPatients),
                     shape = RoundedCornerShape(12.dp),
                 ) {
-                    Text("Ingresar a la sala ahora", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.consultation_emergency_dialog_confirm), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showEmergencyConfirmDialog = false }) {
-                    Text("Cancelar", color = AuTextTertiary)
+                    Text(stringResource(R.string.consultation_cancel), color = AuTextTertiary)
                 }
             },
             containerColor = AuSurface,
@@ -400,7 +402,7 @@ private fun TelemedicineHeroCard(
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                text = "Centro de Telemedicina",
+                                text = stringResource(R.string.consultation_hero_badge),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White,
                                 fontWeight = FontWeight.SemiBold,
@@ -426,7 +428,7 @@ private fun TelemedicineHeroCard(
                                     .background(Color(0xFF34D399)),
                             )
                             Text(
-                                text = "Guardia activa 24/7",
+                                text = stringResource(R.string.consultation_hero_emergency_active),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color(0xFFA7F3D0),
                                 fontWeight = FontWeight.Bold,
@@ -439,14 +441,14 @@ private fun TelemedicineHeroCard(
                 // Main headline
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Telemedicina",
+                        text = stringResource(R.string.consultation_hero_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
                     )
                     Text(
-                        text = "Videoconsultas médicas online, seguras y cifradas.",
+                        text = stringResource(R.string.consultation_hero_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF94A3B8),
                         lineHeight = 20.sp,
@@ -470,7 +472,7 @@ private fun TelemedicineHeroCard(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Médicos disponibles",
+                            text = stringResource(R.string.consultation_hero_available_doctors),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF94A3B8),
                             fontSize = 10.sp,
@@ -490,7 +492,7 @@ private fun TelemedicineHeroCard(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Guardia médica",
+                            text = stringResource(R.string.consultation_hero_emergency_label),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF94A3B8),
                             fontSize = 10.sp,
@@ -510,7 +512,7 @@ private fun TelemedicineHeroCard(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Video HD",
+                            text = stringResource(R.string.consultation_hero_hd_label),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF94A3B8),
                             fontSize = 10.sp,
@@ -559,7 +561,7 @@ private fun ActiveTelemedicineCard(
                                 .background(Color(0xFF0284C7)),
                         )
                         Text(
-                            text = "VIDEOCONSULTA LISTA",
+                            text = stringResource(R.string.consultation_active_card_ready),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF0369A1),
                             fontWeight = FontWeight.Bold,
@@ -569,7 +571,7 @@ private fun ActiveTelemedicineCard(
                 }
 
                 Text(
-                    text = "Acceso directo",
+                    text = stringResource(R.string.consultation_active_card_direct_access),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                 )
@@ -577,13 +579,13 @@ private fun ActiveTelemedicineCard(
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = appointment.doctorName ?: "Profesional médico asignado",
+                    text = appointment.doctorName ?: stringResource(R.string.consultation_default_doctor_name),
                     style = MaterialTheme.typography.titleMedium,
                     color = AuTextPrimary,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "${appointment.doctorSpecialty ?: "Medicina General"} · Turno confirmado",
+                    text = stringResource(R.string.consultation_specialty_confirmed, appointment.doctorSpecialty ?: stringResource(R.string.appointments_default_specialty)),
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                 )
@@ -606,7 +608,7 @@ private fun ActiveTelemedicineCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Entrar a la sala de videollamada",
+                    text = stringResource(R.string.consultation_enter_room_button),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -656,13 +658,13 @@ private fun PendingPaymentBanner(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Pago pendiente",
+                        text = stringResource(R.string.consultation_payment_pending_title),
                         style = MaterialTheme.typography.titleSmall,
                         color = Color(0xFF92400E),
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Confirmá para habilitar la videoconsulta.",
+                        text = stringResource(R.string.consultation_payment_pending_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFB45309),
                     )
@@ -676,7 +678,7 @@ private fun PendingPaymentBanner(
             ) {
                 Column {
                     Text(
-                        text = "Total:",
+                        text = stringResource(R.string.consultation_payment_total),
                         style = MaterialTheme.typography.labelSmall,
                         color = AuTextTertiary,
                     )
@@ -704,9 +706,9 @@ private fun PendingPaymentBanner(
                             modifier = Modifier.size(16.dp),
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Confirmando...")
+                        Text(stringResource(R.string.consultation_payment_confirming))
                     } else {
-                        Text("Pagar consulta", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.consultation_payment_button), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -755,13 +757,13 @@ private fun EmergencyOnCallCard(
                     }
                     Column {
                         Text(
-                            text = "Guardia Médica 24/7",
+                            text = stringResource(R.string.consultation_emergency_dialog_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Atención inmediata sin turno",
+                            text = stringResource(R.string.consultation_emergency_card_subtitle),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF059669),
                             fontWeight = FontWeight.SemiBold,
@@ -787,9 +789,13 @@ private fun EmergencyOnCallCard(
                         )
                         Text(
                             text = if (availableDoctorsCount > 0) {
-                                "$availableDoctorsCount disponible${if (availableDoctorsCount == 1) "" else "s"}"
+                                if (availableDoctorsCount == 1) {
+                                    stringResource(R.string.consultation_emergency_available_single, availableDoctorsCount)
+                                } else {
+                                    stringResource(R.string.consultation_emergency_available_plural, availableDoctorsCount)
+                                }
                             } else {
-                                "En espera"
+                                stringResource(R.string.consultation_emergency_waiting)
                             },
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF065F46),
@@ -801,7 +807,7 @@ private fun EmergencyOnCallCard(
             }
 
             Text(
-                text = "Videoconsulta inmediata con un médico de guardia. La asignación se hace por orden de llegada entre los profesionales disponibles.",
+                text = stringResource(R.string.consultation_emergency_card_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = AuTextSecondary,
                 lineHeight = 18.sp,
@@ -826,7 +832,7 @@ private fun EmergencyOnCallCard(
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Conectando con guardia...")
+                    Text(stringResource(R.string.consultation_emergency_connecting))
                 } else {
                     Icon(
                         imageVector = Icons.Default.Videocam,
@@ -836,7 +842,7 @@ private fun EmergencyOnCallCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Ingresar a guardia",
+                        text = stringResource(R.string.consultation_emergency_enter_button),
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -875,13 +881,13 @@ private fun EmptyConsultationsCard(
                 }
             }
             Text(
-                text = "Sin videoconsultas programadas",
+                text = stringResource(R.string.consultation_empty_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = AuTextPrimary,
             )
             Text(
-                text = "Agendá tu primera consulta online o conectate de inmediato con la guardia 24/7.",
+                text = stringResource(R.string.consultation_empty_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = AuTextSecondary,
                 textAlign = TextAlign.Center,
@@ -900,7 +906,7 @@ private fun EmptyConsultationsCard(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Agendar videoconsulta",
+                    text = stringResource(R.string.consultation_empty_button),
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                 )

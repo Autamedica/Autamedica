@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall.components
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -82,7 +84,7 @@ fun CallControlsBar(
             // Audio toggle
             ControlDockButton(
                 icon = if (isAudioEnabled) Icons.Filled.Mic else Icons.Filled.MicOff,
-                contentDescription = if (isAudioEnabled) "Silenciar" else "Activar micrófono",
+                contentDescription = if (isAudioEnabled) stringResource(R.string.videocall_mute) else stringResource(R.string.videocall_unmute_mic),
                 isActive = isAudioEnabled,
                 isDanger = !isAudioEnabled,
                 onClick = onToggleAudio,
@@ -91,7 +93,7 @@ fun CallControlsBar(
             // Video toggle
             ControlDockButton(
                 icon = if (isVideoEnabled) Icons.Filled.Videocam else Icons.Filled.VideocamOff,
-                contentDescription = if (isVideoEnabled) "Desactivar cámara" else "Activar cámara",
+                contentDescription = if (isVideoEnabled) stringResource(R.string.videocall_camera_off) else stringResource(R.string.videocall_camera_on),
                 isActive = isVideoEnabled,
                 isDanger = !isVideoEnabled,
                 onClick = onToggleVideo,
@@ -101,7 +103,7 @@ fun CallControlsBar(
             if (onSwitchCamera != null && isVideoEnabled) {
                 ControlDockButton(
                     icon = Icons.Filled.Refresh,
-                    contentDescription = "Cambiar cámara",
+                    contentDescription = stringResource(R.string.videocall_switch_camera),
                     isActive = true,
                     onClick = onSwitchCamera,
                 )
@@ -110,7 +112,7 @@ fun CallControlsBar(
             // Speaker toggle
             ControlDockButton(
                 icon = if (isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                contentDescription = if (isSpeakerOn) "Altavoz activo" else "Auricular",
+                contentDescription = if (isSpeakerOn) stringResource(R.string.videocall_speaker_on) else stringResource(R.string.videocall_earpiece),
                 isActive = isSpeakerOn,
                 onClick = onToggleSpeaker,
             )
@@ -119,7 +121,7 @@ fun CallControlsBar(
             Box {
                 ControlDockButton(
                     icon = Icons.AutoMirrored.Filled.Chat,
-                    contentDescription = "Chat",
+                    contentDescription = stringResource(R.string.videocall_chat),
                     isActive = isChatOpen,
                     activeColor = PrimarySky,
                     onClick = onToggleChat,
@@ -148,7 +150,7 @@ fun CallControlsBar(
                 if (onToggleClinicalNotes != null) {
                     ControlDockButton(
                         icon = Icons.Outlined.Description,
-                        contentDescription = "Notas clínicas",
+                        contentDescription = stringResource(R.string.videocall_clinical_notes),
                         isActive = isClinicalNotesOpen,
                         activeColor = Color(0xFF0D9488),
                         onClick = onToggleClinicalNotes,
@@ -157,7 +159,7 @@ fun CallControlsBar(
                 if (onEmitPrescription != null) {
                     ControlDockButton(
                         icon = Icons.Outlined.Medication,
-                        contentDescription = "Emitir receta",
+                        contentDescription = stringResource(R.string.videocall_emit_prescription),
                         isActive = false,
                         activeColor = Color(0xFF0284C7),
                         onClick = onEmitPrescription,
@@ -166,7 +168,7 @@ fun CallControlsBar(
                 if (onEmitCertificate != null) {
                     ControlDockButton(
                         icon = Icons.AutoMirrored.Outlined.Assignment,
-                        contentDescription = "Emitir atestado",
+                        contentDescription = stringResource(R.string.videocall_emit_certificate),
                         isActive = false,
                         activeColor = Color(0xFF10B981),
                         onClick = onEmitCertificate,
@@ -195,7 +197,7 @@ fun CallControlsBar(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.CallEnd,
-                        contentDescription = "Finalizar llamada",
+                        contentDescription = stringResource(R.string.videocall_end),
                         tint = Color.White,
                         modifier = Modifier.size(22.dp),
                     )

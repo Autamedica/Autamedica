@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall.components
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -87,7 +89,7 @@ fun ChatPanel(
                 modifier = Modifier.weight(1f),
                 placeholder = {
                     Text(
-                        if (chatReady) "Escribir mensaje..." else "Esperando conexión...",
+                        if (chatReady) stringResource(R.string.videocall_chat_placeholder) else stringResource(R.string.videocall_chat_waiting_connection),
                         color = Color.Gray,
                     )
                 },
@@ -124,7 +126,7 @@ fun ChatPanel(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Enviar",
+                    contentDescription = stringResource(R.string.videocall_chat_send),
                     tint = if (chatReady && inputText.isNotBlank())
                         MaterialTheme.colorScheme.primary
                     else Color.Gray,

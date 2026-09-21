@@ -7,9 +7,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuTextPrimary
@@ -27,8 +29,8 @@ fun ConsentScreen(
         modifier = modifier.fillMaxSize().background(AuBackground).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Consentimiento Informado de Telemedicina", style = MaterialTheme.typography.headlineSmall, color = AuTextPrimary)
-        Text("Al utilizar este servicio de telemedicina, usted comprende que las consultas virtuales tienen limitaciones y no reemplazan la atención de emergencia presencial.", color = AuTextSecondary)
+        Text(stringResource(R.string.consent_title), style = MaterialTheme.typography.headlineSmall, color = AuTextPrimary)
+        Text(stringResource(R.string.consent_description), color = AuTextSecondary)
         
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(
@@ -36,7 +38,7 @@ fun ConsentScreen(
                 onCheckedChange = { viewModel.onAcceptedChanged(it); viewModel.onReadConsentChanged(it) },
                 colors = CheckboxDefaults.colors(checkedColor = AuAccent)
             )
-            Text("He leído y acepto los términos", color = AuTextPrimary)
+            Text(stringResource(R.string.consent_checkbox_label), color = AuTextPrimary)
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -47,7 +49,7 @@ fun ConsentScreen(
             modifier = Modifier.fillMaxWidth().height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AuAccent)
         ) {
-            Text("Aceptar y Firmar")
+            Text(stringResource(R.string.consent_submit_button))
         }
     }
 }
