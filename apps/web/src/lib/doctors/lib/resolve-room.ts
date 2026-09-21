@@ -14,15 +14,29 @@ export async function resolveDoctorId(admin: AdminClient, userId: string): Promi
 }
 
 /**
- * Resolve room participants from calls first, then appointments/telemedicine_sessions.
+ * Resolve room participants from calls first, then telemedicine_sessions, and finally
+ * pharmacy_dispatch_requests for on-demand kiosk consultations.
  * Some call rows are created for guest/bootstrap flows before patient_id is present;
  * those must not short-circuit richer sources that can still link the room to a patient.
  */
+export interface ResolvedRoomParticipants {
+  patientId: string;
+  doctorId: string | null;
+  appointmentId: string | null;
+  /** Present only for on-demand pharmacy/kiosk dispatch flows */
+  triage?: {
+    patientDni: string | null;
+    patientName: string | null;
+    symptomSummary: string | null;
+    dispatchRequestId: string;
+  };
+}
+
 export async function resolveRoomParticipants(
   admin: AdminClient,
   roomId: string,
-): Promise<{ patientId: string; doctorId: string | null; appointmentId: string | null } | null> {
-  // Try calls table first (has doctor_id for P2P calls)
+): Promise<ResolvedRoomParticipants | null> {
+  // 1. Try calls table first (has doctor_id for P2P calls)
   const { data: callRow, error: callError } = await admin
     .from('calls')
     .select('patient_id, doctor_id, appointment_id')
@@ -56,7 +70,7 @@ export async function resolveRoomParticipants(
     }
   }
 
-  // Fallback to telemedicine_sessions (has appointment_id for richer context)
+  // 2. Fallback to telemedicine_sessions (has appointment_id for richer context)
   const { data: sessionRow } = await admin
     .from('telemedicine_sessions')
     .select('patient_id, doctor_id, appointment_id')
@@ -68,6 +82,41 @@ export async function resolveRoomParticipants(
   if (sessionRow) {
     const session = sessionRow as { patient_id: string; doctor_id: string; appointment_id: string | null };
     return { patientId: session.patient_id, doctorId: session.doctor_id, appointmentId: session.appointment_id };
+  }
+
+  // 3. Final fallback: pharmacy on-demand kiosk dispatch (no auth user — uses DNI/CPF as identity)
+  const { data: dispatchRow, error: dispatchError } = await admin
+    .from('pharmacy_dispatch_requests')
+    .select('id, patient_dni, patient_name, assigned_doctor_id, symptom_summary')
+    .eq('cloudflare_room_id', roomId)
+    .in('status', ['accepted', 'in_progress'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!dispatchError && dispatchRow) {
+    const dispatch = dispatchRow as {
+      id: string;
+      patient_dni: string | null;
+      patient_name: string | null;
+      assigned_doctor_id: string | null;
+      symptom_summary: string | null;
+    };
+
+    // Pharmacy kiosk patients don't have an auth user_id; use a synthetic patientId
+    // that the ConsultationContextPanel can identify as a dispatch-only patient.
+    const syntheticPatientId = `dispatch:${dispatch.id}`;
+    return {
+      patientId: syntheticPatientId,
+      doctorId: dispatch.assigned_doctor_id,
+      appointmentId: null,
+      triage: {
+        patientDni: dispatch.patient_dni,
+        patientName: dispatch.patient_name,
+        symptomSummary: dispatch.symptom_summary,
+        dispatchRequestId: dispatch.id,
+      },
+    };
   }
 
   return null;

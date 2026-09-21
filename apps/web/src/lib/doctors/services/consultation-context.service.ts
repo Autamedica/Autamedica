@@ -49,6 +49,12 @@ export interface ConsultationContextResult {
   redFlags: string[]
   suggestedQuestions: Array<{ question: string; priority: string }>
   reason?: string
+  /** Only present for on-demand pharmacy kiosk patients */
+  dispatchTriage?: {
+    patientDni: string | null
+    symptomSummary: string | null
+    dispatchRequestId: string
+  }
 }
 
 function computeSectionsHash(sections: SectionRecord[]): string {
@@ -127,6 +133,31 @@ export const consultationContextService = {
     }
 
     const { patientId } = participants
+
+    // Short-circuit: pharmacy on-demand kiosk patient (no auth user, no anamnesis)
+    if (patientId.startsWith('dispatch:') && participants.triage) {
+      const { triage } = participants
+      return {
+        hasAnamnesis: false,
+        patient: {
+          id: patientId,
+          name: triage.patientName || 'Paciente Kiosco',
+          dateOfBirth: null,
+          gender: null,
+        },
+        summary: null,
+        extraction: null,
+        redFlags: [],
+        suggestedQuestions: [],
+        reason: 'kiosk_dispatch',
+        dispatchTriage: {
+          patientDni: triage.patientDni,
+          symptomSummary: triage.symptomSummary,
+          dispatchRequestId: triage.dispatchRequestId,
+        },
+      }
+    }
+
     const patientProfile = await resolvePatientProfile(admin, patientId)
 
     if (!patientId) {

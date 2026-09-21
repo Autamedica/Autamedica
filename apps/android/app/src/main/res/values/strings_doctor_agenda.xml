@@ -193,4 +193,15 @@
 
     <!-- Appointment List Item -->
     <string name="doctor_agenda_list_item_video_badge">Video</string>
+
+    <!-- Uber Driver Dispatch Incoming Alert -->
+    <string name="uber_dispatch_alert_title">CONSULTA ON-DEMAND ENTRANTE</string>
+    <string name="uber_dispatch_alert_subtitle">Guardia en Farmacia y Vía Pública</string>
+    <string name="uber_dispatch_accept_cta">ACEPTAR CONSULTA</string>
+    <string name="uber_dispatch_reject_btn">Ignorar</string>
+    <string name="uber_dispatch_patient_kiosk">Paciente en Kiosco</string>
+    <string name="uber_dispatch_dni_prefix">DNI/CPF: %1$s</string>
+    <string name="uber_dispatch_origin_label">Kiosco Farmacia Express</string>
+    <string name="uber_dispatch_conflict_message">Esta consulta ya fue tomada por otro colega o expiró.</string>
+    <string name="uber_dispatch_countdown_sec">%1$ds</string>
 </resources>

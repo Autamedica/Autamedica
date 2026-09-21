@@ -40,10 +40,15 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.autamedica.android.R
+import com.autamedica.android.domain.model.PharmacyDispatchRequest
+import com.autamedica.android.presentation.dashboard.components.UberIncomingDispatchAlert
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -59,6 +64,7 @@ import com.autamedica.android.presentation.doctors.agenda.components.DoctorTimel
 import com.autamedica.android.presentation.doctors.agenda.components.ThirtyDayWaffleCalendar
 import com.autamedica.android.presentation.doctors.agenda.components.TurnoActualHeroCard
 import com.autamedica.android.presentation.doctors.agenda.components.WeekDaySelectorStrip
+import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuDanger
@@ -76,6 +82,7 @@ fun DoctorAgendaScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToVideoCall: (appointmentId: String) -> Unit = {},
+    onNavigateToDoctorOnDemand: () -> Unit = {},
     onNavigateToCreatePrescription: (patientId: String) -> Unit = {},
     onNavigateToCreateMedicalOrder: (patientId: String) -> Unit = {},
     onNavigateToCreateCertificate: (patientId: String) -> Unit = {},
@@ -465,6 +472,40 @@ fun DoctorAgendaScreen(
                     type = type,
                     reason = reason,
                 )
+            },
+        )
+    }
+
+    // 7. Alerta de Despacho On-Demand estilo Uber Driver con Cuenta Regresiva de 25s
+    var dismissedRequestId by remember { mutableStateOf<String?>(null) }
+    val incomingPendingRequest = if (uiState.pharmacyOnDutyState.isOnDuty) {
+        uiState.pharmacyOnDutyState.pendingRequests.firstOrNull { it.id != dismissedRequestId }
+    } else null
+
+    val dispatchRequestForAlert = incomingPendingRequest?.let { req ->
+        PharmacyDispatchRequest(
+            id = req.id,
+            patientDni = req.patientDni,
+            patientPhone = req.patientPhone,
+            patientName = req.patientName,
+            tierRequested = "general",
+            symptomSummary = req.reason,
+            status = "searching",
+            cloudflareRoomId = req.roomId ?: "",
+            createdAt = req.createdAt?.toString() ?: "",
+        )
+    }
+
+    if (dispatchRequestForAlert != null) {
+        UberIncomingDispatchAlert(
+            request = dispatchRequestForAlert,
+            isClaiming = uiState.claimingPharmacyRequestId == dispatchRequestForAlert.id,
+            errorMessage = null,
+            onAccept = { reqId ->
+                viewModel.claimPharmacyRequest(reqId, onNavigateToVideoCall)
+            },
+            onDismiss = {
+                dismissedRequestId = dispatchRequestForAlert.id
             },
         )
     }

@@ -193,4 +193,15 @@
 
     <!-- Appointment List Item -->
     <string name="doctor_agenda_list_item_video_badge">Vídeo</string>
+
+    <!-- Uber Driver Dispatch Incoming Alert -->
+    <string name="uber_dispatch_alert_title">CONSULTA ON-DEMAND RECEBIDA</string>
+    <string name="uber_dispatch_alert_subtitle">Plantão em Farmácia e Via Pública</string>
+    <string name="uber_dispatch_accept_cta">ACEITAR CONSULTA</string>
+    <string name="uber_dispatch_reject_btn">Ignorar</string>
+    <string name="uber_dispatch_patient_kiosk">Paciente no Quiosque</string>
+    <string name="uber_dispatch_dni_prefix">CPF/RG: %1$s</string>
+    <string name="uber_dispatch_origin_label">Quiosque Farmácia Express</string>
+    <string name="uber_dispatch_conflict_message">Esta consulta já foi atendida por outro colega ou expirou.</string>
+    <string name="uber_dispatch_countdown_sec">%1$ds</string>
 </resources>

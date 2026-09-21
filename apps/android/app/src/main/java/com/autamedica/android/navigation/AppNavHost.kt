@@ -300,10 +300,20 @@ fun AppNavHost(
         composable<Route.DoctorAgenda> {
             com.autamedica.android.presentation.doctors.agenda.DoctorAgendaScreen(
                 onBack = { navController.popBackStack() },
-                onNavigateToVideoCall = { appointmentId ->
-                    navController.navigate(Route.VideoCall(appointmentId)) {
+                onNavigateToVideoCall = { targetId ->
+                    val isRoom = targetId.startsWith("cf-room") || targetId.startsWith("room_")
+                    navController.navigate(
+                        if (isRoom) {
+                            Route.VideoCall(appointmentId = "", roomId = targetId, isIncomingCall = true)
+                        } else {
+                            Route.VideoCall(appointmentId = targetId)
+                        }
+                    ) {
                         launchSingleTop = true
                     }
+                },
+                onNavigateToDoctorOnDemand = {
+                    navController.navigate(Route.DoctorOnDemand)
                 },
                 onNavigateToCreatePrescription = { patientId ->
                     navController.navigate(Route.CreatePrescription(patientId))
@@ -317,6 +327,23 @@ fun AppNavHost(
                 onNavigateToConsultationReport = { appointmentId ->
                     navController.navigate(Route.DoctorConsultationReport(appointmentId))
                 },
+            )
+        }
+
+        composable<Route.DoctorOnDemand> {
+            com.autamedica.android.presentation.ondemand.DoctorOnDemandScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToCall = { roomId ->
+                    navController.navigate(
+                        Route.VideoCall(
+                            appointmentId = "",
+                            roomId = roomId,
+                            isIncomingCall = true,
+                        )
+                    ) {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 

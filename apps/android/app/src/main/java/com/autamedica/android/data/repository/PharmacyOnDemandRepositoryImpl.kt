@@ -17,6 +17,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.OffsetDateTime
 import javax.inject.Inject
@@ -82,7 +93,39 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
     private val authRepository: AuthRepository,
 ) : PharmacyOnDemandRepository {
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _onDutyFlow = MutableStateFlow(DoctorOnDutyPharmacyState())
+    private var isRealtimeSubscribed = false
+
+    init {
+        subscribeToDispatchQueue()
+    }
+
+    private fun subscribeToDispatchQueue() {
+        if (isRealtimeSubscribed) return
+        isRealtimeSubscribed = true
+        scope.launch {
+            runCatching {
+                val channel = supabaseClient.channel("pharmacy-dispatch-search-queue-legacy")
+                val changeFlow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
+                    table = "pharmacy_dispatch_requests"
+                }
+                channel.subscribe()
+                changeFlow.collect {
+                    val currentStatus = getOnDutyStatus().getOrNull()
+                    if (currentStatus != null && currentStatus.isOnDuty) {
+                        val pending = getPendingQueue().getOrDefault(emptyList())
+                        _onDutyFlow.value = currentStatus.copy(
+                            waitingQueueCount = pending.size,
+                            pendingRequests = pending
+                        )
+                    }
+                }
+            }.onFailure {
+                SecureLog.error("[PharmacyOnDemandRepo] Realtime subscription error", it)
+            }
+        }
+    }
 
     override fun observeOnDutyState(): Flow<DoctorOnDutyPharmacyState> = _onDutyFlow.asStateFlow()
 
@@ -112,8 +155,25 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
 
     override suspend fun toggleOnDuty(onDuty: Boolean): Result<DoctorOnDutyPharmacyState> = runCatching {
         val user = authRepository.getCurrentUser() ?: throw IllegalStateException("Not authenticated")
-        val now = if (onDuty) OffsetDateTime.now().toString() else null
+        val doc = supabaseClient.postgrest
+            .from("doctors")
+            .select(Columns.list("id")) {
+                filter { eq("user_id", user.id) }
+            }
+            .decodeSingleOrNull<DoctorDutyCheckDto>() ?: throw IllegalStateException("Doctor record not found")
 
+        // Update Gen 2 duty status via RPC
+        val dutyParams = buildJsonObject {
+            put("p_doctor_id", doc.id)
+            put("p_is_on_duty", onDuty)
+            put("p_active_tiers", JsonArray(listOf(JsonPrimitive("general"))))
+        }
+        runCatching {
+            supabaseClient.postgrest.rpc("set_doctor_duty_status", dutyParams)
+        }
+
+        // Update legacy columns on doctors table for backwards compatibility
+        val now = if (onDuty) OffsetDateTime.now().toString() else null
         supabaseClient.postgrest
             .from("doctors")
             .update(
@@ -131,6 +191,22 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPendingQueue(): Result<List<PharmacyConsultationRequest>> = runCatching {
+        // Query Gen 2 table first (pharmacy_dispatch_requests with status 'searching')
+        val dispatchDtos = runCatching {
+            supabaseClient.postgrest
+                .from("pharmacy_dispatch_requests")
+                .select(Columns.ALL) {
+                    filter { eq("status", "searching") }
+                    order("created_at", Order.ASCENDING)
+                }
+                .decodeList<PharmacyDispatchItemDto>()
+        }.getOrDefault(emptyList())
+
+        if (dispatchDtos.isNotEmpty()) {
+            return@runCatching dispatchDtos.map { it.toPharmacyConsultationRequest() }
+        }
+
+        // Fallback to Gen 1 table (pharmacy_consultation_requests)
         val dtos = supabaseClient.postgrest
             .from("pharmacy_consultation_requests")
             .select(Columns.ALL) {
@@ -153,6 +229,30 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
             }
             .decodeSingleOrNull<DoctorDutyCheckDto>() ?: throw IllegalStateException("Doctor record not found")
 
+        // Try Gen 2 atomic claim with SKIP LOCKED
+        val rpcParams = buildJsonObject {
+            put("p_request_id", requestId)
+            put("p_doctor_id", doc.id)
+        }
+        val rpcResult = runCatching {
+            supabaseClient.postgrest
+                .rpc("claim_pharmacy_request_tier", rpcParams)
+                .decodeAs<DispatchClaimRpcDto>()
+        }.getOrNull()
+
+        if (rpcResult != null && rpcResult.success && !rpcResult.cloudflareRoomId.isNullOrBlank()) {
+            val roomId = rpcResult.cloudflareRoomId
+            return@runCatching PharmacyClaimResult(
+                requestId = requestId,
+                callId = requestId,
+                roomId = roomId,
+                guestInviteId = "",
+                doctorRoomUrl = "/doctors/call/$roomId",
+                patientJoinUrl = "/call/join/$roomId"
+            )
+        }
+
+        // Fallback to Gen 1 legacy claim
         val uniqueRoomId = "room_pharmacy_" + java.util.UUID.randomUUID().toString().substring(0, 8)
         val now = OffsetDateTime.now().toString()
 
@@ -400,3 +500,36 @@ internal data class ProfileNameDto(
     @SerialName("first_name") val firstName: String? = null,
     @SerialName("last_name") val lastName: String? = null,
 )
+
+@Serializable
+private data class PharmacyDispatchItemDto(
+    val id: String,
+    @SerialName("patient_dni") val patientDni: String = "",
+    @SerialName("patient_phone") val patientPhone: String = "",
+    @SerialName("patient_name") val patientName: String? = null,
+    @SerialName("tier_requested") val tierRequested: String = "general",
+    @SerialName("symptom_summary") val symptomSummary: String? = null,
+    val status: String = "searching",
+    @SerialName("cloudflare_room_id") val cloudflareRoomId: String = "",
+    @SerialName("created_at") val createdAt: String? = null,
+) {
+    fun toPharmacyConsultationRequest(): PharmacyConsultationRequest {
+        val created = runCatching { createdAt?.let { OffsetDateTime.parse(it) } }.getOrNull()
+        val mins = created?.let {
+            Duration.between(it, OffsetDateTime.now()).toMinutes().coerceAtLeast(0)
+        } ?: 0L
+        return PharmacyConsultationRequest(
+            id = id,
+            pharmacyId = null,
+            pharmacyName = "Kiosco Express",
+            patientDni = patientDni,
+            patientName = patientName?.ifBlank { null } ?: "Paciente en Kiosco",
+            patientPhone = patientPhone,
+            reason = symptomSummary?.ifBlank { null } ?: "Consulta On-Demand ($tierRequested)",
+            status = PharmacyConsultationStatus.PENDING,
+            roomId = cloudflareRoomId,
+            createdAt = created,
+            minutesWaiting = mins,
+        )
+    }
+}
