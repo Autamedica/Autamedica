@@ -162,14 +162,12 @@ fun VideoCallScreen(
     }
 
     // Determine waiting room vs active call:
-    // - isPreviewRoute (chequeo de cámara) siempre muestra la Sala de Espera.
-    // - Paciente con flujo manual: la Sala de Espera cede paso al estado de llamada cuando se
-    //   alcanza CONNECTED (médico en sala) o llega el video remoto.
-    // - Paciente con llamada entrante aceptada (isIncomingCall): entra directo a la llamada
-    //   activa, saltando la Sala de Espera / preconsulta.
+    // - Sala de espera con Ficha de Preconsulta y botón "Llamar al médico" es EXCLUSIVA para el paciente.
+    // - Un médico NUNCA debe ver la sala de espera del paciente ni el botón "Llamar al médico".
+    //   El médico ingresa directamente al Active Call Layout con su Cockpit Clínico (ClinicalHudLayer).
     val isCallActive = remoteTrack != null || uiState.connectionState == ConnectionState.CONNECTED
-    val isWaitingRoomActive = isPreviewRoute || (
-        !uiState.isDoctor && !isIncomingCall && uiState.isWaitingRoom && !isCallActive
+    val isWaitingRoomActive = !uiState.isDoctor && (
+        isPreviewRoute || (!isIncomingCall && uiState.isWaitingRoom && !isCallActive)
     )
 
     Box(
@@ -260,14 +258,21 @@ fun VideoCallScreen(
                 onSavePreconsultation = viewModel::savePreconsultation,
             )
         } else {
-            // ── PHASE 2: ACTIVE CALL LAYOUT (Identical to Web ActiveCallLayout) ──
-            // Main Viewport: Remote Video OR RemoteAvatarFallback
+            // Main Viewport: Remote Video OR Doctor Local Preview OR RemoteAvatarFallback
+            val isDoctorTestingCamera = uiState.isDoctor && (isPreviewRoute || remoteTrack == null) && localTrack != null && uiState.isVideoEnabled
             if (remoteTrack != null) {
                 ManagedVideoRenderer(
                     videoTrack = remoteTrack,
                     eglContext = viewModel.eglContext,
                     modifier = Modifier.fillMaxSize(),
                     mirror = false,
+                )
+            } else if (isDoctorTestingCamera && localTrack != null) {
+                ManagedVideoRenderer(
+                    videoTrack = localTrack,
+                    eglContext = viewModel.eglContext,
+                    modifier = Modifier.fillMaxSize(),
+                    mirror = true,
                 )
             } else {
                 val remoteDisplayName = when {
@@ -348,16 +353,18 @@ fun VideoCallScreen(
                 }
 
                 // Local PiP: doctor sube el padding para dejar espacio a la guía clínica.
-                val pipBottomPadding = if (uiState.isDoctor) 320.dp else 96.dp
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .navigationBarsPadding()
-                        .padding(bottom = pipBottomPadding, end = 16.dp)
-                        .size(width = 110.dp, height = 154.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF1E293B)),
-                ) {
+                // No mostrar PiP duplicado si el médico ya está viendo su cámara en pantalla completa.
+                if (!isDoctorTestingCamera) {
+                    val pipBottomPadding = if (uiState.isDoctor) 320.dp else 96.dp
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .navigationBarsPadding()
+                            .padding(bottom = pipBottomPadding, end = 16.dp)
+                            .size(width = 110.dp, height = 154.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color(0xFF1E293B)),
+                    ) {
                     if (localTrack != null && uiState.isVideoEnabled) {
                         ManagedVideoRenderer(
                             videoTrack = localTrack,
@@ -403,6 +410,7 @@ fun VideoCallScreen(
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                         )
                     }
+                }
                 }
 
                 // Chat panel (slide from bottom)

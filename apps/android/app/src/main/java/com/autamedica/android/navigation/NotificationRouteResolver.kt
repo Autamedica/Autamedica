@@ -140,6 +140,23 @@ object NotificationRouteResolver {
             return Route.PharmacyIntake(pharmacyId)
         }
 
+        // On-demand doctor duty / dispatch:
+        // Handles autamedica://ondemand, autamedica://guardia
+        if (firstSegment == "ondemand" || firstSegment == "guardia") {
+            return Route.DoctorOnDemand
+        }
+
+        // Doctor prescriptions list or create prescription
+        if (firstSegment == "prescriptions" || firstSegment == "recetas") {
+            if (segments.size < 2) return Route.DoctorPrescriptions
+            val pid = segments.last().normalizedOrNull() ?: ""
+            return Route.CreatePrescription(pid)
+        }
+        if (firstSegment == "prescription" || firstSegment == "receta") {
+            val pid = if (segments.size >= 2) segments.last().normalizedOrNull() ?: "" else ""
+            return Route.CreatePrescription(pid)
+        }
+
         if (segments.size < 2) return null
 
         val identifier = segments.last().normalizedOrNull() ?: return null
