@@ -1031,12 +1031,22 @@ private fun BookingCalendarCard(
     modifier: Modifier = Modifier,
 ) {
     var showDoctorSheet by remember { mutableStateOf(false) }
+    // Evita reabrir el sheet si el usuario lo descarta sin elegir, hasta el próximo colapso.
+    var autoOpenedForExpansion by remember { mutableStateOf(false) }
+
+    // Reset de la bandera al colapsar para que la próxima expansión vuelva a autoabrir.
+    LaunchedEffect(isExpanded) {
+        if (!isExpanded) autoOpenedForExpansion = false
+    }
 
     // Autoapertura anti-fricción estilo Uber: al expandir sin médico elegido,
     // se despliega automáticamente el selector tras una breve pausa para que termine la animación.
-    LaunchedEffect(isExpanded, selectedDoctor) {
-        if (isExpanded && selectedDoctor == null && availableDoctors.isNotEmpty()) {
+    // Usamos availableDoctors.isEmpty() como clave discriminante para cubrir la llegada async
+    // de profesionales (lista vacía -> con datos) sin re-disparar por actualizaciones del tamaño.
+    LaunchedEffect(isExpanded, selectedDoctor, availableDoctors.isEmpty()) {
+        if (isExpanded && selectedDoctor == null && availableDoctors.isNotEmpty() && !autoOpenedForExpansion) {
             kotlinx.coroutines.delay(280L)
+            autoOpenedForExpansion = true
             showDoctorSheet = true
         }
     }
