@@ -149,6 +149,7 @@ fun MainScreen(
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToDoctorMedicalOrders: () -> Unit = {},
     onNavigateToPatientProfile: () -> Unit = {},
+    onNavigateToPharmacyIntake: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel(),
 ) {
@@ -381,6 +382,7 @@ fun MainScreen(
                                 reserveMaxCapCredits = maxCap
                                 showHealthReserveDetail = true
                             },
+                            onNavigateToPharmacyIntake = onNavigateToPharmacyIntake,
                         )
                         1 -> AppointmentsScreen(
                             onNavigateToVideoCall = onNavigateToVideoCall,

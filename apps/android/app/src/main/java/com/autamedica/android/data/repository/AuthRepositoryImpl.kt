@@ -130,6 +130,8 @@ class AuthRepositoryImpl @Inject constructor(
             id = id,
             email = email,
             role = parseRole(role ?: securePrefs.getString(SecurePreferences.KEY_USER_ROLE)),
+            firstName = displayName ?: "",
+            phone = phone,
         )
     }
 

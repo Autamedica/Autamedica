@@ -1,6 +1,7 @@
 package com.autamedica.android.domain.model
 
 data class PatientProfileSnapshot(
+    val dni: String? = null,
     val birthDate: String? = null,
     val gender: String? = null,
     val bloodType: String? = null,

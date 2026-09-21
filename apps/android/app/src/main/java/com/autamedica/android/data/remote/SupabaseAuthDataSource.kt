@@ -10,7 +10,9 @@ import io.github.jan.supabase.auth.providers.builtin.IDToken
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import javax.inject.Inject
@@ -20,6 +22,8 @@ data class AuthUser(
     val id: String,
     val email: String,
     val role: String?,
+    val displayName: String? = null,
+    val phone: String? = null,
 )
 
 @Singleton
@@ -30,22 +34,29 @@ class SupabaseAuthDataSource @Inject constructor(
 
     fun observeSessionStatus(): Flow<SessionStatus> = auth.sessionStatus
 
-    fun observeAuthUser(): Flow<AuthUser?> = auth.sessionStatus.map { status ->
-        when (status) {
-            is SessionStatus.Authenticated -> {
-                val user = status.session.user
-                if (user != null) {
-                    val role = extractRole(user)
-                    AuthUser(
-                        id = user.id,
-                        email = user.email ?: "",
-                        role = role,
-                    )
-                } else null
+    fun observeAuthUser(): Flow<AuthUser?> = auth.sessionStatus
+        .filter { it !is SessionStatus.Initializing }
+        .map { status ->
+            when (status) {
+                is SessionStatus.Authenticated -> {
+                    val user = status.session.user
+                    if (user != null) {
+                        val role = extractRole(user)
+                        val fullName = user.userMetadata?.jsonObject?.get("full_name")?.jsonPrimitive?.contentOrNull
+                            ?: user.userMetadata?.jsonObject?.get("name")?.jsonPrimitive?.contentOrNull
+                        val phone = user.phone ?: user.userMetadata?.jsonObject?.get("phone")?.jsonPrimitive?.contentOrNull
+                        AuthUser(
+                            id = user.id,
+                            email = user.email ?: "",
+                            role = role,
+                            displayName = fullName,
+                            phone = phone,
+                        )
+                    } else null
+                }
+                else -> null
             }
-            else -> null
         }
-    }
 
     suspend fun signIn(email: String, password: String): AuthUser {
         auth.signInWith(Email) {
@@ -59,11 +70,16 @@ class SupabaseAuthDataSource @Inject constructor(
             ?: throw IllegalStateException("User is null after sign-in")
 
         val role = extractRole(user)
+        val fullName = user.userMetadata?.jsonObject?.get("full_name")?.jsonPrimitive?.contentOrNull
+            ?: user.userMetadata?.jsonObject?.get("name")?.jsonPrimitive?.contentOrNull
+        val phone = user.phone ?: user.userMetadata?.jsonObject?.get("phone")?.jsonPrimitive?.contentOrNull
 
         return AuthUser(
             id = user.id,
             email = user.email ?: email,
             role = role,
+            displayName = fullName,
+            phone = phone,
         )
     }
 
@@ -79,11 +95,16 @@ class SupabaseAuthDataSource @Inject constructor(
             ?: throw IllegalStateException("User is null after Google sign-in")
 
         val role = extractRole(user)
+        val fullName = user.userMetadata?.jsonObject?.get("full_name")?.jsonPrimitive?.contentOrNull
+            ?: user.userMetadata?.jsonObject?.get("name")?.jsonPrimitive?.contentOrNull
+        val phone = user.phone ?: user.userMetadata?.jsonObject?.get("phone")?.jsonPrimitive?.contentOrNull
 
         return AuthUser(
             id = user.id,
             email = user.email ?: "",
             role = role,
+            displayName = fullName,
+            phone = phone,
         )
     }
 
@@ -97,10 +118,15 @@ class SupabaseAuthDataSource @Inject constructor(
         }
         val user = result ?: auth.currentSessionOrNull()?.user
         return user?.let {
+            val fullName = it.userMetadata?.jsonObject?.get("full_name")?.jsonPrimitive?.contentOrNull
+                ?: it.userMetadata?.jsonObject?.get("name")?.jsonPrimitive?.contentOrNull
+            val phone = it.phone ?: it.userMetadata?.jsonObject?.get("phone")?.jsonPrimitive?.contentOrNull
             AuthUser(
                 id = it.id,
                 email = it.email ?: email,
                 role = extractRole(it) ?: role,
+                displayName = fullName,
+                phone = phone,
             )
         }
     }
@@ -114,10 +140,15 @@ class SupabaseAuthDataSource @Inject constructor(
         val session = auth.currentSessionOrNull() ?: return null
         val user = session.user ?: return null
         val role = extractRole(user)
+        val fullName = user.userMetadata?.jsonObject?.get("full_name")?.jsonPrimitive?.contentOrNull
+            ?: user.userMetadata?.jsonObject?.get("name")?.jsonPrimitive?.contentOrNull
+        val phone = user.phone ?: user.userMetadata?.jsonObject?.get("phone")?.jsonPrimitive?.contentOrNull
         return AuthUser(
             id = user.id,
             email = user.email ?: "",
             role = role,
+            displayName = fullName,
+            phone = phone,
         )
     }
 

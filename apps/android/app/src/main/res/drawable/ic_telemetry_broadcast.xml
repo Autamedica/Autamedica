@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Antena parabólica médica / Red de telemetría AutaMedica -->
+    <!-- Reflector parabólico (Azul AutaMedica Primary) -->
+    <path
+        android:pathData="M2.824,10.459a8,8 0 0,0 10.717,10.717c0.558,-0.276 0.623,-1.012 0.183,-1.452l-9.448,-9.448c-0.44,-0.44 -1.176,-0.375 -1.452,0.183z"
+        android:strokeColor="#2563EB"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Brazo transceptor / Bocina alimentadora (Feedhorn) -->
+    <path
+        android:pathData="M9,15l4,-4"
+        android:strokeColor="#2563EB"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Ondas de transmisión de telemetría médica (Cian clínico) -->
+    <path
+        android:pathData="M18,12a6,6 0 0,0 -6,-6"
+        android:strokeColor="#0EA5E9"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M22,12A10,10 0 0,0 12,2"
+        android:strokeColor="#0EA5E9"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

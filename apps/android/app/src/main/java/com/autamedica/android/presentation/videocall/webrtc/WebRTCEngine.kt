@@ -195,22 +195,6 @@ class WebRTCEngine(
         signalingClient.connect(finalRoomId, signalingUrl)
     }
 
-    fun updateIceServers(iceServers: List<PeerConnection.IceServer>) {
-        if (iceServers.isEmpty()) return
-        config = config.copy(iceServers = iceServers)
-        val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
-            sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
-        }
-        for ((_, peerState) in peers) {
-            try {
-                peerState.pc.setConfiguration(rtcConfig)
-                Timber.i("[WebRTC] Updated active PeerConnection with ${iceServers.size} ICE servers")
-            } catch (e: Exception) {
-                Timber.w(e, "[WebRTC] Failed updating PeerConnection configuration")
-            }
-        }
-    }
-
     fun disconnect() {
         Timber.i("[WebRTC] Disconnect requested")
         signalingClient.send(ClientSignalingMessage.Leave)

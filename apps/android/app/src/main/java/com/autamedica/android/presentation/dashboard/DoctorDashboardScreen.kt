@@ -102,6 +102,10 @@ private const val DOCTOR_TAB_PATIENTS = 3
 fun DoctorDashboardScreen(
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
     onNavigateToTab: (Int) -> Unit = {},
+    onNavigateToDoctorSignature: () -> Unit = {},
+    onNavigateToDoctorPrescriptions: () -> Unit = {},
+    onNavigateToDoctorCertificates: () -> Unit = {},
+    onNavigateToDoctorMedicalOrders: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: DoctorDashboardViewModel = hiltViewModel(),
 ) {

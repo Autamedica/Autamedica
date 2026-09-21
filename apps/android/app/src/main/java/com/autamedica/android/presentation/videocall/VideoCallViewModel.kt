@@ -84,6 +84,7 @@ data class VideoCallUiState(
     val preconsultationEvolution: String = "",
     val isPreconsultationSaved: Boolean = false,
     val isAutoDegradedToAudio: Boolean = false,
+    val patientId: String = "",
 )
 
 @HiltViewModel
@@ -103,7 +104,7 @@ class VideoCallViewModel @Inject constructor(
 
     val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
     /** roomId real de la call (room_XXXX). Si está vacío, se usa appointmentId como fallback. */
-    private val incomingRoomId: String = savedStateHandle["roomId"] ?: ""
+    private var incomingRoomId: String = savedStateHandle["roomId"] ?: ""
     private val previewOnlyMode: Boolean = appointmentId == VIDEO_PREVIEW_APPOINTMENT_ID
 
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -165,9 +166,12 @@ class VideoCallViewModel @Inject constructor(
         }
     }
 
-    fun startCall(isIncomingCall: Boolean = false) {
+    fun startCall(isIncomingCall: Boolean = false, roomId: String = "") {
         if (callStarted) return
         callStarted = true
+        if (roomId.isNotBlank()) {
+            incomingRoomId = roomId
+        }
         val shouldAutoConnect = isIncomingCall || incomingRoomId.isNotBlank()
         callRequestedByPatient = shouldAutoConnect
         _uiState.update {
@@ -197,11 +201,13 @@ class VideoCallViewModel @Inject constructor(
                 var docCrm = "CRM/SP 184.920"
                 var preReason = ""
                 var preSaved = false
+                var resolvedPatientId = ""
 
                 if (!previewOnlyMode && appointmentId.isNotBlank()) {
                     runCatching {
                         val appt = appointmentRepository.getAppointmentById(appointmentId).getOrNull()
                         if (appt != null) {
+                            resolvedPatientId = appt.patientId.orEmpty()
                             apptNotes = appt.notes
                             appt.doctorName?.takeIf { it.isNotBlank() }?.let { docName = it }
                             appt.doctorSpecialty?.takeIf { it.isNotBlank() }?.let { docRole = it }
@@ -230,6 +236,7 @@ class VideoCallViewModel @Inject constructor(
                         doctorCrm = docCrm,
                         preconsultationReason = if (preReason.isNotBlank()) preReason else it.preconsultationReason,
                         isPreconsultationSaved = preSaved || it.isPreconsultationSaved,
+                        patientId = resolvedPatientId.ifBlank { it.patientId },
                     )
                 }
 

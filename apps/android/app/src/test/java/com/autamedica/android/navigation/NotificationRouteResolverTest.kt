@@ -220,4 +220,28 @@ class NotificationRouteResolverTest {
         assertThat(NotificationRouteResolver.isCallNotification("followup")).isFalse()
         assertThat(NotificationRouteResolver.isCallNotification(null)).isFalse()
     }
+
+    @Test
+    fun `pharmacy deep link without id resolves to PharmacyIntake with empty id`() {
+        val route = NotificationRouteResolver.resolve(
+            deepLink = "https://www.autamedica.com/farmacia/on-demand/entry"
+        )
+        assertThat(route).isEqualTo(Route.PharmacyIntake(""))
+    }
+
+    @Test
+    fun `pharmacy deep link with query param resolves to PharmacyIntake with extracted id`() {
+        val route = NotificationRouteResolver.resolve(
+            deepLink = "https://www.autamedica.com/farmacia/on-demand/entry?pharmacy_id=pharm-123"
+        )
+        assertThat(route).isEqualTo(Route.PharmacyIntake("pharm-123"))
+    }
+
+    @Test
+    fun `pharmacy deep link with path id resolves to PharmacyIntake with extracted id`() {
+        val route = NotificationRouteResolver.resolve(
+            deepLink = "autamedica://farmacia/pharm-456"
+        )
+        assertThat(route).isEqualTo(Route.PharmacyIntake("pharm-456"))
+    }
 }

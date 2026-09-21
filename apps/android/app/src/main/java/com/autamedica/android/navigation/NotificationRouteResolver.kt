@@ -136,7 +136,8 @@ object NotificationRouteResolver {
         // On-demand pharmacy counter intake deep link:
         // Handles https://autamedica.com/farmacia/*, https://www.autamedica.com/farmacia/*, autamedica://farmacia/*
         if (segments.any { it.equals("farmacia", ignoreCase = true) }) {
-            return Route.Main
+            val pharmacyId = extractPharmacyId(normalized)
+            return Route.PharmacyIntake(pharmacyId)
         }
 
         if (segments.size < 2) return null
@@ -149,6 +150,41 @@ object NotificationRouteResolver {
                 Route.VideoCall(identifier)
             else -> null
         }
+    }
+
+    fun extractPharmacyId(raw: String): String {
+        // 1. Check query parameters
+        val queryString = raw.substringAfter('?', "").substringBefore('#')
+        if (queryString.isNotBlank()) {
+            val params = queryString.split('&')
+            for (param in params) {
+                val pair = param.split('=', limit = 2)
+                val key = pair.getOrNull(0)?.trim()?.lowercase()
+                val value = pair.getOrNull(1)?.trim()
+                if (key in listOf("pharmacy_id", "pharmacyid", "pharmacy") && !value.isNullOrBlank()) {
+                    return runCatching { java.net.URLDecoder.decode(value, "UTF-8") }.getOrDefault(value)
+                }
+            }
+        }
+
+        // 2. Check path segments after "farmacia"
+        val withoutScheme = if (raw.contains("://")) raw.substringAfter("://") else raw
+        val cleanPath = withoutScheme.substringBefore('?').substringBefore('#').trim('/')
+        val segments = cleanPath.split('/').filter { it.isNotBlank() }
+        val farmaciaIndex = segments.indexOfFirst { it.equals("farmacia", ignoreCase = true) }
+        if (farmaciaIndex >= 0 && farmaciaIndex < segments.size - 1) {
+            val candidate = segments.subList(farmaciaIndex + 1, segments.size)
+                .firstOrNull {
+                    !it.equals("on-demand", ignoreCase = true) &&
+                    !it.equals("entry", ignoreCase = true) &&
+                    !it.equals("intake", ignoreCase = true)
+                }
+            if (!candidate.isNullOrBlank()) {
+                return runCatching { java.net.URLDecoder.decode(candidate.trim(), "UTF-8") }.getOrDefault(candidate.trim())
+            }
+        }
+
+        return ""
     }
 
     private fun String?.normalizedOrNull(): String? =

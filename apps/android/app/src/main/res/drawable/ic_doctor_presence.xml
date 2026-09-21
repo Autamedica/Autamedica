@@ -1,0 +1,42 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Cabeza profesional de la salud / Médico colegiado (Azul AutaMedica Primary #2563EB) -->
+    <path
+        android:strokeColor="#2563EB"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M12,3a3.5,3.5 0 1,0 0,7a3.5,3.5 0 1,0 0,-7" />
+    <!-- Silueta de bata clínica y hombros (Azul AutaMedica Primary #2563EB) -->
+    <path
+        android:strokeColor="#2563EB"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M4.5,21v-1.5c0,-2.8 2.2,-5 5,-5h5c2.8,0 5,2.2 5,5V21" />
+    <!-- Cuello y solapas en V de la bata médica (Azul AutaMedica Primary #2563EB) -->
+    <path
+        android:strokeColor="#2563EB"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M8.5,14.5l3.5,4 3.5,-4" />
+    <!-- Tubo biauricular y bajada del estetoscopio (Cian clínico #0EA5E9) -->
+    <path
+        android:strokeColor="#0EA5E9"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M9.5,11.5v2.5a2.5,2.5 0 0,0 5,0v-2.5M12,16.5v1.8" />
+    <!-- Campana / diafragma de auscultación (Cian clínico #0EA5E9) -->
+    <path
+        android:fillColor="#0EA5E9"
+        android:strokeColor="#0EA5E9"
+        android:strokeWidth="0.3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M12,18.4a1.1,1.1 0 1,0 0,2.2a1.1,1.1 0 1,0 0,-2.2" />
+</vector>

@@ -66,6 +66,7 @@ fun DashboardScreen(
     onNavigateToHealthReserve: () -> Unit = {},
     onOpenHealthReserveDetail: (tier: String, credits: Int, maxCap: Int) -> Unit = { _, _, _ -> },
     onNavigateToContinuityStatus: () -> Unit = {},
+    onNavigateToPharmacyIntake: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
@@ -152,7 +153,7 @@ fun DashboardScreen(
     }
 
     val onOpenPharmacyExpress: () -> Unit = {
-        runCatching { uriHandler.openUri("https://www.autamedica.com/farmacia/solicitar") }
+        onNavigateToPharmacyIntake()
     }
 
     Scaffold(

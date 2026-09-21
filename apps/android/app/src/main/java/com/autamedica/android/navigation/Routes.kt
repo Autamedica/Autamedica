@@ -108,4 +108,7 @@ sealed interface Route {
 
     @Serializable
     data object TdahEvaluation : Route
+
+    @Serializable
+    data class PharmacyIntake(val pharmacyId: String = "") : Route
 }

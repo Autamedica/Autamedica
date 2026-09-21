@@ -115,14 +115,16 @@ private data class ProfileDto(
 
 @Serializable
 private data class PatientProfileDto(
+    val dni: String? = null,
     @SerialName("birth_date") val birthDate: String? = null,
     val gender: String? = null,
     @SerialName("blood_type") val bloodType: String? = null,
-    @SerialName("height_cm") val heightCm: Double? = null,
-    @SerialName("weight_kg") val weightKg: Double? = null,
+    val heightCm: Double? = null,
+    val weightKg: Double? = null,
     @SerialName("emergency_contact") val emergencyContact: JsonObject? = null,
 ) {
     fun toDomain() = PatientProfileSnapshot(
+        dni = dni,
         birthDate = birthDate,
         gender = gender,
         bloodType = bloodType,

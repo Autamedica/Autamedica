@@ -52,3 +52,19 @@ data class PharmacyClaimResult(
     val doctorRoomUrl: String,
     val patientJoinUrl: String,
 )
+
+data class RequestStatusResponse(
+    val id: String,
+    val status: PharmacyConsultationStatus = PharmacyConsultationStatus.PENDING,
+    val queuePosition: Int = 0,
+    val pharmacyName: String = "",
+    val patientName: String = "",
+    val reason: String = "",
+    val roomId: String? = null,
+    val guestInviteId: String? = null,
+    val patientJoinUrl: String? = null,
+    val doctorName: String? = null,
+    val doctorSpecialty: String? = null,
+    val createdAt: OffsetDateTime? = null,
+    val assignedAt: OffsetDateTime? = null,
+)

@@ -62,15 +62,7 @@ class MainActivity : ComponentActivity() {
                 if (activeIntent != null) {
                     val route = NotificationRouteResolver.resolve(activeIntent)
                     if (route != null) {
-                        val currentDest = navController.currentDestination?.route
-                        val isOnLogin = currentDest?.contains("Login") == true
-                        if (!isOnLogin) {
-                            navController.navigate(route) {
-                                launchSingleTop = true
-                            }
-                        } else {
-                            pendingPostLoginRoute = route
-                        }
+                        pendingPostLoginRoute = route
                     }
                     incomingIntent = null
                 }

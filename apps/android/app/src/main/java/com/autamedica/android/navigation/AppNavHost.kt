@@ -31,12 +31,15 @@ fun AppNavHost(
     navController: NavHostController = rememberNavController(),
     modifier: Modifier = Modifier,
 ) {
-    LaunchedEffect(postLoginRoute) {
-        val route = postLoginRoute
-        if (route != null) {
-            val currentDest = navController.currentDestination?.route
-            val isOnLogin = currentDest?.contains("Login") == true
+    LaunchedEffect(postLoginRoute, navController) {
+        val route = postLoginRoute ?: return@LaunchedEffect
+        var consumed = false
+        navController.currentBackStackEntryFlow.collect { backStackEntry ->
+            if (consumed) return@collect
+            val currentRoute = backStackEntry.destination.route
+            val isOnLogin = currentRoute?.contains("Login") == true
             if (!isOnLogin) {
+                consumed = true
                 navController.navigate(route) {
                     launchSingleTop = true
                 }
@@ -56,12 +59,6 @@ fun AppNavHost(
                     navController.navigate(Route.Main) {
                         popUpTo(Route.Login) { inclusive = true }
                         launchSingleTop = true
-                    }
-                    postLoginRoute?.let { route ->
-                        navController.navigate(route) {
-                            launchSingleTop = true
-                        }
-                        onPostLoginRouteConsumed()
                     }
                 },
                 onNavigateToRegister = { role ->
@@ -101,6 +98,23 @@ fun AppNavHost(
         composable<Route.PsychiatryIntake> {
             com.autamedica.android.presentation.patients.psychiatry.PsychiatryIntakeScreen(
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Route.PharmacyIntake> {
+            com.autamedica.android.presentation.pharmacy.PharmacyIntakeScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToCall = { roomId ->
+                    navController.navigate(
+                        Route.VideoCall(
+                            appointmentId = "",
+                            roomId = roomId,
+                            isIncomingCall = true,
+                        )
+                    ) {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 
@@ -164,6 +178,11 @@ fun AppNavHost(
                 },
                 onNavigateToPatientProfile = {
                     navController.navigate(Route.PatientProfile) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToPharmacyIntake = {
+                    navController.navigate(Route.PharmacyIntake()) {
                         launchSingleTop = true
                     }
                 },

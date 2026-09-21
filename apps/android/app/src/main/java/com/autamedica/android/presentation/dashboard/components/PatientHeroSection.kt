@@ -40,6 +40,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.autamedica.android.R
+import com.autamedica.android.presentation.theme.Primary
 import java.util.Calendar
 
 @Composable
@@ -179,11 +180,11 @@ fun PatientHeroSection(
 
                 // Hero Action Buttons
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    // Large Hero CTA Button (48dp min touch target)
+                    // Large Hero CTA Button (48dp touch target)
                     Button(
                         onClick = onBookConsultation,
                         shape = RoundedCornerShape(999.dp),
@@ -191,32 +192,36 @@ fun PatientHeroSection(
                             containerColor = Color.White,
                             contentColor = Color(0xFF09090B),
                         ),
-                        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                            horizontal = 20.dp,
-                            vertical = 14.dp,
+                            horizontal = 12.dp,
+                            vertical = 0.dp,
                         ),
                     ) {
                         Text(
-                            text = "Consultar ahora",
-                            fontSize = 14.sp,
+                            text = "Consultar",
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
+                            maxLines = 1,
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(14.dp),
                         )
                     }
 
                     // Pharmacy On-Demand Express Button
                     Surface(
                         shape = RoundedCornerShape(999.dp),
-                        color = Color(0x3310B981),
-                        border = BorderStroke(1.dp, Color(0x6634D399)),
+                        color = Primary.copy(alpha = 0.25f),
+                        border = BorderStroke(1.dp, Primary.copy(alpha = 0.5f)),
                         modifier = Modifier
-                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                            .weight(1.15f)
+                            .height(48.dp)
                             .clip(RoundedCornerShape(999.dp))
                             .clickable(
                                 onClickLabel = stringResource(id = R.string.patient_pharmacy_express_button),
@@ -225,17 +230,18 @@ fun PatientHeroSection(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(horizontal = 8.dp),
                         ) {
                             Box(
                                 modifier = Modifier
                                     .size(8.dp)
                                     .clip(RoundedCornerShape(999.dp))
-                                    .background(Color(0xFF34D399))
+                                    .background(Color(0xFF60A5FA))
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = stringResource(id = R.string.patient_pharmacy_express_button),
+                                text = "Guardia Farmacia",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,

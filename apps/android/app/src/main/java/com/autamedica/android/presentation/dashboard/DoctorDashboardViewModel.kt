@@ -8,6 +8,7 @@ import com.autamedica.android.domain.model.ChatStatus
 import com.autamedica.android.domain.model.DoctorProfile
 import com.autamedica.android.domain.model.DoctorStats
 import com.autamedica.android.domain.model.MedicalChat
+import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
@@ -35,6 +36,7 @@ data class DoctorDashboardUiState(
     val joinableAppointmentIds: Set<String> = emptySet(),
     val unreadMessagesCount: Int = 0,
     val urgentChats: List<MedicalChat> = emptyList(),
+    val recentPatients: List<PatientSummary> = emptyList(),
     val pharmacyOnDutyState: DoctorOnDutyPharmacyState = DoctorOnDutyPharmacyState(),
     val claimingPharmacyRequestId: String? = null,
     val isLoading: Boolean = true,
@@ -96,12 +98,14 @@ class DoctorDashboardViewModel @Inject constructor(
             profileResult.onSuccess { profile ->
                 _uiState.update { it.copy(doctorProfile = profile, doctorId = profile.id) }
 
-                // Load stats and appointments in parallel
+                // Load stats, appointments and patients in parallel
                 val statsDeferred = async { doctorRepository.getDoctorStats(profile.id) }
                 val appointmentsDeferred = async { appointmentRepository.getUpcomingAppointments() }
+                val patientsDeferred = async { doctorRepository.getDoctorPatients(profile.id) }
 
                 val stats = statsDeferred.await()
                 val appointments = appointmentsDeferred.await()
+                val patients = patientsDeferred.await()
                 val allAppointments = appointments.getOrDefault(emptyList())
                 val joinableResult = resolveJoinableAppointmentIds(allAppointments)
 
@@ -110,6 +114,7 @@ class DoctorDashboardViewModel @Inject constructor(
                         stats = stats.getOrDefault(DoctorStats()),
                         todayAppointments = prioritizeToday(allAppointments),
                         joinableAppointmentIds = joinableResult.first,
+                        recentPatients = patients.getOrDefault(emptyList()).take(5),
                         isLoading = false,
                         isRefreshing = false,
                         error = null,

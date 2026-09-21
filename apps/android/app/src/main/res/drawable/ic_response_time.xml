@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Esfera y pulsadores del cronómetro clínico de respuesta (Azul AutaMedica #2563EB) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#2563EB"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M9.5,2h5 M12,2v3.75 M17.2,5.2l1.5,1.5 M12,5.75 C7.72,5.75 4.25,9.22 4.25,13.5 C4.25,17.78 7.72,21.25 12,21.25 C16.28,21.25 19.75,17.78 19.75,13.5 C19.75,9.22 16.28,5.75 12,5.75 Z" />
+    <!-- Rayo estilizado de velocidad de atención médica (Cian Clínico #0EA5E9) -->
+    <path
+        android:fillColor="#0EA5E9"
+        android:strokeColor="#0EA5E9"
+        android:strokeWidth="0.3"
+        android:strokeLineJoin="round"
+        android:pathData="M13.2,8.2 L9.4,13.6 H12.1 L11,18.8 L15.8,12.6 H13 L13.2,8.2 Z" />
+</vector>

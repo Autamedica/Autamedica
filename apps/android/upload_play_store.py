@@ -18,24 +18,24 @@ SERVICE_ACCOUNT_FILE = Path("/home/edu/.android-secrets/autamedica-play-store-se
 AAB_PATH = Path(__file__).parent / "app/build/outputs/bundle/release/app-release.aab"
 PACKAGE_NAME = "com.autamedica.android"
 TRACK = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] in ["internal", "alpha", "beta", "production"] else "internal"
-VERSION_NAME = "1.2.13"
+VERSION_NAME = "1.2.14"
 
 RELEASE_NOTES = {
     "es-419": (
-        "v1.2.13 — Consultas Exprés en Farmacia Bajo Demanda e Identidad Institucional\n\n"
-        "• Atención médica inmediata en mostrador de farmacias asociadas\n"
-        "• Guardia médica activa con cola de espera y notificación en tiempo real\n"
-        "• Identidad visual oficial AutaMedica con contenedor biocerámico y sello de confianza\n"
-        "• Sellos regulatorios de receta digital y validación SISA / REFEPS\n"
-        "• Optimizaciones de estabilidad en videollamada y enlaces directos App Links"
+        "v1.2.14 — Consultas Exprés en Farmacia Bajo Demanda y Reducción de Fatiga Visual\n\n"
+        "• Atención médica inmediata en mostrador de farmacias de turno asociadas\n"
+        "• Radar de guardia en vivo con telemetría médica en tiempo real\n"
+        "• Interfaz simplificada con menor carga cognitiva y flujo ágil de consulta\n"
+        "• Validación instantánea por QR y enlaces verificados App Links\n"
+        "• Estabilidad general y optimización de videollamadas clínicas"
     ),
     "en-US": (
-        "v1.2.13 — On-Demand Pharmacy Express Consultations and Institutional Identity\n\n"
-        "• Immediate medical attention at partner pharmacy counters\n"
-        "• Active on-duty medical queue with real-time notifications\n"
-        "• Official AutaMedica visual identity with bioceramic container and trust badges\n"
-        "• Regulatory digital prescription compliance and SISA / REFEPS validation\n"
-        "• Video call stability optimizations and verified App Links"
+        "v1.2.14 — On-Demand Pharmacy Express Consultations & Streamlined UI\n\n"
+        "• Immediate medical care at partner on-duty pharmacy counters\n"
+        "• Live medical presence radar with real-time dispatch telemetry\n"
+        "• Streamlined interface reducing visual fatigue and cognitive load\n"
+        "• Instant QR intake and verified App Links integration\n"
+        "• General clinical video call performance and stability improvements"
     ),
 }
 
@@ -120,10 +120,13 @@ def main():
 
         # 4. Commit edit
         print("\n✅ Commiteando edit...")
+        commit_kwargs = {}
+        if TRACK != "production":
+            commit_kwargs["changesNotSentForReview"] = True
         result = edits.commit(
             packageName=PACKAGE_NAME,
             editId=edit_id,
-            changesNotSentForReview=True,
+            **commit_kwargs,
         ).execute()
         print(f"   ✓ Edit commiteado: {result.get('id', edit_id)}")
 
