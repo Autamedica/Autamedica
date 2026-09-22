@@ -112,6 +112,7 @@ fun AppNavHost(
                             isIncomingCall = true,
                         )
                     ) {
+                        popUpTo<Route.PharmacyIntake> { inclusive = true }
                         launchSingleTop = true
                     }
                 }
@@ -121,7 +122,14 @@ fun AppNavHost(
         composable<Route.Main> {
             MainScreen(
                 onNavigateToVideoCall = { appointmentId ->
-                    navController.navigate(Route.VideoCall(appointmentId)) {
+                    val isRoom = appointmentId.startsWith("cf-room") || appointmentId.startsWith("room_")
+                    navController.navigate(
+                        if (isRoom) {
+                            Route.VideoCall(appointmentId = "", roomId = appointmentId, isIncomingCall = true)
+                        } else {
+                            Route.VideoCall(appointmentId)
+                        }
+                    ) {
                         launchSingleTop = true
                     }
                 },
@@ -212,7 +220,14 @@ fun AppNavHost(
                 appointmentId = route.appointmentId,
                 roomId = route.roomId,
                 isIncomingCall = route.isIncomingCall,
-                onCallEnd = { navController.popBackStack() },
+                onCallEnd = {
+                    val popped = navController.popBackStack()
+                    if (!popped) {
+                        navController.navigate(Route.Main) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                },
                 isInPipMode = isInPipMode,
                 onNavigateToCreatePrescription = { patientId ->
                     navController.navigate(Route.CreatePrescription(patientId))

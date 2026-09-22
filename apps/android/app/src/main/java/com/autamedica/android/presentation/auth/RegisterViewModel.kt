@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.autamedica.android.presentation.common.UiErrorMapper
 import javax.inject.Inject
 
 data class RegisterUiState(
@@ -112,7 +113,7 @@ class RegisterViewModel @Inject constructor(
                         }
                     },
                     onFailure = { error ->
-                        val errorMsg = error.message ?: "Error al crear la cuenta"
+                        val errorMsg = UiErrorMapper.map(error, "Error al crear la cuenta")
                         _uiState.update { it.copy(isLoading = false, error = errorMsg) }
                     }
                 )
@@ -140,7 +141,7 @@ class RegisterViewModel @Inject constructor(
                         }
                     },
                     onFailure = { error ->
-                        val errorMsg = error.message ?: "Error al iniciar sesión con Google"
+                        val errorMsg = UiErrorMapper.map(error, "Error al iniciar sesión con Google")
                         _uiState.update { it.copy(isGoogleLoading = false, error = errorMsg) }
                     }
                 )
@@ -153,7 +154,7 @@ class RegisterViewModel @Inject constructor(
 
     fun onGoogleSignInError(e: Throwable) {
         if (e !is androidx.credentials.exceptions.GetCredentialCancellationException) {
-            _uiState.update { it.copy(isGoogleLoading = false, error = e.message ?: "Error al autenticar con Google") }
+            _uiState.update { it.copy(isGoogleLoading = false, error = UiErrorMapper.map(e, "Error al autenticar con Google")) }
         } else {
             _uiState.update { it.copy(isGoogleLoading = false) }
         }

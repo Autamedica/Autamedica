@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.autamedica.android.presentation.common.UiErrorMapper
 import javax.inject.Inject
 
 data class Medication(
@@ -163,7 +164,7 @@ class ContinuityStatusViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 SecureLog.error("[ContinuityStatusViewModel] Failed to load status", e)
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
+                _uiState.update { it.copy(isLoading = false, error = UiErrorMapper.map(e, "No se pudo cargar el estado de continuidad")) }
             }
         }
     }

@@ -20,6 +20,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.autamedica.android.presentation.common.UiErrorMapper
 import javax.inject.Inject
 
 data class AppointmentsUiState(
@@ -109,7 +110,7 @@ class AppointmentsViewModel @Inject constructor(
                 .onFailure { err ->
                     SecureLog.error("[AppointmentsVM] Failed canceling appointment", err)
                     _uiState.update {
-                        it.copy(bookingErrorMessage = err.message ?: "No se pudo cancelar el turno. Reintentá.")
+                        it.copy(bookingErrorMessage = UiErrorMapper.map(err, "No se pudo cancelar el turno. Reintentá."))
                     }
                 }
         }
@@ -147,7 +148,7 @@ class AppointmentsViewModel @Inject constructor(
                 .onFailure { err ->
                     SecureLog.error("[AppointmentsVM] Failed rescheduling appointment", err)
                     _uiState.update {
-                        it.copy(bookingErrorMessage = err.message ?: "No se pudo reprogramar el turno. Reintentá.")
+                        it.copy(bookingErrorMessage = UiErrorMapper.map(err, "No se pudo reprogramar el turno. Reintentá."))
                     }
                 }
         }
@@ -323,7 +324,7 @@ class AppointmentsViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isBooking = false,
-                            bookingErrorMessage = err.message ?: "No se pudo confirmar el turno. Reintentá.",
+                            bookingErrorMessage = UiErrorMapper.map(err, "No se pudo confirmar el turno. Reintentá."),
                         )
                     }
                 }

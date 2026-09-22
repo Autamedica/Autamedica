@@ -18,6 +18,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import com.autamedica.android.presentation.common.UiErrorMapper
 import javax.inject.Inject
 
 data class DoctorSignatureState(
@@ -113,7 +114,7 @@ class DoctorSignatureViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
-                    val errorMsg = error.message?.takeIf { it.isNotBlank() }
+                    val errorMsg = UiErrorMapper.map(error, "No se pudo firmar el documento").takeIf { it.isNotBlank() }
                     _state.update {
                         it.copy(
                             isLoading = false,

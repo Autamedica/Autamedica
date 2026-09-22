@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.InputStream
+import com.autamedica.android.presentation.common.UiErrorMapper
 import javax.inject.Inject
 
 data class ClinicalDocumentsUiState(
@@ -68,7 +69,7 @@ class ClinicalDocumentsViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         isRefreshing = false,
-                        error = err.message ?: "No se pudieron cargar los documentos.",
+                        error = UiErrorMapper.map(err, "No se pudieron cargar los documentos."),
                     )
                 }
             }
@@ -103,7 +104,7 @@ class ClinicalDocumentsViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isUploading = false,
-                        error = err.message ?: "Error al subir el estudio.",
+                        error = UiErrorMapper.map(err, "Error al subir el estudio."),
                     )
                 }
             }

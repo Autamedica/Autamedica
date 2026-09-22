@@ -15,13 +15,24 @@ import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.domain.model.PatientClinicalContext
 import com.autamedica.android.domain.model.StreamQualityLevel
 import com.autamedica.android.domain.model.StreamQualitySummary
+import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
+import com.autamedica.android.domain.model.CertificateType
+import com.autamedica.android.domain.model.CreateCertificateRequest
+import com.autamedica.android.domain.model.CreatePrescriptionRequest
+import com.autamedica.android.domain.model.PrescriptionItem
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
+import com.autamedica.android.domain.repository.MedicalCertificateRepository
+import com.autamedica.android.domain.repository.PrescriptionRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.logging.SecureLog
+import com.autamedica.android.telemetry.CallTelemetry
+import kotlinx.coroutines.Dispatchers
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
+import com.autamedica.android.presentation.common.UiErrorMapper
+import com.autamedica.android.presentation.dashboard.cleanPatientName
 import com.autamedica.android.presentation.videocall.webrtc.TurnManager
 import com.autamedica.android.presentation.videocall.webrtc.sfu.CloudflareCallsEngine
 import com.autamedica.android.service.CallNotificationService
@@ -46,7 +57,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import timber.log.Timber
 import javax.inject.Inject
 
 data class VideoCallUiState(
@@ -94,6 +104,10 @@ data class VideoCallUiState(
     val preconsultationEvolution: String = "",
     val isPreconsultationSaved: Boolean = false,
     val isAutoDegradedToAudio: Boolean = false,
+    val isIssuingPrescription: Boolean = false,
+    val isIssuingCertificate: Boolean = false,
+    val lastIssuedDocumentCuir: String? = null,
+    val inCallClinicalError: String? = null,
 ) {
     val chiefComplaintPeek: String?
         get() = patientClinicalContext?.chiefComplaint?.takeIf { it.isNotBlank() }
@@ -131,6 +145,8 @@ class VideoCallViewModel @Inject constructor(
     private val doctorRepository: DoctorRepository,
     private val videoCallStateHolder: VideoCallStateHolder,
     private val supabaseClient: SupabaseClient,
+    private val prescriptionRepository: PrescriptionRepository,
+    private val medicalCertificateRepository: MedicalCertificateRepository,
 ) : ViewModel() {
 
     val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
@@ -174,6 +190,8 @@ class VideoCallViewModel @Inject constructor(
     private var callUserType: String = ""
     private var callUserName: String = ""
     private var explicitRoomId: String = ""
+    private var activePharmacyDispatchId: String? = null
+    private var consultationMonitorJob: kotlinx.coroutines.Job? = null
 
     init {
         viewModelScope.launch {
@@ -197,6 +215,13 @@ class VideoCallViewModel @Inject constructor(
         callStarted = true
         callRequestedByPatient = isIncomingCall
         if (roomId.isNotBlank()) explicitRoomId = roomId
+
+        val effectiveRoomId = explicitRoomId.takeIf { it.isNotBlank() }
+            ?: incomingRoomId.takeIf { it.isNotBlank() }
+            ?: appointmentId
+
+        CallTelemetry.recordMilestone(null, "T2_START_CALL")
+
         _uiState.update {
             it.copy(
                 connectionState = if (it.isDoctor || isIncomingCall) ConnectionState.CONNECTING else ConnectionState.DISCONNECTED,
@@ -218,87 +243,8 @@ class VideoCallViewModel @Inject constructor(
                 callUserName = currentUser.displayName
                 val isDoc = currentUser.role == UserRole.DOCTOR
 
-                var apptNotes: String? = null
-                var docName = ""
-                var docRole = ""
-                var docCrm = ""
-                var preReason = ""
-                var preSaved = false
-                var resolvedPatientId = ""
-                var resolvedPatientName = ""
-
-                if (!previewOnlyMode && appointmentId.isNotBlank()) {
-                    runCatching {
-                        val appt = appointmentRepository.getAppointmentById(appointmentId).getOrNull()
-                        if (appt != null) {
-                            resolvedPatientId = appt.patientId.orEmpty()
-                            apptNotes = appt.notes
-                            appt.doctorName?.takeIf { it.isNotBlank() }?.let { docName = it }
-                            appt.doctorSpecialty?.takeIf { it.isNotBlank() }?.let { docRole = it }
-                            appt.doctorLicenseNumber?.takeIf { it.isNotBlank() }?.let { docCrm = it }
-                            if (!appt.notes.isNullOrBlank()) {
-                                preReason = appt.notes
-                                preSaved = true
-                            }
-                        }
-                    }
-                }
-
-                if (resolvedPatientId.isNotBlank() && isDoc) {
-                    resolvedPatientName = runCatching {
-                        doctorRepository.resolvePatientNames(listOf(resolvedPatientId)).getOrNull()?.get(resolvedPatientId).orEmpty()
-                    }.getOrDefault("")
-                }
-
-                if (isDoc) {
-                    val profile = runCatching { doctorRepository.getDoctorProfile(currentUser.id).getOrNull() }.getOrNull()
-                    docName = currentUser.displayName.ifBlank { "Dr. ${currentUser.lastName}".trim().ifBlank { "Médico Tratante" } }
-                    docRole = profile?.specialty?.takeIf { it.isNotBlank() } ?: "Clínica Médica & Telemedicina"
-                    docCrm = profile?.licenseNumber?.takeIf { it.isNotBlank() } ?: "Matrícula profesional"
-                } else {
-                    if (docName.isBlank()) docName = "Profesional Médico"
-                    if (docRole.isBlank()) docRole = "Telemedicina"
-                    if (docCrm.isBlank()) docCrm = ""
-                }
-
-                _uiState.update {
-                    it.copy(
-                        isDoctor = isDoc,
-                        patientId = resolvedPatientId,
-                        patientName = resolvedPatientName,
-                        appointmentNotes = apptNotes,
-                        consultationNotes = apptNotes.orEmpty(),
-                        isWaitingRoom = !isDoc,
-                        sessionStatusMessage = when {
-                            isDoc -> "Conectando consultorio y llamando al paciente..."
-                            callRequestedByPatient -> "Conectando con tu consulta..."
-                            else -> "Esperando al médico..."
-                        },
-                        doctorName = docName,
-                        doctorRole = docRole,
-                        doctorCrm = docCrm,
-                        preconsultationReason = if (preReason.isNotBlank()) preReason else it.preconsultationReason,
-                        isPreconsultationSaved = preSaved || it.isPreconsultationSaved,
-                        isLoadingClinicalContext = isDoc && resolvedPatientId.isNotBlank(),
-                        clinicalGuidance = if (isDoc) {
-                            CallClinicalGuidanceBuilder.fromLocalContext(
-                                context = null,
-                                appointmentNotes = apptNotes,
-                                preconsultationReason = preReason,
-                            )
-                        } else {
-                            CallClinicalGuidance()
-                        },
-                    )
-                }
-
-                if (isDoc && resolvedPatientId.isNotBlank()) {
-                    loadPatientClinicalContext(resolvedPatientId)
-                }
-
-                val effectiveRoomId = explicitRoomId.takeIf { it.isNotBlank() }
-                    ?: incomingRoomId.takeIf { it.isNotBlank() }
-                    ?: appointmentId
+                // 1. INICIALIZAR Y ENCENDER MEDIOS DE INMEDIATO (T0 -> T3 < 200ms)
+                // Cero bloqueo por queries de base de datos
                 engine.initialize(
                     CloudflareCallsEngine.Config(
                         roomId = effectiveRoomId,
@@ -309,6 +255,33 @@ class VideoCallViewModel @Inject constructor(
                 )
                 observeEngine()
                 engine.startLocalMedia()
+                CallTelemetry.recordMilestone(null, "T3_CAMERA_STARTED")
+
+                val isPharmacyCall = !activePharmacyDispatchId.isNullOrBlank() || effectiveRoomId.startsWith("cf-room") || effectiveRoomId.startsWith("room_pharmacy")
+
+                if (isDoc) {
+                    videoCallStateHolder.setInVideoCall(true)
+                    CallNotificationService.start(context)
+                    attemptSessionConnection(manualRetry = false)
+                } else if (isIncomingCall || isPharmacyCall) {
+                    videoCallStateHolder.setInVideoCall(true)
+                    _uiState.update { it.copy(isWaitingRoom = false) }
+                    attemptSessionConnection(manualRetry = false)
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            connectionState = ConnectionState.DISCONNECTED,
+                            isWaitingRoom = true,
+                            sessionStatusMessage = null,
+                        )
+                    }
+                }
+
+                // 2. CARGA ASÍNCRONA DE CONTEXTO CLÍNICO EN SEGUNDO PLANO
+                // Corre en paralelo mientras el video ya se negocia y conecta con el SFU
+                viewModelScope.launch(Dispatchers.IO) {
+                    loadClinicalDataInBackground(currentUser, isDoc, effectiveRoomId)
+                }
             }.onFailure { error ->
                 SecureLog.error("Failed to start telemedicine preview", error)
                 _uiState.update {
@@ -321,29 +294,162 @@ class VideoCallViewModel @Inject constructor(
                 CallNotificationService.stop(context)
                 videoCallStateHolder.setInVideoCall(false)
                 callStarted = false
-            }.onSuccess {
-                if (_uiState.value.isDoctor) {
-                    videoCallStateHolder.setInVideoCall(true)
-                    CallNotificationService.start(context)
-                    attemptSessionConnection(manualRetry = false)
-                } else if (callRequestedByPatient) {
-                    // Llamada entrante aceptada (paciente): conectarse directo a la sala
-                    // del médico, sin pasar por el botón "Llamar al médico".
-                    videoCallStateHolder.setInVideoCall(true)
-                    attemptSessionConnection(manualRetry = false)
-                } else {
-                    // Paciente: Sala de espera en reposo con cámara local activa.
-                    // No llama automáticamente al médico hasta presionar "Llamar al médico".
-                    _uiState.update {
-                        it.copy(
-                            connectionState = ConnectionState.DISCONNECTED,
-                            isWaitingRoom = true,
-                            sessionStatusMessage = null,
-                        )
+            }
+        }
+    }
+
+    private suspend fun loadClinicalDataInBackground(
+        currentUser: User,
+        isDoc: Boolean,
+        effectiveRoomId: String,
+    ) {
+        var apptNotes: String? = null
+        var docName = ""
+        var docRole = ""
+        var docCrm = ""
+        var preReason = ""
+        var preSaved = false
+        var resolvedPatientId = ""
+        var resolvedPatientName = ""
+
+        if (!previewOnlyMode && appointmentId.isNotBlank()) {
+            runCatching {
+                val appt = appointmentRepository.getAppointmentById(appointmentId).getOrNull()
+                if (appt != null) {
+                    resolvedPatientId = appt.patientId.orEmpty()
+                    apptNotes = appt.notes
+                    appt.doctorName?.takeIf { it.isNotBlank() }?.let { docName = it }
+                    appt.doctorSpecialty?.takeIf { it.isNotBlank() }?.let { docRole = it }
+                    appt.doctorLicenseNumber?.takeIf { it.isNotBlank() }?.let { docCrm = it }
+                    if (!appt.notes.isNullOrBlank()) {
+                        preReason = appt.notes
+                        preSaved = true
                     }
                 }
             }
         }
+
+        // Guardia on-demand: el doctor entra directo a una sala de dispatch (sin cita).
+        // Cargar identidad y motivo del paciente desde pharmacy_dispatch_requests.
+        var synthesizedContext: PatientClinicalContext? = null
+        if (isDoc && resolvedPatientId.isBlank() && !previewOnlyMode) {
+            val dispatchRoom = explicitRoomId.takeIf { it.isNotBlank() }
+                ?: incomingRoomId.takeIf { it.isNotBlank() }
+                ?: appointmentId
+            if (dispatchRoom.startsWith("cf-room") || dispatchRoom.startsWith("room_pharmacy")) {
+                runCatching {
+                    val dispatchPatient = supabaseClient.postgrest
+                        .from("pharmacy_dispatch_requests")
+                        .select(Columns.list("id", "patient_name", "patient_dni", "patient_phone", "symptom_summary", "tier_requested", "requested_by_user_id")) {
+                            filter { eq("cloudflare_room_id", dispatchRoom) }
+                            limit(1)
+                        }
+                        .decodeSingleOrNull<DispatchPatientContextDto>()
+                    if (dispatchPatient != null) {
+                        activePharmacyDispatchId = dispatchPatient.id
+                        if (dispatchPatient.patientName.isNullOrBlank().not()) {
+                            resolvedPatientName = cleanPatientName(dispatchPatient.patientName.orEmpty())
+                        }
+                        if (dispatchPatient.requestedByUserId.isNullOrBlank().not() || dispatchPatient.patientDni.isNullOrBlank().not()) {
+                            val realPatId = runCatching {
+                                val reqUserId = dispatchPatient.requestedByUserId
+                                val patDni = dispatchPatient.patientDni
+                                supabaseClient.postgrest.from("patients")
+                                    .select(Columns.list("id")) {
+                                        filter {
+                                            if (!reqUserId.isNullOrBlank()) {
+                                                eq("user_id", reqUserId)
+                                            } else if (!patDni.isNullOrBlank()) {
+                                                eq("dni", patDni)
+                                            }
+                                        }
+                                        limit(1)
+                                    }
+                                    .decodeSingleOrNull<PatientRecordIdDto>()?.id
+                            }.getOrNull()
+                            resolvedPatientId = realPatId ?: dispatchPatient.requestedByUserId.orEmpty()
+                        }
+                        if (preReason.isBlank()) {
+                            preReason = dispatchPatient.symptomSummary.orEmpty()
+                        }
+                        val dniFormatted = dispatchPatient.patientDni?.takeIf { it.isNotBlank() }?.let { "DNI: $it" }
+                        val phoneFormatted = dispatchPatient.patientPhone?.takeIf { it.isNotBlank() }?.let { "Tel: $it" }
+                        val contactInfo = listOfNotNull(dniFormatted, phoneFormatted).joinToString(" • ")
+                        apptNotes = listOfNotNull(contactInfo.takeIf { it.isNotBlank() }, preReason.takeIf { it.isNotBlank() }).joinToString(" | ")
+                        preSaved = preReason.isNotBlank()
+
+                        synthesizedContext = PatientClinicalContext(
+                            hasAnamnesis = true,
+                            chiefComplaint = preReason.ifBlank { "Consulta de guardia on-demand" },
+                            presentIllness = contactInfo.ifBlank { "Paciente on-demand" },
+                            medications = if (preReason.contains("Receta", ignoreCase = true)) "Solicita renovación de prescripción médica" else null,
+                        )
+
+                        if (isDoc) {
+                            val currentDocId = currentUser.id
+                            runCatching {
+                                val rpcParams = buildJsonObject {
+                                    put("p_request_id", dispatchPatient.id)
+                                    put("p_doctor_id", currentDocId)
+                                }
+                                supabaseClient.postgrest.rpc("claim_pharmacy_request_tier", rpcParams)
+                            }
+                        }
+                    }
+                }.onFailure {
+                    SecureLog.error("[VideoCallVM] Failed resolving dispatch patient context", it)
+                }
+            }
+        }
+
+        if (resolvedPatientId.isNotBlank() && isDoc && resolvedPatientName.isBlank()) {
+            resolvedPatientName = runCatching {
+                doctorRepository.resolvePatientNames(listOf(resolvedPatientId)).getOrNull()?.get(resolvedPatientId).orEmpty()
+            }.getOrDefault("")
+        }
+
+        if (isDoc) {
+            val profile = runCatching { doctorRepository.getDoctorProfile(currentUser.id).getOrNull() }.getOrNull()
+            docName = currentUser.displayName.ifBlank { "Dr. ${currentUser.lastName}".trim().ifBlank { "Médico Tratante" } }
+            docRole = profile?.specialty?.takeIf { it.isNotBlank() } ?: "Clínica Médica & Telemedicina"
+            docCrm = profile?.licenseNumber?.takeIf { it.isNotBlank() } ?: "Matrícula profesional"
+        } else {
+            if (docName.isBlank()) docName = "Profesional Médico"
+            if (docRole.isBlank()) docRole = "Telemedicina"
+            if (docCrm.isBlank()) docCrm = ""
+        }
+
+        _uiState.update {
+            it.copy(
+                isDoctor = isDoc,
+                patientId = resolvedPatientId,
+                patientName = resolvedPatientName,
+                patientClinicalContext = synthesizedContext,
+                appointmentNotes = apptNotes,
+                consultationNotes = apptNotes.orEmpty(),
+                doctorName = docName,
+                doctorRole = docRole,
+                doctorCrm = docCrm,
+                preconsultationReason = if (preReason.isNotBlank()) preReason else it.preconsultationReason,
+                isPreconsultationSaved = preSaved || it.isPreconsultationSaved,
+                isLoadingClinicalContext = isDoc && resolvedPatientId.isNotBlank(),
+                clinicalGuidance = if (isDoc) {
+                    CallClinicalGuidanceBuilder.fromLocalContext(
+                        context = synthesizedContext,
+                        appointmentNotes = apptNotes,
+                        preconsultationReason = preReason,
+                    )
+                } else {
+                    CallClinicalGuidance()
+                },
+            )
+        }
+
+        if (isDoc && resolvedPatientId.isNotBlank()) {
+            loadPatientClinicalContext(resolvedPatientId)
+        }
+
+        startConsultationStatusMonitor(effectiveRoomId, activePharmacyDispatchId)
     }
 
     fun endCall() {
@@ -351,10 +457,39 @@ class VideoCallViewModel @Inject constructor(
     }
 
     fun disconnectCallMedia() {
+        runCatching { engine.sendCallEnded() }
+        consultationMonitorJob?.cancel()
+        consultationMonitorJob = null
         val callId = _uiState.value.activeCallId ?: appointmentId
         if (callId.isNotBlank() && !previewOnlyMode) {
             viewModelScope.launch {
                 telemedicineRepository.updateCallStatus(callId, "ended")
+            }
+        }
+        val isDoc = _uiState.value.isDoctor
+        val dispatchRoom = explicitRoomId.ifBlank { incomingRoomId.ifBlank { appointmentId } }
+        val isPharmacyCall = !activePharmacyDispatchId.isNullOrBlank() || dispatchRoom.startsWith("cf-room") || dispatchRoom.startsWith("room_pharmacy")
+        if (isDoc && isPharmacyCall) {
+            val reqId = activePharmacyDispatchId
+            val docId = callUserId
+            @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+            kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching {
+                    val effectiveReqId = reqId ?: runCatching {
+                        supabaseClient.postgrest.from("pharmacy_dispatch_requests")
+                            .select(Columns.list("id")) { filter { eq("cloudflare_room_id", dispatchRoom) }; limit(1) }
+                            .decodeSingleOrNull<DispatchStatusDto>()?.id
+                    }.getOrNull()
+
+                    val params = buildJsonObject {
+                        if (docId.isNotBlank()) put("p_doctor_id", docId)
+                        if (!effectiveReqId.isNullOrBlank()) put("p_request_id", effectiveReqId)
+                    }
+                    supabaseClient.postgrest.rpc("finish_pharmacy_consultation", params)
+                    SecureLog.info("[VideoCall] finish_pharmacy_consultation RPC succeeded for doctor=$docId req=$effectiveReqId")
+                }.onFailure { e ->
+                    SecureLog.error("[VideoCall] Failed releasing doctor pharmacy duty via finish_pharmacy_consultation", e)
+                }
             }
         }
         callStarted = false
@@ -410,7 +545,7 @@ class VideoCallViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingSoap = true, soapError = null) }
             runCatching {
-                var resolvedPatientId: String? = null
+                var resolvedPatientId: String? = _uiState.value.patientId.takeIf { it.isNotBlank() }
                 var resolvedDoctorId: String? = null
                 var resolvedAppointmentId: String? = null
 
@@ -469,7 +604,7 @@ class VideoCallViewModel @Inject constructor(
                 if (effectiveRoom.isNotBlank()) {
                     val dispatch = runCatching {
                         supabaseClient.postgrest.from("pharmacy_dispatch_requests")
-                            .select(Columns.list("id", "assigned_doctor_id", "patient_dni", "symptom_summary")) {
+                            .select(Columns.list("id", "assigned_doctor_id", "patient_dni", "symptom_summary", "requested_by_user_id")) {
                                 filter { eq("cloudflare_room_id", effectiveRoom) }
                                 limit(1)
                             }
@@ -479,6 +614,23 @@ class VideoCallViewModel @Inject constructor(
                         resolvedDispatchId = dispatch.id
                         kioskPatientDni = dispatch.patientDni
                         if (resolvedDoctorId == null) resolvedDoctorId = dispatch.assignedDoctorId
+
+                        if (resolvedPatientId == null) {
+                            resolvedPatientId = runCatching {
+                                supabaseClient.postgrest.from("patients")
+                                    .select(Columns.list("id")) {
+                                        filter {
+                                            if (!dispatch.requestedByUserId.isNullOrBlank()) {
+                                                eq("user_id", dispatch.requestedByUserId)
+                                            } else if (!dispatch.patientDni.isNullOrBlank()) {
+                                                eq("dni", dispatch.patientDni)
+                                            }
+                                        }
+                                        limit(1)
+                                    }.decodeSingleOrNull<PatientRecordIdDto>()?.id
+                            }.getOrNull() ?: dispatch.requestedByUserId
+                        }
+
                         // Actualizar resumen en pharmacy_dispatch_requests
                         runCatching {
                             supabaseClient.postgrest.from("pharmacy_dispatch_requests").update(
@@ -492,6 +644,25 @@ class VideoCallViewModel @Inject constructor(
                     }
                 }
 
+                // Asegurar que resolvedPatientId sea el UUID de patients.id (y no auth.users.id)
+                if (resolvedPatientId != null) {
+                    val verifiedPatId = runCatching {
+                        supabaseClient.postgrest.from("patients")
+                            .select(Columns.list("id")) {
+                                filter {
+                                    or {
+                                        eq("id", resolvedPatientId)
+                                        eq("user_id", resolvedPatientId)
+                                    }
+                                }
+                                limit(1)
+                            }.decodeSingleOrNull<PatientRecordIdDto>()?.id
+                    }.getOrNull()
+                    if (verifiedPatId != null) {
+                        resolvedPatientId = verifiedPatId
+                    }
+                }
+
                 val soapContent = buildJsonObject {
                     put("subjective", soapData.subjective)
                     put("objective", soapData.objective)
@@ -499,6 +670,13 @@ class VideoCallViewModel @Inject constructor(
                     put("plan", soapData.plan)
                     put("cie10_code", soapData.cie10Code)
                     put("cie10_description", soapData.cie10Description)
+                    put("source", if (resolvedDispatchId != null) "on_demand_dispatch" else "telemedicine")
+                    if (resolvedDispatchId != null || kioskPatientDni != null) {
+                        put("dispatch_metadata", buildJsonObject {
+                            if (resolvedDispatchId != null) put("dispatch_id", resolvedDispatchId)
+                            if (kioskPatientDni != null) put("patient_dni", kioskPatientDni)
+                        })
+                    }
                 }
 
                 val insertPayload = buildJsonObject {
@@ -508,13 +686,6 @@ class VideoCallViewModel @Inject constructor(
                     put("type", "consultation")
                     put("title", "Evolución SOAP - Consulta Telemedicina")
                     put("content", soapContent)
-                    put("source", if (resolvedDispatchId != null) "on_demand_dispatch" else "telemedicine")
-                    if (resolvedDispatchId != null || kioskPatientDni != null) {
-                        put("metadata", buildJsonObject {
-                            if (resolvedDispatchId != null) put("dispatch_id", resolvedDispatchId)
-                            if (kioskPatientDni != null) put("patient_dni", kioskPatientDni)
-                        })
-                    }
                 }
 
                 if (resolvedPatientId != null && resolvedDoctorId != null) {
@@ -525,6 +696,13 @@ class VideoCallViewModel @Inject constructor(
                                 put("doctor_id", resolvedDoctorId)
                                 put("role", "consultant")
                                 put("active", true)
+                            })
+                    }
+                    runCatching {
+                        supabaseClient.postgrest.from("doctor_patient")
+                            .upsert(buildJsonObject {
+                                put("patient_id", resolvedPatientId)
+                                put("doctor_id", resolvedDoctorId)
                             })
                     }
                 }
@@ -586,7 +764,7 @@ class VideoCallViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isSavingSoap = false,
-                        soapError = "Error al guardar evolución: ${error.message ?: "Intente nuevamente"}",
+                        soapError = "Error al guardar evolución: ${UiErrorMapper.map(error, "Intente nuevamente")}",
                     )
                 }
             }
@@ -832,13 +1010,14 @@ class VideoCallViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingClinicalContext = true) }
             val context = doctorRepository.getPatientClinicalContext(patientId).getOrNull()
             _uiState.update { state ->
+                val effectiveContext = context?.takeIf { it.hasAnamnesis } ?: state.patientClinicalContext
                 val guidance = CallClinicalGuidanceBuilder.fromLocalContext(
-                    context = context,
+                    context = effectiveContext,
                     appointmentNotes = state.appointmentNotes,
                     preconsultationReason = state.preconsultationReason,
                 )
                 state.copy(
-                    patientClinicalContext = context,
+                    patientClinicalContext = effectiveContext,
                     clinicalGuidance = guidance,
                     isLoadingClinicalContext = false,
                 )
@@ -921,12 +1100,28 @@ class VideoCallViewModel @Inject constructor(
                     )
                 }
                 if (state == ConnectionState.CONNECTED) {
+                    CallTelemetry.recordMilestone(null, "T4_SFU_MEDIA_CONNECTED")
                     videoCallStateHolder.setInVideoCall(true)
                     CallNotificationService.start(context)
                     val callId = _uiState.value.activeCallId ?: appointmentId
                     if (callId.isNotBlank() && !previewOnlyMode) {
                         viewModelScope.launch {
                             telemedicineRepository.updateCallStatus(callId, "connected")
+                        }
+                    }
+                    val currentDispatchId = activePharmacyDispatchId
+                    if (!currentDispatchId.isNullOrBlank()) {
+                        viewModelScope.launch {
+                            runCatching {
+                                supabaseClient.postgrest
+                                    .from("pharmacy_dispatch_requests")
+                                    .update(mapOf(
+                                        "status" to "in_call",
+                                        "call_started_at" to java.time.OffsetDateTime.now().toString()
+                                    )) {
+                                        filter { eq("id", currentDispatchId) }
+                                    }
+                            }
                         }
                     }
                     if (callStartTimeMs == 0L) {
@@ -1049,13 +1244,16 @@ class VideoCallViewModel @Inject constructor(
     private suspend fun attemptSessionConnection(manualRetry: Boolean) {
         if (!callStarted) return
 
+        val effectiveRoom = explicitRoomId.takeIf { it.isNotBlank() } ?: incomingRoomId
+        val isPharmacyRoom = effectiveRoom.startsWith("cf-room") || effectiveRoom.startsWith("room_pharmacy")
+
         _uiState.update { current ->
             current.copy(
                 connectionState = ConnectionState.CONNECTING,
                 isPreviewOnlyMode = false,
-                isWaitingRoom = !current.isDoctor,
+                isWaitingRoom = !current.isDoctor && !isPharmacyRoom,
                 sessionStatusMessage = if (!current.isDoctor) {
-                    patientStatusMessage(manualRetry)
+                    if (isPharmacyRoom) "Conectando con la sala de guardia..." else patientStatusMessage(manualRetry)
                 } else if (manualRetry) {
                     "Intentando conectar con la sala..."
                 } else {
@@ -1064,7 +1262,6 @@ class VideoCallViewModel @Inject constructor(
             )
         }
 
-        val effectiveRoom = explicitRoomId.takeIf { it.isNotBlank() } ?: incomingRoomId
         if (effectiveRoom.isNotBlank()) {
             sessionRetryJob?.cancel()
             _uiState.update {
@@ -1072,13 +1269,16 @@ class VideoCallViewModel @Inject constructor(
                     activeCallId = effectiveRoom,
                     connectionState = ConnectionState.CONNECTING,
                     isPreviewOnlyMode = false,
-                    isWaitingRoom = !it.isDoctor,
-                    sessionStatusMessage = if (it.isDoctor) "Conectando con la sala..." else patientStatusMessage(manualRetry),
+                    isWaitingRoom = !it.isDoctor && !isPharmacyRoom,
+                    sessionStatusMessage = if (it.isDoctor) "Conectando con la sala..." else if (isPharmacyRoom) "Conectando con la sala de guardia..." else patientStatusMessage(manualRetry),
                 )
             }
-            val dynamicIce = telemedicineRepository.getIceServers().getOrNull()?.map { it.toPeerConnectionIceServer() }
-            if (!dynamicIce.isNullOrEmpty()) {
-                engine.updateIceServers(dynamicIce)
+            // Run ICE server fetching asynchronously in background so engine.connect starts immediately
+            viewModelScope.launch {
+                val dynamicIce = telemedicineRepository.getIceServers().getOrNull()?.map { it.toPeerConnectionIceServer() }
+                if (!dynamicIce.isNullOrEmpty()) {
+                    engine.updateIceServers(dynamicIce)
+                }
             }
             turnManager.startTurnCredentialRefresh(
                 scope = viewModelScope,
@@ -1171,6 +1371,72 @@ class VideoCallViewModel @Inject constructor(
         }
     }
 
+    private fun startConsultationStatusMonitor(effectiveRoomId: String, dispatchId: String?) {
+        consultationMonitorJob?.cancel()
+        if (previewOnlyMode) return
+
+        consultationMonitorJob = viewModelScope.launch {
+            var targetDispatchId = dispatchId
+            val isPharmacyRoom = effectiveRoomId.startsWith("cf-room") || effectiveRoomId.startsWith("room_pharmacy")
+
+            while (callStarted) {
+                kotlinx.coroutines.delay(2_000)
+                if (!callStarted) break
+
+                if (isPharmacyRoom || !targetDispatchId.isNullOrBlank()) {
+                    val status = runCatching {
+                        supabaseClient.postgrest.from("pharmacy_dispatch_requests")
+                            .select(Columns.list("id", "status")) {
+                                filter {
+                                    if (!targetDispatchId.isNullOrBlank()) {
+                                        eq("id", targetDispatchId)
+                                    } else {
+                                        eq("cloudflare_room_id", effectiveRoomId)
+                                    }
+                                }
+                                limit(1)
+                            }.decodeSingleOrNull<DispatchStatusDto>()
+                    }.getOrNull()
+
+                    if (status != null) {
+                        targetDispatchId = status.id
+                        if (status.status == "completed" || status.status == "cancelled") {
+                            SecureLog.info("[VideoCallVM] Pharmacy dispatch request reached ${status.status} in DB. Terminating call.")
+                            _uiState.update {
+                                it.copy(
+                                    connectionState = ConnectionState.DISCONNECTED,
+                                    sessionStatusMessage = "La consulta ha finalizado.",
+                                )
+                            }
+                            disconnectCallMedia()
+                            break
+                        }
+                    }
+                } else if (appointmentId.isNotBlank()) {
+                    val appt = runCatching {
+                        supabaseClient.postgrest.from("appointments")
+                            .select(Columns.list("status")) {
+                                filter { eq("id", appointmentId) }
+                                limit(1)
+                            }.decodeSingleOrNull<DispatchStatusDto>()
+                    }.getOrNull()
+
+                    if (appt != null && (appt.status == "completed" || appt.status == "cancelled")) {
+                        SecureLog.info("[VideoCallVM] Appointment reached ${appt.status} in DB. Terminating call.")
+                        _uiState.update {
+                            it.copy(
+                                connectionState = ConnectionState.DISCONNECTED,
+                                sessionStatusMessage = "La consulta ha finalizado.",
+                            )
+                        }
+                        disconnectCallMedia()
+                        break
+                    }
+                }
+            }
+        }
+    }
+
     private fun waitingRoomMessage(raw: String?): String {
         val normalized = raw?.lowercase().orEmpty()
         return when {
@@ -1189,6 +1455,164 @@ class VideoCallViewModel @Inject constructor(
         if (credential != null) builder.setPassword(credential)
         return builder.createIceServer()
     }
+
+    fun issueInCallPrescription(
+        medicationName: String,
+        dosage: String,
+        instructions: String,
+        onResult: (Boolean, String?) -> Unit,
+    ) {
+        val trimmedMed = medicationName.trim()
+        val trimmedDosage = dosage.trim()
+        val trimmedInstructions = instructions.trim()
+
+        if (trimmedMed.isEmpty()) {
+            onResult(false, "El nombre del medicamento es requerido")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isIssuingPrescription = true, inCallClinicalError = null) }
+            runCatching {
+                var targetPatientId = _uiState.value.patientId.takeIf { it.isNotBlank() }
+                if (targetPatientId == null && appointmentId.isNotBlank() && !previewOnlyMode) {
+                    val appt = runCatching { appointmentRepository.getAppointmentById(appointmentId).getOrNull() }.getOrNull()
+                    targetPatientId = appt?.patientId
+                    if (!targetPatientId.isNullOrBlank()) {
+                        _uiState.update { it.copy(patientId = targetPatientId) }
+                    }
+                }
+                if (targetPatientId.isNullOrBlank()) {
+                    throw IllegalStateException("No se pudo identificar al paciente de la llamada")
+                }
+
+                val item = PrescriptionItem(
+                    medicationName = trimmedMed,
+                    genericName = trimmedMed,
+                    dosage = trimmedDosage.ifBlank { "Según indicación médica" },
+                    frequency = "Según indicación",
+                    duration = "Tratamiento ambulatorio",
+                    instructions = trimmedInstructions.ifBlank { "Tomar según indicaciones clínicas durante la videoconsulta." },
+                )
+
+                val request = CreatePrescriptionRequest(
+                    patientId = targetPatientId,
+                    items = listOf(item),
+                    diagnosis = _uiState.value.chiefComplaintPeek?.takeIf { it.isNotBlank() } ?: "Consulta médica por telemedicina",
+                    notes = "Emitida en videollamada AutaMedica",
+                    countryCode = "AR",
+                )
+
+                prescriptionRepository.createPrescription(request).getOrThrow()
+            }.onSuccess { prescription ->
+                val cuir = prescription.cuir ?: prescription.id.take(8)
+                val chatMsg = "📋 Receta digital emitida: ${prescription.medicationName} | CUIR: $cuir"
+                engine.sendChatMessage(chatMsg)
+                val localMsg = ChatMessage(
+                    id = "local-rx-${System.currentTimeMillis()}",
+                    text = chatMsg,
+                    senderId = callUserId,
+                    senderType = callUserType,
+                    senderName = callUserName,
+                    timestamp = System.currentTimeMillis(),
+                )
+                _uiState.update { state ->
+                    state.copy(
+                        isIssuingPrescription = false,
+                        lastIssuedDocumentCuir = cuir,
+                        chatMessages = state.chatMessages + localMsg,
+                    )
+                }
+                onResult(true, cuir)
+            }.onFailure { err ->
+                val errorMsg = UiErrorMapper.map(err, "Error al emitir la receta")
+                SecureLog.error("[Telemedicine] Failed issuing prescription in-call", err)
+                _uiState.update { state ->
+                    state.copy(
+                        isIssuingPrescription = false,
+                        inCallClinicalError = errorMsg,
+                    )
+                }
+                onResult(false, errorMsg)
+            }
+        }
+    }
+
+    fun issueInCallCertificate(
+        type: CertificateType,
+        daysOfRest: Int,
+        diagnosis: String,
+        onResult: (Boolean, String?) -> Unit,
+    ) {
+        val trimmedDiagnosis = diagnosis.trim()
+        val effectiveRest = daysOfRest.coerceAtLeast(0)
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isIssuingCertificate = true, inCallClinicalError = null) }
+            runCatching {
+                var targetPatientId = _uiState.value.patientId.takeIf { it.isNotBlank() }
+                if (targetPatientId == null && appointmentId.isNotBlank() && !previewOnlyMode) {
+                    val appt = runCatching { appointmentRepository.getAppointmentById(appointmentId).getOrNull() }.getOrNull()
+                    targetPatientId = appt?.patientId
+                    if (!targetPatientId.isNullOrBlank()) {
+                        _uiState.update { it.copy(patientId = targetPatientId) }
+                    }
+                }
+                if (targetPatientId.isNullOrBlank()) {
+                    throw IllegalStateException("No se pudo identificar al paciente de la llamada")
+                }
+
+                val today = java.time.LocalDate.now()
+                val startDateStr = today.toString()
+                val endDateStr = if (effectiveRest > 0) today.plusDays(effectiveRest.toLong()).toString() else null
+
+                val request = CreateCertificateRequest(
+                    patientId = targetPatientId,
+                    certificateType = type,
+                    daysOfRest = effectiveRest,
+                    startDate = startDateStr,
+                    endDate = endDateStr,
+                    diagnosis = trimmedDiagnosis.ifBlank { _uiState.value.chiefComplaintPeek?.takeIf { it.isNotBlank() } ?: "Consulta médica por telemedicina" },
+                    hideDiagnosis = false,
+                    observations = "Emitido durante videollamada AutaMedica",
+                    countryCode = "AR",
+                )
+
+                medicalCertificateRepository.createCertificate(request).getOrThrow()
+            }.onSuccess { certificate ->
+                val cuir = certificate.cuir.ifBlank { certificate.id.take(8) }
+                val restText = if (effectiveRest > 0) "$effectiveRest días de reposo" else "Sin reposo"
+                val chatMsg = "📋 Certificado médico emitido: ${type.displayName} ($restText) | CUIR: $cuir"
+                engine.sendChatMessage(chatMsg)
+                val localMsg = ChatMessage(
+                    id = "local-cert-${System.currentTimeMillis()}",
+                    text = chatMsg,
+                    senderId = callUserId,
+                    senderType = callUserType,
+                    senderName = callUserName,
+                    timestamp = System.currentTimeMillis(),
+                )
+                _uiState.update { state ->
+                    state.copy(
+                        isIssuingCertificate = false,
+                        lastIssuedDocumentCuir = cuir,
+                        chatMessages = state.chatMessages + localMsg,
+                    )
+                }
+                onResult(true, cuir)
+            }.onFailure { err ->
+                val errorMsg = UiErrorMapper.map(err, "Error al emitir el certificado")
+                SecureLog.error("[Telemedicine] Failed issuing certificate in-call", err)
+                _uiState.update { state ->
+                    state.copy(
+                        isIssuingCertificate = false,
+                        inCallClinicalError = errorMsg,
+                    )
+                }
+                onResult(false, errorMsg)
+            }
+        }
+    }
 }
 
 @Serializable
@@ -1202,9 +1626,30 @@ private data class SessionParticipantDto(
 )
 
 @Serializable
+private data class PatientRecordIdDto(val id: String)
+
+@Serializable
 private data class DispatchRecordDto(
     val id: String,
     @SerialName("assigned_doctor_id") val assignedDoctorId: String? = null,
     @SerialName("patient_dni") val patientDni: String? = null,
     @SerialName("symptom_summary") val symptomSummary: String? = null,
+    @SerialName("requested_by_user_id") val requestedByUserId: String? = null,
+)
+
+@Serializable
+private data class DispatchPatientContextDto(
+    val id: String? = null,
+    @SerialName("patient_name") val patientName: String? = null,
+    @SerialName("patient_dni") val patientDni: String? = null,
+    @SerialName("patient_phone") val patientPhone: String? = null,
+    @SerialName("symptom_summary") val symptomSummary: String? = null,
+    @SerialName("tier_requested") val tierRequested: String? = null,
+    @SerialName("requested_by_user_id") val requestedByUserId: String? = null,
+)
+
+@Serializable
+private data class DispatchStatusDto(
+    val id: String = "",
+    val status: String = "",
 )

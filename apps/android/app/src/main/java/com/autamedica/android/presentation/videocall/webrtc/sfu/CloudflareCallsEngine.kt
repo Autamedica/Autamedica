@@ -8,6 +8,7 @@ import com.autamedica.android.domain.model.StreamQualityMetrics
 import com.autamedica.android.domain.model.StreamQualitySummary
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.presentation.videocall.webrtc.AutoDegradeService
+import com.autamedica.android.presentation.videocall.webrtc.MedicalVideoQualityManager
 import com.autamedica.android.presentation.videocall.webrtc.QualityMonitor
 import io.github.jan.supabase.SupabaseClient
 import java.util.concurrent.ConcurrentHashMap
@@ -120,6 +121,7 @@ class CloudflareCallsEngine(
     private var surfaceTextureHelper: SurfaceTextureHelper? = null
     private var qualityJob: Job? = null
     private val qualityMonitor = QualityMonitor()
+    private val qualityManager = MedicalVideoQualityManager()
     private var remoteVideoOwnerId: String? = null
 
     /** userId -> Session ID SFU real del peer remoto (lo anuncia cada peer vía cf-session). */
@@ -250,13 +252,14 @@ class CloudflareCallsEngine(
         surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
 
         val enumerator = org.webrtc.Camera2Enumerator(context)
-        val frontCamera = enumerator.deviceNames.firstOrNull { enumerator.isFrontFacing(it) }
-            ?: enumerator.deviceNames.firstOrNull()
+        val (cameraName, isBack) = qualityManager.selectBestCamera(enumerator)
 
-        if (frontCamera != null) {
-            videoCapturer = enumerator.createCapturer(frontCamera, null) as? CameraVideoCapturer
+        if (cameraName != null) {
+            videoCapturer = enumerator.createCapturer(cameraName, null) as? CameraVideoCapturer
             videoCapturer?.initialize(surfaceTextureHelper, context, vSource.capturerObserver)
-            videoCapturer?.startCapture(640, 480, 30)
+            val initialProfile = qualityManager.getInitialProfile()
+            videoCapturer?.startCapture(initialProfile.width, initialProfile.height, initialProfile.fps)
+            Timber.i("[SFU] Started video capture on $cameraName (isBack=$isBack) at ${initialProfile.name}")
         }
 
         localVideoTrackInternal = peerConnectionFactory.createVideoTrack("video0", vSource)
@@ -324,22 +327,13 @@ class CloudflareCallsEngine(
         videoCapturer?.switchCamera(null)
     }
 
-    private var isLowPressure: Boolean? = null
-
     fun adaptCaptureFormat(lowPressure: Boolean) {
-        if (isLowPressure == lowPressure) return
-        isLowPressure = lowPressure
-        try {
-            if (lowPressure) {
-                videoCapturer?.changeCaptureFormat(320, 240, 15)
-                Timber.d("[SFU] Adapted video capture format to 320x240@15fps under network pressure")
-            } else {
-                videoCapturer?.changeCaptureFormat(640, 480, 30)
-                Timber.d("[SFU] Restored video capture format to 640x480@30fps")
-            }
-        } catch (e: Exception) {
-            Timber.w(e, "[SFU] Failed to change capture format")
-        }
+        val level = if (lowPressure) StreamQualityLevel.POOR else StreamQualityLevel.GOOD
+        adaptCaptureQuality(level)
+    }
+
+    fun adaptCaptureQuality(level: StreamQualityLevel) {
+        qualityManager.adaptCaptureFormat(videoCapturer, level)
     }
 
     fun reactivateVideoAfterAutoDegrade() {
@@ -370,6 +364,20 @@ class CloudflareCallsEngine(
         return true
     }
 
+    fun sendCallEnded(reason: String = "completed") {
+        if (signaling?.status?.value != SfuSignalingStatus.CONNECTED) return
+        Timber.i("[SFU] Enviando señal call-ended a la sala (reason=$reason)")
+        sendSignal(
+            SfuSignalingMessage(
+                type = "call-ended",
+                from = config.userId,
+                data = buildJsonObject {
+                    put("reason", reason)
+                },
+            )
+        )
+    }
+
     private fun sendSignal(message: SfuSignalingMessage) {
         if (signaling?.status?.value != SfuSignalingStatus.CONNECTED) return
         signaling?.send(message)
@@ -382,10 +390,16 @@ class CloudflareCallsEngine(
             "room-state" -> handleRoomState(message)
             "user-joined" -> message.from?.let { handleUserJoined(it) }
             "user-left" -> message.from?.let { handleUserLeft(it) }
+            "call-ended" -> handleCallEnded(message)
             "cf-session" -> handleRemoteSessionAnnounced(message)
             "chat" -> handleChatMessage(message)
             else -> Unit
         }
+    }
+
+    private fun handleCallEnded(message: SfuSignalingMessage) {
+        Timber.i("[SFU] Señal call-ended recibida de ${message.from}. Desconectando llamada...")
+        setConnectionState(ConnectionState.DISCONNECTED)
     }
 
     private fun handleRoomState(message: SfuSignalingMessage) {
@@ -441,10 +455,15 @@ class CloudflareCallsEngine(
 
     private fun handleUserLeft(userId: String) {
         if (userId == config.userId) return
+        Timber.i("[SFU] Peer remoto salió (user-left): userId=$userId")
         userIdToSessionId.remove(userId)
         pendingRemoteSessionIds.removeAll { it.second == userId }
         pendingPeerAnnouncements.removeAll { it == userId }
         forgetRemotePeer(userId)
+        if (_connectionState.value == ConnectionState.CONNECTED) {
+            Timber.i("[SFU] Peer remoto abandonó la sala durante llamada activa -> DISCONNECTED")
+            setConnectionState(ConnectionState.DISCONNECTED)
+        }
     }
 
     private fun handleRemoteSessionAnnounced(message: SfuSignalingMessage) {
@@ -724,12 +743,7 @@ class CloudflareCallsEngine(
         val single = qualityMonitor.collectForPeer("sfu", pc)
         val metrics = single?.let { listOf(it) } ?: emptyList()
         val overall = qualityMonitor.getOverallLevel(metrics)
-
-        if (overall == StreamQualityLevel.POOR || overall == StreamQualityLevel.FAIR) {
-            adaptCaptureFormat(lowPressure = true)
-        } else if (overall == StreamQualityLevel.GOOD || overall == StreamQualityLevel.EXCELLENT) {
-            adaptCaptureFormat(lowPressure = false)
-        }
+        adaptCaptureQuality(overall)
         if (userIdToSessionId.isNotEmpty() && _remoteVideoTrack.value != null) {
             autoDegradeService.update(overall)
         }

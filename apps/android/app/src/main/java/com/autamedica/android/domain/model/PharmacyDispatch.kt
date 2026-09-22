@@ -23,6 +23,7 @@ data class DoctorDutyStatus(
 data class DispatchClaimResult(
     val success: Boolean,
     val code: String,
+    val message: String? = null,
     val requestId: String? = null,
     val cloudflareRoomId: String? = null,
     val patientDni: String? = null,

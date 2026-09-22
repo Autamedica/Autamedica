@@ -187,6 +187,8 @@ fun ClinicalHudLayer(
             DoctorClinicalGuidePanel(
                 guidance = guidance,
                 onOpenFicha = { onRequestPanelChange(ClinicalSheetPanel.RESUMEN) },
+                patientName = patientName,
+                patientDetail = consultationNotes.takeIf { it.isNotBlank() } ?: clinicalContext?.presentIllness.orEmpty(),
             )
         }
 

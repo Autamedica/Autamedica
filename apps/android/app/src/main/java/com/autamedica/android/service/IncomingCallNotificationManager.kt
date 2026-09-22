@@ -57,7 +57,7 @@ object IncomingCallNotificationManager {
     const val EXTRA_CALLER_NAME = "caller_name"
     const val EXTRA_CALLER_AVATAR_URL = "caller_avatar_url"
 
-    private const val CALL_TIMEOUT_MS = 45_000L
+    private const val CALL_TIMEOUT_MS = 30_000L
     private const val AVATAR_SIZE_PX = 192
     private val VIBRATION_PATTERN = longArrayOf(0, 1000, 1000, 1000, 1000, 1000)
 
@@ -103,6 +103,7 @@ object IncomingCallNotificationManager {
      * Displays a full-screen, high-priority incoming call notification and begins ringing.
      */
     fun showIncomingCall(context: Context, payload: PushPayload) {
+        acquireWakeLock(context)
         createChannel(context)
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
 
@@ -292,31 +293,39 @@ object IncomingCallNotificationManager {
     }
 
     /**
+     * Acquires physical hardware screen WakeLock to turn on screen immediately for 30s.
+     */
+    @Synchronized
+    fun acquireWakeLock(context: Context) {
+        try {
+            if (activeWakeLock?.isHeld != true) {
+                val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                if (powerManager != null) {
+                    @Suppress("DEPRECATION")
+                    val wakeLock = powerManager.newWakeLock(
+                        PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                                PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                                PowerManager.ON_AFTER_RELEASE,
+                        "autamedica:incoming_call_wake",
+                    )
+                    wakeLock.acquire(CALL_TIMEOUT_MS)
+                    activeWakeLock = wakeLock
+                    Timber.i("[IncomingCall] Acquired hardware SCREEN_BRIGHT_WAKE_LOCK for incoming call (${CALL_TIMEOUT_MS}ms)")
+                }
+            }
+        } catch (wakeErr: Exception) {
+            Timber.w(wakeErr, "[IncomingCall] Failed acquiring WakeLock")
+        }
+    }
+
+    /**
      * Plays looping ringtone, activates physical screen WakeLock, and runs sustained vibration.
      */
     @Synchronized
     fun startRingtoneAndVibration(context: Context, notificationId: Int) {
         try {
             // 1. Physical Screen Hardware WakeLock (causes screen to turn on even in motion/locked)
-            try {
-                if (activeWakeLock?.isHeld != true) {
-                    val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
-                    if (powerManager != null) {
-                        @Suppress("DEPRECATION")
-                        val wakeLock = powerManager.newWakeLock(
-                            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
-                                    PowerManager.ACQUIRE_CAUSES_WAKEUP or
-                                    PowerManager.ON_AFTER_RELEASE,
-                            "autamedica:incoming_call_wake",
-                        )
-                        wakeLock.acquire(CALL_TIMEOUT_MS)
-                        activeWakeLock = wakeLock
-                        Timber.i("[IncomingCall] Acquired hardware SCREEN_BRIGHT_WAKE_LOCK for incoming call")
-                    }
-                }
-            } catch (wakeErr: Exception) {
-                Timber.w(wakeErr, "[IncomingCall] Failed acquiring WakeLock")
-            }
+            acquireWakeLock(context)
 
             // 2. Continuous Ringtone
             if (activeRingtone?.isPlaying != true) {

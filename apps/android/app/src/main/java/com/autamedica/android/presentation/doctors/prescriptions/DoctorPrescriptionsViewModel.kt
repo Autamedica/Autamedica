@@ -10,6 +10,7 @@ import com.autamedica.android.domain.model.Prescription
 import com.autamedica.android.domain.model.PrescriptionItem
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.repository.PrescriptionRepository
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -103,7 +104,7 @@ class DoctorPrescriptionsViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
-                    val errMsg = error.message ?: "Error desconocido"
+                    val errMsg = UiErrorMapper.map(error, "Error desconocido")
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -207,7 +208,7 @@ class DoctorPrescriptionsViewModel @Inject constructor(
                     loadPrescriptions()
                 }
                 .onFailure { error ->
-                    val errMsg = error.message ?: "No se pudo actualizar"
+                    val errMsg = UiErrorMapper.map(error, "No se pudo actualizar")
                     _uiState.update {
                         it.copy(
                             isCancelling = false,
@@ -239,10 +240,12 @@ class DoctorPrescriptionsViewModel @Inject constructor(
                 .onSuccess { patients ->
                     val matchedPatient = if (preselectedPatientId.isNotBlank()) {
                         patients.firstOrNull { it.patientId == preselectedPatientId }
+                            ?: patients.firstOrNull { it.dni == preselectedPatientId }
                     } else null
 
                     _uiState.update {
                         it.copy(
+                            patientId = matchedPatient?.patientId ?: preselectedPatientId,
                             eligiblePatients = patients,
                             selectedPatient = matchedPatient,
                             isLoadingPatients = false,
@@ -319,9 +322,10 @@ class DoctorPrescriptionsViewModel @Inject constructor(
 
     fun onSubmitPrescription(onSuccess: (Prescription) -> Unit = {}) {
         val state = _uiState.value
+        val effectivePatientId = state.patientId.ifBlank { state.selectedPatient?.patientId.orEmpty() }
 
         // Validations
-        if (state.patientId.isBlank()) {
+        if (effectivePatientId.isBlank()) {
             _uiState.update {
                 it.copy(
                     createError = "Debe seleccionar un paciente",
@@ -422,7 +426,7 @@ class DoctorPrescriptionsViewModel @Inject constructor(
             }
 
             val request = CreatePrescriptionRequest(
-                patientId = state.patientId,
+                patientId = effectivePatientId,
                 items = domainItems,
                 diagnosis = if (state.diagnosisCode != null) "${state.diagnosisCode} - ${state.diagnosis.trim()}" else state.diagnosis.trim(),
                 notes = state.notes.trim().takeIf { it.isNotEmpty() },
@@ -445,11 +449,11 @@ class DoctorPrescriptionsViewModel @Inject constructor(
                     onSuccess(created)
                 }
                 .onFailure { error ->
-                    val errMsg = error.message ?: "No se pudo completar la emisión"
+                    val errMsg = UiErrorMapper.map(error, "No se pudo completar la emisión")
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            createError = "Error al emitir: $errMsg",
+                            createError = "Error al emitir: ${UiErrorMapper.map(error, "No se pudo emitir la receta")}",
                             createErrorResId = R.string.doctor_rx_val_issue_error,
                             createErrorArgs = listOf(errMsg),
                         )

@@ -103,8 +103,10 @@ fun PharmacyIntakeScreen(
 
     // Automatic navigation when doctor accepts and assigns room
     LaunchedEffect(uiState.readyToJoinCall, uiState.roomId) {
-        if (uiState.readyToJoinCall && !uiState.roomId.isNullOrBlank()) {
-            onNavigateToCall(uiState.roomId!!)
+        val targetRoom = uiState.roomId
+        if (uiState.readyToJoinCall && !targetRoom.isNullOrBlank()) {
+            viewModel.onCallNavigated()
+            onNavigateToCall(targetRoom)
         }
     }
 
@@ -137,7 +139,7 @@ fun PharmacyIntakeScreen(
                                 color = AuTextPrimary,
                             )
                             Text(
-                                text = "Intake Exprés On-Demand",
+                                text = "Atención inmediata",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextTertiary,
                             )
@@ -216,86 +218,10 @@ private fun PharmacyIntakeFormView(
             .verticalScroll(scrollState)
             .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        // Hero Banner with AutaMedica Logo
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = AuSurface,
-            border = BorderStroke(1.dp, Primary.copy(alpha = 0.25f)),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Primary.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, Primary.copy(alpha = 0.15f)),
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Image(
-                            painter = painterResource(id = R.drawable.logo_autamedica),
-                            contentDescription = "AutaMedica",
-                            modifier = Modifier.size(34.dp),
-                            contentScale = ContentScale.Fit,
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(14.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Atención Médica Inmediata",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = AuTextPrimary,
-                    )
-                    Text(
-                        text = "Conexión directa con guardia médica.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AuTextSecondary,
-                        lineHeight = 16.sp,
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // Account Autofill Badge
-        if (uiState.isAuthenticated) {
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = SuccessContainer,
-                border = BorderStroke(1.dp, AuSuccess.copy(alpha = 0.3f)),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = AuSuccess,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Datos autocompletados desde tu perfil",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF065F46),
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(14.dp))
-        }
-
         // 1. Motivo de Consulta (Focus principal del usuario)
         Text(
             text = "Motivo de Consulta",
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = AuTextPrimary,
         )
@@ -342,8 +268,8 @@ private fun PharmacyIntakeFormView(
         OutlinedTextField(
             value = uiState.reasonText,
             onValueChange = onReasonTextChanged,
-            label = { Text("Detalle del motivo o medicamento") },
-            placeholder = { Text("Ej: Renovar Losartán 50mg / Presión arterial") },
+            label = { Text("Motivo o medicamento") },
+            placeholder = { Text("Ej: Renovar Losartán / Dolor de garganta") },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
             maxLines = 4,
@@ -360,8 +286,8 @@ private fun PharmacyIntakeFormView(
 
         // 2. Datos del Paciente (Autocompletados y editables)
         Text(
-            text = "Datos del Paciente",
-            style = MaterialTheme.typography.titleSmall,
+            text = "Tus datos",
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = AuTextPrimary,
         )
@@ -507,7 +433,7 @@ private fun PharmacyIntakeFormView(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Solicitar Teleconsulta Exprés",
+                    text = "Conectar con Guardia",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -653,16 +579,18 @@ private fun PharmacyWaitingRoomView(
                     .sizeIn(minHeight = 44.dp),
             ) {
                 Text(
-                    text = "Salir de la fila",
+                    text = "Cancelar solicitud",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
         } else {
             // ── EFECTO UBER PARA TELEMEDICINA DE GUARDIA ──
+            val onlineDoctorCount = uiState.activeDoctors.count { it.isAvailable }
+            val hasOnlineDoctors = onlineDoctorCount > 0
 
             Text(
-                text = "Buscando médico de guardia...",
+                text = if (hasOnlineDoctors) "Buscando médico..." else "En espera de guardia...",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = AuTextPrimary,
@@ -671,13 +599,51 @@ private fun PharmacyWaitingRoomView(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 1. Live Medical Dispatch Radar (Radar de Guardia en Vivo)
-            LiveMedicalPresenceRadar()
+            // 1. Live Medical Dispatch Radar (Radar de Guardia en Vivo con médicos reales)
+            LiveMedicalPresenceRadar(doctors = uiState.activeDoctors)
 
             Spacer(modifier = Modifier.height(14.dp))
 
+            // Estado explícito si no hay médicos en línea
+            if (!hasOnlineDoctors) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFFFBEB),
+                    border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color(0xFFD97706),
+                            strokeWidth = 2.dp,
+                        )
+                        Column {
+                            Text(
+                                text = "Sin médicos de guardia en línea en este momento.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF92400E),
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "La consulta quedará en espera hasta que un profesional se conecte.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFB45309),
+                            )
+                        }
+                    }
+                }
+            }
+
             // 2. Ticker de Telemetría Dinámica (Dispatch Status Ticker)
-            DispatchTelemetryTicker()
+            DispatchTelemetryTicker(onlineDoctorCount = onlineDoctorCount)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -737,7 +703,7 @@ private fun PharmacyWaitingRoomView(
                         }
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = "~${uiState.estimatedMinutes.coerceAtLeast(1)} min",
+                            text = if (hasOnlineDoctors) "~${uiState.estimatedMinutes.coerceAtLeast(1)} min" else "En espera",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
@@ -749,16 +715,11 @@ private fun PharmacyWaitingRoomView(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 4. Panel de Red Médica Conectada ('Médicos en Guardia Activos')
-            ActiveMedicalNetworkPanel()
+            ActiveMedicalNetworkPanel(doctors = uiState.activeDoctors)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 5. Case summary card (Compacto)
-            CaseDetailsCard(uiState = uiState)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 6. Acción de Salir de la fila (Azul AutaMedica outline)
+            // 5. Acción de Salir de la fila (Azul AutaMedica outline)
             OutlinedButton(
                 onClick = onCancelRequest,
                 shape = RoundedCornerShape(12.dp),
@@ -771,7 +732,7 @@ private fun PharmacyWaitingRoomView(
                     .height(48.dp),
             ) {
                 Text(
-                    text = "Salir de la fila",
+                    text = "Cancelar solicitud",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )

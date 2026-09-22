@@ -28,6 +28,7 @@ import org.webrtc.MediaStream
 import org.webrtc.MediaStreamTrack
 import org.webrtc.PeerConnection
 import org.webrtc.PeerConnectionFactory
+import org.webrtc.RtpParameters
 import org.webrtc.RtpReceiver
 import org.webrtc.RtpSender
 import org.webrtc.RtpTransceiver
@@ -238,8 +239,8 @@ class CloudflareCallsSession(
                         break
                     } catch (e: CloudflareCallsApiException) {
                         if (e.httpStatus == 425 && attempt < maxAttempts - 1) {
-                            SecureLog.info("[SFU] PeerConnection connecting to SFU, retrying local tracks/new in ${(attempt + 1) * 800}ms...")
-                            delay((attempt + 1) * 800L)
+                            SecureLog.info("[SFU] PeerConnection connecting to SFU, retrying local tracks/new in ${(attempt + 1) * 250}ms...")
+                            delay((attempt + 1) * 250L)
                             continue
                         }
                         throw e
@@ -258,7 +259,14 @@ class CloudflareCallsSession(
         localVideoSender?.let { sender ->
             runCatching { sender.parameters }.onSuccess { params ->
                 if (params != null) {
-                    params.degradationPreference = org.webrtc.RtpParameters.DegradationPreference.BALANCED
+                    params.degradationPreference = RtpParameters.DegradationPreference.MAINTAIN_RESOLUTION
+                    if (params.encodings.isEmpty()) {
+                        params.encodings.add(RtpParameters.Encoding(null, true, null))
+                    }
+                    params.encodings.firstOrNull()?.let { encoding ->
+                        encoding.maxBitrateBps = 3_000_000
+                        encoding.maxFramerate = 30
+                    }
                     runCatching { sender.parameters = params }
                         .onFailure { Timber.d(it, "[SFU] sender.parameters set failed") }
                 }
@@ -367,16 +375,16 @@ class CloudflareCallsSession(
 
                         val hasNotFoundError = rawResult.errorTracks.any { it.contains("not_found_track_error") }
                         if (hasNotFoundError && attempt < maxAttempts - 1) {
-                            SecureLog.info("[SFU] Remote tracks not ready on SFU yet (attempt ${attempt + 1}/$maxAttempts). Retrying in ${(attempt + 1) * 500}ms...")
-                            delay((attempt + 1) * 500L)
+                            SecureLog.info("[SFU] Remote tracks not ready on SFU yet (attempt ${attempt + 1}/$maxAttempts). Retrying in ${(attempt + 1) * 200}ms...")
+                            delay((attempt + 1) * 200L)
                             continue
                         }
                         result = rawResult
                         break
                     } catch (e: CloudflareCallsApiException) {
                         if ((e.httpStatus == 425 || e.details.contains("not_found_track_error")) && attempt < maxAttempts - 1) {
-                            SecureLog.info("[SFU] SFU session not ready for subscribe (${e.httpStatus}), retrying in ${(attempt + 1) * 500}ms...")
-                            delay((attempt + 1) * 500L)
+                            SecureLog.info("[SFU] SFU session not ready for subscribe (${e.httpStatus}), retrying in ${(attempt + 1) * 200}ms...")
+                            delay((attempt + 1) * 200L)
                             continue
                         }
                         throw e
@@ -525,7 +533,7 @@ class CloudflareCallsSession(
         }
     }
 
-    private suspend fun awaitIceGatheringComplete(timeoutMs: Long = 10_000L) {
+    private suspend fun awaitIceGatheringComplete(timeoutMs: Long = 1_000L) {
         val pcRef = pc ?: return
         if (pcRef.iceGatheringState() == PeerConnection.IceGatheringState.COMPLETE) return
 
@@ -534,7 +542,7 @@ class CloudflareCallsSession(
         withTimeoutOrNull(timeoutMs) { signal.await() }
     }
 
-    private suspend fun waitForMediaConnection(timeoutMs: Long = 15_000L) {
+    private suspend fun waitForMediaConnection(timeoutMs: Long = 2_000L) {
         val pcRef = pc ?: return
         if (pcRef.connectionState() == PeerConnection.PeerConnectionState.CONNECTED ||
             pcRef.iceConnectionState() == PeerConnection.IceConnectionState.CONNECTED ||

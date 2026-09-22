@@ -63,6 +63,8 @@ import com.autamedica.android.presentation.videocall.components.CallControlsBar
 import com.autamedica.android.presentation.videocall.components.CallTopBar
 import com.autamedica.android.presentation.videocall.components.ChatPanel
 import com.autamedica.android.presentation.videocall.components.ClinicalHudLayer
+import com.autamedica.android.presentation.videocall.components.InCallClinicalBottomSheet
+import com.autamedica.android.presentation.videocall.components.InCallClinicalMode
 import com.autamedica.android.presentation.videocall.components.ManagedVideoRenderer
 import com.autamedica.android.presentation.videocall.components.PatientWaitingRoomOverlay
 import com.autamedica.android.presentation.videocall.components.RemoteAvatarFallback
@@ -82,6 +84,23 @@ fun VideoCallScreen(
 ) {
     val isPreviewRoute = appointmentId == VIDEO_PREVIEW_APPOINTMENT_ID
     val context = LocalContext.current
+    val activity = context as? android.app.Activity
+    val currentView = androidx.compose.ui.platform.LocalView.current
+    DisposableEffect(Unit) {
+        currentView.keepScreenOn = true
+        onDispose {
+            currentView.keepScreenOn = false
+        }
+    }
+    val onMinimizeCall: () -> Unit = {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && activity != null) {
+            val params = android.app.PictureInPictureParams.Builder()
+                .setAspectRatio(android.util.Rational(9, 16))
+                .build()
+            runCatching { activity.enterPictureInPictureMode(params) }
+        }
+    }
+
     var hasMediaPermissions by remember { mutableStateOf(context.hasTelemedicineMediaPermissions()) }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -143,32 +162,63 @@ fun VideoCallScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val localTrack by viewModel.localVideoTrack.collectAsStateWithLifecycle()
     val remoteTrack by viewModel.remoteVideoTrack.collectAsStateWithLifecycle()
+    var clinicalSheetMode by remember { mutableStateOf<InCallClinicalMode?>(null) }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(null, "T2_COMPOSE_MOUNTED")
+    }
 
     DisposableEffect(hasMediaPermissions) {
         viewModel.startCall(roomId = roomId, isIncomingCall = isIncomingCall)
         onDispose { viewModel.endCall() }
     }
 
-    // Handle call end
-    if (uiState.connectionState == ConnectionState.DISCONNECTED && uiState.callDurationSeconds > 0) {
+    // Determine waiting room vs active call:
+    val isOnDemandRoom = roomId.startsWith("cf-room") || uiState.activeCallId?.startsWith("cf-room") == true
+    val isCallActive = remoteTrack != null || uiState.connectionState == ConnectionState.CONNECTED
+    val isWaitingRoomActive = !uiState.isDoctor && !isOnDemandRoom && (
+        isPreviewRoute || (!isIncomingCall && uiState.isWaitingRoom && !isCallActive)
+    )
+
+    // Handle call end or abrupt failure after call was active
+    val isCallEndedOrFailed = uiState.connectionState == ConnectionState.DISCONNECTED ||
+        uiState.connectionState == ConnectionState.FAILED
+
+    val hadActiveSession = uiState.callDurationSeconds > 0 ||
+        uiState.activeCallId != null ||
+        uiState.sessionStatusMessage?.contains("finaliz", ignoreCase = true) == true
+
+    if (isCallEndedOrFailed && hadActiveSession) {
         if (uiState.isDoctor && !uiState.soapSaved && !isPreviewRoute) {
             LaunchedEffect(Unit) {
                 viewModel.openSoapEvolution()
             }
         } else if (!uiState.showSoapEvolution) {
-            onCallEnd()
+            LaunchedEffect(Unit) {
+                onCallEnd()
+            }
             return
         }
     }
 
-    // Determine waiting room vs active call:
-    // - Sala de espera con Ficha de Preconsulta y botón "Llamar al médico" es EXCLUSIVA para el paciente.
-    // - Un médico NUNCA debe ver la sala de espera del paciente ni el botón "Llamar al médico".
-    //   El médico ingresa directamente al Active Call Layout con su Cockpit Clínico (ClinicalHudLayer).
-    val isCallActive = remoteTrack != null || uiState.connectionState == ConnectionState.CONNECTED
-    val isWaitingRoomActive = !uiState.isDoctor && (
-        isPreviewRoute || (!isIncomingCall && uiState.isWaitingRoom && !isCallActive)
-    )
+    androidx.activity.compose.BackHandler(enabled = !isInPipMode) {
+        val canEnterPip = !uiState.showSoapEvolution &&
+            !isWaitingRoomActive &&
+            remoteTrack != null &&
+            uiState.connectionState == ConnectionState.CONNECTED
+
+        if (canEnterPip && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && activity != null) {
+            val params = android.app.PictureInPictureParams.Builder()
+                .setAspectRatio(android.util.Rational(9, 16))
+                .build()
+            val entered = runCatching { activity.enterPictureInPictureMode(params) }.getOrDefault(false)
+            if (!entered) {
+                viewModel.handleCallEnd(onCallEnd)
+            }
+        } else {
+            viewModel.handleCallEnd(onCallEnd)
+        }
+    }
 
     Box(
         modifier = modifier
@@ -266,6 +316,13 @@ fun VideoCallScreen(
                     eglContext = viewModel.eglContext,
                     modifier = Modifier.fillMaxSize(),
                     mirror = false,
+                    onFirstFrameRendered = {
+                        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
+                            null,
+                            "T5_FIRST_FRAME_RENDERED",
+                        )
+                        com.autamedica.android.telemetry.CallTelemetry.finalizeTrace(null)
+                    },
                 )
             } else if (isDoctorTestingCamera && localTrack != null) {
                 ManagedVideoRenderer(
@@ -275,26 +332,29 @@ fun VideoCallScreen(
                     mirror = true,
                 )
             } else {
+                val isOnDemandRoom = roomId.startsWith("cf-room") || uiState.activeCallId?.startsWith("cf-room") == true
+                val isPatientWaitingForDoctor = !uiState.isDoctor && isOnDemandRoom && (uiState.doctorName.isBlank() || uiState.doctorName == "Médico" || uiState.doctorName == "Profesional")
                 val remoteDisplayName = when {
                     uiState.isDoctor -> uiState.patientName.ifBlank { "Paciente" }
-                    else -> uiState.doctorName
+                    isPatientWaitingForDoctor -> "Médico de Guardia"
+                    else -> uiState.doctorName.ifBlank { "Médico de Guardia" }
                 }
-                val subtitleText = when (uiState.connectionState) {
-                    ConnectionState.CONNECTING -> if (uiState.isDoctor) "Llamando al paciente..." else "Llamando al médico..."
-                    ConnectionState.RECONNECTING -> "Reconectando..."
-                    ConnectionState.FAILED -> "Error de conexión con la sala"
-                    else -> if (uiState.isDoctor) {
-                        "Esperando que el paciente active su cámara..."
-                    } else {
-                        "Esperando que el profesional active su cámara..."
-                    }
+                val subtitleText = when {
+                    uiState.connectionState == ConnectionState.FAILED -> "Error de conexión con la sala"
+                    uiState.connectionState == ConnectionState.RECONNECTING -> "Reconectando..."
+                    isPatientWaitingForDoctor -> "Buscando médico de guardia... Aguarde en línea mientras un profesional toma su consulta."
+                    uiState.connectionState == ConnectionState.CONNECTING -> if (uiState.isDoctor) "Llamando al paciente..." else "Llamando al médico..."
+                    uiState.isDoctor -> "Esperando que el paciente active su cámara..."
+                    else -> "Esperando que el profesional active su cámara..."
                 }
                 RemoteAvatarFallback(
                     name = remoteDisplayName,
                     subtitle = subtitleText,
-                    isCameraOff = uiState.connectionState == ConnectionState.CONNECTED,
+                    isCameraOff = uiState.connectionState == ConnectionState.CONNECTED && !isPatientWaitingForDoctor,
                     isReconnecting = uiState.connectionState == ConnectionState.RECONNECTING,
-                    isConnecting = uiState.connectionState == ConnectionState.CONNECTING,
+                    isConnecting = isPatientWaitingForDoctor || uiState.connectionState == ConnectionState.CONNECTING,
+                    isFailed = uiState.connectionState == ConnectionState.FAILED,
+                    onEndCall = { viewModel.handleCallEnd(onCallEnd) },
                 )
             }
 
@@ -318,6 +378,7 @@ fun VideoCallScreen(
                         isWaitingRoom = isWaitingRoomActive,
                         safetyAlert = if (uiState.isDoctor) uiState.safetyAlertLabel else null,
                         clinicalFirst = uiState.isDoctor,
+                        onMinimize = onMinimizeCall,
                     )
                 }
 
@@ -468,12 +529,12 @@ fun VideoCallScreen(
                                     viewModel.openSoapEvolution()
                                 }
                             } else null,
-                            onEmitPrescription = if (uiState.patientId.isNotBlank() && onNavigateToCreatePrescription != null) {
-                                { onNavigateToCreatePrescription(uiState.patientId) }
-                            } else null,
-                            onEmitCertificate = if (uiState.patientId.isNotBlank() && onNavigateToCreateCertificate != null) {
-                                { onNavigateToCreateCertificate(uiState.patientId) }
-                            } else null,
+                            onEmitPrescription = {
+                                clinicalSheetMode = InCallClinicalMode.PRESCRIPTION
+                            },
+                            onEmitCertificate = {
+                                clinicalSheetMode = InCallClinicalMode.CERTIFICATE
+                            },
                         )
                     }
                 }
@@ -542,6 +603,22 @@ fun VideoCallScreen(
                 viewModel.dismissSoapEvolution()
                 onCallEnd()
             },
+        )
+    }
+
+    clinicalSheetMode?.let { mode ->
+        InCallClinicalBottomSheet(
+            initialMode = mode,
+            patientName = uiState.patientName,
+            chiefComplaint = uiState.chiefComplaintPeek,
+            isSubmitting = uiState.isIssuingPrescription || uiState.isIssuingCertificate,
+            onIssuePrescription = { med, dosage, instructions, onResult ->
+                viewModel.issueInCallPrescription(med, dosage, instructions, onResult)
+            },
+            onIssueCertificate = { type, days, diag, onResult ->
+                viewModel.issueInCallCertificate(type, days, diag, onResult)
+            },
+            onDismiss = { clinicalSheetMode = null },
         )
     }
 }

@@ -56,11 +56,18 @@ fun ManagedVideoRenderer(
     modifier: Modifier = Modifier,
     mirror: Boolean = false,
     scalingType: RendererCommon.ScalingType = RendererCommon.ScalingType.SCALE_ASPECT_FILL,
+    onFirstFrameRendered: (() -> Unit)? = null,
 ) {
     AndroidView(
         factory = { context ->
             SurfaceViewRenderer(context).apply {
-                init(eglContext, null)
+                val rendererEvents = object : RendererCommon.RendererEvents {
+                    override fun onFirstFrameRendered() {
+                        onFirstFrameRendered?.invoke()
+                    }
+                    override fun onFrameResolutionChanged(videoWidth: Int, videoHeight: Int, rotation: Int) {}
+                }
+                init(eglContext, rendererEvents)
                 setScalingType(scalingType)
                 setMirror(mirror)
                 setEnableHardwareScaler(true)

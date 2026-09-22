@@ -15,6 +15,7 @@ import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.PharmacyOnDemandRepository
 import com.autamedica.android.logging.SecureLog
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import androidx.annotation.StringRes
@@ -161,11 +162,12 @@ class DoctorAgendaViewModel @Inject constructor(
             _uiState.update { it.copy(claimingPharmacyRequestId = requestId) }
             pharmacyOnDemandRepository.claimRequest(requestId)
                 .onSuccess { result ->
-                    _uiState.update { it.copy(claimingPharmacyRequestId = null) }
+                    _uiState.update { it.copy(claimingPharmacyRequestId = null, error = null) }
                     onNavigateToCall(result.roomId)
                 }
-                .onFailure {
-                    _uiState.update { it.copy(claimingPharmacyRequestId = null) }
+                .onFailure { error ->
+                    SecureLog.error("[DoctorAgenda] Failed claiming request $requestId", error)
+                    _uiState.update { it.copy(claimingPharmacyRequestId = null, error = UiErrorMapper.map(error, "No se pudo aceptar la solicitud")) }
                 }
         }
     }
@@ -279,7 +281,7 @@ class DoctorAgendaViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             availabilitySaveStatus = SaveStatus.ERROR,
-                            availabilityError = error.message ?: "No se pudo guardar la disponibilidad",
+                            availabilityError = UiErrorMapper.map(error, "No se pudo guardar la disponibilidad"),
                         )
                     }
                 }
@@ -506,7 +508,7 @@ class DoctorAgendaViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            error = error.message ?: "No se pudo cargar la agenda médica",
+                            error = UiErrorMapper.map(error, "No se pudo cargar la agenda médica"),
                         )
                     }
                 }

@@ -4,6 +4,7 @@ import com.autamedica.android.di.IoDispatcher
 import com.autamedica.android.domain.model.DispatchClaimResult
 import com.autamedica.android.domain.model.DoctorDutyStatus
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
+import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
@@ -19,8 +20,12 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -35,6 +40,7 @@ import javax.inject.Singleton
 @Singleton
 class PharmacyDispatchRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
+    private val authRepository: AuthRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : PharmacyDispatchRepository {
 
@@ -117,17 +123,27 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         doctorId: String,
         requestId: String,
     ): Result<Unit> = runCatching {
-        supabaseClient.postgrest
-            .from("pharmacy_dispatch_requests")
-            .update(mapOf("status" to "completed", "call_ended_at" to java.time.OffsetDateTime.now().toString())) {
-                filter { eq("id", requestId) }
-            }
+        val rpcParams = buildJsonObject {
+            put("p_doctor_id", doctorId)
+            if (requestId.isNotBlank()) put("p_request_id", requestId)
+        }
+        val rpcSuccess = runCatching {
+            supabaseClient.postgrest.rpc("finish_pharmacy_consultation", rpcParams)
+        }.isSuccess
 
-        supabaseClient.postgrest
-            .from("doctor_duty_status")
-            .update(mapOf("current_active_request_id" to null, "updated_at" to java.time.OffsetDateTime.now().toString())) {
-                filter { eq("doctor_id", doctorId) }
-            }
+        if (!rpcSuccess) {
+            supabaseClient.postgrest
+                .from("pharmacy_dispatch_requests")
+                .update(mapOf("status" to "completed", "call_ended_at" to java.time.OffsetDateTime.now().toString())) {
+                    filter { eq("id", requestId) }
+                }
+
+            supabaseClient.postgrest
+                .from("doctor_duty_status")
+                .update(mapOf("current_active_request_id" to null, "updated_at" to java.time.OffsetDateTime.now().toString())) {
+                    filter { eq("doctor_id", doctorId) }
+                }
+        }
         Unit
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed finishing request", it)
@@ -157,6 +173,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             }
             put("cloudflare_room_id", cloudflareRoomId)
             put("status", "searching")
+            authRepository.getCurrentUser()?.id?.let { put("requested_by_user_id", it) }
         }
 
         val dto = supabaseClient.postgrest
@@ -194,8 +211,17 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         // Emit initial state if available
         launch { fetchCurrent() }
 
-        val job = launch {
+        // Realtime change collection
+        val realtimeJob = launch {
             changeFlow.collect {
+                fetchCurrent()
+            }
+        }
+
+        // Polling ticker fallback (500ms): guarantees near-instant state updates even if websocket reconnects/lags
+        val pollJob = launch {
+            while (isActive) {
+                delay(500L)
                 fetchCurrent()
             }
         }
@@ -203,7 +229,63 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         channel.subscribe()
 
         awaitClose {
-            job.cancel()
+            realtimeJob.cancel()
+            pollJob.cancel()
+            launch { supabaseClient.realtime.removeChannel(channel) }
+        }
+    }
+
+    override suspend fun getActiveOnDutyDoctors(): Result<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>> = runCatching {
+        supabaseClient.postgrest
+            .rpc("get_active_on_duty_doctors")
+            .decodeAs<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>>()
+    }.onFailure {
+        SecureLog.error("[PharmacyDispatch] Failed fetching active on-duty doctors", it)
+    }
+
+    override fun observeActiveOnDutyDoctors(): Flow<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>> = callbackFlow {
+        val channel = supabaseClient.channel("doctor_duty_realtime")
+        val changeFlow = channel.postgresChangeFlow<PostgresAction>(
+            schema = "public",
+        ) {
+            table = "doctor_duty_status"
+        }
+
+        suspend fun fetchCurrent() {
+            runCatching {
+                supabaseClient.postgrest
+                    .rpc("get_active_on_duty_doctors")
+                    .decodeAs<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>>()
+            }.onSuccess { docs ->
+                trySend(docs)
+            }.onFailure { err ->
+                SecureLog.error("[PharmacyDispatch] Failed fetching active on-duty doctors in realtime stream", err)
+            }
+        }
+
+        // Emit initial state immediately
+        launch { fetchCurrent() }
+
+        // Realtime change collection (INSERT, UPDATE, DELETE)
+        val realtimeJob = launch {
+            changeFlow.collect {
+                fetchCurrent()
+            }
+        }
+
+        // Polling ticker fallback (2 seconds): guarantees updates even if websocket reconnects/lags
+        val pollJob = launch {
+            while (isActive) {
+                delay(2000L)
+                fetchCurrent()
+            }
+        }
+
+        channel.subscribe()
+
+        awaitClose {
+            realtimeJob.cancel()
+            pollJob.cancel()
             launch { supabaseClient.realtime.removeChannel(channel) }
         }
     }
@@ -299,6 +381,7 @@ private data class DispatchRequestDto(
 internal data class DispatchClaimRpcDto(
     val success: Boolean = false,
     val code: String = "",
+    val message: String? = null,
     @SerialName("request_id") val requestId: String? = null,
     @SerialName("cloudflare_room_id") val cloudflareRoomId: String? = null,
     @SerialName("patient_dni") val patientDni: String? = null,
@@ -308,6 +391,7 @@ internal data class DispatchClaimRpcDto(
     fun toDomain() = DispatchClaimResult(
         success = success,
         code = code,
+        message = message,
         requestId = requestId,
         cloudflareRoomId = cloudflareRoomId,
         patientDni = patientDni,

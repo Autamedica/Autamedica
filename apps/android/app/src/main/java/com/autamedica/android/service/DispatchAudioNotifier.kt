@@ -24,6 +24,7 @@ object DispatchAudioNotifier {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var mediaPlayer: MediaPlayer? = null
+    private var activeVibrator: Vibrator? = null
     private var autoStopJob: Job? = null
 
     private val VIBRATION_PATTERN = longArrayOf(0, 200, 250, 200, 750)
@@ -46,7 +47,7 @@ object DispatchAudioNotifier {
                 mediaPlayer = player
             }
 
-            // Haptic feedback
+            // Haptic feedback (non-infinite, single cycle)
             triggerVibration(context)
 
             // Auto-stop safety timer (stops after 25s)
@@ -76,6 +77,14 @@ object DispatchAudioNotifier {
         } finally {
             mediaPlayer = null
         }
+
+        try {
+            activeVibrator?.cancel()
+        } catch (e: Exception) {
+            Timber.e(e, "[DispatchAudioNotifier] Error cancelling vibrator")
+        } finally {
+            activeVibrator = null
+        }
     }
 
     private fun triggerVibration(context: Context) {
@@ -88,11 +97,14 @@ object DispatchAudioNotifier {
                 context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
             }
 
+            activeVibrator = vibrator
+
+            // repeat = -1 plays the pattern ONCE and stops (never loops infinitely)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator?.vibrate(VibrationEffect.createWaveform(VIBRATION_PATTERN, 0))
+                vibrator?.vibrate(VibrationEffect.createWaveform(VIBRATION_PATTERN, -1))
             } else {
                 @Suppress("DEPRECATION")
-                vibrator?.vibrate(VIBRATION_PATTERN, 0)
+                vibrator?.vibrate(VIBRATION_PATTERN, -1)
             }
         } catch (e: Exception) {
             Timber.w(e, "[DispatchAudioNotifier] Could not trigger vibration")

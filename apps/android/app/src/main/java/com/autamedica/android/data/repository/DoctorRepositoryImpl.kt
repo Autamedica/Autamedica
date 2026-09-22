@@ -471,6 +471,49 @@ class DoctorRepositoryImpl @Inject constructor(
     }.onFailure {
         SecureLog.error("[DoctorRepo] Failed resolving patient names", it)
     }
+
+    override suspend fun resolvePatientSummaries(patientIds: List<String>): Result<Map<String, PatientSummary>> = runCatching {
+        if (patientIds.isEmpty()) return@runCatching emptyMap()
+
+        val patients = supabaseClient.postgrest
+            .from("patients")
+            .select(Columns.list("id", "user_id", "birth_date", "gender")) {
+                filter { isIn("id", patientIds) }
+            }
+            .decodeList<PatientDto>()
+
+        val userIds = patients.mapNotNull { it.userId }.distinct()
+        val profiles = if (userIds.isNotEmpty()) {
+            supabaseClient.postgrest
+                .from("profiles")
+                .select(Columns.list("user_id", "first_name", "last_name", "avatar_url")) {
+                    filter { isIn("user_id", userIds) }
+                }
+                .decodeList<DoctorPatientProfileDto>()
+                .associateBy { it.userId }
+        } else emptyMap()
+
+        val map = mutableMapOf<String, PatientSummary>()
+        for (patient in patients) {
+            val profile = profiles[patient.userId]
+            val summary = PatientSummary(
+                id = patient.id,
+                userId = patient.userId ?: "",
+                firstName = profile?.firstName.orEmpty(),
+                lastName = profile?.lastName.orEmpty(),
+                avatarUrl = profile?.avatarUrl,
+                birthDate = patient.birthDate,
+                gender = patient.gender,
+            )
+            map[patient.id] = summary
+            if (!patient.userId.isNullOrBlank()) {
+                map[patient.userId] = summary
+            }
+        }
+        map
+    }.onFailure {
+        SecureLog.error("[DoctorRepo] Failed resolving patient summaries", it)
+    }
 }
 
 // ── DTOs ────────────────────────────────────────────────────────────────────

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.autamedica.android.presentation.common.UiErrorMapper
 import javax.inject.Inject
 
 data class ProfileUiState(
@@ -85,7 +86,7 @@ class ProfileViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            error = error.message ?: "Error al guardar",
+                            error = UiErrorMapper.map(error, "Error al guardar"),
                         )
                     }
                 },
@@ -126,7 +127,7 @@ class ProfileViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = error.message ?: "Error cargando perfil",
+                            error = UiErrorMapper.map(error, "Error cargando perfil"),
                         )
                     }
                 },
@@ -167,7 +168,7 @@ class ProfileViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isTopupLoading = false,
-                            error = error.message ?: "Error al generar enlace de recarga",
+                            error = UiErrorMapper.map(error, "Error al generar enlace de recarga"),
                         )
                     }
                 }

@@ -15,9 +15,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,52 +49,138 @@ fun DoctorClinicalGuidePanel(
     guidance: CallClinicalGuidance,
     onOpenFicha: () -> Unit,
     modifier: Modifier = Modifier,
+    patientName: String = "",
+    patientDetail: String = "",
 ) {
     var checkedQuestions by remember { mutableStateOf(setOf<Int>()) }
+    var isCollapsed by remember { mutableStateOf(false) }
     val visibleQuestions = guidance.suggestedQuestions.take(4)
     val motivo = guidance.chiefComplaint?.takeIf { it.isNotBlank() } ?: "Motivo sin cargar"
 
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xF20F172A),
-        border = BorderStroke(1.dp, Color(0x33FFFFFF)),
-        shadowElevation = 12.dp,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+    if (isCollapsed) {
+        Surface(
+            shape = RoundedCornerShape(999.dp),
+            color = Color(0xCC0F172A),
+            border = BorderStroke(1.dp, Color(0x33FFFFFF)),
+            shadowElevation = 8.dp,
+            modifier = modifier.clickable { isCollapsed = false },
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onOpenFicha),
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "GUÍA DE CONSULTA",
-                        color = Color(0xFF38BDF8),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                    )
-                    Text(
-                        text = motivo,
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
                 Icon(
-                    imageVector = Icons.Filled.KeyboardArrowUp,
-                    contentDescription = "Abrir ficha completa",
+                    imageVector = Icons.Outlined.Description,
+                    contentDescription = null,
+                    tint = Color(0xFF38BDF8),
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    text = if (patientName.isNotBlank()) "$patientName: $motivo" else "Guía: $motivo",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowUp,
+                    contentDescription = "Expandir guía",
                     tint = Color(0xFFCBD5E1),
+                    modifier = Modifier.size(18.dp),
                 )
             }
+        }
+    } else {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color(0xF20F172A),
+            border = BorderStroke(1.dp, Color(0x33FFFFFF)),
+            shadowElevation = 12.dp,
+            modifier = modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(onClick = onOpenFicha),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                text = "GUÍA DE CONSULTA",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp,
+                            )
+                            if (patientName.isNotBlank()) {
+                                Text(
+                                    text = "• $patientName",
+                                    color = Color(0xFFE2E8F0),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                        Text(
+                            text = motivo,
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (patientDetail.isNotBlank()) {
+                            Text(
+                                text = patientDetail,
+                                color = Color(0xFF94A3B8),
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { isCollapsed = true },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Minimizar guía",
+                                tint = Color(0xFFCBD5E1),
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                        IconButton(
+                            onClick = onOpenFicha,
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.KeyboardArrowUp,
+                                contentDescription = "Abrir ficha completa",
+                                tint = Color(0xFFCBD5E1),
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    }
+                }
 
             if (guidance.redFlags.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -155,6 +244,7 @@ fun DoctorClinicalGuidePanel(
             }
         }
     }
+}
 }
 
 @Composable

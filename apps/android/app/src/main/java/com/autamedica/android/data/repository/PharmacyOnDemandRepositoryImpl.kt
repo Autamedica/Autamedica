@@ -102,6 +102,8 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _onDutyFlow = MutableStateFlow(DoctorOnDutyPharmacyState())
     private var isRealtimeSubscribed = false
+    @Volatile
+    private var cachedDoctorId: String? = null
 
     init {
         subscribeToDispatchQueue()
@@ -242,17 +244,21 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
 
     override suspend fun claimRequest(requestId: String): Result<PharmacyClaimResult> = runCatching {
         val user = authRepository.getCurrentUser() ?: throw IllegalStateException("Not authenticated")
-        val doc = supabaseClient.postgrest
-            .from("doctors")
-            .select(Columns.list("id")) {
-                filter { eq("user_id", user.id) }
-            }
-            .decodeSingleOrNull<DoctorDutyCheckDto>() ?: throw IllegalStateException("Doctor record not found")
+        val effectiveDoctorId = cachedDoctorId ?: run {
+            val d = supabaseClient.postgrest
+                .from("doctors")
+                .select(Columns.list("id")) {
+                    filter { eq("user_id", user.id) }
+                }
+                .decodeSingleOrNull<DoctorDutyCheckDto>() ?: throw IllegalStateException("Doctor record not found")
+            cachedDoctorId = d.id
+            d.id
+        }
 
         // Try Gen 2 atomic claim with SKIP LOCKED
         val rpcParams = buildJsonObject {
             put("p_request_id", requestId)
-            put("p_doctor_id", doc.id)
+            put("p_doctor_id", effectiveDoctorId)
         }
         val rpcResult = runCatching {
             supabaseClient.postgrest
@@ -272,34 +278,60 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
             )
         }
 
-        // Fallback to Gen 1 legacy claim
-        val uniqueRoomId = "room_pharmacy_" + java.util.UUID.randomUUID().toString().substring(0, 8)
-        val now = OffsetDateTime.now().toString()
+        val rpcRefused = rpcResult?.code?.takeIf { it.isNotBlank() } ?: "CLAIM_RPC_UNAVAILABLE"
 
-        supabaseClient.postgrest
+        // Fallback to Gen 1 legacy claim ONLY IF the request lives in the legacy table
+        val legacyExists = supabaseClient.postgrest
             .from("pharmacy_consultation_requests")
-            .update(
-                mapOf(
-                    "status" to "assigned",
-                    "doctor_id" to doc.id,
-                    "room_id" to uniqueRoomId,
-                    "assigned_at" to now
-                )
-            ) {
+            .select(Columns.list("id")) {
                 filter {
                     eq("id", requestId)
                     eq("status", "pending")
                 }
             }
+            .decodeList<PharmacyRequestDto>()
+            .isNotEmpty()
 
-        PharmacyClaimResult(
-            requestId = requestId,
-            callId = requestId,
-            roomId = uniqueRoomId,
-            guestInviteId = "",
-            doctorRoomUrl = "/doctors/call/$uniqueRoomId",
-            patientJoinUrl = "/call/join/$uniqueRoomId"
-        )
+        if (legacyExists) {
+            val uniqueRoomId = "room_pharmacy_" + java.util.UUID.randomUUID().toString().substring(0, 8)
+            val now = OffsetDateTime.now().toString()
+
+            supabaseClient.postgrest
+                .from("pharmacy_consultation_requests")
+                .update(
+                    mapOf(
+                        "status" to "assigned",
+                        "doctor_id" to effectiveDoctorId,
+                        "room_id" to uniqueRoomId,
+                        "assigned_at" to now
+                    )
+                ) {
+                    filter {
+                        eq("id", requestId)
+                        eq("status", "pending")
+                    }
+                }
+
+            return@runCatching PharmacyClaimResult(
+                requestId = requestId,
+                callId = requestId,
+                roomId = uniqueRoomId,
+                guestInviteId = "",
+                doctorRoomUrl = "/doctors/call/$uniqueRoomId",
+                patientJoinUrl = "/call/join/$uniqueRoomId"
+            )
+        }
+
+        // No request found in either plane: surface the real failure with clear clinical context
+        val userFriendlyMessage = rpcResult?.message?.takeIf { it.isNotBlank() }
+            ?: when (rpcRefused) {
+                "DOCTOR_ALREADY_IN_CALL" -> "Ya tienes una consulta activa en curso. Finalízala antes de aceptar otra."
+                "DOCTOR_NOT_ON_DUTY" -> "Debes activar tu estado En Servicio para tomar consultas."
+                "REQUEST_ALREADY_CLAIMED_OR_EXPIRED" -> "La consulta ya fue asignada a otro colega o expiró el tiempo de espera."
+                "TIER_MISMATCH" -> "Esta consulta requiere una especialidad no configurada en tu guardia."
+                else -> "No se pudo tomar la consulta ($rpcRefused)"
+            }
+        throw IllegalStateException(userFriendlyMessage)
     }.onFailure {
         SecureLog.error("[PharmacyOnDemandRepo] Failed claiming request $requestId", it)
     }
@@ -541,11 +573,11 @@ private data class PharmacyDispatchItemDto(
         return PharmacyConsultationRequest(
             id = id,
             pharmacyId = null,
-            pharmacyName = "Kiosco Express",
+            pharmacyName = "Farmacia de Guardia",
             patientDni = patientDni,
-            patientName = patientName?.ifBlank { null } ?: "Paciente en Kiosco",
+            patientName = patientName?.ifBlank { null } ?: "Paciente en espera",
             patientPhone = patientPhone,
-            reason = symptomSummary?.ifBlank { null } ?: "Consulta On-Demand ($tierRequested)",
+            reason = symptomSummary?.ifBlank { null } ?: "Derivación para atención médica inmediata",
             status = PharmacyConsultationStatus.PENDING,
             roomId = cloudflareRoomId,
             createdAt = created,

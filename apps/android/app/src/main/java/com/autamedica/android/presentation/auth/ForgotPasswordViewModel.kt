@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.autamedica.android.presentation.common.UiErrorMapper
 import javax.inject.Inject
 
 data class ForgotPasswordUiState(
@@ -48,7 +49,7 @@ class ForgotPasswordViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Ocurrió un error. Intenta nuevamente."
+                        error = UiErrorMapper.map(e, "Ocurrió un error. Intenta nuevamente.")
                     )
                 }
             }

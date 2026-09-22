@@ -3,6 +3,7 @@ package com.autamedica.android.domain.repository
 import com.autamedica.android.domain.model.DispatchClaimResult
 import com.autamedica.android.domain.model.DoctorDutyStatus
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -50,4 +51,10 @@ interface PharmacyDispatchRepository {
 
     /** Patient side: Observe a specific on-demand request by id until matched/in_call. */
     fun observePatientRequest(requestId: String): kotlinx.coroutines.flow.Flow<PharmacyDispatchRequest>
+
+    /** Fetch live on-duty doctors currently connected to the network. */
+    suspend fun getActiveOnDutyDoctors(): Result<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>>
+
+    /** Patient side: Observe live on-duty doctors connected to the network in real-time. */
+    fun observeActiveOnDutyDoctors(): Flow<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>>
 }

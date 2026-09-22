@@ -1,11 +1,17 @@
 package com.autamedica.android.data.repository
 
 import com.autamedica.android.domain.model.DoctorDutyStatus
+import com.autamedica.android.domain.model.User
+import com.autamedica.android.domain.model.UserRole
+import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.domain.repository.UserRegistrationResult
 import com.google.common.truth.Truth.assertThat
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
@@ -13,6 +19,18 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+
+private class FakeAuthRepository : AuthRepository {
+    override fun observeSession(): Flow<User?> = flowOf(null)
+    override suspend fun login(email: String, password: String, selectedRole: UserRole?): Result<User> =
+        Result.failure(Exception("No user"))
+    override suspend fun loginWithGoogle(idToken: String, selectedRole: UserRole?): Result<User> =
+        Result.failure(Exception("No user"))
+    override suspend fun register(email: String, password: String, selectedRole: UserRole): Result<UserRegistrationResult> =
+        Result.failure(Exception("No user"))
+    override suspend fun logout() {}
+    override suspend fun getCurrentUser(): User? = null
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PharmacyDispatchRepositoryImplTest {
@@ -36,6 +54,7 @@ class PharmacyDispatchRepositoryImplTest {
 
         repository = PharmacyDispatchRepositoryImpl(
             supabaseClient = supabaseClient,
+            authRepository = FakeAuthRepository(),
             ioDispatcher = testDispatcher,
         )
     }

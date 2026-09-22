@@ -20,8 +20,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,6 +51,7 @@ fun CallTopBar(
     safetyAlert: String? = null,
     /** En call del médico: solo identidad + seguridad. Sin timer ni barras. */
     clinicalFirst: Boolean = false,
+    onMinimize: (() -> Unit)? = null,
 ) {
     val isConnected = connectionState == ConnectionState.CONNECTED && durationSeconds > 0 && !isWaitingRoom
     val infiniteTransition = rememberInfiniteTransition(label = "topbar_pulse")
@@ -93,10 +96,23 @@ fun CallTopBar(
             .padding(top = 10.dp, start = 12.dp, end = 12.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = if (onMinimize != null) 6.dp else 12.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            if (onMinimize != null) {
+                IconButton(
+                    onClick = onMinimize,
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Minimizar videollamada",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),

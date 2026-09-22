@@ -95,11 +95,13 @@ object NotificationRouteResolver {
             normalized == "call_incoming" ||
             normalized == "autamedica_calls" ||
             normalized == "call" ||
-            normalized == "videocall"
+            normalized == "videocall" ||
+            normalized == "pharmacy_dispatch_incoming" ||
+            normalized == "pharmacy_dispatch"
     }
 
     /**
-     * Solo las notificaciones dirigidas al paciente (llamada entrante) activan el join directo.
+     * Solo las notificaciones dirigidas al paciente o médico con llamada entrante activan el join directo.
      * PATIENT_CONNECTED va al médico, que ya se une por su propio flujo.
      */
     fun isIncomingCallNotificationType(notificationType: String?): Boolean {
@@ -109,7 +111,9 @@ object NotificationRouteResolver {
             normalized == "call_incoming" ||
             normalized == "autamedica_calls" ||
             normalized == "call" ||
-            normalized == "videocall"
+            normalized == "videocall" ||
+            normalized == "pharmacy_dispatch_incoming" ||
+            normalized == "pharmacy_dispatch"
     }
 
     fun parseDeepLink(raw: String?): Route? {

@@ -11,6 +11,7 @@ import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.autamedica.android.presentation.common.UiErrorMapper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -98,7 +99,7 @@ class DoctorCertificatesViewModel @Inject constructor(
                             isLoading = false,
                             userMessage = null,
                             userMessageRes = R.string.cert_error_load_failed,
-                            userMessageArg = error.localizedMessage,
+                            userMessageArg = UiErrorMapper.map(error, "No se pudieron cargar los certificados"),
                         )
                     }
                 }
@@ -177,7 +178,7 @@ class DoctorCertificatesViewModel @Inject constructor(
                             isLoadingPatients = false,
                             createError = null,
                             createErrorRes = R.string.cert_error_load_patients,
-                            createErrorArg = error.localizedMessage,
+                            createErrorArg = UiErrorMapper.map(error, "No se pudieron cargar los pacientes"),
                         )
                     }
                 }
@@ -266,7 +267,7 @@ class DoctorCertificatesViewModel @Inject constructor(
         if (patient == null || state.patientId.isBlank()) {
             _uiState.update {
                 it.copy(
-                    createError = null,
+                    createError = "Seleccione un paciente de la lista",
                     createErrorRes = R.string.cert_error_select_patient,
                     createErrorArg = null,
                 )
@@ -277,7 +278,7 @@ class DoctorCertificatesViewModel @Inject constructor(
         if (state.diagnosis.trim().isBlank()) {
             _uiState.update {
                 it.copy(
-                    createError = null,
+                    createError = "Ingrese un diagnóstico o motivo clínico de la certificación",
                     createErrorRes = R.string.cert_error_enter_diagnosis,
                     createErrorArg = null,
                 )
@@ -289,7 +290,7 @@ class DoctorCertificatesViewModel @Inject constructor(
         if (eligibility != null && !eligibility.isEligible) {
             _uiState.update {
                 it.copy(
-                    createError = eligibility.reason,
+                    createError = eligibility.reason ?: "El profesional no cumple los requisitos para emitir certificados",
                     createErrorRes = if (eligibility.reason == null) R.string.cert_error_not_eligible else null,
                     createErrorArg = null,
                 )
@@ -325,7 +326,7 @@ class DoctorCertificatesViewModel @Inject constructor(
                         it.copy(
                             isSubmitting = false,
                             createdCertificate = certificate,
-                            userMessage = null,
+                            userMessage = "Atestado médico emitido con éxito: ${certificate.cuir}",
                             userMessageRes = R.string.cert_success_issued_cuir,
                             userMessageArg = certificate.cuir,
                         )
@@ -338,7 +339,7 @@ class DoctorCertificatesViewModel @Inject constructor(
                             isSubmitting = false,
                             createError = null,
                             createErrorRes = R.string.cert_error_issue_failed,
-                            createErrorArg = error.localizedMessage,
+                            createErrorArg = UiErrorMapper.map(error, "No se pudo emitir el certificado"),
                         )
                     }
                 }
