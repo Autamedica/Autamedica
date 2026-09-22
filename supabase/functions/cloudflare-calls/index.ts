@@ -169,13 +169,12 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     let call = callRow
-    let isDispatchCall = false
 
     // Fallback: On-Demand Pharmacy Dispatch Room (kiosks / street emergency triage)
     if (!call) {
       const { data: dispatch, error: dispatchErr } = await supabaseAdmin
         .from('pharmacy_dispatch_requests')
-        .select('id, cloudflare_room_id, assigned_doctor_id, status, patient_dni')
+        .select('id, cloudflare_room_id, assigned_doctor_id, status, patient_dni, requested_by_user_id')
         .eq('cloudflare_room_id', roomId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -194,11 +193,10 @@ export async function handler(req: Request): Promise<Response> {
           id: dispatch.id,
           room_id: dispatch.cloudflare_room_id,
           doctor_id: dispatch.assigned_doctor_id,
-          patient_id: null,
+          patient_id: dispatch.requested_by_user_id,
           appointment_id: null,
           status: dispatch.status,
         }
-        isDispatchCall = true
       }
     }
 
@@ -281,11 +279,10 @@ export async function handler(req: Request): Promise<Response> {
           isPatient = pat?.user_id === userId
         }
       }
-    if (isDispatchCall && !isDoctor) {
-      // Para consultas de guardia on-demand en farmacia/kiosco, el participante no-médico es el paciente
-      isPatient = true
     }
 
+    // Guardia on-demand: el paciente solo se autoriza vía requested_by_user_id (call.patient_id)
+    // resuelto en el fallback de la sala. Sin fallback "cualquier no-médico es paciente".
     if (!isDoctor && !isPatient) {
       console.warn('[cloudflare-calls] User is not a participant of the call:', {
         userId,
