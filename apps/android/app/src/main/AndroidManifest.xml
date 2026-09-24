@@ -53,6 +53,8 @@
             android:supportsPictureInPicture="true"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -88,6 +90,8 @@
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:noHistory="true"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity"
             android:theme="@style/Theme.Autamedica"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize" />
 
