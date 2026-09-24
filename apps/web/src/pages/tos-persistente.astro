@@ -1,0 +1,563 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/tos-persistente';
+
+const faqs = [
+  {
+    question: '¿Por qué sigo tosiendo si la gripe o el resfrío ya pasaron hace semanas?',
+    answer:
+      'Este cuadro corresponde habitualmente a una hiperreactividad bronquial postinfecciosa (tos subaguda postviral). Tras una infección respiratoria, el epitelio de las vías aéreas queda temporalmente desprovisto de su capa protectora y las terminaciones nerviosas se vuelven sumamente sensibles al aire frío, al polvo, a los cambios térmicos o al esfuerzo físico. Suele remitir gradualmente entre la tercera y la octava semana, aunque puede requerir tratamiento médico modulador si altera el sueño.',
+  },
+  {
+    question: '¿El enalapril u otros medicamentos para la presión pueden provocar tos seca?',
+    answer:
+      'Sí. Los inhibidores de la enzima convertidora de angiotensina (IECA), como el enalapril, el lisinopril y el ramipril, son una causa muy documentada de tos seca crónica persistente (afecta entre el 5% y el 20% de los pacientes que los toman). Ocurre por acumulación de bradicinina y sustancia P en las vías respiratorias. La tos no cede con antitusivos y solo desaparece semanas después de que un médico reemplaza de forma segura el antihipertensivo por otra familia de fármacos (como los ARA-II). Nunca suspendas la medicación sin indicación médica.',
+  },
+  {
+    question: '¿Cómo puede el reflujo gastroesofágico causar tos sin provocar acidez?',
+    answer:
+      'Existe el denominado reflujo silente o laringofaríngeo, en el cual microgotas de ácido o enzimas gástricas ascienden hacia la faringe e irritan la laringe y las cuerdas vocales sin que el paciente perciba necesariamente ardor en el pecho (pirosis). Esto estimula un arco reflejo esófago-bronquial que dispara accesos de tos seca espasmódica, típicamente al acostarse por las noches o después de comer.',
+  },
+  {
+    question: '¿Qué es el asma con variante tusígena?',
+    answer:
+      'Es una forma de presentación del asma bronquial donde el síntoma predominante o único es la tos seca persistente, sin que se ausculten las sibilancias ("silbidos en el pecho") características ni haya una sensación evidente de asfixia. Con frecuencia empeora durante la noche, con el aire acondicionado o al realizar actividad física, y responde de manera muy favorable al tratamiento broncodilatador o corticoide inhalatorio pautado por el médico.',
+  },
+  {
+    question: '¿Por qué los jarabes para la tos de venta libre muchas veces no solucionan el problema?',
+    answer:
+      'Porque la tos no es una enfermedad en sí misma, sino un reflejo secundario a una causa subyacente. Los antitusivos comunes solo intentan adormecer el reflejo en el sistema nervioso central; si el origen es un goteo nasal posterior alérgico, reflujo ácido, asma o un efecto secundario farmacológico, el jarabe no actúa sobre la causa real y retrasa el diagnóstico adecuado.',
+  },
+  {
+    question: '¿Cuándo es necesario realizar una radiografía de tórax?',
+    answer:
+      'Una radiografía de tórax está indicada de forma prioritaria en toda persona con tos persistente de más de 3 a 4 semanas de evolución, o antes si existen antecedentes de tabaquismo significativo, fiebre prolongada, dolor en el pecho, pérdida de peso, o si en la auscultación médica se detectan ruidos patológicos como crepitantes.',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Tos Persistente: Aguda, Subaguda y Crónica | Cuándo Consultar | AutaMedica',
+      url: canonicalUrl,
+      description:
+        'Guía médica sobre tos persistente. Diferencias clínicas entre tos aguda, subaguda y crónica, causas frecuentes (reflujo, asma, IECA), pautas de alarma y telemedicina.',
+      inLanguage: 'es-AR',
+      aspect: ['Diagnosis', 'Treatment', 'Overview'],
+      medicalAudience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalSignOrSymptom', name: 'Tos persistente' },
+        { '@type': 'MedicalCondition', name: 'Hiperreactividad bronquial postviral' },
+        { '@type': 'MedicalCondition', name: 'Reflujo gastroesofágico' },
+        { '@type': 'MedicalSpecialty', name: 'Pulmonary' },
+        { '@type': 'MedicalSpecialty', name: 'PrimaryCare' },
+      ],
+      provider: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Guía de Síntomas',
+          item: 'https://www.autamedica.com/consulta-medica-online',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Tos Persistente',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Tos Persistente: Aguda, Subaguda y Crónica | Cuándo Consultar | AutaMedica"
+  description="Orientación médica para la tos persistente. Clasificación temporal (<3 sem, 3-8 sem, >8 sem), causas (reflujo, asma, IECA), banderas rojas y videoconsulta clínica."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="website"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- BREADCRUMBS -->
+    <nav class="border-b border-slate-100 bg-slate-50/60 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/consulta-medica-online" class="hover:text-sky-600 transition-colors">Guía de Síntomas</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Tos persistente</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="relative py-16 md:py-24 border-b border-slate-100 bg-gradient-to-b from-slate-50 via-white to-white">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold tracking-wide uppercase">
+              <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+              Clínica Médica y Neumonología
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12]">
+              Tos persistente: clasificarla en el tiempo para <span class="text-sky-600">hallar su causa</span>.
+            </h1>
+
+            <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl">
+              La tos es un mecanismo reflejo de defensa pulmonar. Sin embargo, cuando se prolonga por semanas o aparece sin fiebre ni moco, la duración exacta, los antecedentes personales y la revisión farmacológica marcan el camino hacia el diagnóstico certero.
+            </p>
+
+            <!-- Proof Chips (Slate, Sky, Emerald) -->
+            <div class="flex flex-wrap gap-2 pt-1">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Clasificación clínica por semanas
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Detección de reflujo, asma y fármacos
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Orden de estudios y recetas
+              </span>
+            </div>
+
+            <!-- CTAs requeridos -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-3">
+              <a href="/medico-clinico-online" class="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg bg-sky-600 text-white font-semibold text-base shadow-sm hover:bg-sky-700 transition-all transform hover:-translate-y-0.5">
+                <span>Consultar médico clínico online</span>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </a>
+              <a href="/consulta-medica-online" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg border border-slate-300 bg-white text-slate-800 font-semibold text-base hover:bg-slate-50 hover:border-slate-400 transition-all">
+                <span>Guía de consulta médica</span>
+              </a>
+            </div>
+
+            <p class="text-xs text-slate-500">
+              Evaluación diagnóstica con médicos especialistas en clínica médica y medicina interna.
+            </p>
+          </div>
+
+          <!-- Hero Graphic: Timeline de la Tos -->
+          <div class="lg:col-span-5">
+            <div class="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-5">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">
+                    3-8
+                  </div>
+                  <div>
+                    <h2 class="text-sm font-bold text-slate-900 leading-tight">Clasificación Temporal</h2>
+                    <p class="text-xs text-slate-500">Criterio clínico internacional</p>
+                  </div>
+                </div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Protocolo
+                </span>
+              </div>
+
+              <!-- Fases de evolución -->
+              <div class="space-y-3 text-xs">
+                <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                  <div class="flex items-center justify-between">
+                    <strong class="text-slate-900 font-semibold">Tos Aguda (&lt; 3 semanas)</strong>
+                    <span class="font-mono text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-200">Infecciosa</span>
+                  </div>
+                  <p class="text-slate-600">Rinovirus, gripe, bronquitis aguda. Suele autolimitarse con tratamiento sintomático.</p>
+                </div>
+
+                <div class="p-3 rounded-lg bg-sky-50/50 border border-sky-200 space-y-1">
+                  <div class="flex items-center justify-between">
+                    <strong class="text-slate-900 font-semibold">Tos Subaguda (3 a 8 semanas)</strong>
+                    <span class="font-mono text-sky-700 font-bold bg-sky-100 px-2 py-0.5 rounded border border-sky-300">Postinfecciosa</span>
+                  </div>
+                  <p class="text-slate-600">Hiperreactividad bronquial postviral, tos convulsa / coqueluche, sinusitis residual.</p>
+                </div>
+
+                <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                  <div class="flex items-center justify-between">
+                    <strong class="text-slate-900 font-semibold">Tos Crónica (&gt; 8 semanas)</strong>
+                    <span class="font-mono text-slate-800 font-bold bg-slate-200 px-2 py-0.5 rounded">Investigación</span>
+                  </div>
+                  <p class="text-slate-600">Goteo postnasal, asma tusígena, reflujo (ERGE), efecto de fármacos IECA, tabaquismo.</p>
+                </div>
+              </div>
+
+              <div class="border-t border-slate-100 pt-3 flex items-center justify-between text-xs text-slate-500">
+                <span>¿Tu tos supera las 3 semanas?</span>
+                <span class="text-sky-600 font-semibold">Requiere consulta clínica</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- CRITICAL WARNING / BANDERAS ROJAS (HARD GATE) -->
+    <section class="py-12 bg-slate-950 text-white">
+      <div class="container mx-auto px-6">
+        <div class="max-w-4xl mx-auto rounded-2xl border-2 border-red-500/80 bg-slate-900/95 p-6 md:p-8 space-y-6 shadow-2xl">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center shrink-0">
+              <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+            </div>
+            <div class="space-y-2">
+              <span class="text-xs uppercase font-extrabold tracking-widest text-red-400 bg-red-950/60 px-2.5 py-1 rounded border border-red-800/60">
+                Protocolo de Urgencia Neumonológica
+              </span>
+              <h2 class="text-2xl font-serif font-bold text-white">
+                Banderas rojas en la tos: cuándo acudir a guardia presencial
+              </h2>
+            </div>
+          </div>
+
+          <p class="text-sm md:text-base text-slate-300 leading-relaxed">
+            La tos prolongada suele deberse a causas benignas, pero en presencia de síntomas de alarma puede advertir patologías pulmonares o cardiovasculares severas. <strong>Si presentás alguno de estos signos, acudí inmediatamente a un servicio de urgencias médicas:</strong>
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs md:text-sm text-slate-200">
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Expectoración con sangre (hemoptisis):</strong>
+                <span>Cualquier presencia de estrías de sangre o esputo sanguinolento franco exige radiografía o tomografía urgente.</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Falta de aire (disnea) en reposo:</strong>
+                <span>Sensación de ahogo o dificultad respiratoria al hablar o estar sentado, sin haber hecho esfuerzo físico.</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Dolor torácico pleurítico:</strong>
+                <span>Dolor punzante o en "puntada de costado" que se intensifica bruscamente al tomar aire hondo o toser.</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Pérdida de peso involuntaria y sudoración nocturna:</strong>
+                <span>Bajar de peso sin dieta asociada a transpiración profusa durante la noche (síntomas de sospecha de TBC o patología oncológica).</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Estridor respiratorio o color azulado (cianosis):</strong>
+                <span>Ruidos roncos inspiratorios o coloración azul en labios y uñas por déficit de oxigenación.</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Cambio de patrón en fumadores:</strong>
+                <span>En personas con tabaquismo activo, un cambio repentino en el timbre, volumen o frecuencia de la tos habitual.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t border-slate-800 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+            <span>En caso de asfixia o dificultad respiratoria aguda severa:</span>
+            <span class="inline-flex items-center gap-2 font-bold text-red-400 text-sm">
+              Llamar al 107 (SAME) o al 911 de inmediato
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CAUSAS FRECUENTES DE LA TOS PERSISTENTE -->
+    <section class="py-16 md:py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="text-center max-w-3xl mx-auto space-y-4 mb-14">
+          <span class="text-xs uppercase font-bold tracking-wider text-sky-700 bg-sky-50 px-3 py-1 rounded-full border border-sky-200">
+            Análisis Fisiopatológico
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-serif font-bold text-slate-950">
+            ¿Por qué no se va la tos? Las causas más frecuentes
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg leading-relaxed">
+            Cuando la tos supera las 3 semanas de evolución, casi el 90% de los casos en personas no fumadoras y sin signos de alarma se explican por cuatro grandes entidades clínicas:
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Causa 1 -->
+          <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 md:p-8 space-y-4 hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-base">
+              1
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">
+              Hiperreactividad bronquial postviral
+            </h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Es la causa más habitual de tos subaguda (3 a 8 semanas). Tras un catarro o bronquitis viral, la mucosa de las vías respiratorias pierde transitoriamente sus cilias protectoras y queda inflamada. Cualquier estímulo menor —aire frío, olores intensos, risa o ejercicio— dispara accesos paroxísticos de tos seca. El tratamiento médico adecuado calma la irritación hasta su regeneración completa.
+            </p>
+          </div>
+
+          <!-- Causa 2 -->
+          <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 md:p-8 space-y-4 hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-base">
+              2
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">
+              Goteo postnasal (Rinitis / Sinusitis)
+            </h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Conocido en medicina como Síndrome de Tos de Vía Aérea Superior. El moco producido por una rinitis alérgica, vasomotora o sinusitis crónica cae por la pared posterior de la garganta hacia la laringe. Provoca la necesidad constante de carraspear y empeora típicamente al acostarse boca arriba por gravedad. Se resuelve tratando la vía aérea superior con antihistamínicos o corticoides nasales tópicos.
+            </p>
+          </div>
+
+          <!-- Causa 3 -->
+          <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 md:p-8 space-y-4 hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-base">
+              3
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">
+              Reflujo gastroesofágico (ERGE silente)
+            </h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              El ácido del estómago sube por el esófago y alcanza la hipofaringe, irritando las cuerdas vocales o desencadenando un arco reflejo vagal bronquial. Muchos pacientes no presentan ardor ni acidez en el pecho; su único síntoma es una tos seca pertinaz tras las comidas, al agacharse o durante la noche. Requiere pautas dietarias y moduladores de la acidez gástrica prescritos por un profesional.
+            </p>
+          </div>
+
+          <!-- Causa 4 -->
+          <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 md:p-8 space-y-4 hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-base">
+              4
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">
+              Efecto adverso de medicamentos (IECA)
+            </h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Fármacos antihipertensivos de uso masivo como el enalapril, lisinopril o ramipril generan tos seca en hasta un 20% de los pacientes por acumulación de bradicinina. Puede comenzar semanas o incluso meses después de haber iniciado la toma. Es refractaria a cualquier jarabe antitusivo y solo cede al rotar la medicación a otra familia terapéutica (como losartan o valsartan) bajo seguimiento médico.
+            </p>
+          </div>
+        </div>
+
+        <!-- Box educativo: El error de tomar antibióticos para la tos -->
+        <div class="mt-10 p-6 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs md:text-sm leading-relaxed">
+          <h4 class="font-bold text-slate-900 mb-2 flex items-center gap-2">
+            <svg class="w-5 h-5 text-sky-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            ¿Por qué la tos residual no se cura con antibióticos ni jarabes comunes?
+          </h4>
+          <p>
+            Ni la hiperreactividad postviral, ni el reflujo ácido, ni el asma, ni los medicamentos antihipertensivos son infecciones bacterianas activas. Tomar amoxicilina o azitromicina para una tos que lleva 4 semanas no cura el cuadro y genera resistencia bacteriana. Del mismo modo, los jarabes que contienen codeína o dextrometorfano solo adormecen temporalmente el reflejo sin tratar la raíz. La clave médica es la anamnesis estructurada y el tratamiento del mecanismo que la dispara.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MATRIZ DE DECISIÓN: TELEMEDICINA VS PRESENCIAL -->
+    <section class="py-16 md:py-24 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="text-center max-w-3xl mx-auto space-y-4 mb-14">
+          <span class="text-xs uppercase font-bold tracking-wider text-sky-700 bg-sky-100/60 px-3 py-1 rounded-full border border-sky-200">
+            Orientación Asistencial
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-serif font-bold text-slate-950">
+            ¿Cuándo consultar por telemedicina y cuándo acudir a guardia?
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg leading-relaxed">
+            Un médico clínico por videoconsulta puede ordenar el cuadro, revisar antecedentes farmacológicos, emitir recetas oficiales e indicar estudios complementarios con total comodidad.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Telemedicina -->
+          <div class="p-6 md:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
+              <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Videoconsulta Clínica Online
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">Evaluación ambulatoria y seguimiento</h3>
+            <p class="text-xs md:text-sm text-slate-600 leading-relaxed">
+              Casos sin disnea ni signos de alarma, donde se busca identificar la causa y ordenar el tratamiento:
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Tos seca persistente tras una gripe o resfrío de semanas atrás.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Tos nocturna relacionada con acidez gástrica o postura al dormir.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Sospecha de tos por enalapril u otra medicación crónica.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Solicitud de órdenes de radiografía de tórax o espirometría.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Prescripción oficial de aerosoles broncodilatadores o antialérgicos.</span>
+              </li>
+            </ul>
+            <div class="pt-4">
+              <a href="/medico-clinico-online" class="block text-center py-3 px-4 rounded-lg bg-sky-600 text-white font-semibold text-sm hover:bg-sky-700 transition-colors">
+                Consultar con médico clínico online
+              </a>
+            </div>
+          </div>
+
+          <!-- Guardia Presencial -->
+          <div class="p-6 md:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-red-50 text-red-700 text-xs font-bold border border-red-200">
+              <svg class="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              Evaluación Presencial Urgente
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">Casos con compromiso ventilatorio</h3>
+            <p class="text-xs md:text-sm text-slate-600 leading-relaxed">
+              Situaciones que requieren auscultación inmediata, oxigenoterapia o estudios en guardia:
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Tos con sangre en la expectoración (hemoptisis).</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Falta de aire marcada en reposo o sensación de asfixia.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Dolor torácico agudo tipo puntada de costado con fiebre alta.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Silbidos intensos audibles a distancia con agotamiento muscular.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Pérdida de peso acelerada inexplicable y sudoración profusa.</span>
+              </li>
+            </ul>
+            <div class="pt-4">
+              <div class="text-center py-3 px-4 rounded-lg bg-slate-100 text-slate-700 font-semibold text-sm border border-slate-200">
+                Concurrir a centro hospitalario o guardia
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="py-16 md:py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center space-y-4 mb-12">
+          <span class="text-xs uppercase font-bold tracking-wider text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+            Preguntas Frecuentes
+          </span>
+          <h2 class="text-3xl font-serif font-bold text-slate-950">
+            Dudas frecuentes sobre la tos prolongada
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group rounded-xl border border-slate-200 bg-white p-5 transition-all open:bg-slate-50/50 open:border-sky-300">
+              <summary class="flex cursor-pointer items-center justify-between text-base font-semibold text-slate-900 list-none">
+                <span>{faq.question}</span>
+                <span class="ml-4 text-sky-600 transition-transform group-open:rotate-180">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </span>
+              </summary>
+              <p class="mt-4 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                {faq.answer}
+              </p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CROSS LINKS -->
+    <section class="py-12 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-6 text-center">
+          Servicios y Guías Relacionadas
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <a href="/medico-clinico-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Médico clínico online
+          </a>
+          <a href="/consulta-medica-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Consulta médica online
+          </a>
+          <a href="/dolor-de-pecho" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Dolor de pecho
+          </a>
+          <a href="/guardia-medica-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Guardia médica 24hs
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <CTAFinal
+      title="No te acostumbres a toser: consultá con un especialista."
+      subtitle="Evaluación clínica detallada por videoconsulta. Ordenes de radiografía, espirometría y recetas oficiales con código CUIR directo en tu teléfono."
+      buttonLabel="Agendar consulta médica online"
+      buttonHref="/medico-clinico-online"
+    />
+  </main>
+
+  <Footer />
+</Layout>

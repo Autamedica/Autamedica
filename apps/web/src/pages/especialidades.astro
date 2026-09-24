@@ -7,10 +7,10 @@ import Footer from '../components/Footer.astro';
 const specialties = [
   {
     id: 'general',
-    name: 'Medicina General',
+    name: 'Medicina Clínica y General',
     tagline: 'Atención primaria integral.',
-    description: 'Nuestra primera línea de atención para diagnósticos iniciales, triaje clínico y seguimiento de salud preventiva 24/7.',
-    href: '/medico-online',
+    description: 'Nuestra primera línea de atención para diagnósticos iniciales, chequeos preventivos de laboratorio, triaje clínico y seguimiento continuo.',
+    href: '/medico-clinico-online',
     icon: 'Stethoscope'
   },
   {
@@ -49,24 +49,24 @@ const specialties = [
     id: 'pedia',
     name: 'Pediatría',
     tagline: 'Atención especializada infantil.',
-    description: 'Consultas de desarrollo, pediatría de urgencia y seguimiento integral para la salud de los más pequeños.',
-    href: '/patients?specialty=pediatrics',
+    description: 'Consultas de desarrollo, fiebre infantil, orientación vacunal y seguimiento integral para la salud de los más pequeños.',
+    href: '/pediatra-online',
     icon: 'Baby'
   },
   {
     id: 'gastro',
     name: 'Gastroenterología',
     tagline: 'Especialistas en salud digestiva.',
-    description: 'Tratamiento de trastornos digestivos, reflujo, gastritis y patologías del tracto gastrointestinal.',
-    href: '/patients?specialty=gastroenterology',
+    description: 'Tratamiento de reflujo gastroesofágico, gastritis, colon irritable, intolerancias y revisión experta de endoscopias.',
+    href: '/gastroenterologo-online',
     icon: 'Activity'
   },
   {
     id: 'neuro',
     name: 'Neurología',
     tagline: 'Diagnóstico neurológico preciso.',
-    description: 'Atención especializada en migrañas, trastornos del sistema nervioso y afecciones neurológicas complejas.',
-    href: '/patients?specialty=neurology',
+    description: 'Atención especializada en migrañas, cefaleas, temblores, epilepsia controlada y revisión de neuroimágenes.',
+    href: '/neurologo-online',
     icon: 'Zap'
   }
 ];
@@ -101,7 +101,11 @@ const specialties = [
                 {s.id === 'psychiatry' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/></svg>}
                 {s.id === 'psy' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>}
                 {s.id === 'derma' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 12h8m-4-4v8"/></svg>}
-                {(!['general', 'psychiatry', 'psy', 'derma'].includes(s.id)) && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+                {s.id === 'cardio' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>}
+                {s.id === 'pedia' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a5 5 0 0 1 5 5c0 2.22-1.21 4.16-3 5.2V17h-4v-4.8A6.002 6.002 0 0 1 12 2z"/><path d="M9 17v2a3 3 0 0 0 6 0v-2"/><circle cx="9" cy="7" r="1"/><circle cx="15" cy="7" r="1"/></svg>}
+                {s.id === 'gastro' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
+                {s.id === 'neuro' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"/><path d="M9 21h6"/></svg>}
+                {(!['general', 'psychiatry', 'psy', 'derma', 'cardio', 'pedia', 'gastro', 'neuro'].includes(s.id)) && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
               </div>
               
               <div class="space-y-4">

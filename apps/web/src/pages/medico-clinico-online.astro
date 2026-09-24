@@ -1,0 +1,590 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/medico-clinico-online';
+
+const faqs = [
+  {
+    question: '¿Cuál es el rol del médico clínico o internista en la atención virtual?',
+    answer:
+      'El médico clínico o generalista es el pilar central del sistema de salud y el conductor de la salud del paciente adulto. Su función es evaluar a la persona en su totalidad: integrar síntomas diversos, interpretar análisis globales de laboratorio, controlar factores de riesgo cardiovascular y metabólico, evitar la sobremedicación y coordinar de forma ordenada las interconsultas con subespecialistas.',
+  },
+  {
+    question: '¿El médico clínico online puede ordenar e interpretar mis análisis de laboratorio?',
+    answer:
+      'Sí. El profesional puede emitir órdenes médicas digitales oficiales con firma electrónica válida para la realización de análisis clínicos completos en laboratorios de todo el país (hemograma, perfil lipídico, glucemia, función renal y hepática, orina, etc.) y estudios por imágenes. Una vez obtenidos los resultados, se revisan conjuntamente en consulta para explicar los valores y planificar las conductas preventivas necesarias.',
+  },
+  {
+    question: '¿Puedo renovar recetas de medicamentos crónicos para presión, diabetes o tiroides?',
+    answer:
+      'Sí. Los médicos clínicos de AutaMedica están matriculados y habilitados legalmente. Emiten recetas digitales bajo la Ley 27.553 con código oficial CUIR para medicamentos de uso crónico (antihipertensivos, hipolipemiantes como estatinas, levotiroxina, hipoglucemiantes orales, entre otros), garantizando la continuidad de tu tratamiento en cualquier farmacia de Argentina.',
+  },
+  {
+    question: '¿En qué se diferencia una consulta clínica programada de una guardia médica?',
+    answer:
+      'La guardia médica online está concebida para resolver motivos agudos puntuales de baja complejidad (un resfrío, una gastroenteritis leve o una erupción reciente). La consulta con médico clínico es un encuentro longitudinal y planificado, enfocado en tu historial médico completo, prevención cardiovascular a mediano plazo, chequeos anuales y seguimiento integral de patologías crónicas.',
+  },
+  {
+    question: '¿El médico clínico puede emitir certificados médicos de aptitud o laborales?',
+    answer:
+      'Sí, siempre dentro del marco de la deontología médica y de lo que la teleasistencia permite constatar con rigor. Para aptitud física inicial, se solicitan y auditan los estudios cardiológicos y de laboratorio previos antes de emitir cualquier constancia; para licencias laborales o justificativos médicos, se evalúa el cuadro clínico actual y se indica el reposo correspondiente.',
+  },
+  {
+    question: '¿Qué síntomas exigen acudir a una guardia presencial de inmediato y no por videollamada?',
+    answer:
+      'Dolor en el centro del pecho de carácter opresivo que se irradia a mandíbula o brazo izquierdo, falta de aire súbita e intensa en reposo, pérdida repentina de conocimiento (síncope), dolor abdominal agudo severo con abdomen rígido, o signos neurológicos agudos como debilidad en medio cuerpo o dificultad para hablar. Ante estos signos debe llamarse al 107 SAME o acudir a una guardia hospitalaria.',
+  },
+  {
+    question: '¿Cómo coordina el médico clínico las derivaciones con otros especialistas?',
+    answer:
+      'Cuando un hallazgo clínico o estudio complementario lo amerita (por ejemplo, una alteración cardiológica compleja, una lesión dermatológica atípica o un síntoma neurológico persistente), el médico clínico orienta la interconsulta específica, redacta un resumen de historia clínica para el colega y continúa supervisando el cuadro de base para mantener la coherencia global del tratamiento.',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Especialidades',
+          item: 'https://www.autamedica.com/especialidades',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Médico Clínico Online',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Médico Clínico Online en Argentina | Consulta de Medicina Interna | AutaMedica',
+      url: canonicalUrl,
+      description:
+        'Atención médica clínica online por médicos internistas y generalistas matriculados. Chequeos de rutina, interpretación de análisis, control de factores de riesgo y recetas oficiales bajo Ley 27.553.',
+      inLanguage: 'es-AR',
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalSpecialty', name: 'PrimaryCare' },
+        { '@type': 'MedicalSpecialty', name: 'InternalMedicine' },
+        { '@type': 'Thing', name: 'Médico clínico online' },
+        { '@type': 'Thing', name: 'Medicina generalista' },
+        { '@type': 'Thing', name: 'Chequeo médico preventivo' },
+        { '@type': 'Thing', name: 'Control de hipertensión y diabetes' },
+        { '@type': 'Thing', name: 'Receta digital oficial' },
+      ],
+      publisher: {
+        '@id': 'https://www.autamedica.com/#organization',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Médico Clínico Online en Argentina | Consulta de Medicina Interna | AutaMedica"
+  description="Consulta con médico clínico online en Argentina. Chequeos de rutina, interpretación de análisis clínicos, control de riesgo cardiovascular y recetas digitales oficiales."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- Breadcrumbs -->
+    <nav class="border-b border-slate-100 bg-slate-50/60 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/especialidades" class="hover:text-sky-600 transition-colors">Especialidades</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Médico clínico online</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="relative py-16 md:py-24 border-b border-slate-100 bg-gradient-to-b from-slate-50 via-white to-white overflow-hidden">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider">
+              <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+              Atención Primaria · Medicina Clínica e Interna
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-medium leading-[1.12] tracking-tight text-slate-950">
+              Médico clínico online: <br class="hidden sm:inline" />
+              <span class="text-[var(--au-accent)]">visión integral</span> y continuidad médica para toda tu salud.
+            </h1>
+
+            <p class="text-lg md:text-xl text-slate-600 font-light leading-relaxed max-w-2xl">
+              Tu primera línea de atención con médicos clínicos e internistas matriculados en Argentina. Chequeos preventivos, interpretación integral de análisis de laboratorio, control de factores de riesgo metabólico y recetas oficiales bajo Ley 27.553.
+            </p>
+
+            <!-- Acciones -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-2">
+              <a href="/auth/register" class="btn-primary-action inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all">
+                <span>Consultar con Médico Clínico</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="M12 5l7 7-7 7"></path>
+                </svg>
+              </a>
+              <a href="#areas-clinicas" class="btn-secondary-action inline-flex items-center justify-center px-7 py-4 rounded-xl text-slate-700 font-semibold text-base border border-slate-200 transition-all">
+                Áreas de atención y chequeos
+              </a>
+            </div>
+
+            <!-- Trust Badges -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-200/80 text-xs text-slate-600">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Clínicos matriculados</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Interpretación de análisis</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Manejo de riesgo global</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Receta oficial CUIR</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Card -->
+          <div class="lg:col-span-5 flex justify-center">
+            <div class="w-full max-w-md bg-white rounded-3xl border border-slate-200/90 shadow-2xl shadow-sky-950/5 p-8 relative overflow-hidden">
+              <div class="absolute -top-10 -right-10 w-40 h-40 bg-sky-50 rounded-full blur-2xl pointer-events-none"></div>
+
+              <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center border border-sky-100 flex-shrink-0">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h1a.3.3 0 1 0 .2-.3M7 2h10a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM12 11v10m-4-2h8"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-wider text-sky-700">Consulta Clínica Integral</div>
+                  <h3 class="text-xl font-serif font-bold text-slate-950">Médico de Cabecera</h3>
+                </div>
+              </div>
+
+              <div class="space-y-4 text-sm text-slate-600 border-t border-slate-100 pt-5">
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-slate-900 block">Lectura Integral de Laboratorios</span>
+                    <span class="text-xs text-slate-500">Perfil lipídico, glucemia, función renal, hepatograma y orina completa explicados con claridad.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-slate-900 block">Control de Factores de Riesgo</span>
+                    <span class="text-xs text-slate-500">Manejo de hipertensión, prediabetes, colesterol elevado y ajuste de hábitos de vida.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-slate-900 block">Derivación Orientada</span>
+                    <span class="text-xs text-slate-500">Coordinación con cardiólogos, endocrinólogos y gastroenterólogos sin estudios duplicados.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Historia clínica unificada</span>
+                <span class="font-semibold text-sky-700">Ley 26.529</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- MANIFIESTO: EL VALOR DE LA MEDICINA GENERALISTA -->
+    <section class="py-20 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="bg-white rounded-3xl p-8 md:p-14 border border-slate-200/90 shadow-sm text-left">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Enfoque Holístico</span>
+          <h2 class="text-2xl md:text-4xl font-serif font-bold text-slate-950 mb-6 leading-tight">
+            La medicina clínica: el arte de integrar las partes para cuidar a la persona entera.
+          </h2>
+          <div class="space-y-4 text-slate-600 leading-relaxed font-light text-base md:text-lg">
+            <p>
+              En la medicina moderna, el exceso de fragmentación por órganos suele derivar en múltiples consultas aisladas donde nadie tiene el panorama completo del paciente. El cardiólogo ajusta una pastilla, el gastroenterólogo indica otra y el endocrinólogo una tercera, aumentando el riesgo de interacciones y polifarmacia innecesaria.
+            </p>
+            <p>
+              El médico clínico es quien ordena ese mapa. Evalúa cómo interactúan tu presión arterial con tus riñones, tus hábitos de descanso con tu glucemia y tus medicamentos con tu digestión. En AutaMedica, recuperamos esa figura del médico de confianza: alguien que te conoce, registra tu evolución a lo largo de los años y te guía con criterio clínico sólido.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 ÁREAS DE ATENCIÓN CLÍNICA -->
+    <section id="areas-clinicas" class="py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Campos de Atención</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+            Servicios clínicos y chequeos del adulto
+          </h2>
+          <p class="text-slate-600 text-lg leading-relaxed">
+            Evaluación integral orientada a la prevención primaria, el diagnóstico temprano y el control de enfermedades crónicas.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          
+          <!-- 1. Chequeos Anuales y Laboratorio -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Chequeos de Salud Preventiva</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Solicitud de órdenes de laboratorio anuales y estudios diagnósticos según edad y factores hereditarios. Interpretación comprensible de colesterol, triglicéridos, hemograma, glucosa, ácido úrico y función renal.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Prescripción de rutinas de laboratorio y cribado preventivo
+            </div>
+          </div>
+
+          <!-- 2. Hipertensión y Riesgo Cardiovascular -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Hipertensión Arterial (HTA)</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Diagnóstico de valores elevados de tensión arterial, registro de automonitoreo domiciliario de la presión (AMPA), indicación y ajuste de antihipertensivos y metas de presión arterial individualizadas.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Guías de la Sociedad Argentina de Hipertensión Arterial (SAHA)
+            </div>
+          </div>
+
+          <!-- 3. Metabolismo, Diabetes y Tiroides -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 6v6l4 2"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Salud Metabólica y Diabetes</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Abordaje de resistencia a la insulina, prediabetes, diabetes tipo 2 estabilizada, hipotiroidismo primario y síndrome metabólico. Monitoreo de hemoglobina glicosilada (HbA1c) y dosaje de TSH.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Titulación de metformina, levotiroxina y pautas metabólicas
+            </div>
+          </div>
+
+          <!-- 4. Cuadros Infecciosos y Respiratorios -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Infecciones Respiratorias y Urinarias</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Evaluación de faringitis, bronquitis aguda no complicada, rinosinusitis, infecciones del tracto urinario (ITU) bajas no complicadas en mujeres y cuadros gripales estacionales con criterio antimicrobiano racional.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Uso prudente de antibióticos bajo Ley 27.553
+            </div>
+          </div>
+
+          <!-- 5. Fatiga, Anemia y Déficits Nutricionales -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Cansancio Crónico y Anemia</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Estudio clínico del cansancio no reparador, astenia prolongada y debilidad muscular. Descarte de anemia ferropénica, déficit de vitamina B12 o vitamina D, alteraciones tiroideas subclínicas o estrés crónico.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Reposición guiada de hierro, vitaminas y oligoelementos
+            </div>
+          </div>
+
+          <!-- 6. Coordinación y Conciliación Farmacológica -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Conciliación de Medicación</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Revisión integral del listado completo de medicamentos prescriptos por diversos profesionales, identificación de duplicaciones o interacciones adversas, desprescripción segura y recetas electrónicas trazables.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Seguridad farmacológica y control de interacciones
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- EL PROTOCOLO CLÍNICO EN 4 ETAPAS -->
+    <section class="py-24 bg-slate-50/80 border-b border-slate-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Protocolo Asistencial</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+            Cómo cuidamos de tu salud paso a paso
+          </h2>
+          <p class="text-slate-600 text-lg leading-relaxed">
+            Una metodología médica metódica orientada al bienestar y a la continuidad a largo plazo.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              01
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Historia y Antecedentes</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Revisión completa de antecedentes familiares, enfermedades crónicas, cirugías previas, hábitos de sueño, alimentación y actividad física.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              02
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Auditoría de Estudios</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Lectura y análisis de tus últimos laboratorios de sangre y orina, ecografías, radiografías y trazados electrocardiográficos en pantalla.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              03
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Plan Terapéutico y Órdenes</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Consenso de metas terapéuticas de presión o glucemia, emisión de órdenes para nuevos estudios preventivos y prescripción adecuada.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              04
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Receta Oficial y Seguimiento</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Emisión de recetas electrónicas con código CUIR válidas en farmacias de toda Argentina y registro en Historia Clínica digital bajo Ley 26.529.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- BANDERAS ROJAS CLÍNICAS (SAFETY BANNER) -->
+    <section class="py-12 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="rounded-2xl p-6 md:p-8 bg-white border border-red-200/90 shadow-sm flex flex-col md:flex-row items-start gap-5">
+          <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <div class="space-y-3">
+            <h4 class="font-bold text-base text-slate-950">Banderas rojas médicas: atención inmediata en guardia presencial</h4>
+            <p class="text-sm text-slate-600 leading-relaxed font-light">
+              La consulta clínica virtual está diseñada para atención ambulatoria programada y chequeos. Si presentás alguno de los siguientes signos agudos, comunicate de inmediato con el <strong>107 SAME / 911</strong> o acudí a la guardia hospitalaria más cercana:
+            </p>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 font-medium pt-1">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Dolor de pecho opresivo irradiado a mandíbula o brazo</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Falta de aire brusca e intensa en reposo</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Pérdida de conciencia brusca o síncope</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Déficit motor o sensitivo súbito (sospecha de ACV)</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Dolor abdominal agudo e insoportable con defensa muscular</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Fiebre alta con confusión, delirio o hipotensión marcada</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREGUNTAS FRECUENTES -->
+    <section class="py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Preguntas Habituales</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-4">
+            Dudas frecuentes sobre la consulta con médico clínico online
+          </h2>
+          <p class="text-slate-600 text-base">
+            Información médica transparente sobre chequeos, recetas y seguimiento integral.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none">
+                <span class="text-lg md:text-xl font-medium text-slate-950 pr-4">{faq.question}</span>
+                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 transition-transform group-open:rotate-180 text-slate-700">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"></path>
+                  </svg>
+                </div>
+              </summary>
+              <div class="px-6 pb-6 md:px-8 md:pb-8 text-slate-600 leading-relaxed text-sm md:text-base border-t border-slate-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <CTAFinal
+      title="Cuidá tu salud de forma integral con un médico de cabecera."
+      subtitle="Conectá con un médico clínico matriculado desde la comodidad y tranquilidad de tu hogar."
+      buttonLabel="Consultar con Médico Clínico"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+  main {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Source Serif 4', serif;
+  }
+
+  .btn-primary-action {
+    background-color: #0284c7;
+    background-image: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  }
+  .btn-primary-action:hover {
+    background-color: #0369a1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+  }
+
+  .btn-secondary-action {
+    background-color: #ffffff;
+  }
+  .btn-secondary-action:hover {
+    background-color: #f8fafc;
+    border-color: #0284c7;
+    color: #0284c7;
+  }
+
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

@@ -1,0 +1,590 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/gastroenterologo-online';
+
+const faqs = [
+  {
+    question: '¿Cómo se desarrolla la consulta con un gastroenterólogo online?',
+    answer:
+      'La consulta se realiza por videollamada cifrada de alta definición entre el médico especialista y el paciente. El gastroenterólogo releva en detalle tu historia clínica: cronología del dolor o molestia abdominal, hábitos evacuatorios, relación con las comidas, tratamientos previos y estilo de vida. Además, se revisan los estudios complementarios previos que hayas cargado en la plataforma y se formula un plan terapéutico integral.',
+  },
+  {
+    question: '¿Puedo enviar mis endoscopias, ecografías y análisis previos para su revisión?',
+    answer:
+      'Sí, es una de las mayores ventajas del servicio. Antes o durante la consulta podés adjuntar informes de videoendoscopía digestiva alta (VEDA), videocolonoscopía (VCC), informes de biopsias de mucosa, ecografías hepatobiliares y análisis de laboratorio (incluyendo serología celíaca, calprotectina fecal o test de aire espirado). El especialista analiza los hallazgos y brinda una segunda opinión fundamentada.',
+  },
+  {
+    question: '¿El gastroenterólogo online prescribe medicación y recetas oficiales en Argentina?',
+    answer:
+      'Sí. Los especialistas de AutaMedica son médicos matriculados habilitados en el Registro Nacional de Prestadores. Emiten recetas digitales bajo la Ley 27.553 con código unívoco CUIR y firma digital válida para farmacias de todo el país, incluyendo protectores gástricos (IBP), proquinéticos, antiespasmódicos, moduladores de la microbiota y terapias específicas.',
+  },
+  {
+    question: '¿Cómo es el abordaje para distensión abdominal y síndrome de intestino irritable (SII)?',
+    answer:
+      'El abordaje combina diagnóstico clínico diferencial (descartando patología orgánica y celiaquía), ajuste de hábitos digestivos y, cuando está indicado, pautas de alimentación baja en carbohidratos fermentables (FODMAPs) bajo supervisión médica. Si se sospecha sobrecrecimiento bacteriano (SIBO) o disbiosis, el profesional orientará los estudios confirmatorios y el tratamiento adecuado.',
+  },
+  {
+    question: '¿Se puede evaluar la sospecha de celiaquía o intolerancias alimentarias a distancia?',
+    answer:
+      'Sí. El gastroenterólogo puede solicitar el panel serológico celíaco (anticuerpos IgA total, antitransglutaminasa y antiendomisio), dosaje de ferritina y hemograma, además de coordinar el momento oportuno para la eventual confirmación histológica mediante endoscopia. Es fundamental no suspender el gluten antes de realizar los análisis para evitar falsos negativos.',
+  },
+  {
+    question: '¿Qué síntomas digestivos constituyen banderas rojas y requieren guardia urgente?',
+    answer:
+      'Cualquier signo de sangrado digestivo (vómitos con sangre o heces negras alquitranadas), dificultad o dolor para tragar alimentos sólidos o líquidos (disfagia progresiva), dolor abdominal agudo continuo de intensidad severa con abdomen endurecido, o vómitos incoercibles con intolerancia total a líquidos. Estos signos requieren atención presencial inmediata en guardia o llamado al 107 SAME.',
+  },
+  {
+    question: '¿Con qué frecuencia se coordinan los controles para reflujo o gastritis crónica?',
+    answer:
+      'Al iniciar o ajustar un esquema farmacológico (por ejemplo, inicio de omeprazol o pantoprazol con proquinético), se suele pautar un control clínico a las 4 u 8 semanas para evaluar la respuesta sintomática, planificar la reducción de dosis (step-down) y consolidar las pautas de higiene alimentaria para evitar recurrencias.',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Especialidades',
+          item: 'https://www.autamedica.com/especialidades',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Gastroenterólogo Online',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Gastroenterólogo Online en Argentina | Consulta Gastroenterológica Virtual | AutaMedica',
+      url: canonicalUrl,
+      description:
+        'Atención gastroenterológica online por médicos especialistas matriculados. Tratamiento de reflujo, gastritis, colon irritable, revisión de endoscopias y recetas digitales oficiales bajo Ley 27.553.',
+      inLanguage: 'es-AR',
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalSpecialty', name: 'Gastroenterologic' },
+        { '@type': 'Thing', name: 'Gastroenterología online' },
+        { '@type': 'Thing', name: 'Reflujo gastroesofágico' },
+        { '@type': 'Thing', name: 'Gastritis crónica' },
+        { '@type': 'Thing', name: 'Síndrome de intestino irritable' },
+        { '@type': 'Thing', name: 'Revisión de endoscopias' },
+        { '@type': 'Thing', name: 'Receta digital oficial' },
+      ],
+      publisher: {
+        '@id': 'https://www.autamedica.com/#organization',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Gastroenterólogo Online en Argentina | Consulta Gastroenterológica Virtual | AutaMedica"
+  description="Consulta gastroenterológica online con especialistas matriculados. Diagnóstico de reflujo, gastritis, colon irritable, revisión de endoscopias y recetas digitales oficiales."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- Breadcrumbs -->
+    <nav class="border-b border-slate-100 bg-slate-50/60 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/especialidades" class="hover:text-sky-600 transition-colors">Especialidades</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Gastroenterólogo online</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="relative py-16 md:py-24 border-b border-slate-100 bg-gradient-to-b from-slate-50 via-white to-white overflow-hidden">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider">
+              <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+              Especialidad Médica · Salud Digestiva Integral
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-medium leading-[1.12] tracking-tight text-slate-950">
+              Gastroenterólogo online: <br class="hidden sm:inline" />
+              <span class="text-[var(--au-accent)]">precisión clínica</span> para recuperar tu bienestar digestivo.
+            </h1>
+
+            <p class="text-lg md:text-xl text-slate-600 font-light leading-relaxed max-w-2xl">
+              Evaluación especializada de reflujo, gastritis, distensión abdominal y colon irritable con médicos gastroenterólogos matriculados. Revisión exhaustiva de estudios previos, recetas oficiales bajo Ley 27.553 y pautas terapéuticas individualizadas.
+            </p>
+
+            <!-- Acciones -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-2">
+              <a href="/auth/register" class="btn-primary-action inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all">
+                <span>Consultar con Gastroenterólogo</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="M12 5l7 7-7 7"></path>
+                </svg>
+              </a>
+              <a href="#patologias-frecuentes" class="btn-secondary-action inline-flex items-center justify-center px-7 py-4 rounded-xl text-slate-700 font-semibold text-base border border-slate-200 transition-all">
+                Patologías y estudios abordados
+              </a>
+            </div>
+
+            <!-- Trust Badges -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-200/80 text-xs text-slate-600">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Gastroenterólogos certificados</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Revisión VEDA y VCC</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Ajuste farmacológico IBP</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Receta oficial CUIR</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Card -->
+          <div class="lg:col-span-5 flex justify-center">
+            <div class="w-full max-w-md bg-white rounded-3xl border border-slate-200/90 shadow-2xl shadow-sky-950/5 p-8 relative overflow-hidden">
+              <div class="absolute -top-10 -right-10 w-40 h-40 bg-sky-50 rounded-full blur-2xl pointer-events-none"></div>
+
+              <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center border border-sky-100 flex-shrink-0">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-wider text-sky-700">Consulta Gastroenterológica</div>
+                  <h3 class="text-xl font-serif font-bold text-slate-950">Atención Personalizada</h3>
+                </div>
+              </div>
+
+              <div class="space-y-4 text-sm text-slate-600 border-t border-slate-100 pt-5">
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-slate-900 block">Auditoría de Informes Endoscópicos</span>
+                    <span class="text-xs text-slate-500">Explicación médica clara sobre gastritis erosiva, pólipos resecados o metaplasia.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-slate-900 block">Esquemas Terapéuticos Racionales</span>
+                    <span class="text-xs text-slate-500">Optimización de protectores gástricos, desescalonamiento y pautas dietarias funcionales.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-slate-900 block">Eje Intestino-Cerebro</span>
+                    <span class="text-xs text-slate-500">Abordaje multidisciplinario de la hipersensibilidad visceral y el estrés digestivo.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Historia clínica protegida</span>
+                <span class="font-semibold text-sky-700">Ley 25.326</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- MANIFIESTO: LA MEDICINA DIGESTIVA MODERNA -->
+    <section class="py-20 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="bg-white rounded-3xl p-8 md:p-14 border border-slate-200/90 shadow-sm text-left">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Enfoque Fisiopatológico</span>
+          <h2 class="text-2xl md:text-4xl font-serif font-bold text-slate-950 mb-6 leading-tight">
+            Comprender el origen del síntoma digestivo para tratar la causa, no solo apagar la molestia.
+          </h2>
+          <div class="space-y-4 text-slate-600 leading-relaxed font-light text-base md:text-lg">
+            <p>
+              El ardor retroesternal crónico, la pesadez postprandial y los cambios en el ritmo evacuatorio son motivos habituales de automedicación con antiácidos o antiespasmódicos. Este hábito suele enmascarar cuadros que requieren una evaluación médica metódica y un plan terapéutico sostenido.
+            </p>
+            <p>
+              En AutaMedica, la consulta gastroenterológica virtual permite al especialista analizar la historia clínica completa, correlacionar los síntomas con los hallazgos de endoscopias o ecografías previas, descartar organicidad y estructurar un plan a medida que integre modulación farmacológica, nutrición basada en evidencia y control del estrés neurovegetativo.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 ÁREAS DE ABORDAJE GASTROENTEROLÓGICO -->
+    <section id="patologias-frecuentes" class="py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Patologías Digestivas</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+            Áreas frecuentes de atención gastroenterológica
+          </h2>
+          <p class="text-slate-600 text-lg leading-relaxed">
+            Evaluación clínica exhaustiva basada en los consensos internacionales de gastroenterología (Roma IV, ACG y FAGE).
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          
+          <!-- 1. ERGE y Reflujo -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Reflujo Gastroesofágico (ERGE)</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Pirosis retroesternal quemante, regurgitación ácida, tos nocturna y carraspera persistente. Indicación y dosificación escalonada de inhibidores de la bomba de protones (IBP) y pautas antireflujo comprobadas.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Control de esofagitis y prevención de esófago de Barrett
+            </div>
+          </div>
+
+          <!-- 2. Gastritis y Dispepsia -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 8v4M12 16h.01"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Gastritis y Dispepsia Funcional</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Dolor o pesadez epigástrica postprandial, saciedad temprana y náuseas leves. Evaluación de antecedentes de Helicobacter pylori, erradicación antibiótica dirigida y protección de la barrera mucosa gástrica.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Manejo de dispepsia tipo dolor o distrés postprandial
+            </div>
+          </div>
+
+          <!-- 3. Síndrome de Intestino Irritable (SII) -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 12h16M4 6h16M4 18h16"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Intestino Irritable y Distensión</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Hipersensibilidad visceral, dolor abdominal que mejora tras la evacuación, meteorismo y alternancia entre constipación y diarrea. Tratamiento adaptado al subtipo clínico y pautas bajas en FODMAPs.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Criterios de Roma IV y modulación del eje microbiota-intestino
+            </div>
+          </div>
+
+          <!-- 4. Revisión de Endoscopias y Biopsias -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Segunda Opinión en Estudios</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Interpretación minuciosa de informes de videoendoscopías (VEDA y VCC), biopsias de estómago o colon, ecografías abdominales y calprotectina fecal. Explicación de diagnósticos histológicos sin tecnicismos oscuros.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Revisión especializada de anatomía patológica
+            </div>
+          </div>
+
+          <!-- 5. Celiaquía e Intolerancias -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.5h-2v-2h2zm0-4h-2V7h2z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Celiaquía e Intolerancias</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Sospecha diagnóstica de enfermedad celíaca, sensibilidad al gluten no celíaca e intolerancia a la lactosa. Solicitud guiada de anticuerpos antitransglutaminasa IgA y coordinación de confirmación diagnóstica formal.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Diagnóstico serológico seguro antes de eliminar alimentos
+            </div>
+          </div>
+
+          <!-- 6. Hígado Graso y Trastornos Biliares -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Hígado Graso y Hepatología</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Esteatosis hepática metabólica (MASLD), alteración en hepatograma (elevación de transaminasas, FAL o GGT), seguimiento de litiasis vesicular no complicada y prevención de progresión fibrótica.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Monitoreo bioquímico y ecográfico continuo
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- EL PROTOCOLO CLÍNICO EN 4 ETAPAS -->
+    <section class="py-24 bg-slate-50/80 border-b border-slate-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Protocolo Asistencial</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+            Estructura de la consulta gastroenterológica
+          </h2>
+          <p class="text-slate-600 text-lg leading-relaxed">
+            Un flujo clínico riguroso diseñado para llegar a un diagnóstico certero y un tratamiento eficaz.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              01
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Anamnesis Digestiva</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Relevamiento cronológico del síntoma principal, relación con los alimentos, ritmo intestinal y tratamientos farmacológicos o naturales ensayados.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              02
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Auditoría de Estudios</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Lectura conjunta en pantalla de estudios previos: fotos de videoendoscopías, informes patológicos de biopsias, ecografías y análisis de sangre.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              03
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Plan Integral y Dieta</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Diseño de la estrategia terapéutica: indicación de fármacos con posología exacta y pautas dietarias claras para reducir la inflamación y el reflujo.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              04
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Receta Oficial y Control</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Emisión de recetas digitales oficiales con código CUIR válidas en todo el país y fijación de fecha de control clínico para evaluar evolución.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- BANDERAS ROJAS GASTROENTEROLÓGICAS (SAFETY BANNER) -->
+    <section class="py-12 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="rounded-2xl p-6 md:p-8 bg-white border border-red-200/90 shadow-sm flex flex-col md:flex-row items-start gap-5">
+          <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <div class="space-y-3">
+            <h4 class="font-bold text-base text-slate-950">Banderas rojas digestivas: derivación inmediata a guardia presencial</h4>
+            <p class="text-sm text-slate-600 leading-relaxed font-light">
+              La teleconsulta gastroenterológica es adecuada para control y diagnóstico ambulatorio. Si presentás alguno de los siguientes signos de alarma, debés acudir de inmediato a una guardia médica o comunicarte con el <strong>107 SAME / 911</strong>:
+            </p>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 font-medium pt-1">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Sangrado en vómitos o heces negras alquitranadas (melena)</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Disfagia progresiva (dificultad o dolor al tragar)</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Pérdida involuntaria e inexplicable de peso</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Dolor abdominal intenso continuo (abdomen en tabla)</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Vómitos continuos con intolerancia oral a líquidos</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Ictericia súbita (coloración amarilla de piel u ojos)</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREGUNTAS FRECUENTES -->
+    <section class="py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Preguntas Habituales</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-4">
+            Dudas frecuentes sobre la consulta con gastroenterólogo online
+          </h2>
+          <p class="text-slate-600 text-base">
+            Claridad médica sobre el proceso de diagnóstico, recetas y revisión de estudios.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none">
+                <span class="text-lg md:text-xl font-medium text-slate-950 pr-4">{faq.question}</span>
+                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 transition-transform group-open:rotate-180 text-slate-700">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"></path>
+                  </svg>
+                </div>
+              </summary>
+              <div class="px-6 pb-6 md:px-8 md:pb-8 text-slate-600 leading-relaxed text-sm md:text-base border-t border-slate-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <CTAFinal
+      title="Recuperá tu digestión y calidad de vida con atención especializada."
+      subtitle="Conectá con un médico gastroenterólogo matriculado desde la comodidad de tu hogar."
+      buttonLabel="Consultar con Gastroenterólogo"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+  main {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Source Serif 4', serif;
+  }
+
+  .btn-primary-action {
+    background-color: #0284c7;
+    background-image: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  }
+  .btn-primary-action:hover {
+    background-color: #0369a1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+  }
+
+  .btn-secondary-action {
+    background-color: #ffffff;
+  }
+  .btn-secondary-action:hover {
+    background-color: #f8fafc;
+    border-color: #0284c7;
+    color: #0284c7;
+  }
+
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

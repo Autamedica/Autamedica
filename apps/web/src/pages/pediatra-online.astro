@@ -1,0 +1,621 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/pediatra-online';
+
+const faqs = [
+  {
+    question: '¿A partir de qué edad y cómo se realiza la consulta pediátrica online?',
+    answer:
+      'Atendemos a recién nacidos, lactantes, niños y adolescentes hasta los 18 años de edad cumplidos. La consulta se desarrolla mediante videollamada cifrada de alta definición entre el médico pediatra y la familia. Es un espacio clínico pausado donde el profesional evalúa la historia del menor, observa su estado general, responde dudas sobre pautas de alarma y emite las indicaciones terapéuticas pertinentes.',
+  },
+  {
+    question: '¿Es obligatorio que un adulto acompañe al menor durante la videollamada?',
+    answer:
+      'Sí, es un requisito legal y deontológico indispensable según la Ley 26.061 de Protección Integral de los Derechos de las Niñas, Niños y Adolescentes y el Código Civil y Comercial de la Nación. Todo menor de edad debe estar indefectiblemente acompañado por su madre, padre o tutor legal registrado durante la totalidad de la sesión virtual, quien brindará el consentimiento informado correspondiente.',
+  },
+  {
+    question: '¿El pediatra online puede calcular y prescribir antitérmicos y dosis por peso?',
+    answer:
+      'Exactamente. En pediatría la medicación jamás debe calcularse por edad aproximada ni por tablas genéricas. El pediatra solicita el peso exacto y reciente del niño en kilogramos para prescribir la dosis milimétrica adecuada de paracetamol, ibuprofeno u otros fármacos, indicando el intervalo horario estricto, la vía de administración y la concentración comercial sugerida.',
+  },
+  {
+    question: '¿Se emiten recetas digitales oficiales para farmacias en Argentina?',
+    answer:
+      'Sí. Los pediatras de AutaMedica son profesionales matriculados habilitados en el Registro Nacional de Prestadores. Emiten recetas digitales bajo la Ley 27.553 con código unívoco de identificación de receta (CUIR), firma digital válida y código de barras, aceptadas en todas las farmacias del país para medicamentos de venta bajo receta simple y archivada.',
+  },
+  {
+    question: '¿Puedo solicitar un certificado médico escolar o de reposo para guardería?',
+    answer:
+      'Si tras la evaluación clínica remota el pediatra comprueba un cuadro infeccioso leve que requiera reposo domiciliario y aislamiento preventivo para evitar contagios en el ámbito escolar (por ejemplo, síndrome gripal o gastroenteritis aguda), emitirá el certificado médico digital oficial con diagnóstico, período de reposo indicado y matrícula profesional verificable.',
+  },
+  {
+    question: '¿Qué situaciones pediátricas NO pueden resolverse online y requieren guardia presencial?',
+    answer:
+      'Toda situación con compromiso de la vía aérea, dificultad respiratoria visible (tiraje o aleteo), fiebre en recién nacidos menores de 3 meses, convulsiones febriles, deshidratación grave, heridas cortantes profundas, traumatismos encéfalo-craneanos con pérdida de conciencia o ingesta accidental de tóxicos. En estos casos no debe demorarse en la pantalla y se debe trasladar al niño de inmediato a la guardia pediátrica presencial más cercana o comunicarse con el 107 SAME.',
+  },
+  {
+    question: '¿Cómo evalúa el pediatra erupciones dérmicas o lesiones en la piel durante la llamada?',
+    answer:
+      'Durante la videoconsulta, podés iluminar adecuadamente la zona corporal del niño con luz natural directa o compartir fotografías estáticas nítidas de alta resolución a través del chat médico seguro integrado, permitiendo al pediatra examinar la morfología de la erupción, su distribución y descartar signos de alarma dérmica como petequias.',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Especialidades',
+          item: 'https://www.autamedica.com/especialidades',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Pediatra Online',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Pediatra Online en Argentina | Consulta Pediátrica Virtual | AutaMedica',
+      url: canonicalUrl,
+      description:
+        'Atención pediátrica online por médicos especialistas matriculados. Control de desarrollo, pautas de crianza, fiebre infantil, cuadros respiratorios leves y recetas digitales oficiales bajo Ley 27.553.',
+      inLanguage: 'es-AR',
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Parent',
+      },
+      about: [
+        { '@type': 'MedicalSpecialty', name: 'Pediatric' },
+        { '@type': 'Thing', name: 'Pediatría online' },
+        { '@type': 'Thing', name: 'Salud infantil' },
+        { '@type': 'Thing', name: 'Fiebre en niños' },
+        { '@type': 'Thing', name: 'Pautas de crianza' },
+        { '@type': 'Thing', name: 'Vacunación infantil' },
+        { '@type': 'Thing', name: 'Receta digital pediátrica' },
+      ],
+      publisher: {
+        '@id': 'https://www.autamedica.com/#organization',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Pediatra Online en Argentina | Consulta Pediátrica Virtual | AutaMedica"
+  description="Consulta pediátrica online con pediatras matriculados. Orientación en fiebre infantil, pautas de crianza, cuadros leves, calendario de vacunas y recetas digitales oficiales."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- Breadcrumbs -->
+    <nav class="border-b border-slate-100 bg-slate-50/60 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/especialidades" class="hover:text-sky-600 transition-colors">Especialidades</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Pediatra online</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="relative py-16 md:py-24 border-b border-slate-100 bg-gradient-to-b from-slate-50 via-white to-white overflow-hidden">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider">
+              <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+              Especialidad Médica · Pediatría y Salud Infantil
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-medium leading-[1.12] tracking-tight text-slate-950">
+              Pediatra online: <br class="hidden sm:inline" />
+              <span class="text-[var(--au-accent)]">atención médica experta</span> y contención familiar en tu hogar.
+            </h1>
+
+            <p class="text-lg md:text-xl text-slate-600 font-light leading-relaxed max-w-2xl">
+              Consultas por videollamada con médicos pediatras matriculados en Argentina. Orientación en fiebre infantil, pautas de desarrollo y alimentación, control de cuadros leves y emisión de recetas digitales oficiales bajo Ley 27.553.
+            </p>
+
+            <!-- Acciones -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-2">
+              <a href="/auth/register" class="btn-primary-action inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all">
+                <span>Consultar con Pediatra</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="M12 5l7 7-7 7"></path>
+                </svg>
+              </a>
+              <a href="#motivos-de-consulta" class="btn-secondary-action inline-flex items-center justify-center px-7 py-4 rounded-xl text-slate-700 font-semibold text-base border border-slate-200 transition-all">
+                Motivos de atención habituales
+              </a>
+            </div>
+
+            <!-- Trust Badges -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-200/80 text-xs text-slate-600">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Pediatras matriculados</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Dosificación por peso</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Tutores Ley 26.061</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Receta oficial CUIR</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Card -->
+          <div class="lg:col-span-5 flex justify-center">
+            <div class="w-full max-w-md bg-white rounded-3xl border border-slate-200/90 shadow-2xl shadow-sky-950/5 p-8 relative overflow-hidden">
+              <div class="absolute -top-10 -right-10 w-40 h-40 bg-sky-50 rounded-full blur-2xl pointer-events-none"></div>
+
+              <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center border border-sky-100 flex-shrink-0">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 2a5 5 0 0 1 5 5c0 2.22-1.21 4.16-3 5.2V17h-4v-4.8A6.002 6.002 0 0 1 12 2z"></path>
+                    <path d="M9 17v2a3 3 0 0 0 6 0v-2"></path>
+                    <circle cx="9" cy="7" r="1"></circle>
+                    <circle cx="15" cy="7" r="1"></circle>
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-wider text-sky-700">Consulta Pediátrica</div>
+                  <h3 class="text-xl font-serif font-bold text-slate-950">Acompañamiento Integral</h3>
+                </div>
+              </div>
+
+              <div class="space-y-4 text-sm text-slate-600 border-t border-slate-100 pt-5">
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-slate-900 block">Evaluación de Crecimiento</span>
+                    <span class="text-xs text-slate-500">Curvas de peso, talla y maduración psicomotriz según estándares SAP/OMS.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-slate-900 block">Manejo Seguro de la Fiebre</span>
+                    <span class="text-xs text-slate-500">Pautas claras de alarma, dosis ajustada al mililitro y medidas físicas adecuadas.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-slate-900 block">Sin Esperas Infecciosas</span>
+                    <span class="text-xs text-slate-500">Evitá salas de guardia atestadas y la exposición a virus estacionales cruzados.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Con acompañamiento parental obligatorio</span>
+                <span class="font-semibold text-sky-700">Ley 26.061</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- MANIFIESTO: RIGOR PEDIÁTRICO Y SEGURIDAD -->
+    <section class="py-20 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="bg-white rounded-3xl p-8 md:p-14 border border-slate-200/90 shadow-sm text-left">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Compromiso Clínico</span>
+          <h2 class="text-2xl md:text-4xl font-serif font-bold text-slate-950 mb-6 leading-tight">
+            Cuidar la salud infantil exige criterio médico, serenidad y escucha atenta.
+          </h2>
+          <div class="space-y-4 text-slate-600 leading-relaxed font-light text-base md:text-lg">
+            <p>
+              Cuando un niño tiene fiebre o malestar, las familias suelen experimentar angustia y dudas sobre cómo actuar. Pasar horas en una guardia hospitalaria por un cuadro banal expone al menor a gérmenes más agresivos y genera un estrés innecesario.
+            </p>
+            <p>
+              La telemedicina pediátrica en AutaMedica ofrece un canal directo y ordenado con pediatras titulados para valorar el estado general del niño, corroborar que se encuentre lúcido y bien hidratado, indicar la dosis exacta de medicación y despejar inquietudes con fundamentación científica. Y ante el menor indicio de compromiso clínico real, nuestro protocolo ético prioriza la derivación inmediata a la guardia presencial.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 ÁREAS DE ABORDAJE PEDIÁTRICO -->
+    <section id="motivos-de-consulta" class="py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Atención Especializada</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+            Motivos frecuentes de consulta pediátrica virtual
+          </h2>
+          <p class="text-slate-600 text-lg leading-relaxed">
+            Abordaje clínico de baja y mediana complejidad ambulatoria, alineado con las guías de la Sociedad Argentina de Pediatría (SAP).
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          
+          <!-- 1. Fiebre y Síndrome Febril -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Manejo de Fiebre Infantil</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Identificación del origen febril, evaluación del estado general (reactividad, coloración y juego), cálculo milimétrico de antitérmicos por peso y pautas de enfriamiento físico seguro sin fármacos innecesarios.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Dosificación precisa de paracetamol e ibuprofeno
+            </div>
+          </div>
+
+          <!-- 2. Cuadros Respiratorios Leves -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Vías Aéreas y Resfríos</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Congestión nasal, rinitis, tos espasmódica leve, estornudos y dolor de garganta en niños mayores. Indicación de lavados nasales con solución fisiológica y descarte estricto de dificultad respiratoria.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Desobstrucción nasal y manejo no farmacológico
+            </div>
+          </div>
+
+          <!-- 3. Salud Gastrointestinal Infantil -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M8 12a4 4 0 0 0 8 0"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Digestión, Cólicos y Diarrea</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Episodios de diarrea leve o gastroenteritis sin deshidratación, vómitos aislados, cólicos del lactante y constipación funcional. Monitoreo estricto del balance hidroelectrolítico y sales de rehidratación oral (SRO).
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Prevención activa de deshidratación pediátrica
+            </div>
+          </div>
+
+          <!-- 4. Pautas de Crianza y Lactancia -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Lactancia y Alimentación</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Consejería en lactancia materna exclusiva y mixta, introducción progresiva de alimentos sólidos (alimentación complementaria / método BLW o papillas), sueño seguro y prevención del síndrome de muerte súbita del lactante.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Nutrición adecuada y hábitos de sueño saludable
+            </div>
+          </div>
+
+          <!-- 5. Erupciones y Dermatología Infantil -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="m4.93 4.93 4.24 4.24"></path>
+                  <path d="m14.83 9.17 4.24-4.24"></path>
+                  <path d="m14.83 14.83 4.24 4.24"></path>
+                  <path d="m9.17 14.83-4.24 4.24"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Exantemas y Dermatitis</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Dermatitis del pañal, sudamina o miliaria por calor, dermatitis atópica, picaduras de insectos y exantemas virales comunes de la infancia. Diferenciación visual de lesiones inocuas versus petequias o púrpura.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Revisión fotográfica y prueba de vitropresión
+            </div>
+          </div>
+
+          <!-- 6. Vacunación y Certificados Escolares -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Vacunas y Certificados</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Auditoría del Carnet de Vacunación oficial según el Calendario Nacional obligatorio de Argentina, indicación de vacunas pendientes y emisión de certificados de reposo escolar temporal tras cuadros infecciosos.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Cumplimiento del Calendario Nacional Obligatorio
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- EL PROTOCOLO CLÍNICO EN 4 ETAPAS -->
+    <section class="py-24 bg-slate-50/80 border-b border-slate-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Protocolo Pediátrico</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+            Paso a paso de la videoconsulta pediátrica
+          </h2>
+          <p class="text-slate-600 text-lg leading-relaxed">
+            Una atención médica organizada, enfocada en la seguridad del paciente y la tranquilidad de los progenitores.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              01
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Ingreso con Tutor Legal</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              El padre, madre o tutor legal se registra y presenta el motivo de consulta con datos clave del niño: peso actual, edad y tiempo de inicio de los síntomas.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              02
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Evaluación Visual y Diálogo</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Videoconsulta directa con el pediatra. Se evalúa el aspecto general, patrón respiratorio, coloración de piel, nivel de actividad y estado de hidratación.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              03
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Indicación y Pautas Claras</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              El médico consensúa el plan de cuidados domiciliarios, calcula la posología exacta de antitérmicos o fármacos y define las pautas de alarma para reconsultar.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              04
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Receta CUIR y Seguimiento</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Descarga inmediata de la receta digital oficial válida en farmacias de todo el país y registro de la evolución en la Historia Clínica digital protegida.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- MARCO LEGAL Y CONSENTIMIENTO INFORMADO -->
+    <section class="py-16 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="bg-slate-50 rounded-3xl p-8 md:p-12 border border-slate-200/80">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-2">Marco Regulatorio Vigente</span>
+          <h3 class="text-2xl font-serif font-bold text-slate-950 mb-4">Garantías legales y protección del menor</h3>
+          <p class="text-sm text-slate-600 leading-relaxed mb-6 font-light">
+            En cumplimiento estricto de la legislación de la República Argentina, la atención pediátrica a distancia en AutaMedica se fundamenta en tres pilares legales obligatorios:
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-600">
+            <div class="p-4 rounded-xl bg-white border border-slate-200/70">
+              <span class="font-bold text-slate-900 block text-sm mb-1">Ley 26.061</span>
+              Protección Integral de los Derechos de Niñas, Niños y Adolescentes. Consentimiento informado y presencia indelegable de tutores legales.
+            </div>
+            <div class="p-4 rounded-xl bg-white border border-slate-200/70">
+              <span class="font-bold text-slate-900 block text-sm mb-1">Ley 27.553</span>
+              Ejercicio de la telemedicina y prescripción de recetas digitales y electrónicas con identificador único CUIR y matrícula profesional activa.
+            </div>
+            <div class="p-4 rounded-xl bg-white border border-slate-200/70">
+              <span class="font-bold text-slate-900 block text-sm mb-1">Leyes 26.529 y 25.326</span>
+              Derechos del paciente, inviolabilidad de la Historia Clínica y máxima confidencialidad en el tratamiento de datos de salud infantil.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BANDERAS ROJAS Y URGENCIAS PEDIÁTRICAS (SAFETY BANNER) -->
+    <section class="py-12 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="rounded-2xl p-6 md:p-8 bg-white border border-red-200/90 shadow-sm flex flex-col md:flex-row items-start gap-5">
+          <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <div class="space-y-3">
+            <h4 class="font-bold text-base text-slate-950">Banderas rojas pediátricas: atención inmediata en guardia presencial</h4>
+            <p class="text-sm text-slate-600 leading-relaxed font-light">
+              La teleasistencia está contraindicada ante cuadros que requieran auscultación pulmonar de urgencia, estabilización hemodinámica o internación. Acudí de inmediato a una guardia pediátrica o llamá al <strong>107 SAME / 911</strong> si el niño presenta:
+            </p>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 font-medium pt-1">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Dificultad para respirar (tiraje o aleteo nasal)</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Fiebre en bebés menores de 3 meses</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Convulsión febril o desmayo</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Letargo, somnolencia extrema o no despierta</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Deshidratación (llanto sin lágrimas, pañal seco)</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Manchas violáceas (petequias) que no borran</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREGUNTAS FRECUENTES -->
+    <section class="py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Preguntas Habituales</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-4">
+            Dudas frecuentes sobre la consulta con pediatra online
+          </h2>
+          <p class="text-slate-600 text-base">
+            Información médica transparente para el cuidado seguro de tus hijos.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none">
+                <span class="text-lg md:text-xl font-medium text-slate-950 pr-4">{faq.question}</span>
+                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 transition-transform group-open:rotate-180 text-slate-700">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"></path>
+                  </svg>
+                </div>
+              </summary>
+              <div class="px-6 pb-6 md:px-8 md:pb-8 text-slate-600 leading-relaxed text-sm md:text-base border-t border-slate-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <CTAFinal
+      title="El cuidado médico de tus hijos, sin esperas ni traslados."
+      subtitle="Conectá con un médico pediatra matriculado desde la comodidad y seguridad de tu hogar."
+      buttonLabel="Consultar con Pediatra"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+  main {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Source Serif 4', serif;
+  }
+
+  .btn-primary-action {
+    background-color: #0284c7;
+    background-image: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  }
+  .btn-primary-action:hover {
+    background-color: #0369a1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+  }
+
+  .btn-secondary-action {
+    background-color: #ffffff;
+  }
+  .btn-secondary-action:hover {
+    background-color: #f8fafc;
+    border-color: #0284c7;
+    color: #0284c7;
+  }
+
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

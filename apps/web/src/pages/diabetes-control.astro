@@ -1,0 +1,530 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/diabetes-control';
+
+const faqs = [
+  {
+    question: '¿Qué es la hemoglobina glicosilada (HbA1c) y cuál es el objetivo recomendado?',
+    answer:
+      'La hemoglobina glicosilada (HbA1c) es un análisis de sangre que refleja el promedio de tus niveles de glucemia durante los últimos 2 a 3 meses, sin verse afectada por lo que comiste el día anterior. En la mayoría de los adultos no gestantes con diabetes tipo 2, la meta terapéutica estándar es mantener la HbA1c por debajo del 7.0%. No obstante, el médico puede individualizar este objetivo a valores más estrictos (< 6.5%) en personas jóvenes sin comorbilidades, o más flexibles (< 7.5% - 8.0%) en adultos mayores para prevenir episodios peligrosos de hipoglucemia.',
+  },
+  {
+    question: '¿Qué es la prediabetes y cómo puede evitarse su progresión a diabetes tipo 2?',
+    answer:
+      'La prediabetes es una condición en la cual los niveles de glucosa en sangre están más altos de lo normal (glucemia en ayunas entre 100 y 125 mg/dL o HbA1c entre 5.7% y 6.4%), pero aún no alcanzan los criterios diagnósticos de diabetes. Constituye una ventana de oportunidad crítica: la adopción de un plan alimentario con reducción de azúcares refinados, descenso moderado de peso (5 al 7% del peso corporal) y 150 minutos semanales de actividad física aeróbica y de fuerza pueden normalizar los valores o retrasar significativamente la aparición de diabetes.',
+  },
+  {
+    question: '¿Cómo se reconoce y se trata una hipoglucemia según la "Regla de los 15"?',
+    answer:
+      'Una hipoglucemia se define como un valor de glucemia menor a 70 mg/dL y se manifiesta con temblores, sudoración fría, palpitaciones, hambre súbita, mareo o visión borrosa. Ante estos síntomas, debés aplicar la Regla de los 15: consumir 15 gramos de hidratos de carbono simples de absorción rápida (por ejemplo: medio vaso de gaseosa común —no light—, 3 sobres de azúcar disueltos en agua o 1 cucharada sopera de miel). Esperá 15 minutos en reposo y volvé a medir tu glucemia con el glucómetro. Si continúa por debajo de 70 mg/dL, repetí la ingesta de 15 gramos.',
+  },
+  {
+    question: '¿Por qué es fundamental revisar los pies todos los días si tengo diabetes?',
+    answer:
+      'La hiperglucemia sostenida en el tiempo puede causar neuropatía periférica (pérdida de la sensibilidad térmica y dolorosa) y enfermedad arterial periférica (menor flujo sanguíneo). Esto significa que podés lastimarte, cortarte o desarrollar una ampolla por el roce del calzado sin sentir ningún dolor. La inspección diaria permite detectar enrojecimientos, grietas o pequeñas heridas antes de que se infecten o evolucionen a úlceras de difícil cicatrización.',
+  },
+  {
+    question: '¿Cuáles son los tratamientos farmacológicos actuales para la diabetes tipo 2?',
+    answer:
+      'El tratamiento moderno se selecciona de forma personalizada. La metformina continúa siendo la terapia inicial más consolidada. Además, hoy contamos con nuevas familias de fármacos de enorme impacto positivo: los inhibidores de SGLT-2 (como dapagliflozina o empagliflozina), que eliminan glucosa por la orina y brindan protección renal y cardíaca demostrada; los agonistas del receptor GLP-1, que promueven saciedad y descenso de peso; y los esquemas de insulinoterapia basal para quienes requieren un aporte hormonal directo.',
+  },
+  {
+    question: '¿Qué cobertura tienen los medicamentos e insumos de diabetes según la ley argentina?',
+    answer:
+      'Bajo la Ley Nacional de Diabetes N° 23.753 y su Resolución Ministerial 1156/2014, todas las obras sociales nacionales, empresas de medicina prepaga y programas públicos deben otorgar el 100% de cobertura en insulinas, hipoglucemiantes orales, tiras reactivas de automonitoreo, lancetas para punción, agujas para lapiceras y glucómetros según la prescripción y el resumen de historia clínica emitido por tu médico tratante.',
+  },
+  {
+    question: '¿Puedo renovar mis recetas de medicamentos e insumos para diabetes en AutaMedica?',
+    answer:
+      'Sí. Los médicos clínicos y endocrinólogos de AutaMedica evalúan tu último control de laboratorio, confeccionan el resumen de evolución requerido por los programas de cronicidad y emiten las recetas oficiales con código CUIR y firma digital válidas ante farmacias y auditorías de obras sociales y prepagas de todo el país.',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Patologías Crónicas',
+          item: 'https://www.autamedica.com/especialidades',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Control de Diabetes Tipo 2',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Control de Diabetes Tipo 2 y Prediabetes | Seguimiento Clínico | AutaMedica',
+      url: canonicalUrl,
+      description:
+        'Acompañamiento médico continuo para Diabetes Mellitus Tipo 2 y prediabetes. Monitoreo de glucemias, hemoglobina glicosilada (HbA1c), prevención de hipoglucemias, cuidado del pie diabético y recetas de insumos.',
+      inLanguage: 'es-AR',
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalCondition', name: 'Diabetes Mellitus Tipo 2' },
+        { '@type': 'MedicalCondition', name: 'Prediabetes' },
+        { '@type': 'MedicalCondition', name: 'Pie diabético' },
+        { '@type': 'MedicalSpecialty', name: 'Endocrinology' },
+        { '@type': 'MedicalSpecialty', name: 'PrimaryCare' },
+      ],
+      publisher: {
+        '@id': 'https://www.autamedica.com/#organization',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Control de Diabetes Tipo 2 y Prediabetes: Seguimiento Médico | AutaMedica"
+  description="Acompañamiento clínico integral de Diabetes Tipo 2 y prediabetes. Metas de HbA1c, monitoreo glucémico, prevención de hipoglucemias, cuidado de pies y recetas oficiales de insumos."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+  <Navbar />
+
+  <main class="bg-white text-neutral-900 pt-20">
+    <!-- HERO PRINCIPAL -->
+    <section class="relative py-20 md:py-28 border-b border-neutral-100 overflow-hidden bg-gradient-to-b from-[#f8fafc] via-white to-white">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              Medicina Interna & Endocrinología · Patologías Metabólicas
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-medium leading-[1.12] tracking-tight text-neutral-950">
+              Control de diabetes y prediabetes: <br class="hidden sm:inline" />
+              <span class="text-[var(--au-accent)]">estabilidad metabólica</span> y protección integral a largo plazo.
+            </h1>
+
+            <p class="text-lg md:text-xl text-neutral-600 font-light leading-relaxed max-w-2xl">
+              El abordaje de la diabetes tipo 2 trasciende un valor aislado de glucemia en ayunas. Requiere una estrategia médica personalizada: metas de hemoglobina glicosilada (HbA1c), ajuste seguro de fármacos orales e insulinas, prevención de hipoglucemias, vigilancia del pie diabético y recetas oficiales de medicación e insumos sin demoras.
+            </p>
+
+            <!-- Acciones -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-2">
+              <a href="/medico-clinico-online" class="btn-primary-action inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all">
+                <span>Consultar con Médico Clínico</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="M12 5l7 7-7 7"></path>
+                </svg>
+              </a>
+              <a href="/receta-medica-online" class="btn-secondary-action inline-flex items-center justify-center px-7 py-4 rounded-xl text-neutral-700 font-semibold text-base border border-neutral-200 transition-all">
+                Renovar recetas e insumos
+              </a>
+            </div>
+
+            <!-- Trust Badges -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-neutral-200/70 text-xs text-neutral-600">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Médicos matriculados</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Control de HbA1c</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Insumos Ley 23.753</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Cuidado de pie diabético</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Resumen Visual -->
+          <div class="lg:col-span-5 flex justify-center">
+            <div class="w-full max-w-md bg-white rounded-3xl border border-neutral-200/90 shadow-2xl shadow-sky-950/5 p-8 relative overflow-hidden">
+              <div class="absolute -top-10 -right-10 w-40 h-40 bg-sky-50 rounded-full blur-2xl pointer-events-none"></div>
+
+              <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center border border-sky-100 flex-shrink-0">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="m4.93 4.93 4.24 4.24m5.66 5.66 4.24 4.24"></path>
+                    <circle cx="12" cy="12" r="4"></circle>
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-wider text-sky-700">Protocolo Metabólico</div>
+                  <h3 class="text-xl font-serif font-bold text-neutral-950">Acompañamiento Diabético</h3>
+                </div>
+              </div>
+
+              <div class="space-y-4 text-sm text-neutral-600 border-t border-neutral-100 pt-5">
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-neutral-900 block">Monitoreo Glucémico y HbA1c</span>
+                    <span class="text-xs text-neutral-500">Metas individualizadas para evitar hiperglucemias crónicas e hipoglucemias agudas.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-neutral-900 block">Terapéutica Oral e Insulinas</span>
+                    <span class="text-xs text-neutral-500">Seguimiento de metformina, iSGLT-2, análogos de GLP-1 y esquemas basales.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-neutral-900 block">Prevención Cardiorrenal</span>
+                    <span class="text-xs text-neutral-500">Protección vascular activa y pesquisa protocolizada del pie en riesgo.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 pt-5 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-500">
+                <span>Tratamientos crónicos garantizados</span>
+                <span class="font-semibold text-sky-700">Recetas oficiales con código CUIR</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MANIFIESTO METABÓLICO -->
+    <section class="py-20 bg-neutral-50 border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="bg-white rounded-3xl p-8 md:p-14 border border-neutral-200/90 shadow-sm text-left">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Enfoque Clínico Moderno</span>
+          <h2 class="text-2xl md:text-4xl font-serif font-bold text-neutral-950 mb-6 leading-tight">
+            Tratar la diabetes es proteger el sistema vascular completo, no solo bajar números.
+          </h2>
+          <div class="space-y-4 text-neutral-600 leading-relaxed font-light text-base md:text-lg">
+            <p>
+              Durante décadas se consideró a la diabetes tipo 2 como un trastorno estrictamente glucocéntrico. La medicina actual entiende que la hiperglucemia es la manifestación visible de un cuadro metabólico y vascular complejo, estrechamente ligado a la resistencia a la insulina, la inflamación sistémica de bajo grado y el riesgo cardiovascular.
+            </p>
+            <p>
+              En AutaMedica promovemos un acompañamiento médico continuo y cercano. Ayudamos al paciente a comprender sus registros, a adoptar hábitos nutricionales realistas y sostenibles en el tiempo, a elegir las combinaciones farmacológicas con comprobado beneficio cardiorrenal y a prevenir tanto los descensos bruscos (hipoglucemias) como las complicaciones tardías en la vista, los riñones y los pies.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PILARES DEL TRATAMIENTO Y MEDICACIÓN -->
+    <section class="py-24 bg-white border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-6xl">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Farmacología y Estilo de Vida</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-4">
+            Los pilares del tratamiento moderno de la diabetes tipo 2
+          </h2>
+          <p class="text-neutral-600 text-base md:text-lg font-light">
+            Estrategias terapéuticas avaladas por la Asociación Latinoamericana de Diabetes (ALAD) y las guías internacionales.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <!-- Metformina e Hipoglucemiantes Clásicos -->
+          <div class="bg-slate-50 rounded-3xl p-8 border border-neutral-200/80 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+              01
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-950">Metformina y Sensibilizadores</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm font-light">
+              Continúa siendo el fármaco de primera elección en la mayoría de los pacientes. Reduce la producción de glucosa por parte del hígado y mejora la captación muscular de insulina, sin generar riesgo de hipoglucemia en monoterapia ni aumento de peso.
+            </p>
+          </div>
+
+          <!-- Inhibidores de SGLT-2 y Análogos de GLP-1 -->
+          <div class="bg-slate-50 rounded-3xl p-8 border border-neutral-200/80 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+              02
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-950">Inhibidores SGLT-2 y GLP-1</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm font-light">
+              Fármacos de vanguardia como dapagliflozina y empagliflozina favorecen la eliminación renal de glucosa y reducen sustancialmente las internaciones por insuficiencia cardíaca y la progresión de la nefropatía diabética, aportando un beneficio cardiorrenal determinante.
+            </p>
+          </div>
+
+          <!-- Insulinoterapia y Titulación -->
+          <div class="bg-slate-50 rounded-3xl p-8 border border-neutral-200/80 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+              03
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-950">Insulinoterapia Supervisada</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm font-light">
+              Cuando el páncreas reduce su reserva secretora, la incorporación de insulinas basales modernas de acción ultraprolongada (glargina, degludec) asegura un control nocturno y diurno homogéneo, con baja tasa de hipoglucemias mediante titulación médica semanal.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREVENCIÓN DE HIPOGLUCEMIA: REGLA DE LOS 15 -->
+    <section class="py-20 bg-slate-50 border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="bg-white rounded-3xl p-8 md:p-12 border border-neutral-200 shadow-sm">
+          <div class="flex items-start gap-4 mb-6">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 flex items-center justify-center flex-shrink-0 mt-1">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+              </svg>
+            </div>
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-sky-700 block">Seguridad del Paciente</span>
+              <h3 class="text-2xl md:text-3xl font-serif font-bold text-neutral-950">
+                Prevención de hipoglucemias: cómo actuar con la "Regla de los 15"
+              </h3>
+            </div>
+          </div>
+
+          <p class="text-neutral-600 text-base leading-relaxed mb-6 font-light">
+            Un valor de glucemia menor a <strong>70 mg/dL</strong> constituye una hipoglucemia. Si sentís sudoración fría súbita, temblores en las manos, palpitaciones, mareos, debilidad marcada o confusión, aplicá de inmediato este protocolo estandarizado:
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            <div class="p-6 rounded-2xl bg-slate-50 border border-neutral-200/80">
+              <div class="text-sky-700 font-bold text-lg mb-2">Paso 1: 15 g de azúcar</div>
+              <p class="text-neutral-600 text-xs leading-relaxed font-light">
+                Consumí inmediatamente 15 gramos de hidratos de carbono simples de rápida asimilación: <strong>medio vaso de gaseosa común</strong> (no dietética ni light), <strong>3 sobres de azúcar</strong> disueltos en agua o 1 cucharada sopera de miel.
+              </p>
+            </div>
+
+            <div class="p-6 rounded-2xl bg-slate-50 border border-neutral-200/80">
+              <div class="text-sky-700 font-bold text-lg mb-2">Paso 2: Esperar 15 minutos</div>
+              <p class="text-neutral-600 text-xs leading-relaxed font-light">
+                Mantenete sentado en reposo durante 15 minutos exactos. Evitá comer chocolate, galletitas dulces o alimentos con grasa, ya que las grasas retrasan la absorción gástrica de la glucosa.
+              </p>
+            </div>
+
+            <div class="p-6 rounded-2xl bg-slate-50 border border-neutral-200/80">
+              <div class="text-sky-700 font-bold text-lg mb-2">Paso 3: Recontrolar</div>
+              <p class="text-neutral-600 text-xs leading-relaxed font-light">
+                Volvé a medir tu glucemia con el glucómetro. Si continúa por debajo de 70 mg/dL, repetí el Paso 1. Si ya superó los 70 mg/dL y falta más de una hora para la próxima comida, consumí una colación con hidratos complejos (como una tostada de pan integral o una fruta).
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6 p-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-900 flex items-center justify-between">
+            <span>Si la persona presenta pérdida de conocimiento o convulsiones, NO introducir líquidos en la boca. Llamar de inmediato al 107 (SAME).</span>
+            <span class="font-bold text-red-700">Emergencias: 107</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROTOCOLO DE CUIDADO DEL PIE DIABÉTICO -->
+    <section class="py-24 bg-white border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Prevención de Lesiones</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-4">
+            Guía diaria de cuidados para el pie diabético
+          </h2>
+          <p class="text-neutral-600 text-base md:text-lg font-light leading-relaxed">
+            La neuropatía diabética reduce la sensibilidad protectora ante roces y heridas. Seguir estas pautas diarias reduce en más de un 80% el riesgo de úlceras e infecciones:
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+          <div class="p-6 rounded-2xl bg-slate-50 border border-neutral-200/80 space-y-2">
+            <div class="flex items-center gap-2 font-bold text-neutral-950">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              Inspección visual diaria minuciosa
+            </div>
+            <p class="text-neutral-600 text-xs leading-relaxed font-light">
+              Revisá la planta, los talones y entre los dedos todos los días con buena iluminación. Podés ayudarte con un espejo colocado en el suelo o pedir asistencia a un familiar para detectar ampollas, grietas o enrojecimientos.
+            </p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-slate-50 border border-neutral-200/80 space-y-2">
+            <div class="flex items-center gap-2 font-bold text-neutral-950">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              Lavado y secado meticuloso
+            </div>
+            <p class="text-neutral-600 text-xs leading-relaxed font-light">
+              Lavá los pies con agua tibia (comprobá la temperatura previamente con el codo para no quemarte) y jabón neutro. Secá suavemente con toalla limpia, prestando especial atención a los espacios entre los dedos para evitar micosis.
+            </p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-slate-50 border border-neutral-200/80 space-y-2">
+            <div class="flex items-center gap-2 font-bold text-neutral-950">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              Hidratación sin humedad interdigital
+            </div>
+            <p class="text-neutral-600 text-xs leading-relaxed font-light">
+              Aplicá crema hidratante en talones y empeine para evitar grietas en la piel. Nunca coloques crema entre los dedos, ya que la humedad acumulada favorece la maceración y la proliferación de hongos.
+            </p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-slate-50 border border-neutral-200/80 space-y-2">
+            <div class="flex items-center gap-2 font-bold text-neutral-950">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              Calzado seguro y corte recto de uñas
+            </div>
+            <p class="text-neutral-600 text-xs leading-relaxed font-light">
+              Nunca camines descalzo, ni siquiera dentro de tu casa o en la playa. Usá calzado cómodo, cerrado y ancho; revisá el interior con la mano antes de ponértelo. Las uñas deben cortarse en línea recta, limando los bordes con suavidad.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ENLACES CLÍNICOS Y RENOVACIÓN DE RECETAS -->
+    <section class="py-16 bg-neutral-50 border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h3 class="text-xs font-bold uppercase tracking-widest text-sky-700 mb-6">Acceso a Consultas y Trámites Oficiales</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <a href="/medico-clinico-online" class="p-8 bg-white rounded-3xl border border-neutral-200/80 hover:border-sky-400 hover:shadow-md transition-all group block">
+            <span class="text-xs font-semibold text-sky-700 uppercase tracking-wider block mb-2">Consulta Médica</span>
+            <h4 class="text-2xl font-serif font-bold text-neutral-950 group-hover:text-sky-700 transition-colors mb-3">Médico Clínico Online</h4>
+            <p class="text-sm text-neutral-600 leading-relaxed font-light mb-4">
+              Evaluación médica completa, interpretación de hemoglobina glicosilada (HbA1c), ajuste posológico de antidiabéticos orales y pautas para prevenir complicaciones vasculares.
+            </p>
+            <span class="text-sm font-semibold text-sky-700 inline-flex items-center gap-2">
+              Consultar con Médico Clínico &rarr;
+            </span>
+          </a>
+
+          <a href="/receta-medica-online" class="p-8 bg-white rounded-3xl border border-neutral-200/80 hover:border-sky-400 hover:shadow-md transition-all group block">
+            <span class="text-xs font-semibold text-sky-700 uppercase tracking-wider block mb-2">Tratamientos Crónicos</span>
+            <h4 class="text-2xl font-serif font-bold text-neutral-950 group-hover:text-sky-700 transition-colors mb-3">Recetas de Diabetes e Insumos</h4>
+            <p class="text-sm text-neutral-600 leading-relaxed font-light mb-4">
+              Renovación ágil de prescripciones oficiales con código CUIR para metformina, insulinas, tiras reactivas, lancetas y agujas bajo la Ley Nacional de Diabetes N° 23.753.
+            </p>
+            <span class="text-sm font-semibold text-sky-700 inline-flex items-center gap-2">
+              Renovar receta de diabetes &rarr;
+            </span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREGUNTAS FRECUENTES -->
+    <section class="py-24 bg-white border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Evidencia Clínica</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-4">
+            Preguntas frecuentes sobre diabetes y prediabetes
+          </h2>
+          <p class="text-neutral-600 text-base">
+            Respuestas médicas fundadas sobre metas glucémicas, fármacos y derechos de cobertura.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white border border-neutral-200 rounded-2xl overflow-hidden transition-all shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none">
+                <span class="text-lg md:text-xl font-medium text-neutral-950 pr-4">{faq.question}</span>
+                <div class="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 transition-transform group-open:rotate-180 text-neutral-700">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"></path>
+                  </svg>
+                </div>
+              </summary>
+              <div class="px-6 pb-6 md:px-8 md:pb-8 text-neutral-600 leading-relaxed text-sm md:text-base border-t border-neutral-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <CTAFinal
+      title="Tomá el control de tu salud metabólica con apoyo médico continuo."
+      subtitle="Conectá con médicos clínicos matriculados, optimizá tu tratamiento y mantené tus recetas e insumos al día."
+      buttonLabel="Consultar con Médico Clínico"
+      buttonHref="/medico-clinico-online"
+    />
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+  main {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Source Serif 4', serif;
+  }
+
+  .btn-primary-action {
+    background-color: #0284c7;
+    background-image: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  }
+  .btn-primary-action:hover {
+    background-color: #0369a1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+  }
+
+  .btn-secondary-action {
+    background-color: #ffffff;
+  }
+  .btn-secondary-action:hover {
+    background-color: #f8fafc;
+    border-color: #0284c7;
+    color: #0284c7;
+  }
+
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

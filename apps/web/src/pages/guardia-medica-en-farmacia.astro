@@ -1,0 +1,397 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/guardia-medica-en-farmacia';
+
+const benefits = [
+  {
+    title: 'Acceso Directo por QR o Tótem',
+    desc: 'Sin descargas complejas ni esperas en salas de guardia hospitalarias. Escaneás el código exhibido en el tótem o mostrador de la farmacia y accedés a la guardia médica virtual en segundos.',
+  },
+  {
+    title: 'Médicos Clínicos de Guardia Activa',
+    desc: 'Atención médica sincrónica por videollamada con profesionales matriculados habilitados en REFEPS, entrenados para el triaje y resolución de motivos agudos de consulta.',
+  },
+  {
+    title: 'Dispensa Inmediata en el Mismo Mostrador',
+    desc: 'El médico emite la receta digital oficial con código CUIR y código de barras. El farmacéutico la valida directamente en su sistema y te dispensa el medicamento en el acto.',
+  },
+];
+
+const clinicalScenarios = [
+  {
+    title: 'Infecciones Respiratorias y Odontalgias',
+    cases: 'Dolor agudo de garganta, faringitis bacteriana, sinusitis incipiente o dolor de muela intenso que requiere antibioticoterapia o analgésicos bajo receta antes del turno odontológico.',
+  },
+  {
+    title: 'Afecciones Dérmicas y Oculares Agudas',
+    cases: 'Conjuntivitis bacteriana no traumática, orzuelos, dermatitis alérgicas agudas, picaduras con sobreinfección o eccemas que demandan colirios o corticoides tópicos con prescripción.',
+  },
+  {
+    title: 'Infecciones Urinarias Bajas No Complicadas',
+    cases: 'Disuria, polaquiuria y ardor miccional en mujeres adultas no embarazadas sin fiebre ni dolor lumbar, con indicación precisa de urocultivo y antibioticoterapia adecuada.',
+  },
+  {
+    title: 'Renovación Urgente de Medicación Crónica',
+    cases: 'Olvido o pérdida de envases de fármacos esenciales para la presión arterial, hormona tiroidea, asma o diabetes, evitando la discontinuidad riesgosa del tratamiento.',
+  },
+];
+
+const faqs = [
+  {
+    question: '¿Qué es el servicio de guardia médica en farmacia de AutaMedica?',
+    answer:
+      'Es un circuito de teleasistencia inmediata diseñado para resolver las situaciones en las que un paciente acude a la farmacia con un síntoma agudo y requiere una prescripción médica profesional para que le puedan dispensar el medicamento. A través de un código QR en el mostrador o un tótem interactivo, el paciente ingresa a la guardia virtual de AutaMedica, es evaluado por un médico y recibe la receta con código CUIR en minutos.',
+  },
+  {
+    question: '¿Cuánto tiempo demora la atención de guardia en la farmacia?',
+    answer:
+      'El tiempo habitual de conexión con un médico clínico de guardia es inferior a los 10 minutos. Sumando el triaje previo y la emisión de la receta digital, todo el proceso suele completarse en menos de 15 a 20 minutos dentro de la misma farmacia.',
+  },
+  {
+    question: '¿Tengo que descargar alguna aplicación para atenderme?',
+    answer:
+      'No. El acceso funciona completamente desde el navegador web de tu celular mediante tecnología WebRTC segura. Solo necesitás escanear el código QR con la cámara de tu teléfono móvil o utilizar la pantalla táctil del tótem habilitado en la farmacia.',
+  },
+  {
+    question: '¿El farmacéutico puede ver la receta directamente en su pantalla?',
+    answer:
+      'Sí. Cuando el médico firma la receta electrónica, el sistema genera un código CUIR oficial. Podés mostrar el código en la pantalla de tu teléfono o el farmacéutico puede verificarlo instantáneamente en el portal de validación farmacéutica de AutaMedica para proceder a la dispensa reglamentaria.',
+  },
+  {
+    question: '¿Se pueden recetar antibióticos en la guardia de farmacia?',
+    answer:
+      'Sí. Si tras la anamnesis clínica el profesional determina que el cuadro infeccioso bacteriano justifica la indicación de antibióticos (por ejemplo, amoxicilina, azitromicina, ciprofloxacina o nitrofurantoína), se emitirá la receta en cumplimiento riguroso de la Ley de Prevención de la Resistencia Antimicrobiana y la Ley 27.553.',
+  },
+  {
+    question: '¿Qué ocurre si el paciente presenta un cuadro de emergencia grave?',
+    answer:
+      'El protocolo clínico de AutaMedica es de máxima seguridad. Si durante el triaje o la videoconsulta el profesional detecta banderas rojas (dolor de pecho, dificultad respiratoria severa, pérdida de conocimiento, traumatismo encéfalo-craneano), se interrumpe la consulta remota y se activa el protocolo de emergencia, solicitando auxilio inmediato al SAME (107) o derivación urgente en ambulancia.',
+  },
+];
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: 'Guardia Médica en Farmacia | Atención Inmediata con Tótem y QR | AutaMedica',
+      description:
+        'Accedé a guardia médica online directa desde el mostrador de tu farmacia. Escaneá el QR, atendete por videollamada y retirá tus medicamentos con receta CUIR oficial en el acto.',
+      inLanguage: 'es-AR',
+      isPartOf: {
+        '@type': 'WebSite',
+        '@id': 'https://www.autamedica.com/#website',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+      about: [
+        { '@type': 'Thing', name: 'Guardia médica en farmacia' },
+        { '@type': 'Thing', name: 'Tótem médico de farmacia' },
+        { '@type': 'Thing', name: 'Receta electrónica CUIR' },
+        { '@type': 'MedicalSpecialty', name: 'Emergency' },
+        { '@type': 'MedicalSpecialty', name: 'PrimaryCare' },
+      ],
+      publisher: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+      },
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+        geographicArea: {
+          '@type': 'Country',
+          name: 'Argentina',
+        },
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Atención Médica',
+          item: 'https://www.autamedica.com/guardia-medica-online',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Guardia Médica en Farmacia',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Guardia Médica en Farmacia | Atención Inmediata y Receta Digital | AutaMedica"
+  description="Servicio de guardia médica virtual en farmacias. Escaneá el QR en mostrador o tótem interactivo, te atiende un médico clínico y obtenés tu receta oficial para comprar en el acto."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="website"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- Migas de pan -->
+    <nav class="border-b border-slate-100 bg-slate-50/70 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/guardia-medica-online" class="hover:text-sky-600 transition-colors">Atención Médica</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Guardia Médica en Farmacia</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <header class="relative bg-gradient-to-b from-slate-50 via-white to-sky-50/30 border-b border-slate-200/80 pt-16 pb-20 md:py-24">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider mb-6">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Puntos de Salud AutaMedica · Red de Farmacias</span>
+          </div>
+
+          <h1 class="text-4xl md:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12] mb-6">
+            Guardia médica en tu farmacia de confianza con <span class="text-sky-700 italic">dispensa inmediata.</span>
+          </h1>
+
+          <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed mb-8">
+            Si necesitás una indicación profesional para medicamentos bajo receta, no pierdas horas trasladándote a una guardia hospitalaria. Escaneá el código QR en el mostrador, atendete con un médico clínico de guardia y retirá tu tratamiento en el mismo acto.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 mb-10">
+            <a
+              href="/auth/register"
+              class="inline-flex items-center justify-center px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5 text-base"
+            >
+              Conectarme a la Guardia Ahora
+            </a>
+            <a
+              href="#como-funciona"
+              class="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 font-semibold rounded-xl border border-slate-200 transition-colors text-base"
+            >
+              Cómo Funciona el Circuito
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200/70 text-xs text-slate-600">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Sin descarga de apps (WebRTC)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Receta digital CUIR en menos de 15 min</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Validación farmacéutica directa</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- VENTAJAS DEL CIRCUITO EN FARMACIA -->
+    <section class="py-20 md:py-24 bg-white border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Atención In Situ</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            La solución integral para el mostrador de farmacia
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {benefits.map((b) => (
+            <div class="bg-slate-50/70 rounded-2xl border border-slate-200 p-8 shadow-sm">
+              <div class="w-10 h-10 rounded-xl bg-sky-100 border border-sky-200 flex items-center justify-center text-sky-700 font-bold text-sm mb-6">
+                ✓
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">{b.title}</h3>
+              <p class="text-slate-600 text-sm leading-relaxed">{b.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- PASO A PASO EN LA FARMACIA (NAVY SECTION) -->
+    <section id="como-funciona" class="py-20 md:py-28 bg-slate-900 text-white">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-400 font-bold text-xs uppercase tracking-widest block mb-3">Flujo Operativo Simple</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-white mb-4">
+            Cuatro pasos desde el mostrador hasta la medicación en mano
+          </h2>
+          <p class="text-slate-300 text-base md:text-lg">
+            Un procedimiento ágil pensado para que resuelvas tu dolencia en el lugar exacto donde podés adquirir tu tratamiento, sin perder el tiempo ni exponerte a salas de espera atestadas.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div class="p-6 rounded-2xl bg-slate-800 border border-slate-700">
+            <span class="text-3xl font-serif font-bold text-sky-400 block mb-3">01</span>
+            <h3 class="text-base font-serif font-bold text-white mb-2">Escaneo de QR o Tótem</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Enfocás con tu celular el QR exhibido en el mostrador o interactuás directamente con el tótem de la farmacia.
+            </p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-slate-800 border border-slate-700">
+            <span class="text-3xl font-serif font-bold text-sky-400 block mb-3">02</span>
+            <h3 class="text-base font-serif font-bold text-white mb-2">Triaje Clínico Rápido</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Cargás tus síntomas en un asistente inteligente de 60 segundos que descarta banderas rojas de gravedad.
+            </p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-slate-800 border border-slate-700">
+            <span class="text-3xl font-serif font-bold text-sky-400 block mb-3">03</span>
+            <h3 class="text-base font-serif font-bold text-white mb-2">Videoconsulta con Guardia</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Te atiende un médico clínico matriculado por videollamada, evalúa el cuadro y emite la receta con código CUIR.
+            </p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-slate-800 border border-slate-700">
+            <span class="text-3xl font-serif font-bold text-sky-400 block mb-3">04</span>
+            <h3 class="text-base font-serif font-bold text-white mb-2">Dispensa Inmediata</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              El farmacéutico valida el CUIR en el sistema oficial y te entrega la medicación prescripta en ese mismo acto.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CASOS CLÍNICOS ATENDIDOS EN EL CIRCUITO -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Patologías Habituales</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 mb-4">
+            Motivos de consulta resueltos con mayor frecuencia
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg">
+            Cuadros agudos de baja y mediana complejidad ambulatoria que requieren evaluación clínica previa a la toma de un fármaco.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {clinicalScenarios.map((sc) => (
+            <div class="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm">
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">{sc.title}</h3>
+              <p class="text-slate-600 text-sm leading-relaxed">{sc.cases}</p>
+            </div>
+          ))}
+        </div>
+
+        <!-- PROTOCOLO DE SEGURIDAD -->
+        <div class="mt-12 p-6 rounded-2xl bg-red-50 border border-red-200 flex flex-col md:flex-row items-start md:items-center gap-6">
+          <div class="w-12 h-12 rounded-xl bg-red-100 border border-red-300 flex items-center justify-center text-red-600 font-bold text-xl flex-shrink-0">
+            !
+          </div>
+          <div class="space-y-1">
+            <h4 class="text-base font-serif font-bold text-red-950">Atención Responsable: Cuándo NO usar la guardia en farmacia</h4>
+            <p class="text-xs text-red-800 leading-relaxed">
+              Si presentás dolor en el pecho, dificultad intensa para respirar, pérdida de sensibilidad en el rostro o extremidades, pérdida de conocimiento o traumatismos graves, <strong class="text-red-950 font-semibold">no permanezcas en la farmacia</strong>: llamá de inmediato al SAME (107) o solicitá al personal que active el servicio de ambulancias.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQS ACCORDION -->
+    <section class="py-20 md:py-28 bg-white border-b border-slate-100">
+      <div class="max-w-4xl mx-auto px-6">
+        <div class="text-center mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Preguntas Frecuentes</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Dudas sobre la guardia médica en farmacias
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden transition-colors shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none select-none">
+                <span class="text-base md:text-lg font-serif font-bold text-slate-900 pr-4">{faq.question}</span>
+                <span class="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 font-semibold group-open:rotate-180 group-open:bg-sky-50 group-open:text-sky-700 transition-transform flex-shrink-0">
+                  &darr;
+                </span>
+              </summary>
+              <div class="px-6 md:px-8 pb-6 md:pb-8 text-slate-600 text-sm leading-relaxed border-t border-slate-200/70 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CROSS LINKS -->
+    <section class="py-14 bg-slate-50 border-b border-slate-200">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6 text-center">Explorar Otros Servicios Relacionados</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <a href="/receta-digital" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Receta Digital CUIR
+          </a>
+          <a href="/consulta-medica-en-farmacia" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Consulta en Farmacia
+          </a>
+          <a href="/guardia-medica-online" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Guardia Médica 24hs
+          </a>
+          <a href="/certificados-medicos" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Certificados Médicos
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <CTAFinal
+      title="Atención médica y receta en el acto dentro de tu farmacia."
+      subtitle="Sin traslados ni demoras innecesarias. Conectate a la guardia virtual de AutaMedica y retirá tu tratamiento hoy."
+      buttonLabel="Conectarme a la Guardia Ahora"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>

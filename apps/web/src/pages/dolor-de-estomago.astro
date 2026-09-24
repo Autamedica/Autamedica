@@ -1,0 +1,602 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/dolor-de-estomago';
+
+const faqs = [
+  {
+    question: '¿Cómo puedo saber si mi dolor de panza puede ser apendicitis?',
+    answer:
+      'La apendicitis aguda típicamente comienza como una molestia sorda o difusa alrededor del ombligo (región periumbilical) o en la boca del estómago (epigastrio), y en un lapso de 6 a 24 horas migra y se localiza en la fosa ilíaca derecha (bajo vientre derecho). El dolor se vuelve constante y punzante, empeora al toser o caminar, se asocia a falta total de apetito (anorexia), náuseas, febrícula y dolor agudo al descomprimir el abdomen tras presionar suavemente. Si sospechás apendicitis, acudí de inmediato a una guardia presencial con cirujano.',
+  },
+  {
+    question: '¿Por qué no se debe tomar un antiespasmódico a ciegas ante un dolor fuerte?',
+    answer:
+      'Tomar antiespasmódicos o analgésicos potentes ante un dolor abdominal agudo de origen no diagnosticado puede relajar o adormecer transitoriamente los síntomas y enmascarar signos de alarma críticos, como la defensa peritoneal de una apendicitis en evolución o una víscera perforada. Esto puede demorar horas decisivas para una cirugía de urgencia. Siempre se debe consultar a un médico antes de medicarse.',
+  },
+  {
+    question: '¿Cuál es la diferencia entre acidez común, gastritis y dispepsia funcional?',
+    answer:
+      'La acidez o pirosis es el síntoma de ardor retroesternal provocado por el reflujo de ácido gástrico. La gastritis es la inflamación objetiva de la mucosa del estómago (demostrable por endoscopía o asociada al consumo de AINEs, alcohol o infección por Helicobacter pylori). La dispepsia funcional, en cambio, es un trastorno del eje intestino-cerebro donde el paciente siente pesadez posprandial, saciedad precoz o dolor en la boca del estómago sin que existan úlceras ni lesiones visibles en los estudios.',
+  },
+  {
+    question: '¿Qué es el "vientre en tabla" o abdomen en tabla?',
+    answer:
+      'Es un signo semiológico de extrema gravedad que indica peritonitis aguda. Ocurre cuando los músculos de la pared abdominal se contraen de forma involuntaria, rígida e incontenible como una tabla de madera para proteger los órganos internos tras la perforación de una víscera (como una úlcera gástrica o el apéndice cecal). Es una emergencia quirúrgica absoluta que requiere traslado inmediato en ambulancia o concurrencia a quirófano.',
+  },
+  {
+    question: '¿Cómo se maneja una gastroenteritis aguda en casa?',
+    answer:
+      'El pilar indiscutible del tratamiento es la rehidratación oral fraccionada para reponer agua y electrolitos perdidos por diarrea o vómitos (preferentemente con sales de rehidratación oral de la OMS a pequeños sorbos, no con bebidas energéticas ni gaseosas). Se recomienda dieta astringente (arroz blanco, pollo hervido, manzana rallada) y reposo digestivo. Los antibióticos no están indicados en diarreas virales comunes; si aparecen deposiciones con sangre o deshidratación, se requiere evaluación médica urgente.',
+  },
+  {
+    question: '¿Qué estudios puede solicitar un gastroenterólogo en una consulta online?',
+    answer:
+      'Durante la videoconsulta, el especialista en gastroenterología evalúa tus síntomas y antecedentes para prescribir la medicación de alivio adecuada (protectores de la mucosa, inhibidores de bomba de protones, procinéticos) y emitir órdenes médicas para ecografía hepatobiliopancreática, análisis de laboratorio (función hepática, amilasa, celiaquía), test de aire espirado para Helicobacter pylori o videoendoscopía digestiva alta (VEDA).',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Dolor de Estómago y Abdomen: Causas, Banderas Rojas y Cuándo Consultar | AutaMedica',
+      url: canonicalUrl,
+      description:
+        'Guía clínica sobre dolor de estómago y dolor abdominal: gastritis, dispepsia, colon irritable vs abdomen agudo. Signos de alarma, guardia presencial y consulta online.',
+      inLanguage: 'es-AR',
+      aspect: ['Diagnosis', 'Treatment', 'Overview'],
+      medicalAudience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalSignOrSymptom', name: 'Dolor abdominal' },
+        { '@type': 'MedicalSignOrSymptom', name: 'Gastritis' },
+        { '@type': 'MedicalCondition', name: 'Dispepsia funcional' },
+        { '@type': 'MedicalCondition', name: 'Síndrome de intestino irritable' },
+        { '@type': 'MedicalCondition', name: 'Abdomen agudo' },
+        { '@type': 'MedicalSpecialty', name: 'Gastroenterology' },
+        { '@type': 'MedicalSpecialty', name: 'Emergency' },
+      ],
+      provider: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Guía de Síntomas',
+          item: 'https://www.autamedica.com/consulta-medica-online',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Dolor de Estómago',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Dolor de Estómago y Abdomen: Causas, Banderas Rojas y Cuándo Consultar | AutaMedica"
+  description="Orientación médica para dolor de estómago y abdominal: gastritis, cólicos, colon irritable vs abdomen agudo quirúrgico. Pautas de alarma y videoconsulta digestiva."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="website"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- BREADCRUMBS -->
+    <nav class="border-b border-slate-100 bg-slate-50/60 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/consulta-medica-online" class="hover:text-sky-600 transition-colors">Guía de Síntomas</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Dolor de estómago</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="relative py-16 md:py-24 border-b border-slate-100 bg-gradient-to-b from-slate-50 via-white to-white">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold tracking-wide uppercase">
+              <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+              Gastroenterología y Medicina de Guardia
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12]">
+              Dolor de estómago y abdomen: interpretar su lugar para <span class="text-sky-600">resolverlo a tiempo</span>.
+            </h1>
+
+            <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl">
+              El dolor abdominal puede deberse a cuadros digestivos funcionales frecuentes —como gastritis, acidez o colon irritable— o a urgencias quirúrgicas como apendicitis y cólicos biliares. Identificar su ubicación exacta y la presencia de signos peritoneales es la clave médica para actuar con seguridad.
+            </p>
+
+            <!-- Proof Chips (Slate, Sky, Emerald) -->
+            <div class="flex flex-wrap gap-2 pt-1">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Mapeo clínico de cuadrantes
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Detección de abdomen agudo
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Recetas de protectores y ecografías
+              </span>
+            </div>
+
+            <!-- CTAs requeridos -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-3">
+              <a href="/gastroenterologo-online" class="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg bg-sky-600 text-white font-semibold text-base shadow-sm hover:bg-sky-700 transition-all transform hover:-translate-y-0.5">
+                <span>Consultar gastroenterólogo online</span>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </a>
+              <a href="/guardia-medica-online" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg border border-slate-300 bg-white text-slate-800 font-semibold text-base hover:bg-slate-50 hover:border-slate-400 transition-all">
+                <span>Guardia médica clínica 24hs</span>
+              </a>
+            </div>
+
+            <p class="text-xs text-slate-500">
+              Atención médica inmediata y turnos con gastroenterólogos universitarios matriculados.
+            </p>
+          </div>
+
+          <!-- Hero Graphic: Topografía de Dolor Abdominal -->
+          <div class="lg:col-span-5">
+            <div class="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-5">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">
+                    Abd
+                  </div>
+                  <div>
+                    <h2 class="text-sm font-bold text-slate-900 leading-tight">Mapeo Topográfico Abdominal</h2>
+                    <p class="text-xs text-slate-500">Orientación diagnóstica según ubicación</p>
+                  </div>
+                </div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Semiología
+                </span>
+              </div>
+
+              <!-- Cuadrantes -->
+              <div class="space-y-2.5 text-xs">
+                <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between">
+                  <div>
+                    <strong class="text-slate-900 block font-semibold">Boca del estómago (Epigastrio)</strong>
+                    <span class="text-slate-600">Gastritis, reflujo, úlcera péptica, pancreatitis.</span>
+                  </div>
+                  <span class="font-mono text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-200 shrink-0">Superior</span>
+                </div>
+
+                <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between">
+                  <div>
+                    <strong class="text-slate-900 block font-semibold">Bajo costillas derechas (Hipocondrio D.)</strong>
+                    <span class="text-slate-600">Cólico biliar, colecistitis (vesícula), hígado.</span>
+                  </div>
+                  <span class="font-mono text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-200 shrink-0">Biliar</span>
+                </div>
+
+                <div class="p-2.5 rounded-lg bg-sky-50/50 border border-sky-200 flex items-center justify-between">
+                  <div>
+                    <strong class="text-slate-900 block font-semibold">Bajo vientre derecho (Fosa Ilíaca D.)</strong>
+                    <span class="text-slate-600">Apendicitis aguda, patología ovárica.</span>
+                  </div>
+                  <span class="font-mono text-slate-800 font-bold bg-slate-200 px-2 py-0.5 rounded shrink-0">Alerta</span>
+                </div>
+
+                <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between">
+                  <div>
+                    <strong class="text-slate-900 block font-semibold">Bajo vientre izquierdo (Fosa Ilíaca I.)</strong>
+                    <span class="text-slate-600">Diverticulitis aguda, colon irritable.</span>
+                  </div>
+                  <span class="font-mono text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-200 shrink-0">Colónico</span>
+                </div>
+              </div>
+
+              <div class="border-t border-slate-100 pt-3 flex items-center justify-between text-xs text-slate-500">
+                <span>¿El dolor es constante y no calma al acostarte?</span>
+                <span class="text-sky-600 font-semibold">Requiere evaluación médica</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- CRITICAL WARNING / BANDERAS ROJAS DEL ABDOMEN AGUDO (HARD GATE) -->
+    <section class="py-12 bg-slate-950 text-white">
+      <div class="container mx-auto px-6">
+        <div class="max-w-4xl mx-auto rounded-2xl border-2 border-red-500/80 bg-slate-900/95 p-6 md:p-8 space-y-6 shadow-2xl">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center shrink-0">
+              <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+            </div>
+            <div class="space-y-2">
+              <span class="text-xs uppercase font-extrabold tracking-widest text-red-400 bg-red-950/60 px-2.5 py-1 rounded border border-red-800/60">
+                Protocolo Quirúrgico de Seguridad
+              </span>
+              <h2 class="text-2xl font-serif font-bold text-white">
+                Banderas rojas del abdomen agudo: acudir a guardia presencial urgente
+              </h2>
+            </div>
+          </div>
+
+          <p class="text-sm md:text-base text-slate-300 leading-relaxed">
+            El "abdomen agudo" comprende afecciones inflamatorias, infecciosas u obstructivas que pueden requerir intervención quirúrgica inmediata. <strong>Si vos o la persona que asistís presenta alguno de los siguientes signos, no esperes una consulta virtual: trasladate sin demora a una guardia con quirófano o llamá al 107 / 911:</strong>
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs md:text-sm text-slate-200">
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Defensa muscular o "vientre en tabla":</strong>
+                <span>El abdomen se pone rígido, duro e involuntariamente tenso como una tabla de madera al tocarlo (peritonitis aguda).</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Dolor focal en fosa ilíaca derecha:</strong>
+                <span>Dolor punzante que migró desde el ombligo hacia la parte inferior derecha del vientre y duele agudamente al soltar (signo de Blumberg / apendicitis).</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Vómitos biliosos incoercibles u oclusión:</strong>
+                <span>Vómitos verdes oscuros continuos, imposibilidad de tolerar líquidos y falta total de eliminación de gases o heces por más de 24 hs (oclusión intestinal).</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Hemorragia digestiva (hematemesis o melena):</strong>
+                <span>Vómitos con sangre roja o aspecto borra de café, o materia fecal negra alquitranada y fétida (hemorragia digestiva alta).</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Fiebre alta con escalofríos y ojos amarillos:</strong>
+                <span>Fiebre elevada asociada a color amarillento en piel u ojos (ictericia) y dolor cólico (sospecha de infección en la vía biliar / colangitis).</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Dolor pélvico agudo con retraso menstrual:</strong>
+                <span>En mujeres en edad reproductiva, dolor agudo intenso con mareos o sangrado anormal (descartar embarazo ectópico roto).</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t border-slate-800 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+            <span>En caso de abdomen duro, dolor insoportable o vómito de sangre:</span>
+            <span class="inline-flex items-center gap-2 font-bold text-red-400 text-sm">
+              Llamar de inmediato al 107 (SAME) o al 911
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUADROS AMBULATORIOS FRECUENTES -->
+    <section class="py-16 md:py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="text-center max-w-3xl mx-auto space-y-4 mb-14">
+          <span class="text-xs uppercase font-bold tracking-wider text-sky-700 bg-sky-50 px-3 py-1 rounded-full border border-sky-200">
+            Trastornos Digestivos Frecuentes
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-serif font-bold text-slate-950">
+            Gastritis, dispepsia y colon irritable: cómo abordarlos
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg leading-relaxed">
+            Una gran parte de las consultas ambulatorias corresponden a problemas gastrointestinales que pueden diagnosticarse y estabilizarse eficazmente mediante una consulta clínica programada.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Cuadro 1 -->
+          <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 space-y-4 hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-base">
+              G
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">
+              Gastritis y Reflujo
+            </h3>
+            <p class="text-xs font-semibold text-sky-800 uppercase tracking-wide">
+              Acidez y lesión de mucosa
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Síntomas:</strong> ardor o quemazón en el epigastrio, regurgitación ácida, náuseas matutinas.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Causas habituales:</strong> consumo de ibuprofeno/aspirina, estrés agudo, alcohol o <em>H. pylori</em>.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Manejo médico:</strong> inhibidores de bomba de protones (omeprazol, pantoprazol) y pautas higiénico-dietarias.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Cuadro 2 -->
+          <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 space-y-4 hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-base">
+              D
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">
+              Dispepsia Funcional
+            </h3>
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              Trastorno del eje digestivo
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Síntomas:</strong> pesadez gástrica tras comer poco (saciedad precoz), hinchazón y malestar sin lesión anatómica.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Fisiopatología:</strong> retraso del vaciamiento gástrico e hipersensibilidad visceral.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Manejo médico:</strong> procinéticos, fraccionamiento de comidas y modulación del estrés.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Cuadro 3 -->
+          <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 space-y-4 hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-base">
+              C
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">
+              Colon Irritable (SII)
+            </h3>
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              Hipersensibilidad colónica
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Síntomas:</strong> dolor o cólico abdominal que alivia típicamente al evacuar, distensión y gases.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Patrón:</strong> alternancia entre diarrea y constipación según subtipo clínico.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Manejo médico:</strong> dieta baja en FODMAPs, probióticos y antiespasmódicos dirigidos por gastroenterólogo.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Box educativo: El peligro de tomar antiespasmódicos a ciegas -->
+        <div class="mt-10 p-6 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs md:text-sm leading-relaxed">
+          <h4 class="font-bold text-slate-900 mb-2 flex items-center gap-2">
+            <svg class="w-5 h-5 text-sky-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            ¿Por qué nunca se debe enmascarar un dolor abdominal agudo con fármacos sin indicación médica?
+          </h4>
+          <p>
+            La automedicación con fármacos antiespasmódicos o combinados ante un dolor de panza fuerte y de comienzo reciente adormece las terminaciones nerviosas y reduce artificialmente el peristaltismo intestinal. Esto puede retrasar el diagnóstico de una apendicitis aguda hasta que la misma se perfora, convirtiendo un cuadro quirúrgico programable en una peritonitis grave. Si el dolor es nuevo, persistente o se intensifica, la consulta médica oportuna es la conducta correcta.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUÁNDO TELEMEDICINA VS CUÁNDO GUARDIA -->
+    <section class="py-16 md:py-24 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="text-center max-w-3xl mx-auto space-y-4 mb-14">
+          <span class="text-xs uppercase font-bold tracking-wider text-sky-700 bg-sky-100/60 px-3 py-1 rounded-full border border-sky-200">
+            Nivel de Complejidad
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-serif font-bold text-slate-950">
+            ¿Cuándo resolver online y cuándo concurrir a guardia?
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg leading-relaxed">
+            La telemedicina gastroenterológica permite una valoración profunda de síntomas crónicos o malestares digestivos leves, evitando guardias presenciales innecesarias y ordenando los estudios diagnósticos.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Telemedicina -->
+          <div class="p-6 md:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
+              <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Consulta con Gastroenterólogo / Guardia Online
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">Trastornos digestivos ambulatorios</h3>
+            <p class="text-xs md:text-sm text-slate-600 leading-relaxed">
+              Casos sin defensa abdominal ni signos peritoneales:
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Acidez frecuente, ardor estomacal y reflujo posprandial.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Pesadez digestiva recurrente, gases y distensión abdominal.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Diarrea aguda leve sin deshidratación ni sangrado.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Control y ajuste de dosis de protectores gástricos.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Emisión de órdenes para ecografía abdominal o laboratorio.</span>
+              </li>
+            </ul>
+            <div class="pt-4">
+              <a href="/gastroenterologo-online" class="block text-center py-3 px-4 rounded-lg bg-sky-600 text-white font-semibold text-sm hover:bg-sky-700 transition-colors">
+                Consultar con gastroenterólogo online
+              </a>
+            </div>
+          </div>
+
+          <!-- Guardia Presencial -->
+          <div class="p-6 md:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-red-50 text-red-700 text-xs font-bold border border-red-200">
+              <svg class="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              Guardia Médica Presencial Urgente
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">Sospecha de abdomen agudo</h3>
+            <p class="text-xs md:text-sm text-slate-600 leading-relaxed">
+              Casos con riesgo quirúrgico o descompensación hemodinámica:
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Abdomen duro e imposible de relajar (vientre en tabla).</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Sospecha de apendicitis aguda (fosa ilíaca derecha).</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Vómitos verdes oscuros continuos sin poder retener agua.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Vómitos con sangre o materia fecal negra alquitranada.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Dolor pélvico repentino en mujer con atraso menstrual.</span>
+              </li>
+            </ul>
+            <div class="pt-4">
+              <div class="text-center py-3 px-4 rounded-lg bg-slate-100 text-slate-700 font-semibold text-sm border border-slate-200">
+                Concurrir a centro hospitalario o llamar al 107
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="py-16 md:py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center space-y-4 mb-12">
+          <span class="text-xs uppercase font-bold tracking-wider text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+            Preguntas Frecuentes
+          </span>
+          <h2 class="text-3xl font-serif font-bold text-slate-950">
+            Dudas clínicas habituales sobre el dolor de estómago
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group rounded-xl border border-slate-200 bg-white p-5 transition-all open:bg-slate-50/50 open:border-sky-300">
+              <summary class="flex cursor-pointer items-center justify-between text-base font-semibold text-slate-900 list-none">
+                <span>{faq.question}</span>
+                <span class="ml-4 text-sky-600 transition-transform group-open:rotate-180">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </span>
+              </summary>
+              <p class="mt-4 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                {faq.answer}
+              </p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CROSS LINKS -->
+    <section class="py-12 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-6 text-center">
+          Servicios y Especialidades Relacionadas
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <a href="/gastroenterologo-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Gastroenterólogo online
+          </a>
+          <a href="/guardia-medica-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Guardia médica 24hs
+          </a>
+          <a href="/medico-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Médico clínico online
+          </a>
+          <a href="/receta-medica-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Receta médica oficial
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <CTAFinal
+      title="Cuidá tu salud digestiva con orientación médica experta."
+      subtitle="Evaluación gastroenterológica integral por videoconsulta. Prescripción de protectores gástricos, órdenes de ecografía y seguimiento profesional."
+      buttonLabel="Consultar con gastroenterólogo online"
+      buttonHref="/gastroenterologo-online"
+    />
+  </main>
+
+  <Footer />
+</Layout>

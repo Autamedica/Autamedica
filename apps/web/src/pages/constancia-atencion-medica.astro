@@ -1,0 +1,459 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/constancia-atencion-medica';
+
+const features = [
+  {
+    title: 'Registro Horario Exacto y Fehaciente',
+    desc: 'Certifica con precisión cronológica la hora de inicio y conclusión del acto médico por teleasistencia, respaldando ausencias parciales, llegadas con demora justificada o retiros anticipados del ámbito laboral o académico.',
+  },
+  {
+    title: 'Diagnóstico Confidencial por Defecto',
+    desc: 'Bajo el amparo de la Ley 25.326 de Protección de Datos Personales y la Ley 26.529 de Derechos del Paciente, el diagnóstico no se exhibe en el documento para resguardar tu intimidad frente a empleadores o instituciones educativas.',
+  },
+  {
+    title: 'Firma Digital y Trazabilidad CUIR',
+    desc: 'Emitida por profesionales matriculados (MN/MP) registrados en REFEPS. Cada constancia incorpora firma electrónica válida conforme a la Ley 25.506 y un código QR que enlaza a /verify para auditoría instantánea.',
+  },
+];
+
+const comparisonItems = [
+  {
+    feature: 'Propósito principal',
+    constancia: 'Acreditar la permanencia en consulta médica durante una franja horaria puntual.',
+    reposo: 'Prescribir días de convalecencia domiciliaria e inasistencia laboral o escolar continuada.',
+  },
+  {
+    feature: 'Impacto en la jornada',
+    constancia: 'Justifica horas de ausencia (llegada tarde, salida anticipada o franja de turno).',
+    reposo: 'Justifica jornadas completas de reposo (24hs, 48hs, 72hs o más según evolución).',
+  },
+  {
+    feature: 'Visibilidad diagnóstica',
+    constancia: 'Sin diagnóstico por defecto (constata exclusivamente la concurrencia al acto médico).',
+    reposo: 'Puede consignar diagnóstico en clave CIE-10 o reservarse formalmente a pedido del paciente.',
+  },
+  {
+    feature: 'Exigencia patronal (LCT)',
+    constancia: 'Cumple el deber de acreditar la causa de fuerza mayor en el horario notificado.',
+    reposo: 'Activa el régimen de licencias pagas del Art. 208 LCT y la facultad de control del Art. 210.',
+  },
+];
+
+const faqs = [
+  {
+    question: '¿Qué es exactamente una constancia de atención médica horaria?',
+    answer:
+      'Es un instrumento médico-legal emitido por un profesional habilitado que certifica que un paciente fue atendido en consulta médica durante un horario determinado (hora de inicio y finalización). Sirve para justificar ante empleadores, departamentos de Recursos Humanos o instituciones educativas la imposibilidad de prestar tareas o asistir a clases durante ese período específico.',
+  },
+  {
+    question: '¿Por qué la constancia no incluye el diagnóstico de mi consulta?',
+    answer:
+      'En la República Argentina, los datos referidos a la salud son considerados datos sensibles conforme al Art. 2 de la Ley 25.326 (Habeas Data) y están amparados por el secreto profesional médico y la Ley 26.529 (Derechos del Paciente). Para justificar el retiro o la ausencia horaria, el empleador o la facultad solo requieren constatar que el paciente estuvo bajo atención profesional, sin necesidad ni derecho a conocer la causa clínica íntima.',
+  },
+  {
+    question: '¿Tiene validez legal ante el departamento de Recursos Humanos de mi empresa?',
+    answer:
+      'Sí. Las constancias emitidas a través de AutaMedica cumplen íntegramente con la Ley 27.553 de Teleasistencia Médica, la Ley 25.506 de Firma Digital y las disposiciones del Art. 209 de la Ley de Contrato de Trabajo (LCT 20.744), garantizando la plena validez de los documentos sanitarios generados mediante medios electrónicos.',
+  },
+  {
+    question: '¿Cómo comprueba mi empleador o la universidad que la constancia es auténtica?',
+    answer:
+      'Cada constancia incluye un código CUIR institucional único y un código QR dinámico. El receptor puede escanear el código QR con cualquier dispositivo o ingresar a autamedica.com/verify e introducir el código para verificar en tiempo real la identidad del profesional prescriptor, su número de matrícula y la autenticidad del registro.',
+  },
+  {
+    question: '¿Puedo solicitar constancia médica y certificado de reposo en la misma consulta?',
+    answer:
+      'Si durante la videoconsulta el profesional médico determina que tu cuadro clínico no solo requirió la atención médica sino que además amerita reposo físico en tu domicilio, el médico podrá emitir el certificado de reposo correspondiente indicando la cantidad de días de licencia pertinentes.',
+  },
+  {
+    question: '¿En cuánto tiempo recibo la constancia de atención médica?',
+    answer:
+      'La constancia en formato PDF oficial se genera de manera inmediata una vez concluida la videoconsulta y firmada por el médico. Queda accesible al instante en tu portal seguro de paciente y podés descargarla o enviarla por correo electrónico y WhatsApp.',
+  },
+];
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: 'Constancia de Atención Médica con Registro Horario | AutaMedica',
+      description:
+        'Constancia de asistencia horaria a consulta médica digital. Certifica fecha y franja horaria para justificación laboral y académica. Sin diagnóstico visible según Ley 25.326.',
+      inLanguage: 'es-AR',
+      isPartOf: {
+        '@type': 'WebSite',
+        '@id': 'https://www.autamedica.com/#website',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+      about: [
+        { '@type': 'Thing', name: 'Constancia de atención médica' },
+        { '@type': 'Thing', name: 'Justificativo horario médico' },
+        { '@type': 'Thing', name: 'Ley 25326 Protección de Datos' },
+        { '@type': 'Thing', name: 'Ley 27553 Telemedicina' },
+      ],
+      publisher: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+      },
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+        geographicArea: {
+          '@type': 'Country',
+          name: 'Argentina',
+        },
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Certificados Médicos',
+          item: 'https://www.autamedica.com/certificados-medicos',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Constancia de Atención Médica',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Constancia de Atención Médica Horaria en Argentina | AutaMedica"
+  description="Constancia oficial de asistencia a consulta médica con hora de inicio y fin para trámites laborales y educativos. Sin diagnóstico visible bajo Ley 25.326. Validación QR."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="website"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- Migas de pan -->
+    <nav class="border-b border-slate-100 bg-slate-50/70 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/certificados-medicos" class="hover:text-sky-600 transition-colors">Certificados Médicos</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Constancia de Atención Médica</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <header class="relative bg-gradient-to-b from-slate-50 via-white to-sky-50/30 border-b border-slate-200/80 pt-16 pb-20 md:py-24">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider mb-6">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Acreditación Horaria Oficial · Ley 27.553</span>
+          </div>
+
+          <h1 class="text-4xl md:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12] mb-6">
+            Constancia de atención médica con <span class="text-sky-700 italic">registro horario exacto.</span>
+          </h1>
+
+          <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed mb-8">
+            Certificá de manera fidedigna la fecha, hora de inicio y hora de finalización de tu consulta médica ante Recursos Humanos o tu casa de estudios. Respaldo legal completo con diagnóstico estrictamente confidencial.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 mb-10">
+            <a
+              href="/auth/register"
+              class="inline-flex items-center justify-center px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5 text-base"
+            >
+              Solicitar Constancia de Atención
+            </a>
+            <a
+              href="#diferencias"
+              class="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 font-semibold rounded-xl border border-slate-200 transition-colors text-base"
+            >
+              Diferencias con Reposo Médico
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200/70 text-xs text-slate-600">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Sin diagnóstico visible (Ley 25.326)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Validación CUIR y QR en /verify</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Médicos matriculados en REFEPS</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- PILARES INSTITUCIONALES -->
+    <section class="py-20 md:py-24 bg-white border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Seguridad Legal y Asistencial</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Garantías de la constancia horaria en AutaMedica
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {features.map((item) => (
+            <div class="bg-slate-50/70 rounded-2xl border border-slate-200 p-8 shadow-sm">
+              <div class="w-10 h-10 rounded-xl bg-sky-100 border border-sky-200 flex items-center justify-center text-sky-700 font-bold text-sm mb-6">
+                ✓
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">{item.title}</h3>
+              <p class="text-slate-600 text-sm leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPARATIVA: CONSTANCIA VS REPOSO -->
+    <section id="diferencias" class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-14">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Claridad Jurídico-Laboral</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 mb-4">
+            Constancia de atención vs. Certificado de reposo médico
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg">
+            Es indispensable distinguir entre ambos instrumentos para presentar la documentación adecuada según el requerimiento de tu empleador o institución académica.
+          </p>
+        </div>
+
+        <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr class="bg-slate-100/80 border-b border-slate-200 text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  <th class="p-6">Aspecto Analizado</th>
+                  <th class="p-6 text-sky-900 bg-sky-50/60 border-l border-slate-200">Constancia de Atención Horaria</th>
+                  <th class="p-6 border-l border-slate-200">Certificado Médico de Reposo</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                {comparisonItems.map((row) => (
+                  <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="p-6 font-semibold text-slate-950">{row.feature}</td>
+                    <td class="p-6 text-slate-700 bg-sky-50/20 border-l border-slate-200 leading-relaxed">
+                      {row.constancia}
+                    </td>
+                    <td class="p-6 text-slate-600 border-l border-slate-200 leading-relaxed">
+                      {row.reposo}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MARCO DE CONFIDENCIALIDAD (NAVY SECTION) -->
+    <section class="py-20 md:py-28 bg-slate-900 text-white">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div class="lg:col-span-6 space-y-6">
+            <span class="text-sky-400 font-bold text-xs uppercase tracking-widest block">Habeas Data & Secreto Médico</span>
+            <h2 class="text-3xl md:text-5xl font-serif font-bold tracking-tight text-white leading-tight">
+              ¿Por qué no debés presentar un diagnóstico para justificar tu horario?
+            </h2>
+            <p class="text-slate-300 text-base md:text-lg leading-relaxed">
+              La legislación argentina protege de forma inquebrantable la privacidad de la salud del trabajador y del estudiante. La <strong class="text-white">Ley 25.326</strong> cataloga los diagnósticos médicos como datos sensibles no susceptibles de tratamiento público sin consentimiento expreso.
+            </p>
+            <p class="text-slate-300 text-base leading-relaxed">
+              Basta acreditar que el paciente concurrió al acto médico y permaneció bajo cuidado facultativo durante el horario asentado. Todo requerimiento de RRHH para indagar sobre la patología íntima vulnera el Art. 2 de la Ley 26.529 y el Art. 156 del Código Penal sobre violación de secreto profesional.
+            </p>
+            <div class="p-4 bg-slate-800 rounded-xl border border-slate-700 text-xs text-slate-300">
+              <strong class="text-white block mb-1">Leyenda institucional en el documento:</strong>
+              La constancia expedida certifica: <em class="text-sky-300">"El/La paciente permaneció en consulta médica profesional desde las [hora inicio] hs hasta las [hora fin] hs del día [fecha]. Diagnóstico reservado por imperio de las Leyes 25.326 y 26.529."</em>
+            </div>
+          </div>
+
+          <div class="lg:col-span-6">
+            <div class="bg-white rounded-3xl p-8 text-slate-900 shadow-2xl">
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-4 pb-4 border-b border-slate-100">
+                Datos consignados en la constancia oficial
+              </h3>
+              <ul class="space-y-4 text-xs md:text-sm text-slate-600">
+                <li class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span class="text-sky-600 font-bold mt-0.5">•</span>
+                  <div>
+                    <strong class="text-slate-900 block">Identificación del Paciente:</strong>
+                    Nombre completo y número de Documento Nacional de Identidad (DNI) o CUIL.
+                  </div>
+                </li>
+                <li class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span class="text-sky-600 font-bold mt-0.5">•</span>
+                  <div>
+                    <strong class="text-slate-900 block">Registro Cronológico Inalterable:</strong>
+                    Fecha exacta, hora precisa de inicio de la videoconsulta y hora de egreso de la sala médica virtual.
+                  </div>
+                </li>
+                <li class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span class="text-sky-600 font-bold mt-0.5">•</span>
+                  <div>
+                    <strong class="text-slate-900 block">Identificación del Profesional:</strong>
+                    Nombre y apellido, especialidad clínica, Matrícula Nacional (MN) o Provincial (MP) y registro SISA.
+                  </div>
+                </li>
+                <li class="flex items-start gap-3 p-3 rounded-xl bg-sky-50/60 border border-sky-200">
+                  <span class="text-sky-600 font-bold mt-0.5">•</span>
+                  <div>
+                    <strong class="text-sky-950 block">Mecanismo de Auditoría Inmediata:</strong>
+                    Código CUIR y código QR para validación institucional fehaciente en autamedica.com/verify.
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CASOS DE USO TÍPICOS -->
+    <section class="py-20 md:py-24 bg-white border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-14">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Aplicación Práctica</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 mb-4">
+            ¿Cuándo es necesario presentar una constancia de atención?
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg">
+            Situaciones cotidianas donde necesitás acreditar el tiempo asignado al cuidado de tu salud sin interrumpir días completos de trabajo o estudio.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200">
+            <span class="text-xs font-bold text-sky-700 uppercase tracking-wider block mb-2">Ámbito Laboral</span>
+            <h3 class="text-lg font-serif font-bold text-slate-950 mb-2">Llegada tarde o salida anticipada</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Justificá el ingreso demorado a tu turno laboral o el retiro temprano justificado por un malestar agudo o control facultativo pautado.
+            </p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200">
+            <span class="text-xs font-bold text-sky-700 uppercase tracking-wider block mb-2">Ámbito Educativo</span>
+            <h3 class="text-lg font-serif font-bold text-slate-950 mb-2">Exámenes parciales y finales</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Acreditá formalmente ante la cátedra o secretaría académica la imposibilidad horaria de comparecer al examen por atención médica sincrónica.
+            </p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200">
+            <span class="text-xs font-bold text-sky-700 uppercase tracking-wider block mb-2">Trámites y Dependencias</span>
+            <h3 class="text-lg font-serif font-bold text-slate-950 mb-2">Turnos oficiales y audiencias</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Documentá debidamente la postergación o justificación horaria de audiencias o turnos administrativos ante organismos del Estado.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQS ACCORDION -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-4xl mx-auto px-6">
+        <div class="text-center mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Resolución de Dudas</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Preguntas frecuentes sobre constancias de atención
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white rounded-2xl border border-slate-200 overflow-hidden transition-colors shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none select-none">
+                <span class="text-base md:text-lg font-serif font-bold text-slate-900 pr-4">{faq.question}</span>
+                <span class="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 font-semibold group-open:rotate-180 group-open:bg-sky-50 group-open:text-sky-700 transition-transform flex-shrink-0">
+                  &darr;
+                </span>
+              </summary>
+              <div class="px-6 md:px-8 pb-6 md:pb-8 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CROSS LINKS -->
+    <section class="py-14 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6 text-center">Servicios Médicos Relacionados</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <a href="/justificativo-medico" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Justificativo Médico
+          </a>
+          <a href="/certificado-medico-laboral" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Certificado Laboral
+          </a>
+          <a href="/certificados-medicos" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Todos los Certificados
+          </a>
+          <a href="/guardia-medica-online" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Guardia Médica 24hs
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <CTAFinal
+      title="Obtené tu constancia médica horaria con firma oficial."
+      subtitle="Atención inmediata con médicos matriculados. Descargá tu documento con código CUIR y código QR en el acto."
+      buttonLabel="Iniciar Consulta Médica"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>

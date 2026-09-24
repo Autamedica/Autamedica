@@ -1,0 +1,388 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/receta-digital';
+
+const pharmacyChains = [
+  { name: 'Farmacity', type: 'Cadena Nacional' },
+  { name: 'Dr. Ahorro', type: 'Cadena Nacional' },
+  { name: 'Central Oeste', type: 'Red Metropolitana' },
+  { name: 'Farmacias del Puente', type: 'Red Regional' },
+  { name: 'Farmacias Líder', type: 'Red Centro/Cuyo' },
+  { name: 'Red COFA / Colegiadas', type: 'Farmacias de Barrio' },
+];
+
+const features = [
+  {
+    title: 'Decreto 345/2024 y Ley 27.553',
+    desc: 'Emisión plenamente homologada para la prescripción de medicamentos en formato digital con firma electrónica y Código Único de Identificación de Receta (CUIR).',
+  },
+  {
+    title: 'Prescripción por Nombre Genérico (DCI)',
+    desc: 'Cumplimiento estricto de la Ley 25.649. El profesional prescribe el principio activo y la concentración, permitiéndote optar libremente por la marca comercial o genérica en el mostrador.',
+  },
+  {
+    title: 'Cobertura por Obras Sociales y Prepagas',
+    desc: 'Las recetas consignan todos los campos regulatorios para su presentación ante obras sociales sindicales, provinciales y empresas de medicina prepaga o solicitud de reintegro según tu plan.',
+  },
+];
+
+const stepByStep = [
+  {
+    step: '01',
+    title: 'Evaluación Médica Sincrónica',
+    desc: 'Te conectás en minutos con un médico matriculado por videoconsulta para evaluar tus síntomas, diagnóstico o la continuidad de tu medicación habitual.',
+  },
+  {
+    step: '02',
+    title: 'Generación con Código CUIR',
+    desc: 'El médico emite la prescripción oficial firmada digitalmente, incorporando el código CUIR y código de barras legible para sistemas de farmacia.',
+  },
+  {
+    step: '03',
+    title: 'Recepción Inmediata en Celular',
+    desc: 'Descargás el documento oficial en formato PDF de alta resolución desde tu panel de paciente, recibiéndolo también por correo electrónico o WhatsApp.',
+  },
+  {
+    step: '04',
+    title: 'Dispensa en Cualquier Farmacia',
+    desc: 'Exhibís el archivo digital en la pantalla de tu celular en la farmacia. El profesional farmacéutico escanea el código y dispensa el fármaco en el acto.',
+  },
+];
+
+const faqs = [
+  {
+    question: '¿Qué es el código CUIR y por qué es obligatorio según el Decreto 345/2024?',
+    answer:
+      'El Código Único de Identificación de Receta (CUIR) es el estándar informático estipulado por el Ministerio de Salud de la Nación mediante el Decreto Reglamentario 345/2024 de la Ley 27.553. Este identificador garantiza la unicidad de cada prescripción, previene duplicaciones o falsificaciones y permite a cualquier farmacia del país auditar la validez y matrícula del médico prescriptor en tiempo real.',
+  },
+  {
+    question: '¿La receta digital de AutaMedica es aceptada en todas las farmacias de Argentina?',
+    answer:
+      'Sí. Tiene validez jurídica y sanitaria irrestricta en las 24 jurisdicciones de la República Argentina. Es aceptada en grandes cadenas de farmacias (como Farmacity, Dr. Ahorro, Central Oeste) y en todas las farmacias colegiadas e independientes del territorio nacional adheridas a los sistemas de validación farmacéutica.',
+  },
+  {
+    question: '¿Sirve para obtener descuentos por Obra Social o Medicina Prepaga?',
+    answer:
+      'Nuestras prescripciones cumplen con las exigencias de la Ley 25.649 de Medicamentos Genéricos y contienen todos los datos requeridos por los convenios farmacéuticos (nombre genérico DCI, concentración, forma farmacéutica, datos del afiliado y diagnóstico CIE-10). Podés presentarla ante tu obra social o prepaga, o bien abonar en la farmacia y tramitar el reintegro de acuerdo con los términos de tu cobertura médica.',
+  },
+  {
+    question: '¿Se pueden recetar antibióticos y medicamentos bajo receta archivada?',
+    answer:
+      'Sí. Si el médico clínico determina que tu cuadro (por ejemplo, una faringoamigdalitis purulenta o una infección urinaria baja) requiere antibioticoterapia, emitirá la receta digital en formato apto para archivo farmacéutico. El sistema registra el número de dispensa digital sin necesidad de retener papel físico.',
+  },
+  {
+    question: '¿Puedo renovar medicación para enfermedades crónicas?',
+    answer:
+      'Totalmente. Si necesitás continuar tratamientos prolongados de hipertensión arterial, hipotiroidismo (levotiroxina), diabetes tipo 2, dislipidemias, asma o anticoncepción oral, podés solicitar la consulta de renovación aportando tus antecedentes o envase anterior para que el profesional corrobore la pertinencia y emita la prescripción.',
+  },
+  {
+    question: '¿Es necesario imprimir la receta o alcanza con mostrar el celular?',
+    answer:
+      'El Decreto 345/2024 consagra el principio de documento digital desmaterializado. No es obligatorio imprimir la receta: podés exhibir el archivo PDF o el código de barras directamente desde la pantalla de tu teléfono para que la farmacia efectúe la lectura óptica y dispensa.',
+  },
+];
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: 'Receta Digital Oficial en Farmacias de Argentina | AutaMedica',
+      description:
+        'Receta médica digital con código CUIR y firma electrónica bajo Decreto 345/2024 y Ley 27.553. Aceptación en cadenas farmacéuticas y farmacias de barrio en todo el país.',
+      inLanguage: 'es-AR',
+      isPartOf: {
+        '@type': 'WebSite',
+        '@id': 'https://www.autamedica.com/#website',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+      about: [
+        { '@type': 'Thing', name: 'Receta digital oficial' },
+        { '@type': 'Thing', name: 'Código CUIR' },
+        { '@type': 'Thing', name: 'Decreto 345/2024' },
+        { '@type': 'Thing', name: 'Ley 27553' },
+        { '@type': 'Thing', name: 'Prescripción genérica DCI' },
+      ],
+      publisher: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+      },
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+        geographicArea: {
+          '@type': 'Country',
+          name: 'Argentina',
+        },
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Recetas y Trámites',
+          item: 'https://www.autamedica.com/receta-medica-online',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Receta Digital',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Receta Digital Oficial en Farmacias de Argentina | AutaMedica"
+  description="Gestioná tu receta digital médica con código CUIR y firma electrónica registrada bajo Decreto 345/2024 y Ley 27.553. Válida en todas las farmacias del país en minutos."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="website"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- Migas de pan -->
+    <nav class="border-b border-slate-100 bg-slate-50/70 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/receta-medica-online" class="hover:text-sky-600 transition-colors">Recetas y Trámites</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Receta Digital</span>
+      </div>
+    </nav>
+
+    <!-- HERO TRANSACCIONAL -->
+    <header class="relative bg-gradient-to-b from-slate-50 via-white to-sky-50/30 border-b border-slate-200/80 pt-16 pb-20 md:py-24">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider mb-6">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Homologación Nacional · Decreto 345/2024 · Ley 27.553</span>
+          </div>
+
+          <h1 class="text-4xl md:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12] mb-6">
+            Receta digital oficial con <span class="text-sky-700 italic">código CUIR y validez nacional.</span>
+          </h1>
+
+          <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed mb-8">
+            Accedé a prescripciones médicas digitales emitidas por profesionales matriculados en REFEPS. Presentalas directamente desde tu celular en grandes cadenas farmacéuticas o farmacias de barrio de toda la Argentina.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 mb-10">
+            <a
+              href="/auth/register"
+              class="inline-flex items-center justify-center px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5 text-base"
+            >
+              Solicitar Receta Digital Ahora
+            </a>
+            <a
+              href="#farmacias-adheridas"
+              class="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 font-semibold rounded-xl border border-slate-200 transition-colors text-base"
+            >
+              Ver Farmacias y Cadenas
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200/70 text-xs text-slate-600">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Aceptada en Farmacity, Central Oeste y más</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Prescripción Genérica DCI (Ley 25.649)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Firma electrónica registrada ante Salud</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CARACTERÍSTICAS Y HOMOLOGACIÓN LEGAL -->
+    <section class="py-20 md:py-24 bg-white border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Ecosistema Farmacéutico Seguro</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Tranquilidad y respaldo en el mostrador
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {features.map((feat) => (
+            <div class="bg-slate-50/70 rounded-2xl border border-slate-200 p-8 shadow-sm">
+              <div class="w-10 h-10 rounded-xl bg-sky-100 border border-sky-200 flex items-center justify-center text-sky-700 font-bold text-sm mb-6">
+                ✓
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">{feat.title}</h3>
+              <p class="text-slate-600 text-sm leading-relaxed">{feat.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CADENAS Y FARMACIAS ADHERIDAS -->
+    <section id="farmacias-adheridas" class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-14">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Red Nacional de Dispensa</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 mb-4">
+            Compatibilidad con el 100% de las farmacias argentinas
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg">
+            Gracias al estándar CUIR normado por el Decreto 345/2024, el farmacéutico valida la receta con pistola de código de barras o lector de pantalla en cualquier sistema de facturación farmacéutica.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {pharmacyChains.map((chain) => (
+            <div class="p-5 rounded-2xl bg-white border border-slate-200 text-center shadow-sm">
+              <span class="text-xs text-sky-700 font-semibold uppercase tracking-wider block mb-1">{chain.type}</span>
+              <p class="text-base font-serif font-bold text-slate-950">{chain.name}</p>
+            </div>
+          ))}
+        </div>
+
+        <div class="mt-10 p-6 rounded-2xl bg-sky-50/70 border border-sky-200 text-xs md:text-sm text-sky-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <strong class="block font-semibold mb-1">¿Estás en el mostrador de una farmacia ahora mismo?</strong>
+            <span>Podés iniciar tu consulta de guardia y obtener tu receta digital en menos de 10 minutos para retirarla en el acto.</span>
+          </div>
+          <a
+            href="/auth/register"
+            class="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold flex-shrink-0 transition-colors"
+          >
+            Atendete Ahora
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- PASO A PASO TRANSACCIONAL -->
+    <section class="py-20 md:py-28 bg-slate-900 text-white">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="text-sky-400 font-bold text-xs uppercase tracking-widest block mb-3">Circuito Clínico & Operativo</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-white">
+            Cómo funciona el circuito de receta digital
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {stepByStep.map((s) => (
+            <div class="p-6 rounded-2xl bg-slate-800 border border-slate-700 flex flex-col justify-between">
+              <div>
+                <span class="text-3xl font-serif font-bold text-sky-400 block mb-3">{s.step}</span>
+                <h3 class="text-lg font-serif font-bold text-white mb-2">{s.title}</h3>
+                <p class="text-xs text-slate-300 leading-relaxed mb-4">{s.desc}</p>
+              </div>
+              <div class="pt-3 border-t border-slate-700 text-[11px] text-slate-400">
+                Respaldo Ley 27.553
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQS ACCORDION -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-4xl mx-auto px-6">
+        <div class="text-center mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Preguntas Frecuentes</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Dudas sobre la receta digital en farmacias
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white rounded-2xl border border-slate-200 overflow-hidden transition-colors shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none select-none">
+                <span class="text-base md:text-lg font-serif font-bold text-slate-900 pr-4">{faq.question}</span>
+                <span class="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 font-semibold group-open:rotate-180 group-open:bg-sky-50 group-open:text-sky-700 transition-transform flex-shrink-0">
+                  &darr;
+                </span>
+              </summary>
+              <div class="px-6 md:px-8 pb-6 md:pb-8 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CROSS LINKS -->
+    <section class="py-14 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6 text-center">Trámites y Consultas Relacionadas</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <a href="/receta-medica-online" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Renovación de Recetas
+          </a>
+          <a href="/consulta-medica-en-farmacia" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Consulta en Farmacia
+          </a>
+          <a href="/guardia-medica-online" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Guardia Médica 24hs
+          </a>
+          <a href="/certificados-medicos" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Certificados Médicos
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <CTAFinal
+      title="Tu medicación lista para retirar en minutos."
+      subtitle="Recibí tu receta oficial con código CUIR y firma electrónica en tu celular. Válida en todas las farmacias del país."
+      buttonLabel="Solicitar Receta Digital"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>
