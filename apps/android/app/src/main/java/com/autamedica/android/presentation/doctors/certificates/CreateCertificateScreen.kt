@@ -28,12 +28,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.MedicalCertificate
@@ -41,15 +43,15 @@ import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
 import com.autamedica.android.presentation.theme.*
 
-private val COMMON_CERT_DIAGNOSES = listOf(
-    "Cuadro de gastroenteritis aguda febril",
-    "Infección respiratoria de vías aéreas superiores (Rinofaringitis)",
-    "Lumbalgia aguda con contractura paravertebral",
-    "Bronquitis aguda con compromiso ventilatorio leve",
-    "Cefalea tensional / migrañosa severa",
-    "Examen clínico y cardiovascular dentro de parámetros normales (Apto físico)",
-    "Traumatismo articular leve con indicación de reposo",
-    "Faringoamigdalitis pultácea con reposo domiciliario"
+private val COMMON_CERT_DIAGNOSES_RES = listOf(
+    R.string.cert_diag_gastroenteritis,
+    R.string.cert_diag_respiratory,
+    R.string.cert_diag_lumbalgia,
+    R.string.cert_diag_bronchitis,
+    R.string.cert_diag_headache,
+    R.string.cert_diag_physical_aptitude,
+    R.string.cert_diag_trauma,
+    R.string.cert_diag_pharyngitis,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,13 +81,13 @@ fun CreateCertificateScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Emitir Atestado Médico",
+                            text = stringResource(R.string.cert_create_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Decreto 63/2024 · Ley 27.553",
+                            text = stringResource(R.string.cert_create_legal_basis),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
@@ -95,7 +97,7 @@ fun CreateCertificateScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.clinical_ops_back),
                             tint = AuTextPrimary,
                         )
                     }
@@ -115,7 +117,12 @@ fun CreateCertificateScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    uiState.createError?.let { err ->
+                    val errorMessage = uiState.createErrorRes?.let { resId ->
+                        if (uiState.createErrorArg != null) stringResource(resId, uiState.createErrorArg!!)
+                        else stringResource(resId)
+                    } ?: uiState.createError
+
+                    errorMessage?.let { err ->
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = AuDanger.copy(alpha = 0.10f),
@@ -154,11 +161,11 @@ fun CreateCertificateScreen(
                                 strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Firmando y Sellando Digitalmente...")
+                            Text(stringResource(R.string.cert_create_submitting))
                         } else {
                             Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Firmar y Emitir Certificado Oficial", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.cert_create_submit_button), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -173,7 +180,7 @@ fun CreateCertificateScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. SISA / REFEPS Regulatory Verification Status Banner
+            // 1. Regulatory Verification Status Banner
             DoctorRegulatoryBanner(uiState.doctorEligibility)
 
             // 2. Patient Selector Card
@@ -227,7 +234,7 @@ fun CreateCertificateScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Indicaciones y Observaciones Clínicas (Opcional)",
+                        text = stringResource(R.string.cert_obs_section_title),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary
@@ -235,7 +242,7 @@ fun CreateCertificateScreen(
                     OutlinedTextField(
                         value = uiState.observations,
                         onValueChange = { viewModel.onObservationsChange(it) },
-                        placeholder = { Text("Ej: Reposo domiciliario con hidratación continua. Presentar en RRHH.") },
+                        placeholder = { Text(stringResource(R.string.cert_obs_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 4,
@@ -269,7 +276,7 @@ fun CreateCertificateScreen(
             },
             title = {
                 Text(
-                    text = "¡Atestado Emitido con Éxito!",
+                    text = stringResource(R.string.cert_success_dialog_title),
                     fontWeight = FontWeight.Bold,
                     color = AuTextPrimary,
                 )
@@ -280,7 +287,7 @@ fun CreateCertificateScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "El certificado médico digital ha sido firmado con validez institucional.",
+                        text = stringResource(R.string.cert_success_dialog_body),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextSecondary
                     )
@@ -297,7 +304,7 @@ fun CreateCertificateScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "CÓDIGO ÚNICO (CUIR):",
+                                text = stringResource(R.string.cert_success_cuir_header),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextTertiary,
                                 fontWeight = FontWeight.Bold
@@ -311,11 +318,11 @@ fun CreateCertificateScreen(
                             IconButton(onClick = {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 clipboard.setPrimaryClip(ClipData.newPlainText("CUIR", created.cuir))
-                                Toast.makeText(context, "CUIR copiado", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.cert_toast_cuir_copied), Toast.LENGTH_SHORT).show()
                             }) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = PortalDoctors)
-                                    Text("Copiar", style = MaterialTheme.typography.labelSmall, color = PortalDoctors)
+                                    Text(stringResource(R.string.clinical_ops_copy), style = MaterialTheme.typography.labelSmall, color = PortalDoctors)
                                 }
                             }
                         }
@@ -325,11 +332,11 @@ fun CreateCertificateScreen(
                     QrCodeView(
                         content = created.effectiveQrContent,
                         modifier = Modifier.size(140.dp),
-                        contentDescription = "QR de Validación Institucional",
+                        contentDescription = stringResource(R.string.cert_qr_validation_content_desc),
                     )
 
                     Text(
-                        text = "Válido ante empleadores, escuelas o instituciones públicas mediante verificación online.",
+                        text = stringResource(R.string.cert_success_dialog_footer),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary
                     )
@@ -344,7 +351,7 @@ fun CreateCertificateScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors)
                 ) {
-                    Text("Volver a Mis Atestados")
+                    Text(stringResource(R.string.cert_success_back_to_certificates))
                 }
             }
         )
@@ -354,7 +361,7 @@ fun CreateCertificateScreen(
 @Composable
 private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
     val isEligible = eligibility?.isEligible ?: true
-    val license = eligibility?.doctorLicense ?: "Registrada"
+    val license = eligibility?.doctorLicense ?: stringResource(R.string.cert_reg_registered)
 
     Surface(
         shape = RoundedCornerShape(12.dp),
@@ -375,16 +382,16 @@ private fun DoctorRegulatoryBanner(eligibility: DoctorEligibility?) {
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isEligible) "Habilitación Profesional Activa" else "Verificación Pendiente",
+                    text = if (isEligible) stringResource(R.string.cert_reg_active_title) else stringResource(R.string.cert_reg_pending_title),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (isEligible) AuSuccess else Color(0xFFB45309),
                 )
                 Text(
                     text = if (isEligible) {
-                        "Matrícula: $license · Firma digital habilitada"
+                        stringResource(R.string.cert_reg_license_active, license)
                     } else {
-                        eligibility?.reason ?: "Requiere matricula activa en SISA para firma con validez oficial."
+                        eligibility?.reason ?: stringResource(R.string.cert_reg_license_required)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary
@@ -438,13 +445,13 @@ private fun PatientSelectorSection(
                 }
                 Column {
                     Text(
-                        text = "Destinatario del Atestado",
+                        text = stringResource(R.string.cert_patient_recipient_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary
                     )
                     Text(
-                        text = "Paciente registrado que recibirá el certificado",
+                        text = stringResource(R.string.cert_patient_recipient_subtitle),
                         style = MaterialTheme.typography.labelSmall,
                         color = AuTextTertiary
                     )
@@ -472,7 +479,11 @@ private fun PatientSelectorSection(
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 selectedPatient.dni?.let { dni ->
-                                    Text(text = "DNI: $dni", style = MaterialTheme.typography.labelSmall, color = AuTextSecondary)
+                                    Text(
+                                        text = stringResource(R.string.cert_patient_dni_label, dni),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = AuTextSecondary
+                                    )
                                 }
                                 selectedPatient.birthDate?.let { b ->
                                     Text(text = "· $b", style = MaterialTheme.typography.labelSmall, color = AuTextTertiary)
@@ -480,7 +491,7 @@ private fun PatientSelectorSection(
                             }
                         }
                         TextButton(onClick = { onExpandedChange(true) }) {
-                            Text("Cambiar", color = PortalDoctors, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.clinical_ops_change), color = PortalDoctors, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -493,7 +504,7 @@ private fun PatientSelectorSection(
                 OutlinedTextField(
                     value = if (selectedPatient != null && !expanded) selectedPatient.fullName else patientSearchQuery,
                     onValueChange = onSearchQueryChange,
-                    placeholder = { Text("Buscar paciente por nombre o DNI...") },
+                    placeholder = { Text(stringResource(R.string.cert_patient_search_placeholder)) },
                     leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null, tint = AuTextTertiary) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier
@@ -513,12 +524,12 @@ private fun PatientSelectorSection(
                 ) {
                     if (isLoadingPatients) {
                         DropdownMenuItem(
-                            text = { Text("Cargando pacientes del consultorio...") },
+                            text = { Text(stringResource(R.string.cert_patient_loading)) },
                             onClick = {}
                         )
                     } else if (filtered.isEmpty()) {
                         DropdownMenuItem(
-                            text = { Text("No se encontraron pacientes con ese criterio") },
+                            text = { Text(stringResource(R.string.cert_patient_empty)) },
                             onClick = {}
                         )
                     } else {
@@ -527,7 +538,7 @@ private fun PatientSelectorSection(
                                 text = {
                                     Column {
                                         Text(p.fullName, fontWeight = FontWeight.Bold)
-                                        p.dni?.let { Text("DNI: $it", style = MaterialTheme.typography.labelSmall, color = AuTextTertiary) }
+                                        p.dni?.let { Text(stringResource(R.string.cert_patient_dni_label, it), style = MaterialTheme.typography.labelSmall, color = AuTextTertiary) }
                                     }
                                 },
                                 onClick = { onSelectPatient(p) }
@@ -569,13 +580,13 @@ private fun CertificateTypeSelectorSection(
                 }
                 Column {
                     Text(
-                        text = "Tipo de Atestado / Certificación",
+                        text = stringResource(R.string.cert_type_section_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary
                     )
                     Text(
-                        text = "Determina el alcance legal e institucional del documento",
+                        text = stringResource(R.string.cert_type_section_subtitle),
                         style = MaterialTheme.typography.labelSmall,
                         color = AuTextTertiary
                     )
@@ -593,7 +604,7 @@ private fun CertificateTypeSelectorSection(
                     FilterChip(
                         selected = isSelected,
                         onClick = { onSelectType(type) },
-                        label = { Text(type.displayName, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        label = { Text(getCertificateTypeDisplayName(type), fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                         leadingIcon = if (isSelected) {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                         } else null,
@@ -631,7 +642,7 @@ private fun DaysOfRestSection(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Duración y Período de Reposo",
+                text = stringResource(R.string.cert_rest_section_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = AuTextPrimary
@@ -646,10 +657,15 @@ private fun DaysOfRestSection(
             ) {
                 presetDays.forEach { days ->
                     val isSelected = daysOfRest == days
+                    val chipText = when (days) {
+                        1 -> stringResource(R.string.cert_rest_24h)
+                        2 -> stringResource(R.string.cert_rest_48h)
+                        else -> stringResource(R.string.cert_rest_days_format, days)
+                    }
                     FilterChip(
                         selected = isSelected,
                         onClick = { onDaysChange(days) },
-                        label = { Text(if (days == 1) "24 hs" else if (days == 2) "48 hs" else "$days días") },
+                        label = { Text(chipText) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = PortalDoctors,
                             selectedLabelColor = Color.White,
@@ -659,7 +675,7 @@ private fun DaysOfRestSection(
                 FilterChip(
                     selected = daysOfRest == 0,
                     onClick = { onDaysChange(0) },
-                    label = { Text("Sin reposo") },
+                    label = { Text(stringResource(R.string.cert_no_rest)) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = PortalDoctors,
                         selectedLabelColor = Color.White,
@@ -682,7 +698,7 @@ private fun DaysOfRestSection(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Fecha de inicio:", style = MaterialTheme.typography.bodySmall, color = AuTextSecondary)
+                        Text(stringResource(R.string.cert_rest_start_date_label), style = MaterialTheme.typography.bodySmall, color = AuTextSecondary)
                         Text(startDate, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = AuTextPrimary)
                     }
                     if (daysOfRest > 0 && endDate != null) {
@@ -690,7 +706,7 @@ private fun DaysOfRestSection(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Reintegro previsto:", style = MaterialTheme.typography.bodySmall, color = AuTextSecondary)
+                            Text(stringResource(R.string.cert_rest_end_date_label), style = MaterialTheme.typography.bodySmall, color = AuTextSecondary)
                             Text(endDate, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
                         }
                     }
@@ -718,7 +734,7 @@ private fun DiagnosisAndPrivacySection(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Diagnóstico y Certificación Clínica",
+                text = stringResource(R.string.cert_diag_section_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = AuTextPrimary
@@ -731,12 +747,13 @@ private fun DiagnosisAndPrivacySection(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                COMMON_CERT_DIAGNOSES.take(4).forEach { diag ->
-                    val isSelected = diagnosis == diag
+                COMMON_CERT_DIAGNOSES_RES.take(4).forEach { resId ->
+                    val diagText = stringResource(resId)
+                    val isSelected = diagnosis == diagText
                     FilterChip(
                         selected = isSelected,
-                        onClick = { onDiagnosisChange(diag) },
-                        label = { Text(diag.take(24) + "...", style = MaterialTheme.typography.labelSmall) },
+                        onClick = { onDiagnosisChange(diagText) },
+                        label = { Text(diagText.take(24) + "...", style = MaterialTheme.typography.labelSmall) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = PortalDoctors,
                             selectedLabelColor = Color.White,
@@ -748,7 +765,7 @@ private fun DiagnosisAndPrivacySection(
             OutlinedTextField(
                 value = diagnosis,
                 onValueChange = onDiagnosisChange,
-                placeholder = { Text("Describa el diagnóstico, cuadro o aptitud clínica...") },
+                placeholder = { Text(stringResource(R.string.cert_diag_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4,
@@ -779,13 +796,13 @@ private fun DiagnosisAndPrivacySection(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Ocultar diagnóstico en documento final",
+                            text = stringResource(R.string.cert_privacy_hide_diagnosis_title),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary
                         )
                         Text(
-                            text = "Garantía de Secreto Médico y confidencialidad ante empleadores (Ley 27.553 / CFM)",
+                            text = stringResource(R.string.cert_privacy_hide_diagnosis_subtitle),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextSecondary
                         )

@@ -2,6 +2,7 @@ package com.autamedica.android.presentation.health
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.presentation.common.UiErrorMapper
 import com.autamedica.android.domain.model.AnamnesisSection
 import com.autamedica.android.domain.model.AnamnesisSummary
 import com.autamedica.android.domain.repository.HealthRepository
@@ -237,7 +238,7 @@ class AnamnesisFormViewModel @Inject constructor(
                             _uiState.update {
                                 it.copy(
                                     isSaving = false,
-                                    error = e.message ?: "No se pudo guardar la seccion",
+                            error = UiErrorMapper.map(e, "No se pudo guardar la seccion"),
                                 )
                             }
                         }
@@ -247,7 +248,7 @@ class AnamnesisFormViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            error = e.message ?: "No se pudo guardar la seccion",
+                            error = UiErrorMapper.map(e, "No se pudo guardar la seccion"),
                         )
                     }
                 }
@@ -354,7 +355,7 @@ class AnamnesisFormViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            error = e.message ?: "No se pudo enviar la anamnesis",
+                            error = UiErrorMapper.map(e, "No se pudo enviar la anamnesis"),
                         )
                     }
                 }

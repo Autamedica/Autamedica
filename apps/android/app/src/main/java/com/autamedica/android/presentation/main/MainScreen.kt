@@ -122,11 +122,11 @@ private val patientTabs = listOf(
 
 // Doctor tabs
 private val doctorTabs = listOf(
-    TabItem(R.string.nav_home, R.drawable.ic_home_outline),
-    TabItem(R.string.nav_messages, R.drawable.ic_chat_outline),
-    TabItem(R.string.nav_appointments, R.drawable.ic_calendar_outline),
-    TabItem(R.string.nav_patients, R.drawable.ic_medical_cross_outline),
-    TabItem(R.string.nav_profile, R.drawable.ic_profile_outline),
+    TabItem(R.string.doctor_tab_home, R.drawable.ic_home_outline),
+    TabItem(R.string.doctor_tab_messages, R.drawable.ic_chat_outline),
+    TabItem(R.string.doctor_tab_appointments, R.drawable.ic_calendar_outline),
+    TabItem(R.string.doctor_tab_patients, R.drawable.ic_medical_cross_outline),
+    TabItem(R.string.doctor_tab_profile, R.drawable.ic_profile_outline),
 )
 
 @Composable
@@ -148,6 +148,7 @@ fun MainScreen(
     onNavigateToDoctorPrescriptions: () -> Unit = {},
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToDoctorMedicalOrders: () -> Unit = {},
+    onNavigateToDoctorOnDemand: () -> Unit = {},
     onNavigateToPatientProfile: () -> Unit = {},
     onNavigateToPharmacyIntake: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -336,6 +337,7 @@ fun MainScreen(
                         onNavigateToDoctorPrescriptions = onNavigateToDoctorPrescriptions,
                         onNavigateToDoctorCertificates = onNavigateToDoctorCertificates,
                         onNavigateToDoctorMedicalOrders = onNavigateToDoctorMedicalOrders,
+                        onNavigateToDoctorOnDemand = onNavigateToDoctorOnDemand,
                     )
                     1 -> com.autamedica.android.presentation.chat.ChatListScreen(
                         onNavigateToConversation = onNavigateToChatConversation,
@@ -456,14 +458,14 @@ private fun WebPortalRedirectScreen(
                 }
 
                 Text(
-                    text = "Portal ${userRole.displayName}",
+                    text = stringResource(R.string.portal_redirect_title, userRole.displayName),
                     style = MaterialTheme.typography.titleLarge,
                     color = AuTextPrimary,
                     fontWeight = FontWeight.Bold,
                 )
 
                 Text(
-                    text = "Este portal se gestiona desde la web de escritorio.",
+                    text = stringResource(R.string.portal_redirect_desc),
                     style = MaterialTheme.typography.bodyMedium,
                     color = AuTextSecondary,
                     textAlign = TextAlign.Center,
@@ -480,7 +482,7 @@ private fun WebPortalRedirectScreen(
                         .fillMaxWidth()
                         .height(48.dp),
                 ) {
-                    Text("Abrir en el navegador", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.portal_redirect_open_browser), fontWeight = FontWeight.SemiBold)
                 }
 
                 OutlinedButton(
@@ -491,7 +493,7 @@ private fun WebPortalRedirectScreen(
                         .fillMaxWidth()
                         .height(48.dp),
                 ) {
-                    Text("Cerrar sesión", color = AuTextSecondary)
+                    Text(stringResource(R.string.portal_redirect_logout), color = AuTextSecondary)
                 }
             }
         }

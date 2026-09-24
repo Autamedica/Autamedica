@@ -17,12 +17,14 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -30,6 +32,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -70,7 +73,12 @@ import androidx.compose.ui.unit.sp
 import com.autamedica.android.R
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
+import com.autamedica.android.presentation.theme.AuCyan
+import com.autamedica.android.presentation.theme.AuCyanDeep
+import com.autamedica.android.presentation.theme.AuCyanSoft
+import com.autamedica.android.presentation.theme.AuEmerald
 import com.autamedica.android.presentation.theme.AuHover
+import com.autamedica.android.presentation.theme.AuNavy
 import com.autamedica.android.presentation.theme.AuSuccess
 import com.autamedica.android.presentation.theme.AuSurface
 import com.autamedica.android.presentation.theme.AuTextPrimary
@@ -85,84 +93,46 @@ import kotlin.math.sin
 /**
  * Representa a un profesional médico activo en la red de guardia distribuida.
  */
+@kotlinx.serialization.Serializable
 data class OnDutyDoctorInfo(
-    val id: String,
-    val name: String,
-    val shortName: String,
-    val specialty: String,
-    val initials: String,
-    val statusText: String,
-    val isAvailable: Boolean = true,
+    val id: String = "",
+    val name: String = "",
+    @kotlinx.serialization.SerialName("short_name") val shortName: String = "",
+    val specialty: String = "",
+    val initials: String = "",
+    @kotlinx.serialization.SerialName("status_text") val statusText: String = "En línea",
+    @kotlinx.serialization.SerialName("is_available") val isAvailable: Boolean = true,
     val registration: String = "",
     val radarAngleDeg: Float = 0f,
     val radarDistanceFraction: Float = 0.7f,
 )
 
 /**
- * Médicos predeterminados en la red de guardia médica en vivo para farmacias de turno.
+ * Médicos predeterminados en la red de guardia (producción: lista dinámica desde backend).
  */
-val defaultOnDutyDoctors = listOf(
-    OnDutyDoctorInfo(
-        id = "doc-1",
-        name = "Dra. Valeria Méndez",
-        shortName = "Dra. Méndez",
-        specialty = "Médica Clínica",
-        initials = "VM",
-        statusText = "En línea",
-        isAvailable = true,
-        registration = "MN 148.920",
-        radarAngleDeg = -40f,
-        radarDistanceFraction = 0.68f,
-    ),
-    OnDutyDoctorInfo(
-        id = "doc-2",
-        name = "Dr. Fernando Silva",
-        shortName = "Dr. Silva",
-        specialty = "Medicina General",
-        initials = "FS",
-        statusText = "En consulta",
-        isAvailable = false,
-        registration = "MN 132.405",
-        radarAngleDeg = 150f,
-        radarDistanceFraction = 0.72f,
-    ),
-    OnDutyDoctorInfo(
-        id = "doc-3",
-        name = "Dra. Camila Duarte",
-        shortName = "Dra. Duarte",
-        specialty = "Emergentóloga",
-        initials = "CD",
-        statusText = "En línea",
-        isAvailable = true,
-        registration = "MN 156.118",
-        radarAngleDeg = 215f,
-        radarDistanceFraction = 0.64f,
-    ),
-    OnDutyDoctorInfo(
-        id = "doc-4",
-        name = "Dr. Martín Álvarez",
-        shortName = "Dr. Álvarez",
-        specialty = "Cardiología Clínica",
-        initials = "MA",
-        statusText = "En guardia",
-        isAvailable = true,
-        registration = "MN 129.870",
-        radarAngleDeg = 35f,
-        radarDistanceFraction = 0.82f,
-    ),
-)
+val defaultOnDutyDoctors = emptyList<OnDutyDoctorInfo>()
 
 /**
  * Visualizador central de radar de presencia médica en vivo ('Efecto Uber').
  * Dibuja ondas concéntricas de telemetría en Azul AutaMedica, un barrido suave,
  * el logo central de AutaMedica con pulso de transmisión y los nodos orbitantes
- * de médicos en guardia con puntos verdes de presencia viva.
+ * de médicos en guardia reales con puntos verdes de presencia viva.
  */
 @Composable
 fun LiveMedicalPresenceRadar(
     doctors: List<OnDutyDoctorInfo> = defaultOnDutyDoctors,
     modifier: Modifier = Modifier,
 ) {
+    val availableDoctors = remember(doctors) { doctors.filter { it.isAvailable } }
+    val distributedDoctors = remember(availableDoctors) {
+        availableDoctors.mapIndexed { index, doc ->
+            if (doc.radarAngleDeg == 0f) {
+                val angle = -40f + index * (360f / availableDoctors.size.coerceAtLeast(1))
+                val dist = 0.65f + (index % 3) * 0.08f
+                doc.copy(radarAngleDeg = angle, radarDistanceFraction = dist)
+            } else doc
+        }
+    }
     val infiniteTransition = rememberInfiniteTransition(label = "RadarTelemetryTransition")
 
     // Barrido rotativo de telemetría
@@ -176,26 +146,37 @@ fun LiveMedicalPresenceRadar(
         label = "radarSweepAngle",
     )
 
-    // Onda concéntrica expansiva 1
+    // Onda concéntrica expansiva 1 (staggered 0ms)
     val wave1 by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2600, easing = LinearEasing),
+            animation = tween(durationMillis = 2800, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "radarWave1",
     )
 
-    // Onda concéntrica expansiva 2 (desfasada)
+    // Onda concéntrica expansiva 2 (staggered 930ms)
     val wave2 by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2600, delayMillis = 1300, easing = LinearEasing),
+            animation = tween(durationMillis = 2800, delayMillis = 930, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "radarWave2",
+    )
+
+    // Onda concéntrica expansiva 3 (staggered 1860ms)
+    val wave3 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2800, delayMillis = 1860, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "radarWave3",
     )
 
     // Pulso del logo central
@@ -221,26 +202,26 @@ fun LiveMedicalPresenceRadar(
     )
 
     Box(
-        modifier = modifier.size(270.dp),
+        modifier = modifier.size(280.dp),
         contentAlignment = Alignment.Center,
     ) {
         // Lienzo del radar: círculos concéntricos, ejes de telemetría, barrido y ondas
         Canvas(modifier = Modifier.matchParentSize()) {
             val center = Offset(size.width / 2f, size.height / 2f)
             val maxRadius = size.minDimension / 2f
-            val innerCoreRadius = 36.dp.toPx()
+            val innerCoreRadius = 38.dp.toPx()
 
             // Círculos concéntricos fijos de telemetría médica
             val ringRadii = listOf(
                 innerCoreRadius + 16.dp.toPx(),
                 innerCoreRadius + 44.dp.toPx(),
-                innerCoreRadius + 72.dp.toPx(),
+                innerCoreRadius + 74.dp.toPx(),
                 maxRadius - 4.dp.toPx(),
             )
 
             ringRadii.forEachIndexed { index, r ->
                 drawCircle(
-                    color = Primary.copy(alpha = if (index == ringRadii.lastIndex) 0.18f else 0.10f),
+                    color = AuCyan.copy(alpha = if (index == ringRadii.lastIndex) 0.22f else 0.10f),
                     radius = r,
                     center = center,
                     style = Stroke(
@@ -251,7 +232,7 @@ fun LiveMedicalPresenceRadar(
             }
 
             // Ejes de telemetría (mira central)
-            val axisColor = Primary.copy(alpha = 0.08f)
+            val axisColor = AuCyan.copy(alpha = 0.10f)
             drawLine(
                 color = axisColor,
                 start = Offset(center.x, 8.dp.toPx()),
@@ -267,32 +248,39 @@ fun LiveMedicalPresenceRadar(
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 4f), 0f),
             )
 
-            // Ondas concéntricas de despacho en Azul AutaMedica
-            val waveRadius1 = innerCoreRadius + wave1 * (maxRadius - innerCoreRadius)
-            val waveAlpha1 = (1f - wave1) * 0.35f
-            drawCircle(
-                color = Primary.copy(alpha = waveAlpha1),
-                radius = waveRadius1,
-                center = center,
-                style = Stroke(width = 2.dp.toPx()),
-            )
+            // Ondas concéntricas expansivas estilo Uber matching radar
+            listOf(wave1, wave2, wave3).forEach { wave ->
+                val waveRadius = innerCoreRadius + wave * (maxRadius - innerCoreRadius)
+                val waveAlpha = (1f - wave) * 0.40f
+                // Sutil relleno volumétrico
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            AuCyan.copy(alpha = waveAlpha * 0.25f),
+                            Color.Transparent,
+                        ),
+                        center = center,
+                        radius = waveRadius,
+                    ),
+                    radius = waveRadius,
+                    center = center,
+                )
+                // Anillo de pulso exterior con gradiente Cyan Clínico
+                drawCircle(
+                    color = AuCyan.copy(alpha = waveAlpha),
+                    radius = waveRadius,
+                    center = center,
+                    style = Stroke(width = (2.dp - 0.8.dp * wave).toPx()),
+                )
+            }
 
-            val waveRadius2 = innerCoreRadius + wave2 * (maxRadius - innerCoreRadius)
-            val waveAlpha2 = (1f - wave2) * 0.35f
-            drawCircle(
-                color = Primary.copy(alpha = waveAlpha2),
-                radius = waveRadius2,
-                center = center,
-                style = Stroke(width = 2.dp.toPx()),
-            )
-
-            // Barrido de radar dinámico
+            // Barrido de radar dinámico con resplandor Cyan
             rotate(degrees = sweepAngle, pivot = center) {
                 val sweepBrush = Brush.sweepGradient(
                     0.0f to Color.Transparent,
-                    0.75f to Color.Transparent,
-                    0.92f to Primary.copy(alpha = 0.04f),
-                    1.0f to Primary.copy(alpha = 0.16f),
+                    0.72f to Color.Transparent,
+                    0.90f to AuCyan.copy(alpha = 0.05f),
+                    1.0f to AuCyan.copy(alpha = 0.22f),
                     center = center,
                 )
                 drawCircle(
@@ -302,7 +290,14 @@ fun LiveMedicalPresenceRadar(
                 )
                 // Línea frontal de barrido
                 drawLine(
-                    color = Primary.copy(alpha = 0.35f),
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            AuCyan.copy(alpha = 0.1f),
+                            AuCyan.copy(alpha = 0.6f),
+                        ),
+                        startX = center.x,
+                        endX = center.x + maxRadius - 4.dp.toPx(),
+                    ),
                     start = center,
                     end = Offset(center.x + maxRadius - 4.dp.toPx(), center.y),
                     strokeWidth = 1.5.dp.toPx(),
@@ -342,8 +337,7 @@ fun LiveMedicalPresenceRadar(
         }
 
         // Nodos orbitantes de Médicos en Guardia Conectados
-        val radarRadiusPx = 135f * 2.6f // Escala visual proporcional al radar de 270dp
-        doctors.take(3).forEach { doctor ->
+        distributedDoctors.take(4).forEach { doctor ->
             val rad = Math.toRadians(doctor.radarAngleDeg.toDouble())
             val effectiveRadiusDp = 98.dp * doctor.radarDistanceFraction
             val xOffset = (effectiveRadiusDp.value * cos(rad)).dp
@@ -387,66 +381,46 @@ private fun DoctorRadarNode(
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.background(Primary.copy(alpha = 0.08f)),
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     Text(
                         text = doctor.initials,
-                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = Primary,
-                        fontSize = 11.sp,
                     )
                 }
             }
 
-            // Punto verde de presencia viva (halo pulsante + dot sólido)
+            // Punto verde vivo indicador de presencia viva
             Box(
                 modifier = Modifier
-                    .offset(x = 2.dp, y = (-2).dp)
-                    .size(10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .scale(if (doctor.isAvailable) greenPulseScale else 1f)
-                        .clip(CircleShape)
-                        .background(
-                            if (doctor.isAvailable) AuSuccess.copy(alpha = 0.35f)
-                            else Primary.copy(alpha = 0.25f)
-                        )
-                )
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (doctor.isAvailable) AuSuccess
-                            else Primary
-                        )
-                )
-            }
+                    .size(9.dp)
+                    .graphicsLayer {
+                        scaleX = greenPulseScale
+                        scaleY = greenPulseScale
+                    }
+                    .clip(CircleShape)
+                    .background(if (doctor.isAvailable) AuSuccess else Color(0xFF38BDF8))
+                    .border(1.5.dp, AuBackground, CircleShape),
+            )
         }
 
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(3.dp))
 
-        // Mini chip identificador del médico
+        // Nombre corto del médico (e.g. Dr. Méndez)
         Surface(
             shape = RoundedCornerShape(6.dp),
-            color = AuBackground.copy(alpha = 0.95f),
-            border = BorderStroke(0.5.dp, Primary.copy(alpha = 0.2f)),
-            shadowElevation = 2.dp,
-            modifier = Modifier.padding(horizontal = 2.dp),
+            color = AuSurface.copy(alpha = 0.9f),
+            border = BorderStroke(0.5.dp, AuBorder),
         ) {
             Text(
                 text = doctor.shortName,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = AuTextPrimary,
                 fontSize = 9.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                fontWeight = FontWeight.Medium,
+                color = AuTextPrimary,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                maxLines = 1,
             )
         }
     }
@@ -462,6 +436,8 @@ fun ActiveMedicalNetworkPanel(
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
+    val onlineDoctors = remember(doctors) { doctors.filter { it.isAvailable } }
+    val hasOnlineDoctors = onlineDoctors.isNotEmpty()
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Cabecera de la red
@@ -473,12 +449,12 @@ fun ActiveMedicalNetworkPanel(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Punto verde vivo indicador de red activa
+                // Punto indicador de red activa o en espera
                 Box(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(AuSuccess)
+                        .background(if (hasOnlineDoctors) AuEmerald else AuCyan)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
@@ -492,14 +468,17 @@ fun ActiveMedicalNetworkPanel(
 
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = Primary.copy(alpha = 0.08f),
-                border = BorderStroke(0.5.dp, Primary.copy(alpha = 0.2f)),
+                color = if (hasOnlineDoctors) Primary.copy(alpha = 0.08f) else AuCyanSoft,
+                border = BorderStroke(
+                    0.5.dp,
+                    if (hasOnlineDoctors) Primary.copy(alpha = 0.2f) else AuCyan.copy(alpha = 0.3f)
+                ),
             ) {
                 Text(
-                    text = "${doctors.count { it.isAvailable }} en línea",
+                    text = if (hasOnlineDoctors) "${onlineDoctors.size} en línea" else "En espera",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Primary,
+                    color = if (hasOnlineDoctors) Primary else AuCyanDeep,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                 )
             }
@@ -507,15 +486,51 @@ fun ActiveMedicalNetworkPanel(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Carrusel horizontal de tarjetas médicas
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(scrollState),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            doctors.forEach { doctor ->
-                DoctorDutyCard(doctor = doctor)
+        if (!hasOnlineDoctors) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = AuSurface,
+                border = BorderStroke(1.dp, AuBorder),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(AuCyan)
+                    )
+                    Column {
+                        Text(
+                            text = "Sin médicos de guardia en línea en este momento.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AuTextPrimary,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "La consulta quedará en espera hasta que un profesional se conecte.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AuTextSecondary,
+                        )
+                    }
+                }
+            }
+        } else {
+            // Carrusel horizontal de tarjetas médicas reales
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(scrollState),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                onlineDoctors.forEach { doctor ->
+                    DoctorDutyCard(doctor = doctor)
+                }
             }
         }
     }
@@ -630,25 +645,36 @@ private fun DoctorDutyCard(
  */
 @Composable
 fun DispatchTelemetryTicker(
+    onlineDoctorCount: Int = 0,
     modifier: Modifier = Modifier,
 ) {
-    val telemetryMessages = remember {
+    val telemetryMessages = remember(onlineDoctorCount) {
+        val doctorMessage = if (onlineDoctorCount > 0) {
+            "$onlineDoctorCount médico${if (onlineDoctorCount > 1) "s" else ""} en línea"
+        } else {
+            "Esperando profesional de guardia"
+        }
+        val waitMessage = if (onlineDoctorCount > 0) {
+            "Tiempo de espera: ~2 min"
+        } else {
+            "En espera de conexión médica"
+        }
         listOf(
             TelemetryItem(
                 iconRes = R.drawable.ic_telemetry_broadcast,
-                message = "Conectando con guardia médica...",
+                message = "Conectando con guardia médica",
             ),
             TelemetryItem(
                 iconRes = R.drawable.ic_response_time,
-                message = "Espera promedio: ~2 min",
+                message = waitMessage,
             ),
             TelemetryItem(
                 iconRes = R.drawable.ic_shield_priority,
-                message = "Prioridad: Farmacia de Turno",
+                message = "Prioridad: Farmacia de turno",
             ),
             TelemetryItem(
                 iconRes = R.drawable.ic_doctor_presence,
-                message = "3 médicos en guardia activa",
+                message = doctorMessage,
             ),
         )
     }

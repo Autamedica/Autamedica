@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Doctor Agenda Main Screen -->
+    <string name="doctor_agenda_title">Agenda médica</string>
+    <string name="doctor_agenda_subtitle_timeline">Vista cronológica</string>
+    <string name="doctor_agenda_subtitle_list">Vista lista de consultas</string>
+    <string name="doctor_agenda_nav_back">Voltar</string>
+    <string name="doctor_agenda_cd_view_list">Ver lista</string>
+    <string name="doctor_agenda_cd_view_timeline">Ver linha do tempo</string>
+    <string name="doctor_agenda_cd_waffle_calendar">Calendário 30 dias</string>
+    <string name="doctor_agenda_btn_new_appointment">Nova Consulta</string>
+    <string name="doctor_agenda_loading_sync">SINCRONIZANDO AGENDA MÉDICA...</string>
+    <string name="doctor_agenda_swipe_retry">Deslize para baixo para tentar novamente</string>
+    <string name="doctor_agenda_error_loading">Não foi possível carregar a agenda médica</string>
+    <string name="doctor_agenda_daily_list_title">LISTA DE CONSULTAS DO DIA</string>
+    <string name="doctor_agenda_appointments_count_single">%1$d consulta</string>
+    <string name="doctor_agenda_appointments_count_plural">%1$d consultas</string>
+    <string name="doctor_agenda_empty_day_title">Agenda vazia para este dia</string>
+    <string name="doctor_agenda_empty_day_hint">Toque em \'+ Nova Consulta\' para agendar um paciente.</string>
+
+    <!-- Filters & Patient Classification -->
+    <string name="doctor_agenda_filter_all">Tudo</string>
+    <string name="doctor_agenda_filter_today">Hoje</string>
+    <string name="doctor_agenda_filter_upcoming">Próximas</string>
+    <string name="doctor_agenda_patient_registered">Paciente Registrado</string>
+    <string name="doctor_agenda_guest_external">Convidado Externo</string>
+    <string name="doctor_agenda_guest_external_upper">CONVIDADO EXTERNO</string>
+
+    <!-- Timeline View -->
+    <string name="doctor_agenda_timeline_title">LINHA DO TEMPO CLÍNICA</string>
+    <string name="doctor_agenda_timeline_today_time">Hoje · %1$s</string>
+    <string name="doctor_agenda_timeline_now">AGORA</string>
+    <string name="doctor_agenda_timeline_connected">Conectado</string>
+    <string name="doctor_agenda_timeline_call">Chamar</string>
+    <string name="doctor_agenda_timeline_free_slot">Horário vago</string>
+    <string name="doctor_agenda_timeline_add_extra">+ Encaixe</string>
+
+    <!-- Turno Actual Hero Card -->
+    <string name="doctor_agenda_hero_title">CONSULTA ATUAL</string>
+    <string name="doctor_agenda_patient_label">PACIENTE</string>
+    <string name="doctor_agenda_hero_reason_prefix">Motivo: %1$s</string>
+    <string name="doctor_agenda_hero_reason_default">Consulta agendada</string>
+    <string name="doctor_agenda_hero_start_consultation">INICIAR CONSULTA</string>
+    <string name="doctor_agenda_hero_view_detail">VER DETALHES DA CONSULTA</string>
+    <string name="doctor_agenda_type_videocall_upper">VIDEOCONSULTA</string>
+    <string name="doctor_agenda_type_in_person_upper">CONSULTA PRESENCIAL</string>
+    <string name="doctor_agenda_patient_context_title">CONTEXTO DO PACIENTE</string>
+
+    <!-- 30-Day Waffle Calendar -->
+    <string name="doctor_agenda_waffle_title">Agenda do Mês</string>
+    <string name="doctor_agenda_waffle_subtitle">30 dias consecutivos de disponibilidade</string>
+    <string name="doctor_agenda_waffle_badge">30 DIAS</string>
+    <string name="doctor_agenda_waffle_no_appointments">Sem consultas</string>
+    <string name="doctor_agenda_waffle_consultations_count_single">%1$d consulta</string>
+    <string name="doctor_agenda_waffle_consultations_count_plural">%1$d consultas</string>
+    <string name="doctor_agenda_waffle_legend_today">Hoje</string>
+    <string name="doctor_agenda_waffle_legend_consultations">Consultas</string>
+    <string name="doctor_agenda_waffle_legend_free">Livre</string>
+
+    <!-- Availability Editor -->
+    <string name="doctor_agenda_availability_title">DISPONIBILIDADE</string>
+    <string name="doctor_agenda_availability_blocks_single">%1$d bloco configurado</string>
+    <string name="doctor_agenda_availability_blocks_plural">%1$d blocos configurados</string>
+    <string name="doctor_agenda_availability_none">Sem horários configurados</string>
+    <string name="doctor_agenda_availability_alert_title">Configure sua disponibilidade</string>
+    <string name="doctor_agenda_availability_alert_message">Sem horários configurados, os pacientes não conseguem agendar consultas. Escolha um modelo rápido ou adicione blocos manualmente.</string>
+    <string name="doctor_agenda_availability_templates_title">MODELOS RÁPIDOS</string>
+    <string name="doctor_agenda_availability_template_weekdays">📅 Seg-Sex 9:00-18:00</string>
+    <string name="doctor_agenda_availability_template_weekdays_half">🌅 Seg-Sex 8:00-13:00</string>
+    <string name="doctor_agenda_availability_no_schedule_day">Sem horário</string>
+    <string name="doctor_agenda_availability_delete_slot_cd">Remover bloco</string>
+    <string name="doctor_agenda_availability_add_slot_for_day">Adicionar horário para %1$s</string>
+    <string name="doctor_agenda_availability_slot_duration">Duração da consulta: 30 min</string>
+    <string name="doctor_agenda_availability_btn_saving">SALVANDO...</string>
+    <string name="doctor_agenda_availability_btn_saved">SALVO</string>
+    <string name="doctor_agenda_availability_btn_save">SALVAR DISPONIBILIDADE</string>
+    <string name="doctor_agenda_availability_edit_start_time">Hora de início</string>
+    <string name="doctor_agenda_availability_edit_end_time">Hora de término</string>
+    <string name="doctor_agenda_availability_edit_format_hint">Formato HH:mm (exemplo: 09:00, 17:30)</string>
+    <string name="doctor_agenda_availability_edit_label">Hora (HH:mm)</string>
+    <string name="doctor_agenda_action_accept">Aceitar</string>
+    <string name="doctor_agenda_action_cancel">Cancelar</string>
+    <string name="doctor_agenda_availability_error_empty">Adicione ao menos um bloco de horário</string>
+    <string name="doctor_agenda_availability_error_invalid_range">A hora de início deve ser anterior à hora de término</string>
+    <string name="doctor_agenda_availability_error_save_failed">Não foi possível salvar a disponibilidade</string>
+
+    <!-- Days of Week -->
+    <string name="doctor_agenda_day_sunday">Domingo</string>
+    <string name="doctor_agenda_day_monday">Segunda-feira</string>
+    <string name="doctor_agenda_day_tuesday">Terça-feira</string>
+    <string name="doctor_agenda_day_wednesday">Quarta-feira</string>
+    <string name="doctor_agenda_day_thursday">Quinta-feira</string>
+    <string name="doctor_agenda_day_friday">Sexta-feira</string>
+    <string name="doctor_agenda_day_saturday">Sábado</string>
+    <string name="doctor_agenda_day_sunday_short">DOM</string>
+    <string name="doctor_agenda_day_monday_short">SEG</string>
+    <string name="doctor_agenda_day_tuesday_short">TER</string>
+    <string name="doctor_agenda_day_wednesday_short">QUA</string>
+    <string name="doctor_agenda_day_thursday_short">QUI</string>
+    <string name="doctor_agenda_day_friday_short">SEX</string>
+    <string name="doctor_agenda_day_saturday_short">SÁB</string>
+    <string name="doctor_agenda_day_dom_abbr">Dom</string>
+    <string name="doctor_agenda_day_lun_abbr">Seg</string>
+    <string name="doctor_agenda_day_mar_abbr">Ter</string>
+    <string name="doctor_agenda_day_mie_abbr">Qua</string>
+    <string name="doctor_agenda_day_jue_abbr">Qui</string>
+    <string name="doctor_agenda_day_vie_abbr">Sex</string>
+    <string name="doctor_agenda_day_sab_abbr">Sáb</string>
+
+    <!-- Create Appointment BottomSheet -->
+    <string name="doctor_agenda_create_title">NOVA CONSULTA / ENCAIXE</string>
+    <string name="doctor_agenda_create_cd_close">Fechar</string>
+    <string name="doctor_agenda_create_tab_roster">Cadastro (%1$d)</string>
+    <string name="doctor_agenda_create_tab_guest">Convidado Express</string>
+    <string name="doctor_agenda_create_guest_name_label">Nome completo do paciente</string>
+    <string name="doctor_agenda_create_guest_name_placeholder">Ex: Mário Quintana</string>
+    <string name="doctor_agenda_create_guest_phone_label">Telefone ou WhatsApp de contato</string>
+    <string name="doctor_agenda_create_guest_phone_placeholder">+351 91 ...</string>
+    <string name="doctor_agenda_create_no_roster_patients">Você ainda não possui pacientes cadastrados. Utilize o modo \'Convidado Express\'.</string>
+    <string name="doctor_agenda_create_select_roster_patient">Selecionar paciente do cadastro:</string>
+    <string name="doctor_agenda_create_patient_fallback_id">Paciente #%1$s</string>
+    <string name="doctor_agenda_create_selected_badge">Selecionado</string>
+    <string name="doctor_agenda_create_start_time_label">Hora de início (HH:mm)</string>
+    <string name="doctor_agenda_create_duration_label">Duração</string>
+    <string name="doctor_agenda_create_type_label">Tipo de consulta:</string>
+    <string name="doctor_agenda_create_type_telemedicine">Telemedicina</string>
+    <string name="doctor_agenda_create_type_presencial">Presencial</string>
+    <string name="doctor_agenda_create_type_control">Retorno</string>
+    <string name="doctor_agenda_create_type_urgencia">Urgência</string>
+    <string name="doctor_agenda_create_reason_label">Motivo da consulta (opcional)</string>
+    <string name="doctor_agenda_create_reason_placeholder">Ex: Controlo de hipertensão ou check-up geral</string>
+    <string name="doctor_agenda_create_error_invalid_time">Formato de hora inválido. Use HH:mm (ex: 09:30)</string>
+    <string name="doctor_agenda_create_error_empty_guest_name">Insira o nome do paciente convidado</string>
+    <string name="doctor_agenda_create_error_empty_patient_selection">Selecione um paciente do cadastro ou use Convidado Express</string>
+    <string name="doctor_agenda_create_submitting">Agendando...</string>
+    <string name="doctor_agenda_create_btn_confirm">Confirmar e agendar consulta</string>
+
+    <!-- Clinical Context Summary -->
+    <string name="doctor_agenda_clinical_loading">Carregando contexto clínico...</string>
+    <string name="doctor_agenda_clinical_not_specified">Não especificado</string>
+    <string name="doctor_agenda_clinical_guest_no_file">Convidado sem prontuário vinculado</string>
+    <string name="doctor_agenda_clinical_no_data">Sem dados registrados</string>
+    <string name="doctor_agenda_clinical_no_shared_anamnesis">Sem anamnese compartilhada</string>
+    <string name="doctor_agenda_clinical_chief_complaint_title">MOTIVO DA CONSULTA</string>
+    <string name="doctor_agenda_clinical_history_title">ANTECEDENTES RELEVANTES</string>
+    <string name="doctor_agenda_clinical_medication_title">MEDICAÇÃO ATUAL</string>
+    <string name="doctor_agenda_clinical_btn_view_anamnesis">VER ANAMNESE COMPLETA</string>
+
+    <!-- Status Badges -->
+    <string name="doctor_agenda_status_scheduled">Agendada</string>
+    <string name="doctor_agenda_status_confirmed">Confirmada</string>
+    <string name="doctor_agenda_status_in_progress">Em andamento</string>
+    <string name="doctor_agenda_status_completed">Realizada</string>
+    <string name="doctor_agenda_status_cancelled">Cancelada</string>
+    <string name="doctor_agenda_status_no_show">Ausente</string>
+    <string name="doctor_agenda_status_payment_pending">Pagamento pendente</string>
+
+    <!-- WeekDay Selector Strip -->
+    <string name="doctor_agenda_go_to_today">Ir para hoje</string>
+
+    <!-- Appointment Details BottomSheet -->
+    <string name="doctor_agenda_details_cancel_appointment_cd">Cancelar consulta</string>
+    <string name="doctor_agenda_details_time_duration">%1$s (%2$d min)</string>
+    <string name="doctor_agenda_details_section_title">DETALHES DA CONSULTA</string>
+    <string name="doctor_agenda_details_modality_label">Modalidade</string>
+    <string name="doctor_agenda_details_modality_videocall">Videoconsulta</string>
+    <string name="doctor_agenda_details_modality_in_person">Presencial</string>
+    <string name="doctor_agenda_details_location_label">Localização</string>
+    <string name="doctor_agenda_details_location_virtual">Consultório Virtual AutaMedica</string>
+    <string name="doctor_agenda_details_location_office">Consultório Médico</string>
+    <string name="doctor_agenda_details_notes_title">NOTAS CLÍNICAS</string>
+    <string name="doctor_agenda_details_no_notes">Sem observações para esta consulta.</string>
+    <string name="doctor_agenda_details_telemed_title">TELEMEDICINA</string>
+    <string name="doctor_agenda_details_connection_window">Janela de conexão</string>
+    <string name="doctor_agenda_details_telemed_ready">A sala de videoconsulta está habilitada</string>
+    <string name="doctor_agenda_details_btn_enter_telemed">ENTRAR NA VIDEOCONSULTA</string>
+    <string name="doctor_agenda_details_guest_share_hint">O paciente não possui conta. Compartilhe o link para que ele acesse pelo navegador.</string>
+    <string name="doctor_agenda_details_btn_copy_link">Copiar Link</string>
+    <string name="doctor_agenda_details_guest_whatsapp_message">Olá %1$s, compartilho o link para a nossa videoconsulta na AutaMedica: %2$s</string>
+    <string name="doctor_agenda_details_btn_whatsapp">WhatsApp</string>
+    <string name="doctor_agenda_details_cockpit_title">COCKPIT CLÍNICO (ATO MÉDICO)</string>
+    <string name="doctor_agenda_details_btn_issue_prescription">Emitir Receita</string>
+    <string name="doctor_agenda_details_btn_create_medical_order">Criar Pedido</string>
+    <string name="doctor_agenda_details_btn_create_certificate">Atestado</string>
+    <string name="doctor_agenda_details_btn_soap_evolution">Evolução SOAP</string>
+    <string name="doctor_agenda_details_delay_whatsapp_message">Prezado(a) %1$s, informo pelo consultório da AutaMedica que estamos com um atraso de aproximadamente 15 minutos no atendimento anterior. Atenderei você em breve.</string>
+    <string name="doctor_agenda_details_btn_notify_delay">Avisar atraso de 15 min por WhatsApp</string>
+    <string name="doctor_agenda_details_quick_actions_title">AÇÕES RÁPIDAS</string>
+    <string name="doctor_agenda_details_action_confirm">Confirmar</string>
+    <string name="doctor_agenda_details_action_start">Iniciar consulta</string>
+    <string name="doctor_agenda_details_action_complete">Finalizada</string>
+    <string name="doctor_agenda_details_action_no_show">Não compareceu</string>
+
+    <!-- Appointment List Item -->
+    <string name="doctor_agenda_list_item_video_badge">Vídeo</string>
+
+    <!-- Doctor Dispatch Incoming Alert -->
+    <string name="uber_dispatch_alert_title">ENCAMINHAMENTO MÉDICO EM TEMPO REAL</string>
+    <string name="uber_dispatch_alert_subtitle">Paciente aguardando atendimento imediato</string>
+    <string name="uber_dispatch_accept_cta">INICIAR ATENDIMENTO</string>
+    <string name="uber_dispatch_reject_btn">Ignorar</string>
+    <string name="uber_dispatch_patient_kiosk">Paciente em plantão</string>
+    <string name="uber_dispatch_dni_prefix">CPF/DNI: %1$s</string>
+    <string name="uber_dispatch_origin_label">Ponto de Atendimento em Farmácia</string>
+    <string name="uber_dispatch_conflict_message">Esta consulta já foi atendida por outro médico ou expirou.</string>
+    <string name="uber_dispatch_countdown_sec">%1$ds</string>
+</resources>

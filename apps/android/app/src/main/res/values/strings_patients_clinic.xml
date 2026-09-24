@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Patients Screen (Mis Pacientes) -->
+    <string name="patients_screen_title">Mis Pacientes</string>
+    <string name="patients_search_cd">Buscar</string>
+    <string name="patients_error_generic">Error</string>
+    <string name="patients_pull_to_refresh_hint">Deslizar hacia abajo para reintentar</string>
+    <string name="patients_empty_title">Sin pacientes asignados</string>
+    <string name="patients_empty_subtitle">Aquí aparecerán los pacientes que atiendas</string>
+    <string name="patients_count_single">%1$d paciente</string>
+    <string name="patients_count_plural">%1$d pacientes</string>
+    <string name="patients_anonymous">Paciente Anónimo</string>
+    <string name="patients_consultations_total_single">%1$d consulta en total</string>
+    <string name="patients_consultations_total_plural">%1$d consultas en total</string>
+    <string name="patients_last_consultation">Última consulta</string>
+    <string name="patients_next_consultation">Próxima consulta</string>
+
+    <!-- Patient Detail Screen -->
+    <string name="patient_detail_title_fallback">Detalle paciente</string>
+    <string name="patient_detail_back_cd">Volver</string>
+    <string name="patient_detail_history_title">Historial de consultas</string>
+    <string name="patient_detail_empty_history">Sin consultas registradas</string>
+    <string name="patient_detail_age_format">%1$d años</string>
+    <string name="patient_detail_email_label">Email</string>
+    <string name="patient_detail_phone_label">Teléfono</string>
+    <string name="patient_detail_birthdate_label">Nacimiento</string>
+    <string name="patient_detail_medical_info_title">Información médica</string>
+    <string name="patient_detail_blood_type_label">Grupo sanguíneo</string>
+    <string name="patient_detail_allergies_label">Alergias</string>
+    <string name="patient_detail_start_call_btn">Iniciar</string>
+    <string name="patient_appointment_type_consultation">Consulta</string>
+    <string name="patient_appointment_type_follow_up">Seguimiento</string>
+    <string name="patient_appointment_type_emergency">Urgencia</string>
+    <string name="patient_appointment_type_telemedicine">Telemedicina</string>
+    <string name="patient_appointment_type_lab_test">Laboratorio</string>
+    <string name="patient_appointment_type_checkup">Chequeo</string>
+    <string name="patient_appointment_status_payment_pending">Pago pendiente</string>
+    <string name="patient_appointment_status_scheduled">Programada</string>
+    <string name="patient_appointment_status_confirmed">Confirmada</string>
+    <string name="patient_appointment_status_in_progress">En curso</string>
+    <string name="patient_appointment_status_completed">Completada</string>
+    <string name="patient_appointment_status_cancelled">Cancelada</string>
+    <string name="patient_appointment_status_no_show">Ausente</string>
+
+    <!-- Psychiatry: TDAH Evaluation Screen -->
+    <string name="tdah_screen_title">Escala TDAH (ASRS v1.1)</string>
+    <string name="tdah_back_cd">Volver</string>
+    <string name="tdah_card_title">Screening Clínico de TDAH en Adultos</string>
+    <string name="tdah_card_subtitle">Responda con base en su experiencia habitual en los últimos 6 meses. Esta prueba sirve como orientación clínica y no reemplaza el diagnóstico psiquiátrico formal.</string>
+    <string name="tdah_option_never">Nunca</string>
+    <string name="tdah_option_rarely">Rara vez</string>
+    <string name="tdah_option_sometimes">A veces</string>
+    <string name="tdah_option_often">Frecuente</string>
+    <string name="tdah_option_very_often">Muy frecuente</string>
+    <string name="tdah_question_1">¿Con qué frecuencia tiene dificultad para terminar los detalles finales de un proyecto?</string>
+    <string name="tdah_question_2">¿Con qué frecuencia tiene dificultad para ordenar las cosas en tareas organizativas?</string>
+    <string name="tdah_question_3">¿Con qué frecuencia tiene problemas para recordar citas u obligaciones?</string>
+    <string name="tdah_question_4">¿Cuándo tiene una tarea que requiere pensar mucho, con qué frecuencia la evita o posterga?</string>
+    <string name="tdah_question_5">¿Con qué frecuencia mueve o retuerce las manos o los pies al tener que permanecer sentado?</string>
+    <string name="tdah_question_6">¿Con qué frecuencia se siente demasiado activo o impulsado por un motor interno?</string>
+    <string name="tdah_submit_button">Calcular y Guardar Evaluación</string>
+    <string name="tdah_result_title">Resultado de la Evaluación</string>
+    <string name="tdah_result_high">Probabilidad ALTA de síntomas consistentes con TDAH del adulto (Score: %1$d/24). Se recomienda evaluación psiquiátrica formal.</string>
+    <string name="tdah_result_moderate">Probabilidad MODERADA (Score: %1$d/24). Sugerido seguimiento y registro de síntomas.</string>
+    <string name="tdah_result_low">Baja probabilidad de TDAH (Score: %1$d/24). Criterios clínicos estándar no alcanzados.</string>
+
+    <!-- Psychiatry: Intake Screen -->
+    <string name="psychiatry_intake_title">Evaluación Psiquiátrica</string>
+    <string name="psychiatry_intake_back_cd">Volver</string>
+    <string name="psychiatry_intake_submitted_title">Evaluación en revisión</string>
+    <string name="psychiatry_intake_submitted_desc">Tu evaluación fue enviada al equipo de psiquiatría y está siendo revisada.</string>
+    <string name="psychiatry_intake_back_home_btn">Volver al inicio</string>
+    <string name="psychiatry_intake_form_title">Completá tu evaluación</string>
+    <string name="psychiatry_intake_reason_label">Motivo de consulta</string>
+    <string name="psychiatry_intake_history_label">Antecedentes (Opcional)</string>
+    <string name="psychiatry_intake_medication_label">Medicación actual (Opcional)</string>
+    <string name="psychiatry_intake_submit_btn">Finalizar evaluación</string>
+
+    <!-- Reproductive Health (IVE) Screen -->
+    <string name="reproductive_screen_title">Salud Reproductiva (IVE)</string>
+    <string name="reproductive_back_cd">Atrás</string>
+    <string name="reproductive_header_title">Interrupción Voluntaria del Embarazo</string>
+    <string name="reproductive_header_desc">Acceso a información confiable y atención médica profesional para la interrupción del embarazo.</string>
+    <string name="reproductive_header_action_btn">Consulta Médica Ahora</string>
+    <string name="reproductive_urgent_title">¿Necesitas atención urgente?</string>
+    <string name="reproductive_urgent_desc">Sangrado abundante, dolor intenso o fiebre alta.</string>
+    <string name="reproductive_urgent_contact_btn">Contactar</string>
+    <string name="reproductive_tab_overview">Qué es la IVE</string>
+    <string name="reproductive_tab_overview_content">Información sobre métodos disponibles y acompañamiento psicológico gratuito. Es tu derecho según la Ley 27.610 (Argentina).</string>
+    <string name="reproductive_tab_rights">Derechos</string>
+    <string name="reproductive_tab_rights_content">Conocé tus derechos legales en Argentina para acceder a la interrupción voluntaria del embarazo de manera gratuita.</string>
+    <string name="reproductive_tab_procedures">Métodos</string>
+    <string name="reproductive_tab_procedures_content">Métodos medicamentosos y procedimientos médicos disponibles.</string>
+    <string name="reproductive_tab_doctors">Médicos</string>
+    <string name="reproductive_tab_doctors_content">Encontrá médicos especializados y capacitados para brindarte atención de calidad.</string>
+    <string name="reproductive_tab_support">Apoyo</string>
+    <string name="reproductive_tab_support_content">Acompañamiento emocional y recursos psicológicos para ayudarte en todo el proceso.</string>
+    <string name="reproductive_dialog_connecting">Conectando con médico...</string>
+    <string name="reproductive_dialog_connecting_desc">Estamos conectándote con un profesional de la salud de forma confidencial.</string>
+    <string name="reproductive_dialog_cancel_btn">Cancelar</string>
+
+    <!-- Telemedicine Informed Consent Screen -->
+    <string name="consent_title">Consentimiento Informado de Telemedicina</string>
+    <string name="consent_description">Al utilizar este servicio de telemedicina, usted comprende que las consultas virtuales tienen limitaciones y no reemplazan la atención de emergencia presencial.</string>
+    <string name="consent_checkbox_label">He leído y acepto los términos</string>
+    <string name="consent_submit_button">Aceptar y Firmar</string>
+
+    <!-- Continuity Status Screen -->
+    <string name="continuity_loading_sync">Sincronizando estado clínico...</string>
+    <string name="continuity_back_cd">Volver</string>
+    <string name="continuity_refresh_cd">Actualizar</string>
+    <string name="continuity_status_pending">Solicitud recibida</string>
+    <string name="continuity_status_acknowledged">En revisión médica</string>
+    <string name="continuity_status_in_progress">En proceso</string>
+    <string name="continuity_status_resolved">Resuelto</string>
+    <string name="continuity_status_escalated">Derivado prioritario</string>
+    <string name="continuity_status_default">En seguimiento</string>
+    <string name="continuity_hero_title">Continuidad Asistencial</string>
+    <string name="continuity_timeline_card_title">Línea de Evolución Médica</string>
+    <string name="continuity_timeline_id_badge">ID: %1$s</string>
+    <string name="continuity_step1_title">Solicitud recibida por el sistema</string>
+    <string name="continuity_step1_desc">Triaje digital completado con éxito.</string>
+    <string name="continuity_step2_title">En revisión médica especializada</string>
+    <string name="continuity_step2_desc_assigned">%1$s (%2$s • %3$s)</string>
+    <string name="continuity_step2_desc_assigning">Asignando médico especialista según perfil clínico.</string>
+    <string name="continuity_step3_title">Ajuste terapéutico &amp; Prescripción</string>
+    <string name="continuity_step3_desc">Evaluación de dosis, tolerancia y emisión de receta electrónica.</string>
+    <string name="continuity_step4_title">Tratamiento consolidado / Cierre</string>
+    <string name="continuity_step4_desc">Indicaciones cargadas y seguimiento activo a 30 días.</string>
+    <string name="continuity_risk_critical">Riesgo Crítico</string>
+    <string name="continuity_risk_moderate">Riesgo Moderado</string>
+    <string name="continuity_risk_ok">Suministro OK</string>
+    <string name="continuity_supply_label">Suministro restante:</string>
+    <string name="continuity_supply_no_stock">¡Sin stock! Renovar urgente</string>
+    <string name="continuity_supply_days_remaining">%1$d días disponibles</string>
+    <string name="continuity_adherence_title">Score de Adherencia (30 días)</string>
+    <string name="continuity_adherence_stat">%1$d%% • %2$d de %3$d tomas</string>
+    <string name="continuity_adherence_hint_optimal">Nivel Óptimo: Mantenés una continuidad terapéutica excelente que maximiza la efectividad del tratamiento.</string>
+    <string name="continuity_adherence_hint_warning">Importante: Mantener tomas regulares previene rebotes o pérdida de eficacia del fármaco.</string>
+    <string name="continuity_dose_recorded_success">Toma de hoy registrada correctamente</string>
+    <string name="continuity_record_dose_btn">Registrar toma de hoy</string>
+    <string name="continuity_checkin_title">Check-in Post-Consulta (48 hs)</string>
+    <string name="continuity_checkin_question">¿Cómo te sentís hoy con el tratamiento indicado?</string>
+    <string name="continuity_checkin_option_better">Mejor</string>
+    <string name="continuity_checkin_option_stable">Igual / Estable</string>
+    <string name="continuity_checkin_option_worse">Empeoré / Dudas</string>
+    <string name="continuity_escalated_title">Alerta Clínica Prioritaria Activada</string>
+    <string name="continuity_escalated_desc">Tu reporte de descompensación o dudas sobre la medicación fue elevado con máxima prioridad a tu equipo médico tratante. Un profesional revisará tu historial en breve.</string>
+    <string name="continuity_escalated_action_btn">Videoconsulta de guardia</string>
+    <string name="continuity_deadline_title">Compromiso de Respuesta Clínica</string>
+    <string name="continuity_deadline_desc">El equipo médico responderá y actualizará tus recetas antes de: %1$s.</string>
+    <string name="continuity_empty_title">Sin solicitudes de continuidad activas</string>
+    <string name="continuity_empty_desc">No tenés solicitudes de continuidad de tratamiento en curso. Si completaste tu consulta o evaluación clínica, podés solicitar la continuidad y renovación farmacológica directamente aquí.</string>
+    <string name="continuity_empty_request_btn">Solicitar continuidad de tratamiento</string>
+    <string name="continuity_empty_back_btn">Volver al panel principal</string>
+
+    <!-- Consultation Reports Screen -->
+    <string name="reports_screen_title">Informes Médicos</string>
+    <string name="reports_back_cd">Volver</string>
+    <string name="reports_empty_desc">No hay informes disponibles.</string>
+    <string name="reports_instructions_label">Indicaciones:</string>
+    <string name="reports_doctor_name_format">Atendido por: %1$s</string>
+
+    <!-- Patient Community Screen -->
+    <string name="community_screen_title">Comunidad de Pacientes</string>
+    <string name="community_back_cd">Atrás</string>
+    <string name="community_new_post_cd">Nueva publicación</string>
+    <string name="community_chip_all">Todos</string>
+    <string name="community_author_format">Por %1$s</string>
+    <string name="community_like_cd">Me gusta</string>
+    <string name="community_dialog_title">Nueva Publicación</string>
+    <string name="community_dialog_title_label">Título (opcional)</string>
+    <string name="community_dialog_content_label">Contá tu experiencia...</string>
+    <string name="community_dialog_cancel_btn">Cancelar</string>
+    <string name="community_dialog_submit_btn">Publicar</string>
+</resources>

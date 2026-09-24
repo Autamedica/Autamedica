@@ -52,12 +52,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.PatientDetail
 import com.autamedica.android.domain.model.AppointmentStatus
@@ -94,7 +96,7 @@ fun PatientDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = uiState.patient?.displayName ?: "Detalle paciente",
+                        text = uiState.patient?.displayName ?: stringResource(R.string.patient_detail_title_fallback),
                         style = MaterialTheme.typography.titleMedium,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.SemiBold,
@@ -106,7 +108,7 @@ fun PatientDetailScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.patient_detail_back_cd),
                             tint = AuTextPrimary,
                         )
                     }
@@ -156,7 +158,7 @@ fun PatientDetailScreen(
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = uiState.error ?: "Error",
+                            text = uiState.error ?: stringResource(R.string.patients_error_generic),
                             color = AuDanger,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
@@ -190,7 +192,7 @@ fun PatientDetailScreen(
                     if (patient.appointmentHistory.isNotEmpty()) {
                         item {
                             Text(
-                                text = "Historial de consultas",
+                                text = stringResource(R.string.patient_detail_history_title),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = AuTextSecondary,
                                 fontWeight = FontWeight.SemiBold,
@@ -232,7 +234,7 @@ fun PatientDetailScreen(
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "Sin consultas registradas",
+                                        text = stringResource(R.string.patient_detail_empty_history),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = AuTextTertiary,
                                     )
@@ -300,7 +302,7 @@ private fun PatientHeaderCard(patient: PatientDetail) {
                     )
                     if (patient.age != null || patient.gender != null) {
                         val details = listOfNotNull(
-                            patient.age?.let { "$it años" },
+                            patient.age?.let { stringResource(R.string.patient_detail_age_format, it) },
                             patient.gender?.replaceFirstChar { it.uppercase() },
                         ).joinToString(" · ")
                         Text(
@@ -309,8 +311,13 @@ private fun PatientHeaderCard(patient: PatientDetail) {
                             color = AuTextSecondary,
                         )
                     }
+                    val totalConsultationsText = if (patient.totalAppointments == 1) {
+                        stringResource(R.string.patients_consultations_total_single, patient.totalAppointments)
+                    } else {
+                        stringResource(R.string.patients_consultations_total_plural, patient.totalAppointments)
+                    }
                     Text(
-                        text = "${patient.totalAppointments} consulta${if (patient.totalAppointments != 1) "s" else ""} en total",
+                        text = totalConsultationsText,
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary,
                     )
@@ -322,10 +329,14 @@ private fun PatientHeaderCard(patient: PatientDetail) {
 
 @Composable
 private fun PatientInfoPills(patient: PatientDetail) {
+    val emailLabel = stringResource(R.string.patient_detail_email_label)
+    val phoneLabel = stringResource(R.string.patient_detail_phone_label)
+    val birthDateLabel = stringResource(R.string.patient_detail_birthdate_label)
+
     val pills = listOfNotNull(
-        patient.email?.let { Triple(Icons.Outlined.Email, "Email", it) },
-        patient.phone?.let { Triple(Icons.Outlined.Phone, "Telefono", it) },
-        patient.birthDate?.let { Triple(Icons.Outlined.Cake, "Nacimiento", formatDate(it)) },
+        patient.email?.let { Triple(Icons.Outlined.Email, emailLabel, it) },
+        patient.phone?.let { Triple(Icons.Outlined.Phone, phoneLabel, it) },
+        patient.birthDate?.let { Triple(Icons.Outlined.Cake, birthDateLabel, formatDate(it)) },
     )
 
     if (pills.isNotEmpty()) {
@@ -382,7 +393,7 @@ private fun InfoRow(
 private fun MedicalInfoSection(patient: PatientDetail) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Informacion medica",
+            text = stringResource(R.string.patient_detail_medical_info_title),
             style = MaterialTheme.typography.titleSmall,
             color = AuTextSecondary,
             fontWeight = FontWeight.SemiBold,
@@ -391,7 +402,7 @@ private fun MedicalInfoSection(patient: PatientDetail) {
         if (patient.bloodType != null) {
             InfoRow(
                 icon = Icons.Outlined.Bloodtype,
-                label = "Grupo sanguineo",
+                label = stringResource(R.string.patient_detail_blood_type_label),
                 value = patient.bloodType,
             )
         }
@@ -416,7 +427,7 @@ private fun MedicalInfoSection(patient: PatientDetail) {
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Alergias",
+                            text = stringResource(R.string.patient_detail_allergies_label),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuDanger.copy(alpha = 0.8f),
                         )
@@ -517,12 +528,12 @@ private fun AppointmentHistoryRow(
                 ) {
                     Icon(
                         Icons.Default.Videocam,
-                        contentDescription = "Iniciar",
+                        contentDescription = stringResource(R.string.patient_detail_start_call_btn),
                         modifier = Modifier.size(16.dp),
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        "Iniciar",
+                        stringResource(R.string.patient_detail_start_call_btn),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -544,33 +555,35 @@ private fun statusColor(status: AppointmentStatus): Color = when (status) {
     AppointmentStatus.NO_SHOW -> AuDanger
 }
 
+@Composable
 private fun displayAppointmentType(type: AppointmentType): String = when (type) {
-    AppointmentType.CONSULTATION -> "Consulta"
-    AppointmentType.FOLLOW_UP -> "Seguimiento"
-    AppointmentType.EMERGENCY -> "Urgencia"
-    AppointmentType.TELEMEDICINE -> "Telemedicina"
-    AppointmentType.LAB_TEST -> "Laboratorio"
-    AppointmentType.CHECKUP -> "Chequeo"
+    AppointmentType.CONSULTATION -> stringResource(R.string.patient_appointment_type_consultation)
+    AppointmentType.FOLLOW_UP -> stringResource(R.string.patient_appointment_type_follow_up)
+    AppointmentType.EMERGENCY -> stringResource(R.string.patient_appointment_type_emergency)
+    AppointmentType.TELEMEDICINE -> stringResource(R.string.patient_appointment_type_telemedicine)
+    AppointmentType.LAB_TEST -> stringResource(R.string.patient_appointment_type_lab_test)
+    AppointmentType.CHECKUP -> stringResource(R.string.patient_appointment_type_checkup)
 }
 
+@Composable
 private fun displayStatus(status: AppointmentStatus): String = when (status) {
-    AppointmentStatus.PAYMENT_PENDING -> "Pago pendiente"
-    AppointmentStatus.SCHEDULED -> "Programada"
-    AppointmentStatus.CONFIRMED -> "Confirmada"
-    AppointmentStatus.IN_PROGRESS -> "En curso"
-    AppointmentStatus.COMPLETED -> "Completada"
-    AppointmentStatus.CANCELLED -> "Cancelada"
-    AppointmentStatus.NO_SHOW -> "Ausente"
+    AppointmentStatus.PAYMENT_PENDING -> stringResource(R.string.patient_appointment_status_payment_pending)
+    AppointmentStatus.SCHEDULED -> stringResource(R.string.patient_appointment_status_scheduled)
+    AppointmentStatus.CONFIRMED -> stringResource(R.string.patient_appointment_status_confirmed)
+    AppointmentStatus.IN_PROGRESS -> stringResource(R.string.patient_appointment_status_in_progress)
+    AppointmentStatus.COMPLETED -> stringResource(R.string.patient_appointment_status_completed)
+    AppointmentStatus.CANCELLED -> stringResource(R.string.patient_appointment_status_cancelled)
+    AppointmentStatus.NO_SHOW -> stringResource(R.string.patient_appointment_status_no_show)
 }
 
 private fun formatDate(isoString: String): String {
     return try {
         val date = java.time.LocalDate.parse(isoString)
-        date.format(DateTimeFormatter.ofPattern("d 'de' MMMM, yyyy", Locale("es", "AR")))
+        date.format(DateTimeFormatter.ofPattern("d 'de' MMMM, yyyy", Locale.getDefault()))
     } catch (_: Exception) {
         try {
             val dt = OffsetDateTime.parse(isoString)
-            dt.format(DateTimeFormatter.ofPattern("d 'de' MMMM, yyyy", Locale("es", "AR")))
+            dt.format(DateTimeFormatter.ofPattern("d 'de' MMMM, yyyy", Locale.getDefault()))
         } catch (_: Exception) {
             isoString
         }
@@ -580,7 +593,7 @@ private fun formatDate(isoString: String): String {
 private fun formatDayMonth(isoString: String): String {
     return try {
         val dt = OffsetDateTime.parse(isoString)
-        dt.format(DateTimeFormatter.ofPattern("d MMM", Locale("es", "AR")))
+        dt.format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()))
     } catch (_: Exception) {
         ""
     }
@@ -589,7 +602,7 @@ private fun formatDayMonth(isoString: String): String {
 private fun formatTime(isoString: String): String {
     return try {
         val dt = OffsetDateTime.parse(isoString)
-        dt.format(DateTimeFormatter.ofPattern("HH:mm", Locale("es", "AR")))
+        dt.format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()))
     } catch (_: Exception) {
         ""
     }

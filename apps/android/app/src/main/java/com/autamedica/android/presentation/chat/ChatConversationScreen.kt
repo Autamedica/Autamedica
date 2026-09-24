@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import com.autamedica.android.presentation.chat.components.MessageBubble
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
@@ -85,7 +86,7 @@ fun ChatConversationScreen(
         TopAppBar(
             title = {
                 Text(
-                    text = "Conversación",
+                    text = stringResource(R.string.chat_conversation_title),
                     color = AuTextPrimary,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 18.sp,
@@ -95,7 +96,7 @@ fun ChatConversationScreen(
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver",
+                        contentDescription = stringResource(R.string.chat_back),
                         tint = AuTextPrimary,
                     )
                 }
@@ -126,7 +127,7 @@ fun ChatConversationScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "Enviá el primer mensaje",
+                        text = stringResource(R.string.chat_empty_messages),
                         color = AuTextTertiary,
                         fontSize = 15.sp,
                     )
@@ -166,7 +167,7 @@ fun ChatConversationScreen(
                 onValueChange = { inputText = it },
                 modifier = Modifier.weight(1f),
                 placeholder = {
-                    Text(stringResource(com.autamedica.android.R.string.chat_input_placeholder), color = AuTextTertiary, fontSize = 14.sp)
+                    Text(stringResource(R.string.chat_input_placeholder), color = AuTextTertiary, fontSize = 14.sp)
                 },
                 singleLine = false,
                 maxLines = 4,
@@ -209,7 +210,7 @@ fun ChatConversationScreen(
                 } else {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Enviar",
+                        contentDescription = stringResource(R.string.chat_send),
                         tint = if (inputText.isNotBlank()) AuAccent else AuTextTertiary,
                     )
                 }

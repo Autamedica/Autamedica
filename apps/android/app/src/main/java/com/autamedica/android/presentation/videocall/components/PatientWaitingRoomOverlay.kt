@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall.components
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import android.media.AudioManager
 import android.media.ToneGenerator
 import androidx.compose.animation.AnimatedVisibility
@@ -172,7 +174,7 @@ fun PatientWaitingRoomOverlay(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Close,
-                            contentDescription = "Salir",
+                            contentDescription = stringResource(R.string.videocall_exit),
                             tint = Color.White,
                             modifier = Modifier.size(18.dp),
                         )
@@ -205,7 +207,7 @@ fun PatientWaitingRoomOverlay(
                                 .background(if (isConnecting) Color(0xFF38BDF8) else Color(0xFF22C55E)),
                         )
                         Text(
-                            text = if (isConnecting) "Conectando..." else "En espera",
+                            text = if (isConnecting) stringResource(R.string.videocall_connecting_ellipsis) else stringResource(R.string.videocall_waiting),
                             color = Color(0xFFF1F5F9),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -366,7 +368,7 @@ fun PatientWaitingRoomOverlay(
                         ) {
                             Icon(
                                 imageVector = if (isAudioEnabled) Icons.Filled.Mic else Icons.Filled.MicOff,
-                                contentDescription = "Audio",
+                                contentDescription = stringResource(R.string.videocall_audio_control),
                                 tint = Color.White,
                                 modifier = Modifier.size(20.dp),
                             )
@@ -381,7 +383,7 @@ fun PatientWaitingRoomOverlay(
                         ) {
                             Icon(
                                 imageVector = if (isVideoEnabled) Icons.Filled.Videocam else Icons.Filled.VideocamOff,
-                                contentDescription = "Video",
+                                contentDescription = stringResource(R.string.videocall_video_control),
                                 tint = Color.White,
                                 modifier = Modifier.size(20.dp),
                             )
@@ -396,7 +398,7 @@ fun PatientWaitingRoomOverlay(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Refresh,
-                                contentDescription = "Invertir cámara",
+                                contentDescription = stringResource(R.string.videocall_switch_camera),
                                 tint = Color.White,
                                 modifier = Modifier.size(20.dp),
                             )
@@ -437,9 +439,9 @@ fun PatientWaitingRoomOverlay(
                                         .replace("Motivo:", "")
                                         .replace("Motivo", "")
                                         .trim()
-                                    if (cleanReason.isNotBlank()) "Ficha lista: $cleanReason" else "Ficha previa lista"
+                                    if (cleanReason.isNotBlank()) stringResource(R.string.videocall_preconsultation_ready_reason, cleanReason) else stringResource(R.string.videocall_preconsultation_ready)
                                 } else {
-                                    "Ficha médica (opcional)"
+                                    stringResource(R.string.videocall_medical_record_optional)
                                 },
                                 color = Color.White,
                                 fontSize = 11.5.sp,
@@ -449,7 +451,7 @@ fun PatientWaitingRoomOverlay(
                             )
                         }
                         Text(
-                            text = if (isPreconsultationSaved) "Editar" else "Completar",
+                            text = if (isPreconsultationSaved) stringResource(R.string.videocall_edit) else stringResource(R.string.videocall_complete),
                             color = Color(0xFF38BDF8),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -510,12 +512,12 @@ fun PatientWaitingRoomOverlay(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.CallEnd,
-                            contentDescription = "Cancelar llamada",
+                            contentDescription = stringResource(R.string.videocall_cancel_call),
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Cancelar llamada",
+                            text = stringResource(R.string.videocall_cancel_call),
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
                         )
@@ -539,7 +541,7 @@ fun PatientWaitingRoomOverlay(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Llamar al médico",
+                            text = stringResource(R.string.videocall_call_doctor),
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
                         )
@@ -548,7 +550,7 @@ fun PatientWaitingRoomOverlay(
 
                 // Microcopy Legal / Compliance
                 Text(
-                    text = "Al llamar al médico, aceptás los Términos de Teleasistencia Médica.",
+                    text = stringResource(R.string.videocall_terms_notice),
                     color = Color(0xFF94A3B8),
                     fontSize = 9.5.sp,
                     lineHeight = 12.sp,

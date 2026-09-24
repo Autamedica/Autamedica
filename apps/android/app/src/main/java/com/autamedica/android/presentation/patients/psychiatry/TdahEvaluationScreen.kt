@@ -11,9 +11,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.autamedica.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,15 +24,24 @@ fun TdahEvaluationScreen(
     viewModel: TdahEvaluationViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val options = listOf("Nunca", "Rara vez", "A veces", "Frecuente", "Muy frecuente")
+    val options = listOf(
+        stringResource(R.string.tdah_option_never),
+        stringResource(R.string.tdah_option_rarely),
+        stringResource(R.string.tdah_option_sometimes),
+        stringResource(R.string.tdah_option_often),
+        stringResource(R.string.tdah_option_very_often),
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Escala TDAH (ASRS v1.1)") },
+                title = { Text(stringResource(R.string.tdah_screen_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.tdah_back_cd),
+                        )
                     }
                 }
             )
@@ -50,13 +61,13 @@ fun TdahEvaluationScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "Screening Clínico de TDAH en Adultos",
+                            stringResource(R.string.tdah_card_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Responda con base en su experiencia habitual en los últimos 6 meses. Esta prueba sirve como orientación clínica y no reemplaza el diagnóstico psiquiátrico formal.",
+                            stringResource(R.string.tdah_card_subtitle),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -69,8 +80,17 @@ fun TdahEvaluationScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
+                        val questionText = when (q.id) {
+                            1 -> stringResource(R.string.tdah_question_1)
+                            2 -> stringResource(R.string.tdah_question_2)
+                            3 -> stringResource(R.string.tdah_question_3)
+                            4 -> stringResource(R.string.tdah_question_4)
+                            5 -> stringResource(R.string.tdah_question_5)
+                            6 -> stringResource(R.string.tdah_question_6)
+                            else -> q.text
+                        }
                         Text(
-                            "" + q.id + ". " + q.text,
+                            "${q.id}. $questionText",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium
                         )
@@ -104,7 +124,7 @@ fun TdahEvaluationScreen(
                     if (state.isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp))
                     } else {
-                        Text("Calcular y Guardar Evaluación")
+                        Text(stringResource(R.string.tdah_submit_button))
                     }
                 }
             }
@@ -117,14 +137,19 @@ fun TdahEvaluationScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                "Resultado de la Evaluación",
+                                stringResource(R.string.tdah_result_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Spacer(modifier = Modifier.height(8.dp))
+                            val diagnosticText = when {
+                                state.totalScore >= 14 -> stringResource(R.string.tdah_result_high, state.totalScore)
+                                state.totalScore >= 9 -> stringResource(R.string.tdah_result_moderate, state.totalScore)
+                                else -> stringResource(R.string.tdah_result_low, state.totalScore)
+                            }
                             Text(
-                                state.diagnosticResult!!,
+                                diagnosticText,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )

@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall.components
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -61,7 +63,7 @@ fun CallControls(
             icon = {
                 Icon(
                     imageVector = if (isAudioEnabled) Icons.Filled.Mic else Icons.Filled.MicOff,
-                    contentDescription = if (isAudioEnabled) "Silenciar" else "Activar microfono",
+                    contentDescription = if (isAudioEnabled) stringResource(R.string.videocall_mute) else stringResource(R.string.videocall_unmute_mic),
                     tint = Color.White,
                 )
             },
@@ -76,7 +78,7 @@ fun CallControls(
             icon = {
                 Icon(
                     imageVector = if (isVideoEnabled) Icons.Filled.Videocam else Icons.Filled.VideocamOff,
-                    contentDescription = if (isVideoEnabled) "Desactivar camara" else "Activar camara",
+                    contentDescription = if (isVideoEnabled) stringResource(R.string.videocall_camera_off) else stringResource(R.string.videocall_camera_on),
                     tint = Color.White,
                 )
             },
@@ -90,7 +92,7 @@ fun CallControls(
                 icon = {
                     Icon(
                         imageVector = Icons.Filled.Refresh,
-                        contentDescription = "Cambiar camara",
+                        contentDescription = stringResource(R.string.videocall_switch_camera),
                         tint = Color.White,
                     )
                 },
@@ -121,7 +123,7 @@ fun CallControls(
             icon = {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Chat,
-                    contentDescription = "Chat",
+                    contentDescription = stringResource(R.string.videocall_chat),
                     tint = Color.White,
                 )
             },
@@ -136,7 +138,7 @@ fun CallControls(
                 icon = {
                     Icon(
                         imageVector = Icons.Outlined.Description,
-                        contentDescription = "Notas clinicas",
+                        contentDescription = stringResource(R.string.videocall_clinical_notes),
                         tint = Color.White,
                     )
                 },
@@ -159,7 +161,7 @@ fun CallControls(
         ) {
             Icon(
                 imageVector = Icons.Filled.CallEnd,
-                contentDescription = "Finalizar llamada",
+                contentDescription = stringResource(R.string.videocall_end),
             )
         }
     }

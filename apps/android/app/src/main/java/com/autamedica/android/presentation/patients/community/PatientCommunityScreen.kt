@@ -12,10 +12,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.autamedica.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,10 +30,10 @@ fun PatientCommunityScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Comunidad de Pacientes") },
+                title = { Text(stringResource(R.string.community_screen_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.community_back_cd))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -41,7 +43,7 @@ fun PatientCommunityScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { viewModel.setShowComposer(true) }) {
-                Icon(Icons.Default.Add, contentDescription = "Nueva publicación")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.community_new_post_cd))
             }
         }
     ) { padding ->
@@ -59,7 +61,7 @@ fun PatientCommunityScreen(
                     FilterChip(
                         selected = state.selectedGroupId == null,
                         onClick = { viewModel.selectGroup(null) },
-                        label = { Text("Todos") }
+                        label = { Text(stringResource(R.string.community_chip_all)) }
                     )
                 }
                 items(state.groups) { group ->
@@ -104,8 +106,8 @@ private fun PostCard(post: CommunityPost) {
             Text(text = post.content, style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "Por ${post.author}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                Icon(Icons.Default.FavoriteBorder, contentDescription = "Me gusta", modifier = Modifier.size(16.dp))
+                Text(text = stringResource(R.string.community_author_format, post.author), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                Icon(Icons.Default.FavoriteBorder, contentDescription = stringResource(R.string.community_like_cd), modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(text = post.likeCount.toString(), style = MaterialTheme.typography.bodySmall)
             }
@@ -124,13 +126,13 @@ private fun ComposerDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Nueva Publicación", style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.community_dialog_title), style = MaterialTheme.typography.titleLarge)
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Título (opcional)") },
+                    label = { Text(stringResource(R.string.community_dialog_title_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -138,7 +140,7 @@ private fun ComposerDialog(
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
-                    label = { Text("Contá tu experiencia...") },
+                    label = { Text(stringResource(R.string.community_dialog_content_label)) },
                     modifier = Modifier.fillMaxWidth().height(120.dp)
                 )
                 
@@ -148,14 +150,14 @@ private fun ComposerDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancelar")
+                        Text(stringResource(R.string.community_dialog_cancel_btn))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = { onSubmit(title, content) },
                         enabled = content.isNotBlank()
                     ) {
-                        Text("Publicar")
+                        Text(stringResource(R.string.community_dialog_submit_btn))
                     }
                 }
             }

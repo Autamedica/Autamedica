@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall.components
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -20,8 +22,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -46,6 +51,8 @@ fun RemoteAvatarFallback(
     isCameraOff: Boolean = false,
     isReconnecting: Boolean = false,
     isConnecting: Boolean = false,
+    isFailed: Boolean = false,
+    onEndCall: (() -> Unit)? = null,
 ) {
     val initials = rememberInitials(name)
     val infiniteTransition = rememberInfiniteTransition(label = "pulse_avatar")
@@ -147,7 +154,7 @@ fun RemoteAvatarFallback(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Filled.VideocamOff,
-                                contentDescription = "Cámara apagada",
+                                contentDescription = stringResource(R.string.videocall_camera_turned_off),
                                 tint = Color(0xFFF43F5E),
                                 modifier = Modifier.size(15.dp),
                             )
@@ -177,7 +184,7 @@ fun RemoteAvatarFallback(
 
             // Remote Participant Name
             Text(
-                text = name.ifBlank { "Médico" },
+                text = name.ifBlank { stringResource(R.string.videocall_doctor_fallback) },
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -218,6 +225,31 @@ fun RemoteAvatarFallback(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         textAlign = TextAlign.Center,
+                    )
+                }
+            }
+
+            if (onEndCall != null) {
+                Spacer(modifier = Modifier.height(20.dp))
+                Button(
+                    onClick = onEndCall,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFDC2626),
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CallEnd,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = Color.White,
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(
+                        text = if (isFailed) "Finalizar consulta" else "Salir de la llamada",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
                     )
                 }
             }

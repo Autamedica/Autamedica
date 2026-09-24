@@ -40,8 +40,15 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
+import com.autamedica.android.domain.model.PharmacyDispatchRequest
+import com.autamedica.android.presentation.dashboard.components.UberIncomingDispatchAlert
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -57,6 +64,7 @@ import com.autamedica.android.presentation.doctors.agenda.components.DoctorTimel
 import com.autamedica.android.presentation.doctors.agenda.components.ThirtyDayWaffleCalendar
 import com.autamedica.android.presentation.doctors.agenda.components.TurnoActualHeroCard
 import com.autamedica.android.presentation.doctors.agenda.components.WeekDaySelectorStrip
+import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuDanger
@@ -74,6 +82,7 @@ fun DoctorAgendaScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToVideoCall: (appointmentId: String) -> Unit = {},
+    onNavigateToDoctorOnDemand: () -> Unit = {},
     onNavigateToCreatePrescription: (patientId: String) -> Unit = {},
     onNavigateToCreateMedicalOrder: (patientId: String) -> Unit = {},
     onNavigateToCreateCertificate: (patientId: String) -> Unit = {},
@@ -82,6 +91,10 @@ fun DoctorAgendaScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isToday = uiState.selectedDate == LocalDate.now()
+    val patientRegisteredFallback = stringResource(R.string.doctor_agenda_patient_registered)
+    val guestExternalFallback = stringResource(R.string.doctor_agenda_guest_external)
+    fun resolvePatientName(appt: com.autamedica.android.domain.model.Appointment) =
+        viewModel.getPatientName(appt, patientRegisteredFallback, guestExternalFallback)
 
     Scaffold(
         topBar = {
@@ -89,13 +102,17 @@ fun DoctorAgendaScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Agenda médica",
+                            text = stringResource(R.string.doctor_agenda_title),
                             style = MaterialTheme.typography.titleLarge,
                             color = AuTextPrimary,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = if (uiState.isTimelineView) "Vista línea de tiempo" else "Vista lista de turnos",
+                            text = if (uiState.isTimelineView) {
+                                stringResource(R.string.doctor_agenda_subtitle_timeline)
+                            } else {
+                                stringResource(R.string.doctor_agenda_subtitle_list)
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = PortalDoctors,
                             fontWeight = FontWeight.SemiBold,
@@ -106,7 +123,7 @@ fun DoctorAgendaScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.doctor_agenda_nav_back),
                             tint = AuTextPrimary,
                         )
                     }
@@ -121,7 +138,11 @@ fun DoctorAgendaScreen(
                         ) {
                             Icon(
                                 imageVector = if (uiState.isTimelineView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Outlined.Schedule,
-                                contentDescription = if (uiState.isTimelineView) "Ver lista" else "Ver línea de tiempo",
+                                contentDescription = if (uiState.isTimelineView) {
+                                    stringResource(R.string.doctor_agenda_cd_view_list)
+                                } else {
+                                    stringResource(R.string.doctor_agenda_cd_view_timeline)
+                                },
                                 tint = if (uiState.isTimelineView) PortalDoctors else AuTextTertiary,
                                 modifier = Modifier.padding(7.dp),
                             )
@@ -137,7 +158,7 @@ fun DoctorAgendaScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.CalendarMonth,
-                                contentDescription = "Calendario 30 días",
+                                contentDescription = stringResource(R.string.doctor_agenda_cd_waffle_calendar),
                                 tint = if (uiState.showWaffleCalendar) PortalDoctors else AuTextTertiary,
                                 modifier = Modifier.padding(7.dp),
                             )
@@ -154,7 +175,7 @@ fun DoctorAgendaScreen(
                 contentColor = Color.White,
                 shape = RoundedCornerShape(16.dp),
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Nuevo Turno", fontWeight = FontWeight.Bold) },
+                text = { Text(stringResource(R.string.doctor_agenda_btn_new_appointment), fontWeight = FontWeight.Bold) },
             )
         },
         containerColor = AuBackground,
@@ -189,7 +210,7 @@ fun DoctorAgendaScreen(
                             ) {
                                 CircularProgressIndicator(color = PortalDoctors, strokeWidth = 2.dp)
                                 Text(
-                                    text = "SINCRONIZANDO AGENDA MÉDICA...",
+                                    text = stringResource(R.string.doctor_agenda_loading_sync),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = AuTextTertiary,
                                     fontWeight = FontWeight.Bold,
@@ -222,14 +243,17 @@ fun DoctorAgendaScreen(
                                 }
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = uiState.error.orEmpty(),
+                                    text = when (uiState.error) {
+                                        "No se pudo cargar la agenda médica" -> stringResource(R.string.doctor_agenda_error_loading)
+                                        else -> uiState.error.orEmpty()
+                                    },
                                     color = AuDanger,
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Medium,
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Deslizar hacia abajo para reintentar",
+                                    text = stringResource(R.string.doctor_agenda_swipe_retry),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = AuTextTertiary,
                                 )
@@ -287,7 +311,7 @@ fun DoctorAgendaScreen(
                                     item {
                                         TurnoActualHeroCard(
                                             appointment = turno,
-                                            patientName = viewModel.getPatientName(turno),
+                                            patientName = resolvePatientName(turno),
                                             patientContext = turno.patientId?.let { uiState.patientContexts[it] },
                                             isContextLoading = uiState.isContextLoading,
                                             onStartCall = { onNavigateToVideoCall(turno.id) },
@@ -303,7 +327,7 @@ fun DoctorAgendaScreen(
                                     DoctorTimelineView(
                                         selectedDate = uiState.selectedDate,
                                         appointments = uiState.appointments,
-                                        getPatientName = viewModel::getPatientName,
+                                        getPatientName = ::resolvePatientName,
                                         onSelectAppointment = viewModel::selectAppointment,
                                         onBookSlot = { hourStr -> viewModel.openCreateAppointment(hourStr) },
                                         onStartCall = onNavigateToVideoCall,
@@ -326,7 +350,7 @@ fun DoctorAgendaScreen(
                                                 verticalAlignment = Alignment.CenterVertically,
                                             ) {
                                                 Text(
-                                                    text = "LISTA DE TURNOS DEL DÍA",
+                                                    text = stringResource(R.string.doctor_agenda_daily_list_title),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = AuTextTertiary,
                                                     fontWeight = FontWeight.Bold,
@@ -339,7 +363,11 @@ fun DoctorAgendaScreen(
                                                     color = Color(0xFFF1F5F9),
                                                 ) {
                                                     Text(
-                                                        text = "${uiState.filteredAppointments.size} turnos",
+                                                        text = if (uiState.filteredAppointments.size == 1) {
+                                                            stringResource(R.string.doctor_agenda_appointments_count_single, uiState.filteredAppointments.size)
+                                                        } else {
+                                                            stringResource(R.string.doctor_agenda_appointments_count_plural, uiState.filteredAppointments.size)
+                                                        },
                                                         style = MaterialTheme.typography.labelSmall,
                                                         color = Color(0xFF475569),
                                                         fontWeight = FontWeight.Bold,
@@ -368,13 +396,13 @@ fun DoctorAgendaScreen(
                                                         modifier = Modifier.size(36.dp),
                                                     )
                                                     Text(
-                                                        text = "Agenda vacía para este día",
+                                                        text = stringResource(R.string.doctor_agenda_empty_day_title),
                                                         style = MaterialTheme.typography.bodyMedium,
                                                         fontWeight = FontWeight.Bold,
                                                         color = AuTextTertiary,
                                                     )
                                                     Text(
-                                                        text = "Tocá '+ Nuevo Turno' para agendar un paciente.",
+                                                        text = stringResource(R.string.doctor_agenda_empty_day_hint),
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = AuTextTertiary.copy(alpha = 0.8f),
                                                     )
@@ -384,7 +412,7 @@ fun DoctorAgendaScreen(
                                                     uiState.filteredAppointments.forEach { appt ->
                                                         AppointmentListItem(
                                                             appointment = appt,
-                                                            patientName = viewModel.getPatientName(appt),
+                                                            patientName = resolvePatientName(appt),
                                                             isSelected = uiState.selectedAppointment?.id == appt.id,
                                                             isCurrent = uiState.currentTurno?.id == appt.id,
                                                             onClick = { viewModel.selectAppointment(appt) },
@@ -408,7 +436,7 @@ fun DoctorAgendaScreen(
         val selectedAppt = uiState.selectedAppointment!!
         AppointmentDetailsBottomSheet(
             appointment = selectedAppt,
-            patientName = viewModel.getPatientName(selectedAppt),
+            patientName = resolvePatientName(selectedAppt),
             patientContext = selectedAppt.patientId?.let { uiState.patientContexts[it] },
             isContextLoading = uiState.isContextLoading,
             onDismiss = viewModel::closeDetailsSheet,
@@ -444,6 +472,40 @@ fun DoctorAgendaScreen(
                     type = type,
                     reason = reason,
                 )
+            },
+        )
+    }
+
+    // 7. Alerta de Despacho On-Demand estilo Uber Driver con Cuenta Regresiva de 25s
+    var dismissedRequestId by remember { mutableStateOf<String?>(null) }
+    val incomingPendingRequest = if (uiState.pharmacyOnDutyState.isOnDuty) {
+        uiState.pharmacyOnDutyState.pendingRequests.firstOrNull { it.id != dismissedRequestId }
+    } else null
+
+    val dispatchRequestForAlert = incomingPendingRequest?.let { req ->
+        PharmacyDispatchRequest(
+            id = req.id,
+            patientDni = req.patientDni,
+            patientPhone = req.patientPhone,
+            patientName = req.patientName,
+            tierRequested = "general",
+            symptomSummary = req.reason,
+            status = "searching",
+            cloudflareRoomId = req.roomId ?: "",
+            createdAt = req.createdAt?.toString() ?: "",
+        )
+    }
+
+    if (dispatchRequestForAlert != null) {
+        UberIncomingDispatchAlert(
+            request = dispatchRequestForAlert,
+            isClaiming = uiState.claimingPharmacyRequestId == dispatchRequestForAlert.id,
+            errorMessage = null,
+            onAccept = { reqId ->
+                viewModel.claimPharmacyRequest(reqId, onNavigateToVideoCall)
+            },
+            onDismiss = {
+                dismissedRequestId = dispatchRequestForAlert.id
             },
         )
     }

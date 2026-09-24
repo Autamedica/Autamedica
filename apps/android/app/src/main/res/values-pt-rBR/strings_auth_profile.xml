@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common / Authentication Actions -->
+    <string name="common_cancel">Cancelar</string>
+    <string name="common_hide">Ocultar</string>
+    <string name="common_show">Mostrar</string>
+
+    <!-- Registration Screen -->
+    <string name="register_title_patient">Criar conta</string>
+    <string name="register_title_doctor">Cadastro médico</string>
+    <string name="register_title_pharmacist">Cadastro de farmácia</string>
+    <string name="register_title_company">Cadastro corporativo</string>
+
+    <string name="register_subtitle_patient">Preencha seus dados para acessar suas consultas e receitas</string>
+    <string name="register_subtitle_doctor">Gerencie seus agendamentos, videoconsultas e receitas</string>
+    <string name="register_subtitle_pharmacist">Validação e dispensação de receitas oficiais</string>
+    <string name="register_subtitle_company">Gestão de coberturas corporativas</string>
+
+    <string name="register_role_patient">Paciente</string>
+    <string name="register_role_doctor">Médico</string>
+    <string name="register_role_pharmacist">Farmácia</string>
+    <string name="register_role_company">Empresa</string>
+
+    <string name="register_continue_google">Continuar com o Google</string>
+    <string name="register_or_email">ou cadastre-se com seu e-mail</string>
+    <string name="register_email_label">E-mail</string>
+    <string name="register_password_label">Senha</string>
+    <string name="register_confirm_password_label">Confirmar senha</string>
+
+    <string name="register_accept_terms_prefix">"Aceito os "</string>
+    <string name="register_terms_link">Termos</string>
+    <string name="register_terms_and">" e "</string>
+    <string name="register_privacy_link">Privacidade</string>
+
+    <string name="register_button_submit">Criar conta</string>
+    <string name="register_already_have_account">"Já tem uma conta? "</string>
+    <string name="register_login_link">Entrar</string>
+
+    <string name="register_error_invalid_email">E-mail inválido</string>
+    <string name="register_error_passwords_mismatch">As senhas não coincidem</string>
+    <string name="register_error_password_too_short">A senha deve ter pelo menos 6 caracteres</string>
+    <string name="register_error_terms_required">Você deve aceitar os termos e condições</string>
+    <string name="register_email_confirmation_msg">Por favor, confirme seu e-mail para continuar.</string>
+    <string name="register_error_create_failed">Erro ao criar a conta</string>
+    <string name="register_error_create_unexpected">Erro inesperado ao criar a conta</string>
+    <string name="register_error_google_failed">Erro ao iniciar sessão com o Google</string>
+    <string name="register_error_unexpected">Erro inesperado</string>
+    <string name="register_error_google_auth">Erro ao autenticar com o Google</string>
+
+    <!-- Forgot Password Screen -->
+    <string name="forgot_password_title">Recuperar acesso</string>
+    <string name="forgot_password_subtitle">Digite seu e-mail para redefinir a senha.</string>
+    <string name="forgot_password_button_submit">Enviar link de recuperação</string>
+    <string name="forgot_password_back_to_login">Voltar para o login</string>
+    <string name="forgot_password_success_message">Se a conta existir, enviamos um link de recuperação.</string>
+    <string name="forgot_password_error_generic">Ocorreu um erro. Tente novamente.</string>
+
+    <!-- Role labels -->
+    <string name="role_label_patient">Paciente</string>
+    <string name="role_label_doctor">Médico</string>
+    <string name="role_label_company">Empresa</string>
+    <string name="role_label_pharmacist">Farmácia</string>
+    <string name="role_label_company_admin">Admin empresa</string>
+    <string name="role_label_organization_admin">Admin organização</string>
+    <string name="role_label_admin">Admin</string>
+    <string name="role_label_platform_admin">Admin plataforma</string>
+
+    <!-- Gender labels -->
+    <string name="gender_male">Masculino</string>
+    <string name="gender_female">Feminino</string>
+    <string name="gender_other">Outro</string>
+    <string name="gender_prefer_not_to_say">Prefiro não informar</string>
+
+    <!-- Profile Screen (General) -->
+    <string name="profile_logout_action">Encerrar sessão</string>
+    <string name="profile_completion_title">Conclusão do perfil</string>
+    <string name="profile_completion_hint_incomplete">Preencha seus dados de contato para suas consultas e receitas.</string>
+    <string name="profile_completion_hint_complete">Seu perfil está completo.</string>
+    <string name="profile_personal_info_title">Informações pessoais</string>
+    <string name="profile_personal_info_subtitle">Atualize seu nome e telefone de contato.</string>
+    <string name="profile_save_success">Perfil atualizado com sucesso</string>
+    <string name="profile_save_button">Salvar alterações</string>
+    <string name="profile_contact_title">Contato</string>
+    <string name="profile_contact_subtitle">Canais de comunicação para avisos e consultas.</string>
+    <string name="profile_label_email">E-mail</string>
+    <string name="profile_label_phone">Telefone</string>
+    <string name="profile_summary_personal_title">Resumo pessoal</string>
+    <string name="profile_summary_personal_subtitle">Dados registrados em sua conta.</string>
+    <string name="profile_label_birth_date">Data de nascimento</string>
+    <string name="profile_label_age">Idade</string>
+    <string name="profile_age_years">%1$d anos</string>
+    <string name="profile_label_gender">Gênero</string>
+    <string name="profile_medical_data_title">Dados médicos</string>
+    <string name="profile_medical_data_subtitle">Informações clínicas básicas.</string>
+    <string name="profile_label_blood_type">Tipo sanguíneo</string>
+    <string name="profile_label_height">Altura</string>
+    <string name="profile_label_weight">Peso</string>
+    <string name="profile_label_bmi">IMC</string>
+    <string name="profile_emergency_contact_title">Contato de emergência</string>
+    <string name="profile_emergency_contact_subtitle">Contato para casos de urgência médica.</string>
+    <string name="profile_label_name">Nome</string>
+    <string name="profile_label_relationship">Grau de parentesco</string>
+    <string name="profile_session_title">Sessão</string>
+    <string name="profile_session_subtitle">Gerencie o acesso no dispositivo atual.</string>
+    <string name="profile_security_zone_title">Zona de segurança</string>
+    <string name="profile_security_zone_subtitle">Gerenciamento de conta e privacidade de dados.</string>
+    <string name="profile_delete_account_button">Excluir minha conta</string>
+    <string name="profile_delete_dialog_title">Excluir conta</string>
+    <string name="profile_delete_dialog_message">Tem certeza de que deseja excluir sua conta? Esta ação não pode ser desfeita.</string>
+    <string name="profile_delete_dialog_confirm">Excluir</string>
+
+    <!-- Patient Profile Screen -->
+    <string name="patient_profile_title">Meu Perfil</string>
+    <string name="patient_profile_role_tag">Paciente AutaMedica</string>
+    <string name="patient_profile_label_full_name">Nome completo</string>
+    <string name="patient_profile_not_registered">Não registrado</string>
+    <string name="patient_profile_not_registered_fem">Não registrada</string>
+    <string name="patient_profile_label_email">E-mail</string>
+    <string name="patient_profile_label_phone">Telefone</string>
+    <string name="patient_profile_label_birth_date">Data de nascimento</string>
+    <string name="patient_profile_label_gender">Gênero</string>
+    <string name="patient_profile_logout_button">Encerrar sessão</string>
+    <string name="patient_wallet_title">CARTEIRA AUTAMÉDICA</string>
+    <string name="patient_wallet_available_balance">Saldo disponível</string>
+    <string name="patient_wallet_account_balance">Saldo em conta</string>
+    <string name="patient_wallet_topup_button">Recarregar saldo</string>
+    <string name="patient_deletion_title">Exclusão de conta e dados</string>
+    <string name="patient_deletion_law_argentina">Seu direito à exclusão de dados é protegido pela Lei 25.326 de Proteção de Dados Pessoais (Argentina) e pela LGPD (Brasil).</string>
+    <string name="patient_deletion_retention_warning">Retenção legal obrigatória: De acordo com a Lei 26.529 (Direitos do Paciente), certos registros médicos anonimizados devem ser conservados pelo prazo legal mínimo obligatorio de 10 anos.</string>
+    <string name="patient_deletion_processing_time">Prazo de processamento: Até 30 dias úteis a partir da confirmação da solicitação.</string>
+    <string name="patient_deletion_request_button">Solicitar exclusão de conta</string>
+    <string name="patient_deletion_mailto_url" formatted="false">mailto:contacto@autamedica.com?subject=Solicita%C3%A7%C3%A3o%20de%20exclus%C3%A3o%20de%20conta</string>
+    <string name="patient_logout_dialog_title">Encerrar sessão</string>
+    <string name="patient_logout_dialog_message">Tem certeza de que deseja encerrar a sessão na AutaMedica?</string>
+</resources>

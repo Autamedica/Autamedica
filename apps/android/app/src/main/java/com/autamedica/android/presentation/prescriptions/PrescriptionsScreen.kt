@@ -70,6 +70,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -78,6 +79,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.Prescription
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
 import com.autamedica.android.presentation.theme.AuBackground
@@ -113,17 +115,31 @@ fun PrescriptionsScreen(
                 title = {
                     Column {
                         Text(
-                            text = if (uiState.selectedTab == DocumentTab.RECETAS) "Mis Recetas" else "Mis Atestados",
+                            text = if (uiState.selectedTab == DocumentTab.RECETAS) {
+                                stringResource(R.string.prescriptions_title)
+                            } else {
+                                stringResource(R.string.prescriptions_certificates_title)
+                            },
                             style = MaterialTheme.typography.titleLarge,
                             color = AuTextPrimary,
                             fontWeight = FontWeight.Bold,
                         )
                         val subtitle = if (uiState.selectedTab == DocumentTab.RECETAS) {
                             val active = uiState.activeCount
-                            if (active > 0) "$active ${if (active == 1) "activa" else "activas"} para farmacia" else "Sin recetas pendientes"
+                            if (active > 0) {
+                                if (active == 1) stringResource(R.string.prescriptions_active_count_one, active)
+                                else stringResource(R.string.prescriptions_active_count_many, active)
+                            } else {
+                                stringResource(R.string.prescriptions_no_pending)
+                            }
                         } else {
                             val active = uiState.activeCertificatesCount
-                            if (active > 0) "$active ${if (active == 1) "atestado válido" else "atestados válidos"}" else "Sin atestados emitidos"
+                            if (active > 0) {
+                                if (active == 1) stringResource(R.string.prescriptions_cert_valid_count_one, active)
+                                else stringResource(R.string.prescriptions_cert_valid_count_many, active)
+                            } else {
+                                stringResource(R.string.prescriptions_cert_none_issued)
+                            }
                         }
                         Text(
                             text = subtitle,
@@ -137,7 +153,7 @@ fun PrescriptionsScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.prescriptions_back),
                             tint = AuTextPrimary,
                         )
                     }
@@ -146,7 +162,7 @@ fun PrescriptionsScreen(
                     IconButton(onClick = viewModel::refresh) {
                         Icon(
                             imageVector = Icons.Outlined.Refresh,
-                            contentDescription = "Actualizar",
+                            contentDescription = stringResource(R.string.prescriptions_refresh),
                             tint = AuTextSecondary,
                         )
                     }
@@ -218,7 +234,7 @@ fun PrescriptionsScreen(
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Text(
-                                        text = "No se pudieron cargar las recetas",
+                                        text = stringResource(R.string.prescriptions_error_loading),
                                         style = MaterialTheme.typography.titleMedium,
                                         color = AuTextPrimary,
                                         fontWeight = FontWeight.SemiBold,
@@ -239,7 +255,7 @@ fun PrescriptionsScreen(
                                         ),
                                         shape = CircleShape,
                                     ) {
-                                        Text("Reintentar")
+                                        Text(stringResource(R.string.prescriptions_retry))
                                     }
                                 }
                             }
@@ -277,14 +293,14 @@ fun PrescriptionsScreen(
                                                 }
                                                 context.startActivity(intent)
                                             }.onFailure {
-                                                Toast.makeText(context, "No se pudo abrir el PDF oficial.", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, context.getString(R.string.prescriptions_toast_pdf_error), Toast.LENGTH_SHORT).show()
                                             }
                                         },
                                         onCopyCuir = { cuir ->
                                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                             val clip = ClipData.newPlainText("CUIR", cuir)
                                             clipboard.setPrimaryClip(clip)
-                                            Toast.makeText(context, "CUIR copiado al portapapeles", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, context.getString(R.string.prescriptions_toast_cuir_copied), Toast.LENGTH_SHORT).show()
                                         },
                                     )
                                 }
@@ -305,7 +321,7 @@ fun PrescriptionsScreen(
                                 }
                                 context.startActivity(intent)
                             }.onFailure {
-                                Toast.makeText(context, "No se pudo abrir el atestado oficial.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.prescriptions_toast_cert_pdf_error), Toast.LENGTH_SHORT).show()
                             }
                         },
                         onRequestConsultation = onRequestConsultation,
@@ -331,14 +347,14 @@ fun PrescriptionsScreen(
                     }
                     context.startActivity(intent)
                 }.onFailure {
-                    Toast.makeText(context, "No se pudo abrir el PDF oficial.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.prescriptions_toast_pdf_error), Toast.LENGTH_SHORT).show()
                 }
             },
             onCopyCuir = { cuir ->
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("CUIR", cuir)
                 clipboard.setPrimaryClip(clip)
-                Toast.makeText(context, "CUIR copiado al portapapeles", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.prescriptions_toast_cuir_copied), Toast.LENGTH_SHORT).show()
             },
         )
     }
@@ -355,16 +371,26 @@ fun PrescriptionsScreen(
                     }
                     context.startActivity(intent)
                 }.onFailure {
-                    Toast.makeText(context, "No se pudo abrir el atestado oficial.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.prescriptions_toast_cert_pdf_error), Toast.LENGTH_SHORT).show()
                 }
             },
             onCopyCuir = { cuir ->
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("CUIR", cuir)
                 clipboard.setPrimaryClip(clip)
-                Toast.makeText(context, "CUIR copiado al portapapeles", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.prescriptions_toast_cuir_copied), Toast.LENGTH_SHORT).show()
             },
         )
+    }
+}
+
+@Composable
+private fun PrescriptionFilter.localizedLabel(): String {
+    return when (this) {
+        PrescriptionFilter.TODAS -> stringResource(R.string.prescriptions_filter_all)
+        PrescriptionFilter.ACTIVAS -> stringResource(R.string.prescriptions_filter_active)
+        PrescriptionFilter.DISPENSADAS -> stringResource(R.string.prescriptions_filter_dispensed)
+        PrescriptionFilter.COMPLETADAS -> stringResource(R.string.prescriptions_filter_completed)
     }
 }
 
@@ -390,7 +416,7 @@ private fun PrescriptionsFilterChips(
                 border = BorderStroke(1.dp, if (isSelected) Color(0xFF1E293B) else Color(0xFFCBD5E1)),
             ) {
                 Text(
-                    text = filter.label,
+                    text = filter.localizedLabel(),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     color = if (isSelected) Color.White else Color(0xFF334155),
@@ -495,7 +521,7 @@ private fun PrescriptionCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "QR Farmacia",
+                            text = stringResource(R.string.prescriptions_qr_pharmacy),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A),
@@ -524,12 +550,12 @@ private fun PrescriptionCard(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.PictureAsPdf,
-                                    contentDescription = "Descargar PDF",
+                                    contentDescription = stringResource(R.string.prescriptions_download_pdf_cd),
                                     tint = Color(0xFFDC2626),
                                     modifier = Modifier.size(13.dp),
                                 )
                                 Text(
-                                    text = "PDF",
+                                    text = stringResource(R.string.prescriptions_pdf_badge),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFDC2626),
@@ -575,16 +601,16 @@ private fun EmptyPrescriptionsView(
 ) {
     val (title, description) = when (filter) {
         PrescriptionFilter.TODAS, PrescriptionFilter.ACTIVAS -> Pair(
-            "Sin recetas activas",
-            "Cuando tu médico te prescriba un medicamento, aparecerá aquí con verificación digital.",
+            stringResource(R.string.prescriptions_empty_active_title),
+            stringResource(R.string.prescriptions_empty_active_desc),
         )
         PrescriptionFilter.DISPENSADAS -> Pair(
-            "Sin recetas dispensadas",
-            "No registras recetas retiradas o dispensadas en farmacia en este momento.",
+            stringResource(R.string.prescriptions_empty_dispensed_title),
+            stringResource(R.string.prescriptions_empty_dispensed_desc),
         )
         PrescriptionFilter.COMPLETADAS -> Pair(
-            "Sin recetas completadas",
-            "No registras tratamientos o prescripciones finalizadas en este momento.",
+            stringResource(R.string.prescriptions_empty_completed_title),
+            stringResource(R.string.prescriptions_empty_completed_desc),
         )
     }
 
@@ -652,7 +678,7 @@ private fun EmptyPrescriptionsView(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Solicitar consulta médica",
+                    text = stringResource(R.string.prescriptions_request_consultation),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Medium,
                     color = Color.White,
@@ -733,7 +759,7 @@ private fun PrescriptionDetailBottomSheet(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
-                        contentDescription = "Cerrar",
+                        contentDescription = stringResource(R.string.prescriptions_close),
                         tint = AuTextSecondary,
                     )
                 }
@@ -756,7 +782,7 @@ private fun PrescriptionDetailBottomSheet(
                     modifier = Modifier.padding(16.dp),
                 ) {
                     Text(
-                        text = "PRESENTÁ ESTE CÓDIGO EN LA FARMACIA",
+                        text = stringResource(R.string.prescriptions_present_code_pharmacy),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0284C7), // sky-600
@@ -793,7 +819,7 @@ private fun PrescriptionDetailBottomSheet(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Validación oficial Decreto 63 / SISA REFEPS",
+                            text = stringResource(R.string.prescriptions_official_validation),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF1E293B),
@@ -818,7 +844,7 @@ private fun PrescriptionDetailBottomSheet(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "CÓDIGO CUIR:",
+                                        text = stringResource(R.string.prescriptions_cuir_code_label),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF64748B),
@@ -840,13 +866,13 @@ private fun PrescriptionDetailBottomSheet(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.ContentCopy,
-                                        contentDescription = "Copiar",
+                                        contentDescription = stringResource(R.string.prescriptions_copy),
                                         tint = Color(0xFF334155),
                                         modifier = Modifier.size(14.dp),
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "Copiar",
+                                        text = stringResource(R.string.prescriptions_copy),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = Color(0xFF334155),
@@ -875,7 +901,7 @@ private fun PrescriptionDetailBottomSheet(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Descargar Receta (PDF)",
+                                text = stringResource(R.string.prescriptions_download_recipe_pdf),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -893,7 +919,7 @@ private fun PrescriptionDetailBottomSheet(
             // ─────────────────────────────────────────────────────────────
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "CÓMO TOMARLO (INDICACIONES MÉDICAS)",
+                    text = stringResource(R.string.prescriptions_how_to_take_title),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF64748B),
@@ -941,7 +967,7 @@ private fun PrescriptionDetailBottomSheet(
                             ) {
                                 Column(modifier = Modifier.padding(10.dp)) {
                                     Text(
-                                        text = "INDICACIÓN",
+                                        text = stringResource(R.string.prescriptions_indication_label),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF0369A1),
@@ -961,7 +987,7 @@ private fun PrescriptionDetailBottomSheet(
                         prescription.diagnosis?.takeIf { it.isNotBlank() }?.let { diag ->
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Diagnóstico: $diag",
+                                text = stringResource(R.string.prescriptions_diagnosis_format, diag),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF64748B),
                             )
@@ -971,7 +997,7 @@ private fun PrescriptionDetailBottomSheet(
                         prescription.notes?.takeIf { it.isNotBlank() }?.let { notes ->
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Notas: $notes",
+                                text = stringResource(R.string.prescriptions_notes_format, notes),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF64748B),
                             )
@@ -1009,7 +1035,7 @@ private fun PrescriptionDetailBottomSheet(
                         )
                         prescription.doctorLicense?.takeIf { it.isNotBlank() }?.let { license ->
                             Text(
-                                text = "Matrícula: $license",
+                                text = stringResource(R.string.prescriptions_license_format, license),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextSecondary,
                             )
@@ -1033,45 +1059,46 @@ private data class StatusBadgeStyle(
     val contentColor: Color,
 )
 
+@Composable
 private fun getPrescriptionStatusStyle(status: String): StatusBadgeStyle {
     return when (status.lowercase()) {
         "activa", "active", "sent", "signed", "firmada" -> StatusBadgeStyle(
-            label = "Activa",
+            label = stringResource(R.string.prescriptions_status_active),
             containerColor = Color(0xFFDCFCE7), // emerald-100
             contentColor = Color(0xFF15803D), // emerald-700
         )
         "dispensed", "dispensada", "dispensed_total" -> StatusBadgeStyle(
-            label = "Dispensada",
+            label = stringResource(R.string.prescriptions_status_dispensed),
             containerColor = Color(0xFFE0F2FE), // sky-100
             contentColor = Color(0xFF0369A1), // sky-700
         )
         "dispensed_partial" -> StatusBadgeStyle(
-            label = "Parcial",
+            label = stringResource(R.string.prescriptions_status_partial),
             containerColor = Color(0xFFFEF3C7), // amber-100
             contentColor = Color(0xFFB45309), // amber-700
         )
         "completed", "completada" -> StatusBadgeStyle(
-            label = "Completada",
+            label = stringResource(R.string.prescriptions_status_completed),
             containerColor = Color(0xFFF1F5F9), // slate-100
             contentColor = Color(0xFF475569), // slate-600
         )
         "expired", "vencida" -> StatusBadgeStyle(
-            label = "Vencida",
+            label = stringResource(R.string.prescriptions_status_expired),
             containerColor = Color(0xFFFEE2E2), // red-100
             contentColor = Color(0xFFB91C1C), // red-700
         )
         "cancelled", "cancelada" -> StatusBadgeStyle(
-            label = "Cancelada",
+            label = stringResource(R.string.prescriptions_status_cancelled),
             containerColor = Color(0xFFFEE2E2),
             contentColor = Color(0xFFB91C1C),
         )
         "draft" -> StatusBadgeStyle(
-            label = "Borrador",
+            label = stringResource(R.string.prescriptions_status_draft),
             containerColor = Color(0xFFF1F5F9),
             contentColor = Color(0xFF64748B),
         )
         "pausada" -> StatusBadgeStyle(
-            label = "Pausada",
+            label = stringResource(R.string.prescriptions_status_paused),
             containerColor = Color(0xFFFEF3C7),
             contentColor = Color(0xFFB45309),
         )
@@ -1146,8 +1173,8 @@ private fun formatPrescriptionDate(dateStr: String?): String {
                 LocalDate.parse(dateStr.take(10))
             }
         }
-        val spanishLocale = Locale("es", "AR")
-        parsedDate.format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", spanishLocale))
+        val currentLocale = Locale.getDefault()
+        parsedDate.format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", currentLocale))
     }.getOrElse {
         dateStr
     }
@@ -1199,7 +1226,7 @@ private fun DocumentTabSelector(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Recetas ($prescriptionsCount)",
+                    text = stringResource(R.string.prescriptions_tab_recipes, prescriptionsCount),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (selectedTab == DocumentTab.RECETAS) Color.White else Color(0xFF334155),
@@ -1228,7 +1255,7 @@ private fun DocumentTabSelector(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Atestados ($certificatesCount)",
+                    text = stringResource(R.string.prescriptions_tab_certificates, certificatesCount),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (selectedTab == DocumentTab.ATESTADOS) Color.White else Color(0xFF334155),
@@ -1279,7 +1306,7 @@ private fun CertificatesContentView(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "No se pudieron cargar los atestados",
+                        text = stringResource(R.string.prescriptions_cert_error_loading),
                         style = MaterialTheme.typography.titleMedium,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.SemiBold,
@@ -1300,7 +1327,7 @@ private fun CertificatesContentView(
                         ),
                         shape = CircleShape,
                     ) {
-                        Text("Reintentar")
+                        Text(stringResource(R.string.prescriptions_retry))
                     }
                 }
             }
@@ -1323,14 +1350,14 @@ private fun CertificatesContentView(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Sin atestados médicos",
+                        text = stringResource(R.string.prescriptions_cert_empty_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = Color(0xFF1E293B),
                         fontWeight = FontWeight.Bold,
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Los certificados de reposo laboral, escolar o aptitud física emitidos en tus consultas aparecerán aquí.",
+                        text = stringResource(R.string.prescriptions_cert_empty_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF64748B),
                         textAlign = TextAlign.Center,
@@ -1344,7 +1371,7 @@ private fun CertificatesContentView(
                         ),
                         shape = RoundedCornerShape(10.dp),
                     ) {
-                        Text("Consultar a un médico")
+                        Text(stringResource(R.string.prescriptions_cert_consult_doctor))
                     }
                 }
             }
@@ -1368,6 +1395,44 @@ private fun CertificatesContentView(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CertificateType.localizedDisplayName(): String {
+    return when (this) {
+        CertificateType.REPOSO_LABORAL -> stringResource(R.string.prescriptions_cert_type_work_rest)
+        CertificateType.REPOSO_ESCOLAR -> stringResource(R.string.prescriptions_cert_type_school_rest)
+        CertificateType.APTITUD_FISICA -> stringResource(R.string.prescriptions_cert_type_physical_aptitude)
+        CertificateType.CONSTANCIA_ATENCION -> stringResource(R.string.prescriptions_cert_type_attendance)
+        CertificateType.TRATAMIENTO -> stringResource(R.string.prescriptions_cert_type_treatment)
+        CertificateType.OTRO -> stringResource(R.string.prescriptions_cert_type_other)
+    }
+}
+
+@Composable
+private fun formatCertificatePeriod(certificate: MedicalCertificate): String {
+    return if (certificate.daysOfRest > 0) {
+        val restText = when {
+            certificate.daysOfRest == 1 -> stringResource(R.string.prescriptions_cert_rest_1_day)
+            certificate.daysOfRest == 2 -> stringResource(R.string.prescriptions_cert_rest_2_days)
+            certificate.daysOfRest == 3 -> stringResource(R.string.prescriptions_cert_rest_3_days)
+            else -> stringResource(R.string.prescriptions_cert_rest_n_days, certificate.daysOfRest)
+        }
+        stringResource(R.string.prescriptions_cert_period_from, restText, certificate.startDate)
+    } else {
+        stringResource(R.string.prescriptions_cert_issued_on, certificate.startDate)
+    }
+}
+
+@Composable
+private fun formatCertificateDaysOfRest(daysOfRest: Int): String {
+    return when {
+        daysOfRest <= 0 -> stringResource(R.string.prescriptions_cert_rest_none)
+        daysOfRest == 1 -> stringResource(R.string.prescriptions_cert_rest_1_day)
+        daysOfRest == 2 -> stringResource(R.string.prescriptions_cert_rest_2_days)
+        daysOfRest == 3 -> stringResource(R.string.prescriptions_cert_rest_3_days)
+        else -> stringResource(R.string.prescriptions_cert_rest_n_days, daysOfRest)
     }
 }
 
@@ -1399,7 +1464,7 @@ private fun CertificateCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = certificate.certificateType.displayName,
+                    text = certificate.certificateType.localizedDisplayName(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp,
@@ -1414,7 +1479,7 @@ private fun CertificateCard(
                     color = if (certificate.isActive) Color(0xFFDCFCE7) else Color(0xFFF1F5F9),
                 ) {
                     Text(
-                        text = if (certificate.isActive) "Válido" else "Vencido",
+                        text = if (certificate.isActive) stringResource(R.string.prescriptions_cert_status_valid) else stringResource(R.string.prescriptions_cert_status_expired),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (certificate.isActive) Color(0xFF15803D) else Color(0xFF64748B),
@@ -1426,7 +1491,7 @@ private fun CertificateCard(
             // Fila 2: Período o Días de reposo
             Spacer(modifier = Modifier.height(3.dp))
             Text(
-                text = if (certificate.daysOfRest > 0) "${certificate.displayDaysOfRest} · Desde ${certificate.startDate}" else "Emitido el ${certificate.startDate}",
+                text = formatCertificatePeriod(certificate),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF334155),
@@ -1437,7 +1502,7 @@ private fun CertificateCard(
             // Fila 3: Médico
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "${certificate.doctorName ?: "Dr. Médico Tratante"}${certificate.doctorLicense?.let { " · $it" } ?: ""}",
+                text = "${certificate.doctorName ?: stringResource(R.string.prescriptions_default_doctor)}${certificate.doctorLicense?.let { " · $it" } ?: ""}",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF64748B),
                 maxLines = 1,
@@ -1472,7 +1537,7 @@ private fun CertificateCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "QR Atestado",
+                            text = stringResource(R.string.prescriptions_cert_qr_card),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A),
@@ -1499,12 +1564,12 @@ private fun CertificateCard(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.PictureAsPdf,
-                                    contentDescription = "Descargar PDF",
+                                    contentDescription = stringResource(R.string.prescriptions_download_pdf_cd),
                                     tint = Color(0xFFDC2626),
                                     modifier = Modifier.size(13.dp),
                                 )
                                 Text(
-                                    text = "PDF",
+                                    text = stringResource(R.string.prescriptions_pdf_badge),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFDC2626),
@@ -1550,7 +1615,7 @@ private fun CertificateDetailBottomSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = certificate.certificateType.displayName,
+                        text = certificate.certificateType.localizedDisplayName(),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0F172A),
@@ -1565,7 +1630,7 @@ private fun CertificateDetailBottomSheet(
                             color = if (certificate.isActive) Color(0xFFDCFCE7) else Color(0xFFF1F5F9),
                         ) {
                             Text(
-                                text = if (certificate.isActive) "Válido" else "Vencido",
+                                text = if (certificate.isActive) stringResource(R.string.prescriptions_cert_status_valid) else stringResource(R.string.prescriptions_cert_status_expired),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = if (certificate.isActive) Color(0xFF15803D) else Color(0xFF64748B),
@@ -1573,7 +1638,7 @@ private fun CertificateDetailBottomSheet(
                             )
                         }
                         Text(
-                            text = "Emitido: ${certificate.startDate}",
+                            text = stringResource(R.string.prescriptions_cert_issued_format, certificate.startDate),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF64748B),
                         )
@@ -1582,7 +1647,7 @@ private fun CertificateDetailBottomSheet(
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
-                        contentDescription = "Cerrar",
+                        contentDescription = stringResource(R.string.prescriptions_close),
                         tint = Color(0xFF64748B),
                     )
                 }
@@ -1603,7 +1668,7 @@ private fun CertificateDetailBottomSheet(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "PRESENTÁ ESTE CÓDIGO ANTE TU INSTITUCIÓN",
+                        text = stringResource(R.string.prescriptions_cert_present_code_institution),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0284C7),
@@ -1616,7 +1681,7 @@ private fun CertificateDetailBottomSheet(
                         modifier = Modifier
                             .size(210.dp)
                             .background(Color.White, RoundedCornerShape(12.dp)),
-                        contentDescription = "Código QR de Validación Institucional",
+                        contentDescription = stringResource(R.string.prescriptions_cert_qr_content_desc),
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -1632,7 +1697,7 @@ private fun CertificateDetailBottomSheet(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "Validación oficial Decreto 63 / SISA REFEPS",
+                            text = stringResource(R.string.prescriptions_official_validation),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF1E293B),
@@ -1657,7 +1722,7 @@ private fun CertificateDetailBottomSheet(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "CÓDIGO CUIR:",
+                                    text = stringResource(R.string.prescriptions_cuir_code_label),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF64748B),
@@ -1677,12 +1742,12 @@ private fun CertificateDetailBottomSheet(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.ContentCopy,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.prescriptions_copy),
                                     modifier = Modifier.size(14.dp),
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Copiar",
+                                    text = stringResource(R.string.prescriptions_copy),
                                     style = MaterialTheme.typography.labelSmall,
                                 )
                             }
@@ -1710,7 +1775,7 @@ private fun CertificateDetailBottomSheet(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Descargar Atestado (PDF)",
+                                text = stringResource(R.string.prescriptions_cert_download_pdf),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -1724,7 +1789,7 @@ private fun CertificateDetailBottomSheet(
             // Detalle Médico
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "DETALLE DEL REPOSO / CERTIFICACIÓN",
+                    text = stringResource(R.string.prescriptions_cert_detail_title),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF64748B),
@@ -1750,7 +1815,7 @@ private fun CertificateDetailBottomSheet(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = certificate.displayDaysOfRest,
+                                    text = formatCertificateDaysOfRest(certificate.daysOfRest),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF0F172A),
@@ -1760,9 +1825,9 @@ private fun CertificateDetailBottomSheet(
                         }
 
                         val diagText = when {
-                            certificate.hideDiagnosis -> "Diagnóstico reservado por secreto médico (Ley 26.529)"
+                            certificate.hideDiagnosis -> stringResource(R.string.prescriptions_cert_diagnosis_reserved)
                             !certificate.diagnosis.isNullOrBlank() -> certificate.diagnosis
-                            else -> "Afección clínica que requiere reposo psicofísico"
+                            else -> stringResource(R.string.prescriptions_cert_default_condition)
                         }
                         Text(
                             text = diagText,
@@ -1773,7 +1838,7 @@ private fun CertificateDetailBottomSheet(
                         certificate.observations?.takeIf { it.isNotBlank() }?.let { obs ->
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Observaciones: $obs",
+                                text = stringResource(R.string.prescriptions_cert_observations_format, obs),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF64748B),
                             )
@@ -1811,13 +1876,14 @@ private fun CertificateDetailBottomSheet(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = certificate.doctorName ?: "Dr. Médico Tratante",
+                            text = certificate.doctorName ?: stringResource(R.string.prescriptions_default_doctor),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A),
                         )
+                        val licenseText = certificate.doctorLicense?.takeIf { it.isNotBlank() } ?: stringResource(R.string.prescriptions_cert_license_verified)
                         Text(
-                            text = "Matrícula: ${certificate.doctorLicense ?: "Verificada en SISA REFEPS"}",
+                            text = stringResource(R.string.prescriptions_license_format, licenseText),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF64748B),
                         )

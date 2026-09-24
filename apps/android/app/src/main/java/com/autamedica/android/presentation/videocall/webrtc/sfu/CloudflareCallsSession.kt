@@ -28,6 +28,7 @@ import org.webrtc.MediaStream
 import org.webrtc.MediaStreamTrack
 import org.webrtc.PeerConnection
 import org.webrtc.PeerConnectionFactory
+import org.webrtc.RtpParameters
 import org.webrtc.RtpReceiver
 import org.webrtc.RtpSender
 import org.webrtc.RtpTransceiver
@@ -95,6 +96,8 @@ class CloudflareCallsSession(
     private val negotiationMutex = Mutex()
     private var gatherSignal: CompletableDeferred<Unit>? = null
     private var connectionSignal: CompletableDeferred<Unit>? = null
+    @Volatile private var hasSrflxCandidate = false
+    @Volatile private var hasHostCandidate = false
 
     /** Invocados antes que onTrack para propagar mid → userId antes del handler de app de forma concurrente y segura. */
     private val trackMidListeners = java.util.concurrent.CopyOnWriteArrayList<(mid: String, kind: String) -> Unit>()
@@ -164,9 +167,11 @@ class CloudflareCallsSession(
             ).sender
         }
 
+        hasSrflxCandidate = false
+        hasHostCandidate = false
         val offer = newPc.createOfferSdp()
         newPc.applyLocalSdp(offer)
-        awaitIceGatheringComplete()
+        awaitIceGatheringComplete(timeoutMs = 300L)
 
         val sdp = newPc.localDescription?.description.orEmpty()
         val newSession = api.call(
@@ -238,8 +243,8 @@ class CloudflareCallsSession(
                         break
                     } catch (e: CloudflareCallsApiException) {
                         if (e.httpStatus == 425 && attempt < maxAttempts - 1) {
-                            SecureLog.info("[SFU] PeerConnection connecting to SFU, retrying local tracks/new in ${(attempt + 1) * 800}ms...")
-                            delay((attempt + 1) * 800L)
+                            SecureLog.info("[SFU] PeerConnection connecting to SFU, retrying local tracks/new in ${(attempt + 1) * 250}ms...")
+                            delay((attempt + 1) * 250L)
                             continue
                         }
                         throw e
@@ -258,7 +263,14 @@ class CloudflareCallsSession(
         localVideoSender?.let { sender ->
             runCatching { sender.parameters }.onSuccess { params ->
                 if (params != null) {
-                    params.degradationPreference = org.webrtc.RtpParameters.DegradationPreference.BALANCED
+                    params.degradationPreference = RtpParameters.DegradationPreference.MAINTAIN_RESOLUTION
+                    if (params.encodings.isEmpty()) {
+                        params.encodings.add(RtpParameters.Encoding(null, true, null))
+                    }
+                    params.encodings.firstOrNull()?.let { encoding ->
+                        encoding.maxBitrateBps = 3_000_000
+                        encoding.maxFramerate = 30
+                    }
                     runCatching { sender.parameters = params }
                         .onFailure { Timber.d(it, "[SFU] sender.parameters set failed") }
                 }
@@ -315,6 +327,136 @@ class CloudflareCallsSession(
         }
     }
 
+    suspend fun pullRemoteTrack(
+        trackName: String,
+        remoteSessionId: String,
+        maxAttempts: Int = 4,
+        onTrackMid: ((mid: String, kind: String) -> Unit)? = null,
+    ): SubscriptionResult {
+        if (closed) return SubscriptionResult(emptyList())
+        if (!isReady()) {
+            val err = IllegalStateException(
+                "[SFU] No conectado aún (ready=$ready, hasPc=${pc != null}, hasSession=${sessionId != null})"
+            )
+            onError(err)
+            throw err
+        }
+
+        val remoteTracks = listOf(
+            TrackEntry(location = "remote", trackName = trackName, sessionId = remoteSessionId)
+        )
+
+        val pcRef = pc ?: throw IllegalStateException("[SFU] Sin PeerConnection")
+        val priorMids = pcRef.getTransceivers().mapNotNull { it.mid }.toHashSet()
+
+        val listener: ((mid: String, kind: String) -> Unit)? = onTrackMid?.let { handler ->
+            { mid, kind -> handler(mid, kind) }
+        }
+        if (listener != null) {
+            trackMidListeners.add(listener)
+        }
+
+        val pulled = mutableListOf<TrackEntry>()
+        var errorTracks = emptyList<String>()
+
+        try {
+            var attemptsUsed = 0
+            for (attempt in 0 until maxAttempts) {
+                if (closed || !isReady()) break
+                attemptsUsed++
+
+                var result: NewTracksResponse? = null
+                var shouldRetry = false
+                val retryDelayMs = (attempt + 1) * 200L
+
+                enqueueNegotiation {
+                    waitForStableSignaling()
+                    if (closed || !isReady()) return@enqueueNegotiation
+
+                    try {
+                        val rawResult = api.call(
+                            method = "POST",
+                            path = "sessions/$sessionId/tracks/new",
+                            body = jsonObjectOf("tracks" to encodeTrackList(remoteTracks)),
+                        ).asNewTracksResponse()
+
+                        val hasNotFoundError = rawResult.errorTracks.any { it.contains("not_found_track_error") }
+                        if (hasNotFoundError && attempt < maxAttempts - 1) {
+                            SecureLog.info("[SFU] Remote track $trackName not ready on SFU yet (attempt ${attempt + 1}/$maxAttempts). Will retry in ${retryDelayMs}ms...")
+                            shouldRetry = true
+                            return@enqueueNegotiation
+                        }
+                        result = rawResult
+                    } catch (e: CloudflareCallsApiException) {
+                        if ((e.httpStatus == 425 || e.details.contains("not_found_track_error")) && attempt < maxAttempts - 1) {
+                            SecureLog.info("[SFU] SFU session not ready for track $trackName (${e.httpStatus}), will retry in ${retryDelayMs}ms...")
+                            shouldRetry = true
+                            return@enqueueNegotiation
+                        }
+                        throw e
+                    }
+
+                    val currentResult = result ?: return@enqueueNegotiation
+                    errorTracks = currentResult.errorTracks
+                    if (currentResult.errorTracks.isNotEmpty()) {
+                        SecureLog.warn("[SFU] Cloudflare reportó track $trackName no disponible aún: ${currentResult.errorTracks}")
+                    }
+
+                    if (currentResult.requiresImmediateRenegotiation && currentResult.sessionDescription != null) {
+                        renegotiate(currentResult.sessionDescription)
+                    }
+
+                    val newTransceivers = pcRef.getTransceivers()
+                        .filter { t ->
+                            t.mid != null &&
+                                t.mid !in priorMids &&
+                                t.sender != localVideoSender &&
+                                t.sender != localAudioSender
+                        }
+
+                    for (t in newTransceivers) {
+                        val kind = t.receiver.track()?.kind() ?: when (t.mediaType) {
+                            MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO -> "video"
+                            else -> "audio"
+                        }
+                        Timber.i("[SFU] New remote transceiver ($trackName): mid=${t.mid}, direction=${t.direction}, kind=$kind, receiverTrackId=${t.receiver.track()?.id()}")
+                        t.mid?.let { onTrackMid?.invoke(it, kind) }
+                    }
+
+                    pulled.addAll(
+                        newTransceivers.mapNotNull { t ->
+                            val midVal = t.mid ?: return@mapNotNull null
+                            val kind = t.receiver.track()?.kind() ?: when (t.mediaType) {
+                                MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO -> "video"
+                                else -> "audio"
+                            }
+                            TrackEntry(
+                                location = "remote",
+                                trackName = "${kind}0",
+                                mid = midVal,
+                                sessionId = remoteSessionId,
+                            )
+                        }
+                    )
+                }
+
+                if (shouldRetry && attempt < maxAttempts - 1) {
+                    delay(retryDelayMs)
+                    continue
+                }
+
+                if (result != null) break
+            }
+        } finally {
+            if (listener != null) {
+                trackMidListeners.remove(listener)
+            }
+        }
+
+        SecureLog.info("[SFU] Pull $trackName result: pulled=${pulled.size}, mids=${pulled.mapNotNull { it.mid }}, errors=$errorTracks")
+        return SubscriptionResult(tracks = pulled, errorTracks = errorTracks)
+    }
+
     suspend fun subscribeToSession(
         remoteSessionId: String,
         onTrackMid: ((mid: String, kind: String) -> Unit)? = null,
@@ -331,124 +473,33 @@ class CloudflareCallsSession(
             throw err
         }
 
-        val remoteTracks = listOf(
-            TrackEntry(location = "remote", trackName = "audio0", sessionId = remoteSessionId),
-            TrackEntry(location = "remote", trackName = "video0", sessionId = remoteSessionId),
+        SecureLog.info("[SFU] Starting decoupled subscription for remoteSessionId=$remoteSessionId (immediate audio0, parallel video0)")
+
+        // 1. Suscribir inmediatamente el canal de audio: voz bidireccional activa en < 2s
+        val audioResult = pullRemoteTrack(
+            trackName = "audio0",
+            remoteSessionId = remoteSessionId,
+            maxAttempts = 3,
+            onTrackMid = onTrackMid,
         )
 
-        val pcRef = pc ?: throw IllegalStateException("[SFU] Sin PeerConnection")
-        val priorMids = pcRef.getTransceivers().mapNotNull { it.mid }.toHashSet()
-
-        val listener: ((mid: String, kind: String) -> Unit)? = onTrackMid?.let { handler ->
-            { mid, kind -> handler(mid, kind) }
-        }
-        if (listener != null) {
-            trackMidListeners.add(listener)
-        }
-
-        val pulled = mutableListOf<TrackEntry>()
-        var errorTracks = emptyList<String>()
-        try {
-            enqueueNegotiation {
-                waitForStableSignaling()
-                if (closed || !isReady()) return@enqueueNegotiation
-
-                var result: NewTracksResponse? = null
-                var attemptsUsed = 0
-                val maxAttempts = 4
-                for (attempt in 0 until maxAttempts) {
-                    attemptsUsed++
-                    try {
-                        val rawResult = api.call(
-                            method = "POST",
-                            path = "sessions/$sessionId/tracks/new",
-                            body = jsonObjectOf("tracks" to encodeTrackList(remoteTracks)),
-                        ).asNewTracksResponse()
-
-                        val hasNotFoundError = rawResult.errorTracks.any { it.contains("not_found_track_error") }
-                        if (hasNotFoundError && attempt < maxAttempts - 1) {
-                            SecureLog.info("[SFU] Remote tracks not ready on SFU yet (attempt ${attempt + 1}/$maxAttempts). Retrying in ${(attempt + 1) * 500}ms...")
-                            delay((attempt + 1) * 500L)
-                            continue
-                        }
-                        result = rawResult
-                        break
-                    } catch (e: CloudflareCallsApiException) {
-                        if ((e.httpStatus == 425 || e.details.contains("not_found_track_error")) && attempt < maxAttempts - 1) {
-                            SecureLog.info("[SFU] SFU session not ready for subscribe (${e.httpStatus}), retrying in ${(attempt + 1) * 500}ms...")
-                            delay((attempt + 1) * 500L)
-                            continue
-                        }
-                        throw e
-                    }
-                }
-
-                if (result == null) {
-                    Timber.w("[SFU] Subscribe tracks/new exhausted all $maxAttempts attempts without a result (remoteSession=$remoteSessionId, attemptsUsed=$attemptsUsed); hitting early-return")
-                    return@enqueueNegotiation
-                }
-
-                Timber.i("[SFU] Subscribe negotiation result (remoteSession=$remoteSessionId): requiresImmediateRenegotiation=${result.requiresImmediateRenegotiation}, hasSessionDescription=${result.sessionDescription != null}, errorTracks=${result.errorTracks}, attemptsUsed=$attemptsUsed")
-
-                errorTracks = result.errorTracks
-                if (result.errorTracks.isNotEmpty()) {
-                    SecureLog.warn("[SFU] Cloudflare reportó tracks remotos no disponibles aún: ${result.errorTracks}")
-                }
-
-                if (result.requiresImmediateRenegotiation && result.sessionDescription != null) {
-                    renegotiate(result.sessionDescription)
-                }
-
-                val newTransceivers = pcRef.getTransceivers()
-                    .filter { t ->
-                        t.mid != null &&
-                            t.mid !in priorMids &&
-                            t.sender != localVideoSender &&
-                            t.sender != localAudioSender
-                    }
-
-                for (t in newTransceivers) {
-                    val kind = t.receiver.track()?.kind() ?: when (t.mediaType) {
-                        MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO -> "video"
-                        else -> "audio"
-                    }
-                    Timber.i("[SFU] New remote transceiver: mid=${t.mid}, direction=${t.direction}, kind=$kind, receiverTrackId=${t.receiver.track()?.id()}")
-                }
-
-                if (onTrackMid != null) {
-                    for (t in newTransceivers) {
-                        val kind = t.receiver.track()?.kind() ?: when (t.mediaType) {
-                            MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO -> "video"
-                            else -> "audio"
-                        }
-                        t.mid?.let { onTrackMid(it, kind) }
-                    }
-                }
-
-                pulled.addAll(
-                    newTransceivers.mapNotNull { t ->
-                        t.mid ?: return@mapNotNull null
-                        val kind = t.receiver.track()?.kind() ?: when (t.mediaType) {
-                            MediaStreamTrack.MediaType.MEDIA_TYPE_VIDEO -> "video"
-                            else -> "audio"
-                        }
-                        TrackEntry(
-                            location = "remote",
-                            trackName = "${kind}0",
-                            mid = t.mid,
-                            sessionId = remoteSessionId,
-                        )
-                    }
+        // 2. Paralelamente suscribir video0 con reintentos sin retardar la comunicación de voz
+        scope.launch {
+            try {
+                val videoResult = pullRemoteTrack(
+                    trackName = "video0",
+                    remoteSessionId = remoteSessionId,
+                    maxAttempts = 6,
+                    onTrackMid = onTrackMid,
                 )
-            }
-        } finally {
-            if (listener != null) {
-                trackMidListeners.remove(listener)
+                Timber.i("[SFU] Parallel video0 subscription completed: pulled=${videoResult.tracks.size}, errors=${videoResult.errorTracks}")
+            } catch (err: Throwable) {
+                if (err is kotlinx.coroutines.CancellationException) throw err
+                SecureLog.warn("[SFU] Parallel video0 subscription error", err)
             }
         }
 
-        SecureLog.info("[SFU] Subscribe result: pulled=${pulled.size}, mids=${pulled.mapNotNull { it.mid }}")
-        return SubscriptionResult(tracks = pulled, errorTracks = errorTracks)
+        return audioResult
     }
 
     suspend fun replacePublishedVideoTrack(track: VideoTrack?) {
@@ -525,16 +576,21 @@ class CloudflareCallsSession(
         }
     }
 
-    private suspend fun awaitIceGatheringComplete(timeoutMs: Long = 10_000L) {
+    private suspend fun awaitIceGatheringComplete(timeoutMs: Long = 300L) {
         val pcRef = pc ?: return
-        if (pcRef.iceGatheringState() == PeerConnection.IceGatheringState.COMPLETE) return
+        if (pcRef.iceGatheringState() == PeerConnection.IceGatheringState.COMPLETE || hasSrflxCandidate) {
+            SecureLog.info("[SFU] ICE gathering already ready (complete or srflx candidate found)")
+            return
+        }
 
         val signal = CompletableDeferred<Unit>()
         gatherSignal = signal
         withTimeoutOrNull(timeoutMs) { signal.await() }
+        gatherSignal = null
+        SecureLog.info("[SFU] ICE gathering finished or timed out after max ${timeoutMs}ms (state=${pcRef.iceGatheringState()}, hasSrflx=$hasSrflxCandidate, hasHost=$hasHostCandidate)")
     }
 
-    private suspend fun waitForMediaConnection(timeoutMs: Long = 15_000L) {
+    private suspend fun waitForMediaConnection(timeoutMs: Long = 2_000L) {
         val pcRef = pc ?: return
         if (pcRef.connectionState() == PeerConnection.PeerConnectionState.CONNECTED ||
             pcRef.iceConnectionState() == PeerConnection.IceConnectionState.CONNECTED ||
@@ -600,7 +656,17 @@ class CloudflareCallsSession(
             onConnectionStateChange(state)
         }
 
-        override fun onIceCandidate(iceCandidate: IceCandidate) {}
+        override fun onIceCandidate(iceCandidate: IceCandidate) {
+            val sdp = iceCandidate.sdp ?: ""
+            if (sdp.contains("typ srflx")) {
+                hasSrflxCandidate = true
+                SecureLog.info("[SFU] Discovered srflx ICE candidate early; completing gatherSignal immediately")
+                gatherSignal?.complete(Unit)
+                gatherSignal = null
+            } else if (sdp.contains("typ host")) {
+                hasHostCandidate = true
+            }
+        }
         override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>) {}
         override fun onIceConnectionChange(state: PeerConnection.IceConnectionState) {
             SecureLog.info("[SFU] ICE Connection State changed: $state")

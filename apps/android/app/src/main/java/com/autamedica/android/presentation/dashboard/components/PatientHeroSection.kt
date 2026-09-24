@@ -55,7 +55,7 @@ fun PatientHeroSection(
 ) {
     val firstName = userName.split(" ").firstOrNull()?.ifBlank { "Paciente" } ?: "Paciente"
     val isCuidado = subscriptionTier.equals("cuidado", ignoreCase = true)
-    val greeting = getGreetingText()
+    val greeting = stringResource(getGreetingRes())
 
     Surface(
         modifier = modifier
@@ -107,7 +107,7 @@ fun PatientHeroSection(
                         .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                         .clip(RoundedCornerShape(999.dp))
                         .clickable(
-                            onClickLabel = if (isCuidado) "Ver créditos y beneficios de tu plan" else "Conocer beneficios del plan",
+                            onClickLabel = if (isCuidado) stringResource(R.string.hero_plan_see_credits) else stringResource(R.string.hero_plan_learn_benefits),
                             onClick = onOpenReserveDetails,
                         ),
                 ) {
@@ -117,16 +117,16 @@ fun PatientHeroSection(
                     ) {
                         Icon(
                             imageVector = if (isCuidado) Icons.Outlined.AutoAwesome else Icons.Outlined.MonetizationOn,
-                            contentDescription = if (isCuidado) "Plan Cuidado activo" else "Plan de Salud",
+                            contentDescription = if (isCuidado) stringResource(R.string.hero_plan_care_active) else stringResource(R.string.hero_plan_health),
                             modifier = Modifier.size(14.dp),
                             tint = if (isCuidado) Color(0xFF67E8F9) else Color(0xFFE2E8F0),
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = if (isCuidado) {
-                                "Plan Cuidado • +$benefitBalanceCredits créditos"
+                                stringResource(R.string.hero_plan_care_credits, benefitBalanceCredits)
                             } else {
-                                "Beneficios del plan"
+                                stringResource(R.string.hero_plan_benefits)
                             },
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -158,7 +158,7 @@ fun PatientHeroSection(
 
                 // Large Editorial Title
                 Text(
-                    text = "$firstName, tu salud al día",
+                    text = stringResource(R.string.hero_health_on_track, firstName),
                     fontSize = 30.sp,
                     lineHeight = 36.sp,
                     color = Color.White,
@@ -170,7 +170,7 @@ fun PatientHeroSection(
 
                 // Subtitle
                 Text(
-                    text = "Consultas médicas sin esperas.",
+                    text = stringResource(R.string.hero_subtitle_no_waits),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.85f),
                     lineHeight = 20.sp,
@@ -201,7 +201,7 @@ fun PatientHeroSection(
                         ),
                     ) {
                         Text(
-                            text = "Consultar",
+                            text = stringResource(R.string.hero_consult_cta),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -241,7 +241,7 @@ fun PatientHeroSection(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Guardia Farmacia",
+                                text = stringResource(R.string.hero_pharmacy_guard),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,
@@ -255,11 +255,11 @@ fun PatientHeroSection(
     }
 }
 
-private fun getGreetingText(): String {
+private fun getGreetingRes(): Int {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     return when {
-        hour < 12 -> "BUENOS DÍAS"
-        hour < 19 -> "BUENAS TARDES"
-        else -> "BUENAS NOCHES"
+        hour < 12 -> R.string.greeting_morning
+        hour < 19 -> R.string.greeting_afternoon
+        else -> R.string.greeting_evening
     }
 }

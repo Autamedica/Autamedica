@@ -71,12 +71,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.ClinicalDocument
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
@@ -147,9 +149,10 @@ fun ClinicalDocumentsScreen(
         }
     }
 
+    val uploadSuccessMsg = stringResource(R.string.clinical_docs_upload_success)
     LaunchedEffect(uiState.uploadSuccessMessage) {
-        uiState.uploadSuccessMessage?.let { msg ->
-            snackbarHostState.showSnackbar(msg)
+        uiState.uploadSuccessMessage?.let {
+            snackbarHostState.showSnackbar(uploadSuccessMsg)
             viewModel.dismissSuccessMessage()
             showUploadModal = false
             selectedFileForUpload = null
@@ -162,13 +165,13 @@ fun ClinicalDocumentsScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Estudios y Documentos",
+                            text = stringResource(R.string.clinical_docs_title),
                             style = MaterialTheme.typography.titleLarge,
                             color = AuTextPrimary,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Análisis, imágenes y reportes médicos",
+                            text = stringResource(R.string.clinical_docs_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextTertiary,
                         )
@@ -178,7 +181,7 @@ fun ClinicalDocumentsScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.clinical_docs_back),
                             tint = AuTextPrimary,
                         )
                     }
@@ -187,7 +190,7 @@ fun ClinicalDocumentsScreen(
                     IconButton(onClick = viewModel::refresh) {
                         Icon(
                             imageVector = Icons.Outlined.Refresh,
-                            contentDescription = "Actualizar",
+                            contentDescription = stringResource(R.string.clinical_docs_refresh),
                             tint = AuTextSecondary,
                         )
                     }
@@ -212,7 +215,7 @@ fun ClinicalDocumentsScreen(
                 },
                 text = {
                     Text(
-                        text = "Subir Estudio / Análisis",
+                        text = stringResource(R.string.clinical_docs_fab_upload),
                         fontWeight = FontWeight.Bold,
                     )
                 },
@@ -261,7 +264,7 @@ fun ClinicalDocumentsScreen(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "Error al cargar documentos",
+                                text = stringResource(R.string.clinical_docs_error_loading),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = AuTextPrimary,
                                 fontWeight = FontWeight.SemiBold,
@@ -278,7 +281,7 @@ fun ClinicalDocumentsScreen(
                                 onClick = viewModel::loadDocuments,
                                 colors = ButtonDefaults.buttonColors(containerColor = PortalPatients),
                             ) {
-                                Text("Reintentar")
+                                Text(stringResource(R.string.clinical_docs_retry))
                             }
                         }
                     }
@@ -311,14 +314,14 @@ fun ClinicalDocumentsScreen(
                             }
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "Sin estudios clínicos cargados",
+                                text = stringResource(R.string.clinical_docs_empty_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = AuTextPrimary,
                                 fontWeight = FontWeight.Bold,
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Sube tus análisis de sangre, estudios por imágenes o certificados médicos para que tu médico los revise durante la consulta.",
+                                text = stringResource(R.string.clinical_docs_empty_desc),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = AuTextSecondary,
                                 textAlign = TextAlign.Center,
@@ -334,7 +337,7 @@ fun ClinicalDocumentsScreen(
                                     modifier = Modifier.size(18.dp),
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Seleccionar Archivo")
+                                Text(stringResource(R.string.clinical_docs_select_file))
                             }
                         }
                     }
@@ -358,10 +361,10 @@ fun ClinicalDocumentsScreen(
                                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(doc.fileUrl))
                                             context.startActivity(intent)
                                         }.onFailure {
-                                            Toast.makeText(context, "No se pudo abrir el documento", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, context.getString(R.string.clinical_docs_toast_open_error), Toast.LENGTH_SHORT).show()
                                         }
                                     } else {
-                                        Toast.makeText(context, "Archivo en procesamiento", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, context.getString(R.string.clinical_docs_toast_processing), Toast.LENGTH_SHORT).show()
                                     }
                                 },
                             )
@@ -399,7 +402,7 @@ fun ClinicalDocumentsScreen(
                         inputStream = stream,
                     )
                 } else {
-                    Toast.makeText(context, "No se pudo leer el archivo seleccionado", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.clinical_docs_toast_read_error), Toast.LENGTH_SHORT).show()
                 }
             },
         )
@@ -463,7 +466,7 @@ private fun ClinicalDocumentCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(
-                        text = document.typeDisplayName,
+                        text = formatDocumentType(document.type),
                         style = MaterialTheme.typography.bodySmall,
                         color = PortalPatients,
                         fontWeight = FontWeight.SemiBold,
@@ -493,11 +496,20 @@ private fun ClinicalDocumentCard(
             IconButton(onClick = onOpen) {
                 Icon(
                     imageVector = Icons.Outlined.OpenInNew,
-                    contentDescription = "Abrir",
+                    contentDescription = stringResource(R.string.clinical_docs_open),
                     tint = PortalPatients,
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun formatDocumentType(type: String): String {
+    return when (type.lowercase()) {
+        "lab_result", "laboratorio" -> stringResource(R.string.clinical_docs_type_lab)
+        "imaging", "imagen", "imagenologia" -> stringResource(R.string.clinical_docs_type_imaging)
+        else -> stringResource(R.string.clinical_docs_type_other)
     }
 }
 
@@ -516,7 +528,7 @@ private fun UploadDocumentDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Subir Estudio Clínico",
+                text = stringResource(R.string.clinical_docs_dialog_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = AuTextPrimary,
@@ -574,8 +586,8 @@ private fun UploadDocumentDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Título del Estudio") },
-                    placeholder = { Text("Ej: Análisis de Sangre, Ecografía") },
+                    label = { Text(stringResource(R.string.clinical_docs_input_title_label)) },
+                    placeholder = { Text(stringResource(R.string.clinical_docs_input_title_placeholder)) },
                     singleLine = true,
                     enabled = !isUploading,
                     modifier = Modifier.fillMaxWidth(),
@@ -587,21 +599,22 @@ private fun UploadDocumentDialog(
 
                 // Study type selector
                 Text(
-                    text = "Tipo de Estudio:",
+                    text = stringResource(R.string.clinical_docs_type_selector_label),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = AuTextSecondary,
+                )
+
+                val types = listOf(
+                    "lab_result" to stringResource(R.string.clinical_docs_chip_lab),
+                    "imaging" to stringResource(R.string.clinical_docs_chip_imaging),
+                    "document" to stringResource(R.string.clinical_docs_chip_document),
                 )
 
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    val types = listOf(
-                        "lab_result" to "Análisis / Lab",
-                        "imaging" to "Imagenología",
-                        "document" to "Informe / Otro",
-                    )
                     items(types) { (key, label) ->
                         FilterChip(
                             selected = selectedType == key,
@@ -629,7 +642,7 @@ private fun UploadDocumentDialog(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Subiendo archivo cifrado...",
+                            text = stringResource(R.string.clinical_docs_uploading),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextSecondary,
                         )
@@ -651,13 +664,13 @@ private fun UploadDocumentDialog(
                 enabled = !isUploading && title.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = PortalPatients),
             ) {
-                Text("Confirmar y Subir")
+                Text(stringResource(R.string.clinical_docs_confirm_upload))
             }
         },
         dismissButton = {
             if (!isUploading) {
                 TextButton(onClick = onDismiss) {
-                    Text("Cancelar", color = AuTextSecondary)
+                    Text(stringResource(R.string.clinical_docs_cancel), color = AuTextSecondary)
                 }
             }
         },

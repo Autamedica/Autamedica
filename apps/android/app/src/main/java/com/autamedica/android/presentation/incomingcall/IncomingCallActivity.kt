@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.MainActivity
 import com.autamedica.android.R
+import com.autamedica.android.domain.model.NotificationType
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.navigation.NotificationRouteResolver
 import com.autamedica.android.presentation.theme.AutamedicaTheme
@@ -119,6 +120,7 @@ class IncomingCallActivity : ComponentActivity() {
     }
 
     private fun answer() {
+        val rawNotificationType = intent.getStringExtra(NotificationRouteResolver.EXTRA_NOTIFICATION_TYPE).orEmpty()
         val appointmentId = intent.getStringExtra(IncomingCallNotificationManager.EXTRA_APPOINTMENT_ID).orEmpty()
         val callId = intent.getStringExtra(IncomingCallNotificationManager.EXTRA_CALL_ID).orEmpty()
         val roomId = intent.getStringExtra(IncomingCallNotificationManager.EXTRA_ROOM_ID).orEmpty()
@@ -127,8 +129,11 @@ class IncomingCallActivity : ComponentActivity() {
         IncomingCallNotificationManager.stopRingtone()
         IncomingCallNotificationManager.dismissCall(this, notificationId)
 
+        val isDispatchCall = rawNotificationType == NotificationType.PHARMACY_DISPATCH_INCOMING.name ||
+            rawNotificationType.equals("pharmacy_dispatch_incoming", ignoreCase = true)
+
         val resolvedId = callId.ifBlank { appointmentId }
-        if (resolvedId.isNotBlank()) {
+        if (resolvedId.isNotBlank() && !isDispatchCall) {
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                 try {
                     telemedicineRepository.updateCallStatus(resolvedId, "accepted")
@@ -138,15 +143,20 @@ class IncomingCallActivity : ComponentActivity() {
             }
         }
 
-        // Navigate to the VideoCall screen via the app's normal flow
+        // Navigate to the VideoCall screen via MainActivity
+        // For on-demand pharmacy dispatch or direct room calls: appointmentId = '', roomId = roomId, isIncomingCall = true
+        val resolvedAppointmentId = if (isDispatchCall) "" else appointmentId
         val launchIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or
                 Intent.FLAG_ACTIVITY_SINGLE_TOP
             action = IncomingCallNotificationManager.ACTION_ANSWER_CALL
-            putExtra(NotificationRouteResolver.EXTRA_APPOINTMENT_ID, appointmentId)
+            putExtra(NotificationRouteResolver.EXTRA_APPOINTMENT_ID, resolvedAppointmentId)
             putExtra(NotificationRouteResolver.EXTRA_ROOM_ID, roomId)
-            putExtra(NotificationRouteResolver.EXTRA_NOTIFICATION_TYPE, "CALL_STARTED")
+            putExtra(
+                NotificationRouteResolver.EXTRA_NOTIFICATION_TYPE,
+                if (isDispatchCall) NotificationType.PHARMACY_DISPATCH_INCOMING.name else "CALL_STARTED"
+            )
             putExtra(IncomingCallNotificationManager.EXTRA_CALL_ID, callId)
             putExtra(IncomingCallNotificationManager.EXTRA_IS_INCOMING_CALL, true)
         }

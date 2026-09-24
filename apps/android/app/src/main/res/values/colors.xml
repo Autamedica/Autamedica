@@ -11,4 +11,10 @@
     <color name="success">#22C55E</color>
     <color name="warning">#F59E0B</color>
     <color name="splash_background">#09090B</color>
+
+    <!-- Notification Semantic Colors (Light Theme default) -->
+    <color name="notification_text_primary">#0F172A</color>
+    <color name="notification_text_secondary">#475569</color>
+    <color name="notification_countdown_accent">#0284C7</color>
+    <color name="notification_card_bg">#F8FAFC</color>
 </resources>

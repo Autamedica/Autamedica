@@ -29,9 +29,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.PatientClinicalContext
@@ -46,8 +48,6 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val spanishLocale = Locale("es", "AR")
-
 @Composable
 fun TurnoActualHeroCard(
     appointment: Appointment,
@@ -59,15 +59,16 @@ fun TurnoActualHeroCard(
     modifier: Modifier = Modifier,
     onOpenAnamnesis: (() -> Unit)? = null,
 ) {
+    val locale = Locale.getDefault()
     val isTelemed = appointment.type == AppointmentType.TELEMEDICINE || appointment.meetingUrl != null
     val startDt = runCatching { OffsetDateTime.parse(appointment.startTime) }.getOrNull()
-    val timeStr = startDt?.format(DateTimeFormatter.ofPattern("HH:mm", spanishLocale)) ?: ""
-    val dateStr = startDt?.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", spanishLocale))
+    val timeStr = startDt?.format(DateTimeFormatter.ofPattern("HH:mm", locale)) ?: ""
+    val dateStr = startDt?.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", locale))
         ?.replaceFirstChar { it.uppercase() }
-        ?: "Hoy"
+        ?: stringResource(R.string.doctor_agenda_filter_today)
 
     val rawNotes = appointment.notes?.replace(Regex("\\[INVITADO:[^\\]]+\\]"), "")?.trim()
-    val motivoText = rawNotes?.ifBlank { null } ?: "Consulta programada"
+    val motivoText = rawNotes?.ifBlank { null } ?: stringResource(R.string.doctor_agenda_hero_reason_default)
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -84,7 +85,7 @@ fun TurnoActualHeroCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "TURNO ACTUAL",
+                    text = stringResource(R.string.doctor_agenda_hero_title),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                     fontWeight = FontWeight.ExtraBold,
@@ -145,7 +146,7 @@ fun TurnoActualHeroCard(
             // Patient Info Block
             Column {
                 Text(
-                    text = "PACIENTE",
+                    text = stringResource(R.string.doctor_agenda_patient_label),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                     fontWeight = FontWeight.Bold,
@@ -160,7 +161,11 @@ fun TurnoActualHeroCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = if (appointment.patientId != null) "Paciente registrado" else "Invitado externo",
+                    text = if (appointment.patientId != null) {
+                        stringResource(R.string.doctor_agenda_patient_registered)
+                    } else {
+                        stringResource(R.string.doctor_agenda_guest_external)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextTertiary,
                 )
@@ -171,7 +176,7 @@ fun TurnoActualHeroCard(
                     border = BorderStroke(1.dp, Color(0xFFE0F2FE)),
                 ) {
                     Text(
-                        text = "Motivo: $motivoText",
+                        text = stringResource(R.string.doctor_agenda_hero_reason_prefix, motivoText),
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFF0369A1), // sky-700
                         fontWeight = FontWeight.SemiBold,
@@ -206,7 +211,11 @@ fun TurnoActualHeroCard(
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Text(
-                    text = if (isTelemed) "INICIAR CONSULTA" else "VER DETALLE DE TURNO",
+                    text = if (isTelemed) {
+                        stringResource(R.string.doctor_agenda_hero_start_consultation)
+                    } else {
+                        stringResource(R.string.doctor_agenda_hero_view_detail)
+                    },
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
@@ -214,7 +223,11 @@ fun TurnoActualHeroCard(
             }
 
             Text(
-                text = if (isTelemed) "VIDEOCONSULTA" else "CONSULTA PRESENCIAL",
+                text = if (isTelemed) {
+                    stringResource(R.string.doctor_agenda_type_videocall_upper)
+                } else {
+                    stringResource(R.string.doctor_agenda_type_in_person_upper)
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = AuTextTertiary,
                 fontWeight = FontWeight.Bold,
@@ -231,7 +244,7 @@ fun TurnoActualHeroCard(
 
             // Integrated Clinical Context Section
             Text(
-                text = "CONTEXTO DEL PACIENTE",
+                text = stringResource(R.string.doctor_agenda_patient_context_title),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuTextTertiary,
                 fontWeight = FontWeight.ExtraBold,

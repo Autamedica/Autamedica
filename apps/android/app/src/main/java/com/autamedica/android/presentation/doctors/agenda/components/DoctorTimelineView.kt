@@ -42,9 +42,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
@@ -128,7 +130,7 @@ fun DoctorTimelineView(
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
-                        text = "LÍNEA DE TIEMPO CLÍNICA",
+                        text = stringResource(R.string.doctor_agenda_timeline_title),
                         style = MaterialTheme.typography.labelSmall,
                         color = AuTextTertiary,
                         fontWeight = FontWeight.Bold,
@@ -142,7 +144,7 @@ fun DoctorTimelineView(
                         color = Color(0xFFE0F2FE),
                     ) {
                         Text(
-                            text = "Hoy · ${currentTime.format(DateTimeFormatter.ofPattern("HH:mm"))}",
+                            text = stringResource(R.string.doctor_agenda_timeline_today_time, currentTime.format(DateTimeFormatter.ofPattern("HH:mm"))),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF0284C7),
                             fontWeight = FontWeight.Bold,
@@ -205,7 +207,7 @@ fun DoctorTimelineView(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "AHORA",
+                                text = stringResource(R.string.doctor_agenda_timeline_now),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = AuDanger,
@@ -356,7 +358,11 @@ private fun TimelineAppointmentCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = if (isInProgress) "Conectado" else "Llamar",
+                            text = if (isInProgress) {
+                                stringResource(R.string.doctor_agenda_timeline_connected)
+                            } else {
+                                stringResource(R.string.doctor_agenda_timeline_call)
+                            },
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
                         )
@@ -388,7 +394,7 @@ private fun EmptyTimelineSlot(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Espacio libre",
+                text = stringResource(R.string.doctor_agenda_timeline_free_slot),
                 style = MaterialTheme.typography.bodySmall,
                 color = AuTextTertiary,
                 fontWeight = FontWeight.Medium,
@@ -406,7 +412,7 @@ private fun EmptyTimelineSlot(
                     modifier = Modifier.size(14.dp),
                 )
                 Text(
-                    text = "+ Sobreturno",
+                    text = stringResource(R.string.doctor_agenda_timeline_add_extra),
                     style = MaterialTheme.typography.labelSmall,
                     color = PortalDoctors,
                     fontWeight = FontWeight.Bold,

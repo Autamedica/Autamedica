@@ -222,12 +222,12 @@ fun LoginScreen(
                     .padding(vertical = 4.dp),
             ) {
                 Text(
-                    text = "¿No tienes una cuenta? ",
+                    text = stringResource(R.string.auth_no_account) + " ",
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                 )
                 Text(
-                    text = "Crear cuenta",
+                    text = stringResource(R.string.auth_register_now),
                     style = MaterialTheme.typography.bodySmall,
                     color = activeColor,
                     fontWeight = FontWeight.SemiBold,
@@ -253,7 +253,7 @@ fun LoginScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Conexión cifrada de extremo a extremo",
+                    text = stringResource(R.string.auth_encrypted_connection),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                     textAlign = TextAlign.Center,
@@ -301,10 +301,10 @@ private fun RoleHeading(
     selectedRole: UserRole,
 ) {
     val title = when (selectedRole) {
-        UserRole.PATIENT -> "Iniciar sesión"
-        UserRole.DOCTOR -> "Acceso médico"
-        UserRole.PHARMACIST -> "Acceso farmacia"
-        else -> "Acceso empresa"
+        UserRole.PATIENT -> stringResource(R.string.login_title)
+        UserRole.DOCTOR -> stringResource(R.string.auth_role_doctor_access)
+        UserRole.PHARMACIST -> stringResource(R.string.auth_role_pharmacy_access)
+        else -> stringResource(R.string.auth_role_company_access)
     }
 
     Text(
@@ -327,10 +327,10 @@ private fun RoleSegmentedPicker(
     onRoleSelected: (UserRole) -> Unit,
 ) {
     val roles = listOf(
-        Triple(UserRole.PATIENT, "Paciente", com.autamedica.android.presentation.theme.PortalPatients to com.autamedica.android.presentation.theme.PortalPatientsSoft),
-        Triple(UserRole.DOCTOR, "Médico", com.autamedica.android.presentation.theme.PortalDoctors to com.autamedica.android.presentation.theme.PortalDoctorsSoft),
-        Triple(UserRole.PHARMACIST, "Farmacia", com.autamedica.android.presentation.theme.PortalPharmacists to com.autamedica.android.presentation.theme.PortalPharmacistsSoft),
-        Triple(UserRole.COMPANY, "Empresa", com.autamedica.android.presentation.theme.PortalCompanies to com.autamedica.android.presentation.theme.PortalCompaniesSoft),
+        Triple(UserRole.PATIENT, stringResource(R.string.auth_role_patient), com.autamedica.android.presentation.theme.PortalPatients to com.autamedica.android.presentation.theme.PortalPatientsSoft),
+        Triple(UserRole.DOCTOR, stringResource(R.string.auth_role_doctor), com.autamedica.android.presentation.theme.PortalDoctors to com.autamedica.android.presentation.theme.PortalDoctorsSoft),
+        Triple(UserRole.PHARMACIST, stringResource(R.string.auth_role_pharmacy), com.autamedica.android.presentation.theme.PortalPharmacists to com.autamedica.android.presentation.theme.PortalPharmacistsSoft),
+        Triple(UserRole.COMPANY, stringResource(R.string.auth_role_company), com.autamedica.android.presentation.theme.PortalCompanies to com.autamedica.android.presentation.theme.PortalCompaniesSoft),
     )
 
     Surface(
@@ -424,8 +424,8 @@ private fun LoginFormCard(
 ) {
     val focusManager = LocalFocusManager.current
     val buttonLabel = when (uiState.selectedRole) {
-        UserRole.PATIENT, UserRole.DOCTOR -> "Ingresar"
-        else -> "Ir a la web"
+        UserRole.PATIENT, UserRole.DOCTOR -> stringResource(R.string.auth_login_action)
+        else -> stringResource(R.string.auth_go_to_web)
     }
 
     Surface(
@@ -471,7 +471,7 @@ private fun LoginFormCard(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Continuar con Google",
+                        text = stringResource(R.string.auth_login_with_google),
                         fontWeight = FontWeight.Medium,
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -485,7 +485,7 @@ private fun LoginFormCard(
             ) {
                 HorizontalDivider(modifier = Modifier.weight(1f), color = AuBorder)
                 Text(
-                    text = "o con tu correo",
+                    text = stringResource(R.string.auth_or_with_email),
                     modifier = Modifier.padding(horizontal = 12.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
@@ -545,7 +545,7 @@ private fun LoginFormCard(
                         fontWeight = FontWeight.Medium,
                     )
                     Text(
-                        text = "¿Olvidaste tu contraseña?",
+                        text = stringResource(R.string.auth_forgot_password),
                         style = MaterialTheme.typography.labelSmall,
                         color = AuTextTertiary,
                         modifier = Modifier.clickable(onClick = onForgotPasswordClick),
@@ -566,7 +566,7 @@ private fun LoginFormCard(
                         IconButton(onClick = onPasswordVisibilityToggle) {
                             Icon(
                                 if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (passwordVisible) "Ocultar" else "Mostrar",
+                                contentDescription = if (passwordVisible) stringResource(R.string.auth_hide_password) else stringResource(R.string.auth_show_password),
                                 tint = AuTextTertiary,
                             )
                         }
@@ -716,7 +716,7 @@ private fun WelcomeLoadingState(
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Iniciando sesión...",
+                text = stringResource(R.string.auth_logging_in),
                 style = MaterialTheme.typography.bodyMedium,
                 color = AuTextSecondary,
                 textAlign = TextAlign.Center,

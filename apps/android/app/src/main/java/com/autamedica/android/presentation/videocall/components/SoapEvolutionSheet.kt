@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall.components
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -171,13 +173,13 @@ fun SoapEvolutionSheet(
                     }
                     Column {
                         Text(
-                            text = "Evolución Clínica (SOAP)",
+                            text = stringResource(R.string.videocall_soap_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Cierre de consulta y registro en historia clínica",
+                            text = stringResource(R.string.videocall_soap_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextTertiary,
                         )
@@ -190,7 +192,7 @@ fun SoapEvolutionSheet(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Cerrar",
+                        contentDescription = stringResource(R.string.videocall_close),
                         tint = AuTextTertiary,
                     )
                 }
@@ -228,21 +230,21 @@ fun SoapEvolutionSheet(
             // SECTION S: Subjetivo
             SoapSectionCard(
                 letter = "S",
-                title = "Subjetivo (S)",
-                subtitle = "Síntomas, motivo de consulta referido por el paciente, anamnesis.",
+                title = stringResource(R.string.videocall_soap_s_title),
+                subtitle = stringResource(R.string.videocall_soap_s_subtitle),
                 value = soapData.subjective,
                 onValueChange = { onSoapDataChange(soapData.copy(subjective = it)) },
-                placeholder = "Ej: Paciente refiere cefalea holocraneana de 48 hs de evolución, intensidad moderada...",
+                placeholder = stringResource(R.string.videocall_soap_s_placeholder),
             )
 
             // SECTION O: Objetivo
             SoapSectionCard(
                 letter = "O",
-                title = "Objetivo (O)",
-                subtitle = "Exploración visual, hallazgos, telemetría o signos vitales.",
+                title = stringResource(R.string.videocall_soap_o_title),
+                subtitle = stringResource(R.string.videocall_soap_o_subtitle),
                 value = soapData.objective,
                 onValueChange = { onSoapDataChange(soapData.copy(objective = it)) },
-                placeholder = "Ej: Fácies compuesta, lúcido. PA telemetría: 125/80 mmHg, FC: 74 lpm...",
+                placeholder = stringResource(R.string.videocall_soap_o_placeholder),
             )
 
             // SECTION A: Apreciación / Diagnóstico con CIE-10
@@ -276,13 +278,13 @@ fun SoapEvolutionSheet(
                         }
                         Column {
                             Text(
-                                text = "Apreciación / Diagnóstico (A)",
+                                text = stringResource(R.string.videocall_soap_a_title),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = AuTextPrimary,
                             )
                             Text(
-                                text = "Juicio clínico y diagnóstico principal con selector CIE-10.",
+                                text = stringResource(R.string.videocall_soap_a_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextTertiary,
                             )
@@ -298,7 +300,7 @@ fun SoapEvolutionSheet(
                             .height(90.dp),
                         placeholder = {
                             Text(
-                                text = "Juicio clínico médico, diagnóstico diferencial o evolución...",
+                                text = stringResource(R.string.videocall_soap_a_placeholder),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextTertiary,
                             )
@@ -316,7 +318,7 @@ fun SoapEvolutionSheet(
 
                     // CIE-10 Selector Section
                     Text(
-                        text = "Codificación CIE-10",
+                        text = stringResource(R.string.videocall_soap_cie10_label),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = AuTextSecondary,
@@ -329,7 +331,7 @@ fun SoapEvolutionSheet(
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = {
                             Text(
-                                text = "Buscar código o diagnóstico CIE-10...",
+                                text = stringResource(R.string.videocall_soap_cie10_search_placeholder),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextTertiary,
                             )
@@ -346,7 +348,7 @@ fun SoapEvolutionSheet(
                                 IconButton(onClick = { cie10SearchQuery = "" }) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "Limpiar búsqueda",
+                                        contentDescription = stringResource(R.string.videocall_soap_clear_search),
                                         tint = AuTextTertiary,
                                         modifier = Modifier.size(18.dp),
                                     )
@@ -439,8 +441,8 @@ fun SoapEvolutionSheet(
                             value = soapData.cie10Description,
                             onValueChange = { onSoapDataChange(soapData.copy(cie10Description = it)) },
                             modifier = Modifier.weight(0.65f),
-                            label = { Text("Descripción") },
-                            placeholder = { Text("Descripción clínica") },
+                            label = { Text(stringResource(R.string.videocall_soap_desc_label)) },
+                            placeholder = { Text(stringResource(R.string.videocall_soap_desc_placeholder)) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = AuTextPrimary,
                                 unfocusedTextColor = AuTextPrimary,
@@ -459,11 +461,11 @@ fun SoapEvolutionSheet(
             // SECTION P: Plan
             SoapSectionCard(
                 letter = "P",
-                title = "Plan Terapéutico (P)",
-                subtitle = "Indicaciones farmacológicas, estudios solicitados, pautas de alarma y control.",
+                title = stringResource(R.string.videocall_soap_p_title),
+                subtitle = stringResource(R.string.videocall_soap_p_subtitle),
                 value = soapData.plan,
                 onValueChange = { onSoapDataChange(soapData.copy(plan = it)) },
-                placeholder = "Ej: Pautas higiénico-dietéticas, analgesia SOS. Control ambulatorio...",
+                placeholder = stringResource(R.string.videocall_soap_p_placeholder),
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -484,7 +486,7 @@ fun SoapEvolutionSheet(
                     modifier = Modifier.weight(0.35f),
                 ) {
                     Text(
-                        text = "Salir",
+                        text = stringResource(R.string.videocall_soap_exit),
                         color = AuTextSecondary,
                         style = MaterialTheme.typography.labelMedium,
                     )
@@ -508,7 +510,7 @@ fun SoapEvolutionSheet(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Guardando...",
+                            text = stringResource(R.string.videocall_soap_saving),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -521,7 +523,7 @@ fun SoapEvolutionSheet(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Guardado",
+                            text = stringResource(R.string.videocall_soap_saved),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -534,7 +536,7 @@ fun SoapEvolutionSheet(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Finalizar y Guardar Evolución",
+                            text = stringResource(R.string.videocall_soap_save_button),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                         )

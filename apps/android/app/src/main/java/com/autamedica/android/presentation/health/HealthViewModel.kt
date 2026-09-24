@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.autamedica.android.presentation.common.UiErrorMapper
 import javax.inject.Inject
 
 data class HealthUiState(
@@ -49,7 +50,7 @@ class HealthViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = error.message ?: "No se pudo cargar anamnesis",
+                            error = UiErrorMapper.map(error, "No se pudo cargar anamnesis"),
                         )
                     }
                 }

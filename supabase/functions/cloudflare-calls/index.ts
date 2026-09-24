@@ -156,7 +156,7 @@ export async function handler(req: Request): Promise<Response> {
         .order('created_at', { ascending: false })
     }
 
-    const { data: call, error: callError } = await callQuery
+    const { data: callRow, error: callError } = await callQuery
       .limit(1)
       .maybeSingle()
 
@@ -166,6 +166,38 @@ export async function handler(req: Request): Promise<Response> {
         JSON.stringify({ error: 'Failed to resolve room' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    let call = callRow
+
+    // Fallback: On-Demand Pharmacy Dispatch Room (kiosks / street emergency triage)
+    if (!call) {
+      const { data: dispatch, error: dispatchErr } = await supabaseAdmin
+        .from('pharmacy_dispatch_requests')
+        .select('id, cloudflare_room_id, assigned_doctor_id, status, patient_dni, patient_cpf, patient_id, requested_by_user_id')
+        .eq('cloudflare_room_id', roomId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!dispatchErr && dispatch) {
+        if (dispatch.status === 'completed' || dispatch.status === 'cancelled' || dispatch.status === 'expired') {
+          console.warn('[cloudflare-calls] Dispatch call is terminal:', { dispatchId: dispatch.id, status: dispatch.status })
+          return new Response(
+            JSON.stringify({ error: 'Call is not active', status: dispatch.status }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        call = {
+          id: dispatch.id,
+          room_id: dispatch.cloudflare_room_id,
+          doctor_id: dispatch.assigned_doctor_id,
+          patient_id: dispatch.patient_id ?? dispatch.requested_by_user_id,
+          appointment_id: null,
+          status: dispatch.status,
+        }
+      }
     }
 
     if (!call) {
@@ -249,6 +281,8 @@ export async function handler(req: Request): Promise<Response> {
       }
     }
 
+    // Guardia on-demand: el paciente solo se autoriza vía requested_by_user_id (call.patient_id)
+    // resuelto en el fallback de la sala. Sin fallback "cualquier no-médico es paciente".
     if (!isDoctor && !isPatient) {
       console.warn('[cloudflare-calls] User is not a participant of the call:', {
         userId,

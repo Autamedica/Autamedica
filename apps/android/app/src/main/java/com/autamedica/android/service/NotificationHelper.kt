@@ -43,6 +43,12 @@ object NotificationHelper {
             importance = NotificationManager.IMPORTANCE_HIGH,
         ),
         ChannelDef(
+            id = IncomingCallNotificationManager.DISPATCH_CHANNEL_ID,
+            name = "Consultas on-demand",
+            description = "Consultas on-demand entrantes con timbre y aviso de respuesta en 30 segundos",
+            importance = NotificationManager.IMPORTANCE_HIGH,
+        ),
+        ChannelDef(
             id = "autamedica_calls",
             name = "Videollamadas",
             description = "Avisos cuando un paciente o doctor se conecta a la consulta",
@@ -78,7 +84,9 @@ object NotificationHelper {
         channels.forEach { def ->
             val channel = NotificationChannel(def.id, def.name, def.importance).apply {
                 description = def.description
-                if (def.id == IncomingCallNotificationManager.CHANNEL_ID) {
+                if (def.id == IncomingCallNotificationManager.CHANNEL_ID ||
+                    def.id == IncomingCallNotificationManager.DISPATCH_CHANNEL_ID
+                ) {
                     val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
                     val audioAttrs = AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)

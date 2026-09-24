@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import com.autamedica.android.presentation.chat.components.ChatListItem
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
@@ -50,7 +52,7 @@ fun ChatListScreen(
     ) {
         // Header
         Text(
-            text = "Mensajes",
+            text = stringResource(R.string.chat_list_title),
             color = AuTextPrimary,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
@@ -103,14 +105,14 @@ private fun EmptyChatsState(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "No tenés conversaciones",
+            text = stringResource(R.string.chat_list_empty_title),
             color = AuTextSecondary,
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Tus conversaciones con profesionales médicos aparecerán acá.",
+            text = stringResource(R.string.chat_list_empty_subtitle),
             color = AuTextTertiary,
             fontSize = 14.sp,
             textAlign = TextAlign.Center,

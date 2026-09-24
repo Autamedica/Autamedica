@@ -154,7 +154,7 @@ class LoginViewModel @Inject constructor(
                         registerFcmToken()
                     },
                     onFailure = { error ->
-                        Timber.e(error, "[Auth] Login failed: %s", error.message)
+                        SecureLog.error("[Auth] Login failed", error)
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
@@ -191,7 +191,7 @@ class LoginViewModel @Inject constructor(
                         registerFcmToken()
                     },
                     onFailure = { error ->
-                        Timber.e(error, "[Auth] Google login failed: %s", error.message)
+                        SecureLog.error("[Auth] Google login failed", error)
                         _uiState.update {
                             it.copy(
                                 isGoogleLoading = false,
@@ -214,7 +214,7 @@ class LoginViewModel @Inject constructor(
 
     fun onGoogleSignInError(error: Throwable) {
         SecureLog.error("[Auth] Google sign-in error", error)
-        Timber.e(error, "[Auth] Google sign-in error: %s", error.message)
+        SecureLog.error("[Auth] Google sign-in error", error)
         val friendlyMessage = when {
             error is androidx.credentials.exceptions.GetCredentialCancellationException ->
                 "Inicio con Google cancelado o interrumpido. Podés ingresar con tu correo y contraseña."

@@ -45,10 +45,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentTransitionRules
@@ -64,8 +66,6 @@ import com.autamedica.android.presentation.theme.PortalDoctors
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-private val spanishLocale = Locale("es", "AR")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,8 +92,9 @@ fun AppointmentDetailsBottomSheet(
     val isGuest = appointment.patientId == null && appointment.notes?.contains("[INVITADO:") == true
 
     val startDt = runCatching { OffsetDateTime.parse(appointment.startTime) }.getOrNull()
-    val timeStr = startDt?.format(DateTimeFormatter.ofPattern("HH:mm", spanishLocale)) ?: ""
-    val dateStr = startDt?.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", spanishLocale))
+    val locale = Locale.getDefault()
+    val timeStr = startDt?.format(DateTimeFormatter.ofPattern("HH:mm", locale)) ?: ""
+    val dateStr = startDt?.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", locale))
         ?.replaceFirstChar { it.uppercase() }
         ?: ""
 
@@ -130,7 +131,7 @@ fun AppointmentDetailsBottomSheet(
                             border = BorderStroke(1.dp, Color(0xFFBAE6FD)),
                         ) {
                             Text(
-                                text = "INVITADO EXTERNO",
+                                text = stringResource(R.string.doctor_agenda_guest_external_upper),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color(0xFF0369A1),
                                 fontWeight = FontWeight.Bold,
@@ -148,7 +149,7 @@ fun AppointmentDetailsBottomSheet(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Cancelar turno",
+                            contentDescription = stringResource(R.string.doctor_agenda_details_cancel_appointment_cd),
                             tint = AuDanger,
                             modifier = Modifier.size(20.dp),
                         )
@@ -202,7 +203,7 @@ fun AppointmentDetailsBottomSheet(
                         modifier = Modifier.size(15.dp),
                     )
                     Text(
-                        text = "$timeStr (${appointment.durationMinutes ?: 30} min)",
+                        text = stringResource(R.string.doctor_agenda_details_time_duration, timeStr, appointment.durationMinutes ?: 30),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextSecondary,
                         fontWeight = FontWeight.Medium,
@@ -216,7 +217,7 @@ fun AppointmentDetailsBottomSheet(
 
             // Section: DETALLES DE LA CONSULTA
             Text(
-                text = "DETALLES DE LA CONSULTA",
+                text = stringResource(R.string.doctor_agenda_details_section_title),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuTextTertiary,
                 fontWeight = FontWeight.Bold,
@@ -252,9 +253,9 @@ fun AppointmentDetailsBottomSheet(
                             )
                         }
                         Column {
-                            Text("Modalidad", style = MaterialTheme.typography.labelSmall, color = AuTextTertiary, fontSize = 10.sp)
+                            Text(stringResource(R.string.doctor_agenda_details_modality_label), style = MaterialTheme.typography.labelSmall, color = AuTextTertiary, fontSize = 10.sp)
                             Text(
-                                if (isTelemed) "Videoconsulta" else "Presencial",
+                                if (isTelemed) stringResource(R.string.doctor_agenda_details_modality_videocall) else stringResource(R.string.doctor_agenda_details_modality_in_person),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = AuTextPrimary,
@@ -281,9 +282,9 @@ fun AppointmentDetailsBottomSheet(
                             )
                         }
                         Column {
-                            Text("Ubicación", style = MaterialTheme.typography.labelSmall, color = AuTextTertiary, fontSize = 10.sp)
+                            Text(stringResource(R.string.doctor_agenda_details_location_label), style = MaterialTheme.typography.labelSmall, color = AuTextTertiary, fontSize = 10.sp)
                             Text(
-                                if (isTelemed) "Consultorio Virtual AutaMedica" else "Consultorio Médico",
+                                if (isTelemed) stringResource(R.string.doctor_agenda_details_location_virtual) else stringResource(R.string.doctor_agenda_details_location_office),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = AuTextPrimary,
@@ -297,7 +298,7 @@ fun AppointmentDetailsBottomSheet(
 
             // Section: NOTAS CLÍNICAS
             Text(
-                text = "NOTAS CLÍNICAS",
+                text = stringResource(R.string.doctor_agenda_details_notes_title),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuTextTertiary,
                 fontWeight = FontWeight.Bold,
@@ -322,7 +323,7 @@ fun AppointmentDetailsBottomSheet(
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
-                        text = cleanNotes.ifBlank { "Sin observaciones para este turno." },
+                        text = cleanNotes.ifBlank { stringResource(R.string.doctor_agenda_details_no_notes) },
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (cleanNotes.isNotBlank()) AuTextPrimary else AuTextTertiary,
                     )
@@ -333,7 +334,7 @@ fun AppointmentDetailsBottomSheet(
 
             // Section: CONTEXTO DEL PACIENTE
             Text(
-                text = "CONTEXTO DEL PACIENTE",
+                text = stringResource(R.string.doctor_agenda_patient_context_title),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuTextTertiary,
                 fontWeight = FontWeight.Bold,
@@ -363,7 +364,7 @@ fun AppointmentDetailsBottomSheet(
             if (isTelemed) {
                 Spacer(modifier = Modifier.height(18.dp))
                 Text(
-                    text = "TELEMEDICINA",
+                    text = stringResource(R.string.doctor_agenda_details_telemed_title),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                     fontWeight = FontWeight.Bold,
@@ -380,13 +381,13 @@ fun AppointmentDetailsBottomSheet(
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Text(
-                            text = "Ventana de conexión",
+                            text = stringResource(R.string.doctor_agenda_details_connection_window),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                             fontSize = 10.sp,
                         )
                         Text(
-                            text = "La sala de videoconsulta está habilitada",
+                            text = stringResource(R.string.doctor_agenda_details_telemed_ready),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF047857),
@@ -403,16 +404,17 @@ fun AppointmentDetailsBottomSheet(
                         ) {
                             Icon(Icons.Default.Videocam, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("ENTRAR A VIDEOCONSULTA", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.doctor_agenda_details_btn_enter_telemed), fontWeight = FontWeight.Bold)
                         }
 
                         // Guest share
                         if (isGuest) {
+                            val guestWhatsappMsg = stringResource(R.string.doctor_agenda_details_guest_whatsapp_message, patientName, guestLink)
                             Spacer(modifier = Modifier.height(12.dp))
                             HorizontalDivider(color = Color(0xFFDCFCE7))
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                text = "El paciente no tiene cuenta. Compartí el enlace para que ingrese desde su navegador.",
+                                text = stringResource(R.string.doctor_agenda_details_guest_share_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF166534),
                             )
@@ -425,13 +427,12 @@ fun AppointmentDetailsBottomSheet(
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f),
                                 ) {
-                                    Text("Copiar Link", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.doctor_agenda_details_btn_copy_link), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                                 Button(
                                     onClick = {
-                                        val msg = "Hola $patientName, te comparto el link para nuestra videoconsulta en AutaMedica: $guestLink"
                                         val sendIntent = Intent(Intent.ACTION_VIEW).apply {
-                                            data = Uri.parse("https://wa.me/?text=" + Uri.encode(msg))
+                                            data = Uri.parse("https://wa.me/?text=" + Uri.encode(guestWhatsappMsg))
                                         }
                                         context.startActivity(sendIntent)
                                     },
@@ -441,7 +442,7 @@ fun AppointmentDetailsBottomSheet(
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("WhatsApp", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.doctor_agenda_details_btn_whatsapp), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -453,7 +454,7 @@ fun AppointmentDetailsBottomSheet(
 
             // Section: COCKPIT CLÍNICO (ACTO MÉDICO)
             Text(
-                text = "COCKPIT CLÍNICO (ACTO MÉDICO)",
+                text = stringResource(R.string.doctor_agenda_details_cockpit_title),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuTextTertiary,
                 fontWeight = FontWeight.Bold,
@@ -497,7 +498,7 @@ fun AppointmentDetailsBottomSheet(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Emitir Receta",
+                                text = stringResource(R.string.doctor_agenda_details_btn_issue_prescription),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = if (appointment.patientId != null) PortalDoctors else AuTextTertiary,
@@ -532,7 +533,7 @@ fun AppointmentDetailsBottomSheet(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Crear Orden",
+                                text = stringResource(R.string.doctor_agenda_details_btn_create_medical_order),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = if (appointment.patientId != null) PortalDoctors else AuTextTertiary,
@@ -572,7 +573,7 @@ fun AppointmentDetailsBottomSheet(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Certificado",
+                                text = stringResource(R.string.doctor_agenda_details_btn_create_certificate),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = if (appointment.patientId != null) PortalDoctors else AuTextTertiary,
@@ -605,7 +606,7 @@ fun AppointmentDetailsBottomSheet(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Evolución SOAP",
+                                text = stringResource(R.string.doctor_agenda_details_btn_soap_evolution),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = PortalDoctors,
@@ -615,11 +616,11 @@ fun AppointmentDetailsBottomSheet(
                 }
 
                 // Avisar Demora (+15 min)
+                val delayWhatsappMsg = stringResource(R.string.doctor_agenda_details_delay_whatsapp_message, patientName)
                 OutlinedButton(
                     onClick = {
-                        val delayMsg = "Estimado/a $patientName, le aviso desde el consultorio de AutaMedica que estamos con una demora de aproximadamente 15 minutos en la atención previa. Le atenderé a la brevedad."
                         val sendIntent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://wa.me/?text=" + Uri.encode(delayMsg))
+                            data = Uri.parse("https://wa.me/?text=" + Uri.encode(delayWhatsappMsg))
                         }
                         context.startActivity(sendIntent)
                     },
@@ -635,7 +636,7 @@ fun AppointmentDetailsBottomSheet(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Avisar demora de 15 min por WhatsApp",
+                        text = stringResource(R.string.doctor_agenda_details_btn_notify_delay),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFD97706),
@@ -649,7 +650,7 @@ fun AppointmentDetailsBottomSheet(
             val validTransitions = AppointmentTransitionRules.getValidTransitions(appointment.status)
             if (validTransitions.isNotEmpty()) {
                 Text(
-                    text = "ACCIONES RÁPIDAS",
+                    text = stringResource(R.string.doctor_agenda_details_quick_actions_title),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                     fontWeight = FontWeight.Bold,
@@ -674,7 +675,7 @@ fun AppointmentDetailsBottomSheet(
                                 border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                             ) {
                                 Text(
-                                    text = "Confirmar",
+                                    text = stringResource(R.string.doctor_agenda_details_action_confirm),
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF047857),
                                 )
@@ -689,7 +690,7 @@ fun AppointmentDetailsBottomSheet(
                                 border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                             ) {
                                 Text(
-                                    text = "Iniciar consulta",
+                                    text = stringResource(R.string.doctor_agenda_details_action_start),
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF0284C7),
                                 )
@@ -704,7 +705,7 @@ fun AppointmentDetailsBottomSheet(
                                 border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                             ) {
                                 Text(
-                                    text = "Finalizada",
+                                    text = stringResource(R.string.doctor_agenda_details_action_complete),
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF334155),
                                 )
@@ -730,7 +731,7 @@ fun AppointmentDetailsBottomSheet(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "No asistió",
+                            text = stringResource(R.string.doctor_agenda_details_action_no_show),
                             fontWeight = FontWeight.Bold,
                             color = AuDanger,
                         )

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import com.autamedica.android.presentation.common.UiErrorMapper
 import kotlinx.coroutines.launch
 
 data class ConsentUiState(
@@ -38,7 +39,7 @@ class ConsentViewModel : ViewModel() {
                 delay(1000)
                 _uiState.update { it.copy(isLoading = false, isSuccess = true) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
+                _uiState.update { it.copy(isLoading = false, error = UiErrorMapper.map(e, "No se pudo cargar el consentimiento")) }
             }
         }
     }

@@ -5,12 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.PharmacyConsultationStatus
 import com.autamedica.android.domain.repository.AuthRepository
-import com.autamedica.android.domain.repository.PharmacyOnDemandRepository
+import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +29,6 @@ data class PharmacyIntakeUiState(
     val isLoadingProfile: Boolean = true,
     val isSubmitting: Boolean = false,
     val error: String? = null,
-    // Waiting room state
     val activeRequestId: String? = null,
     val status: PharmacyConsultationStatus? = null,
     val queuePosition: Int = 0,
@@ -39,6 +37,7 @@ data class PharmacyIntakeUiState(
     val assignedDoctorSpecialty: String? = null,
     val roomId: String? = null,
     val readyToJoinCall: Boolean = false,
+    val activeDoctors: List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo> = emptyList(),
 ) {
     val effectiveReason: String
         get() = when {
@@ -61,7 +60,7 @@ class PharmacyIntakeViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
-    private val pharmacyOnDemandRepository: PharmacyOnDemandRepository,
+    private val pharmacyDispatchRepository: PharmacyDispatchRepository,
 ) : ViewModel() {
 
     private val pharmacyIdParam: String = savedStateHandle["pharmacyId"] ?: ""
@@ -72,6 +71,7 @@ class PharmacyIntakeViewModel @Inject constructor(
     val uiState: StateFlow<PharmacyIntakeUiState> = _uiState.asStateFlow()
 
     private var statusPollingJob: Job? = null
+    private var observeActiveDoctorsJob: Job? = null
 
     val reasonChips: List<String> = listOf(
         "Renovación de Receta",
@@ -83,6 +83,20 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     init {
         loadUserProfile()
+        observeActiveDoctors()
+    }
+
+    fun observeActiveDoctors() {
+        observeActiveDoctorsJob?.cancel()
+        observeActiveDoctorsJob = viewModelScope.launch {
+            pharmacyDispatchRepository.observeActiveOnDutyDoctors().collect { docs ->
+                _uiState.update { it.copy(activeDoctors = docs.ifEmpty { emptyList() }) }
+            }
+        }
+    }
+
+    fun loadActiveDoctors() {
+        observeActiveDoctors()
     }
 
     fun loadUserProfile() {
@@ -94,17 +108,27 @@ class PharmacyIntakeViewModel @Inject constructor(
                 val snapshot = profileRepository.getPatientProfileSnapshot().getOrNull()
 
                 if (currentUser != null) {
-                    val displayName = profile?.displayName?.takeIf { it.isNotBlank() && !it.contains("@") }
-                        ?: currentUser.displayName.takeIf { it.isNotBlank() && !it.contains("@") }
+                    val rawDisplayName = profile?.displayName?.takeIf { it.isNotBlank() }
                         ?: currentUser.displayName
+                    val cleanDisplayName = when {
+                        rawDisplayName.contains("@") -> com.autamedica.android.domain.model.formatCleanNameFromEmail(rawDisplayName)
+                        rawDisplayName.isNotBlank() -> com.autamedica.android.domain.model.formatCleanName(rawDisplayName)
+                        else -> ""
+                    }
                     val phone = profile?.phone?.takeIf { it.isNotBlank() }
                         ?: currentUser.phone.orEmpty()
                     val dni = snapshot?.dni.orEmpty()
 
                     _uiState.update { state ->
+                        val currentName = state.patientName
+                        val resolvedPatientName = when {
+                            currentName.isBlank() -> cleanDisplayName
+                            currentName.contains("@") -> com.autamedica.android.domain.model.formatCleanNameFromEmail(currentName)
+                            else -> currentName
+                        }
                         state.copy(
                             isAuthenticated = true,
-                            patientName = if (state.patientName.isBlank()) displayName else state.patientName,
+                            patientName = resolvedPatientName,
                             patientPhone = if (state.patientPhone.isBlank()) phone else state.patientPhone,
                             patientDni = if (state.patientDni.isBlank()) dni else state.patientDni,
                             isLoadingProfile = false,
@@ -164,24 +188,28 @@ class PharmacyIntakeViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
-            pharmacyOnDemandRepository.createRequest(
-                pharmacyId = state.pharmacyId.takeIf { it.isNotBlank() },
-                pharmacyName = state.pharmacyName,
+            pharmacyDispatchRepository.createPatientDispatchRequest(
                 patientDni = state.patientDni.trim(),
-                patientName = state.patientName.trim(),
                 patientPhone = state.patientPhone.trim(),
-                reason = state.effectiveReason.trim(),
+                patientName = state.patientName.trim(),
+                tierRequested = "general",
+                symptomSummary = state.effectiveReason.trim(),
             ).onSuccess { request ->
+                val hasRoom = request.cloudflareRoomId.isNotBlank()
                 _uiState.update {
                     it.copy(
                         isSubmitting = false,
                         activeRequestId = request.id,
-                        status = request.status,
+                        status = PharmacyConsultationStatus.PENDING,
                         queuePosition = 1,
                         estimatedMinutes = 3,
+                        roomId = if (hasRoom) request.cloudflareRoomId else null,
+                        readyToJoinCall = false,
                         error = null,
                     )
                 }
+                // La espera queda activa (radar) mientras el request está searching/matched.
+                // readyToJoinCall solo se enciende cuando el médico atiende (in_call) y la sala existe.
                 startStatusPolling(request.id)
             }.onFailure { err ->
                 SecureLog.error("[PharmacyIntakeVM] Failed creating request", err)
@@ -198,48 +226,57 @@ class PharmacyIntakeViewModel @Inject constructor(
     private fun startStatusPolling(requestId: String) {
         statusPollingJob?.cancel()
         statusPollingJob = viewModelScope.launch {
-            while (true) {
-                delay(2000)
-                pharmacyOnDemandRepository.getRequestStatus(requestId)
-                    .onSuccess { statusResp ->
-                        val isAssignedOrInCall = statusResp.status == PharmacyConsultationStatus.ASSIGNED ||
-                            statusResp.status == PharmacyConsultationStatus.IN_CALL
-                        val hasRoom = !statusResp.roomId.isNullOrBlank()
+            pharmacyDispatchRepository.observePatientRequest(requestId).collect { request ->
+                val isJoinable = request.doctorAttendedCall
+                val isTerminalFailure = request.status == "cancelled" || request.status == "expired"
+                val hasRoom = request.cloudflareRoomId.isNotBlank()
 
-                        _uiState.update { state ->
-                            state.copy(
-                                status = statusResp.status,
-                                queuePosition = statusResp.queuePosition,
-                                estimatedMinutes = (statusResp.queuePosition * 3).coerceAtLeast(1),
-                                assignedDoctorName = statusResp.doctorName,
-                                assignedDoctorSpecialty = statusResp.doctorSpecialty,
-                                roomId = statusResp.roomId,
-                                readyToJoinCall = isAssignedOrInCall && hasRoom,
-                            )
-                        }
+                _uiState.update { state ->
+                    state.copy(
+                        status = mapDispatchStatus(request.status),
+                        queuePosition = if (request.status == "searching") 1 else state.queuePosition,
+                        estimatedMinutes = if (request.status == "searching") 3 else state.estimatedMinutes,
+                        roomId = if (hasRoom) request.cloudflareRoomId else state.roomId,
+                        readyToJoinCall = isJoinable && hasRoom,
+                    )
+                }
 
-                        if (isAssignedOrInCall && hasRoom) {
-                            // Target reached, call room is ready
-                            return@launch
-                        }
-
-                        if (statusResp.status == PharmacyConsultationStatus.CANCELLED ||
-                            statusResp.status == PharmacyConsultationStatus.EXPIRED
-                        ) {
-                            _uiState.update {
-                                it.copy(
-                                    error = "La solicitud fue cancelada o expiró. Podés iniciar una nueva.",
-                                    activeRequestId = null,
-                                )
-                            }
-                            return@launch
-                        }
+                if (isJoinable && hasRoom) {
+                    statusPollingJob?.cancel()
+                }
+                if (isTerminalFailure) {
+                    statusPollingJob?.cancel()
+                    _uiState.update {
+                        it.copy(
+                            error = "La solicitud fue cancelada o expiró. Podés iniciar una nueva.",
+                            activeRequestId = null,
+                        )
                     }
-                    .onFailure { err ->
-                        SecureLog.error("[PharmacyIntakeVM] Error polling request status", err)
-                    }
+                }
             }
         }
+    }
+
+    fun onCallNavigated() {
+        statusPollingJob?.cancel()
+        _uiState.update {
+            it.copy(
+                readyToJoinCall = false,
+                activeRequestId = null,
+                roomId = null,
+                status = null,
+            )
+        }
+    }
+
+    private fun mapDispatchStatus(dispatchStatus: String): PharmacyConsultationStatus? = when (dispatchStatus) {
+        "searching" -> PharmacyConsultationStatus.PENDING
+        "matched" -> PharmacyConsultationStatus.ASSIGNED
+        "in_call" -> PharmacyConsultationStatus.IN_CALL
+        "completed" -> PharmacyConsultationStatus.COMPLETED
+        "cancelled" -> PharmacyConsultationStatus.CANCELLED
+        "expired" -> PharmacyConsultationStatus.EXPIRED
+        else -> null
     }
 
     fun cancelActiveRequest() {
@@ -248,7 +285,7 @@ class PharmacyIntakeViewModel @Inject constructor(
         statusPollingJob = null
         viewModelScope.launch {
             runCatching {
-                pharmacyOnDemandRepository.cancelRequest(reqId)
+                pharmacyDispatchRepository.updateDispatchRequestStatus(reqId, "cancelled")
             }
             _uiState.update {
                 it.copy(
@@ -270,5 +307,6 @@ class PharmacyIntakeViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         statusPollingJob?.cancel()
+        observeActiveDoctorsJob?.cancel()
     }
 }

@@ -16,11 +16,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.autamedica.android.domain.model.ConnectionState
@@ -41,9 +45,13 @@ fun CallTopBar(
     connectionState: ConnectionState,
     qualityLevel: StreamQualityLevel,
     durationSeconds: Long,
+    participantLabel: String,
     modifier: Modifier = Modifier,
     isWaitingRoom: Boolean = false,
-    runtime: String? = null,
+    safetyAlert: String? = null,
+    /** En call del médico: solo identidad + seguridad. Sin timer ni barras. */
+    clinicalFirst: Boolean = false,
+    onMinimize: (() -> Unit)? = null,
 ) {
     val isConnected = connectionState == ConnectionState.CONNECTED && durationSeconds > 0 && !isWaitingRoom
     val infiniteTransition = rememberInfiniteTransition(label = "topbar_pulse")
@@ -57,10 +65,18 @@ fun CallTopBar(
         label = "dotPulse",
     )
 
-    val dotColor = if (isConnected) Color(0xFF10B981) else Color(0xFF38BDF8)
-    val statusText = if (isConnected) "En consulta" else "En espera del médico"
+    val hasSafety = !safetyAlert.isNullOrBlank()
+    val showMediaChrome = !clinicalFirst
+    val showPoorQualityOnly = clinicalFirst && (
+        qualityLevel == StreamQualityLevel.POOR || qualityLevel == StreamQualityLevel.FAIR
+    )
 
-    // Format duration
+    val dotColor = when {
+        hasSafety -> Color(0xFFF59E0B)
+        isConnected -> Color(0xFF10B981)
+        else -> Color(0xFF38BDF8)
+    }
+
     val hours = durationSeconds / 3600
     val minutes = (durationSeconds % 3600) / 60
     val seconds = durationSeconds % 60
@@ -77,17 +93,30 @@ fun CallTopBar(
         shadowElevation = 10.dp,
         modifier = modifier
             .statusBarsPadding()
-            .padding(top = 10.dp),
+            .padding(top = 10.dp, start = 12.dp, end = 12.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = if (onMinimize != null) 6.dp else 12.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            // Status Dot + Label ('En espera del médico' o 'En consulta')
+            if (onMinimize != null) {
+                IconButton(
+                    onClick = onMinimize,
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Minimizar videollamada",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.weight(1f, fill = false),
             ) {
                 Box(
                     modifier = Modifier
@@ -96,40 +125,77 @@ fun CallTopBar(
                         .background(if (isConnected) dotColor else dotColor.copy(alpha = pulseAlpha)),
                 )
                 Text(
-                    text = statusText,
+                    text = participantLabel,
                     color = Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = if (clinicalFirst) 180.dp else 140.dp),
                 )
             }
 
-            // Quality Bars (4 subtle bars)
-            val barsCount = when (qualityLevel) {
-                StreamQualityLevel.EXCELLENT -> 4
-                StreamQualityLevel.GOOD -> 3
-                StreamQualityLevel.FAIR -> 2
-                StreamQualityLevel.POOR -> 1
-                StreamQualityLevel.UNKNOWN -> if (isConnected) 4 else 3
-            }
-            val barColor = if (barsCount >= 3) Color(0xFF10B981) else if (barsCount == 2) Color(0xFFF59E0B) else Color(0xFFEF4444)
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                modifier = Modifier.height(12.dp),
-            ) {
-                for (i in 1..4) {
-                    Box(
-                        modifier = Modifier
-                            .width(2.5.dp)
-                            .height((4 + i * 2).dp)
-                            .clip(RoundedCornerShape(1.dp))
-                            .background(if (i <= barsCount) barColor else Color(0x33FFFFFF)),
-                    )
+            if (hasSafety) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = Color(0x33EF4444),
+                    border = BorderStroke(1.dp, Color(0x66EF4444)),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Warning,
+                            contentDescription = "Alerta de seguridad",
+                            tint = Color(0xFFFCA5A5),
+                            modifier = Modifier.size(11.dp),
+                        )
+                        Text(
+                            text = safetyAlert.orEmpty(),
+                            color = Color(0xFFFECACA),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 120.dp),
+                        )
+                    }
                 }
             }
 
-            // Monospace Duration Timer (solo si durationSeconds > 0)
-            if (durationSeconds > 0) {
+            if (showMediaChrome || showPoorQualityOnly) {
+                val barsCount = when (qualityLevel) {
+                    StreamQualityLevel.EXCELLENT -> 4
+                    StreamQualityLevel.GOOD -> 3
+                    StreamQualityLevel.FAIR -> 2
+                    StreamQualityLevel.POOR -> 1
+                    StreamQualityLevel.UNKNOWN -> if (isConnected) 4 else 3
+                }
+                val barColor = when {
+                    barsCount >= 3 -> Color(0xFF10B981)
+                    barsCount == 2 -> Color(0xFFF59E0B)
+                    else -> Color(0xFFEF4444)
+                }
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.height(12.dp),
+                ) {
+                    for (i in 1..4) {
+                        Box(
+                            modifier = Modifier
+                                .width(2.5.dp)
+                                .height((4 + i * 2).dp)
+                                .clip(RoundedCornerShape(1.dp))
+                                .background(if (i <= barsCount) barColor else Color(0x33FFFFFF)),
+                        )
+                    }
+                }
+            }
+
+            if (showMediaChrome && durationSeconds > 0) {
                 Text(
                     text = formattedDuration,
                     color = Color(0xFFE2E8F0),
@@ -138,14 +204,6 @@ fun CallTopBar(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
-
-            // Discreet security lock icon
-            Icon(
-                imageVector = Icons.Outlined.Lock,
-                contentDescription = "Conexión segura",
-                tint = Color(0xFF38BDF8).copy(alpha = 0.75f),
-                modifier = Modifier.size(11.dp),
-            )
         }
     }
 }

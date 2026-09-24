@@ -1,6 +1,13 @@
 package com.autamedica.android.presentation.dashboard.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
@@ -20,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.LocalPharmacy
 import androidx.compose.material.icons.outlined.VerifiedUser
@@ -33,11 +41,15 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -49,7 +61,12 @@ import com.autamedica.android.domain.model.DoctorOnDutyPharmacyState
 import com.autamedica.android.domain.model.PharmacyConsultationRequest
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBorder
-import com.autamedica.android.presentation.theme.AuDanger
+import com.autamedica.android.presentation.theme.AuCrimson
+import com.autamedica.android.presentation.theme.AuCyan
+import com.autamedica.android.presentation.theme.AuCyanDeep
+import com.autamedica.android.presentation.theme.AuEmerald
+import com.autamedica.android.presentation.theme.AuNavy
+import com.autamedica.android.presentation.theme.AuNavySurface
 import com.autamedica.android.presentation.theme.AuSuccess
 import com.autamedica.android.presentation.theme.AuSurface
 import com.autamedica.android.presentation.theme.AuTextPrimary
@@ -58,6 +75,14 @@ import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.LogoObsidianBg
 import com.autamedica.android.presentation.theme.LogoRingBorder
 
+/**
+ * Master On-Duty Control Card for Doctors (Uber Driver Cockpit).
+ * Features:
+ * - Cyan/Emerald live pulse micro-animation when online
+ * - Immediate tactile haptic feedback on switch toggle
+ * - Presence telemetry pill: "Conectado a guardia médica • Heartbeat activo cada 30s"
+ * - High-contrast Obsidian Slate theme with Zero-Yellow Gate compliance
+ */
 @Composable
 fun DoctorPharmacyOnDutyCard(
     state: DoctorOnDutyPharmacyState,
@@ -66,22 +91,41 @@ fun DoctorPharmacyOnDutyCard(
     modifier: Modifier = Modifier,
     claimingRequestId: String? = null,
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
+
+    // Micro-animación de pulso brillante (glow cyan) cuando la guardia está activa
+    val infiniteTransition = rememberInfiniteTransition(label = "dutyHeroPulse")
+    val pulseGlowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1100, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "dutyGlowAlpha",
+    )
+
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = AuSurface,
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = if (state.isOnDuty) 6.dp else 1.dp,
+                shape = RoundedCornerShape(24.dp),
+                spotColor = if (state.isOnDuty) AuCyan.copy(alpha = 0.25f) else Color.Transparent,
+            ),
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
         border = BorderStroke(
             width = if (state.isOnDuty) 1.5.dp else 1.dp,
-            color = if (state.isOnDuty) AuAccent.copy(alpha = 0.5f) else AuBorder
+            color = if (state.isOnDuty) AuCyan.copy(alpha = 0.5f + (pulseGlowAlpha * 0.3f)) else AuBorder
         ),
-        shadowElevation = if (state.isOnDuty) 2.dp else 0.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
+                .padding(20.dp)
         ) {
-            // Header: Icon + Title + Switch
+            // Header: Bioceramic Jewel + Títulos + Switch con Háptica
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -93,44 +137,45 @@ fun DoctorPharmacyOnDutyCard(
                 ) {
                     // Bioceramic Logo Container (AutaMedica Official Jewel)
                     Surface(
-                        modifier = Modifier.size(46.dp),
-                        shape = RoundedCornerShape(13.dp),
+                        modifier = Modifier.size(48.dp),
+                        shape = RoundedCornerShape(14.dp),
                         color = LogoObsidianBg,
                         border = BorderStroke(
                             width = 1.dp,
-                            color = if (state.isOnDuty) AuAccent.copy(alpha = 0.6f) else LogoRingBorder
+                            color = if (state.isOnDuty) AuCyan.copy(alpha = 0.8f) else LogoRingBorder
                         ),
-                        shadowElevation = if (state.isOnDuty) 4.dp else 1.dp
+                        shadowElevation = if (state.isOnDuty) 6.dp else 1.dp
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Image(
                                 painter = painterResource(id = R.drawable.logo_autamedica),
                                 contentDescription = "AutaMedica",
                                 modifier = Modifier
-                                    .size(34.dp)
+                                    .size(36.dp)
                                     .clip(RoundedCornerShape(8.dp)),
                                 contentScale = ContentScale.Fit
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
 
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "AutaMedica",
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = AuAccent,
-                                    letterSpacing = 0.5.sp
+                                    fontWeight = FontWeight.Black,
+                                    color = AuCyanDeep,
+                                    letterSpacing = 0.6.sp
                                 )
                             )
                             Text(
                                 text = " • " + stringResource(R.string.pharmacy_on_demand_network_badge),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     color = AuTextTertiary,
-                                    fontSize = 11.sp
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
                                 )
                             )
                         }
@@ -139,17 +184,22 @@ fun DoctorPharmacyOnDutyCard(
                             Text(
                                 text = stringResource(R.string.pharmacy_on_demand_title),
                                 style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 17.sp,
+                                    letterSpacing = (-0.3).sp,
                                     color = AuTextPrimary
                                 )
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            // Status Dot
+                            // Status Dot con pulso vivo
                             Box(
                                 modifier = Modifier
-                                    .size(8.dp)
+                                    .size(9.dp)
                                     .clip(CircleShape)
-                                    .background(if (state.isOnDuty) AuSuccess else AuTextTertiary)
+                                    .background(
+                                        if (state.isOnDuty) AuEmerald.copy(alpha = pulseGlowAlpha)
+                                        else Color(0xFF94A3B8)
+                                    )
                             )
                         }
 
@@ -160,27 +210,74 @@ fun DoctorPharmacyOnDutyCard(
                                 stringResource(R.string.pharmacy_on_demand_status_inactive)
                             },
                             style = MaterialTheme.typography.bodySmall.copy(
-                                color = if (state.isOnDuty) AuSuccess else AuTextSecondary,
-                                fontSize = 12.sp
+                                color = if (state.isOnDuty) AuEmerald else AuTextSecondary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
                             )
                         )
                     }
                 }
 
+                // Switch maestro con háptica inmediata
                 Switch(
                     checked = state.isOnDuty,
-                    onCheckedChange = onToggleDuty,
+                    onCheckedChange = { isChecked ->
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onToggleDuty(isChecked)
+                    },
                     enabled = !state.isLoading,
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
-                        checkedTrackColor = AuAccent,
-                        uncheckedThumbColor = AuTextTertiary,
-                        uncheckedTrackColor = AuBorder
+                        checkedTrackColor = AuEmerald,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = Color(0xFFCBD5E1),
+                        checkedBorderColor = Color.Transparent,
+                        uncheckedBorderColor = Color.Transparent,
                     )
                 )
             }
 
-            // On-Duty Active Panel
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Pill de Telemetría de Presencia (Heartbeat cada 30s)
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = if (state.isOnDuty) AuCyan.copy(alpha = 0.08f) else Color(0xFFF8FAFC),
+                border = BorderStroke(
+                    1.dp,
+                    if (state.isOnDuty) AuCyan.copy(alpha = 0.35f) else Color(0xFFE2E8F0)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Sensors,
+                        contentDescription = null,
+                        tint = if (state.isOnDuty) AuCyanDeep else AuTextTertiary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (state.isOnDuty) {
+                            "Conectado a guardia médica • Heartbeat activo cada 30s"
+                        } else {
+                            "Guardia en pausa • Conéctate para recibir consultas de farmacia"
+                        },
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = if (state.isOnDuty) FontWeight.Bold else FontWeight.Medium,
+                            color = if (state.isOnDuty) AuCyanDeep else AuTextSecondary,
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            // On-Duty Active Panel (Cola y Solicitudes)
             AnimatedVisibility(
                 visible = state.isOnDuty,
                 enter = fadeIn(),
@@ -193,8 +290,8 @@ fun DoctorPharmacyOnDutyCard(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .background(
-                                if (state.waitingQueueCount > 0) AuAccent.copy(alpha = 0.08f)
-                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                if (state.waitingQueueCount > 0) AuCyan.copy(alpha = 0.10f)
+                                else Color(0xFFF1F5F9)
                             )
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -204,7 +301,7 @@ fun DoctorPharmacyOnDutyCard(
                             Icon(
                                 imageVector = Icons.Default.FlashOn,
                                 contentDescription = null,
-                                tint = if (state.waitingQueueCount > 0) AuAccent else AuTextSecondary,
+                                tint = if (state.waitingQueueCount > 0) AuCyanDeep else AuTextSecondary,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -215,8 +312,8 @@ fun DoctorPharmacyOnDutyCard(
                                     stringResource(R.string.pharmacy_on_demand_no_pending)
                                 },
                                 style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = if (state.waitingQueueCount > 0) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (state.waitingQueueCount > 0) AuAccent else AuTextSecondary
+                                    fontWeight = if (state.waitingQueueCount > 0) FontWeight.ExtraBold else FontWeight.Normal,
+                                    color = if (state.waitingQueueCount > 0) AuCyanDeep else AuTextSecondary
                                 )
                             )
                         }
@@ -230,7 +327,10 @@ fun DoctorPharmacyOnDutyCard(
                                 PharmacyRequestItem(
                                     request = request,
                                     isClaiming = claimingRequestId == request.id,
-                                    onClaim = { onClaimRequest(request.id) }
+                                    onClaim = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onClaimRequest(request.id)
+                                    }
                                 )
                             }
                         }
@@ -245,7 +345,7 @@ fun DoctorPharmacyOnDutyCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    .background(Color(0xFFF8FAFC))
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
@@ -275,11 +375,13 @@ private fun PharmacyRequestItem(
     isClaiming: Boolean,
     onClaim: () -> Unit,
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, AuBorder)
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xFFF8FAFC),
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -291,7 +393,7 @@ private fun PharmacyRequestItem(
                     Text(
                         text = request.patientName,
                         style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = AuTextPrimary
                         ),
                         maxLines = 1,
@@ -307,13 +409,19 @@ private fun PharmacyRequestItem(
                 }
 
                 if (request.minutesWaiting > 0) {
-                    Text(
-                        text = "${request.minutesWaiting} min",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = if (request.minutesWaiting > 5) AuDanger else AuTextSecondary,
-                            fontWeight = FontWeight.Medium
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (request.minutesWaiting > 5) AuCrimson.copy(alpha = 0.12f) else Color(0xFFE2E8F0),
+                    ) {
+                        Text(
+                            text = "${request.minutesWaiting} min",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = if (request.minutesWaiting > 5) AuCrimson else AuTextSecondary,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
-                    )
+                    }
                 }
             }
 
@@ -332,12 +440,17 @@ private fun PharmacyRequestItem(
             Spacer(modifier = Modifier.height(10.dp))
 
             Button(
-                onClick = onClaim,
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onClaim()
+                },
                 enabled = !isClaiming,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = AuAccent,
+                    containerColor = AuEmerald,
                     contentColor = Color.White
                 )
             ) {
@@ -361,7 +474,7 @@ private fun PharmacyRequestItem(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.pharmacy_on_demand_claim_btn),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold)
                     )
                 }
             }

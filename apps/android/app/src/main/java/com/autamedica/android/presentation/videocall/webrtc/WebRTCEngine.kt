@@ -133,6 +133,7 @@ class WebRTCEngine(
     private var surfaceTextureHelper: SurfaceTextureHelper? = null
     private var qualityJob: Job? = null
     private val qualityMonitor = QualityMonitor()
+    private val qualityManager = MedicalVideoQualityManager()
     private var remoteVideoOwnerId: String? = null
 
     // -- Peer state (mirrors PeerState from TS) --
@@ -228,13 +229,14 @@ class WebRTCEngine(
         surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
 
         val enumerator = org.webrtc.Camera2Enumerator(context)
-        val frontCamera = enumerator.deviceNames.firstOrNull { enumerator.isFrontFacing(it) }
-            ?: enumerator.deviceNames.firstOrNull()
+        val (cameraName, isBack) = qualityManager.selectBestCamera(enumerator)
 
-        if (frontCamera != null) {
-            videoCapturer = enumerator.createCapturer(frontCamera, null) as? CameraVideoCapturer
+        if (cameraName != null) {
+            videoCapturer = enumerator.createCapturer(cameraName, null) as? CameraVideoCapturer
             videoCapturer?.initialize(surfaceTextureHelper, context, videoSource.capturerObserver)
-            videoCapturer?.startCapture(640, 480, 30)
+            val initialProfile = qualityManager.getInitialProfile()
+            videoCapturer?.startCapture(initialProfile.width, initialProfile.height, initialProfile.fps)
+            Timber.i("[WebRTC] Started video capture on $cameraName (isBack=$isBack) at ${initialProfile.name}")
         }
 
         localVideoTrackInternal = peerConnectionFactory.createVideoTrack("video0", videoSource)
@@ -288,17 +290,12 @@ class WebRTCEngine(
     }
 
     fun adaptCaptureFormat(lowPressure: Boolean) {
-        try {
-            if (lowPressure) {
-                videoCapturer?.changeCaptureFormat(320, 240, 15)
-                Timber.d("[WebRTC] Adapted video capture format to 320x240@15fps under network pressure")
-            } else {
-                videoCapturer?.changeCaptureFormat(640, 480, 30)
-                Timber.d("[WebRTC] Restored video capture format to 640x480@30fps")
-            }
-        } catch (e: Exception) {
-            Timber.w(e, "[WebRTC] Failed to change capture format")
-        }
+        val level = if (lowPressure) StreamQualityLevel.POOR else StreamQualityLevel.GOOD
+        adaptCaptureQuality(level)
+    }
+
+    fun adaptCaptureQuality(level: StreamQualityLevel) {
+        qualityManager.adaptCaptureFormat(videoCapturer, level)
     }
 
     fun reactivateVideoAfterAutoDegrade() {
@@ -467,11 +464,12 @@ class WebRTCEngine(
     private fun applyVideoEncodingParameters(sender: RtpSender) {
         try {
             val params = sender.parameters
+            params.degradationPreference = org.webrtc.RtpParameters.DegradationPreference.MAINTAIN_RESOLUTION
             if (params.encodings.isEmpty()) {
                 params.encodings.add(RtpParameters.Encoding(null, true, null))
             }
             params.encodings.firstOrNull()?.let { encoding ->
-                encoding.maxBitrateBps = 1_500_000
+                encoding.maxBitrateBps = 3_000_000
                 encoding.maxFramerate = 30
             }
             sender.parameters = params
@@ -658,11 +656,7 @@ class WebRTCEngine(
         }
 
         val overall = qualityMonitor.getOverallLevel(peerMetrics)
-        if (overall == StreamQualityLevel.POOR || overall == StreamQualityLevel.FAIR) {
-            adaptCaptureFormat(lowPressure = true)
-        } else if (overall == StreamQualityLevel.GOOD || overall == StreamQualityLevel.EXCELLENT) {
-            adaptCaptureFormat(lowPressure = false)
-        }
+        adaptCaptureQuality(overall)
         autoDegradeService.update(overall)
 
         _qualitySummary.value = StreamQualitySummary(

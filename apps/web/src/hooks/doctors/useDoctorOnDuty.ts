@@ -101,6 +101,34 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     return () => clearInterval(interval)
   }, [onDuty, fetchQueue])
 
+  // Heartbeat every 30 seconds when onDuty is active
+  useEffect(() => {
+    if (!onDuty) {
+      return
+    }
+
+    const sendHeartbeat = async () => {
+      try {
+        await fetchApi<{ timestamp: string }>('/api/doctors/on-duty/heartbeat', {
+          method: 'POST',
+        })
+      } catch {
+        // Ignorar fallos transitorios de red en el heartbeat
+      }
+    }
+
+    // Latido inicial inmediato al entrar en guardia
+    void sendHeartbeat()
+
+    // Intervalo de latidos cada 30 segundos (30000 ms)
+    const interval = setInterval(() => {
+      void sendHeartbeat()
+    }, 30000)
+
+    // Cancelar intervalo al salir de guardia o desmontar el hook
+    return () => clearInterval(interval)
+  }, [onDuty])
+
   // Toggle onDuty status
   const toggleDuty = useCallback(
     async (targetState?: boolean): Promise<boolean> => {

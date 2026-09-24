@@ -57,10 +57,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -116,7 +118,7 @@ fun PatientProfileScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Mi Perfil",
+                        text = stringResource(R.string.patient_profile_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.Bold,
@@ -129,7 +131,7 @@ fun PatientProfileScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.common_back),
                             tint = AuTextPrimary,
                         )
                     }
@@ -175,10 +177,11 @@ fun PatientProfileScreen(
                     )
 
                     // 3. Account Deletion Section (Mirroring eliminar-cuenta.astro)
+                    val deletionMailto = stringResource(R.string.patient_deletion_mailto_url)
                     AccountDeletionSection(
                         onRequestDeletion = {
                             runCatching {
-                                uriHandler.openUri("mailto:contacto@autamedica.com?subject=Solicitud%20de%20eliminaci%C3%B3n%20de%20cuenta")
+                                uriHandler.openUri(deletionMailto)
                             }
                         },
                     )
@@ -202,7 +205,7 @@ fun PatientProfileScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Cerrar sesión",
+                            text = stringResource(R.string.patient_profile_logout_button),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                         )
@@ -230,14 +233,14 @@ fun PatientProfileScreen(
             onDismissRequest = { showLogoutDialog = false },
             title = {
                 Text(
-                    text = "Cerrar sesión",
+                    text = stringResource(R.string.patient_logout_dialog_title),
                     fontWeight = FontWeight.Bold,
                     color = AuTextPrimary,
                 )
             },
             text = {
                 Text(
-                    text = "¿Estás seguro de que deseas cerrar sesión en AutaMedica?",
+                    text = stringResource(R.string.patient_logout_dialog_message),
                     color = AuTextSecondary,
                 )
             },
@@ -249,12 +252,12 @@ fun PatientProfileScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
                 ) {
-                    Text("Cerrar sesión", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.patient_profile_logout_button), color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancelar", color = AuTextSecondary)
+                    Text(stringResource(R.string.common_cancel), color = AuTextSecondary)
                 }
             },
             shape = RoundedCornerShape(20.dp),
@@ -269,8 +272,11 @@ private fun PatientInfoCard(
     snapshot: PatientProfileSnapshot?,
     modifier: Modifier = Modifier,
 ) {
-    val displayName = user?.displayName?.ifBlank { "Paciente" } ?: "Paciente"
+    val defaultPatientName = stringResource(R.string.role_label_patient)
+    val displayName = user?.displayName?.ifBlank { defaultPatientName } ?: defaultPatientName
     val initial = displayName.firstOrNull()?.uppercase() ?: "P"
+    val notRegistered = stringResource(R.string.patient_profile_not_registered)
+    val notRegisteredFem = stringResource(R.string.patient_profile_not_registered_fem)
 
     Surface(
         shape = RoundedCornerShape(24.dp),
@@ -313,7 +319,7 @@ private fun PatientInfoCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "Paciente AutaMedica",
+                        text = stringResource(R.string.patient_profile_role_tag),
                         style = MaterialTheme.typography.bodySmall,
                         color = PortalPatients,
                         fontWeight = FontWeight.SemiBold,
@@ -332,28 +338,28 @@ private fun PatientInfoCard(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ProfileInfoRow(
                     icon = Icons.Outlined.Person,
-                    label = "Nombre completo",
+                    label = stringResource(R.string.patient_profile_label_full_name),
                     value = displayName,
                 )
                 ProfileInfoRow(
                     icon = Icons.Outlined.Email,
-                    label = "Correo electrónico",
-                    value = user?.email?.ifBlank { "No registrado" } ?: "No registrado",
+                    label = stringResource(R.string.patient_profile_label_email),
+                    value = user?.email?.ifBlank { notRegistered } ?: notRegistered,
                 )
                 ProfileInfoRow(
                     icon = Icons.Outlined.Phone,
-                    label = "Teléfono",
-                    value = user?.phone?.takeIf { it.isNotBlank() } ?: "No registrado",
+                    label = stringResource(R.string.patient_profile_label_phone),
+                    value = user?.phone?.takeIf { it.isNotBlank() } ?: notRegistered,
                 )
                 ProfileInfoRow(
                     icon = Icons.Outlined.Cake,
-                    label = "Fecha de nacimiento",
-                    value = snapshot?.birthDate?.takeIf { it.isNotBlank() } ?: "No registrada",
+                    label = stringResource(R.string.patient_profile_label_birth_date),
+                    value = snapshot?.birthDate?.takeIf { it.isNotBlank() } ?: notRegisteredFem,
                 )
                 ProfileInfoRow(
                     icon = Icons.Outlined.Wc,
-                    label = "Género",
-                    value = snapshot?.gender?.takeIf { it.isNotBlank() } ?: "No registrado",
+                    label = stringResource(R.string.patient_profile_label_gender),
+                    value = snapshot?.gender?.takeIf { it.isNotBlank() } ?: notRegistered,
                 )
             }
         }
@@ -444,14 +450,14 @@ private fun PatientWalletCard(
 
                 Column {
                     Text(
-                        text = "BILLETERA AUTAMÉDICA",
+                        text = stringResource(R.string.patient_wallet_title),
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = AuTextTertiary,
                         letterSpacing = 0.8.sp,
                     )
                     Text(
-                        text = "Saldo disponible",
+                        text = stringResource(R.string.patient_wallet_available_balance),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = AuTextPrimary,
@@ -473,7 +479,7 @@ private fun PatientWalletCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "Saldo en cuenta",
+                        text = stringResource(R.string.patient_wallet_account_balance),
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF475569),
@@ -513,7 +519,7 @@ private fun PatientWalletCard(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Cargar saldo",
+                        text = stringResource(R.string.patient_wallet_topup_button),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -550,7 +556,7 @@ private fun AccountDeletionSection(
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = "Eliminación de cuenta y datos",
+                    text = stringResource(R.string.patient_deletion_title),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = AuTextPrimary,
@@ -568,19 +574,19 @@ private fun AccountDeletionSection(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "Tu derecho a la eliminación de datos está protegido por la Ley 25.326 de Protección de Datos Personales (Argentina).",
+                        text = stringResource(R.string.patient_deletion_law_argentina),
                         fontSize = 12.sp,
                         color = Color(0xFF334155),
                         lineHeight = 16.sp,
                     )
                     Text(
-                        text = "Retención legal obligatoria: De acuerdo con la Ley 26.529 (Derechos del Paciente), ciertos registros médicos anonimizados deben conservarse por el plazo legal mínimo obligatorio de 10 años.",
+                        text = stringResource(R.string.patient_deletion_retention_warning),
                         fontSize = 12.sp,
                         color = Color(0xFF475569),
                         lineHeight = 16.sp,
                     )
                     Text(
-                        text = "Plazo de procesamiento: Máximo 30 días hábiles desde la confirmación de la solicitud.",
+                        text = stringResource(R.string.patient_deletion_processing_time),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF0F172A),
@@ -607,7 +613,7 @@ private fun AccountDeletionSection(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Solicitar eliminación de cuenta",
+                    text = stringResource(R.string.patient_deletion_request_button),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )

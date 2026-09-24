@@ -11,8 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.AuthorType
 import com.autamedica.android.domain.model.MedicalMessage
 import com.autamedica.android.domain.model.MessageContentType
@@ -74,9 +76,9 @@ fun MessageBubble(
                 // Content type indicator for non-text
                 if (message.contentType != MessageContentType.TEXT) {
                     val typeLabel = when (message.contentType) {
-                        MessageContentType.IMAGE -> "📷 Imagen"
-                        MessageContentType.DOCUMENT -> "📄 Documento"
-                        MessageContentType.AUDIO -> "🎤 Audio"
+                        MessageContentType.IMAGE -> stringResource(R.string.chat_message_type_image)
+                        MessageContentType.DOCUMENT -> stringResource(R.string.chat_message_type_document)
+                        MessageContentType.AUDIO -> stringResource(R.string.chat_message_type_audio)
                         else -> ""
                     }
                     if (typeLabel.isNotEmpty()) {

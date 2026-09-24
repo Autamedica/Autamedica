@@ -27,11 +27,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +42,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,13 +56,15 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.autamedica.android.BuildConfig
 import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
+import com.autamedica.android.presentation.videocall.components.CallActionsOverflowSheet
 import com.autamedica.android.presentation.videocall.components.CallControlsBar
 import com.autamedica.android.presentation.videocall.components.CallTopBar
 import com.autamedica.android.presentation.videocall.components.ChatPanel
-import com.autamedica.android.presentation.videocall.components.ClinicalNotesSheet
+import com.autamedica.android.presentation.videocall.components.ClinicalHudLayer
+import com.autamedica.android.presentation.videocall.components.InCallClinicalBottomSheet
+import com.autamedica.android.presentation.videocall.components.InCallClinicalMode
 import com.autamedica.android.presentation.videocall.components.ManagedVideoRenderer
 import com.autamedica.android.presentation.videocall.components.PatientWaitingRoomOverlay
 import com.autamedica.android.presentation.videocall.components.RemoteAvatarFallback
@@ -85,6 +84,23 @@ fun VideoCallScreen(
 ) {
     val isPreviewRoute = appointmentId == VIDEO_PREVIEW_APPOINTMENT_ID
     val context = LocalContext.current
+    val activity = context as? android.app.Activity
+    val currentView = androidx.compose.ui.platform.LocalView.current
+    DisposableEffect(Unit) {
+        currentView.keepScreenOn = true
+        onDispose {
+            currentView.keepScreenOn = false
+        }
+    }
+    val onMinimizeCall: () -> Unit = {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && activity != null) {
+            val params = android.app.PictureInPictureParams.Builder()
+                .setAspectRatio(android.util.Rational(9, 16))
+                .build()
+            runCatching { activity.enterPictureInPictureMode(params) }
+        }
+    }
+
     var hasMediaPermissions by remember { mutableStateOf(context.hasTelemedicineMediaPermissions()) }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -146,34 +162,63 @@ fun VideoCallScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val localTrack by viewModel.localVideoTrack.collectAsStateWithLifecycle()
     val remoteTrack by viewModel.remoteVideoTrack.collectAsStateWithLifecycle()
+    var clinicalSheetMode by remember { mutableStateOf<InCallClinicalMode?>(null) }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(null, "T2_COMPOSE_MOUNTED")
+    }
 
     DisposableEffect(hasMediaPermissions) {
         viewModel.startCall(roomId = roomId, isIncomingCall = isIncomingCall)
         onDispose { viewModel.endCall() }
     }
 
-    // Handle call end
-    if (uiState.connectionState == ConnectionState.DISCONNECTED && uiState.callDurationSeconds > 0) {
+    // Determine waiting room vs active call:
+    val isOnDemandRoom = roomId.startsWith("cf-room") || uiState.activeCallId?.startsWith("cf-room") == true
+    val isCallActive = remoteTrack != null || uiState.connectionState == ConnectionState.CONNECTED
+    val isWaitingRoomActive = !uiState.isDoctor && !isOnDemandRoom && (
+        isPreviewRoute || (!isIncomingCall && uiState.isWaitingRoom && !isCallActive)
+    )
+
+    // Handle call end or abrupt failure after call was active
+    val isCallEndedOrFailed = uiState.connectionState == ConnectionState.DISCONNECTED ||
+        uiState.connectionState == ConnectionState.FAILED
+
+    val hadActiveSession = uiState.callDurationSeconds > 0 ||
+        uiState.activeCallId != null ||
+        uiState.sessionStatusMessage?.contains("finaliz", ignoreCase = true) == true
+
+    if (isCallEndedOrFailed && hadActiveSession) {
         if (uiState.isDoctor && !uiState.soapSaved && !isPreviewRoute) {
             LaunchedEffect(Unit) {
                 viewModel.openSoapEvolution()
             }
         } else if (!uiState.showSoapEvolution) {
-            onCallEnd()
+            LaunchedEffect(Unit) {
+                onCallEnd()
+            }
             return
         }
     }
 
-    // Determine waiting room vs active call:
-    // - isPreviewRoute (chequeo de cámara) siempre muestra la Sala de Espera.
-    // - Paciente con flujo manual: la Sala de Espera cede paso al estado de llamada cuando se
-    //   alcanza CONNECTED (médico en sala) o llega el video remoto.
-    // - Paciente con llamada entrante aceptada (isIncomingCall): entra directo a la llamada
-    //   activa, saltando la Sala de Espera / preconsulta.
-    val isCallActive = remoteTrack != null || uiState.connectionState == ConnectionState.CONNECTED
-    val isWaitingRoomActive = isPreviewRoute || (
-        !uiState.isDoctor && !isIncomingCall && uiState.isWaitingRoom && !isCallActive
-    )
+    androidx.activity.compose.BackHandler(enabled = !isInPipMode) {
+        val canEnterPip = !uiState.showSoapEvolution &&
+            !isWaitingRoomActive &&
+            remoteTrack != null &&
+            uiState.connectionState == ConnectionState.CONNECTED
+
+        if (canEnterPip && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && activity != null) {
+            val params = android.app.PictureInPictureParams.Builder()
+                .setAspectRatio(android.util.Rational(9, 16))
+                .build()
+            val entered = runCatching { activity.enterPictureInPictureMode(params) }.getOrDefault(false)
+            if (!entered) {
+                viewModel.handleCallEnd(onCallEnd)
+            }
+        } else {
+            viewModel.handleCallEnd(onCallEnd)
+        }
+    }
 
     Box(
         modifier = modifier
@@ -263,105 +308,77 @@ fun VideoCallScreen(
                 onSavePreconsultation = viewModel::savePreconsultation,
             )
         } else {
-            // ── PHASE 2: ACTIVE CALL LAYOUT (Identical to Web ActiveCallLayout) ──
-            // Main Viewport: Remote Video OR RemoteAvatarFallback
+            // Main Viewport: Remote Video OR Doctor Local Preview OR RemoteAvatarFallback
+            val isDoctorTestingCamera = uiState.isDoctor && (isPreviewRoute || remoteTrack == null) && localTrack != null && uiState.isVideoEnabled
             if (remoteTrack != null) {
                 ManagedVideoRenderer(
                     videoTrack = remoteTrack,
                     eglContext = viewModel.eglContext,
                     modifier = Modifier.fillMaxSize(),
                     mirror = false,
+                    onFirstFrameRendered = {
+                        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
+                            null,
+                            "T5_FIRST_FRAME_RENDERED",
+                        )
+                        com.autamedica.android.telemetry.CallTelemetry.finalizeTrace(null)
+                    },
+                )
+            } else if (isDoctorTestingCamera && localTrack != null) {
+                ManagedVideoRenderer(
+                    videoTrack = localTrack,
+                    eglContext = viewModel.eglContext,
+                    modifier = Modifier.fillMaxSize(),
+                    mirror = true,
                 )
             } else {
-                val subtitleText = when (uiState.connectionState) {
-                    ConnectionState.CONNECTING -> "Llamando al médico..."
-                    ConnectionState.RECONNECTING -> "El profesional se está reconectando..."
-                    ConnectionState.FAILED -> "Error de conexión con la sala"
-                    else -> if (uiState.isDoctor) "Esperando que el paciente active su cámara..." else "Esperando que el profesional active su cámara..."
+                val isOnDemandRoom = roomId.startsWith("cf-room") || uiState.activeCallId?.startsWith("cf-room") == true
+                val isPatientWaitingForDoctor = !uiState.isDoctor && isOnDemandRoom && (uiState.doctorName.isBlank() || uiState.doctorName == "Médico" || uiState.doctorName == "Profesional")
+                val remoteDisplayName = when {
+                    uiState.isDoctor -> uiState.patientName.ifBlank { "Paciente" }
+                    isPatientWaitingForDoctor -> "Médico de Guardia"
+                    else -> uiState.doctorName.ifBlank { "Médico de Guardia" }
+                }
+                val subtitleText = when {
+                    uiState.connectionState == ConnectionState.FAILED -> "Error de conexión con la sala"
+                    uiState.connectionState == ConnectionState.RECONNECTING -> "Reconectando..."
+                    isPatientWaitingForDoctor -> "Buscando médico de guardia... Aguarde en línea mientras un profesional toma su consulta."
+                    uiState.connectionState == ConnectionState.CONNECTING -> if (uiState.isDoctor) "Llamando al paciente..." else "Llamando al médico..."
+                    uiState.isDoctor -> "Esperando que el paciente active su cámara..."
+                    else -> "Esperando que el profesional active su cámara..."
                 }
                 RemoteAvatarFallback(
-                    name = if (uiState.isDoctor) "Paciente" else uiState.doctorName,
+                    name = remoteDisplayName,
                     subtitle = subtitleText,
-                    isCameraOff = uiState.connectionState == ConnectionState.CONNECTED,
+                    isCameraOff = uiState.connectionState == ConnectionState.CONNECTED && !isPatientWaitingForDoctor,
                     isReconnecting = uiState.connectionState == ConnectionState.RECONNECTING,
-                    isConnecting = uiState.connectionState == ConnectionState.CONNECTING,
+                    isConnecting = isPatientWaitingForDoctor || uiState.connectionState == ConnectionState.CONNECTING,
+                    isFailed = uiState.connectionState == ConnectionState.FAILED,
+                    onEndCall = { viewModel.handleCallEnd(onCallEnd) },
                 )
-            }
-
-            // Top Pill Overlay: Participant Identity (Inside Video)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(top = 58.dp, start = 16.dp, end = 16.dp)
-                    .align(Alignment.TopCenter),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Left: Green Pulsing Dot + Name
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = Color(0xCC0F172A),
-                    border = BorderStroke(1.dp, Color(0x26FFFFFF)),
-                    shadowElevation = 8.dp,
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(7.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF10B981)),
-                        )
-                        Text(
-                            text = if (uiState.isDoctor) "Paciente" else uiState.doctorName,
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-
-                // Right: Subtle security indicator
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = Color(0x990F172A),
-                    border = BorderStroke(1.dp, Color(0x1FFFFFFF)),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Lock,
-                            contentDescription = "Conexión segura",
-                            tint = Color(0xFF38BDF8).copy(alpha = 0.8f),
-                            modifier = Modifier.size(12.dp),
-                        )
-                    }
-                }
             }
 
             // In PiP mode, hide controls & PiP container
             if (!isInPipMode) {
-                // Consolidated Top Bar (Status dot, Quality bars, Duration timer)
+                val participantLabel = when {
+                    uiState.isDoctor -> uiState.patientName.ifBlank { "Paciente" }
+                    else -> uiState.doctorName.ifBlank { "Profesional" }
+                }
                 AnimatedVisibility(
                     visible = uiState.showControls,
                     enter = fadeIn() + slideInVertically(),
                     exit = fadeOut() + slideOutVertically(),
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .statusBarsPadding(),
+                    modifier = Modifier.align(Alignment.TopCenter),
                 ) {
                     CallTopBar(
                         connectionState = uiState.connectionState,
                         qualityLevel = uiState.qualitySummary.overallLevel,
                         durationSeconds = uiState.callDurationSeconds,
+                        participantLabel = participantLabel,
                         isWaitingRoom = isWaitingRoomActive,
+                        safetyAlert = if (uiState.isDoctor) uiState.safetyAlertLabel else null,
+                        clinicalFirst = uiState.isDoctor,
+                        onMinimize = onMinimizeCall,
                     )
                 }
 
@@ -396,16 +413,19 @@ fun VideoCallScreen(
                     }
                 }
 
-                // Local Video Picture-in-Picture (Bottom-Right, above Dock)
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .navigationBarsPadding()
-                        .padding(bottom = 96.dp, end = 16.dp)
-                        .size(width = 110.dp, height = 154.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF1E293B)),
-                ) {
+                // Local PiP: doctor sube el padding para dejar espacio a la guía clínica.
+                // No mostrar PiP duplicado si el médico ya está viendo su cámara en pantalla completa.
+                if (!isDoctorTestingCamera) {
+                    val pipBottomPadding = if (uiState.isDoctor) 320.dp else 96.dp
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .navigationBarsPadding()
+                            .padding(bottom = pipBottomPadding, end = 16.dp)
+                            .size(width = 110.dp, height = 154.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color(0xFF1E293B)),
+                    ) {
                     if (localTrack != null && uiState.isVideoEnabled) {
                         ManagedVideoRenderer(
                             videoTrack = localTrack,
@@ -452,6 +472,7 @@ fun VideoCallScreen(
                         )
                     }
                 }
+                }
 
                 // Chat panel (slide from bottom)
                 AnimatedVisibility(
@@ -473,7 +494,52 @@ fun VideoCallScreen(
                     )
                 }
 
-                // Bottom Controls Dock (Matching Web CallControlsBar)
+                // Doctor: HUD clínico morph reposo→sheet (resumen/preguntas/notas) sobre
+                // el video full-bleed. Compartido con AntaMedici web (ConsultationContextPanel):
+                // motivo + alertas + preguntas + relato + antecedentes + receta/atestado/SOAP,
+                // sin modal que tape la pantalla. Mic/cam/timer viven en overflow / top bar.
+                if (uiState.isDoctor) {
+                    AnimatedVisibility(
+                        visible = !uiState.isActionsOverflowOpen,
+                        enter = fadeIn() + slideInVertically { it },
+                        exit = fadeOut() + slideOutVertically { it },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 84.dp),
+                    ) {
+                        ClinicalHudLayer(
+                            panel = uiState.clinicalSheetPanel,
+                            guidance = uiState.clinicalGuidance,
+                            clinicalContext = uiState.patientClinicalContext,
+                            fallbackMotivo = uiState.chiefComplaintPeek,
+                            patientName = uiState.patientName,
+                            hasPatient = uiState.patientId.isNotBlank(),
+                            isLoading = uiState.isLoadingClinicalContext,
+                            consultationNotes = uiState.consultationNotes,
+                            initialNotes = uiState.appointmentNotes,
+                            isSavingNotes = uiState.isSavingNotes,
+                            notesSaved = uiState.notesSaved,
+                            onNotesChange = viewModel::updateConsultationNotes,
+                            onSaveNotes = viewModel::saveConsultationNotes,
+                            onRequestPanelChange = viewModel::setClinicalSheetPanel,
+                            onOpenSoap = if (!isPreviewRoute) {
+                                {
+                                    viewModel.setClinicalSheetPanel(ClinicalSheetPanel.GUIDANCE)
+                                    viewModel.openSoapEvolution()
+                                }
+                            } else null,
+                            onEmitPrescription = {
+                                clinicalSheetMode = InCallClinicalMode.PRESCRIPTION
+                            },
+                            onEmitCertificate = {
+                                clinicalSheetMode = InCallClinicalMode.CERTIFICATE
+                            },
+                        )
+                    }
+                }
+
+                // Dock: doctor = ficha + medios(overflow) + colgar; paciente = media + chat
                 AnimatedVisibility(
                     visible = uiState.showControls,
                     enter = fadeIn() + slideInVertically { it },
@@ -485,56 +551,40 @@ fun VideoCallScreen(
                     CallControlsBar(
                         isAudioEnabled = uiState.isAudioEnabled,
                         isVideoEnabled = uiState.isVideoEnabled,
-                        isSpeakerOn = uiState.isSpeakerOn,
-                        isChatOpen = uiState.isChatOpen,
                         onToggleAudio = viewModel::toggleAudio,
                         onToggleVideo = viewModel::toggleVideo,
-                        onToggleSpeaker = viewModel::toggleSpeaker,
-                        onToggleChat = viewModel::toggleChat,
-                        onSwitchCamera = viewModel::switchCamera,
+                        onEndCall = { viewModel.handleCallEnd(onCallEnd) },
                         isDoctor = uiState.isDoctor,
-                        isClinicalNotesOpen = uiState.isClinicalNotesOpen,
-                        onToggleClinicalNotes = viewModel::toggleClinicalNotes,
-                        onEmitPrescription = if (uiState.patientId.isNotBlank() && onNavigateToCreatePrescription != null) {
-                            { onNavigateToCreatePrescription(uiState.patientId) }
-                        } else null,
-                        onEmitCertificate = if (uiState.patientId.isNotBlank() && onNavigateToCreateCertificate != null) {
-                            { onNavigateToCreateCertificate(uiState.patientId) }
-                        } else null,
-                        unreadMessages = 0,
-                        onEndCall = {
-                            viewModel.handleCallEnd(onCallEnd)
-                        },
-                    )
-                }
-
-                // Clinical Notes Sheet (Doctor only)
-                AnimatedVisibility(
-                    visible = uiState.isClinicalNotesOpen,
-                    enter = fadeIn() + slideInVertically { it },
-                    exit = fadeOut() + slideOutVertically { it },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .navigationBarsPadding(),
-                ) {
-                    ClinicalNotesSheet(
-                        notes = uiState.consultationNotes,
-                        initialNotes = uiState.appointmentNotes,
-                        isSaving = uiState.isSavingNotes,
-                        isSaved = uiState.notesSaved,
-                        onNotesChange = viewModel::updateConsultationNotes,
-                        onSaveNotes = viewModel::saveConsultationNotes,
-                        onClose = viewModel::toggleClinicalNotes,
-                        onOpenFullSoap = if (!isPreviewRoute) {
-                            {
-                                viewModel.toggleClinicalNotes()
-                                viewModel.openSoapEvolution()
-                            }
-                        } else null,
+                        isFichaOpen = uiState.isClinicalSheetExpanded,
+                        hasSafetyAlerts = uiState.safetyAlertCount > 0,
+                        onOpenFicha = if (uiState.isDoctor) viewModel::toggleClinicalSheet else null,
+                        isOverflowOpen = uiState.isActionsOverflowOpen,
+                        overflowBadgeCount = uiState.unreadChatMessages,
+                        onOpenOverflow = if (uiState.isDoctor) viewModel::toggleActionsOverflow else null,
+                        isSpeakerOn = uiState.isSpeakerOn,
+                        isChatOpen = uiState.isChatOpen,
+                        unreadMessages = uiState.unreadChatMessages,
+                        onToggleSpeaker = if (!uiState.isDoctor) viewModel::toggleSpeaker else null,
+                        onToggleChat = if (!uiState.isDoctor) viewModel::toggleChat else null,
                     )
                 }
             }
         }
+    }
+
+    if (uiState.isDoctor && uiState.isActionsOverflowOpen) {
+        CallActionsOverflowSheet(
+            isAudioEnabled = uiState.isAudioEnabled,
+            isVideoEnabled = uiState.isVideoEnabled,
+            isSpeakerOn = uiState.isSpeakerOn,
+            unreadMessages = uiState.unreadChatMessages,
+            onToggleAudio = viewModel::toggleAudio,
+            onToggleVideo = viewModel::toggleVideo,
+            onToggleChat = viewModel::toggleChat,
+            onToggleSpeaker = viewModel::toggleSpeaker,
+            onSwitchCamera = viewModel::switchCamera,
+            onDismiss = viewModel::closeActionsOverflow,
+        )
     }
 
     if (uiState.showSoapEvolution) {
@@ -553,6 +603,22 @@ fun VideoCallScreen(
                 viewModel.dismissSoapEvolution()
                 onCallEnd()
             },
+        )
+    }
+
+    clinicalSheetMode?.let { mode ->
+        InCallClinicalBottomSheet(
+            initialMode = mode,
+            patientName = uiState.patientName,
+            chiefComplaint = uiState.chiefComplaintPeek,
+            isSubmitting = uiState.isIssuingPrescription || uiState.isIssuingCertificate,
+            onIssuePrescription = { med, dosage, instructions, onResult ->
+                viewModel.issueInCallPrescription(med, dosage, instructions, onResult)
+            },
+            onIssueCertificate = { type, days, diag, onResult ->
+                viewModel.issueInCallCertificate(type, days, diag, onResult)
+            },
+            onDismiss = { clinicalSheetMode = null },
         )
     }
 }

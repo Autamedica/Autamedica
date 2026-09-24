@@ -30,12 +30,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.COMMON_CIE10_DIAGNOSES
 import com.autamedica.android.domain.model.COMMON_DOSAGE_PRESETS
 import com.autamedica.android.domain.model.COMMON_DURATION_PRESETS
@@ -73,13 +75,13 @@ fun CreatePrescriptionScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Emitir Receta Digital",
+                            text = stringResource(R.string.doctor_create_rx_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Decreto 63/2024 · Ley 27.553",
+                            text = stringResource(R.string.doctor_create_rx_subtitle),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
@@ -89,7 +91,7 @@ fun CreatePrescriptionScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.doctor_create_rx_action_back),
                             tint = AuTextPrimary,
                         )
                     }
@@ -109,7 +111,12 @@ fun CreatePrescriptionScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    uiState.createError?.let { err ->
+                    val createErrorText = when {
+                        uiState.createErrorResId != null -> stringResource(uiState.createErrorResId!!)
+                        uiState.createError != null -> uiState.createError
+                        else -> null
+                    }
+                    createErrorText?.let { err ->
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = AuDanger.copy(alpha = 0.10f),
@@ -148,11 +155,11 @@ fun CreatePrescriptionScreen(
                                 strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Firmando y Generando CUIR...")
+                            Text(stringResource(R.string.doctor_create_rx_submitting))
                         } else {
                             Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Firmar y Emitir Receta Oficial", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.doctor_create_rx_submit_button), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -187,7 +194,7 @@ fun CreatePrescriptionScreen(
 
             // 3. Medications Multi-Item Section
             Text(
-                text = "Fármacos a Prescribir (Máximo 3 por receta)",
+                text = stringResource(R.string.doctor_create_rx_items_section_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = AuTextPrimary
@@ -218,7 +225,10 @@ fun CreatePrescriptionScreen(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Agregar otro medicamento (${uiState.items.size}/3)", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.doctor_create_rx_add_medication, uiState.items.size),
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
 
@@ -232,8 +242,8 @@ fun CreatePrescriptionScreen(
             OutlinedTextField(
                 value = uiState.notes,
                 onValueChange = viewModel::onNotesChanged,
-                label = { Text("Observaciones / Indicaciones a farmacia (opcional)") },
-                placeholder = { Text("Ej: Apto sustitución genérica, uso prolongado...") },
+                label = { Text(stringResource(R.string.doctor_create_rx_notes_label)) },
+                placeholder = { Text(stringResource(R.string.doctor_create_rx_notes_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4,
@@ -264,7 +274,7 @@ fun CreatePrescriptionScreen(
             },
             title = {
                 Text(
-                    text = "¡Receta Emitida con Éxito!",
+                    text = stringResource(R.string.doctor_create_rx_success_title),
                     fontWeight = FontWeight.Bold,
                     color = AuTextPrimary,
                 )
@@ -275,7 +285,7 @@ fun CreatePrescriptionScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "La receta digital ha sido firmada y registrada según normativa vigente.",
+                        text = stringResource(R.string.doctor_create_rx_success_body),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextSecondary
                     )
@@ -292,7 +302,7 @@ fun CreatePrescriptionScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "CÓDIGO ÚNICO (CUIR):",
+                                text = stringResource(R.string.doctor_create_rx_cuir_label),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextTertiary,
                                 fontWeight = FontWeight.Bold
@@ -306,18 +316,18 @@ fun CreatePrescriptionScreen(
                             IconButton(onClick = {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 clipboard.setPrimaryClip(ClipData.newPlainText("CUIR", created.cuir ?: created.id))
-                                Toast.makeText(context, "CUIR copiado", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.doctor_create_rx_cuir_copied_toast), Toast.LENGTH_SHORT).show()
                             }) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = PortalDoctors)
-                                    Text("Copiar", style = MaterialTheme.typography.labelSmall, color = PortalDoctors)
+                                    Text(stringResource(R.string.doctor_create_rx_copy_cuir), style = MaterialTheme.typography.labelSmall, color = PortalDoctors)
                                 }
                             }
                         }
                     }
 
                     Text(
-                        text = "Válida en farmacias de todo el país mediante consulta online o lectura del código QR.",
+                        text = stringResource(R.string.doctor_create_rx_success_validity),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary
                     )
@@ -332,7 +342,7 @@ fun CreatePrescriptionScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = PortalDoctors)
                 ) {
-                    Text("Ver Mis Recetas")
+                    Text(stringResource(R.string.doctor_create_rx_success_button))
                 }
             }
         )
@@ -342,7 +352,7 @@ fun CreatePrescriptionScreen(
 @Composable
 private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.model.DoctorEligibility?) {
     val isEligible = eligibility?.isEligible ?: true
-    val license = eligibility?.doctorLicense ?: "Registrada"
+    val license = eligibility?.doctorLicense ?: stringResource(R.string.doctor_create_rx_regulatory_registered)
 
     Surface(
         shape = RoundedCornerShape(12.dp),
@@ -363,16 +373,16 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isEligible) "Prescriptor Habilitado · SISA REFEPS" else "Estado de Validación Profesional",
+                    text = if (isEligible) stringResource(R.string.doctor_create_rx_regulatory_eligible_title) else stringResource(R.string.doctor_create_rx_regulatory_not_eligible_title),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (isEligible) AuSuccess else Color(0xFFB45309)
                 )
                 Text(
                     text = if (isEligible) {
-                        "Matrícula: MN $license · Firma digital y CUIR habilitados"
+                        stringResource(R.string.doctor_create_rx_regulatory_license_info, license)
                     } else {
-                        eligibility?.reason ?: "Verifique su matrícula en el perfil para cumplir Decreto 63/2024"
+                        eligibility?.reason ?: stringResource(R.string.doctor_create_rx_regulatory_fallback_reason)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary
@@ -405,7 +415,7 @@ private fun PatientSelectorSection(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Paciente Destinatario",
+                text = stringResource(R.string.doctor_create_rx_patient_section_title),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = AuTextSecondary
@@ -440,14 +450,14 @@ private fun PatientSelectorSection(
                             )
                             selectedPatient.dni?.let { dni ->
                                 Text(
-                                    text = "DNI: $dni",
+                                    text = stringResource(R.string.doctor_create_rx_patient_dni_prefix, dni),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = AuTextTertiary
                                 )
                             }
                         }
                         TextButton(onClick = { onExpandedChange(true) }) {
-                            Text("Cambiar", color = PortalDoctors)
+                            Text(stringResource(R.string.doctor_create_rx_patient_change), color = PortalDoctors)
                         }
                     }
                 }
@@ -462,7 +472,7 @@ private fun PatientSelectorSection(
                             onSearchQueryChange(it)
                             onExpandedChange(true)
                         },
-                        label = { Text("Buscar paciente por nombre o DNI...") },
+                        label = { Text(stringResource(R.string.doctor_create_rx_patient_search_label)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -494,12 +504,12 @@ private fun PatientSelectorSection(
                     ) {
                         if (isLoadingPatients) {
                             DropdownMenuItem(
-                                text = { Text("Cargando pacientes...", color = AuTextTertiary) },
+                                text = { Text(stringResource(R.string.doctor_create_rx_patient_loading), color = AuTextTertiary) },
                                 onClick = {}
                             )
                         } else if (filteredPatients.isEmpty()) {
                             DropdownMenuItem(
-                                text = { Text("No se encontraron pacientes", color = AuTextTertiary) },
+                                text = { Text(stringResource(R.string.doctor_create_rx_patient_empty), color = AuTextTertiary) },
                                 onClick = {}
                             )
                         } else {
@@ -508,7 +518,13 @@ private fun PatientSelectorSection(
                                     text = {
                                         Column {
                                             Text(pat.fullName, fontWeight = FontWeight.SemiBold, color = AuTextPrimary)
-                                            pat.dni?.let { Text("DNI: $it", style = MaterialTheme.typography.labelSmall, color = AuTextTertiary) }
+                                            pat.dni?.let {
+                                                Text(
+                                                    stringResource(R.string.doctor_create_rx_patient_dni_prefix, it),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = AuTextTertiary
+                                                )
+                                            }
                                         }
                                     },
                                     onClick = { onSelectPatient(pat) }
@@ -555,7 +571,7 @@ private fun MedicationItemFormCard(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Outlined.Medication, contentDescription = null, tint = PortalDoctors, modifier = Modifier.size(18.dp))
                     Text(
-                        text = "Medicamento #$itemNumber",
+                        text = stringResource(R.string.doctor_create_rx_medication_item_title, itemNumber),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary
@@ -563,7 +579,7 @@ private fun MedicationItemFormCard(
                 }
                 if (canDelete) {
                     IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = AuDanger, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.doctor_create_rx_delete_item_desc), tint = AuDanger, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -578,8 +594,8 @@ private fun MedicationItemFormCard(
                         onMedicationNameChange(it)
                         medicationSuggestionsExpanded = it.isNotBlank() && it.length >= 2
                     },
-                    label = { Text("Fármaco o Principio Activo *") },
-                    placeholder = { Text("Ej: Amoxicilina 500 mg, Losartán 50 mg...") },
+                    label = { Text(stringResource(R.string.doctor_create_rx_med_name_label)) },
+                    placeholder = { Text(stringResource(R.string.doctor_create_rx_med_name_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -633,8 +649,8 @@ private fun MedicationItemFormCard(
                 OutlinedTextField(
                     value = itemState.dosage,
                     onValueChange = onDosageChange,
-                    label = { Text("Dosis *") },
-                    placeholder = { Text("Ej: 500 mg, 1 comprimido...") },
+                    label = { Text(stringResource(R.string.doctor_create_rx_dosage_label)) },
+                    placeholder = { Text(stringResource(R.string.doctor_create_rx_dosage_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -661,8 +677,8 @@ private fun MedicationItemFormCard(
                 OutlinedTextField(
                     value = itemState.frequency,
                     onValueChange = onFrequencyChange,
-                    label = { Text("Frecuencia *") },
-                    placeholder = { Text("Ej: Cada 8 horas, 1 vez al día...") },
+                    label = { Text(stringResource(R.string.doctor_create_rx_frequency_label)) },
+                    placeholder = { Text(stringResource(R.string.doctor_create_rx_frequency_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -689,8 +705,8 @@ private fun MedicationItemFormCard(
                 OutlinedTextField(
                     value = itemState.duration,
                     onValueChange = onDurationChange,
-                    label = { Text("Duración del tratamiento") },
-                    placeholder = { Text("Ej: Por 7 días, Tratamiento crónico...") },
+                    label = { Text(stringResource(R.string.doctor_create_rx_duration_label)) },
+                    placeholder = { Text(stringResource(R.string.doctor_create_rx_duration_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -716,8 +732,8 @@ private fun MedicationItemFormCard(
             OutlinedTextField(
                 value = itemState.instructions,
                 onValueChange = onInstructionsChange,
-                label = { Text("Instrucciones específicas") },
-                placeholder = { Text("Ej: Tomar con abundantes líquidos junto con el almuerzo...") },
+                label = { Text(stringResource(R.string.doctor_create_rx_instructions_label)) },
+                placeholder = { Text(stringResource(R.string.doctor_create_rx_instructions_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -749,7 +765,7 @@ private fun DiagnosisSelectorSection(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Diagnóstico Principal (CIE-10) *",
+                text = stringResource(R.string.doctor_create_rx_diagnosis_title),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = AuTextSecondary
@@ -761,7 +777,7 @@ private fun DiagnosisSelectorSection(
                     onDiagnosisChange(it, null)
                     diagSuggestionsExpanded = it.isNotBlank() && it.length >= 2
                 },
-                placeholder = { Text("Buscar diagnóstico (ej: Hipertensión, Faringitis, I10...)") },
+                placeholder = { Text(stringResource(R.string.doctor_create_rx_diagnosis_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(

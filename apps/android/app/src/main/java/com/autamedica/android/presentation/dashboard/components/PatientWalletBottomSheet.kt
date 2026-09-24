@@ -136,7 +136,7 @@ fun PatientWalletBottomSheet(
                                 color = Color(0xFF334155),
                             )
                         }
-                        val formattedBalance = NumberFormat.getCurrencyInstance(Locale("es", "AR")).apply {
+                        val formattedBalance = NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
                             maximumFractionDigits = 0
                         }.format(walletBalanceCents / 100.0)
                         Text(

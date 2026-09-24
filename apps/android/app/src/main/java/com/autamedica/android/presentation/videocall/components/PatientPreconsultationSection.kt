@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall.components
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -61,11 +63,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
-private val ClinicalReasons = listOf(
-    "Dolor",
-    "Control",
-    "Receta",
-    "Estudios",
+private data class ClinicalReasonItem(
+    val key: String,
+    val labelRes: Int,
+)
+
+private val ClinicalReasonItems = listOf(
+    ClinicalReasonItem("Dolor", R.string.videocall_reason_pain),
+    ClinicalReasonItem("Control", R.string.videocall_reason_control),
+    ClinicalReasonItem("Receta", R.string.videocall_reason_prescription),
+    ClinicalReasonItem("Estudios", R.string.videocall_reason_tests),
 )
 
 @Composable
@@ -153,7 +160,7 @@ fun PatientPreconsultationSection(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Text(
-                        text = "Ficha preconsulta",
+                        text = stringResource(R.string.videocall_preconsultation_sheet_title),
                         color = Color(0xFF0F172A),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
@@ -197,7 +204,7 @@ fun PatientPreconsultationSection(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Close,
-                            contentDescription = "Cerrar",
+                            contentDescription = stringResource(R.string.videocall_close),
                             tint = Color(0xFF475569),
                             modifier = Modifier.size(16.dp),
                         )
@@ -256,13 +263,13 @@ fun PatientPreconsultationSection(
                                 }
                                 Column {
                                     Text(
-                                        text = "Audio de síntomas",
+                                        text = stringResource(R.string.videocall_audio_symptoms_title),
                                         color = Color(0xFF0F172A),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        text = "Explicá qué sentís con tu voz",
+                                        text = stringResource(R.string.videocall_audio_symptoms_subtitle),
                                         color = Color(0xFF64748B),
                                         fontSize = 11.sp,
                                     )
@@ -286,7 +293,7 @@ fun PatientPreconsultationSection(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Grabar",
+                                    text = stringResource(R.string.videocall_record_audio),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp,
                                 )
@@ -363,7 +370,7 @@ fun PatientPreconsultationSection(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Stop,
-                                    contentDescription = "Detener",
+                                    contentDescription = stringResource(R.string.videocall_stop_recording),
                                     tint = Color.White,
                                     modifier = Modifier.size(18.dp),
                                 )
@@ -390,7 +397,7 @@ fun PatientPreconsultationSection(
                                 ) {
                                     Icon(
                                         imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                                        contentDescription = "Play",
+                                        contentDescription = stringResource(R.string.videocall_play_audio),
                                         tint = Color.White,
                                         modifier = Modifier.size(20.dp),
                                     )
@@ -402,7 +409,7 @@ fun PatientPreconsultationSection(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     ) {
                                         Text(
-                                            text = if (isPlaying) "Reproduciendo..." else "Relato adjunto",
+                                            text = if (isPlaying) stringResource(R.string.videocall_playing_audio) else stringResource(R.string.videocall_audio_attached),
                                             color = Color(0xFF0F172A),
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.SemiBold,
@@ -456,7 +463,7 @@ fun PatientPreconsultationSection(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.DeleteOutline,
-                                    contentDescription = "Regrabar",
+                                    contentDescription = stringResource(R.string.videocall_rerecord_audio),
                                     tint = Color(0xFFDC2626),
                                     modifier = Modifier.size(16.dp),
                                 )
@@ -469,7 +476,7 @@ fun PatientPreconsultationSection(
             // ── Motivo de Consulta: Segmented Control Nubank ──
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "Motivo principal",
+                    text = stringResource(R.string.videocall_main_reason),
                     color = Color(0xFF0F172A),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -479,8 +486,8 @@ fun PatientPreconsultationSection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    ClinicalReasons.forEach { reason ->
-                        val isSelected = selectedReason.startsWith(reason) || selectedReason == reason
+                    ClinicalReasonItems.forEach { item ->
+                        val isSelected = selectedReason.startsWith(item.key) || selectedReason == item.key
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = if (isSelected) Color(0xFF0284C7) else Color(0xFFF1F5F9),
@@ -490,14 +497,14 @@ fun PatientPreconsultationSection(
                             ),
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable { onReasonSelected(reason) },
+                                .clickable { onReasonSelected(item.key) },
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier.padding(vertical = 10.dp),
                             ) {
                                 Text(
-                                    text = reason,
+                                    text = stringResource(item.labelRes),
                                     color = if (isSelected) Color.White else Color(0xFF334155),
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
@@ -516,7 +523,7 @@ fun PatientPreconsultationSection(
                 onValueChange = onSymptomsChanged,
                 placeholder = {
                     Text(
-                        text = "Notas adicionales o síntomas (opcional)...",
+                        text = stringResource(R.string.videocall_additional_notes_placeholder),
                         color = Color(0xFF94A3B8),
                         fontSize = 12.sp,
                     )
@@ -558,13 +565,13 @@ fun PatientPreconsultationSection(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Ficha confirmada",
+                        text = stringResource(R.string.videocall_preconsultation_saved_badge),
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.5.sp,
                     )
                 } else {
                     Text(
-                        text = "Confirmar y continuar",
+                        text = stringResource(R.string.videocall_confirm_and_continue),
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.5.sp,
                     )

@@ -111,4 +111,7 @@ sealed interface Route {
 
     @Serializable
     data class PharmacyIntake(val pharmacyId: String = "") : Route
+
+    @Serializable
+    data object DoctorOnDemand : Route
 }

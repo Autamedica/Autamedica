@@ -15,10 +15,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.autamedica.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,10 +33,13 @@ fun ReproductiveHealthScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Salud Reproductiva (IVE)") },
+                title = { Text(stringResource(R.string.reproductive_screen_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás")
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = stringResource(R.string.reproductive_back_cd)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -59,10 +64,17 @@ fun ReproductiveHealthScreen(
             
             TabRow(selectedTabIndex = state.activeTab.ordinal) {
                 ReproductiveTab.entries.forEachIndexed { index, tab ->
+                    val tabLabel = when (tab) {
+                        ReproductiveTab.OVERVIEW -> stringResource(R.string.reproductive_tab_overview)
+                        ReproductiveTab.RIGHTS -> stringResource(R.string.reproductive_tab_rights)
+                        ReproductiveTab.PROCEDURES -> stringResource(R.string.reproductive_tab_procedures)
+                        ReproductiveTab.DOCTORS -> stringResource(R.string.reproductive_tab_doctors)
+                        ReproductiveTab.SUPPORT -> stringResource(R.string.reproductive_tab_support)
+                    }
                     Tab(
                         selected = state.activeTab == tab,
                         onClick = { viewModel.setTab(tab) },
-                        text = { Text(tab.label) }
+                        text = { Text(tabLabel) }
                     )
                 }
             }
@@ -88,18 +100,18 @@ private fun HeaderSection(onRequestConsultation: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "Interrupción Voluntaria del Embarazo",
+                stringResource(R.string.reproductive_header_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "Acceso a información confiable y atención médica profesional para la interrupción del embarazo.",
+                stringResource(R.string.reproductive_header_desc),
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onRequestConsultation, modifier = Modifier.fillMaxWidth()) {
-                Text("Consulta Médica Ahora")
+                Text(stringResource(R.string.reproductive_header_action_btn))
             }
         }
     }
@@ -121,18 +133,21 @@ private fun UrgentAlertSection(onRequestConsultation: () -> Unit) {
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "¿Necesitas atención urgente?",
+                    stringResource(R.string.reproductive_urgent_title),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
                 Text(
-                    "Sangrado abundante, dolor intenso o fiebre alta.",
+                    stringResource(R.string.reproductive_urgent_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
             TextButton(onClick = onRequestConsultation) {
-                Text("Contactar", color = MaterialTheme.colorScheme.onErrorContainer)
+                Text(
+                    stringResource(R.string.reproductive_urgent_contact_btn),
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
             }
         }
     }
@@ -141,13 +156,14 @@ private fun UrgentAlertSection(onRequestConsultation: () -> Unit) {
 @Composable
 private fun TabContent(activeTab: ReproductiveTab) {
     Box(modifier = Modifier.padding(16.dp)) {
-        when (activeTab) {
-            ReproductiveTab.OVERVIEW -> Text("Información sobre métodos disponibles y acompañamiento psicológico gratuito. Es tu derecho según la Ley 27.610 (Argentina).")
-            ReproductiveTab.RIGHTS -> Text("Conocé tus derechos legales en Argentina para acceder a la interrupción voluntaria del embarazo de manera gratuita.")
-            ReproductiveTab.PROCEDURES -> Text("Métodos medicamentosos y procedimientos médicos disponibles.")
-            ReproductiveTab.DOCTORS -> Text("Encontrá médicos especializados y capacitados para brindarte atención de calidad.")
-            ReproductiveTab.SUPPORT -> Text("Acompañamiento emocional y recursos psicológicos para ayudarte en todo el proceso.")
+        val contentText = when (activeTab) {
+            ReproductiveTab.OVERVIEW -> stringResource(R.string.reproductive_tab_overview_content)
+            ReproductiveTab.RIGHTS -> stringResource(R.string.reproductive_tab_rights_content)
+            ReproductiveTab.PROCEDURES -> stringResource(R.string.reproductive_tab_procedures_content)
+            ReproductiveTab.DOCTORS -> stringResource(R.string.reproductive_tab_doctors_content)
+            ReproductiveTab.SUPPORT -> stringResource(R.string.reproductive_tab_support_content)
         }
+        Text(contentText)
     }
 }
 
@@ -164,17 +180,20 @@ private fun UrgentContactDialog(onDismiss: () -> Unit) {
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Conectando con médico...", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    stringResource(R.string.reproductive_dialog_connecting),
+                    style = MaterialTheme.typography.titleLarge
+                )
                 Spacer(modifier = Modifier.height(16.dp))
                 CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "Estamos conectándote con un profesional de la salud de forma confidencial.",
+                    stringResource(R.string.reproductive_dialog_connecting_desc),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 TextButton(onClick = onDismiss) {
-                    Text("Cancelar")
+                    Text(stringResource(R.string.reproductive_dialog_cancel_btn))
                 }
             }
         }

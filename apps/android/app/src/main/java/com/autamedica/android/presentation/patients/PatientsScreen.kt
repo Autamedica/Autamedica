@@ -36,10 +36,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -69,7 +71,7 @@ fun PatientsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Mis Pacientes",
+                        text = stringResource(R.string.patients_screen_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.Bold,
@@ -83,7 +85,7 @@ fun PatientsScreen(
                     ) {
                         Icon(
                             Icons.Outlined.Search,
-                            contentDescription = "Buscar",
+                            contentDescription = stringResource(R.string.patients_search_cd),
                             tint = AuTextSecondary,
                             modifier = Modifier.padding(8.dp),
                         )
@@ -137,14 +139,14 @@ fun PatientsScreen(
                             }
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = uiState.error ?: "Error",
+                                text = uiState.error ?: stringResource(R.string.patients_error_generic),
                                 color = AuDanger,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Deslizar hacia abajo para reintentar",
+                                text = stringResource(R.string.patients_pull_to_refresh_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextTertiary,
                             )
@@ -175,14 +177,14 @@ fun PatientsScreen(
                             }
                             Spacer(modifier = Modifier.height(20.dp))
                             Text(
-                                text = "Sin pacientes asignados",
+                                text = stringResource(R.string.patients_empty_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = AuTextPrimary,
                                 fontWeight = FontWeight.Medium,
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Aqui apareceran los pacientes que atiendas",
+                                text = stringResource(R.string.patients_empty_subtitle),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = AuTextTertiary,
                             )
@@ -196,8 +198,13 @@ fun PatientsScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         item {
+                            val countText = if (uiState.patients.size == 1) {
+                                stringResource(R.string.patients_count_single, uiState.patients.size)
+                            } else {
+                                stringResource(R.string.patients_count_plural, uiState.patients.size)
+                            }
                             Text(
-                                text = "${uiState.patients.size} paciente${if (uiState.patients.size != 1) "s" else ""}",
+                                text = countText,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = AuTextSecondary,
                                 modifier = Modifier.padding(bottom = 4.dp),
@@ -247,15 +254,23 @@ private fun PatientCard(
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
+                    val patientName = "${patient.firstName} ${patient.lastName}".trim().ifBlank {
+                        stringResource(R.string.patients_anonymous)
+                    }
                     Text(
-                        text = "${patient.firstName} ${patient.lastName}".trim().ifBlank { "Paciente Anonimo" },
+                        text = patientName,
                         style = MaterialTheme.typography.titleMedium,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Spacer(modifier = Modifier.height(2.dp))
+                    val consultationsText = if (patient.appointmentCount == 1) {
+                        stringResource(R.string.patients_consultations_total_single, patient.appointmentCount)
+                    } else {
+                        stringResource(R.string.patients_consultations_total_plural, patient.appointmentCount)
+                    }
                     Text(
-                        text = "${patient.appointmentCount} consultas en total",
+                        text = consultationsText,
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary,
                     )
@@ -271,7 +286,7 @@ private fun PatientCard(
                     if (patient.lastAppointment != null) {
                         Column {
                             Text(
-                                text = "Ultima consulta",
+                                text = stringResource(R.string.patients_last_consultation),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AuTextTertiary,
                             )
@@ -287,7 +302,7 @@ private fun PatientCard(
                     if (patient.nextAppointment != null) {
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "Proxima consulta",
+                                text = stringResource(R.string.patients_next_consultation),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = PortalDoctors,
                             )
@@ -309,7 +324,7 @@ private fun PatientCard(
 private fun formatDate(isoString: String): String {
     return try {
         val dt = OffsetDateTime.parse(isoString)
-        dt.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale("es", "AR")))
+        dt.format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()))
     } catch (_: Exception) {
         isoString
     }

@@ -16,4 +16,5 @@ interface DoctorRepository {
     suspend fun saveDoctorAvailability(doctorId: String, slots: List<DoctorAvailabilitySlot>): Result<Unit> = Result.success(Unit)
     suspend fun getPatientClinicalContext(patientId: String): Result<PatientClinicalContext> = Result.success(PatientClinicalContext())
     suspend fun resolvePatientNames(patientIds: List<String>): Result<Map<String, String>> = Result.success(emptyMap())
+    suspend fun resolvePatientSummaries(patientIds: List<String>): Result<Map<String, PatientSummary>> = Result.success(emptyMap())
 }

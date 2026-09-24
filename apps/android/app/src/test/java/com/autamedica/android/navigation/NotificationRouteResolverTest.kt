@@ -54,7 +54,7 @@ class NotificationRouteResolverTest {
         val route = NotificationRouteResolver.resolve(
             appointmentId = null,
             chatRoomId = null,
-            deepLink = "/prescriptions/presc-123",
+            deepLink = "/unknown/unknown-123",
         )
 
         assertThat(route).isNull()

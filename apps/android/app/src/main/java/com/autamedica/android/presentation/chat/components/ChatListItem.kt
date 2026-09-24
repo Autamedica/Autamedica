@@ -21,8 +21,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.ChatStatus
 import com.autamedica.android.domain.model.MedicalChat
 import com.autamedica.android.presentation.theme.AuAccent
@@ -117,20 +119,22 @@ fun ChatListItem(
                 // Status chip for non-active chats
                 if (chat.status != ChatStatus.ACTIVE) {
                     val label = when (chat.status) {
-                        ChatStatus.WAITING_RESPONSE -> "Esperando respuesta"
-                        ChatStatus.RESOLVED -> "Resuelto"
-                        ChatStatus.CLOSED -> "Cerrado"
+                        ChatStatus.WAITING_RESPONSE -> stringResource(R.string.chat_status_waiting_response)
+                        ChatStatus.RESOLVED -> stringResource(R.string.chat_status_resolved)
+                        ChatStatus.CLOSED -> stringResource(R.string.chat_status_closed)
                         else -> ""
                     }
-                    Text(
-                        text = label,
-                        color = AuTextTertiary,
-                        fontSize = 11.sp,
-                        modifier = Modifier
-                            .padding(top = 2.dp)
-                            .background(AuSurfaceHover, RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                    )
+                    if (label.isNotEmpty()) {
+                        Text(
+                            text = label,
+                            color = AuTextTertiary,
+                            fontSize = 11.sp,
+                            modifier = Modifier
+                                .padding(top = 2.dp)
+                                .background(AuSurfaceHover, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
                 }
             }
         }

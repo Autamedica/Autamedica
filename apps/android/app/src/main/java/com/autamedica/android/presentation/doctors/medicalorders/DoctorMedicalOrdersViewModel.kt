@@ -1,7 +1,9 @@
 package com.autamedica.android.presentation.doctors.medicalorders
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.CreateMedicalOrderRequest
 import com.autamedica.android.domain.model.MedicalOrder
 import com.autamedica.android.domain.model.PracticeItem
@@ -52,7 +54,10 @@ data class DoctorMedicalOrdersUiState(
     val isSubmitting: Boolean = false,
     val createdOrder: MedicalOrder? = null,
     val userMessage: String? = null,
+    @StringRes val userMessageResId: Int? = null,
+    val userMessageArgs: List<String> = emptyList(),
     val errorMessage: String? = null,
+    @StringRes val errorMessageResId: Int? = null,
 )
 
 @HiltViewModel
@@ -71,7 +76,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
 
     fun loadOrders() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, errorMessageResId = null) }
             medicalOrderRepository.getDoctorMedicalOrders()
                 .onSuccess { list ->
                     val total = list.size
@@ -99,6 +104,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             errorMessage = error.localizedMessage ?: "Error al cargar órdenes médicas",
+                            errorMessageResId = R.string.doctor_orders_val_load_error,
                         )
                     }
                 }
@@ -144,6 +150,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                 selectedPatient = patient,
                 patientId = patient?.patientId.orEmpty(),
                 errorMessage = null,
+                errorMessageResId = null,
             )
         }
     }
@@ -166,7 +173,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
     }
 
     fun onDiagnosisChange(diagnosis: String) {
-        _uiState.update { it.copy(diagnosis = diagnosis, errorMessage = null) }
+        _uiState.update { it.copy(diagnosis = diagnosis, errorMessage = null, errorMessageResId = null) }
     }
 
     fun onNotesChange(notes: String) {
@@ -195,7 +202,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
             if (index in updated.indices) {
                 updated[index] = value
             }
-            current.copy(practices = updated, errorMessage = null)
+            current.copy(practices = updated, errorMessage = null, errorMessageResId = null)
         }
     }
 
@@ -203,7 +210,12 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
         val state = _uiState.value
         val patientId = state.selectedPatient?.patientId ?: state.patientId
         if (patientId.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Seleccione un paciente elegible") }
+            _uiState.update {
+                it.copy(
+                    errorMessage = "Seleccione un paciente elegible",
+                    errorMessageResId = R.string.doctor_orders_val_patient_required,
+                )
+            }
             return
         }
 
@@ -213,12 +225,22 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
             .map { PracticeItem(name = it) }
 
         if (practiceItems.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Ingrese al menos un estudio o práctica médica") }
+            _uiState.update {
+                it.copy(
+                    errorMessage = "Ingrese al menos un estudio o práctica médica",
+                    errorMessageResId = R.string.doctor_orders_val_practice_required,
+                )
+            }
             return
         }
 
         if (state.diagnosis.trim().isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Ingrese el diagnóstico presuntivo / código CIE-10") }
+            _uiState.update {
+                it.copy(
+                    errorMessage = "Ingrese el diagnóstico presuntivo / código CIE-10",
+                    errorMessageResId = R.string.doctor_orders_val_diagnosis_required,
+                )
+            }
             return
         }
 
@@ -241,7 +263,16 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
         onSuccess: (() -> Unit)? = null,
     ) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true, errorMessage = null, userMessage = null) }
+            _uiState.update {
+                it.copy(
+                    isSubmitting = true,
+                    errorMessage = null,
+                    errorMessageResId = null,
+                    userMessage = null,
+                    userMessageResId = null,
+                    userMessageArgs = emptyList(),
+                )
+            }
 
             val request = CreateMedicalOrderRequest(
                 patientId = patientId,
@@ -253,11 +284,14 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
 
             medicalOrderRepository.createMedicalOrder(request)
                 .onSuccess { created ->
+                    val cuirText = created.cuir ?: "Emitida"
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
                             createdOrder = created,
-                            userMessage = "Orden médica emitida con éxito (CUIR: ${created.cuir ?: "Emitida"})",
+                            userMessage = "Orden médica emitida con éxito (CUIR: $cuirText)",
+                            userMessageResId = R.string.doctor_orders_val_issued_success,
+                            userMessageArgs = listOf(cuirText),
                             // Reset creation form
                             practices = listOf(""),
                             diagnosis = "",
@@ -272,6 +306,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                         it.copy(
                             isSubmitting = false,
                             errorMessage = error.localizedMessage ?: "Error al emitir orden médica",
+                            errorMessageResId = R.string.doctor_orders_val_issue_error,
                         )
                     }
                 }
@@ -280,14 +315,24 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
 
     fun cancelOrder(orderId: String, reason: String) {
         if (reason.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Debe especificar un motivo de cancelación") }
+            _uiState.update {
+                it.copy(
+                    errorMessage = "Debe especificar un motivo de cancelación",
+                    errorMessageResId = R.string.doctor_orders_val_cancel_reason_required,
+                )
+            }
             return
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             medicalOrderRepository.cancelMedicalOrder(orderId, reason)
                 .onSuccess {
-                    _uiState.update { it.copy(userMessage = "Orden médica cancelada") }
+                    _uiState.update {
+                        it.copy(
+                            userMessage = "Orden médica cancelada",
+                            userMessageResId = R.string.doctor_orders_val_cancelled_success,
+                        )
+                    }
                     loadOrders()
                 }
                 .onFailure { error ->
@@ -295,6 +340,7 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             errorMessage = error.localizedMessage ?: "No se pudo cancelar la orden",
+                            errorMessageResId = R.string.doctor_orders_val_cancel_error,
                         )
                     }
                 }
@@ -302,7 +348,15 @@ class DoctorMedicalOrdersViewModel @Inject constructor(
     }
 
     fun clearMessages() {
-        _uiState.update { it.copy(userMessage = null, errorMessage = null) }
+        _uiState.update {
+            it.copy(
+                userMessage = null,
+                userMessageResId = null,
+                userMessageArgs = emptyList(),
+                errorMessage = null,
+                errorMessageResId = null,
+            )
+        }
     }
 
     private fun applyFilterAndSearch(

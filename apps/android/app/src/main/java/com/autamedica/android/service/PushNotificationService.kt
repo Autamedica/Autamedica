@@ -67,6 +67,10 @@ class PushNotificationService : FirebaseMessagingService() {
                 Timber.i("[FCM] High-priority incoming call notification: ${payload.type}")
                 IncomingCallNotificationManager.showIncomingCall(this, payload)
             }
+            NotificationType.PHARMACY_DISPATCH_INCOMING -> {
+                Timber.i("[FCM] High-priority on-demand dispatch notification: ${payload.type}")
+                IncomingCallNotificationManager.showDispatchIncoming(this, payload)
+            }
             else -> {
                 NotificationHelper.show(this, payload)
             }
@@ -78,15 +82,27 @@ class PushNotificationService : FirebaseMessagingService() {
         val notification = message.notification
 
         val rawType = data["type"] ?: data["event"] ?: data["notification_type"]
-        val doctorName = data["doctor_name"] ?: data["caller_name"]
+        val parsedType = NotificationType.fromString(rawType)
+
+        val patientName = data["patient_name"]?.takeIf { it.isNotBlank() }
+        val doctorName = if (parsedType == NotificationType.PHARMACY_DISPATCH_INCOMING ||
+            rawType?.equals("pharmacy_dispatch_incoming", ignoreCase = true) == true
+        ) {
+            patientName ?: data["caller_name"] ?: "Paciente de Guardia"
+        } else {
+            data["doctor_name"] ?: data["caller_name"]
+        }
         val doctorAvatarUrl = data["doctor_avatar_url"] ?: data["caller_avatar_url"]
+        val appointmentId = data["appointment_id"] ?: data["request_id"]
+        val roomId = data["room_id"] ?: data["cloudflare_room_id"]
+
         return PushPayload(
-            type = NotificationType.fromString(rawType),
+            type = parsedType,
             title = data["title"] ?: notification?.title ?: "AutaMedica",
             body = data["body"] ?: notification?.body ?: "",
-            appointmentId = data["appointment_id"],
+            appointmentId = appointmentId,
             callId = data["call_id"],
-            roomId = data["room_id"],
+            roomId = roomId,
             chatRoomId = data["chat_room_id"],
             prescriptionId = data["prescription_id"],
             senderId = data["sender_id"],

@@ -216,8 +216,23 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val randomHex = UUID.randomUUID().toString().replace("-", "").take(6).uppercase()
         val cuir = "AR-MD-$timestampHex-$randomHex"
         val qrContent = "https://autamedica.com/verify/$cuir"
-        val prescriptionId = UUID.randomUUID().toString()
+        var prescriptionId = UUID.randomUUID().toString()
         val now = Instant.now().toString()
+
+        // Resolver ID real en tabla patients si se paso user_id o dni
+        val actualPatientId = runCatching {
+            val byId = supabaseClient.postgrest.from("patients")
+                .select(Columns.list("id")) { filter { eq("id", request.patientId) } }
+                .decodeSingleOrNull<RecordIdDto>()?.id
+            if (byId != null) return@runCatching byId
+
+            val byUserId = supabaseClient.postgrest.from("patients")
+                .select(Columns.list("id")) { filter { eq("user_id", request.patientId) } }
+                .decodeSingleOrNull<RecordIdDto>()?.id
+            if (byUserId != null) return@runCatching byUserId
+
+            request.patientId
+        }.getOrDefault(request.patientId)
 
         // 2. Build structured clinical_data JSONB
         val firstItem = request.items.first()
@@ -249,13 +264,12 @@ class PrescriptionRepositoryImpl @Inject constructor(
         }
 
         // 3. Invocar Edge Function issue-prescription
+        // NO enviar prescriptionId para que la Edge Function cree un borrador nuevo con permisos service_role
         val issuePayload = buildJsonObject {
-            put("prescriptionId", prescriptionId)
-            put("prescription_id", prescriptionId)
             put("doctorId", doctor.id)
             put("doctor_id", doctor.id)
-            put("patientId", request.patientId)
-            put("patient_id", request.patientId)
+            put("patientId", actualPatientId)
+            put("patient_id", actualPatientId)
             put("clinicalData", clinicalData)
             put("clinical_data", clinicalData)
             put("items", itemsArray)
@@ -281,6 +295,8 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 ?: jsonObj?.get("prescription") as? JsonObject
                 ?: jsonObj
 
+            val returnedId = targetObj?.get("id")?.jsonPrimitive?.contentOrNull
+                ?: targetObj?.get("prescription_id")?.jsonPrimitive?.contentOrNull
             val returnedCuir = targetObj?.get("cuir")?.jsonPrimitive?.contentOrNull
             val returnedPdf = targetObj?.get("signed_pdf_url")?.jsonPrimitive?.contentOrNull
                 ?: targetObj?.get("signedPdfUrl")?.jsonPrimitive?.contentOrNull
@@ -288,6 +304,9 @@ class PrescriptionRepositoryImpl @Inject constructor(
             val returnedQr = targetObj?.get("qr_code_content")?.jsonPrimitive?.contentOrNull
                 ?: targetObj?.get("qrContent")?.jsonPrimitive?.contentOrNull
 
+            if (!returnedId.isNullOrBlank()) {
+                prescriptionId = returnedId
+            }
             if (!returnedCuir.isNullOrBlank()) {
                 finalCuir = returnedCuir
                 finalPdfUrl = returnedPdf
@@ -305,13 +324,14 @@ class PrescriptionRepositoryImpl @Inject constructor(
             val insertPayload = buildJsonObject {
                 put("id", prescriptionId)
                 put("doctor_id", doctor.id)
-                put("patient_id", request.patientId)
+                put("patient_id", actualPatientId)
                 put("cuir", cuir)
                 put("status", "signed")
                 put("clinical_data", clinicalData)
                 put("vendor_name", "autamedica")
                 put("vendor_id", cuir)
                 put("qr_code_content", qrContent)
+                put("country_code", request.countryCode.ifBlank { "AR" })
                 put("created_at", now)
                 put("updated_at", now)
             }
@@ -330,8 +350,28 @@ class PrescriptionRepositoryImpl @Inject constructor(
             }
         }
 
-        // 5. Resolve patient info for returning the fully hydrated Prescription
-        val (patientNameMap, patientDniMap) = resolvePatientsInfo(listOf(request.patientId))
+        // 5. Vincular paciente y doctor en doctor_patient y patient_care_team
+        runCatching {
+            supabaseClient.postgrest.from("doctor_patient").upsert(
+                buildJsonObject {
+                    put("doctor_id", doctor.id)
+                    put("patient_id", actualPatientId)
+                }
+            )
+        }
+        runCatching {
+            supabaseClient.postgrest.from("patient_care_team").upsert(
+                buildJsonObject {
+                    put("doctor_id", doctor.id)
+                    put("patient_id", actualPatientId)
+                    put("role", "prescriber")
+                    put("active", true)
+                }
+            )
+        }
+
+        // 6. Resolve patient info for returning the fully hydrated Prescription
+        val (patientNameMap, patientDniMap) = resolvePatientsInfo(listOf(actualPatientId))
         val (doctorNameMap, doctorLicenseMap) = resolveDoctorsInfo(listOf(doctor.id))
 
         Prescription(
@@ -352,8 +392,8 @@ class PrescriptionRepositoryImpl @Inject constructor(
             diagnosis = request.diagnosis,
             notes = request.notes,
             prescribedDate = now,
-            patientName = patientNameMap[request.patientId],
-            patientDni = patientDniMap[request.patientId],
+            patientName = patientNameMap[actualPatientId],
+            patientDni = patientDniMap[actualPatientId],
             items = request.items,
         )
     }.onFailure {
@@ -421,7 +461,60 @@ class PrescriptionRepositoryImpl @Inject constructor(
                 .mapNotNull { it.patientId }
         }.getOrElse { emptyList() }
 
-        val allPatientIds = (linkedPatientIds + appointmentPatientIds).distinct()
+        // 3. From patient_care_team
+        val careTeamPatientIds = runCatching {
+            supabaseClient.postgrest
+                .from("patient_care_team")
+                .select(Columns.list("patient_id")) {
+                    filter { eq("doctor_id", doctorId) }
+                    limit(50)
+                }
+                .decodeList<CareTeamPatientLinkDto>()
+                .map { it.patientId }
+        }.getOrElse { emptyList() }
+
+        // 4. From pharmacy_dispatch_requests assigned to this doctor
+        val dispatchUserIds = runCatching {
+            supabaseClient.postgrest
+                .from("pharmacy_dispatch_requests")
+                .select(Columns.list("requested_by_user_id", "patient_dni")) {
+                    filter {
+                        or {
+                            eq("assigned_doctor_id", doctorId)
+                            eq("previous_doctor_id", doctorId)
+                        }
+                    }
+                    limit(30)
+                }
+                .decodeList<DispatchUserLinkDto>()
+        }.getOrElse { emptyList() }
+
+        val dispatchPatientIds = if (dispatchUserIds.isNotEmpty()) {
+            val userIds = dispatchUserIds.mapNotNull { it.requestedByUserId }.distinct()
+            val dnis = dispatchUserIds.mapNotNull { it.patientDni }.distinct()
+            runCatching {
+                supabaseClient.postgrest
+                    .from("patients")
+                    .select(Columns.list("id")) {
+                        filter {
+                            if (userIds.isNotEmpty() && dnis.isNotEmpty()) {
+                                or {
+                                    isIn("user_id", userIds)
+                                    isIn("dni", dnis)
+                                }
+                            } else if (userIds.isNotEmpty()) {
+                                isIn("user_id", userIds)
+                            } else if (dnis.isNotEmpty()) {
+                                isIn("dni", dnis)
+                            }
+                        }
+                    }
+                    .decodeList<RecordIdDto>()
+                    .map { it.id }
+            }.getOrElse { emptyList() }
+        } else emptyList()
+
+        val allPatientIds = (linkedPatientIds + appointmentPatientIds + careTeamPatientIds + dispatchPatientIds).distinct()
 
         val patients = if (allPatientIds.isNotEmpty()) {
             supabaseClient.postgrest
@@ -845,6 +938,17 @@ class PrescriptionRepositoryImpl @Inject constructor(
     @Serializable
     private data class AppointmentPatientLinkDto(
         @SerialName("patient_id") val patientId: String? = null,
+    )
+
+    @Serializable
+    private data class CareTeamPatientLinkDto(
+        @SerialName("patient_id") val patientId: String,
+    )
+
+    @Serializable
+    private data class DispatchUserLinkDto(
+        @SerialName("requested_by_user_id") val requestedByUserId: String? = null,
+        @SerialName("patient_dni") val patientDni: String? = null,
     )
 
     @Serializable

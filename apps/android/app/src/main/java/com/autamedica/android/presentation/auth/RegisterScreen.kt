@@ -231,12 +231,12 @@ fun RegisterScreen(
                     .padding(vertical = 4.dp),
             ) {
                 Text(
-                    text = "¿Ya tienes una cuenta? ",
+                    text = stringResource(R.string.register_already_have_account),
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                 )
                 Text(
-                    text = "Iniciar sesión",
+                    text = stringResource(R.string.register_login_link),
                     style = MaterialTheme.typography.bodySmall,
                     color = activeColor,
                     fontWeight = FontWeight.SemiBold,
@@ -259,7 +259,7 @@ fun RegisterScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Conexión cifrada de extremo a extremo",
+                    text = stringResource(R.string.auth_encrypted_connection),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                     textAlign = TextAlign.Center,
@@ -284,7 +284,7 @@ private fun AutamedicaHeader() {
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo_autamedica),
-                contentDescription = "AutaMedica",
+                contentDescription = stringResource(R.string.app_name),
                 modifier = Modifier
                     .size(76.dp)
                     .clip(RoundedCornerShape(16.dp)),
@@ -299,17 +299,17 @@ private fun RoleHeading(
     selectedRole: UserRole,
 ) {
     val title = when (selectedRole) {
-        UserRole.PATIENT -> "Crear cuenta"
-        UserRole.DOCTOR -> "Registro médico"
-        UserRole.PHARMACIST -> "Registro de farmacia"
-        else -> "Registro corporativo"
+        UserRole.PATIENT -> stringResource(R.string.register_title_patient)
+        UserRole.DOCTOR -> stringResource(R.string.register_title_doctor)
+        UserRole.PHARMACIST -> stringResource(R.string.register_title_pharmacist)
+        else -> stringResource(R.string.register_title_company)
     }
 
     val subtitle = when (selectedRole) {
-        UserRole.PATIENT -> "Completá tus datos para acceder a tus consultas y recetas"
-        UserRole.DOCTOR -> "Gestioná tus turnos, videoconsultas y recetas"
-        UserRole.PHARMACIST -> "Validación y dispensa de recetas oficiales"
-        else -> "Gestión de coberturas corporativas"
+        UserRole.PATIENT -> stringResource(R.string.register_subtitle_patient)
+        UserRole.DOCTOR -> stringResource(R.string.register_subtitle_doctor)
+        UserRole.PHARMACIST -> stringResource(R.string.register_subtitle_pharmacist)
+        else -> stringResource(R.string.register_subtitle_company)
     }
 
     Column(
@@ -342,10 +342,10 @@ private fun RoleSegmentedPicker(
     onRoleSelected: (UserRole) -> Unit,
 ) {
     val roles = listOf(
-        Triple(UserRole.PATIENT, "Paciente", com.autamedica.android.presentation.theme.PortalPatients to com.autamedica.android.presentation.theme.PortalPatientsSoft),
-        Triple(UserRole.DOCTOR, "Médico", com.autamedica.android.presentation.theme.PortalDoctors to com.autamedica.android.presentation.theme.PortalDoctorsSoft),
-        Triple(UserRole.PHARMACIST, "Farmacia", com.autamedica.android.presentation.theme.PortalPharmacists to com.autamedica.android.presentation.theme.PortalPharmacistsSoft),
-        Triple(UserRole.COMPANY, "Empresa", com.autamedica.android.presentation.theme.PortalCompanies to com.autamedica.android.presentation.theme.PortalCompaniesSoft),
+        Triple(UserRole.PATIENT, stringResource(R.string.register_role_patient), com.autamedica.android.presentation.theme.PortalPatients to com.autamedica.android.presentation.theme.PortalPatientsSoft),
+        Triple(UserRole.DOCTOR, stringResource(R.string.register_role_doctor), com.autamedica.android.presentation.theme.PortalDoctors to com.autamedica.android.presentation.theme.PortalDoctorsSoft),
+        Triple(UserRole.PHARMACIST, stringResource(R.string.register_role_pharmacist), com.autamedica.android.presentation.theme.PortalPharmacists to com.autamedica.android.presentation.theme.PortalPharmacistsSoft),
+        Triple(UserRole.COMPANY, stringResource(R.string.register_role_company), com.autamedica.android.presentation.theme.PortalCompanies to com.autamedica.android.presentation.theme.PortalCompaniesSoft),
     )
 
     Surface(
@@ -446,7 +446,7 @@ private fun RegisterFormCard(
     onPrivacyClick: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
-    val buttonLabel = "Crear cuenta"
+    val buttonLabel = stringResource(R.string.register_button_submit)
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -490,7 +490,7 @@ private fun RegisterFormCard(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Continuar con Google",
+                        text = stringResource(R.string.register_continue_google),
                         fontWeight = FontWeight.Medium,
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -503,7 +503,7 @@ private fun RegisterFormCard(
             ) {
                 HorizontalDivider(modifier = Modifier.weight(1f), color = AuBorder)
                 Text(
-                    text = "o registrate con tu correo",
+                    text = stringResource(R.string.register_or_email),
                     modifier = Modifier.padding(horizontal = 12.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
@@ -526,7 +526,7 @@ private fun RegisterFormCard(
             OutlinedTextField(
                 value = email,
                 onValueChange = onEmailChange,
-                label = { Text("Correo electrónico") },
+                label = { Text(stringResource(R.string.register_email_label)) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Email,
@@ -548,7 +548,7 @@ private fun RegisterFormCard(
             OutlinedTextField(
                 value = password,
                 onValueChange = onPasswordChange,
-                label = { Text("Contraseña") },
+                label = { Text(stringResource(R.string.register_password_label)) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Lock,
@@ -560,7 +560,7 @@ private fun RegisterFormCard(
                     IconButton(onClick = onPasswordVisibilityToggle) {
                         Icon(
                             if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (passwordVisible) "Ocultar" else "Mostrar",
+                            contentDescription = if (passwordVisible) stringResource(R.string.common_hide) else stringResource(R.string.common_show),
                             tint = AuTextTertiary,
                         )
                     }
@@ -584,7 +584,7 @@ private fun RegisterFormCard(
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = onConfirmPasswordChange,
-                label = { Text("Confirmar contraseña") },
+                label = { Text(stringResource(R.string.register_confirm_password_label)) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Lock,
@@ -596,7 +596,7 @@ private fun RegisterFormCard(
                     IconButton(onClick = onConfirmPasswordVisibilityToggle) {
                         Icon(
                             if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (confirmPasswordVisible) "Ocultar" else "Mostrar",
+                            contentDescription = if (confirmPasswordVisible) stringResource(R.string.common_hide) else stringResource(R.string.common_show),
                             tint = AuTextTertiary,
                         )
                     }
@@ -633,23 +633,23 @@ private fun RegisterFormCard(
                     colors = CheckboxDefaults.colors(checkedColor = activeColor)
                 )
                 Text(
-                    text = "Acepto los ",
+                    text = stringResource(R.string.register_accept_terms_prefix),
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary
                 )
                 Text(
-                    text = "Términos",
+                    text = stringResource(R.string.register_terms_link),
                     style = MaterialTheme.typography.bodySmall,
                     color = activeColor,
                     modifier = Modifier.clickable { onTermsClick() }
                 )
                 Text(
-                    text = " y ",
+                    text = stringResource(R.string.register_terms_and),
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary
                 )
                 Text(
-                    text = "Privacidad",
+                    text = stringResource(R.string.register_privacy_link),
                     style = MaterialTheme.typography.bodySmall,
                     color = activeColor,
                     modifier = Modifier.clickable { onPrivacyClick() }

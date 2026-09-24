@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.videocall.components
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -94,13 +96,13 @@ fun ClinicalNotesSheet(
                     }
                     Column {
                         Text(
-                            text = "Notas Clínicas de Consulta",
+                            text = stringResource(R.string.videocall_clinical_notes_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Evolución clínica sincronizada con la ficha médica",
+                            text = stringResource(R.string.videocall_clinical_notes_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextTertiary,
                         )
@@ -110,7 +112,7 @@ fun ClinicalNotesSheet(
                 IconButton(onClick = onClose) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Cerrar",
+                        contentDescription = stringResource(R.string.videocall_close),
                         tint = AuTextTertiary,
                     )
                 }
@@ -126,7 +128,7 @@ fun ClinicalNotesSheet(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            text = "Motivo de consulta / Antecedentes reportados:",
+                            text = stringResource(R.string.videocall_reason_reported),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                             fontWeight = FontWeight.SemiBold,
@@ -150,7 +152,7 @@ fun ClinicalNotesSheet(
                     .height(140.dp),
                 placeholder = {
                     Text(
-                        text = "Escriba la evolución clínica, indicaciones, diagnóstico presuntivo o plan terapéutico...",
+                        text = stringResource(R.string.videocall_notes_input_placeholder),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary,
                     )
@@ -184,7 +186,7 @@ fun ClinicalNotesSheet(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "Guardado en ficha médica",
+                            text = stringResource(R.string.videocall_saved_in_record),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuSuccess,
                             fontWeight = FontWeight.Medium,
@@ -197,7 +199,7 @@ fun ClinicalNotesSheet(
                             modifier = Modifier.size(14.dp),
                         )
                         Text(
-                            text = "Registro cifrado",
+                            text = stringResource(R.string.videocall_encrypted_record),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
@@ -240,7 +242,7 @@ fun ClinicalNotesSheet(
                             )
                         } else {
                             Text(
-                                text = "Guardar evolución",
+                                text = stringResource(R.string.videocall_save_evolution),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )

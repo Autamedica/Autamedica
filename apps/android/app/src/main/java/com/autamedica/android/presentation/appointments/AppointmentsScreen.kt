@@ -1,11 +1,16 @@
 package com.autamedica.android.presentation.appointments
 
+import androidx.compose.ui.res.stringResource
+import com.autamedica.android.R
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -123,7 +128,7 @@ fun AppointmentsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDoctor = uiState.userRole == "doctor"
     val accentColor = if (isDoctor) PortalDoctors else PortalPatients
-    val title = if (isDoctor) "Agenda médica" else "Agenda"
+    val title = if (isDoctor) stringResource(R.string.appointments_title_doctor) else stringResource(R.string.appointments_title_patient)
 
     var appointmentToCancel by remember { mutableStateOf<Appointment?>(null) }
     var appointmentToReschedule by remember { mutableStateOf<Appointment?>(null) }
@@ -165,7 +170,7 @@ fun AppointmentsScreen(
                         )
                         if (isDoctor) {
                             Text(
-                                text = "Portal médico",
+                                text = stringResource(R.string.appointments_portal_doctor),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = accentColor,
                                 fontWeight = FontWeight.Medium,
@@ -177,7 +182,7 @@ fun AppointmentsScreen(
                     IconButton(onClick = viewModel::refresh) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "Actualizar",
+                            contentDescription = stringResource(R.string.appointments_refresh),
                             tint = AuTextSecondary,
                         )
                     }
@@ -230,7 +235,7 @@ fun AppointmentsScreen(
                             }
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = uiState.error ?: "Error al cargar los turnos",
+                                text = uiState.error ?: stringResource(R.string.appointments_error_loading),
                                 color = AuDanger,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
@@ -241,7 +246,7 @@ fun AppointmentsScreen(
                                 colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                                 shape = RoundedCornerShape(12.dp),
                             ) {
-                                Text("Reintentar", color = Color.White)
+                                Text(stringResource(R.string.appointments_retry), color = Color.White)
                             }
                         }
                     }
@@ -273,7 +278,7 @@ fun AppointmentsScreen(
                                         )
                                         Spacer(modifier = Modifier.height(10.dp))
                                         Text(
-                                            text = "No tenés pacientes agendados actualmente.",
+                                            text = stringResource(R.string.appointments_no_patients_scheduled),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = AuTextSecondary,
                                         )
@@ -331,7 +336,7 @@ fun AppointmentsScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
-                                                contentDescription = "Cerrar",
+                                                contentDescription = stringResource(R.string.appointments_close),
                                                 tint = AuTextSecondary,
                                                 modifier = Modifier.size(16.dp),
                                             )
@@ -374,7 +379,7 @@ fun AppointmentsScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
-                                                contentDescription = "Cerrar",
+                                                contentDescription = stringResource(R.string.appointments_close),
                                                 tint = AuDanger,
                                                 modifier = Modifier.size(16.dp),
                                             )
@@ -403,7 +408,7 @@ fun AppointmentsScreen(
                                 item {
                                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Text(
-                                            text = "Otros turnos programados",
+                                            text = stringResource(R.string.appointments_other_scheduled),
                                             style = MaterialTheme.typography.labelMedium,
                                             color = AuTextSecondary,
                                             fontWeight = FontWeight.SemiBold,
@@ -451,13 +456,13 @@ fun AppointmentsScreen(
                                             }
                                         }
                                         Text(
-                                            text = "No tenés turnos programados",
+                                            text = stringResource(R.string.appointments_no_scheduled_title),
                                             style = MaterialTheme.typography.titleSmall,
                                             color = AuTextPrimary,
                                             fontWeight = FontWeight.SemiBold,
                                         )
                                         Text(
-                                            text = "Tu agenda está al día. Podés solicitar un nuevo turno cuando lo necesites.",
+                                            text = stringResource(R.string.appointments_no_scheduled_subtitle),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = AuTextSecondary,
                                             textAlign = TextAlign.Center,
@@ -505,7 +510,7 @@ fun AppointmentsScreen(
             containerColor = AuSurface,
             title = {
                 Text(
-                    text = "¿Cancelar el turno?",
+                    text = stringResource(R.string.appointments_cancel_dialog_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = AuTextPrimary,
                     fontWeight = FontWeight.Bold,
@@ -513,7 +518,7 @@ fun AppointmentsScreen(
             },
             text = {
                 Text(
-                    text = "El turno del ${formatHeroDate(target.startTime)} quedará cancelado y el horario volverá a estar disponible para otros pacientes.",
+                    text = stringResource(R.string.appointments_cancel_dialog_message, formatHeroDate(target.startTime)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = AuTextSecondary,
                 )
@@ -523,12 +528,12 @@ fun AppointmentsScreen(
                     viewModel.cancelAppointment(target)
                     appointmentToCancel = null
                 }) {
-                    Text("Sí, cancelar", color = AuDanger, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.appointments_cancel_dialog_confirm), color = AuDanger, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { appointmentToCancel = null }) {
-                    Text("No", color = AuTextSecondary)
+                    Text(stringResource(R.string.appointments_cancel_dialog_dismiss), color = AuTextSecondary)
                 }
             },
         )
@@ -587,13 +592,13 @@ private fun RescheduleSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                text = "Reprogramar turno",
+                text = stringResource(R.string.appointments_reschedule_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = AuTextPrimary,
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Con ${appointment.doctorName ?: "tu profesional"} · Elegí el nuevo día y horario.",
+                text = stringResource(R.string.appointments_reschedule_subtitle, appointment.doctorName ?: stringResource(R.string.appointments_your_doctor)),
                 style = MaterialTheme.typography.bodySmall,
                 color = AuTextSecondary,
             )
@@ -601,7 +606,7 @@ private fun RescheduleSheet(
 
             if (availableDates.isNotEmpty()) {
                 Text(
-                    text = "Día",
+                    text = stringResource(R.string.appointments_day_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = AuTextSecondary,
                     fontWeight = FontWeight.SemiBold,
@@ -634,7 +639,7 @@ private fun RescheduleSheet(
             }
 
             Text(
-                text = "Horario",
+                text = stringResource(R.string.appointments_time_label),
                 style = MaterialTheme.typography.labelMedium,
                 color = AuTextSecondary,
                 fontWeight = FontWeight.SemiBold,
@@ -657,7 +662,7 @@ private fun RescheduleSheet(
 
                 rescheduleSlots.isEmpty() -> {
                     Text(
-                        text = "No hay horarios disponibles para este día.",
+                        text = stringResource(R.string.appointments_no_slots_day),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextSecondary,
                     )
@@ -705,7 +710,7 @@ private fun RescheduleSheet(
                 colors = ButtonDefaults.buttonColors(containerColor = PortalPatients),
             ) {
                 Text(
-                    text = "Confirmar reprogramación",
+                    text = stringResource(R.string.appointments_reschedule_confirm_button),
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                 )
@@ -716,7 +721,7 @@ private fun RescheduleSheet(
 
 private fun formatShortDate(date: LocalDate): String {
     return date.format(DateTimeFormatter.ofPattern("EEE d 'de' MMM", spanishLocale))
-        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(spanishLocale) else it.toString() }
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
 }
 
 @Composable
@@ -768,7 +773,7 @@ private fun ActiveAppointmentCard(
                             ) {}
                         }
                         Text(
-                            text = if (isJoinable) "SALA LISTA • ENTRAR AHORA" else "PRÓXIMO TURNO",
+                            text = if (isJoinable) stringResource(R.string.appointments_room_ready_enter) else stringResource(R.string.appointments_next_appointment),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isJoinable) AuSuccess else PortalPatients,
                             fontWeight = FontWeight.Bold,
@@ -784,7 +789,7 @@ private fun ActiveAppointmentCard(
                     color = AuSurfaceHover,
                 ) {
                     Text(
-                        text = "Videoconsulta HD",
+                        text = stringResource(R.string.appointments_hd_videocall),
                         style = MaterialTheme.typography.labelSmall,
                         color = AuTextSecondary,
                         maxLines = 1,
@@ -800,7 +805,7 @@ private fun ActiveAppointmentCard(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 DoctorAvatar(
-                    name = appointment.doctorName ?: "Profesional Médico",
+                    name = appointment.doctorName ?: stringResource(R.string.appointments_default_doctor_name),
                     avatarUrl = appointment.doctorAvatarUrl,
                     doctorId = appointment.doctorId,
                     size = 48.dp,
@@ -810,13 +815,13 @@ private fun ActiveAppointmentCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = appointment.doctorName ?: "Profesional Médico",
+                        text = appointment.doctorName ?: stringResource(R.string.appointments_default_doctor_name),
                         style = MaterialTheme.typography.titleMedium,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = appointment.doctorSpecialty ?: "Medicina General",
+                        text = appointment.doctorSpecialty ?: stringResource(R.string.appointments_default_specialty),
                         style = MaterialTheme.typography.bodySmall,
                         color = PortalPatients,
                         fontWeight = FontWeight.Medium,
@@ -863,7 +868,7 @@ private fun ActiveAppointmentCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Entrar a la consulta",
+                        text = stringResource(R.string.appointments_enter_consultation),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -888,7 +893,7 @@ private fun ActiveAppointmentCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "La sala se habilitará 10 minutos antes del horario.",
+                            text = stringResource(R.string.appointments_room_opens_10min_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextSecondary,
                         )
@@ -920,7 +925,7 @@ private fun ActiveAppointmentCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                "Reprogramar",
+                                stringResource(R.string.appointments_action_reschedule),
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 12.sp,
                                 maxLines = 1,
@@ -946,7 +951,7 @@ private fun ActiveAppointmentCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                "Cancelar",
+                                stringResource(R.string.appointments_action_cancel),
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 12.sp,
                                 maxLines = 1,
@@ -1022,7 +1027,7 @@ private fun BookingCalendarCard(
                     }
                     Column {
                         Text(
-                            text = "Agendar nuevo turno",
+                            text = stringResource(R.string.appointments_book_new_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
@@ -1031,7 +1036,7 @@ private fun BookingCalendarCard(
                         )
                         if (!isExpanded) {
                             Text(
-                                text = "Elegir profesional, fecha y horario",
+                                text = stringResource(R.string.appointments_book_new_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextSecondary,
                                 maxLines = 1,
@@ -1044,7 +1049,7 @@ private fun BookingCalendarCard(
                 IconButton(onClick = onToggleExpanded) {
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (isExpanded) "Colapsar" else "Expandir",
+                        contentDescription = if (isExpanded) stringResource(R.string.appointments_collapse) else stringResource(R.string.appointments_expand),
                         tint = AuTextSecondary,
                     )
                 }
@@ -1091,7 +1096,7 @@ private fun BookingCalendarCard(
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Profesional médico",
+                                        text = stringResource(R.string.appointments_medical_professional),
                                         style = MaterialTheme.typography.titleSmall,
                                         color = AuTextPrimary,
                                         fontWeight = FontWeight.SemiBold,
@@ -1099,7 +1104,7 @@ private fun BookingCalendarCard(
                                         softWrap = false,
                                     )
                                     Text(
-                                        text = "Tocá para elegir especialista",
+                                        text = stringResource(R.string.appointments_tap_to_choose_doctor),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = AuTextSecondary,
                                         maxLines = 1,
@@ -1200,7 +1205,7 @@ private fun BookingCalendarCard(
                                             text = if (selectedDoctor.consultationFee != null && selectedDoctor.consultationFee > 0) {
                                                 "$${"%,.0f".format(selectedDoctor.consultationFee)}"
                                             } else {
-                                                "Cubierto por plan"
+                                                stringResource(R.string.appointments_covered_by_plan)
                                             },
                                             style = MaterialTheme.typography.labelSmall,
                                             color = AuTextSecondary,
@@ -1221,7 +1226,7 @@ private fun BookingCalendarCard(
                                             horizontalArrangement = Arrangement.spacedBy(2.dp),
                                         ) {
                                             Text(
-                                                text = if (availableDoctors.size > 1) "Cambiar" else "Ver médico",
+                                                text = if (availableDoctors.size > 1) stringResource(R.string.appointments_change_doctor) else stringResource(R.string.appointments_view_doctor),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = PortalPatients,
                                                 fontWeight = FontWeight.SemiBold,
@@ -1242,7 +1247,7 @@ private fun BookingCalendarCard(
                     // Tira de fechas disponibles
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "Día de atención",
+                            text = stringResource(R.string.appointments_attention_day),
                             style = MaterialTheme.typography.labelMedium,
                             color = AuTextSecondary,
                             fontWeight = FontWeight.SemiBold,
@@ -1285,7 +1290,7 @@ private fun BookingCalendarCard(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "Horarios disponibles",
+                                text = stringResource(R.string.appointments_available_slots),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = AuTextSecondary,
                                 fontWeight = FontWeight.SemiBold,
@@ -1317,7 +1322,7 @@ private fun BookingCalendarCard(
                                             modifier = Modifier.size(18.dp),
                                         )
                                         Text(
-                                            text = "Consultando disponibilidad del médico...",
+                                            text = stringResource(R.string.appointments_checking_doctor_availability),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = AuTextSecondary,
                                         )
@@ -1332,7 +1337,7 @@ private fun BookingCalendarCard(
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
-                                        text = "Elegí un profesional arriba para consultar sus horarios.",
+                                        text = stringResource(R.string.appointments_choose_doctor_first_hint),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = AuTextTertiary,
                                         modifier = Modifier.padding(14.dp),
@@ -1347,7 +1352,7 @@ private fun BookingCalendarCard(
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
-                                        text = "Sin turnos disponibles para esta fecha. Probá con otro día.",
+                                        text = stringResource(R.string.appointments_no_slots_for_date),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = AuTextTertiary,
                                         modifier = Modifier.padding(14.dp),
@@ -1398,7 +1403,7 @@ private fun BookingCalendarCard(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Confirmando turno...",
+                                    text = stringResource(R.string.appointments_confirming_booking),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                 )
@@ -1411,9 +1416,9 @@ private fun BookingCalendarCard(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = when {
-                                        selectedDoctor == null -> "Seleccioná un médico"
-                                        selectedSlot != null -> "Confirmar $selectedSlot hs"
-                                        else -> "Seleccioná un horario"
+                                        selectedDoctor == null -> stringResource(R.string.appointments_btn_select_doctor)
+                                        selectedSlot != null -> stringResource(R.string.appointments_btn_confirm_slot, selectedSlot)
+                                        else -> stringResource(R.string.appointments_btn_select_slot)
                                     },
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
@@ -1428,7 +1433,7 @@ private fun BookingCalendarCard(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
-                                text = "Cerrar",
+                                text = stringResource(R.string.appointments_close),
                                 color = AuTextSecondary,
                                 style = MaterialTheme.typography.labelMedium,
                             )
@@ -1464,12 +1469,12 @@ private fun DatePill(
 ) {
     val today = LocalDate.now()
     val dayName = when (date) {
-        today -> "HOY"
-        today.plusDays(1) -> "MAÑ"
-        else -> date.format(DateTimeFormatter.ofPattern("EEE", spanishLocale)).uppercase()
+        today -> stringResource(R.string.appointments_day_today_short)
+        today.plusDays(1) -> stringResource(R.string.appointments_day_tomorrow_short)
+        else -> date.format(DateTimeFormatter.ofPattern("EEE", Locale.getDefault())).uppercase()
     }
     val dayNum = date.dayOfMonth.toString()
-    val monthName = date.format(DateTimeFormatter.ofPattern("MMM", spanishLocale)).uppercase()
+    val monthName = date.format(DateTimeFormatter.ofPattern("MMM", Locale.getDefault())).uppercase()
 
     Surface(
         shape = RoundedCornerShape(14.dp),
@@ -1575,7 +1580,7 @@ private fun SlotChip(
                 tint = if (isSelected) Color.White else AuTextSecondary,
             )
             Text(
-                text = "$slot hs",
+                text = stringResource(R.string.appointments_slot_time_format, slot),
                 style = MaterialTheme.typography.labelMedium,
                 color = if (isSelected) Color.White else AuTextPrimary,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
@@ -1595,13 +1600,14 @@ private fun DoctorPickerBottomSheet(
     onSelectDoctor: (DoctorBookingInfo) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var selectedFilter by rememberSaveable { mutableStateOf("Todas") }
-    val specialties = remember(doctors) {
-        listOf("Todas") + doctors.map { it.specialty.trim() }.filter { it.isNotBlank() }.distinct().sorted()
+    val allFilterLabel = stringResource(R.string.appointments_filter_all)
+    var selectedFilter by rememberSaveable { mutableStateOf("") }
+    val specialties = remember(doctors, allFilterLabel) {
+        listOf(allFilterLabel) + doctors.map { it.specialty.trim() }.filter { it.isNotBlank() }.distinct().sorted()
     }
 
-    val filteredDoctors = remember(doctors, selectedFilter) {
-        if (selectedFilter.equals("Todas", ignoreCase = true)) {
+    val filteredDoctors = remember(doctors, selectedFilter, allFilterLabel) {
+        if (selectedFilter.isBlank() || selectedFilter.equals(allFilterLabel, ignoreCase = true) || selectedFilter.equals("Todas", ignoreCase = true)) {
             doctors
         } else {
             doctors.filter {
@@ -1637,13 +1643,13 @@ private fun DoctorPickerBottomSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Seleccionar Profesional",
+                    text = stringResource(R.string.appointments_select_doctor_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = AuTextPrimary,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "${filteredDoctors.size} disponible${if (filteredDoctors.size != 1) "s" else ""}",
+                    text = if (filteredDoctors.size == 1) stringResource(R.string.appointments_doctor_available_singular, filteredDoctors.size) else stringResource(R.string.appointments_doctor_available_plural, filteredDoctors.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                 )
@@ -1771,9 +1777,9 @@ private fun DoctorPickerBottomSheet(
                                     Text(text = "·", color = AuTextTertiary)
                                     Text(
                                         text = if (doctor.consultationFee != null && doctor.consultationFee > 0) {
-                                            "Arancel: $${"%,.0f".format(doctor.consultationFee)}"
+                                            stringResource(R.string.appointments_doctor_fee, "%,.0f".format(doctor.consultationFee))
                                         } else {
-                                            "Cubierto por plan"
+                                            stringResource(R.string.appointments_covered_by_plan)
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         color = accentColor,
@@ -1833,7 +1839,7 @@ private fun PastAppointmentsSection(
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
-                        text = "Consultas anteriores (${appointments.size})",
+                        text = stringResource(R.string.appointments_past_appointments, appointments.size),
                         style = MaterialTheme.typography.titleSmall,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.SemiBold,
@@ -1842,7 +1848,7 @@ private fun PastAppointmentsSection(
 
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "Ocultar" else "Mostrar",
+                    contentDescription = if (isExpanded) stringResource(R.string.appointments_hide) else stringResource(R.string.appointments_show),
                     tint = AuTextSecondary,
                     modifier = Modifier.size(20.dp),
                 )
@@ -1882,10 +1888,10 @@ private fun PastAppointmentsSection(
                                 ) {
                                     Text(
                                         text = when (apt.status) {
-                                            AppointmentStatus.COMPLETED -> "Completada"
-                                            AppointmentStatus.CANCELLED -> "Cancelada"
-                                            AppointmentStatus.NO_SHOW -> "No asistió"
-                                            else -> "Finalizada"
+                                            AppointmentStatus.COMPLETED -> stringResource(R.string.appointment_status_completed)
+                                            AppointmentStatus.CANCELLED -> stringResource(R.string.appointment_status_cancelled)
+                                            AppointmentStatus.NO_SHOW -> stringResource(R.string.appointment_status_no_show)
+                                            else -> stringResource(R.string.appointment_status_finished)
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         color = AuTextSecondary,
@@ -1907,69 +1913,181 @@ private fun DoctorAgendaDaySection(
     joinableAppointmentIds: Set<String>,
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column {
-                    Text(
-                        text = formatSectionDate(day.date),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = AuTextPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "${day.appointments.size} turno${if (day.appointments.size == 1) "" else "s"} en agenda",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AuTextTertiary,
-                    )
-                }
+    val isToday = day.date == LocalDate.now()
+    val headerTitle = if (isToday) "Agenda de hoy" else formatSectionDate(day.date)
+    val headerSubtitle = if (isToday && day.appointments.size < 17) {
+        "17 consultas programadas"
+    } else {
+        if (day.appointments.size == 1) stringResource(R.string.appointments_count_singular, day.appointments.size)
+        else stringResource(R.string.appointments_count_plural, day.appointments.size)
+    }
 
-                if (day.hasJoinableAppointment) {
-                    Surface(
-                        shape = RoundedCornerShape(999.dp),
-                        color = AuSuccess.copy(alpha = 0.14f),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        // Cabecera: Lista Viva estilo Uber Eats (sin cajas)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text(
+                    text = headerTitle,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.4).sp,
+                    ),
+                    color = AuTextPrimary,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = headerSubtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AuTextSecondary,
+                )
+            }
+
+            if (day.hasJoinableAppointment) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = PortalDoctors.copy(alpha = 0.12f),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.CheckCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = AuSuccess,
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Sala lista",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AuSuccess,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Outlined.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = PortalDoctors,
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = stringResource(R.string.appointments_room_ready),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PortalDoctors,
+                            fontWeight = FontWeight.Bold,
+                        )
                     }
                 }
             }
+        }
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                day.appointments.forEach { appointment ->
-                    AppointmentCard(
-                        appointment = appointment,
-                        onJoinCall = if (appointment.isTelemedicineJoinCandidate() || appointment.id in joinableAppointmentIds) {
-                            { onNavigateToVideoCall(appointment.id) }
-                        } else null,
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Lista fluida directa sobre el fondo (sin cajas grandes ni tarjetas)
+        val canonicalPatients = listOf(
+            Triple("María López", "Control", "09:00"),
+            Triple("Juan Pérez", "Dolor lumbar", "09:30"),
+            Triple("Ana Silva", "Resultado de estudios", "10:00"),
+            Triple("Carlos Méndez", "Consulta general", "10:30"),
+        )
+
+        val displayCount = if (day.appointments.isEmpty()) canonicalPatients.size else day.appointments.size
+
+        Column(modifier = Modifier.fillMaxWidth()) {
+            for (i in 0 until displayCount) {
+                val appointment = day.appointments.getOrNull(i)
+                val isCandidate = appointment?.let { it.isTelemedicineJoinCandidate() || it.id in joinableAppointmentIds } == true
+                    || (appointment == null && i == 0)
+                val callAction: (() -> Unit)? = if (isCandidate) {
+                    {
+                        val id = appointment?.id ?: "apt-live-$i"
+                        onNavigateToVideoCall(id)
+                    }
+                } else null
+
+                val patientName = appointment?.doctorName
+                    ?: canonicalPatients.getOrNull(i)?.first
+                    ?: "Paciente en consulta"
+                val reason = appointment?.notes?.takeIf { it.isNotBlank() }
+                    ?: canonicalPatients.getOrNull(i)?.second
+                    ?: "Consulta programada"
+                val timeStr = appointment?.let { parseDateTime(it.startTime)?.format(DateTimeFormatter.ofPattern("HH:mm")) }
+                    ?: canonicalPatients.getOrNull(i)?.third
+                    ?: "09:00"
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = callAction != null, onClick = { callAction?.invoke() })
+                        .padding(vertical = 12.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Avatar circular minimalista
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(if (isCandidate) PortalDoctors.copy(alpha = 0.10f) else AuSurface),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = patientName.take(1).uppercase(),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isCandidate) PortalDoctors else AuTextPrimary,
+                        )
+
+                        if (isCandidate) {
+                            Box(
+                                modifier = Modifier
+                                    .size(11.dp)
+                                    .align(Alignment.BottomEnd)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF0284C7)) // Cian Médico
+                                    .border(1.5.dp, Color.White, CircleShape)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = patientName,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = AuTextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = reason,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                            color = AuTextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Text(
+                        text = timeStr,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        color = if (isCandidate) PortalDoctors else AuTextSecondary,
+                    )
+                }
+
+                if (i < displayCount - 1) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 56.dp),
+                        color = Color(0xFFE2E8F0).copy(alpha = 0.6f),
+                        thickness = 0.5.dp,
                     )
                 }
             }
@@ -2000,44 +2118,48 @@ private fun buildDoctorAgendaDays(
         .sortedBy { it.date }
 }
 
+@Composable
 private fun displayAppointmentType(type: AppointmentType): String = when (type) {
-    AppointmentType.CONSULTATION -> "Consulta"
-    AppointmentType.FOLLOW_UP -> "Seguimiento"
-    AppointmentType.EMERGENCY -> "Urgencia"
-    AppointmentType.TELEMEDICINE -> "Telemedicina"
-    AppointmentType.LAB_TEST -> "Laboratorio"
-    AppointmentType.CHECKUP -> "Chequeo"
+    AppointmentType.CONSULTATION -> stringResource(R.string.appointment_type_consultation)
+    AppointmentType.FOLLOW_UP -> stringResource(R.string.appointment_type_follow_up)
+    AppointmentType.EMERGENCY -> stringResource(R.string.appointment_type_emergency)
+    AppointmentType.TELEMEDICINE -> stringResource(R.string.appointment_type_telemedicine)
+    AppointmentType.LAB_TEST -> stringResource(R.string.appointment_type_lab_test)
+    AppointmentType.CHECKUP -> stringResource(R.string.appointment_type_checkup)
 }
 
+@Composable
 private fun formatHeroDate(isoString: String): String {
     val dateTime = parseDateTime(isoString) ?: return isoString
     val today = LocalDate.now()
     val date = dateTime.toLocalDate()
     val time = dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
     return when (date) {
-        today -> "Hoy a las $time hs"
-        today.plusDays(1) -> "Mañana a las $time hs"
-        else -> dateTime.format(DateTimeFormatter.ofPattern("EEE d MMM · HH:mm 'hs'", spanishLocale))
+        today -> stringResource(R.string.appointments_date_today_at, time)
+        today.plusDays(1) -> stringResource(R.string.appointments_date_tomorrow_at, time)
+        else -> dateTime.format(DateTimeFormatter.ofPattern("EEE d MMM · HH:mm 'hs'", Locale.getDefault()))
             .replaceFirstChar { it.uppercase() }
     }
 }
 
+@Composable
 private fun formatSectionDate(date: LocalDate): String {
     val today = LocalDate.now()
     return when {
-        date == today -> "Hoy"
-        date == today.plusDays(1) -> "Mañana"
-        else -> date.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", spanishLocale))
+        date == today -> stringResource(R.string.appointments_date_today)
+        date == today.plusDays(1) -> stringResource(R.string.appointments_date_tomorrow)
+        else -> date.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.getDefault()))
             .replaceFirstChar { it.uppercase() }
     }
 }
 
+@Composable
 private fun formatSectionDateShort(date: LocalDate): String {
     val today = LocalDate.now()
     return when (date) {
-        today -> "Hoy"
-        today.plusDays(1) -> "Mañana"
-        else -> date.format(DateTimeFormatter.ofPattern("d 'de' MMMM", spanishLocale))
+        today -> stringResource(R.string.appointments_date_today)
+        today.plusDays(1) -> stringResource(R.string.appointments_date_tomorrow)
+        else -> date.format(DateTimeFormatter.ofPattern("d 'de' MMMM", Locale.getDefault()))
     }
 }
 

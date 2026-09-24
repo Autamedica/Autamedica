@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Doctor Portal Navigation Tabs -->
+    <string name="doctor_tab_home">Inicio</string>
+    <string name="doctor_tab_messages">Mensajes</string>
+    <string name="doctor_tab_appointments">Turnos</string>
+    <string name="doctor_tab_patients">Pacientes</string>
+    <string name="doctor_tab_profile">Perfil</string>
+
+    <!-- Header & Doctor Profile -->
+    <string name="doctor_portal_title">Portal Medico</string>
+    <string name="doctor_specialty_general">Medicina General</string>
+    <string name="doctor_greeting_name">Dr. %1$s</string>
+    <string name="doctor_greeting_fallback">Doctor</string>
+    <string name="doctor_dashboard_subtitle">Panel de consultas</string>
+    <string name="doctor_license_badge">MN %1$s</string>
+
+    <!-- Clinical Command Cockpit -->
+    <string name="doctor_cockpit_status_active_consultation">CONSULTA ACTIVA EN LÍNEA</string>
+    <string name="doctor_cockpit_status_telemedicine_active">SALA DE TELEMEDICINA ACTIVA</string>
+    <string name="doctor_cockpit_active_doctor_label">MÉDICO ACTIVO</string>
+    <string name="doctor_cockpit_view_agenda">Ver agenda  →</string>
+    <string name="doctor_appointment_time_type">%1$s hs · %2$s</string>
+    <string name="doctor_cockpit_patient_ready_hint">El paciente está listo en sala de espera. Ingresá para iniciar la atención clínica.</string>
+    <string name="doctor_cockpit_enter_consultation">Entrar a Consulta</string>
+    <string name="doctor_cockpit_candidate_hint">Consulta programada para hoy. Podés habilitar la sala de espera anticipada.</string>
+    <string name="doctor_cockpit_open_waiting_room">Abrir Sala de Espera</string>
+    <string name="doctor_cockpit_direct_room_title">Sala de Videoconsulta Directa</string>
+    <string name="doctor_cockpit_direct_room_subtitle">Consultorio virtual listo para la atención de turnos agendados o guardia médica.</string>
+    <string name="doctor_cockpit_btn_view_agenda">Ver Agenda</string>
+    <string name="doctor_cockpit_metric_today">Hoy</string>
+    <string name="doctor_cockpit_metric_pending">Pendientes</string>
+    <string name="doctor_cockpit_metric_completed">Realizadas</string>
+
+    <!-- Today's Schedule Section -->
+    <string name="doctor_schedule_today_title">Agenda de hoy</string>
+    <string name="doctor_schedule_count_single">%1$d turno programado</string>
+    <string name="doctor_schedule_count_plural">%1$d turnos programados</string>
+    <string name="doctor_schedule_empty_title">Agenda despejada para hoy</string>
+    <string name="doctor_schedule_empty_subtitle">Los turnos nuevos van a aparecer acá</string>
+    <string name="doctor_schedule_manage">Gestionar agenda</string>
+    <string name="doctor_appointment_duration_format">· %1$dmin</string>
+    <string name="doctor_appointment_start_cd">Iniciar consulta</string>
+    <string name="doctor_appointment_start_btn">Iniciar</string>
+
+    <!-- Patients Section -->
+    <string name="doctor_patients_section_title">Pacientes en seguimiento</string>
+    <string name="doctor_patients_view_all">Ver todos →</string>
+    <string name="doctor_patient_fallback_name">Paciente</string>
+    <string name="doctor_patient_consultations_count_single">%1$d consulta</string>
+    <string name="doctor_patient_consultations_count_plural">%1$d consultas</string>
+    <string name="doctor_patient_active_badge">ACTIVO</string>
+
+    <!-- Weekly Summary Section -->
+    <string name="doctor_weekly_summary_title">Resumen semanal</string>
+    <string name="doctor_weekly_consultations_single">%1$d consulta esta semana</string>
+    <string name="doctor_weekly_consultations_plural">%1$d consultas esta semana</string>
+    <string name="doctor_weekly_patients_single">%1$d paciente activo</string>
+    <string name="doctor_weekly_patients_plural">%1$d pacientes activos</string>
+
+    <!-- Appointment Types -->
+    <string name="doctor_appointment_type_consultation">Consulta</string>
+    <string name="doctor_appointment_type_follow_up">Seguimiento</string>
+    <string name="doctor_appointment_type_emergency">Urgencia</string>
+    <string name="doctor_appointment_type_telemedicine">Telemedicina</string>
+    <string name="doctor_appointment_type_lab_test">Laboratorio</string>
+    <string name="doctor_appointment_type_checkup">Chequeo</string>
+
+    <!-- Appointment Statuses -->
+    <string name="doctor_status_payment_pending">Pago pendiente</string>
+    <string name="doctor_status_scheduled">Programada</string>
+    <string name="doctor_status_confirmed">Confirmada</string>
+    <string name="doctor_status_in_progress">En curso</string>
+    <string name="doctor_status_completed">Completada</string>
+    <string name="doctor_status_cancelled">Cancelada</string>
+    <string name="doctor_status_no_show">Ausente</string>
+
+    <!-- Web Portal Redirect (MainScreen) -->
+    <string name="portal_redirect_title">Portal %1$s</string>
+    <string name="portal_redirect_desc">Este portal se gestiona desde la web de escritorio.</string>
+    <string name="portal_redirect_open_browser">Abrir en el navegador</string>
+    <string name="portal_redirect_logout">Cerrar sesión</string>
+
+    <!-- Doctor Dashboard Errors & Validation -->
+    <string name="doctor_telemedicine_validation_error">No se pudo validar la sala de telemedicina.</string>
+    <string name="doctor_profile_load_error">No se pudo cargar el perfil del doctor</string>
+</resources>

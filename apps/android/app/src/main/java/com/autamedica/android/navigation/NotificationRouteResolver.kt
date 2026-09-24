@@ -95,11 +95,13 @@ object NotificationRouteResolver {
             normalized == "call_incoming" ||
             normalized == "autamedica_calls" ||
             normalized == "call" ||
-            normalized == "videocall"
+            normalized == "videocall" ||
+            normalized == "pharmacy_dispatch_incoming" ||
+            normalized == "pharmacy_dispatch"
     }
 
     /**
-     * Solo las notificaciones dirigidas al paciente (llamada entrante) activan el join directo.
+     * Solo las notificaciones dirigidas al paciente o médico con llamada entrante activan el join directo.
      * PATIENT_CONNECTED va al médico, que ya se une por su propio flujo.
      */
     fun isIncomingCallNotificationType(notificationType: String?): Boolean {
@@ -109,7 +111,9 @@ object NotificationRouteResolver {
             normalized == "call_incoming" ||
             normalized == "autamedica_calls" ||
             normalized == "call" ||
-            normalized == "videocall"
+            normalized == "videocall" ||
+            normalized == "pharmacy_dispatch_incoming" ||
+            normalized == "pharmacy_dispatch"
     }
 
     fun parseDeepLink(raw: String?): Route? {
@@ -138,6 +142,23 @@ object NotificationRouteResolver {
         if (segments.any { it.equals("farmacia", ignoreCase = true) }) {
             val pharmacyId = extractPharmacyId(normalized)
             return Route.PharmacyIntake(pharmacyId)
+        }
+
+        // On-demand doctor duty / dispatch:
+        // Handles autamedica://ondemand, autamedica://guardia
+        if (firstSegment == "ondemand" || firstSegment == "guardia") {
+            return Route.DoctorOnDemand
+        }
+
+        // Doctor prescriptions list or create prescription
+        if (firstSegment == "prescriptions" || firstSegment == "recetas") {
+            if (segments.size < 2) return Route.DoctorPrescriptions
+            val pid = segments.last().normalizedOrNull() ?: ""
+            return Route.CreatePrescription(pid)
+        }
+        if (firstSegment == "prescription" || firstSegment == "receta") {
+            val pid = if (segments.size >= 2) segments.last().normalizedOrNull() ?: "" else ""
+            return Route.CreatePrescription(pid)
         }
 
         if (segments.size < 2) return null

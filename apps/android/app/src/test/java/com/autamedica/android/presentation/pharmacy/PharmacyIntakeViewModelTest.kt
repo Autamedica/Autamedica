@@ -1,22 +1,24 @@
 package com.autamedica.android.presentation.pharmacy
 
 import androidx.lifecycle.SavedStateHandle
-import com.autamedica.android.domain.model.DoctorOnDutyPharmacyState
+import com.autamedica.android.domain.model.DispatchClaimResult
+import com.autamedica.android.domain.model.DoctorDutyStatus
 import com.autamedica.android.domain.model.PatientProfileSnapshot
-import com.autamedica.android.domain.model.PharmacyClaimResult
-import com.autamedica.android.domain.model.PharmacyConsultationRequest
 import com.autamedica.android.domain.model.PharmacyConsultationStatus
-import com.autamedica.android.domain.model.RequestStatusResponse
+import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AuthRepository
-import com.autamedica.android.domain.repository.PharmacyOnDemandRepository
+import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.repository.UserRegistrationResult
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -52,72 +54,77 @@ private class FakeProfileRepository(
         user?.let { Result.success(it) } ?: Result.failure(Exception("No profile"))
 }
 
-private class FakePharmacyOnDemandRepository : PharmacyOnDemandRepository {
-    var createRequestResult: Result<PharmacyConsultationRequest> = Result.failure(Exception("Not set"))
-    var getStatusResult: Result<RequestStatusResponse> = Result.failure(Exception("Not set"))
-    var lastCreatedReason: String? = null
-    var lastCreatedPatientName: String? = null
-    var lastCreatedPatientDni: String? = null
-    var lastCreatedPatientPhone: String? = null
+private class FakePharmacyDispatchRepository(
+    val requestFlow: MutableStateFlow<PharmacyDispatchRequest?> = MutableStateFlow(null),
+) : PharmacyDispatchRepository {
+    var createResult: Result<PharmacyDispatchRequest> = Result.failure(Exception("Not set"))
+    var lastCreatedDni: String? = null
+    var lastCreatedPhone: String? = null
+    var lastCreatedName: String? = null
+    var lastCreatedTier: String? = null
+    var lastCreatedSummary: String? = null
+    val statusUpdates = mutableListOf<Pair<String, String>>()
 
-    override fun observeOnDutyState(): Flow<DoctorOnDutyPharmacyState> =
-        flowOf(DoctorOnDutyPharmacyState())
+    override suspend fun getDoctorDutyStatus(doctorId: String): Result<DoctorDutyStatus> =
+        Result.success(DoctorDutyStatus(doctorId = doctorId))
 
-    override suspend fun getOnDutyStatus(): Result<DoctorOnDutyPharmacyState> =
-        Result.success(DoctorOnDutyPharmacyState())
+    override suspend fun setDoctorDutyStatus(
+        doctorId: String,
+        isOnDuty: Boolean,
+        activeTiers: List<String>,
+    ): Result<Unit> = Result.success(Unit)
 
-    override suspend fun toggleOnDuty(onDuty: Boolean): Result<DoctorOnDutyPharmacyState> =
-        Result.success(DoctorOnDutyPharmacyState(isOnDuty = onDuty))
+    override suspend fun sendDoctorHeartbeat(doctorId: String): Result<Unit> = Result.success(Unit)
 
-    override suspend fun getPendingQueue(): Result<List<PharmacyConsultationRequest>> =
-        Result.success(emptyList())
+    override fun observeSearchingRequests(): StateFlow<List<PharmacyDispatchRequest>> =
+        MutableStateFlow(emptyList())
 
-    override suspend fun claimRequest(requestId: String): Result<PharmacyClaimResult> =
-        Result.success(
-            PharmacyClaimResult(
-                requestId = requestId,
-                callId = "call-1",
-                roomId = "room-123",
-                guestInviteId = "guest-1",
-                doctorRoomUrl = "https://example.com/doc",
-                patientJoinUrl = "https://example.com/patient",
-            )
-        )
+    override suspend fun claimPharmacyRequest(
+        requestId: String,
+        doctorId: String,
+    ): Result<DispatchClaimResult> =
+        Result.success(DispatchClaimResult(success = true, code = "MATCH_SUCCESSFUL", requestId = requestId))
 
-    override suspend fun createRequest(
-        pharmacyId: String?,
-        pharmacyName: String,
+    override suspend fun updateDispatchRequestStatus(
+        requestId: String,
+        status: String,
+    ): Result<Unit> {
+        statusUpdates.add(requestId to status)
+        return Result.success(Unit)
+    }
+
+    override suspend fun finishPharmacyRequest(
+        doctorId: String,
+        requestId: String,
+    ): Result<Unit> = Result.success(Unit)
+
+    override suspend fun createPatientDispatchRequest(
         patientDni: String,
-        patientName: String,
         patientPhone: String,
-        reason: String,
-    ): Result<PharmacyConsultationRequest> {
-        lastCreatedReason = reason
-        lastCreatedPatientName = patientName
-        lastCreatedPatientDni = patientDni
-        lastCreatedPatientPhone = patientPhone
-        return createRequestResult
+        patientName: String?,
+        tierRequested: String,
+        symptomSummary: String?,
+        patientCpf: String?,
+    ): Result<PharmacyDispatchRequest> {
+        lastCreatedDni = patientDni
+        lastCreatedPhone = patientPhone
+        lastCreatedName = patientName
+        lastCreatedTier = tierRequested
+        lastCreatedSummary = symptomSummary
+        createResult.getOrNull()?.let { requestFlow.value = it }
+        return createResult
     }
 
-    var lastCancelledRequestId: String? = null
+    val activeDoctorsFlow: MutableStateFlow<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>> = MutableStateFlow(emptyList())
 
-    override suspend fun getRequestStatus(requestId: String): Result<RequestStatusResponse> {
-        return getStatusResult
-    }
+    override fun observePatientRequest(requestId: String): Flow<PharmacyDispatchRequest> =
+        requestFlow.filterNotNull()
 
-    override suspend fun cancelRequest(requestId: String): Result<Unit> {
-        lastCancelledRequestId = requestId
-        return Result.success(Unit)
-    }
+    override suspend fun getActiveOnDutyDoctors(): Result<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>> =
+        Result.success(activeDoctorsFlow.value)
 
-    var lastCancelledActiveDni: String? = null
-    var lastCancelledActivePhone: String? = null
-
-    override suspend fun cancelActiveRequestsForPatient(patientDni: String, patientPhone: String): Result<Unit> {
-        lastCancelledActiveDni = patientDni
-        lastCancelledActivePhone = patientPhone
-        return Result.success(Unit)
-    }
+    override fun observeActiveOnDutyDoctors(): Flow<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>> =
+        activeDoctorsFlow
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -126,14 +133,14 @@ class PharmacyIntakeViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var authRepo: FakeAuthRepository
     private lateinit var profileRepo: FakeProfileRepository
-    private lateinit var pharmacyRepo: FakePharmacyOnDemandRepository
+    private lateinit var pharmacyRepo: FakePharmacyDispatchRepository
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         authRepo = FakeAuthRepository()
         profileRepo = FakeProfileRepository()
-        pharmacyRepo = FakePharmacyOnDemandRepository()
+        pharmacyRepo = FakePharmacyDispatchRepository()
     }
 
     @After
@@ -162,7 +169,7 @@ class PharmacyIntakeViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("pharmacyId" to "farmacia-central")),
             authRepository = authRepo,
             profileRepository = profileRepo,
-            pharmacyOnDemandRepository = pharmacyRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
         )
 
         advanceUntilIdle()
@@ -186,7 +193,7 @@ class PharmacyIntakeViewModelTest {
             savedStateHandle = SavedStateHandle(),
             authRepository = authRepo,
             profileRepository = profileRepo,
-            pharmacyOnDemandRepository = pharmacyRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
         )
 
         advanceUntilIdle()
@@ -205,7 +212,7 @@ class PharmacyIntakeViewModelTest {
             savedStateHandle = SavedStateHandle(),
             authRepository = authRepo,
             profileRepository = profileRepo,
-            pharmacyOnDemandRepository = pharmacyRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
         )
         advanceUntilIdle()
 
@@ -225,7 +232,7 @@ class PharmacyIntakeViewModelTest {
             savedStateHandle = SavedStateHandle(),
             authRepository = authRepo,
             profileRepository = profileRepo,
-            pharmacyOnDemandRepository = pharmacyRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
         )
         advanceUntilIdle()
 
@@ -235,7 +242,7 @@ class PharmacyIntakeViewModelTest {
     }
 
     @Test
-    fun `submitting valid form creates request and polling detects ASSIGNED doctor with roomId`() = runTest(testDispatcher) {
+    fun `submitting valid form creates dispatch request and keeps radar alive while searching`() = runTest(testDispatcher) {
         authRepo.user = User(
             id = "user-abc",
             email = "paciente@autamedica.com",
@@ -249,23 +256,24 @@ class PharmacyIntakeViewModelTest {
             dni = "28999888",
         )
 
-        val fakeCreatedRequest = PharmacyConsultationRequest(
+        val fakeCreatedRequest = PharmacyDispatchRequest(
             id = "req-999",
-            pharmacyId = "farm-1",
-            pharmacyName = "Farmacia de Turno",
             patientDni = "28999888",
-            patientName = "María López",
             patientPhone = "+5491122334455",
-            reason = "Presión / Hipertensión",
-            status = PharmacyConsultationStatus.PENDING,
+            patientName = "María López",
+            tierRequested = "general",
+            symptomSummary = "Presión / Hipertensión",
+            status = "searching",
+            cloudflareRoomId = "cf-room-general-9888",
+            createdAt = "2026-09-21T00:00:00Z",
         )
-        pharmacyRepo.createRequestResult = Result.success(fakeCreatedRequest)
+        pharmacyRepo.createResult = Result.success(fakeCreatedRequest)
 
         val vm = PharmacyIntakeViewModel(
             savedStateHandle = SavedStateHandle(),
             authRepository = authRepo,
             profileRepository = profileRepo,
-            pharmacyOnDemandRepository = pharmacyRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
         )
         advanceUntilIdle()
 
@@ -274,52 +282,119 @@ class PharmacyIntakeViewModelTest {
         testScheduler.runCurrent()
 
         assertThat(vm.uiState.value.activeRequestId).isEqualTo("req-999")
-        assertThat(pharmacyRepo.lastCreatedPatientName).isEqualTo("María López")
-        assertThat(pharmacyRepo.lastCreatedPatientDni).isEqualTo("28999888")
-        assertThat(pharmacyRepo.lastCreatedReason).isEqualTo("Presión / Hipertensión")
+        assertThat(pharmacyRepo.lastCreatedName).isEqualTo("María López")
+        assertThat(pharmacyRepo.lastCreatedDni).isEqualTo("28999888")
+        assertThat(pharmacyRepo.lastCreatedSummary).isEqualTo("Presión / Hipertensión")
+        assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.PENDING)
+        // La espera (radar) queda activa: la sala existe pero el médico aún no atendió la llamada.
+        assertThat(vm.uiState.value.roomId).isEqualTo("cf-room-general-9888")
         assertThat(vm.uiState.value.readyToJoinCall).isFalse()
-
-        // Simulate doctor claiming the request during polling
-        pharmacyRepo.getStatusResult = Result.success(
-            RequestStatusResponse(
-                id = "req-999",
-                status = PharmacyConsultationStatus.ASSIGNED,
-                queuePosition = 0,
-                doctorName = "Dra. Silvina Ramos",
-                doctorSpecialty = "Clínica Médica",
-                roomId = "room_pharmacy_999",
-            )
-        )
-
-        advanceTimeBy(2100)
-        testScheduler.runCurrent()
-
-        val finalState = vm.uiState.value
-        assertThat(finalState.status).isEqualTo(PharmacyConsultationStatus.ASSIGNED)
-        assertThat(finalState.assignedDoctorName).isEqualTo("Dra. Silvina Ramos")
-        assertThat(finalState.roomId).isEqualTo("room_pharmacy_999")
-        assertThat(finalState.readyToJoinCall).isTrue()
     }
 
     @Test
-    fun `cancelActiveRequest cancels active request, updates repository and resets state`() = runTest(testDispatcher) {
-        val fakeCreatedRequest = PharmacyConsultationRequest(
-            id = "req-cancel-123",
-            pharmacyId = "farm-1",
-            pharmacyName = "Farmacia de Turno",
-            patientDni = "28999888",
-            patientName = "Carlos Gómez",
-            patientPhone = "+5491122334455",
-            reason = "Dolor Muscular",
-            status = PharmacyConsultationStatus.PENDING,
+    fun `loadUserProfile cleans email to format clean patientName in title case`() = runTest(testDispatcher) {
+        val userWithEmail = User(
+            id = "u-email",
+            email = "jaqueline42marques@GMAIL.COM",
+            role = UserRole.PATIENT,
         )
-        pharmacyRepo.createRequestResult = Result.success(fakeCreatedRequest)
+        authRepo.user = userWithEmail
+        profileRepo.user = userWithEmail
 
         val vm = PharmacyIntakeViewModel(
             savedStateHandle = SavedStateHandle(),
             authRepository = authRepo,
             profileRepository = profileRepo,
-            pharmacyOnDemandRepository = pharmacyRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.patientName).isEqualTo("Jaqueline Marques")
+        assertThat(vm.uiState.value.isAuthenticated).isTrue()
+    }
+
+    @Test
+    fun `radar stays active while searching and matched and cuts only when doctor attends (in_call)`() = runTest(testDispatcher) {
+        authRepo.user = User(
+            id = "user-abc",
+            email = "paciente@autamedica.com",
+            firstName = "María",
+            lastName = "López",
+            phone = "+5491122334455",
+            role = UserRole.PATIENT,
+        )
+        profileRepo.user = authRepo.user
+        profileRepo.snapshot = PatientProfileSnapshot(
+            dni = "28999888",
+        )
+
+        val fakeCreatedRequest = PharmacyDispatchRequest(
+            id = "req-race-1",
+            patientDni = "28999888",
+            patientPhone = "+5491122334455",
+            patientName = "María López",
+            tierRequested = "general",
+            symptomSummary = "Presión / Hipertensión",
+            status = "searching",
+            cloudflareRoomId = "cf-room-general-race1",
+            createdAt = "2026-09-21T00:00:00Z",
+        )
+        pharmacyRepo.createResult = Result.success(fakeCreatedRequest)
+
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+
+        vm.onPatientNameChanged("María López")
+        vm.onPatientDniChanged("28999888")
+        vm.onPatientPhoneChanged("+5491122334455")
+        vm.onReasonChipSelected("Presión / Hipertensión")
+        vm.submitRequest()
+        testScheduler.runCurrent()
+
+        // searching: radar de espera activo, sin navegación
+        assertThat(vm.uiState.value.activeRequestId).isEqualTo("req-race-1")
+        assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.PENDING)
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+
+        // matched: el médico fue asignado por el claim pero aún no atiende; el radar sigue vivo
+        pharmacyRepo.requestFlow.value = fakeCreatedRequest.copy(status = "matched", assignedDoctorId = "doc-1")
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.ASSIGNED)
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+
+        // in_call: el médico atendió la llamada; se corta la espera y queda lista la navegación
+        pharmacyRepo.requestFlow.value = fakeCreatedRequest.copy(status = "in_call", assignedDoctorId = "doc-1")
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.IN_CALL)
+        assertThat(vm.uiState.value.readyToJoinCall).isTrue()
+        assertThat(vm.uiState.value.roomId).isEqualTo("cf-room-general-race1")
+    }
+
+    @Test
+    fun `cancelActiveRequest cancels active request, updates repository and resets state`() = runTest(testDispatcher) {
+        val fakeCreatedRequest = PharmacyDispatchRequest(
+            id = "req-cancel-123",
+            patientDni = "28999888",
+            patientPhone = "+5491122334455",
+            patientName = "Carlos Gómez",
+            tierRequested = "general",
+            symptomSummary = "Dolor Muscular",
+            status = "searching",
+            cloudflareRoomId = "cf-room-general-9888",
+            createdAt = "2026-09-21T00:00:00Z",
+        )
+        pharmacyRepo.createResult = Result.success(fakeCreatedRequest)
+
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
         )
         advanceUntilIdle()
 
@@ -336,7 +411,7 @@ class PharmacyIntakeViewModelTest {
         vm.cancelActiveRequest()
         advanceUntilIdle()
 
-        assertThat(pharmacyRepo.lastCancelledRequestId).isEqualTo("req-cancel-123")
+        assertThat(pharmacyRepo.statusUpdates).containsExactly("req-cancel-123" to "cancelled")
         assertThat(vm.uiState.value.activeRequestId).isNull()
         assertThat(vm.uiState.value.status).isNull()
         assertThat(vm.uiState.value.queuePosition).isEqualTo(0)
@@ -349,7 +424,7 @@ class PharmacyIntakeViewModelTest {
             savedStateHandle = SavedStateHandle(),
             authRepository = authRepo,
             profileRepository = profileRepo,
-            pharmacyOnDemandRepository = pharmacyRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
         )
         advanceUntilIdle()
 
@@ -357,8 +432,39 @@ class PharmacyIntakeViewModelTest {
         vm.cancelActiveRequest()
         advanceUntilIdle()
 
-        assertThat(pharmacyRepo.lastCancelledRequestId).isNull()
+        assertThat(pharmacyRepo.statusUpdates).isEmpty()
         assertThat(vm.uiState.value.patientName).isEqualTo("Esteban Quito")
         assertThat(vm.uiState.value.activeRequestId).isNull()
+    }
+
+    @Test
+    fun `observeActiveOnDutyDoctors updates activeDoctors dynamically on connection and disconnection`() = runTest(testDispatcher) {
+        val doctor1 = com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo(
+            id = "doc-1",
+            name = "Dr. Roberto Méndez",
+            shortName = "Dr. Méndez",
+            specialty = "Medicina General",
+            initials = "RM",
+            isAvailable = true,
+        )
+        pharmacyRepo.activeDoctorsFlow.value = listOf(doctor1)
+
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+
+        // Doctor is online
+        assertThat(vm.uiState.value.activeDoctors).containsExactly(doctor1)
+
+        // Doctor goes offline (disables real-time duty switch)
+        pharmacyRepo.activeDoctorsFlow.value = emptyList()
+        advanceUntilIdle()
+
+        // Immediately updates to empty list
+        assertThat(vm.uiState.value.activeDoctors).isEmpty()
     }
 }

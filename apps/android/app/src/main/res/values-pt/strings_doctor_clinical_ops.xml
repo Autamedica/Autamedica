@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common / Actions -->
+    <string name="clinical_ops_back">Voltar</string>
+    <string name="clinical_ops_refresh">Atualizar</string>
+    <string name="clinical_ops_close">Fechar</string>
+    <string name="clinical_ops_copy">Copiar</string>
+    <string name="clinical_ops_change">Alterar</string>
+    <string name="clinical_ops_pdf">PDF</string>
+    <string name="clinical_ops_qr">QR</string>
+
+    <!-- 1. Honorarios y Contabilidad (DoctorAccounting) -->
+    <string name="accounting_title">Liquidações e Honorários</string>
+    <string name="accounting_balance_available_title">Saldo Disponível para Saque</string>
+    <string name="accounting_request_withdrawal_button">Solicitar Transferência</string>
+    <string name="accounting_monthly_consultations_label">Consultas do Mês</string>
+    <string name="accounting_pending_settlement_label">Pendente de Liquidação</string>
+    <string name="accounting_withdrawal_success_message">Pedido de transferência enviado com sucesso para a sua conta bancária.</string>
+    <string name="accounting_recent_settled_consultations">Últimas Consultas Liquidadas</string>
+    <string name="accounting_status_credited">Creditado</string>
+    <string name="accounting_status_in_process">Em processamento</string>
+
+    <!-- 2. Firma Digital y Validación SISA / CRM (DoctorSignature) -->
+    <string name="signature_title">Assinatura digital</string>
+    <string name="signature_label_dni">Documento do profissional</string>
+    <string name="signature_label_license">Matrícula / Cédula profissional</string>
+    <string name="signature_button_verify">Verificar matrícula</string>
+    <string name="signature_status_verified_button">Matrícula verificada</string>
+    <string name="signature_verifying">A verificar…</string>
+    <string name="signature_status_sisa_verified">Matrícula verificada com sucesso</string>
+    <string name="signature_status_exempt">Matrícula isenta de verificação</string>
+    <string name="signature_status_unverified">Matrícula não verificada</string>
+    <string name="signature_error_invalid_dni">Introduza um documento válido (7 a 9 dígitos)</string>
+    <string name="signature_error_invalid_license">Introduza uma matrícula válida</string>
+    <string name="signature_error_verification_failed">Não foi possível verificar a matrícula. Tente novamente.</string>
+    <string name="signature_error_must_validate_before_saving">Deve validar a matrícula antes de guardar</string>
+    <string name="signature_pad_label">Assinatura:</string>
+    <string name="signature_clear_button">Limpar traço</string>
+    <string name="signature_save_button">Guardar assinatura</string>
+    <string name="signature_saved_success">Assinatura guardada com sucesso.</string>
+
+    <!-- 3. Reportes de Consulta e Historia Clínica (DoctorConsultationReport) -->
+    <string name="report_title">Relatório Clínico</string>
+    <string name="report_reason_evolution_label">Motivo da Consulta e Evolução</string>
+    <string name="report_notes_placeholder">Notas da consulta...</string>
+    <string name="report_diagnosis_label">Diagnóstico (CID-10 sugerido)</string>
+    <string name="report_treatment_plan_label">Plano Terapêutico</string>
+    <string name="report_close_record_button">Fechar Histórico Clínico</string>
+    <string name="report_error_missing_data">Faltam dados obrigatórios</string>
+    <string name="report_saved_success">Relatório guardado com sucesso.</string>
+
+    <!-- 4. Certificados Médicos / Atestados (DoctorCertificates & CreateCertificate) -->
+    <string name="cert_screen_title">Atestados Médicos Emitidos</string>
+    <string name="cert_header_counts">%1$d válidos · %2$d emitidos</string>
+    <string name="cert_action_new_certificate">Novo Atestado</string>
+    <string name="cert_search_placeholder">Pesquisar por paciente, documento, código ou diagnóstico...</string>
+    <string name="cert_filter_all">Todos (%1$d)</string>
+    <string name="cert_filter_valid">Válidos (%1$d)</string>
+    <string name="cert_filter_cancelled">Cancelados (%1$d)</string>
+    <string name="cert_empty_search_title">Não foram encontrados resultados para a pesquisa</string>
+    <string name="cert_empty_list_title">Sem atestados médicos emitidos</string>
+    <string name="cert_empty_list_subtitle">Prima o botão \'Novo Atestado\' para emitir a sua primeira certificação médica digital.</string>
+    <string name="cert_toast_open_pdf_error">Não foi possível abrir o atestado oficial.</string>
+    <string name="cert_toast_cuir_copied">Código de validação copiado</string>
+    <string name="cert_qr_validation_content_desc">Código QR de Validação Institucional</string>
+    <string name="cert_detail_cuir_label">Código: %1$s</string>
+    <string name="cert_detail_patient">Paciente: %1$s</string>
+    <string name="cert_detail_patient_with_dni">Paciente: %1$s (%2$s)</string>
+    <string name="cert_days_of_rest_detail">%1$d dias de repouso (Até: %2$s)</string>
+    <string name="cert_detail_diagnosis">Diagnóstico: %1$s</string>
+    <string name="cert_detail_observations">Observações: %1$s</string>
+    <string name="cert_detail_download_pdf">Descarregar PDF</string>
+    <string name="cert_card_default_patient_name">Paciente Atribuído</string>
+    <string name="cert_card_dni_label">Doc: %1$s</string>
+    <string name="cert_status_valid">Válido</string>
+    <string name="cert_status_cancelled">Cancelado</string>
+    <string name="cert_days_of_rest_count">%1$d dias de repouso</string>
+    <string name="cert_days_of_rest_one">1 dia de repouso</string>
+    <string name="cert_no_rest">Sem repouso</string>
+    <string name="cert_diagnosis_reserved">🔒 Diagnóstico reservado (Segredo médico)</string>
+
+    <!-- 5. Emisión de Certificado (CreateCertificateScreen) -->
+    <string name="cert_create_title">Emitir Atestado Médico</string>
+    <string name="cert_create_legal_basis">Resolução CFM nº 2.299/2021 · Telemedicina</string>
+    <string name="cert_create_submitting">A assinar e selar digitalmente...</string>
+    <string name="cert_create_submit_button">Assinar e Emitir Certificado Oficial</string>
+    <string name="cert_reg_active_title">Habilitação Profissional Ativa</string>
+    <string name="cert_reg_pending_title">Verificação Pendente</string>
+    <string name="cert_reg_license_active">Matrícula: %1$s · Assinatura digital ativada</string>
+    <string name="cert_reg_license_required">Requer matrícula ativa para assinatura com validade oficial.</string>
+    <string name="cert_reg_registered">Registada</string>
+    <string name="cert_patient_recipient_title">Destinatário do Atestado</string>
+    <string name="cert_patient_recipient_subtitle">Paciente registado que receberá o atestado</string>
+    <string name="cert_patient_dni_label">Doc: %1$s</string>
+    <string name="cert_patient_search_placeholder">Pesquisar paciente por nome ou documento...</string>
+    <string name="cert_patient_loading">A carregar pacientes do consultório...</string>
+    <string name="cert_patient_empty">Não foram encontrados pacientes com esse critério</string>
+    <string name="cert_type_section_title">Tipo de Atestado / Certificação</string>
+    <string name="cert_type_section_subtitle">Determina o âmbito legal e institucional do documento</string>
+    <string name="cert_type_reposo_laboral">Repouso Laboral</string>
+    <string name="cert_type_reposo_escolar">Repouso Escolar / Universitário</string>
+    <string name="cert_type_aptitud_fisica">Aptidão Física</string>
+    <string name="cert_type_constancia_atencion">Declaração de Comparecimento</string>
+    <string name="cert_type_tratamiento">Tratamento Prolongado</string>
+    <string name="cert_type_otro">Atestado Médico Geral</string>
+    <string name="cert_rest_section_title">Duração e Período de Repouso</string>
+    <string name="cert_rest_24h">24 h</string>
+    <string name="cert_rest_48h">48 h</string>
+    <string name="cert_rest_days_format">%1$d dias</string>
+    <string name="cert_rest_start_date_label">Data de início:</string>
+    <string name="cert_rest_end_date_label">Regresso previsto:</string>
+    <string name="cert_diag_section_title">Diagnóstico e Certificação Clínica</string>
+    <string name="cert_diag_placeholder">Descreva o diagnóstico, quadro ou aptidão clínica...</string>
+    <string name="cert_privacy_hide_diagnosis_title">Ocultar diagnóstico no documento final</string>
+    <string name="cert_privacy_hide_diagnosis_subtitle">Garantia de Segredo Médico e confidencialidade (CFM)</string>
+    <string name="cert_obs_section_title">Indicações e Observações Clínicas (Opcional)</string>
+    <string name="cert_obs_placeholder">Ex: Repouso domiciliário com hidratação contínua. Apresentar nos RH.</string>
+    <string name="cert_success_dialog_title">Atestado Emitido com Sucesso!</string>
+    <string name="cert_success_dialog_body">O atestado médico digital foi assinado com validade institucional.</string>
+    <string name="cert_success_cuir_header">CÓDIGO DE VALIDAÇÃO (CUIR):</string>
+    <string name="cert_success_dialog_footer">Válido perante entidades patronais, escolas ou instituições públicas através de verificação online.</string>
+    <string name="cert_success_back_to_certificates">Voltar aos Meus Atestados</string>
+
+    <!-- 6. Diagnósticos Comunes Sugeridos -->
+    <string name="cert_diag_gastroenteritis">Quadro de gastroenterite aguda febril</string>
+    <string name="cert_diag_respiratory">Infeção respiratória das vias aéreas superiores (Rinofaringite)</string>
+    <string name="cert_diag_lumbalgia">Lombalgia aguda com contratura paravertebral</string>
+    <string name="cert_diag_bronchitis">Bronquite aguda com compromisso ventilatório ligeiro</string>
+    <string name="cert_diag_headache">Cefaleia de tensão / enxaqueca grave</string>
+    <string name="cert_diag_physical_aptitude">Exame clínico e cardiovascular dentro dos parâmetros normais (Apto físico)</string>
+    <string name="cert_diag_trauma">Traumatismo articular ligeiro com indicação de repouso</string>
+    <string name="cert_diag_pharyngitis">Faringoamigdalite purulenta com repouso domiciliário</string>
+
+    <!-- 7. Errores y Mensajes de ViewModel (DoctorCertificates) -->
+    <string name="cert_error_load_failed">Não foi possível carregar os atestados: %1$s</string>
+    <string name="cert_error_network">Erro de rede</string>
+    <string name="cert_error_load_patients">Erro ao carregar a lista de pacientes: %1$s</string>
+    <string name="cert_error_select_patient">Selecione um paciente da lista</string>
+    <string name="cert_error_enter_diagnosis">Introduza um diagnóstico ou motivo clínico da certificação</string>
+    <string name="cert_error_not_eligible">Não possui habilitação profissional ativa para emitir atestados oficiais</string>
+    <string name="cert_success_issued_cuir">Atestado médico emitido com sucesso. CUIR: %1$s</string>
+    <string name="cert_error_issue_failed">Erro ao emitir o certificado: %1$s</string>
+    <string name="cert_error_connection">Falha de ligação</string>
+</resources>

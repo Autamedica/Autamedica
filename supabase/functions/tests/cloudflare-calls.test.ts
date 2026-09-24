@@ -23,6 +23,7 @@ function mockSupabaseFetch(overrides: {
   call?: Record<string, unknown> | null;
   doctor?: Record<string, unknown> | null;
   patient?: Record<string, unknown> | null;
+  dispatch?: Record<string, unknown> | null;
   cfResponse?: { status: number; body: unknown };
 }): FetchMock {
   const originalFetch = globalThis.fetch;
@@ -46,6 +47,10 @@ function mockSupabaseFetch(overrides: {
 
     if (url.includes("/rest/v1/patients?")) {
       return jsonResponse(overrides.patient === null ? [] : [overrides.patient]);
+    }
+
+    if (url.includes("/rest/v1/pharmacy_dispatch_requests?")) {
+      return jsonResponse(overrides.dispatch === null ? [] : [overrides.dispatch]);
     }
 
     if (url.includes("rtc.live.cloudflare.com")) {
@@ -326,6 +331,88 @@ Deno.test("cloudflare-calls - Direct user_id in doctor_id or patient_id authoriz
     assertEquals(res.status, 201);
     const data = await res.json();
     assertEquals(data.sessionId, "sess-direct-doc");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("cloudflare-calls - Dispatch patient authorizes via materialized patients.id", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = mockSupabaseFetch({
+    user: { id: "user-patient" },
+    call: null,
+    dispatch: {
+      id: "disp-1",
+      cloudflare_room_id: "cf-room-general-1234-abc",
+      assigned_doctor_id: "dr-1",
+      status: "in_call",
+      patient_id: "pat-dispatch-1",
+      requested_by_user_id: "user-patient",
+      patient_dni: "12345678",
+    },
+    doctor: null,
+    patient: { id: "pat-dispatch-1", user_id: "user-patient" },
+    cfResponse: {
+      status: 201,
+      body: { sessionId: "sess-dispatch-patient", sessionDescription: { type: "answer", sdp: "dummy" } },
+    },
+  });
+  try {
+    const req = new Request("http://localhost/cloudflare-calls", {
+      method: "POST",
+      headers: { Authorization: "Bearer valid-token" },
+      body: JSON.stringify({
+        roomId: "cf-room-general-1234-abc",
+        method: "POST",
+        path: "sessions/new",
+        body: { sessionDescription: { type: "offer", sdp: "dummy" } },
+      }),
+    });
+    const res = await handler(req);
+    assertEquals(res.status, 201);
+    const data = await res.json();
+    assertEquals(data.sessionId, "sess-dispatch-patient");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("cloudflare-calls - Dispatch legacy fallback keeps requested_by_user_id authorization", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = mockSupabaseFetch({
+    user: { id: "user-patient" },
+    call: null,
+    dispatch: {
+      id: "disp-legacy",
+      cloudflare_room_id: "cf-room-general-0000-xyz",
+      assigned_doctor_id: "dr-legacy",
+      status: "in_call",
+      patient_id: null,
+      requested_by_user_id: "user-patient",
+      patient_dni: "45678901",
+    },
+    doctor: null,
+    patient: null,
+    cfResponse: {
+      status: 201,
+      body: { sessionId: "sess-dispatch-legacy", sessionDescription: { type: "answer", sdp: "dummy" } },
+    },
+  });
+  try {
+    const req = new Request("http://localhost/cloudflare-calls", {
+      method: "POST",
+      headers: { Authorization: "Bearer valid-token" },
+      body: JSON.stringify({
+        roomId: "cf-room-general-0000-xyz",
+        method: "POST",
+        path: "sessions/new",
+        body: { sessionDescription: { type: "offer", sdp: "dummy" } },
+      }),
+    });
+    const res = await handler(req);
+    assertEquals(res.status, 201);
+    const data = await res.json();
+    assertEquals(data.sessionId, "sess-dispatch-legacy");
   } finally {
     globalThis.fetch = originalFetch;
   }
