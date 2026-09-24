@@ -90,13 +90,20 @@ abstract class RepositoryModule {
     @Singleton
     abstract fun bindMedicalOrderRepository(impl: com.autamedica.android.data.repository.MedicalOrderRepositoryImpl): com.autamedica.android.domain.repository.MedicalOrderRepository
 
-    @Binds
-    @Singleton
-    abstract fun bindPharmacyOnDemandRepository(impl: com.autamedica.android.data.repository.PharmacyOnDemandRepositoryImpl): com.autamedica.android.domain.repository.PharmacyOnDemandRepository
-
+    /**
+     * Canonical source for on-demand pharmacy dispatch (Gen 2: searching requests,
+     * presence heartbeat, real-time incoming offers and atomic claim via RPC).
+     */
     @Binds
     @Singleton
     abstract fun bindPharmacyDispatchRepository(impl: com.autamedica.android.data.repository.PharmacyDispatchRepositoryImpl): com.autamedica.android.domain.repository.PharmacyDispatchRepository
+
+    /**
+     * Legacy repository for pharmacy on-demand requests (backward compatibility).
+     */
+    @Binds
+    @Singleton
+    abstract fun bindPharmacyOnDemandRepository(impl: com.autamedica.android.data.repository.PharmacyOnDemandRepositoryImpl): com.autamedica.android.domain.repository.PharmacyOnDemandRepository
 
     @Binds
     @Singleton

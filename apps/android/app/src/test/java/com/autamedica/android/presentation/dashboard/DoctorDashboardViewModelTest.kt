@@ -22,7 +22,6 @@ import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.ChatRepository
 import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
-import com.autamedica.android.domain.repository.PharmacyOnDemandRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.repository.TelemedicineSessionInfo
 import com.autamedica.android.domain.repository.UserRegistrationResult
@@ -108,30 +107,6 @@ private class FakeChatRepo : ChatRepository {
     override suspend fun cleanup() {}
 }
 
-private class FakePharmacyOnDemandRepo : PharmacyOnDemandRepository {
-    val onDutyFlow = MutableStateFlow(DoctorOnDutyPharmacyState(isOnDuty = true))
-    override fun observeOnDutyState(): Flow<DoctorOnDutyPharmacyState> = onDutyFlow
-    override suspend fun getOnDutyStatus(): Result<DoctorOnDutyPharmacyState> = Result.success(onDutyFlow.value)
-    override suspend fun toggleOnDuty(onDuty: Boolean): Result<DoctorOnDutyPharmacyState> {
-        val next = onDutyFlow.value.copy(isOnDuty = onDuty)
-        onDutyFlow.value = next
-        return Result.success(next)
-    }
-    override suspend fun getPendingQueue(): Result<List<PharmacyConsultationRequest>> = Result.success(emptyList())
-    override suspend fun claimRequest(requestId: String): Result<PharmacyClaimResult> = Result.failure(NotImplementedError())
-    override suspend fun createRequest(
-        pharmacyId: String?,
-        pharmacyName: String,
-        patientDni: String,
-        patientName: String,
-        patientPhone: String,
-        reason: String
-    ): Result<PharmacyConsultationRequest> = Result.failure(NotImplementedError())
-    override suspend fun getRequestStatus(requestId: String): Result<RequestStatusResponse> = Result.failure(NotImplementedError())
-    override suspend fun cancelRequest(requestId: String): Result<Unit> = Result.success(Unit)
-    override suspend fun cancelActiveRequestsForPatient(patientDni: String, patientPhone: String): Result<Unit> = Result.success(Unit)
-}
-
 private class FakePharmacyDispatchRepo : PharmacyDispatchRepository {
     var dutyStatus = DoctorDutyStatus(
         doctorId = "doctor-456",
@@ -141,7 +116,7 @@ private class FakePharmacyDispatchRepo : PharmacyDispatchRepository {
     )
     val heartbeatInvocations = mutableListOf<Long>()
     var heartbeatResponse: Result<Unit> = Result.success(Unit)
-    private val searchingRequestsFlow = MutableStateFlow<List<PharmacyDispatchRequest>>(emptyList())
+    val searchingRequestsFlow = MutableStateFlow<List<PharmacyDispatchRequest>>(emptyList())
 
     override suspend fun getDoctorDutyStatus(doctorId: String): Result<DoctorDutyStatus> = Result.success(dutyStatus)
     override suspend fun setDoctorDutyStatus(doctorId: String, isOnDuty: Boolean, activeTiers: List<String>): Result<Unit> {
@@ -153,7 +128,10 @@ private class FakePharmacyDispatchRepo : PharmacyDispatchRepository {
         return heartbeatResponse
     }
     override fun observeSearchingRequests(): StateFlow<List<PharmacyDispatchRequest>> = searchingRequestsFlow.asStateFlow()
-    override suspend fun claimPharmacyRequest(requestId: String, doctorId: String): Result<com.autamedica.android.domain.model.DispatchClaimResult> = Result.failure(NotImplementedError())
+    override fun observeIncomingOffers(): StateFlow<List<PharmacyDispatchRequest>> = searchingRequestsFlow.asStateFlow()
+    override val incomingOffers: StateFlow<List<PharmacyDispatchRequest>> get() = searchingRequestsFlow.asStateFlow()
+    override suspend fun claimPharmacyRequest(requestId: String, doctorId: String): Result<com.autamedica.android.domain.model.DispatchClaimResult> =
+        Result.success(com.autamedica.android.domain.model.DispatchClaimResult(success = true, code = "CLAIM_SUCCESS", cloudflareRoomId = "room-$requestId"))
     override suspend fun updateDispatchRequestStatus(requestId: String, status: String): Result<Unit> = Result.success(Unit)
     override suspend fun finishPharmacyRequest(doctorId: String, requestId: String): Result<Unit> = Result.success(Unit)
     override suspend fun createPatientDispatchRequest(
@@ -184,7 +162,6 @@ class DoctorDashboardViewModelTest {
     private lateinit var appointmentRepo: FakeAppointmentRepo
     private lateinit var telemedicineRepo: FakeTelemedicineRepo
     private lateinit var chatRepo: FakeChatRepo
-    private lateinit var pharmacyOnDemandRepo: FakePharmacyOnDemandRepo
     private lateinit var dispatchRepo: FakePharmacyDispatchRepo
     private lateinit var connectivityObserver: FakeConnectivityObserver
 
@@ -196,7 +173,6 @@ class DoctorDashboardViewModelTest {
         appointmentRepo = FakeAppointmentRepo()
         telemedicineRepo = FakeTelemedicineRepo()
         chatRepo = FakeChatRepo()
-        pharmacyOnDemandRepo = FakePharmacyOnDemandRepo()
         dispatchRepo = FakePharmacyDispatchRepo()
         connectivityObserver = FakeConnectivityObserver()
     }
@@ -214,7 +190,6 @@ class DoctorDashboardViewModelTest {
             authRepository = authRepo,
             telemedicineRepository = telemedicineRepo,
             chatRepository = chatRepo,
-            pharmacyOnDemandRepository = pharmacyOnDemandRepo,
             pharmacyDispatchRepository = dispatchRepo,
             connectivityObserver = connectivityObserver,
             ioDispatcher = testDispatcher,
@@ -238,7 +213,6 @@ class DoctorDashboardViewModelTest {
             authRepository = authRepo,
             telemedicineRepository = telemedicineRepo,
             chatRepository = chatRepo,
-            pharmacyOnDemandRepository = pharmacyOnDemandRepo,
             pharmacyDispatchRepository = dispatchRepo,
             connectivityObserver = connectivityObserver,
             ioDispatcher = testDispatcher,
@@ -272,7 +246,6 @@ class DoctorDashboardViewModelTest {
             authRepository = authRepo,
             telemedicineRepository = telemedicineRepo,
             chatRepository = chatRepo,
-            pharmacyOnDemandRepository = pharmacyOnDemandRepo,
             pharmacyDispatchRepository = dispatchRepo,
             connectivityObserver = connectivityObserver,
             ioDispatcher = testDispatcher,
@@ -293,6 +266,52 @@ class DoctorDashboardViewModelTest {
         testScheduler.runCurrent()
 
         assertThat(dispatchRepo.heartbeatInvocations.size).isGreaterThan(countBeforeReconnect)
+
+        viewModel.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `incoming dispatch offers from pharmacyDispatchRepository are delivered to doctor immediately when on duty`() = runTest(testDispatcher) {
+        val viewModel = DoctorDashboardViewModel(
+            doctorRepository = doctorRepo,
+            appointmentRepository = appointmentRepo,
+            authRepository = authRepo,
+            telemedicineRepository = telemedicineRepo,
+            chatRepository = chatRepo,
+            pharmacyDispatchRepository = dispatchRepo,
+            connectivityObserver = connectivityObserver,
+            ioDispatcher = testDispatcher,
+        )
+
+        testScheduler.runCurrent()
+
+        val incomingRequest = PharmacyDispatchRequest(
+            id = "req-real-999",
+            patientDni = "30111222",
+            patientPhone = "+5491199887766",
+            patientName = "Carlos Tevez",
+            tierRequested = "general",
+            symptomSummary = "Dolor lumbar agudo tras esfuerzo físico",
+            status = "searching",
+            cloudflareRoomId = "cf-room-general-999",
+            createdAt = java.time.OffsetDateTime.now().toString(),
+        )
+
+        dispatchRepo.searchingRequestsFlow.value = listOf(incomingRequest)
+        testScheduler.runCurrent()
+
+        val state = viewModel.uiState.value
+        assertThat(state.simulatedDispatchAlert).isNotNull()
+        assertThat(state.simulatedDispatchAlert?.id).isEqualTo("req-real-999")
+        assertThat(state.simulatedDispatchAlert?.patientName).isEqualTo("Carlos Tevez")
+        assertThat(state.liveWaitingQueue).hasSize(1)
+        assertThat(state.liveWaitingQueue.first().id).isEqualTo("req-real-999")
+
+        // Dismiss alert
+        viewModel.dismissDispatchAlert("req-real-999")
+        testScheduler.runCurrent()
+
+        assertThat(viewModel.uiState.value.simulatedDispatchAlert).isNull()
 
         viewModel.viewModelScope.cancel()
     }

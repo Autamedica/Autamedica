@@ -28,6 +28,13 @@ interface PharmacyDispatchRepository {
     /** Reactive flow of dispatch requests still in `searching` status. */
     fun observeSearchingRequests(): StateFlow<List<PharmacyDispatchRequest>>
 
+    /** Gen 2 incoming offers waiting for on-duty doctors. */
+    fun observeIncomingOffers(): StateFlow<List<PharmacyDispatchRequest>> = observeSearchingRequests()
+
+    /** Live incoming offers property stream. */
+    val incomingOffers: StateFlow<List<PharmacyDispatchRequest>>
+        get() = observeSearchingRequests()
+
     /** Pick up (`claim`) a searching request atomically via RPC. */
     suspend fun claimPharmacyRequest(
         requestId: String,

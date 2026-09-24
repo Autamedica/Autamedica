@@ -18,7 +18,7 @@ import {
   Lock,
 } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
-import type { CreatePharmacyRequestInput, RequestStatusResponse } from '@/lib/pharmacy/types'
+import type { DispatchRequest } from '@/lib/pharmacy/pharmacy-on-demand.service'
 import GuestCallPage from '@/components/calls/GuestCallPage'
 
 interface PharmacyExpressConsultationProps {
@@ -58,52 +58,61 @@ export function PharmacyExpressConsultation({
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  // Active request state
+  // Active request state (Gen 2: pharmacy_dispatch_requests)
   const [requestId, setRequestId] = useState<string | null>(null)
-  const [requestStatus, setRequestStatus] = useState<RequestStatusResponse | null>(null)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
-  const [, setGuestInviteId] = useState<string | null>(null)
+  const [queuePosition] = useState<number>(1)
 
-  // Polling for status when in WAITING step
-  const checkStatus = useCallback(async (id: string) => {
+  // Polling / escucha para consultar GET /api/pharmacy/dispatch/${requestId}?token=${accessToken}
+  const checkStatus = useCallback(async (id: string, token: string | null) => {
     try {
-      const data = await fetchApi<RequestStatusResponse>(`/api/pharmacy/on-demand/status/${id}`)
-      setRequestStatus(data)
+      const tokenParam = token ? `?token=${encodeURIComponent(token)}` : ''
+      const data = await fetchApi<{
+        request: DispatchRequest
+        doctor: {
+          full_name: string
+          license_number: string
+          specialty: string
+        } | null
+      }>(`/api/pharmacy/dispatch/${encodeURIComponent(id)}${tokenParam}`)
 
-      if (data.status === 'assigned' || data.status === 'in_call') {
-        if (data.roomId && data.guestInviteId) {
-          setCallRoomId(data.roomId)
-          setGuestInviteId(data.guestInviteId)
-          // Update URL params quietly so GuestCallPage picks up the invite parameter if rendered
-          if (typeof window !== 'undefined') {
+      const req = data?.request
+      if (!req) return
+
+      if (req.status === 'matched' || req.status === 'assigned' || req.status === 'in_call') {
+        const roomId = req.cloudflare_room_id || callRoomId
+        if (roomId) {
+          setCallRoomId(roomId)
+          if (token && typeof window !== 'undefined') {
             const url = new URL(window.location.href)
-            url.searchParams.set('invite', data.guestInviteId)
+            url.searchParams.set('token', token)
             window.history.replaceState(null, '', url.toString())
           }
           setStep('CALL')
         }
-      } else if (data.status === 'completed') {
+      } else if (req.status === 'completed') {
         setStep('ENDED')
-      } else if (data.status === 'cancelled' || data.status === 'expired') {
+      } else if (req.status === 'cancelled' || req.status === 'expired') {
         setStep('CANCELLED')
       }
     } catch {
       // Ignorar fallas transitorias de red durante polling
     }
-  }, [])
+  }, [callRoomId])
 
   useEffect(() => {
     if (step !== 'WAITING' || !requestId) return
 
     // Chequeo inmediato
-    void checkStatus(requestId)
+    void checkStatus(requestId, accessToken)
 
     const interval = setInterval(() => {
-      void checkStatus(requestId)
+      void checkStatus(requestId, accessToken)
     }, 3000)
 
     return () => clearInterval(interval)
-  }, [step, requestId, checkStatus])
+  }, [step, requestId, accessToken, checkStatus])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -129,24 +138,30 @@ export function PharmacyExpressConsultation({
     try {
       setSubmitting(true)
 
-      const payload: CreatePharmacyRequestInput = {
-        pharmacyId: pharmacyId || null,
-        pharmacyName,
-        patientDni: formData.dni.trim(),
-        patientName: formData.name.trim(),
-        patientPhone: formData.phone.trim(),
-        reason: formData.reason.trim(),
-      }
-
+      // Consumir el motor Gen 2 (POST /api/pharmacy/dispatch/request)
       const res = await fetchApi<{
-        request: { id: string }
-        queuePosition: number
-      }>('/api/pharmacy/on-demand/request', {
+        request: DispatchRequest
+        cloudflare_room_id: string
+        accessToken: string
+      }>('/api/pharmacy/dispatch/request', {
         method: 'POST',
-        body: payload,
+        body: {
+          patientDni: formData.dni.trim(),
+          patientName: formData.name.trim(),
+          patientPhone: formData.phone.trim(),
+          symptomSummary: formData.reason.trim(),
+          pharmacyId: pharmacyId || undefined,
+          tier: 'general',
+        },
       })
 
-      setRequestId(res.request.id)
+      const reqId = res.request.id
+      const token = res.accessToken
+      const roomId = res.cloudflare_room_id || res.request.cloudflare_room_id
+
+      setRequestId(reqId)
+      setAccessToken(token)
+      setCallRoomId(roomId)
       setStep('WAITING')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al conectar con la guardia médica'
@@ -420,15 +435,15 @@ export function PharmacyExpressConsultation({
             <div className="w-full max-w-xs grid grid-cols-2 gap-3 mb-6">
               <div className="p-3.5 rounded-2xl bg-am-surface-900 border border-am-surface-700/60 flex flex-col items-center">
                 <span className="text-[11px] text-am-surface-400 flex items-center gap-1 mb-1">
-                  <User className="w-3 h-3 text-am-surface-400" /> Posición en cola
+                  <User className="w-3.5 h-3.5 text-am-surface-400" /> Posición en cola
                 </span>
                 <span className="text-xl font-bold text-white">
-                  #{requestStatus?.queuePosition ?? 1}
+                  #{queuePosition}
                 </span>
               </div>
               <div className="p-3.5 rounded-2xl bg-am-surface-900 border border-am-surface-700/60 flex flex-col items-center">
                 <span className="text-[11px] text-am-surface-400 flex items-center gap-1 mb-1">
-                  <Clock className="w-3 h-3 text-am-surface-400" /> Espera estimada
+                  <Clock className="w-3.5 h-3.5 text-am-surface-400" /> Espera estimada
                 </span>
                 <span className="text-xl font-bold text-emerald-400">
                   ~1-3 min
@@ -460,7 +475,7 @@ export function PharmacyExpressConsultation({
             <div className="flex items-center gap-3 w-full max-w-xs">
               <button
                 type="button"
-                onClick={() => requestId && void checkStatus(requestId)}
+                onClick={() => requestId && void checkStatus(requestId, accessToken)}
                 className="flex-1 py-2.5 px-3 rounded-xl bg-am-surface-700/60 hover:bg-am-surface-700 text-xs font-medium text-am-surface-200 transition flex items-center justify-center gap-1.5"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
