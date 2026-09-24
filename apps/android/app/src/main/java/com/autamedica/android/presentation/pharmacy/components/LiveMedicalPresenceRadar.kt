@@ -73,7 +73,12 @@ import androidx.compose.ui.unit.sp
 import com.autamedica.android.R
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
+import com.autamedica.android.presentation.theme.AuCyan
+import com.autamedica.android.presentation.theme.AuCyanDeep
+import com.autamedica.android.presentation.theme.AuCyanSoft
+import com.autamedica.android.presentation.theme.AuEmerald
 import com.autamedica.android.presentation.theme.AuHover
+import com.autamedica.android.presentation.theme.AuNavy
 import com.autamedica.android.presentation.theme.AuSuccess
 import com.autamedica.android.presentation.theme.AuSurface
 import com.autamedica.android.presentation.theme.AuTextPrimary
@@ -141,26 +146,37 @@ fun LiveMedicalPresenceRadar(
         label = "radarSweepAngle",
     )
 
-    // Onda concéntrica expansiva 1
+    // Onda concéntrica expansiva 1 (staggered 0ms)
     val wave1 by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2600, easing = LinearEasing),
+            animation = tween(durationMillis = 2800, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "radarWave1",
     )
 
-    // Onda concéntrica expansiva 2 (desfasada)
+    // Onda concéntrica expansiva 2 (staggered 930ms)
     val wave2 by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2600, delayMillis = 1300, easing = LinearEasing),
+            animation = tween(durationMillis = 2800, delayMillis = 930, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "radarWave2",
+    )
+
+    // Onda concéntrica expansiva 3 (staggered 1860ms)
+    val wave3 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2800, delayMillis = 1860, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "radarWave3",
     )
 
     // Pulso del logo central
@@ -186,26 +202,26 @@ fun LiveMedicalPresenceRadar(
     )
 
     Box(
-        modifier = modifier.size(270.dp),
+        modifier = modifier.size(280.dp),
         contentAlignment = Alignment.Center,
     ) {
         // Lienzo del radar: círculos concéntricos, ejes de telemetría, barrido y ondas
         Canvas(modifier = Modifier.matchParentSize()) {
             val center = Offset(size.width / 2f, size.height / 2f)
             val maxRadius = size.minDimension / 2f
-            val innerCoreRadius = 36.dp.toPx()
+            val innerCoreRadius = 38.dp.toPx()
 
             // Círculos concéntricos fijos de telemetría médica
             val ringRadii = listOf(
                 innerCoreRadius + 16.dp.toPx(),
                 innerCoreRadius + 44.dp.toPx(),
-                innerCoreRadius + 72.dp.toPx(),
+                innerCoreRadius + 74.dp.toPx(),
                 maxRadius - 4.dp.toPx(),
             )
 
             ringRadii.forEachIndexed { index, r ->
                 drawCircle(
-                    color = Primary.copy(alpha = if (index == ringRadii.lastIndex) 0.18f else 0.10f),
+                    color = AuCyan.copy(alpha = if (index == ringRadii.lastIndex) 0.22f else 0.10f),
                     radius = r,
                     center = center,
                     style = Stroke(
@@ -216,7 +232,7 @@ fun LiveMedicalPresenceRadar(
             }
 
             // Ejes de telemetría (mira central)
-            val axisColor = Primary.copy(alpha = 0.08f)
+            val axisColor = AuCyan.copy(alpha = 0.10f)
             drawLine(
                 color = axisColor,
                 start = Offset(center.x, 8.dp.toPx()),
@@ -232,32 +248,39 @@ fun LiveMedicalPresenceRadar(
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 4f), 0f),
             )
 
-            // Ondas concéntricas de despacho en Azul AutaMedica
-            val waveRadius1 = innerCoreRadius + wave1 * (maxRadius - innerCoreRadius)
-            val waveAlpha1 = (1f - wave1) * 0.35f
-            drawCircle(
-                color = Primary.copy(alpha = waveAlpha1),
-                radius = waveRadius1,
-                center = center,
-                style = Stroke(width = 2.dp.toPx()),
-            )
+            // Ondas concéntricas expansivas estilo Uber matching radar
+            listOf(wave1, wave2, wave3).forEach { wave ->
+                val waveRadius = innerCoreRadius + wave * (maxRadius - innerCoreRadius)
+                val waveAlpha = (1f - wave) * 0.40f
+                // Sutil relleno volumétrico
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            AuCyan.copy(alpha = waveAlpha * 0.25f),
+                            Color.Transparent,
+                        ),
+                        center = center,
+                        radius = waveRadius,
+                    ),
+                    radius = waveRadius,
+                    center = center,
+                )
+                // Anillo de pulso exterior con gradiente Cyan Clínico
+                drawCircle(
+                    color = AuCyan.copy(alpha = waveAlpha),
+                    radius = waveRadius,
+                    center = center,
+                    style = Stroke(width = (2.dp - 0.8.dp * wave).toPx()),
+                )
+            }
 
-            val waveRadius2 = innerCoreRadius + wave2 * (maxRadius - innerCoreRadius)
-            val waveAlpha2 = (1f - wave2) * 0.35f
-            drawCircle(
-                color = Primary.copy(alpha = waveAlpha2),
-                radius = waveRadius2,
-                center = center,
-                style = Stroke(width = 2.dp.toPx()),
-            )
-
-            // Barrido de radar dinámico
+            // Barrido de radar dinámico con resplandor Cyan
             rotate(degrees = sweepAngle, pivot = center) {
                 val sweepBrush = Brush.sweepGradient(
                     0.0f to Color.Transparent,
-                    0.75f to Color.Transparent,
-                    0.92f to Primary.copy(alpha = 0.04f),
-                    1.0f to Primary.copy(alpha = 0.16f),
+                    0.72f to Color.Transparent,
+                    0.90f to AuCyan.copy(alpha = 0.05f),
+                    1.0f to AuCyan.copy(alpha = 0.22f),
                     center = center,
                 )
                 drawCircle(
@@ -267,7 +290,14 @@ fun LiveMedicalPresenceRadar(
                 )
                 // Línea frontal de barrido
                 drawLine(
-                    color = Primary.copy(alpha = 0.35f),
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            AuCyan.copy(alpha = 0.1f),
+                            AuCyan.copy(alpha = 0.6f),
+                        ),
+                        startX = center.x,
+                        endX = center.x + maxRadius - 4.dp.toPx(),
+                    ),
                     start = center,
                     end = Offset(center.x + maxRadius - 4.dp.toPx(), center.y),
                     strokeWidth = 1.5.dp.toPx(),
@@ -424,7 +454,7 @@ fun ActiveMedicalNetworkPanel(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(if (hasOnlineDoctors) AuSuccess else Color(0xFFF59E0B))
+                        .background(if (hasOnlineDoctors) AuEmerald else AuCyan)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
@@ -438,17 +468,17 @@ fun ActiveMedicalNetworkPanel(
 
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = if (hasOnlineDoctors) Primary.copy(alpha = 0.08f) else Color(0xFFF59E0B).copy(alpha = 0.12f),
+                color = if (hasOnlineDoctors) Primary.copy(alpha = 0.08f) else AuCyanSoft,
                 border = BorderStroke(
                     0.5.dp,
-                    if (hasOnlineDoctors) Primary.copy(alpha = 0.2f) else Color(0xFFF59E0B).copy(alpha = 0.3f)
+                    if (hasOnlineDoctors) Primary.copy(alpha = 0.2f) else AuCyan.copy(alpha = 0.3f)
                 ),
             ) {
                 Text(
                     text = if (hasOnlineDoctors) "${onlineDoctors.size} en línea" else "En espera",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (hasOnlineDoctors) Primary else Color(0xFFD97706),
+                    color = if (hasOnlineDoctors) Primary else AuCyanDeep,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                 )
             }
@@ -472,7 +502,7 @@ fun ActiveMedicalNetworkPanel(
                         modifier = Modifier
                             .size(10.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFF59E0B))
+                            .background(AuCyan)
                     )
                     Column {
                         Text(

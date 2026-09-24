@@ -11,7 +11,10 @@ data class PharmacyDispatchRequest(
     val assignedDoctorId: String? = null,
     val cloudflareRoomId: String,
     val createdAt: String,
-)
+) {
+    val doctorAttendedCall: Boolean
+        get() = status == "in_call"
+}
 
 data class DoctorDutyStatus(
     val doctorId: String,

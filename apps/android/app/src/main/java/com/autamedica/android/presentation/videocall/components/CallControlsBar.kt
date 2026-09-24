@@ -33,14 +33,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.autamedica.android.presentation.theme.AuCrimson
 
 private val DockSurface = Color(0xF20F172A)
 private val DockBorder = Color(0x33FFFFFF)
 private val GlassButtonOn = Color(0x26FFFFFF)
-private val DangerRed = Color(0xFFDC2626)
+private val DangerRed = AuCrimson
 private val PrimarySky = Color(0xFF0284C7)
 private val TealFicha = Color(0xFF0D9488)
 
@@ -177,8 +180,12 @@ fun CallControlsBar(
                 shadowElevation = 8.dp,
                 modifier = Modifier.size(width = 56.dp, height = 44.dp),
             ) {
+                val haptic = LocalHapticFeedback.current
                 IconButton(
-                    onClick = onEndCall,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onEndCall()
+                    },
                     modifier = Modifier.size(width = 56.dp, height = 44.dp),
                 ) {
                     Icon(
@@ -233,6 +240,7 @@ private fun ControlDockButton(
     activeColor: Color = GlassButtonOn,
     onClick: () -> Unit,
 ) {
+    val haptic = LocalHapticFeedback.current
     val background = when {
         isDanger -> DangerRed
         isActive -> activeColor
@@ -240,7 +248,10 @@ private fun ControlDockButton(
     }
 
     IconButton(
-        onClick = onClick,
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
         modifier = Modifier
             .size(44.dp)
             .clip(CircleShape)

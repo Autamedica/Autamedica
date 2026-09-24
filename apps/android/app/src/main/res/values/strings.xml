@@ -41,6 +41,10 @@
     <string name="notification_incoming_call_text">Videollamada para tu consulta</string>
     <string name="notification_answer_call">Atender</string>
     <string name="notification_decline_call">Rechazar</string>
+    <string name="notification_dispatch_channel">Consultas on-demand</string>
+    <string name="notification_dispatch_title">%1$s te espera en la guardia</string>
+    <string name="notification_dispatch_title_default">Alguien te espera en la guardia</string>
+    <string name="notification_dispatch_text">Consulta on-demand entrante · respondé en 30 segundos</string>
     <string name="notification_permission_title">Activar notificaciones</string>
     <string name="notification_permission_message">Recibiras avisos de nuevos turnos, mensajes y recetas</string>
 

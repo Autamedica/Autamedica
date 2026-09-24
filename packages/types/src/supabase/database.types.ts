@@ -10427,11 +10427,14 @@ export type Database = {
           kiosk_id: string | null
           matched_at: string | null
           patient_cf_session_id: string | null
-          patient_dni: string
+          patient_cpf: string | null
+          patient_dni: string | null
+          patient_id: string | null
           patient_name: string | null
           patient_phone: string
           pharmacy_id: string | null
           previous_doctor_id: string | null
+          requested_by_user_id: string | null
           search_timeout_at: string
           status: Database["public"]["Enums"]["dispatch_request_status"]
           symptom_summary: string | null
@@ -10448,11 +10451,14 @@ export type Database = {
           kiosk_id?: string | null
           matched_at?: string | null
           patient_cf_session_id?: string | null
-          patient_dni: string
+          patient_cpf?: string | null
+          patient_dni?: string | null
+          patient_id?: string | null
           patient_name?: string | null
           patient_phone: string
           pharmacy_id?: string | null
           previous_doctor_id?: string | null
+          requested_by_user_id?: string | null
           search_timeout_at?: string
           status?: Database["public"]["Enums"]["dispatch_request_status"]
           symptom_summary?: string | null
@@ -10469,11 +10475,14 @@ export type Database = {
           kiosk_id?: string | null
           matched_at?: string | null
           patient_cf_session_id?: string | null
-          patient_dni?: string
+          patient_cpf?: string | null
+          patient_dni?: string | null
+          patient_id?: string | null
           patient_name?: string | null
           patient_phone?: string
           pharmacy_id?: string | null
           previous_doctor_id?: string | null
+          requested_by_user_id?: string | null
           search_timeout_at?: string
           status?: Database["public"]["Enums"]["dispatch_request_status"]
           symptom_summary?: string | null
@@ -10492,6 +10501,13 @@ export type Database = {
             columns: ["kiosk_id"]
             isOneToOne: false
             referencedRelation: "pharmacy_kiosks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pharmacy_dispatch_requests_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
           {
@@ -12603,6 +12619,10 @@ export type Database = {
         }
         Returns: string
       }
+      ensure_dispatch_patient: {
+        Args: { p_cpf: string; p_dni: string; p_user_id: string }
+        Returns: string
+      }
       ensure_patient_health_reserve: {
         Args: { p_patient_id: string }
         Returns: {
@@ -12662,6 +12682,10 @@ export type Database = {
           phone: string
           type: string
         }[]
+      }
+      finish_pharmacy_consultation: {
+        Args: { p_doctor_id: string; p_request_id?: string }
+        Returns: Json
       }
       fn_cleanup_old_audit_logs: {
         Args: { retention_days?: number }
@@ -12770,6 +12794,7 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_active_on_duty_doctors: { Args: never; Returns: Json }
       get_assigned_chat_doctor: {
         Args: { target_patient_id: string }
         Returns: {

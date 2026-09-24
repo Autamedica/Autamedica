@@ -24,6 +24,9 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
+import androidx.core.app.Person
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.IconCompat
 import com.autamedica.android.MainActivity
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.PushPayload
@@ -39,14 +42,17 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 
 /**
  * Manages high-priority incoming call notifications with continuous ringing,
- * full-screen wake locks, and answer/decline action handlers.
+ * full-screen wake locks, and native Google CallStyle on Android 12+ (S+)
+ * with an adaptive RemoteViews fallback for older Android versions.
  */
 object IncomingCallNotificationManager {
 
     const val CHANNEL_ID = "autamedica_incoming_calls"
+    const val DISPATCH_CHANNEL_ID = "autamedica_dispatch_incoming"
     const val ACTION_ANSWER_CALL = "com.autamedica.android.ACTION_ANSWER_CALL"
     const val ACTION_DECLINE_CALL = "com.autamedica.android.ACTION_DECLINE_CALL"
     const val EXTRA_APPOINTMENT_ID = "appointment_id"
@@ -56,6 +62,11 @@ object IncomingCallNotificationManager {
     const val EXTRA_IS_INCOMING_CALL = "is_incoming_call"
     const val EXTRA_CALLER_NAME = "caller_name"
     const val EXTRA_CALLER_AVATAR_URL = "caller_avatar_url"
+
+    // Fixed notification IDs to guarantee a single active alert card per modality
+    // and eliminate orphaned/accumulated notification stacks.
+    const val NOTIFICATION_ID_CALL = 2001
+    const val NOTIFICATION_ID_DISPATCH = 2002
 
     private const val CALL_TIMEOUT_MS = 30_000L
     private const val AVATAR_SIZE_PX = 192
@@ -71,7 +82,31 @@ object IncomingCallNotificationManager {
     private var activeWakeLock: PowerManager.WakeLock? = null
 
     private var timeoutJob: Job? = null
+    private var countdownJob: Job? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    /**
+     * Clears all active call and dispatch notifications across both channels
+     * to prevent card accumulation in the shade.
+     */
+    fun clearActiveAlertNotifications(context: Context) {
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        try {
+            manager.activeNotifications
+                .filter {
+                    it.notification.channelId == CHANNEL_ID ||
+                            it.notification.channelId == DISPATCH_CHANNEL_ID ||
+                            it.id == NOTIFICATION_ID_CALL ||
+                            it.id == NOTIFICATION_ID_DISPATCH
+                }
+                .forEach { manager.cancel(it.id) }
+
+            manager.cancel(NOTIFICATION_ID_CALL)
+            manager.cancel(NOTIFICATION_ID_DISPATCH)
+        } catch (e: Exception) {
+            Timber.w(e, "[IncomingCall] Failed clearing active notifications")
+        }
+    }
 
     /**
      * Creates or updates the dedicated incoming call notification channel with ringtone sound.
@@ -97,12 +132,41 @@ object IncomingCallNotificationManager {
             setBypassDnd(true)
         }
         manager.createNotificationChannel(channel)
+        createDispatchChannel(context)
+    }
+
+    /**
+     * Creates the dedicated channel for pharmacy on-demand dispatches with ringtone sound.
+     */
+    fun createDispatchChannel(context: Context) {
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+        val audioAttrs = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+
+        val channel = NotificationChannel(
+            DISPATCH_CHANNEL_ID,
+            context.getString(R.string.notification_dispatch_channel),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = context.getString(R.string.notification_dispatch_text)
+            setSound(ringtoneUri, audioAttrs)
+            enableVibration(true)
+            vibrationPattern = VIBRATION_PATTERN
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            setBypassDnd(true)
+        }
+        manager.createNotificationChannel(channel)
     }
 
     /**
      * Displays a full-screen, high-priority incoming call notification and begins ringing.
+     * Uses native NotificationCompat.CallStyle on Android 12+ (S+).
      */
     fun showIncomingCall(context: Context, payload: PushPayload) {
+        clearActiveAlertNotifications(context)
         acquireWakeLock(context)
         createChannel(context)
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
@@ -110,14 +174,14 @@ object IncomingCallNotificationManager {
         val appointmentId = payload.appointmentId.orEmpty()
         val callId = payload.callId.orEmpty()
         val roomId = payload.roomId.orEmpty()
-        val notificationId = (payload.appointmentId ?: "incoming_call").hashCode()
+        val notificationId = NOTIFICATION_ID_CALL
 
-        // 1. Full-screen Intent (launches the WhatsApp-style incoming call screen)
         val callerName = payload.doctorName?.takeIf { it.isNotBlank() }
             ?: payload.title.takeIf { it.isNotBlank() }
             ?: context.getString(R.string.notification_incoming_call_title)
         val callerAvatarUrl = payload.doctorAvatarUrl.orEmpty()
 
+        // 1. Full-screen Intent (launches the incoming call screen)
         val fullScreenIntent = Intent(context, IncomingCallActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
@@ -153,12 +217,12 @@ object IncomingCallNotificationManager {
         }
         val answerPendingIntent = PendingIntent.getActivity(
             context,
-            notificationId + 1,
+            notificationId + 10,
             answerIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        // 3. Action RECHAZAR (discards call, silences ringtone, informs Supabase)
+        // 3. Action RECHAZAR (discards call, silences ringtone)
         val declineIntent = Intent(context, CallActionReceiver::class.java).apply {
             action = ACTION_DECLINE_CALL
             putExtra(EXTRA_APPOINTMENT_ID, appointmentId)
@@ -167,78 +231,300 @@ object IncomingCallNotificationManager {
         }
         val declinePendingIntent = PendingIntent.getBroadcast(
             context,
-            notificationId + 2,
+            notificationId + 20,
             declineIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
         val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
 
-        // Custom layout with circular doctor avatar and colored answer/decline actions.
-        val views = RemoteViews(context.packageName, R.layout.notification_incoming_call)
-        views.setTextViewText(R.id.caller_name, callerName)
-        views.setTextViewText(R.id.call_hint, context.getString(R.string.notification_incoming_call_text))
-        views.setOnClickPendingIntent(R.id.action_answer, answerPendingIntent)
-        views.setOnClickPendingIntent(R.id.action_decline, declinePendingIntent)
-        views.setOnClickPendingIntent(R.id.call_container, fullScreenPendingIntent)
+        fun buildCallNotification(avatarBitmap: Bitmap? = null): Notification {
+            val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setColor(ContextCompat.getColor(context, R.color.primary))
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_CALL)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .setSound(ringtoneUri)
+                .setVibrate(VIBRATION_PATTERN)
+                .setContentIntent(fullScreenPendingIntent)
+                .setFullScreenIntent(fullScreenPendingIntent, true)
+                .setDeleteIntent(declinePendingIntent)
 
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(callerName)
-            .setContentText(context.getString(R.string.notification_incoming_call_text))
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setOngoing(true)
-            .setAutoCancel(false)
-            .setSound(ringtoneUri)
-            .setVibrate(VIBRATION_PATTERN)
-            .setContentIntent(fullScreenPendingIntent)
-            .setFullScreenIntent(fullScreenPendingIntent, true)
-            .setDeleteIntent(declinePendingIntent)
-            .setCustomContentView(views)
-            .setCustomBigContentView(views)
-            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-            .addAction(
-                R.drawable.ic_call_answer,
-                context.getString(R.string.notification_answer_call),
-                answerPendingIntent,
-            )
-            .addAction(
-                R.drawable.ic_call_decline,
-                context.getString(R.string.notification_decline_call),
-                declinePendingIntent,
-            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // Native CallStyle standard for Android 12+
+                val callerIcon = if (avatarBitmap != null) {
+                    IconCompat.createWithBitmap(avatarBitmap)
+                } else {
+                    IconCompat.createWithResource(context, R.drawable.avatar_doctor_m1)
+                }
 
-        val notification = builder.build().apply {
-            flags = flags or Notification.FLAG_INSISTENT
+                val person = Person.Builder()
+                    .setName(callerName)
+                    .setIcon(callerIcon)
+                    .setImportant(true)
+                    .build()
+
+                val callStyle = NotificationCompat.CallStyle.forIncomingCall(
+                    person,
+                    declinePendingIntent,
+                    answerPendingIntent,
+                )
+                callStyle.setIsVideo(true)
+                callStyle.setVerificationText(context.getString(R.string.notification_incoming_call_text))
+
+                builder.setStyle(callStyle)
+            } else {
+                // Compact RemoteViews fallback for Android < 12
+                val views = RemoteViews(context.packageName, R.layout.notification_incoming_call)
+                views.setTextViewText(R.id.caller_name, callerName)
+                views.setTextViewText(R.id.call_hint, context.getString(R.string.notification_incoming_call_text))
+                views.setOnClickPendingIntent(R.id.action_answer, answerPendingIntent)
+                views.setOnClickPendingIntent(R.id.action_decline, declinePendingIntent)
+                views.setOnClickPendingIntent(R.id.call_container, fullScreenPendingIntent)
+
+                if (avatarBitmap != null) {
+                    views.setImageViewBitmap(R.id.caller_avatar, avatarBitmap)
+                } else {
+                    views.setImageViewResource(R.id.caller_avatar, R.drawable.avatar_doctor_m1)
+                }
+
+                builder.setCustomContentView(views)
+                    .setCustomBigContentView(views)
+                    .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                // Do NOT call builder.addAction() here: views already contain the buttons,
+                // avoiding button duplication and bloated layout cards.
+            }
+
+            return builder.build().apply { flags = flags or Notification.FLAG_INSISTENT }
         }
 
-        Timber.i("[IncomingCall] Displaying incoming call notification for appointment=$appointmentId id=$notificationId")
-        manager.notify(notificationId, notification)
+        Timber.i("[IncomingCall] Displaying incoming call notification id=$notificationId for caller=$callerName")
+        manager.notify(notificationId, buildCallNotification())
 
-        // Load the doctor avatar asynchronously and refresh the notification with it.
+        // Load caller avatar asynchronously
         val avatarUrl = payload.doctorAvatarUrl?.takeIf { it.isNotBlank() }
         if (avatarUrl != null) {
             scope.launch {
                 val avatar = loadCircularAvatarCompat(avatarUrl)
                 if (avatar != null) {
-                    views.setImageViewBitmap(R.id.caller_avatar, avatar)
-                } else {
-                    views.setImageViewResource(R.id.caller_avatar, R.drawable.avatar_doctor_m1)
+                    manager.notify(notificationId, buildCallNotification(avatar))
                 }
-                manager.notify(notificationId, builder.build().apply {
-                    flags = flags or Notification.FLAG_INSISTENT
-                })
             }
         }
 
-        // Start continuous ringtone & vibration fallback
         startRingtoneAndVibration(context, notificationId)
     }
 
     /**
-     * Downloads a doctor avatar and crops it as a circle using downsampling to avoid OOM or slow network freezes.
+     * Displays a high-priority on-demand pharmacy dispatch notification.
+     * Uses native Google CallStyle on Android 12+ (S+) with dynamic live countdown.
+     * Guaranteed single notification ID prevents card accumulation in shade.
+     */
+    fun showDispatchIncoming(context: Context, payload: PushPayload) {
+        clearActiveAlertNotifications(context)
+        acquireWakeLock(context)
+        createDispatchChannel(context)
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+
+        val appointmentId = payload.appointmentId.orEmpty()
+        val callId = payload.callId.orEmpty()
+        val roomId = payload.roomId.orEmpty()
+        val notificationId = NOTIFICATION_ID_DISPATCH
+
+        val patientName = payload.doctorName?.takeIf { it.isNotBlank() }
+            ?: context.getString(R.string.notification_dispatch_title_default)
+
+        // 1. Full-screen Intent
+        val fullScreenIntent = Intent(context, IncomingCallActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(NotificationRouteResolver.EXTRA_APPOINTMENT_ID, appointmentId)
+            putExtra(NotificationRouteResolver.EXTRA_NOTIFICATION_TYPE, payload.type.name)
+            putExtra(EXTRA_IS_INCOMING_CALL, true)
+            putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+            putExtra(EXTRA_CALL_ID, callId)
+            putExtra(EXTRA_ROOM_ID, roomId)
+            putExtra(EXTRA_CALLER_NAME, patientName)
+            putExtra(EXTRA_CALLER_AVATAR_URL, payload.doctorAvatarUrl.orEmpty())
+        }
+        val fullScreenPendingIntent = PendingIntent.getActivity(
+            context,
+            notificationId,
+            fullScreenIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        // 2. Action ATENDER
+        val answerIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+            action = ACTION_ANSWER_CALL
+            putExtra(NotificationRouteResolver.EXTRA_APPOINTMENT_ID, appointmentId)
+            putExtra(NotificationRouteResolver.EXTRA_NOTIFICATION_TYPE, payload.type.name)
+            putExtra(EXTRA_IS_INCOMING_CALL, true)
+            putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+            putExtra(EXTRA_CALL_ID, callId)
+            putExtra(EXTRA_ROOM_ID, roomId)
+        }
+        val answerPendingIntent = PendingIntent.getActivity(
+            context,
+            notificationId + 10,
+            answerIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        // 3. Action RECHAZAR
+        val declineIntent = Intent(context, CallActionReceiver::class.java).apply {
+            action = ACTION_DECLINE_CALL
+            putExtra(EXTRA_APPOINTMENT_ID, appointmentId)
+            putExtra(EXTRA_CALL_ID, callId)
+            putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+        }
+        val declinePendingIntent = PendingIntent.getBroadcast(
+            context,
+            notificationId + 20,
+            declineIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+        val totalSeconds = (CALL_TIMEOUT_MS / 1000).toInt()
+
+        fun buildDispatchNotification(
+            logoBitmap: Bitmap? = null,
+            secondsLeft: Int = totalSeconds,
+        ): Notification {
+            val formattedCountdown = formatDispatchCountdown(secondsLeft)
+            val hintText = context.getString(R.string.notification_dispatch_text)
+            val titleText = context.getString(R.string.notification_dispatch_title, patientName)
+
+            val builder = NotificationCompat.Builder(context, DISPATCH_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setColor(ContextCompat.getColor(context, R.color.primary))
+                .setContentTitle(titleText)
+                .setContentText(hintText)
+                .setSubText(formattedCountdown)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_CALL)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .setSound(ringtoneUri)
+                .setVibrate(VIBRATION_PATTERN)
+                .setContentIntent(fullScreenPendingIntent)
+                .setFullScreenIntent(fullScreenPendingIntent, true)
+                .setDeleteIntent(declinePendingIntent)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // Native CallStyle standard for Android 12+
+                val personIcon = if (logoBitmap != null) {
+                    IconCompat.createWithBitmap(logoBitmap)
+                } else {
+                    IconCompat.createWithResource(context, R.drawable.ic_notification)
+                }
+
+                val person = Person.Builder()
+                    .setName(titleText)
+                    .setIcon(personIcon)
+                    .setImportant(true)
+                    .build()
+
+                val callStyle = NotificationCompat.CallStyle.forIncomingCall(
+                    person,
+                    declinePendingIntent,
+                    answerPendingIntent,
+                )
+                callStyle.setIsVideo(false)
+                callStyle.setVerificationText("$hintText • $formattedCountdown")
+
+                builder.setStyle(callStyle)
+            } else {
+                // Compact RemoteViews fallback for Android < 12
+                val currentViews = RemoteViews(context.packageName, R.layout.notification_dispatch_incoming)
+                currentViews.setTextViewText(R.id.dispatch_caller_name, titleText)
+                currentViews.setTextViewText(R.id.dispatch_hint, hintText)
+                currentViews.setTextViewText(R.id.dispatch_countdown, formattedCountdown)
+                currentViews.setOnClickPendingIntent(R.id.dispatch_action_answer, answerPendingIntent)
+                currentViews.setOnClickPendingIntent(R.id.dispatch_action_decline, declinePendingIntent)
+                currentViews.setOnClickPendingIntent(R.id.dispatch_container, fullScreenPendingIntent)
+
+                if (logoBitmap != null) {
+                    currentViews.setImageViewBitmap(R.id.dispatch_logo, logoBitmap)
+                }
+
+                builder.setCustomContentView(currentViews)
+                    .setCustomBigContentView(currentViews)
+                    .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                // No builder.addAction() here to prevent duplicate buttons.
+            }
+
+            return builder.build().apply { flags = flags or Notification.FLAG_INSISTENT }
+        }
+
+        Timber.i("[Dispatch] Displaying on-demand dispatch notification id=$notificationId for patient=$patientName")
+        manager.notify(notificationId, buildDispatchNotification())
+
+        var cachedLogo: Bitmap? = null
+
+        // Load circular logo asynchronously
+        scope.launch {
+            val logo = withContext(Dispatchers.IO) {
+                runCatching {
+                    val raw = BitmapFactory.decodeResource(context.resources, R.drawable.logo_autamedica)
+                    raw?.let { cropToCircle(it) }
+                }.getOrNull()
+            }
+            if (logo != null) {
+                cachedLogo = logo
+                manager.notify(notificationId, buildDispatchNotification(logo))
+            }
+        }
+
+        // Live countdown driving notification refresh and 30s auto-dismiss
+        countdownJob?.cancel()
+        countdownJob = scope.launch {
+            for (secondsLeft in totalSeconds downTo 1) {
+                manager.notify(notificationId, buildDispatchNotification(cachedLogo, secondsLeft))
+                delay(1_000)
+            }
+            Timber.d("[Dispatch] On-demand dispatch timed out after ${CALL_TIMEOUT_MS}ms")
+            dismissCall(context, notificationId)
+        }
+
+        startRingtoneAndVibration(context, notificationId, runTimeout = false)
+    }
+
+    private fun formatDispatchCountdown(seconds: Int): String =
+        String.format(Locale.ROOT, "%02d:%02d", seconds / 60, seconds % 60)
+
+    /**
+     * Crops any bitmap into an anti-aliased circle.
+     */
+    fun cropToCircle(bitmap: Bitmap): Bitmap {
+        val size = minOf(bitmap.width, bitmap.height)
+        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val rect = Rect(
+            (bitmap.width - size) / 2,
+            (bitmap.height - size) / 2,
+            (bitmap.width + size) / 2,
+            (bitmap.height + size) / 2,
+        )
+        val rectF = RectF(0f, 0f, size.toFloat(), size.toFloat())
+        canvas.drawOval(rectF, paint)
+        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+        canvas.drawBitmap(bitmap, rect, rectF, paint)
+        return output
+    }
+
+    /**
+     * Downloads a doctor avatar and crops it as a circle using downsampling to avoid OOM or network freezes.
      */
     suspend fun loadCircularAvatarCompat(url: String): Bitmap? = withContext(Dispatchers.IO) {
         try {
@@ -255,7 +541,6 @@ object IncomingCallNotificationManager {
             connection.disconnect()
             if (bytes.isEmpty()) return@withContext null
 
-            // Decode image bounds first to calculate sample size
             val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size, boundsOptions)
 
@@ -273,19 +558,9 @@ object IncomingCallNotificationManager {
                 inPreferredConfig = Bitmap.Config.ARGB_8888
             }
             val src = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions) ?: return@withContext null
-
-            val size = AVATAR_SIZE_PX.coerceAtMost(src.width.coerceAtMost(src.height))
-            val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(output)
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-            val rectF = RectF(0f, 0f, size.toFloat(), size.toFloat())
-            canvas.drawOval(rectF, paint)
-            paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-            val left = (src.width - size) / 2
-            val top = (src.height - size) / 2
-            canvas.drawBitmap(src, Rect(left, top, left + size, top + size), rectF, paint)
-            if (src != output) src.recycle()
-            return@withContext output
+            val circular = cropToCircle(src)
+            if (src != circular) src.recycle()
+            return@withContext circular
         } catch (e: Exception) {
             Timber.w(e, "[IncomingCall] Failed to load doctor avatar, using fallback")
             return@withContext null
@@ -322,12 +597,10 @@ object IncomingCallNotificationManager {
      * Plays looping ringtone, activates physical screen WakeLock, and runs sustained vibration.
      */
     @Synchronized
-    fun startRingtoneAndVibration(context: Context, notificationId: Int) {
+    fun startRingtoneAndVibration(context: Context, notificationId: Int, runTimeout: Boolean = true) {
         try {
-            // 1. Physical Screen Hardware WakeLock (causes screen to turn on even in motion/locked)
             acquireWakeLock(context)
 
-            // 2. Continuous Ringtone
             if (activeRingtone?.isPlaying != true) {
                 val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
                 val ringtone = RingtoneManager.getRingtone(context.applicationContext, ringtoneUri)?.apply {
@@ -345,7 +618,6 @@ object IncomingCallNotificationManager {
                 activeRingtone = ringtone
             }
 
-            // 3. Sustained vibration
             val vibrator = getVibrator(context)
             if (vibrator != null && vibrator.hasVibrator()) {
                 activeVibrator = vibrator
@@ -360,10 +632,12 @@ object IncomingCallNotificationManager {
             }
 
             timeoutJob?.cancel()
-            timeoutJob = scope.launch {
-                delay(CALL_TIMEOUT_MS)
-                Timber.d("[IncomingCall] Call ringtone timed out after ${CALL_TIMEOUT_MS}ms")
-                dismissCall(context, notificationId)
+            if (runTimeout) {
+                timeoutJob = scope.launch {
+                    delay(CALL_TIMEOUT_MS)
+                    Timber.d("[IncomingCall] Call ringtone timed out after ${CALL_TIMEOUT_MS}ms")
+                    dismissCall(context, notificationId)
+                }
             }
         } catch (e: Exception) {
             Timber.w(e, "[IncomingCall] Failed starting ringtone and vibration")
@@ -377,6 +651,8 @@ object IncomingCallNotificationManager {
     fun stopRingtone() {
         timeoutJob?.cancel()
         timeoutJob = null
+        countdownJob?.cancel()
+        countdownJob = null
 
         try {
             activeWakeLock?.let {
@@ -411,18 +687,16 @@ object IncomingCallNotificationManager {
     }
 
     /**
-     * Dismisses the incoming call notification and silences all ringing.
+     * Dismisses the call or dispatch notification and silences all ringing.
+     * Also clears any lingering notifications on both alert channels.
      */
     fun dismissCall(context: Context, notificationId: Int? = null) {
         stopRingtone()
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         if (notificationId != null && notificationId != -1) {
             manager.cancel(notificationId)
-        } else {
-            manager.activeNotifications
-                .filter { it.notification.channelId == CHANNEL_ID }
-                .forEach { manager.cancel(it.id) }
         }
+        clearActiveAlertNotifications(context)
     }
 
     @Suppress("DEPRECATION")

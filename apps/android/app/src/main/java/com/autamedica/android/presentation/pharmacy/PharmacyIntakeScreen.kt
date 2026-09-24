@@ -71,14 +71,20 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.autamedica.android.R
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.autamedica.android.presentation.theme.Primary
 import com.autamedica.android.presentation.theme.PrimaryDark
 import com.autamedica.android.presentation.theme.PrimaryLight
-import com.autamedica.android.domain.model.PharmacyConsultationStatus
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
+import com.autamedica.android.presentation.theme.AuCyan
+import com.autamedica.android.presentation.theme.AuCyanDeep
+import com.autamedica.android.presentation.theme.AuCyanSoft
 import com.autamedica.android.presentation.theme.AuDanger
+import com.autamedica.android.presentation.theme.AuEmerald
+import com.autamedica.android.presentation.theme.AuNavy
 import com.autamedica.android.presentation.theme.AuSuccess
 import com.autamedica.android.presentation.theme.AuSurface
 import com.autamedica.android.presentation.theme.AuTextPrimary
@@ -101,10 +107,13 @@ fun PharmacyIntakeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Automatic navigation when doctor accepts and assigns room
+    val haptic = LocalHapticFeedback.current
+
+    // Automatic navigation when the doctor attends the call and the room is ready
     LaunchedEffect(uiState.readyToJoinCall, uiState.roomId) {
         val targetRoom = uiState.roomId
         if (uiState.readyToJoinCall && !targetRoom.isNullOrBlank()) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             viewModel.onCallNavigated()
             onNavigateToCall(targetRoom)
         }
@@ -212,6 +221,7 @@ private fun PharmacyIntakeFormView(
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
+    val haptic = LocalHapticFeedback.current
 
     Column(
         modifier = modifier
@@ -239,7 +249,10 @@ private fun PharmacyIntakeFormView(
                 val isSelected = uiState.selectedReasonChip == chip
                 FilterChip(
                     selected = isSelected,
-                    onClick = { onReasonChipSelected(chip) },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onReasonChipSelected(chip)
+                    },
                     label = {
                         Text(
                             text = chip,
@@ -401,7 +414,10 @@ private fun PharmacyIntakeFormView(
 
         // Submit Button
         Button(
-            onClick = onSubmit,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onSubmit()
+            },
             enabled = !uiState.isSubmitting && uiState.isFormValid,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Primary,
@@ -451,11 +467,9 @@ private fun PharmacyWaitingRoomView(
     onJoinCall: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val isAssigned = uiState.status == PharmacyConsultationStatus.ASSIGNED ||
-        uiState.status == PharmacyConsultationStatus.IN_CALL ||
-        uiState.readyToJoinCall
-
+    val callReady = uiState.readyToJoinCall
     val scrollState = rememberScrollState()
+    val haptic = LocalHapticFeedback.current
 
     Column(
         modifier = modifier
@@ -464,101 +478,124 @@ private fun PharmacyWaitingRoomView(
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (isAssigned) {
-            Spacer(modifier = Modifier.height(16.dp))
+        if (callReady) {
+            Spacer(modifier = Modifier.height(8.dp))
 
+            // Tarjeta de Médico Encontrado de Clase Mundial (Estilo Uber/Nubank)
             Surface(
-                shape = CircleShape,
-                color = SuccessContainer,
-                border = BorderStroke(1.5.dp, AuSuccess.copy(alpha = 0.35f)),
-                modifier = Modifier.size(96.dp),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = AuSuccess,
-                        modifier = Modifier.size(50.dp),
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            Text(
-                text = "¡Médico Asignado!",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = AuTextPrimary,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = uiState.assignedDoctorName ?: "Dr. de Guardia Médica",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Primary,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = uiState.assignedDoctorSpecialty ?: "Medicina General",
-                style = MaterialTheme.typography.bodySmall,
-                color = AuTextTertiary,
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = SuccessContainer,
-                border = BorderStroke(1.dp, AuSuccess.copy(alpha = 0.3f)),
+                shape = RoundedCornerShape(24.dp),
+                color = AuSurface,
+                border = BorderStroke(1.5.dp, AuEmerald.copy(alpha = 0.4f)),
+                shadowElevation = 8.dp,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = AuSuccess,
-                        strokeWidth = 2.dp,
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    // Avatar con pulso vivo Esmeralda
+                    Box(contentAlignment = Alignment.Center) {
+                        Surface(
+                            shape = CircleShape,
+                            color = AuEmerald.copy(alpha = 0.12f),
+                            border = BorderStroke(2.dp, AuEmerald.copy(alpha = 0.5f)),
+                            modifier = Modifier.size(80.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = AuEmerald,
+                                    modifier = Modifier.size(44.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Badge de Estado Instantáneo
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = AuEmerald.copy(alpha = 0.12f),
+                        border = BorderStroke(0.5.dp, AuEmerald.copy(alpha = 0.3f)),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(AuEmerald)
+                            )
+                            Text(
+                                text = "MÉDICO EN SALA • VIDEO HD LISTO",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = AuEmerald,
+                                letterSpacing = 0.5.sp,
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
                     Text(
-                        text = "Iniciando sala de teleconsulta en vivo...",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF065F46),
-                        fontWeight = FontWeight.Medium,
+                        text = "¡Tu médico te está esperando!",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = AuTextPrimary,
+                        textAlign = TextAlign.Center,
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = uiState.assignedDoctorName ?: "Dr. de Guardia Médica",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Primary,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "${uiState.assignedDoctorSpecialty ?: "Medicina General"} • Matrícula Nacional Habilitada",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextTertiary,
+                        textAlign = TextAlign.Center,
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Botón de Conexión Inmediata Ergonómico
+                    Button(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onJoinCall()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AuEmerald,
+                            contentColor = Color.White,
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Videocam,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Ingresar a la Consulta Ahora",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Button(
-                onClick = onJoinCall,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Primary,
-                    contentColor = Color.White,
-                ),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Videocam,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Ingresar a la Consulta Ahora",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -568,15 +605,18 @@ private fun PharmacyWaitingRoomView(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedButton(
-                onClick = onCancelRequest,
-                shape = RoundedCornerShape(12.dp),
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onCancelRequest()
+                },
+                shape = RoundedCornerShape(14.dp),
                 border = BorderStroke(1.dp, Primary.copy(alpha = 0.35f)),
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = Primary,
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .sizeIn(minHeight = 44.dp),
+                    .sizeIn(minHeight = 46.dp),
             ) {
                 Text(
                     text = "Cancelar solicitud",
@@ -590,7 +630,7 @@ private fun PharmacyWaitingRoomView(
             val hasOnlineDoctors = onlineDoctorCount > 0
 
             Text(
-                text = if (hasOnlineDoctors) "Buscando médico..." else "En espera de guardia...",
+                text = if (hasOnlineDoctors) "Buscando médico de guardia..." else "En espera de guardia...",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = AuTextPrimary,
@@ -604,12 +644,12 @@ private fun PharmacyWaitingRoomView(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Estado explícito si no hay médicos en línea
+            // Estado explícito si no hay médicos en línea (Cero Amarillo - Paleta Cyan / Slate)
             if (!hasOnlineDoctors) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFFFFBEB),
-                    border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                    shape = RoundedCornerShape(14.dp),
+                    color = AuCyanSoft,
+                    border = BorderStroke(1.dp, AuCyan.copy(alpha = 0.25f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 12.dp),
@@ -621,7 +661,7 @@ private fun PharmacyWaitingRoomView(
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
-                            color = Color(0xFFD97706),
+                            color = AuCyanDeep,
                             strokeWidth = 2.dp,
                         )
                         Column {
@@ -629,13 +669,13 @@ private fun PharmacyWaitingRoomView(
                                 text = "Sin médicos de guardia en línea en este momento.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF92400E),
+                                color = AuTextPrimary,
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "La consulta quedará en espera hasta que un profesional se conecte.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFFB45309),
+                                color = AuTextSecondary,
                             )
                         }
                     }
@@ -749,34 +789,65 @@ private fun CaseDetailsCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(20.dp),
         color = AuSurface,
         border = BorderStroke(1.dp, AuBorder),
+        shadowElevation = 2.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 14.dp, vertical = 10.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = uiState.patientName.ifBlank { "Paciente" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AuTextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "DNI ${uiState.patientDni} • ${uiState.effectiveReason}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AuTextTertiary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            // Drag handle pill estilo Nubank
+            Box(
+                modifier = Modifier
+                    .width(36.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(AuBorder)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = uiState.patientName.ifBlank { "Paciente" },
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = AuTextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "DNI ${uiState.patientDni} • ${uiState.effectiveReason}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = AuCyanSoft,
+                    border = BorderStroke(0.5.dp, AuCyan.copy(alpha = 0.3f)),
+                ) {
+                    Text(
+                        text = "Turno Inmediato",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AuCyanDeep,
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    )
+                }
             }
         }
     }

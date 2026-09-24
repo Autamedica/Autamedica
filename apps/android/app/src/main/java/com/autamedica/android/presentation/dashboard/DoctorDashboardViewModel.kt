@@ -25,8 +25,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
+import com.autamedica.android.di.IoDispatcher
 import com.autamedica.android.domain.model.DoctorOnDutyPharmacyState
+import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.domain.repository.PharmacyOnDemandRepository
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
 import java.time.OffsetDateTime
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
@@ -68,6 +71,9 @@ class DoctorDashboardViewModel @Inject constructor(
     private val telemedicineRepository: TelemedicineRepository,
     private val chatRepository: ChatRepository,
     private val pharmacyOnDemandRepository: PharmacyOnDemandRepository,
+    private val pharmacyDispatchRepository: PharmacyDispatchRepository,
+    private val connectivityObserver: com.autamedica.android.util.ConnectivityObserver,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DoctorDashboardUiState())
@@ -159,6 +165,9 @@ class DoctorDashboardViewModel @Inject constructor(
                 }
                 // Load pharmacy on duty status
                 loadPharmacyDuty()
+                if (_uiState.value.pharmacyOnDutyState.isOnDuty) {
+                    startHeartbeat(profile.id)
+                }
             }.onFailure { error ->
                 SecureLog.error("[DoctorDashboard] Failed loading doctor profile", error)
                 _uiState.update {
@@ -172,7 +181,74 @@ class DoctorDashboardViewModel @Inject constructor(
         }
     }
 
+    companion object {
+        private const val HEARTBEAT_NORMAL_INTERVAL_MS = 30_000L
+        private const val HEARTBEAT_INITIAL_RETRY_MS = 3_000L
+        private const val HEARTBEAT_MAX_RETRY_MS = 15_000L
+    }
+
     private var dispatchEngineJob: Job? = null
+    private var heartbeatJob: Job? = null
+    private var networkObservationJob: Job? = null
+    private val heartbeatTrigger = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
+
+    private fun startHeartbeat(doctorIdParam: String? = null) {
+        val doctorId = doctorIdParam?.takeIf { it.isNotBlank() } ?: _uiState.value.doctorId
+        if (doctorId.isBlank()) return
+
+        stopHeartbeat()
+
+        // 1. Escuchar reconexión de red para emitir heartbeat de inmediato sin esperar los 30s
+        networkObservationJob = viewModelScope.launch(ioDispatcher) {
+            var wasDisconnected = false
+            connectivityObserver.status.collect { status ->
+                if (status == com.autamedica.android.util.ConnectivityObserver.Status.Available) {
+                    if (wasDisconnected) {
+                        SecureLog.info("[DoctorDashboard] Red reconectada (Available); disparando heartbeat inmediato para doctorId=$doctorId")
+                        heartbeatTrigger.trySend(Unit)
+                    }
+                    wasDisconnected = false
+                } else {
+                    wasDisconnected = true
+                }
+            }
+        }
+
+        // 2. Loop de heartbeat con backoff adaptativo + jitter ante fallos transitorios
+        heartbeatJob = viewModelScope.launch(ioDispatcher) {
+            var failureCount = 0
+            while (isActive) {
+                val result = pharmacyDispatchRepository.sendDoctorHeartbeat(doctorId)
+                val isSuccess = result.isSuccess
+
+                val nextDelayMs = if (isSuccess) {
+                    failureCount = 0
+                    HEARTBEAT_NORMAL_INTERVAL_MS
+                } else {
+                    failureCount++
+                    // Backoff exponencial corto (3s, 6s, 12s...) con jitter aleatorio (±20%), tope en 15s
+                    val baseBackoff = (HEARTBEAT_INITIAL_RETRY_MS * (1L shl (failureCount - 1).coerceAtMost(3)))
+                        .coerceAtMost(HEARTBEAT_MAX_RETRY_MS)
+                    val jitterFactor = 0.8 + (Math.random() * 0.4) // 80%..120%
+                    val backoffWithJitter = (baseBackoff * jitterFactor).toLong()
+                    SecureLog.warn("[DoctorDashboard] Heartbeat falló (intento #$failureCount). Reintentando en ${backoffWithJitter}ms (base=${baseBackoff}ms)")
+                    backoffWithJitter
+                }
+
+                // Espera el delay completo O se despierta de inmediato si hay reconexión de red
+                kotlinx.coroutines.withTimeoutOrNull(nextDelayMs) {
+                    heartbeatTrigger.receive()
+                }
+            }
+        }
+    }
+
+    private fun stopHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+        networkObservationJob?.cancel()
+        networkObservationJob = null
+    }
 
     private fun observePharmacyDuty() {
         viewModelScope.launch {
@@ -186,8 +262,10 @@ class DoctorDashboardViewModel @Inject constructor(
                 }
                 if (state.isOnDuty) {
                     startDispatchEngine()
+                    startHeartbeat()
                 } else {
                     stopDispatchEngine()
+                    stopHeartbeat()
                 }
             }
         }
@@ -282,8 +360,10 @@ class DoctorDashboardViewModel @Inject constructor(
                     _uiState.update { it.copy(pharmacyOnDutyState = state) }
                     if (state.isOnDuty) {
                         startDispatchEngine()
+                        startHeartbeat()
                     } else {
                         stopDispatchEngine()
+                        stopHeartbeat()
                     }
                 }
                 .onFailure { error ->
@@ -295,8 +375,10 @@ class DoctorDashboardViewModel @Inject constructor(
                     _uiState.update { it.copy(pharmacyOnDutyState = fallback) }
                     if (onDuty) {
                         startDispatchEngine()
+                        startHeartbeat()
                     } else {
                         stopDispatchEngine()
+                        stopHeartbeat()
                     }
                 }
         }
@@ -362,6 +444,11 @@ class DoctorDashboardViewModel @Inject constructor(
                             pharmacyOnDutyState = state,
                             liveWaitingQueue = mappedQueue,
                         )
+                    }
+                    if (state.isOnDuty) {
+                        startHeartbeat()
+                    } else {
+                        stopHeartbeat()
                     }
                 }
                 .onFailure { error ->
@@ -435,5 +522,11 @@ class DoctorDashboardViewModel @Inject constructor(
                 emptySet<String>() to "No se pudo validar la sala de telemedicina."
             },
         )
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopHeartbeat()
+        stopDispatchEngine()
     }
 }

@@ -78,6 +78,16 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         SecureLog.error("[PharmacyDispatch] Failed setting duty status", it)
     }
 
+    override suspend fun sendDoctorHeartbeat(doctorId: String): Result<Unit> = runCatching {
+        val params = buildJsonObject {
+            put("p_doctor_id", doctorId)
+        }
+        supabaseClient.postgrest.rpc("doctor_heartbeat", params)
+        Unit
+    }.onFailure {
+        SecureLog.error("[PharmacyDispatch] Failed sending doctor heartbeat", it)
+    }
+
     override fun observeSearchingRequests(): kotlinx.coroutines.flow.StateFlow<List<PharmacyDispatchRequest>> {
         scope.launch { loadSearchingRequests() }
         scope.launch { subscribeToSearchingQueue() }
@@ -155,6 +165,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         patientName: String?,
         tierRequested: String,
         symptomSummary: String?,
+        patientCpf: String?,
     ): Result<PharmacyDispatchRequest> = runCatching {
         val sanitizedDni = patientDni.replace("\\D".toRegex(), "").takeLast(4).ifEmpty { "0000" }
         val randomSuffix = java.util.UUID.randomUUID().toString().take(5)
@@ -166,6 +177,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             put("patient_phone", patientPhone.trim())
             if (!patientName.isNullOrBlank()) {
                 put("patient_name", patientName.trim())
+            }
+            if (!patientCpf.isNullOrBlank()) {
+                put("patient_cpf", patientCpf.trim())
             }
             put("tier_requested", tierRequested.ifBlank { "general" })
             if (!symptomSummary.isNullOrBlank()) {

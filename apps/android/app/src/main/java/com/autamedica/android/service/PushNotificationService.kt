@@ -63,10 +63,13 @@ class PushNotificationService : FirebaseMessagingService() {
         when (payload.type) {
             NotificationType.CALL_STARTED,
             NotificationType.PATIENT_CONNECTED,
-            NotificationType.INCOMING_CALL,
-            NotificationType.PHARMACY_DISPATCH_INCOMING -> {
+            NotificationType.INCOMING_CALL -> {
                 Timber.i("[FCM] High-priority incoming call notification: ${payload.type}")
                 IncomingCallNotificationManager.showIncomingCall(this, payload)
+            }
+            NotificationType.PHARMACY_DISPATCH_INCOMING -> {
+                Timber.i("[FCM] High-priority on-demand dispatch notification: ${payload.type}")
+                IncomingCallNotificationManager.showDispatchIncoming(this, payload)
             }
             else -> {
                 NotificationHelper.show(this, payload)

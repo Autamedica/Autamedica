@@ -71,8 +71,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material.icons.filled.Sensors
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -137,18 +141,16 @@ private const val DOCTOR_TAB_PATIENTS = 3
 // Apple + Uber + Nubank + Linear | M3 | Glassmorphism sutil
 // Card radius: 28 dp | Botón principal: 20 dp radius, 58 dp altura
 // Switch Guardia: Muy grande (escala 1.5f) con track verde activo
-// Triaje: Rojo urgencia, Amarillo prioritario, Azul control, Verde estable
+// Triaje: Rojo urgencia, Cian quirúrgico prioritario, Azul control, Verde estable
 // =============================================================================
 private val AutaBlue = Color(0xFF155EEF)      // Color principal AutaMedica
 private val AutaGreen = Color(0xFF16C784)     // EN LÍNEA, disponible, éxito
 private val AutaRed = Color(0xFFFF4D4F)       // Urgencias de triaje
-private val AutaYellow = Color(0xFFF59E0B)    // Casos prioritarios
 private val MedicalBlue = AutaBlue            // Alias de compatibilidad
-private val MedicalCyan = Color(0xFF0284C7)
+private val MedicalCyan = Color(0xFF06B6D4)   // Cian Quirúrgico (Prioritario - Zero-Yellow Gate)
 private val SoftBlueBg = Color(0xFFEBF1FF)
 private val SoftGreenBg = Color(0xFFECFDF5)
 private val SoftRedBg = Color(0xFFFEF2F2)
-private val SoftYellowBg = Color(0xFFFFFBEB)
 private val SoftCyanBg = Color(0xFFF0F9FF)
 private val GlassBorder = Color(0x1E155EEF)   // Glassmorphism borde sutil
 private val Slate50 = Color(0xFFF8FAFC)
@@ -450,7 +452,7 @@ private fun DoctorGreetingHeader(
 
 /**
  * 2. COCKPIT DE GUARDIA UBER DRIVER (Telemedicina On-Demand)
- * Card radius: 28dp | Switch Muy Grande (escala 1.5f) | Tarifa Activa
+ * Card radius: 28dp | Háptica inmediata | Presencia telemetría | Zero-Yellow Gate
  */
 @Composable
 private fun AutaMedicaOsDutyHero(
@@ -459,6 +461,7 @@ private fun AutaMedicaOsDutyHero(
     onToggleOnDuty: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
     val infiniteTransition = rememberInfiniteTransition(label = "heroPulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.35f,
@@ -476,58 +479,110 @@ private fun AutaMedicaOsDutyHero(
             .auSoftShadow(CardRadius),
         shape = RoundedCornerShape(CardRadius),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, if (isOnDuty) AutaGreen.copy(alpha = 0.35f) else Color(0xFFE2E8F0)),
+        border = BorderStroke(
+            1.dp,
+            if (isOnDuty) MedicalCyan.copy(alpha = 0.5f + (pulseAlpha * 0.3f)) else Color(0xFFE2E8F0)
+        ),
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(if (isOnDuty) Color(0xFFF0FDF4) else Color.White)
                 .padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                // Indicador de estado (Verde vivo pulsante / gris neutro)
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (isOnDuty) AutaGreen.copy(alpha = pulseAlpha)
-                            else Color(0xFF94A3B8)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    // Indicador de estado (Verde vivo / Cyan vivo pulsante)
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isOnDuty) AutaGreen.copy(alpha = pulseAlpha)
+                                else Color(0xFF94A3B8)
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            text = if (isOnDuty) "Guardia Médica Activa" else "Guardia en Pausa",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-0.2).sp,
+                            ),
+                            color = if (isOnDuty) Color(0xFF0F172A) else Color(0xFF475569),
                         )
-                )
-                Spacer(modifier = Modifier.width(14.dp))
-                Text(
-                    text = "Recibir consultas en tiempo real",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.2).sp,
+                        Text(
+                            text = if (isOnDuty) "Recibiendo consultas on-demand" else "Toca para conectar con la red de farmacias",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                            color = if (isOnDuty) AutaGreen else Slate500,
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Switch táctil con háptica inmediata
+                Switch(
+                    checked = isOnDuty,
+                    onCheckedChange = { isChecked ->
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onToggleOnDuty(isChecked)
+                    },
+                    enabled = !isLoading,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = AutaGreen,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = Color(0xFFCBD5E1),
+                        checkedBorderColor = Color.Transparent,
+                        uncheckedBorderColor = Color.Transparent,
                     ),
-                    color = if (isOnDuty) Color(0xFF0F172A) else Color(0xFF475569),
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Switch mejorado, tactile y responsivo
-            Switch(
-                checked = isOnDuty,
-                onCheckedChange = onToggleOnDuty,
-                enabled = !isLoading,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = AutaGreen,
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = Color(0xFFCBD5E1),
-                    checkedBorderColor = Color.Transparent,
-                    uncheckedBorderColor = Color.Transparent,
+            // Pill de Telemetría de Presencia
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = if (isOnDuty) SoftCyanBg else Slate100,
+                border = BorderStroke(
+                    0.5.dp,
+                    if (isOnDuty) MedicalCyan.copy(alpha = 0.3f) else Slate200
                 ),
-            )
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Sensors,
+                        contentDescription = null,
+                        tint = if (isOnDuty) MedicalCyan else Slate500,
+                        modifier = Modifier.size(13.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (isOnDuty) "Conectado a guardia médica • Heartbeat activo cada 30s" else "Desconectado • Telemetría en espera",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            fontWeight = if (isOnDuty) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isOnDuty) MedicalCyan else Slate700,
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }
@@ -1138,9 +1193,14 @@ private fun HeroNextInQueueCard(
                 }
             }
 
-            // BOTÓN PRINCIPAL: ALTURA EXACTA 58 DP, RADIO 20 DP
+            val hapticFeedback = LocalHapticFeedback.current
+
+            // BOTÓN PRINCIPAL: ALTURA EXACTA 58 DP, RADIO 20 DP CON HÁPTICA INMEDIATA
             Button(
-                onClick = onJoinCall,
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onJoinCall()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(58.dp),
@@ -1369,7 +1429,7 @@ private fun StripeKpiItem(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. COLA DE PACIENTES EN TIEMPO REAL (DESPACHO UBER DRIVER PARA TELEMEDICINA)
-// Triaje: Rojo urgencia, Amarillo prioritario, Azul control, Verde estable
+// Triaje: Rojo urgencia, Cian prioritario, Azul control, Verde estable (Zero-Yellow Gate)
 // ─────────────────────────────────────────────────────────────────────────────
 
 val TriageLevel.label: String get() = when(this) {
@@ -1381,21 +1441,21 @@ val TriageLevel.label: String get() = when(this) {
 
 val TriageLevel.color: Color get() = when(this) {
     TriageLevel.URGENCY -> AutaRed
-    TriageLevel.PRIORITY -> AutaYellow
+    TriageLevel.PRIORITY -> MedicalCyan
     TriageLevel.CONTROL -> AutaBlue
     TriageLevel.STABLE -> AutaGreen
 }
 
 val TriageLevel.bgColor: Color get() = when(this) {
     TriageLevel.URGENCY -> SoftRedBg
-    TriageLevel.PRIORITY -> SoftYellowBg
+    TriageLevel.PRIORITY -> SoftCyanBg
     TriageLevel.CONTROL -> SoftBlueBg
     TriageLevel.STABLE -> SoftGreenBg
 }
 
 val TriageLevel.borderColor: Color get() = when(this) {
     TriageLevel.URGENCY -> AutaRed
-    TriageLevel.PRIORITY -> AutaYellow
+    TriageLevel.PRIORITY -> MedicalCyan
     TriageLevel.CONTROL -> AutaBlue
     TriageLevel.STABLE -> AutaGreen
 }
@@ -1421,9 +1481,9 @@ private fun LivePatientQueueSection(
         label = "queuePulseAlpha",
     )
 
-    // Modal de Pre-Consulta Clínica Rápida (Ficha en 20 segundos)
+    // Bottom Sheet de Pre-Consulta Clínica Rápida (Ficha en 20 segundos)
     inspectingPatient?.let { patient ->
-        PreConsultationDialog(
+        PreConsultationBottomSheet(
             patient = patient,
             onDismiss = { inspectingPatient = null },
         )
@@ -1811,168 +1871,169 @@ private fun TriagePatientCard(
 }
 
 /**
- * Modal de Ficha Clínica Previa en 20 Segundos
+ * Bottom Sheet de Ficha Clínica Previa en 20 Segundos (Anti-Modal Web Compliant)
  * "Ningún piloto despega un avión preguntándole a los pasajeros si cargaron combustible"
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PreConsultationDialog(
+private fun PreConsultationBottomSheet(
     patient: QueuedPatient,
     onDismiss: () -> Unit,
 ) {
-    Dialog(
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = Slate200) },
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = Color.White,
     ) {
-        Card(
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .auSoftShadow(CardRadius),
-            shape = RoundedCornerShape(CardRadius),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+                .fillMaxWidth()
+                .padding(horizontal = 22.dp, vertical = 6.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(22.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+            // Cabecera con badge de nivel
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Cabecera con badge de nivel
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = patient.triage.bgColor,
-                    ) {
-                        Text(
-                            text = "${patient.triage.label} • ${patient.triageScale}",
-                            color = patient.triage.color,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
-                        )
-                    }
-
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Cerrar",
-                            tint = Slate500,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                }
-
-                // Identificación
-                val cleanPreConsultName = cleanPatientName(patient.name)
-                val preConsultDisplayName = if (patient.age > 0) "$cleanPreConsultName, ${patient.age} años" else cleanPreConsultName
-                Column {
-                    Text(
-                        text = preConsultDisplayName,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Slate900,
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Ficha clínica de pre-consulta • Resumen en 20 segundos",
-                        fontSize = 12.sp,
-                        color = Slate500,
-                    )
-                }
-
-                // Banner de certeza clínica
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = SoftBlueBg,
-                    border = BorderStroke(0.5.dp, GlassBorder),
+                    shape = RoundedCornerShape(8.dp),
+                    color = patient.triage.bgColor,
                 ) {
                     Text(
-                        text = "“Ningún médico atiende a ciegas. Ficha clínica estructurada lista antes de conectar.”",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = AutaBlue,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    )
-                }
-
-                // Signos Vitales
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "SIGNOS VITALES REGISTRADOS",
+                        text = "${patient.triage.label} • ${patient.triageScale}",
+                        color = patient.triage.color,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Slate500,
-                        letterSpacing = 0.5.sp,
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Slate100,
-                    ) {
-                        Text(
-                            text = patient.vitals,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Slate900,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        )
-                    }
-                }
-
-                // Anamnesis / Motivo
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "ANAMNESIS DE INGRESO",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Slate500,
-                        letterSpacing = 0.5.sp,
-                    )
-                    Text(
-                        text = patient.intakeSummary,
-                        fontSize = 13.sp,
-                        color = Slate800,
-                        lineHeight = 18.sp,
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
                     )
                 }
 
-                // Antecedentes
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "ANTECEDENTES & MEDICACIÓN HABITUAL",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Slate500,
-                        letterSpacing = 0.5.sp,
-                    )
-                    Text(
-                        text = patient.antecedents,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Slate800,
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Botón de cierre de ficha clínica
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AutaBlue),
-                ) {
-                    Text(
-                        text = "Entendido • Cerrar Ficha",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Cerrar",
+                        tint = Slate500,
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }
+
+            // Identificación
+            val cleanPreConsultName = cleanPatientName(patient.name)
+            val preConsultDisplayName = if (patient.age > 0) "$cleanPreConsultName, ${patient.age} años" else cleanPreConsultName
+            Column {
+                Text(
+                    text = preConsultDisplayName,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Slate900,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Ficha clínica de pre-consulta • Resumen en 20 segundos",
+                    fontSize = 12.sp,
+                    color = Slate500,
+                )
+            }
+
+            // Banner de certeza clínica
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = SoftBlueBg,
+                border = BorderStroke(0.5.dp, GlassBorder),
+            ) {
+                Text(
+                    text = "“Ningún médico atiende a ciegas. Ficha clínica estructurada lista antes de conectar.”",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AutaBlue,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            }
+
+            // Signos Vitales
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "SIGNOS VITALES REGISTRADOS",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Slate500,
+                    letterSpacing = 0.5.sp,
+                )
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Slate100,
+                ) {
+                    Text(
+                        text = patient.vitals,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Slate900,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    )
+                }
+            }
+
+            // Anamnesis / Motivo
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "ANAMNESIS DE INGRESO",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Slate500,
+                    letterSpacing = 0.5.sp,
+                )
+                Text(
+                    text = patient.intakeSummary,
+                    fontSize = 13.sp,
+                    color = Slate800,
+                    lineHeight = 18.sp,
+                )
+            }
+
+            // Antecedentes
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "ANTECEDENTES & MEDICACIÓN HABITUAL",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Slate500,
+                    letterSpacing = 0.5.sp,
+                )
+                Text(
+                    text = patient.antecedents,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Slate800,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Botón de cierre de ficha clínica
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AutaBlue),
+            ) {
+                Text(
+                    text = "Entendido • Cerrar Ficha",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

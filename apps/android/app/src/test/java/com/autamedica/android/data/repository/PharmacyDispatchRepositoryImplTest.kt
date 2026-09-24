@@ -99,4 +99,25 @@ class PharmacyDispatchRepositoryImplTest {
         assertThat(recordedRequest.path).contains("doctor_duty_status")
         assertThat(recordedRequest.path).contains("doctor_id=eq.$doctorId")
     }
+
+    @Test
+    fun `sendDoctorHeartbeat calls doctor_heartbeat RPC successfully`() = runTest {
+        val doctorId = "doc-uuid-456"
+
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("{}")
+        )
+
+        val result = repository.sendDoctorHeartbeat(doctorId)
+
+        assertThat(result.isSuccess).isTrue()
+        val recordedRequest = mockWebServer.takeRequest()
+        assertThat(recordedRequest.path).contains("rpc/doctor_heartbeat")
+        val requestBody = recordedRequest.body.readUtf8()
+        assertThat(requestBody).contains("p_doctor_id")
+        assertThat(requestBody).contains(doctorId)
+    }
 }

@@ -40,14 +40,23 @@ val PortalCompaniesSoft = Color(0x1F475569)   // rgba(71, 85, 105, 0.12)
 val LogoObsidianBg = Color(0xFF09090B)
 val LogoRingBorder = Color(0x1AFFFFFF)
 
+// Zero-Yellow Gate & High-Frequency Brand Tokens
+val AuNavy = Color(0xFF0A0F1D)             // Deep Navy 950
+val AuNavySurface = Color(0xFF0F172A)      // Deep Navy 900
+val AuCyan = Color(0xFF06B6D4)             // Clinical Cyan 500
+val AuCyanDeep = Color(0xFF0891B2)         // Clinical Cyan 600
+val AuCyanSoft = Color(0x1F06B6D4)         // Clinical Cyan 12%
+val AuEmerald = Color(0xFF10B981)          // Clinical Emerald (Success/Online)
+val AuCrimson = Color(0xFFEF4444)          // Clinical Crimson (Alert/Danger/Decline)
+
 // Semantic
-val AuSuccess = Color(0xFF22C55E)          // --au-success (green-500)
-val AuWarning = Color(0xFFF59E0B)          // --au-warning (amber-500)
-val AuDanger = Color(0xFFEF4444)           // --au-danger (red-500)
+val AuSuccess = Color(0xFF10B981)          // Emerald 500
+val AuWarning = Color(0xFF0891B2)          // Clinical Cyan (Zero-Yellow Gate compliant)
+val AuDanger = Color(0xFFEF4444)           // Crimson 500
 
 // Semantic containers
 val SuccessContainer = Color(0xFFECFDF5)   // emerald-50
-val WarningContainer = Color(0xFFFFFBEB)   // amber-50
+val WarningContainer = Color(0xFFECFEFF)   // cyan-50 (Zero-Yellow Gate compliant)
 val ErrorContainer = Color(0xFFFEF2F2)     // red-50
 
 // Blue primary (from shared design system — used in portals/buttons)

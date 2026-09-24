@@ -3,13 +3,12 @@
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
-    android:viewportHeight="24"
-    android:tint="#FFFFFF">
-    <!-- Medical cross (simplified for notification) -->
+    android:viewportHeight="24">
+    <!-- Cruz médica pura de AutaMedica, silueta blanca transparente conforme a Android Notification Design Guidelines -->
     <path
-        android:fillColor="@android:color/white"
-        android:pathData="M10,3h4v18h-4z"/>
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M10,4h4v16h-4z"/>
     <path
-        android:fillColor="@android:color/white"
-        android:pathData="M3,10h18v4h-18z"/>
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M4,10h16v4h-16z"/>
 </vector>

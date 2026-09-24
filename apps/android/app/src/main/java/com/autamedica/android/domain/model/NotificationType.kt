@@ -10,7 +10,7 @@ enum class NotificationType(val channelId: String) {
     PATIENT_CONNECTED("autamedica_incoming_calls"),
     CALL_STARTED("autamedica_incoming_calls"),
     INCOMING_CALL("autamedica_incoming_calls"),
-    PHARMACY_DISPATCH_INCOMING("autamedica_incoming_calls"),
+    PHARMACY_DISPATCH_INCOMING("autamedica_dispatch_incoming"),
     MESSAGE_NEW("autamedica_messages"),
     PRESCRIPTION_READY("autamedica_prescriptions"),
     FOLLOWUP_48H("autamedica_appointments"),

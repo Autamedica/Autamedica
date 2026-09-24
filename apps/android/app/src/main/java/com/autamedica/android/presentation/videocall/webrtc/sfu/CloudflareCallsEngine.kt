@@ -246,43 +246,69 @@ class CloudflareCallsEngine(
         cleanup()
     }
 
+    private var mediaInitJob: Job? = null
+
     fun startLocalMedia() {
-        val vSource = peerConnectionFactory.createVideoSource(false)
-        videoSource = vSource
-        surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
+        mediaInitJob?.cancel()
 
-        val enumerator = org.webrtc.Camera2Enumerator(context)
-        val (cameraName, isBack) = qualityManager.selectBestCamera(enumerator)
-
-        if (cameraName != null) {
-            videoCapturer = enumerator.createCapturer(cameraName, null) as? CameraVideoCapturer
-            videoCapturer?.initialize(surfaceTextureHelper, context, vSource.capturerObserver)
-            val initialProfile = qualityManager.getInitialProfile()
-            videoCapturer?.startCapture(initialProfile.width, initialProfile.height, initialProfile.fps)
-            Timber.i("[SFU] Started video capture on $cameraName (isBack=$isBack) at ${initialProfile.name}")
+        // 1. Audio initialization (instantaneous, ~5ms)
+        if (localAudioTrack == null) {
+            val audioConstraints = MediaConstraints().apply {
+                mandatory.add(MediaConstraints.KeyValuePair("echoCancellation", "true"))
+                mandatory.add(MediaConstraints.KeyValuePair("noiseSuppression", "true"))
+                mandatory.add(MediaConstraints.KeyValuePair("autoGainControl", "true"))
+            }
+            val aSource = peerConnectionFactory.createAudioSource(audioConstraints)
+            audioSource = aSource
+            localAudioTrack = peerConnectionFactory.createAudioTrack("audio0", aSource)
+            Timber.i("[SFU] Local audio track initialized")
         }
 
-        localVideoTrackInternal = peerConnectionFactory.createVideoTrack("video0", vSource)
-        _localVideoTrack.value = localVideoTrackInternal
-
-        val audioConstraints = MediaConstraints().apply {
-            mandatory.add(MediaConstraints.KeyValuePair("echoCancellation", "true"))
-            mandatory.add(MediaConstraints.KeyValuePair("noiseSuppression", "true"))
-            mandatory.add(MediaConstraints.KeyValuePair("autoGainControl", "true"))
+        // 2. Video source & track instantiation (instantaneous, attached to capturer observer)
+        if (localVideoTrackInternal == null) {
+            val vSource = peerConnectionFactory.createVideoSource(false)
+            videoSource = vSource
+            localVideoTrackInternal = peerConnectionFactory.createVideoTrack("video0", vSource)
+            _localVideoTrack.value = localVideoTrackInternal
+            Timber.i("[SFU] Local video track created")
         }
-        val aSource = peerConnectionFactory.createAudioSource(audioConstraints)
-        audioSource = aSource
-        localAudioTrack = peerConnectionFactory.createAudioTrack("audio0", aSource)
 
+        // 3. Immediately publish to SFU session if already connected
         session?.let { sfuSession ->
             scope.launch {
-                sfuSession.replacePublishedVideoTrack(localVideoTrackInternal?.takeIf { it.enabled() })
                 sfuSession.replacePublishedAudioTrack(localAudioTrack?.takeIf { it.enabled() })
+                sfuSession.replacePublishedVideoTrack(localVideoTrackInternal?.takeIf { it.enabled() })
+            }
+        }
+
+        // 4. Parallel hardware camera start in background (does not block audio/session setup)
+        mediaInitJob = scope.launch(kotlinx.coroutines.Dispatchers.Default) {
+            try {
+                val vSource = videoSource ?: return@launch
+                val sth = SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
+                surfaceTextureHelper = sth
+
+                val enumerator = org.webrtc.Camera2Enumerator(context)
+                val (cameraName, isBack) = qualityManager.selectBestCamera(enumerator)
+
+                if (cameraName != null && isActive) {
+                    val capturer = enumerator.createCapturer(cameraName, null) as? CameraVideoCapturer
+                    videoCapturer = capturer
+                    capturer?.initialize(sth, context, vSource.capturerObserver)
+                    val initialProfile = qualityManager.getInitialProfile()
+                    capturer?.startCapture(initialProfile.width, initialProfile.height, initialProfile.fps)
+                    Timber.i("[SFU] Started video capture on $cameraName (isBack=$isBack) at ${initialProfile.name}")
+                }
+            } catch (e: Throwable) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                Timber.w(e, "[SFU] Error initializing camera hardware in background")
             }
         }
     }
 
     fun stopLocalMedia() {
+        mediaInitJob?.cancel()
+        mediaInitJob = null
         videoCapturer?.stopCapture()
         videoCapturer?.dispose()
         videoCapturer = null

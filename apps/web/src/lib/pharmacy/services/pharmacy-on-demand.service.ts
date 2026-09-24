@@ -533,6 +533,98 @@ export class PharmacyOnDemandService {
       patientDni: request.patient_dni,
     }
   }
+
+  /**
+   * Sends heartbeat telemetry for an on-duty doctor.
+   * Invokes the public.doctor_heartbeat RPC.
+   */
+  async sendHeartbeat(admin: SupabaseClient, doctorUserId: string): Promise<boolean> {
+    const doctor = await this.resolveDoctor(admin, doctorUserId)
+    if (!doctor) {
+      logger.warn('[PharmacyOnDemandService.sendHeartbeat] Doctor not found for user', { doctorUserId })
+      return false
+    }
+
+    // Try with schema prefix (public.doctor_heartbeat) first per Supabase RPC rules
+    let { error } = await admin.rpc('public.doctor_heartbeat' as never, {
+      p_doctor_id: doctor.id,
+    } as never)
+
+    // Fallback without schema prefix if PostgREST expects bare function name
+    if (error) {
+      const fallback = await admin.rpc('doctor_heartbeat' as never, {
+        p_doctor_id: doctor.id,
+      } as never)
+      if (!fallback.error) {
+        error = null
+      }
+    }
+
+    if (error) {
+      logger.error('[PharmacyOnDemandService.sendHeartbeat] RPC error', error)
+      return false
+    }
+
+    return true
+  }
+
+  /**
+   * Match doctors for a dispatch request and create offers.
+   * Filtra por especialidad, estado heartbeat y disponibilidad.
+   * Crea dispatch_offers con expires_at a 30s.
+   */
+  async match_dispatch_doctors(
+    admin: SupabaseClient,
+    dispatchRequestId: string,
+  ): Promise<{ success: boolean; offers: Array<{ id: string; doctor_id: string; expires_at: string; price_brl: number } | null> | null }> {
+    const { data, error } = await admin
+      .rpc('match_dispatch_doctors' as never, { p_dispatch_id: dispatchRequestId } as never)
+    if (error) {
+      logger.error('[PharmacyOnDemandService.match_dispatch_doctors] RPC error', error)
+      return { success: false, offers: null }
+    }
+    // data es JSONB: { offers: [...] } o {}
+    const raw = data as Record<string, unknown> | null
+    const offers = (raw?.offers as Array<{ id: string; doctor_id: string; expires_at: string; price_brl: number }>) || null
+    return { success: true, offers }
+  }
+
+  /**
+   * Claim a dispatch offer atomically.
+   * First accepted offer wins. Creates call, guest_invite, and updates request status.
+   */
+  async claim_dispatch_offer(
+    admin: SupabaseClient,
+    offerId: string,
+  ): Promise<{ success: boolean; error?: string; result?: { requestId: string; callId: string; roomId: string; guestInviteId: string; doctorId: string; patientName: string; patientDni: string; priceBrl: number; assignedAt: string } }> {
+    const { data, error } = await admin
+      .rpc('claim_dispatch_offer' as never, { p_offer_id: offerId } as never)
+    if (error) {
+      logger.error('[PharmacyOnDemandService.claim_dispatch_offer] RPC error', error)
+      return { success: false, error: error.message }
+    }
+    return { success: true, result: data as never }
+  }
+
+  /**
+   * Obtener ofertas vigentes para un dispatch (útil para UI polling)
+   */
+  async get_dispatch_offers(admin: SupabaseClient, dispatchRequestId: string): Promise<{ success: boolean; offers: Array<{ id: string; doctor_id: string; expires_at: string; price_brl: number }> | null }> {
+    const { data, error } = await admin
+      .from('dispatch_offers')
+      .select('id, doctor_id, expires_at, status, price_brl')
+      .eq('dispatch_request_id', dispatchRequestId)
+      .eq('status', 'pending')
+    if (error) {
+      logger.error('[PharmacyOnDemandService.get_dispatch_offers] DB error', error)
+      return { success: false, offers: null }
+    }
+    const pendingOffers = (data as Array<{ id: string; doctor_id: string; expires_at: string; status: string; price_brl: number }>) || []
+    const now = new Date()
+    const validOffers = pendingOffers.filter(o => new Date(o.expires_at) > now)
+    return { success: true, offers: validOffers.map(o => ({ id: o.id, doctor_id: o.doctor_id, expires_at: o.expires_at, price_brl: o.price_brl })) }
+  }
 }
 
 export const pharmacyOnDemandService = new PharmacyOnDemandService()
+

@@ -99,6 +99,16 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".service.DebugNotificationReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.autamedica.android.TEST_DISPATCH_NOTIFICATION" />
+                <action android:name="com.autamedica.android.TEST_CALL_NOTIFICATION" />
+                <action android:name="com.autamedica.android.CLEAR_ALL_NOTIFICATIONS" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".service.CallNotificationService"
             android:foregroundServiceType="camera|microphone"

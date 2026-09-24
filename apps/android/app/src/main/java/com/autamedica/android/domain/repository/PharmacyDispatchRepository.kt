@@ -22,6 +22,9 @@ interface PharmacyDispatchRepository {
         activeTiers: List<String>,
     ): Result<Unit>
 
+    /** Send periodic heartbeat to refresh doctor presence while on duty via `public.doctor_heartbeat`. */
+    suspend fun sendDoctorHeartbeat(doctorId: String): Result<Unit>
+
     /** Reactive flow of dispatch requests still in `searching` status. */
     fun observeSearchingRequests(): StateFlow<List<PharmacyDispatchRequest>>
 
@@ -47,6 +50,7 @@ interface PharmacyDispatchRepository {
         patientName: String?,
         tierRequested: String,
         symptomSummary: String?,
+        patientCpf: String? = null,
     ): Result<PharmacyDispatchRequest>
 
     /** Patient side: Observe a specific on-demand request by id until matched/in_call. */

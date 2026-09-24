@@ -204,15 +204,13 @@ class PharmacyIntakeViewModel @Inject constructor(
                         queuePosition = 1,
                         estimatedMinutes = 3,
                         roomId = if (hasRoom) request.cloudflareRoomId else null,
-                        readyToJoinCall = hasRoom,
+                        readyToJoinCall = false,
                         error = null,
                     )
                 }
-                // Si la sala SFU ya está creada, el paciente navega inmediatamente al consultorio
-                // para comenzar a transmitir su cámara. Si por algún motivo viniera vacía, se observa en realtime.
-                if (!hasRoom) {
-                    startStatusPolling(request.id)
-                }
+                // La espera queda activa (radar) mientras el request está searching/matched.
+                // readyToJoinCall solo se enciende cuando el médico atiende (in_call) y la sala existe.
+                startStatusPolling(request.id)
             }.onFailure { err ->
                 SecureLog.error("[PharmacyIntakeVM] Failed creating request", err)
                 _uiState.update {
@@ -229,7 +227,7 @@ class PharmacyIntakeViewModel @Inject constructor(
         statusPollingJob?.cancel()
         statusPollingJob = viewModelScope.launch {
             pharmacyDispatchRepository.observePatientRequest(requestId).collect { request ->
-                val isJoinable = request.status == "matched" || request.status == "in_call"
+                val isJoinable = request.doctorAttendedCall
                 val isTerminalFailure = request.status == "cancelled" || request.status == "expired"
                 val hasRoom = request.cloudflareRoomId.isNotBlank()
 

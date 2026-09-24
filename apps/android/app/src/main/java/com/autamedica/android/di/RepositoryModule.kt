@@ -97,4 +97,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPharmacyDispatchRepository(impl: com.autamedica.android.data.repository.PharmacyDispatchRepositoryImpl): com.autamedica.android.domain.repository.PharmacyDispatchRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindConnectivityObserver(impl: com.autamedica.android.util.NetworkConnectivityObserver): com.autamedica.android.util.ConnectivityObserver
 }

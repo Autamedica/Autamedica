@@ -340,7 +340,7 @@ class VideoCallViewModel @Inject constructor(
                 runCatching {
                     val dispatchPatient = supabaseClient.postgrest
                         .from("pharmacy_dispatch_requests")
-                        .select(Columns.list("id", "patient_name", "patient_dni", "patient_phone", "symptom_summary", "tier_requested", "requested_by_user_id")) {
+                        .select(Columns.list("id", "patient_name", "patient_dni", "patient_cpf", "patient_phone", "symptom_summary", "tier_requested", "requested_by_user_id", "patient_id")) {
                             filter { eq("cloudflare_room_id", dispatchRoom) }
                             limit(1)
                         }
@@ -350,24 +350,32 @@ class VideoCallViewModel @Inject constructor(
                         if (dispatchPatient.patientName.isNullOrBlank().not()) {
                             resolvedPatientName = cleanPatientName(dispatchPatient.patientName.orEmpty())
                         }
-                        if (dispatchPatient.requestedByUserId.isNullOrBlank().not() || dispatchPatient.patientDni.isNullOrBlank().not()) {
+                        if (dispatchPatient.patientId.isNullOrBlank().not() || dispatchPatient.requestedByUserId.isNullOrBlank().not() || dispatchPatient.patientDni.isNullOrBlank().not() || dispatchPatient.patientCpf.isNullOrBlank().not()) {
                             val realPatId = runCatching {
                                 val reqUserId = dispatchPatient.requestedByUserId
                                 val patDni = dispatchPatient.patientDni
-                                supabaseClient.postgrest.from("patients")
-                                    .select(Columns.list("id")) {
-                                        filter {
-                                            if (!reqUserId.isNullOrBlank()) {
-                                                eq("user_id", reqUserId)
-                                            } else if (!patDni.isNullOrBlank()) {
-                                                eq("dni", patDni)
+                                val patCpf = dispatchPatient.patientCpf
+                                val patId = dispatchPatient.patientId
+                                if (!patId.isNullOrBlank()) {
+                                    patId
+                                } else {
+                                    supabaseClient.postgrest.from("patients")
+                                        .select(Columns.list("id")) {
+                                            filter {
+                                                if (!reqUserId.isNullOrBlank()) {
+                                                    eq("user_id", reqUserId)
+                                                } else if (!patDni.isNullOrBlank()) {
+                                                    eq("dni", patDni)
+                                                } else if (!patCpf.isNullOrBlank()) {
+                                                    eq("cpf", patCpf)
+                                                }
                                             }
+                                            limit(1)
                                         }
-                                        limit(1)
-                                    }
-                                    .decodeSingleOrNull<PatientRecordIdDto>()?.id
+                                        .decodeSingleOrNull<PatientRecordIdDto>()?.id
+                                }
                             }.getOrNull()
-                            resolvedPatientId = realPatId ?: dispatchPatient.requestedByUserId.orEmpty()
+                            resolvedPatientId = realPatId.orEmpty()
                         }
                         if (preReason.isBlank()) {
                             preReason = dispatchPatient.symptomSummary.orEmpty()
@@ -604,7 +612,7 @@ class VideoCallViewModel @Inject constructor(
                 if (effectiveRoom.isNotBlank()) {
                     val dispatch = runCatching {
                         supabaseClient.postgrest.from("pharmacy_dispatch_requests")
-                            .select(Columns.list("id", "assigned_doctor_id", "patient_dni", "symptom_summary", "requested_by_user_id")) {
+                            .select(Columns.list("id", "assigned_doctor_id", "patient_dni", "patient_cpf", "patient_id", "symptom_summary", "requested_by_user_id")) {
                                 filter { eq("cloudflare_room_id", effectiveRoom) }
                                 limit(1)
                             }
@@ -616,19 +624,23 @@ class VideoCallViewModel @Inject constructor(
                         if (resolvedDoctorId == null) resolvedDoctorId = dispatch.assignedDoctorId
 
                         if (resolvedPatientId == null) {
-                            resolvedPatientId = runCatching {
-                                supabaseClient.postgrest.from("patients")
-                                    .select(Columns.list("id")) {
-                                        filter {
-                                            if (!dispatch.requestedByUserId.isNullOrBlank()) {
-                                                eq("user_id", dispatch.requestedByUserId)
-                                            } else if (!dispatch.patientDni.isNullOrBlank()) {
-                                                eq("dni", dispatch.patientDni)
+                            resolvedPatientId = dispatch.patientId
+                                ?.takeIf { it.isNotBlank() }
+                                ?: runCatching {
+                                    supabaseClient.postgrest.from("patients")
+                                        .select(Columns.list("id")) {
+                                            filter {
+                                                if (!dispatch.requestedByUserId.isNullOrBlank()) {
+                                                    eq("user_id", dispatch.requestedByUserId)
+                                                } else if (!dispatch.patientDni.isNullOrBlank()) {
+                                                    eq("dni", dispatch.patientDni)
+                                                } else if (!dispatch.patientCpf.isNullOrBlank()) {
+                                                    eq("cpf", dispatch.patientCpf)
+                                                }
                                             }
-                                        }
-                                        limit(1)
-                                    }.decodeSingleOrNull<PatientRecordIdDto>()?.id
-                            }.getOrNull() ?: dispatch.requestedByUserId
+                                            limit(1)
+                                        }.decodeSingleOrNull<PatientRecordIdDto>()?.id
+                                }.getOrNull()
                         }
 
                         // Actualizar resumen en pharmacy_dispatch_requests
@@ -1633,6 +1645,8 @@ private data class DispatchRecordDto(
     val id: String,
     @SerialName("assigned_doctor_id") val assignedDoctorId: String? = null,
     @SerialName("patient_dni") val patientDni: String? = null,
+    @SerialName("patient_cpf") val patientCpf: String? = null,
+    @SerialName("patient_id") val patientId: String? = null,
     @SerialName("symptom_summary") val symptomSummary: String? = null,
     @SerialName("requested_by_user_id") val requestedByUserId: String? = null,
 )
@@ -1642,6 +1656,8 @@ private data class DispatchPatientContextDto(
     val id: String? = null,
     @SerialName("patient_name") val patientName: String? = null,
     @SerialName("patient_dni") val patientDni: String? = null,
+    @SerialName("patient_cpf") val patientCpf: String? = null,
+    @SerialName("patient_id") val patientId: String? = null,
     @SerialName("patient_phone") val patientPhone: String? = null,
     @SerialName("symptom_summary") val symptomSummary: String? = null,
     @SerialName("tier_requested") val tierRequested: String? = null,

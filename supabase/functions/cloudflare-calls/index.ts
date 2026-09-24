@@ -174,7 +174,7 @@ export async function handler(req: Request): Promise<Response> {
     if (!call) {
       const { data: dispatch, error: dispatchErr } = await supabaseAdmin
         .from('pharmacy_dispatch_requests')
-        .select('id, cloudflare_room_id, assigned_doctor_id, status, patient_dni, requested_by_user_id')
+        .select('id, cloudflare_room_id, assigned_doctor_id, status, patient_dni, patient_cpf, patient_id, requested_by_user_id')
         .eq('cloudflare_room_id', roomId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -193,7 +193,7 @@ export async function handler(req: Request): Promise<Response> {
           id: dispatch.id,
           room_id: dispatch.cloudflare_room_id,
           doctor_id: dispatch.assigned_doctor_id,
-          patient_id: dispatch.requested_by_user_id,
+          patient_id: dispatch.patient_id ?? dispatch.requested_by_user_id,
           appointment_id: null,
           status: dispatch.status,
         }

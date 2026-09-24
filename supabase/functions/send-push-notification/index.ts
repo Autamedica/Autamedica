@@ -209,6 +209,17 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'firebase_not_configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
+    const isCallNotification = (
+      data?.type === 'CALL_STARTED' ||
+      data?.type === 'PATIENT_CONNECTED' ||
+      data?.type === 'INCOMING_CALL'
+    )
+
+    const isDispatchNotification = (
+      data?.type === 'pharmacy_dispatch_incoming' ||
+      data?.notification_type === 'pharmacy_dispatch_incoming'
+    )
+
     const message: Record<string, unknown> = {
       token: profile.fcm_token,
       data: {
@@ -218,27 +229,27 @@ Deno.serve(async (req) => {
         ...data,
       },
       android: {
-        priority: (
-          data?.type === 'CALL_STARTED' ||
-          data?.type === 'PATIENT_CONNECTED' ||
-          data?.type === 'INCOMING_CALL' ||
-          data?.type === 'pharmacy_dispatch_incoming' ||
-          data?.notification_type === 'pharmacy_dispatch_incoming'
-        ) ? 'high' : 'normal',
+        priority: (isCallNotification || isDispatchNotification) ? 'high' : 'normal',
       },
     }
 
-    const isCallNotification = (
-      data?.type === 'CALL_STARTED' ||
-      data?.type === 'PATIENT_CONNECTED' ||
-      data?.type === 'INCOMING_CALL' ||
-      data?.type === 'pharmacy_dispatch_incoming' ||
-      data?.notification_type === 'pharmacy_dispatch_incoming'
-    )
-
-    if (!isCallNotification) {
+    // Las notificaciones de llamada (CALL_STARTED / INCOMING_CALL / PATIENT_CONNECTED)
+    // y los dispatch on-demand son data-only con prioridad máxima: la app recibe el
+    // mensaje en onMessageReceived aunque esté en background (proceso FCM vivo) y
+    // construye la notificación full-screen en su canal dedicado. Al no incluir el
+    // bloque `notification`, FCM no lo renderiza como BigTextStyle del sistema y el
+    // countdown regresivo del dispatch (30 s) puede correr desde la app.
+    if (!isCallNotification && !isDispatchNotification) {
       message.notification = { title: title ?? 'AutaMedica', body: body ?? '' }
     }
+
+    // flash: countdown regresivo del dispatch (30 s) puede correr desde la app.
+    // Los dispatch DEBEN quedar en data-only puro: si se incluye el bloque
+    // android.notification, FCM renderiza además una notificación del sistema
+    // (tag FCM-Notification) duplicada sobre la custom con countdown. El canal
+    // autamedica_dispatch_incoming lo crea la app en createDispatchChannel().
+    // El bloque `android` ya fue seteado arriba con priority high para
+    // call/dispatch y normal para el resto.
 
     const result = await sendFcm(sa, message)
 

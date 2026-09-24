@@ -74,6 +74,8 @@ private class FakePharmacyDispatchRepository(
         activeTiers: List<String>,
     ): Result<Unit> = Result.success(Unit)
 
+    override suspend fun sendDoctorHeartbeat(doctorId: String): Result<Unit> = Result.success(Unit)
+
     override fun observeSearchingRequests(): StateFlow<List<PharmacyDispatchRequest>> =
         MutableStateFlow(emptyList())
 
@@ -102,6 +104,7 @@ private class FakePharmacyDispatchRepository(
         patientName: String?,
         tierRequested: String,
         symptomSummary: String?,
+        patientCpf: String?,
     ): Result<PharmacyDispatchRequest> {
         lastCreatedDni = patientDni
         lastCreatedPhone = patientPhone
@@ -239,7 +242,7 @@ class PharmacyIntakeViewModelTest {
     }
 
     @Test
-    fun `submitting valid form creates dispatch request and realtime detects matched doctor with roomId`() = runTest(testDispatcher) {
+    fun `submitting valid form creates dispatch request and keeps radar alive while searching`() = runTest(testDispatcher) {
         authRepo.user = User(
             id = "user-abc",
             email = "paciente@autamedica.com",
@@ -283,9 +286,9 @@ class PharmacyIntakeViewModelTest {
         assertThat(pharmacyRepo.lastCreatedDni).isEqualTo("28999888")
         assertThat(pharmacyRepo.lastCreatedSummary).isEqualTo("Presión / Hipertensión")
         assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.PENDING)
-        // With on-demand rooms, readyToJoinCall is set to true immediately to publish tracks
-        assertThat(vm.uiState.value.readyToJoinCall).isTrue()
+        // La espera (radar) queda activa: la sala existe pero el médico aún no atendió la llamada.
         assertThat(vm.uiState.value.roomId).isEqualTo("cf-room-general-9888")
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
     }
 
     @Test
@@ -308,6 +311,68 @@ class PharmacyIntakeViewModelTest {
 
         assertThat(vm.uiState.value.patientName).isEqualTo("Jaqueline Marques")
         assertThat(vm.uiState.value.isAuthenticated).isTrue()
+    }
+
+    @Test
+    fun `radar stays active while searching and matched and cuts only when doctor attends (in_call)`() = runTest(testDispatcher) {
+        authRepo.user = User(
+            id = "user-abc",
+            email = "paciente@autamedica.com",
+            firstName = "María",
+            lastName = "López",
+            phone = "+5491122334455",
+            role = UserRole.PATIENT,
+        )
+        profileRepo.user = authRepo.user
+        profileRepo.snapshot = PatientProfileSnapshot(
+            dni = "28999888",
+        )
+
+        val fakeCreatedRequest = PharmacyDispatchRequest(
+            id = "req-race-1",
+            patientDni = "28999888",
+            patientPhone = "+5491122334455",
+            patientName = "María López",
+            tierRequested = "general",
+            symptomSummary = "Presión / Hipertensión",
+            status = "searching",
+            cloudflareRoomId = "cf-room-general-race1",
+            createdAt = "2026-09-21T00:00:00Z",
+        )
+        pharmacyRepo.createResult = Result.success(fakeCreatedRequest)
+
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+
+        vm.onPatientNameChanged("María López")
+        vm.onPatientDniChanged("28999888")
+        vm.onPatientPhoneChanged("+5491122334455")
+        vm.onReasonChipSelected("Presión / Hipertensión")
+        vm.submitRequest()
+        testScheduler.runCurrent()
+
+        // searching: radar de espera activo, sin navegación
+        assertThat(vm.uiState.value.activeRequestId).isEqualTo("req-race-1")
+        assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.PENDING)
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+
+        // matched: el médico fue asignado por el claim pero aún no atiende; el radar sigue vivo
+        pharmacyRepo.requestFlow.value = fakeCreatedRequest.copy(status = "matched", assignedDoctorId = "doc-1")
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.ASSIGNED)
+        assertThat(vm.uiState.value.readyToJoinCall).isFalse()
+
+        // in_call: el médico atendió la llamada; se corta la espera y queda lista la navegación
+        pharmacyRepo.requestFlow.value = fakeCreatedRequest.copy(status = "in_call", assignedDoctorId = "doc-1")
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.status).isEqualTo(PharmacyConsultationStatus.IN_CALL)
+        assertThat(vm.uiState.value.readyToJoinCall).isTrue()
+        assertThat(vm.uiState.value.roomId).isEqualTo("cf-room-general-race1")
     }
 
     @Test

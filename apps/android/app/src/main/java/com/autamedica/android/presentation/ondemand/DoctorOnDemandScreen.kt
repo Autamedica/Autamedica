@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -48,17 +49,46 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextAlign
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.domain.model.dispatchTierLabel
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
+import com.autamedica.android.presentation.theme.AuCrimson
+import com.autamedica.android.presentation.theme.AuCyan
+import com.autamedica.android.presentation.theme.AuCyanDeep
+import com.autamedica.android.presentation.theme.AuCyanSoft
+import com.autamedica.android.presentation.theme.AuEmerald
+import com.autamedica.android.presentation.theme.AuNavy
 import com.autamedica.android.presentation.theme.AuSuccess
 import com.autamedica.android.presentation.theme.AuSurface
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalDoctors
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,10 +99,19 @@ fun DoctorOnDemandScreen(
     viewModel: DoctorOnDemandViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val haptic = LocalHapticFeedback.current
+
+    // Feedback táctil instantáneo cuando entra una solicitud on-demand
+    LaunchedEffect(uiState.searchingRequests.size) {
+        if (uiState.searchingRequests.isNotEmpty()) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
 
     LaunchedEffect(viewModel.navigateToCall) {
         viewModel.navigateToCall.collect { claim ->
             if (claim != null && !claim.cloudflareRoomId.isNullOrBlank()) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onNavigateToCall(claim.cloudflareRoomId)
                 viewModel.consumeNavigateToCall()
             }
@@ -142,7 +181,10 @@ fun DoctorOnDemandScreen(
                     DutyToggleCard(
                         isOnDuty = uiState.isOnDuty,
                         isLoading = uiState.isDutyLoading,
-                        onToggle = viewModel::toggleDuty,
+                        onToggle = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.toggleDuty()
+                        },
                     )
 
                     uiState.error?.let { error ->
@@ -170,14 +212,14 @@ fun DoctorOnDemandScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Consultas esperando",
+                            text = "Despachos en espera",
                             style = MaterialTheme.typography.titleSmall,
                             color = AuTextSecondary,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                         )
                         Surface(
                             shape = RoundedCornerShape(999.dp),
-                            color = if (uiState.searchingRequests.isNotEmpty()) Color(0xFF10B981) else Color(0xFFF1F5F9),
+                            color = if (uiState.searchingRequests.isNotEmpty()) AuEmerald else Color(0xFFF1F5F9),
                         ) {
                             Text(
                                 text = uiState.searchingRequests.size.toString(),
@@ -192,22 +234,37 @@ fun DoctorOnDemandScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     if (uiState.searchingRequests.isEmpty()) {
-                        EmptyQueueCard(
-                            isOnDuty = uiState.isOnDuty,
-                        )
+                        if (uiState.isOnDuty) {
+                            DoctorOnDutyRadar()
+                        } else {
+                            EmptyQueueCard(
+                                isOnDuty = false,
+                                onActivate = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.toggleDuty()
+                                },
+                            )
+                        }
                     } else {
                         LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
                             contentPadding = PaddingValues(bottom = 24.dp),
                         ) {
-                            items(count = uiState.searchingRequests.size, key = { index ->
-                                uiState.searchingRequests[index].id
-                            }) { index ->
-                                val request = uiState.searchingRequests[index]
-                                DispatchRequestCard(
+                            items(
+                                items = uiState.searchingRequests,
+                                key = { it.id }
+                            ) { request ->
+                                IncomingDispatchOfferCard(
                                     request = request,
                                     isClaiming = uiState.claimingId == request.id,
-                                    onAccept = { viewModel.accept(request) },
+                                    onAccept = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.accept(request)
+                                    },
+                                    onDecline = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        viewModel.dismiss(request)
+                                    },
                                 )
                             }
                         }
@@ -299,25 +356,41 @@ private fun DutyToggleCard(
 }
 
 @Composable
-private fun DispatchRequestCard(
+private fun IncomingDispatchOfferCard(
     request: PharmacyDispatchRequest,
     isClaiming: Boolean,
     onAccept: () -> Unit,
+    onDecline: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val initialSeconds = 30
+    var secondsLeft by remember(request.id) { mutableIntStateOf(initialSeconds) }
+
+    LaunchedEffect(request.id) {
+        while (secondsLeft > 0) {
+            delay(1000)
+            secondsLeft -= 1
+        }
+    }
+
+    val progress by animateFloatAsState(
+        targetValue = secondsLeft.toFloat() / initialSeconds.toFloat(),
+        animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+        label = "dispatchCountdownProgress",
+    )
+
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = !isClaiming, onClick = onAccept),
-        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
         color = Color.White,
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-        shadowElevation = 1.dp,
+        border = BorderStroke(1.5.dp, AuCyan.copy(alpha = 0.35f)),
+        shadowElevation = 6.dp,
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            // Header Row: Tier Badge + Countdown Timer Ring estilo Uber Driver
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -325,51 +398,88 @@ private fun DispatchRequestCard(
             ) {
                 Surface(
                     shape = RoundedCornerShape(999.dp),
-                    color = PortalDoctors.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.3f)),
+                    color = AuCyanSoft,
+                    border = BorderStroke(1.dp, AuCyan.copy(alpha = 0.3f)),
                 ) {
-                    Text(
-                        text = dispatchTierLabel(request.tierRequested),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                        color = PortalDoctors,
+                    Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(AuEmerald)
+                        )
+                        Text(
+                            text = dispatchTierLabel(request.tierRequested).uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp,
+                            ),
+                            color = AuCyanDeep,
+                        )
+                    }
+                }
+
+                // Countdown Timer Ring
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        CircularProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier.fillMaxSize(),
+                            color = if (secondsLeft <= 5) AuCrimson else AuCyan,
+                            trackColor = AuBorder,
+                            strokeWidth = 3.dp,
+                            strokeCap = StrokeCap.Round,
+                        )
+                        Text(
+                            text = "${secondsLeft}s",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            color = if (secondsLeft <= 5) AuCrimson else AuTextPrimary,
+                        )
+                    }
+                    Text(
+                        text = relativeTime(request.createdAt),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AuTextTertiary,
                     )
                 }
-                Text(
-                    text = relativeTime(request.createdAt),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AuTextTertiary,
-                )
             }
 
+            // Datos del Paciente y Motivo de Consulta
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(46.dp),
                     shape = CircleShape,
-                    color = Color(0xFFEFF6FF),
+                    color = AuCyanSoft,
+                    border = BorderStroke(1.dp, AuCyan.copy(alpha = 0.25f)),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = (request.patientName
-                                ?: "P")
-                                .take(1)
-                                .uppercase(),
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = PortalDoctors,
+                            text = (request.patientName ?: "P").take(1).uppercase(),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = AuCyanDeep,
                         )
                     }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = request.patientName?.takeIf { it.isNotBlank() }
-                            ?: "Paciente en farmacia",
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = request.patientName?.takeIf { it.isNotBlank() } ?: "Paciente en farmacia",
+                        style = MaterialTheme.typography.titleMedium,
                         color = AuTextPrimary,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -377,7 +487,7 @@ private fun DispatchRequestCard(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = summary,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = AuTextSecondary,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -386,40 +496,99 @@ private fun DispatchRequestCard(
                 }
             }
 
-            Button(
-                onClick = onAccept,
-                enabled = !isClaiming,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF10B981),
-                    contentColor = Color.White,
-                ),
+            // SLA Tag
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = AuEmerald.copy(alpha = 0.08f),
+                border = BorderStroke(0.5.dp, AuEmerald.copy(alpha = 0.25f)),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                if (isClaiming) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        strokeWidth = 2.dp,
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = AuEmerald,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = "SLA Objetivo: Conexión en videoconsulta < 60 seg",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF065F46),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+
+            // Botones Ergonómicos de Alto Contraste (Aceptar / Rechazar)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                // Rechazar / Pausar
+                OutlinedButton(
+                    onClick = onDecline,
+                    modifier = Modifier
+                        .weight(0.38f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, AuCrimson.copy(alpha = 0.4f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = AuCrimson,
+                    ),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = null,
                         modifier = Modifier.size(18.dp),
                     )
-                } else {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Videocam,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp),
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Rechazar",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+
+                // Aceptar Consulta (Dominante Esmeralda)
+                Button(
+                    onClick = onAccept,
+                    enabled = !isClaiming,
+                    modifier = Modifier
+                        .weight(0.62f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AuEmerald,
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    if (isClaiming) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(20.dp),
                         )
-                        Text(
-                            text = "Aceptar consulta",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.labelLarge,
-                        )
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Videocam,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Text(
+                                text = "Aceptar",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                        }
                     }
                 }
             }
@@ -428,8 +597,159 @@ private fun DispatchRequestCard(
 }
 
 @Composable
+private fun DoctorOnDutyRadar(
+    modifier: Modifier = Modifier,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "doctorOnDutyRadar")
+
+    val wave1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "dutyWave1",
+    )
+
+    val wave2 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2800, delayMillis = 1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "dutyWave2",
+    )
+
+    val sweepAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(5000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "dutySweepAngle",
+    )
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = AuSurface,
+        border = BorderStroke(1.dp, AuEmerald.copy(alpha = 0.25f)),
+        shadowElevation = 2.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // Radar animado concéntrico estilo Uber Driver
+            Box(
+                modifier = Modifier.size(160.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val center = Offset(size.width / 2f, size.height / 2f)
+                    val maxRadius = size.minDimension / 2f
+                    val innerRadius = 28.dp.toPx()
+
+                    // Anillos concéntricos
+                    listOf(innerRadius + 14.dp.toPx(), innerRadius + 32.dp.toPx(), maxRadius - 2.dp.toPx()).forEach { r ->
+                        drawCircle(
+                            color = AuEmerald.copy(alpha = 0.15f),
+                            radius = r,
+                            center = center,
+                            style = Stroke(1.dp.toPx()),
+                        )
+                    }
+
+                    // Ondas expansivas
+                    listOf(wave1, wave2).forEach { w ->
+                        val r = innerRadius + w * (maxRadius - innerRadius)
+                        val a = (1f - w) * 0.35f
+                        drawCircle(
+                            color = AuEmerald.copy(alpha = a),
+                            radius = r,
+                            center = center,
+                            style = Stroke(1.5.dp.toPx()),
+                        )
+                    }
+
+                    // Barrido
+                    rotate(degrees = sweepAngle, pivot = center) {
+                        val sweep = Brush.sweepGradient(
+                            0.0f to Color.Transparent,
+                            0.75f to Color.Transparent,
+                            1.0f to AuEmerald.copy(alpha = 0.25f),
+                            center = center,
+                        )
+                        drawCircle(brush = sweep, radius = maxRadius - 2.dp.toPx(), center = center)
+                    }
+                }
+
+                // Centro del radar
+                Surface(
+                    shape = CircleShape,
+                    color = AuEmerald.copy(alpha = 0.15f),
+                    border = BorderStroke(1.5.dp, AuEmerald),
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.MedicalServices,
+                            contentDescription = null,
+                            tint = AuEmerald,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                }
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(AuEmerald)
+                    )
+                    Text(
+                        text = "GUARDIA ACTIVA • EN LÍNEA",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = AuEmerald,
+                        letterSpacing = 0.8.sp,
+                    )
+                }
+                Text(
+                    text = "Monitoreando red de farmacias",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = AuTextPrimary,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = "Tu presencia médica está transmitiéndose. Al ingresar una solicitud, tu teléfono vibrará y la consulta aparecerá al instante.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AuTextSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun EmptyQueueCard(
     isOnDuty: Boolean,
+    onActivate: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -443,7 +763,7 @@ private fun EmptyQueueCard(
         Column(
             modifier = Modifier.padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
                 modifier = Modifier
@@ -460,21 +780,39 @@ private fun EmptyQueueCard(
                 )
             }
             Text(
-                text = if (isOnDuty) "Sin consultas en este momento" else "Activa la guardia para empezar",
+                text = if (isOnDuty) "Sin consultas en este momento" else "Guardia en pausa",
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 color = AuTextPrimary,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = TextAlign.Center,
             )
             Text(
                 text = if (isOnDuty) {
                     "Cuando un paciente solicite atención desde una farmacia, la consulta aparecerá aquí."
                 } else {
-                    "Las nuevas consultas aparecen automáticamente mientras estás en guardia."
+                    "Activa la guardia para comenzar a recibir solicitudes de despacho de farmacias asociadas."
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = AuTextTertiary,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = TextAlign.Center,
             )
+            if (!isOnDuty && onActivate != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Button(
+                    onClick = onActivate,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PortalDoctors,
+                        contentColor = Color.White,
+                    ),
+                    modifier = Modifier.height(44.dp),
+                ) {
+                    Text(
+                        text = "Activar Guardia Ahora",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
         }
     }
 }

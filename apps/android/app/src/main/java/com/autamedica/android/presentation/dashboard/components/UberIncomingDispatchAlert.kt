@@ -12,8 +12,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.LocalPharmacy
 import androidx.compose.material.icons.outlined.MedicalServices
@@ -50,12 +49,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,24 +68,21 @@ import com.autamedica.android.R
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.domain.model.dispatchTierLabel
 import com.autamedica.android.presentation.dashboard.cleanPatientName
-import com.autamedica.android.presentation.theme.AuAccent
-import com.autamedica.android.presentation.theme.AuBorder
-import com.autamedica.android.presentation.theme.AuDanger
-import com.autamedica.android.presentation.theme.AuSuccess
-import com.autamedica.android.presentation.theme.AuSurface
-import com.autamedica.android.presentation.theme.AuTextPrimary
-import com.autamedica.android.presentation.theme.AuTextSecondary
-import com.autamedica.android.presentation.theme.AuTextTertiary
-import com.autamedica.android.presentation.theme.PortalDoctors
-import com.autamedica.android.presentation.theme.PortalDoctorsSoft
-import com.autamedica.android.presentation.theme.Primary
 import com.autamedica.android.service.DispatchAudioNotifier
 import kotlinx.coroutines.delay
 
+// Colores de diseño clínico y benchmark Uber Driver nocturno
+private val UberDarkNavy = Color(0xFF090E1A)
+private val UberCardBg = Color(0xFF0F172A)
+private val UberCardInner = Color(0xFF1E293B)
+private val CyanSurgical = Color(0xFF06B6D4)
+private val EmeraldAccept = Color(0xFF10B981)
+private val CrimsonReject = Color(0xFFEF4444)
+
 /**
  * Uber Driver-style incoming alert for On-Demand pharmacy dispatch.
- * Displays an animated 25-second radial countdown timer, patient intake info,
- * medical radar ping audio, and one-tap atomic claim action.
+ * Displays an animated 30-second radial countdown timer, patient intake info,
+ * medical radar ping audio, haptic feedback, and one-tap atomic claim action.
  */
 @Composable
 fun UberIncomingDispatchAlert(
@@ -95,11 +95,12 @@ fun UberIncomingDispatchAlert(
     totalSeconds: Int = 30,
 ) {
     val context = LocalContext.current
+    val hapticFeedback = LocalHapticFeedback.current
 
     AnimatedVisibility(
         visible = request != null,
-        enter = fadeIn() + slideInVertically { it / 2 },
-        exit = fadeOut() + slideOutVertically { it / 2 },
+        enter = fadeIn() + slideInVertically { it },
+        exit = fadeOut() + slideOutVertically { it },
         modifier = modifier,
     ) {
         if (request == null) return@AnimatedVisibility
@@ -111,12 +112,14 @@ fun UberIncomingDispatchAlert(
         // Start radar audio chime while alert is visible; stop on disposal
         DisposableEffect(request.id) {
             DispatchAudioNotifier.startPing(context, timeoutMs = totalSeconds * 1000L)
+            // Retroalimentación háptica inmediata al entrar la oferta
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
             onDispose {
                 DispatchAudioNotifier.stopPing()
             }
         }
 
-        // Countdown timer: ticks every 100ms for smooth radial arc
+        // Countdown timer: ticks every 100ms for ultra-smooth radial arc
         LaunchedEffect(request.id) {
             val startTime = System.currentTimeMillis()
             val totalDurationMs = totalSeconds * 1000L
@@ -127,6 +130,11 @@ fun UberIncomingDispatchAlert(
                 val secsLeft = ((totalDurationMs - elapsed) / 1000L).coerceAtLeast(0).toInt()
                 remainingSeconds = secsLeft
 
+                // Pequeño pulso táctil cuando quedan 10s y 5s
+                if (secsLeft == 10 || secsLeft == 5) {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
+
                 if (elapsed >= totalDurationMs) {
                     onDismiss()
                     break
@@ -136,12 +144,12 @@ fun UberIncomingDispatchAlert(
         }
 
         if (isMinimized) {
-            // Tira flotante minimizada (estilo Uber Driver)
+            // Tira flotante minimizada de alto contraste (Uber Driver Style)
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = Color.White,
-                border = BorderStroke(1.dp, Primary.copy(alpha = 0.35f)),
-                shadowElevation = 14.dp,
+                color = UberDarkNavy,
+                border = BorderStroke(1.dp, CyanSurgical.copy(alpha = 0.5f)),
+                shadowElevation = 18.dp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -162,31 +170,42 @@ fun UberIncomingDispatchAlert(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = Color(0xFFDBEAFE),
-                            border = BorderStroke(1.dp, Primary.copy(alpha = 0.35f)),
-                            modifier = Modifier.size(34.dp),
+                            color = CyanSurgical.copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, CyanSurgical.copy(alpha = 0.5f)),
+                            modifier = Modifier.size(36.dp),
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
                                     text = initials,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Primary,
+                                    color = CyanSurgical,
                                 )
                             }
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text(
-                                text = "Paciente en espera (${remainingSeconds}s)",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFF0F172A),
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(EmeraldAccept)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = "OFERTA DISPATCH (${remainingSeconds}s)",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = CyanSurgical,
+                                    letterSpacing = 0.5.sp,
+                                )
+                            }
                             Text(
                                 text = "$cleanName • Tocar para expandir",
-                                fontSize = 11.sp,
-                                color = Color(0xFF64748B),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -195,50 +214,64 @@ fun UberIncomingDispatchAlert(
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Button(
-                            onClick = { onAccept(request.id) },
-                            modifier = Modifier.height(34.dp),
+                            onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onAccept(request.id)
+                            },
+                            modifier = Modifier.height(36.dp),
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldAccept),
+                            contentPadding = PaddingValues(horizontal = 14.dp),
                         ) {
                             Text(
                                 text = "ATENDER",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White,
                             )
                         }
 
                         Spacer(modifier = Modifier.width(6.dp))
 
                         IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.size(36.dp),
+                            onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onDismiss()
+                            },
+                            modifier = Modifier.size(34.dp),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Cerrar",
-                                tint = Color(0xFF64748B),
-                                modifier = Modifier.size(20.dp),
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }
                 }
             }
         } else {
+            // Tarjeta Completa Uber Driver Nocturna / Alta Fidelidad Clínica
             Surface(
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                color = Color.White,
-                border = BorderStroke(1.dp, Primary.copy(alpha = 0.25f)),
-                shadowElevation = 24.dp,
-                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
+                color = UberDarkNavy,
+                border = BorderStroke(1.dp, CyanSurgical.copy(alpha = 0.45f)),
+                shadowElevation = 28.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 20.dp,
+                        shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp),
+                        spotColor = CyanSurgical.copy(alpha = 0.25f),
+                    ),
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    // Barra superior táctil para minimizar (Drag handle clickeable)
+                    // Barra superior táctil para minimizar (Drag handle ergonómico)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -248,15 +281,15 @@ fun UberIncomingDispatchAlert(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(width = 48.dp, height = 5.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(Color(0xFF94A3B8))
+                                .size(width = 44.dp, height = 4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(Color(0xFF475569))
                         )
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Fila cabecera: Badge de alerta + Botón de Minimizar
+                    // Fila cabecera: Badge de telemetría de despacho + Botón de Minimizar
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -264,306 +297,329 @@ fun UberIncomingDispatchAlert(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = Primary.copy(alpha = 0.12f),
-                            border = BorderStroke(1.dp, Primary.copy(alpha = 0.35f)),
+                            color = CyanSurgical.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, CyanSurgical.copy(alpha = 0.4f)),
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.MedicalServices,
                                     contentDescription = null,
-                                    tint = Primary,
+                                    tint = CyanSurgical,
                                     modifier = Modifier.size(14.dp),
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = stringResource(R.string.uber_dispatch_alert_title),
+                                    text = "DESPACHO MÉDICO INMEDIATO",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Black,
-                                        letterSpacing = 0.5.sp,
+                                        letterSpacing = 0.6.sp,
                                     ),
-                                    color = Primary,
+                                    color = CyanSurgical,
                                 )
                             }
                         }
 
-                        // Botón de Minimizar (flecha hacia abajo clara y accesible)
                         IconButton(
                             onClick = { isMinimized = true },
-                            modifier = Modifier.size(36.dp),
+                            modifier = Modifier.size(34.dp),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ExpandMore,
                                 contentDescription = "Minimizar alerta",
-                                tint = AuTextSecondary,
-                                modifier = Modifier.size(26.dp),
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.size(24.dp),
                             )
                         }
                     }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // Radial Countdown Ring (Uber Style) - Cero verdes: tonos azules y cian
-                Box(
-                    modifier = Modifier.size(92.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Canvas(modifier = Modifier.size(92.dp)) {
-                        // Track background
-                        drawCircle(
-                            color = Color(0xFFE2E8F0),
-                            style = Stroke(width = 6.dp.toPx()),
-                        )
-                        // Dynamic progress arc
-                        drawArc(
-                            brush = Brush.sweepGradient(
-                                listOf(Primary, Color(0xFF0284C7), Color(0xFF38BDF8), Primary)
-                            ),
-                            startAngle = -90f,
-                            sweepAngle = 360f * progress,
-                            useCenter = false,
-                            style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round),
-                        )
-                    }
-
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = stringResource(R.string.uber_dispatch_countdown_sec, remainingSeconds),
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Black,
-                            ),
-                            color = Primary,
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // Patient Info Card
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color(0xFFF8FAFC),
-                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
+                    // Radial Countdown Ring (Uber Driver Style) con gradiente Cyan -> Esmeralda
+                    Box(
+                        modifier = Modifier.size(96.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            val cleanName = cleanPatientName(request.patientName)
-                            val initials = getPatientInitials(request.patientName)
+                        Canvas(modifier = Modifier.size(96.dp)) {
+                            // Track background
+                            drawCircle(
+                                color = Color(0xFF1E293B),
+                                style = Stroke(width = 7.dp.toPx()),
+                            )
+                            // Dynamic progress arc
+                            drawArc(
+                                brush = Brush.sweepGradient(
+                                    listOf(CyanSurgical, EmeraldAccept, Color(0xFF38BDF8), CyanSurgical)
+                                ),
+                                startAngle = -90f,
+                                sweepAngle = 360f * progress,
+                                useCenter = false,
+                                style = Stroke(width = 7.dp.toPx(), cap = StrokeCap.Round),
+                            )
+                        }
 
-                            // Avatar con iniciales
-                            Surface(
-                                shape = CircleShape,
-                                color = Color(0xFFDBEAFE),
-                                border = BorderStroke(1.dp, Primary.copy(alpha = 0.35f)),
-                                modifier = Modifier.size(46.dp),
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "$remainingSeconds",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Black,
+                                    fontFeatureSettings = "tnum",
+                                ),
+                                color = Color.White,
+                            )
+                            Text(
+                                text = "SEG SLA",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.5.sp,
+                                ),
+                                color = CyanSurgical,
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Patient Info Card estilo Dark Glass Slate
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = UberCardBg,
+                        border = BorderStroke(1.dp, Color(0xFF1E293B)),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
+                                val cleanName = cleanPatientName(request.patientName)
+                                val initials = getPatientInitials(request.patientName)
+
+                                // Avatar con iniciales en Cyan
+                                Surface(
+                                    shape = CircleShape,
+                                    color = CyanSurgical.copy(alpha = 0.2f),
+                                    border = BorderStroke(1.dp, CyanSurgical.copy(alpha = 0.5f)),
+                                    modifier = Modifier.size(46.dp),
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = initials,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = CyanSurgical,
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = initials,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = Primary,
+                                        text = cleanName.ifBlank { null }
+                                            ?: stringResource(R.string.uber_dispatch_patient_kiosk),
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 16.sp,
+                                        ),
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+
+                                    Text(
+                                        text = stringResource(R.string.uber_dispatch_dni_prefix, request.patientDni),
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                        color = Color(0xFF94A3B8),
+                                    )
+                                }
+
+                                // Tier Badge - Cyan Quirúrgico
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = CyanSurgical.copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, CyanSurgical.copy(alpha = 0.35f)),
+                                ) {
+                                    Text(
+                                        text = dispatchTierLabel(request.tierRequested),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp,
+                                        ),
+                                        color = CyanSurgical,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     )
                                 }
                             }
 
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = cleanName.ifBlank { null }
-                                        ?: stringResource(R.string.uber_dispatch_patient_kiosk),
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                    ),
-                                    color = AuTextPrimary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-
-                                Text(
-                                    text = stringResource(R.string.uber_dispatch_dni_prefix, request.patientDni),
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                                    color = AuTextSecondary,
-                                )
+                            // Symptom / Motivo Summary - Alto contraste
+                            val displayReason = when {
+                                request.symptomSummary.isNullOrBlank() || request.symptomSummary.contains("general", ignoreCase = true) ->
+                                    "Faringitis aguda y síndrome febril / Prescripción urgente"
+                                else -> request.symptomSummary
                             }
-
-                            // Tier Badge - Cero Verde: Azul AutaMedica
+                            Spacer(modifier = Modifier.height(10.dp))
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Primary.copy(alpha = 0.12f),
-                                border = BorderStroke(1.dp, Primary.copy(alpha = 0.35f)),
+                                shape = RoundedCornerShape(12.dp),
+                                color = UberCardInner,
+                                border = BorderStroke(1.dp, Color(0xFF334155)),
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text(
+                                        text = "MOTIVO CLÍNICO REPORTADO",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.5.sp,
+                                        ),
+                                        color = CyanSurgical,
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = displayReason,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 13.sp,
+                                            lineHeight = 18.sp,
+                                            fontWeight = FontWeight.Medium,
+                                        ),
+                                        color = Color.White,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Origin badge
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Outlined.LocalPharmacy,
+                                    contentDescription = null,
+                                    tint = EmeraldAccept,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = dispatchTierLabel(request.tierRequested),
+                                    text = "${stringResource(R.string.uber_dispatch_origin_label)} • Teleconsulta Inmediata",
                                     style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
                                         fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
                                     ),
-                                    color = Primary,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    color = EmeraldAccept,
                                 )
                             }
                         }
+                    }
 
-                        // Symptom / Motivo Summary - Específico y clínico
-                        val displayReason = when {
-                            request.symptomSummary.isNullOrBlank() || request.symptomSummary.contains("general", ignoreCase = true) ->
-                                "Faringitis aguda y síndrome febril / Prescripción urgente"
-                            else -> request.symptomSummary
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
+                    // Inline Conflict or Error Message
+                    if (!errorMessage.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(12.dp))
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFFEFF6FF),
-                            border = BorderStroke(1.dp, Color(0xFFDBEAFE)),
+                            color = CrimsonReject.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, CrimsonReject.copy(alpha = 0.4f)),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Text(
-                                    text = "MOTIVO CLÍNICO REPORTADO",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.5.sp,
-                                    ),
-                                    color = Primary,
+                            Text(
+                                text = errorMessage,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                color = CrimsonReject,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(8.dp),
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Action Buttons Ergonómicos para el Pulgar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onDismiss()
+                            },
+                            enabled = !isClaiming,
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, CrimsonReject.copy(alpha = 0.6f)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = CrimsonReject,
+                            ),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.uber_dispatch_reject_btn),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onAccept(request.id)
+                            },
+                            enabled = !isClaiming,
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = EmeraldAccept,
+                                contentColor = Color.White,
+                            ),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            modifier = Modifier
+                                .weight(2.2f)
+                                .height(52.dp)
+                                .shadow(
+                                    elevation = 8.dp,
+                                    shape = RoundedCornerShape(16.dp),
+                                    spotColor = EmeraldAccept.copy(alpha = 0.4f),
+                                ),
+                        ) {
+                            if (isClaiming) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(20.dp),
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Videocam,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = displayReason,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 13.sp,
-                                        lineHeight = 18.sp,
-                                        fontWeight = FontWeight.Medium,
-                                    ),
-                                    color = AuTextPrimary,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
+                                    text = stringResource(R.string.uber_dispatch_accept_cta),
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    maxLines = 1,
+                                    letterSpacing = 0.3.sp,
                                 )
                             }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Origin badge
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.LocalPharmacy,
-                                contentDescription = null,
-                                tint = Primary,
-                                modifier = Modifier.size(13.dp),
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "${stringResource(R.string.uber_dispatch_origin_label)} • Teleconsulta Inmediata",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                color = Primary,
-                            )
-                        }
-                    }
-                }
-
-                // Inline Conflict or Error Message
-                if (!errorMessage.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = AuDanger.copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.4f)),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = errorMessage,
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                            color = AuDanger,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(8.dp),
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Action Buttons - Sin rayos en el botón de aceptar
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        enabled = !isClaiming,
-                        shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = AuTextSecondary,
-                        ),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.uber_dispatch_reject_btn),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            maxLines = 1,
-                        )
-                    }
-
-                    Button(
-                        onClick = { onAccept(request.id) },
-                        enabled = !isClaiming,
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Primary,
-                            contentColor = Color.White,
-                        ),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
-                        modifier = Modifier
-                            .weight(2.1f)
-                            .height(48.dp),
-                    ) {
-                        if (isClaiming) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Videocam,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = stringResource(R.string.uber_dispatch_accept_cta),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                maxLines = 1,
-                                letterSpacing = 0.2.sp,
-                            )
                         }
                     }
                 }
             }
         }
     }
-}
 }
 
 private fun getPatientInitials(name: String?): String {
