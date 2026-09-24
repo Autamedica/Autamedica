@@ -1,0 +1,550 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/psiquiatra-online';
+
+const faqs = [
+  {
+    question: '¿Cómo se desarrolla la primera consulta psiquiátrica online?',
+    answer:
+      'La primera sesión es una entrevista de admisión clínica profunda (intake) de entre 45 y 60 minutos por videollamada segura. El psiquiatra releva tu historia de vida, antecedentes médicos y familiares, síntomas actuales, tratamientos previos y hábitos de sueño y alimentación. A partir de esa evaluación se establece una hipótesis diagnóstica, se consensúa el plan terapéutico y, de ser necesario, se indica medicación con receta oficial.',
+  },
+  {
+    question: '¿El psiquiatra online puede recetar medicamentos bajo receta archivada (psicofármacos)?',
+    answer:
+      'Sí. Los médicos psiquiatras de AutaMedica están matriculados y habilitados por los ministerios de salud y colegios médicos de Argentina. Emiten recetas electrónicas y digitales con firma válida y código CUIR bajo la Ley 27.553 para medicamentos de venta bajo receta simple y archivada (ansiolíticos, antidepresivos, inductores del sueño, estabilizadores del ánimo y tratamientos para TDAH), aceptadas en farmacias de todo el país.',
+  },
+  {
+    question: '¿Cuál es la diferencia entre consultar a un psicólogo y a un psiquiatra?',
+    answer:
+      'El psiquiatra es un médico especialista capacitado para evaluar la base neurobiológica, médica y farmacológica de los trastornos de la mente, realizar diagnósticos diferenciales con patologías físicas (como disfunciones tiroideas o deficiencias nutricionales) y prescribir medicación. El psicólogo aborda los patrones emocionales, cognitivos y conductuales mediante psicoterapia. En AutaMedica ambos enfoques se complementan y trabajan en articulación interdisciplinaria continua.',
+  },
+  {
+    question: '¿Si inicio una consulta psiquiátrica tendré que tomar medicación de por vida?',
+    answer:
+      'No necesariamente. La mayoría de los tratamientos psicofarmacológicos modernos para cuadros como depresión o trastornos de ansiedad tienen una duración planificada de estabilización y mantenimiento, tras la cual se inicia un esquema gradual de retirada (tapering) supervisado por el médico. El objetivo de la medicación es restablecer el bienestar funcional y la regulación neuroquímica, no generar dependencia.',
+  },
+  {
+    question: '¿Cómo coordinan el tratamiento si ya tengo mi propio psicólogo o terapeuta?',
+    answer:
+      'Favorecemos el trabajo en equipo. El psiquiatra puede mantener contacto o emitir resúmenes de evolución clínica para tu terapeuta habitual, garantizando que el acompañamiento psicoterapéutico y el abordaje farmacológico avancen en una misma dirección con objetivos compartidos.',
+  },
+  {
+    question: '¿Con qué frecuencia se realizan las consultas de control?',
+    answer:
+      'Al iniciar un tratamiento o modificar una dosis, el primer control suele programarse entre los 15 y 30 días para evaluar tolerancia, respuesta clínica y eventuales efectos adversos. Una vez alcanzada la estabilidad terapéutica, las consultas de seguimiento y renovación de recetas se coordinan habitualmente cada 30 a 60 días.',
+  },
+  {
+    question: '¿Qué sucede si atravieso una crisis aguda o una urgencia de salud mental?',
+    answer:
+      'La telemedicina psiquiátrica está diseñada para consultas ambulatorias programadas, diagnóstico y seguimiento. Si estás atravesando una situación de crisis grave con ideación autolesiva activa, angustia intolerable o pérdida de contacto con la realidad, debés recurrir de inmediato a la guardia médica o psiquiátrica más cercana o comunicarte con la línea gratuita de asistencia al suicida (Línea 135 o Centro de Asistencia al Suicida al 0800-345-1435).',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Especialidades',
+          item: 'https://www.autamedica.com/especialidades',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Psiquiatra Online',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Psiquiatra Online en Argentina | Consulta Psiquiátrica Virtual',
+      url: canonicalUrl,
+      description:
+        'Atención psiquiátrica online por médicos especialistas matriculados. Diagnóstico y tratamiento de ansiedad, depresión, TDAH e insomnio, con emisión de recetas digitales oficiales bajo Ley 27.553.',
+      inLanguage: 'es-AR',
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalSpecialty', name: 'Psychiatric' },
+        { '@type': 'Thing', name: 'Psiquiatría online' },
+        { '@type': 'Thing', name: 'Salud mental' },
+        { '@type': 'Thing', name: 'Trastornos de ansiedad' },
+        { '@type': 'Thing', name: 'Depresión' },
+        { '@type': 'Thing', name: 'TDAH en adultos' },
+        { '@type': 'Thing', name: 'Insomnio crónico' },
+        { '@type': 'Thing', name: 'Receta de psicofármacos' },
+      ],
+      publisher: {
+        '@id': 'https://www.autamedica.com/#organization',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Psiquiatra Online en Argentina | Consulta Psiquiátrica y Receta Digital | AutaMedica"
+  description="Atención psiquiátrica online por especialistas matriculados. Tratamiento de ansiedad, depresión, TDAH adulto e insomnio. Historia clínica confidencial y recetas digitales oficiales."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+  <Navbar />
+
+  <main class="bg-white text-neutral-900 pt-20">
+    <!-- HERO: RIGOR CLÍNICO Y CALIDEZ HUMANA -->
+    <section class="relative py-20 md:py-28 border-b border-neutral-100 overflow-hidden bg-gradient-to-b from-[#f8fafc] via-white to-white">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider">
+              <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+              Especialidad Médica · Salud Mental Integral
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-medium leading-[1.12] tracking-tight text-neutral-950">
+              Psiquiatra online: <br class="hidden sm:inline" />
+              <span class="text-[var(--au-accent)]">atención médica humana</span> y sin estigmas para tu bienestar.
+            </h1>
+
+            <p class="text-lg md:text-xl text-neutral-600 font-light leading-relaxed max-w-2xl">
+              Evaluación diagnóstica rigurosa, escucha profesional y diseño de planes terapéuticos personalizados con psiquiatras matriculados en Argentina. Continuidad clínica, historia médica confidencial y recetas oficiales para farmacias de todo el país.
+            </p>
+
+            <!-- Botones de Acción -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-2">
+              <a href="/auth/register" class="btn-primary-action inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all">
+                <span>Consultar con Psiquiatra</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="M12 5l7 7-7 7"></path>
+                </svg>
+              </a>
+              <a href="#areas-de-atencion" class="btn-secondary-action inline-flex items-center justify-center px-7 py-4 rounded-xl text-neutral-700 font-semibold text-base border border-neutral-200 transition-all">
+                Conocer áreas de abordaje
+              </a>
+            </div>
+
+            <!-- Trust Badges -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-neutral-200/70 text-xs text-neutral-600">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Especialistas certificados</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Receta archivada CUIR</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Privacidad Ley 25.326</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Interdisciplinario</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visual Hero Card -->
+          <div class="lg:col-span-5 flex justify-center">
+            <div class="w-full max-w-md bg-white rounded-3xl border border-neutral-200/90 shadow-2xl shadow-sky-950/5 p-8 relative overflow-hidden">
+              <div class="absolute -top-10 -right-10 w-40 h-40 bg-sky-50 rounded-full blur-2xl pointer-events-none"></div>
+
+              <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center border border-sky-100 flex-shrink-0">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"></path>
+                    <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-wider text-sky-700">Consulta Psiquiátrica</div>
+                  <h3 class="text-xl font-serif font-bold text-neutral-950">Espacio Confidencial</h3>
+                </div>
+              </div>
+
+              <div class="space-y-4 text-sm text-neutral-600 border-t border-neutral-100 pt-5">
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-neutral-900 block">Evaluación Integral</span>
+                    <span class="text-xs text-neutral-500">Historia clínica completa, comorbilidades y diagnóstico diferencial.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-neutral-900 block">Prescripción Oficial Trazable</span>
+                    <span class="text-xs text-neutral-500">Recetas digitales con CUIR válidas para medicamentos archivados en todo el país.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-neutral-900 block">Seguimiento y Ajuste Posológico</span>
+                    <span class="text-xs text-neutral-500">Monitoreo de tolerancia, respuesta terapéutica y titulación segura.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 pt-5 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-500">
+                <span>Atención 100% online</span>
+                <span class="font-semibold text-sky-700">Sin traslados</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MANIFIESTO: PSIQUIATRÍA SIN ESTIGMAS -->
+    <section class="py-20 bg-neutral-50 border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="bg-white rounded-3xl p-8 md:p-14 border border-neutral-200/90 shadow-sm text-left">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Enfoque Terapéutico</span>
+          <h2 class="text-2xl md:text-4xl font-serif font-bold text-neutral-950 mb-6 leading-tight">
+            Comprender los síntomas neurobiológicos con rigor clínico y respeto por tu historia.
+          </h2>
+          <div class="space-y-4 text-neutral-600 leading-relaxed font-light text-base md:text-lg">
+            <p>
+              Durante décadas, la salud mental cargó con prejuicios injustos: se interpretaba el sufrimiento psíquico como una "falta de voluntad" o se temía a la consulta médica por el prejuicio a la sobremedicación.
+            </p>
+            <p>
+              La psiquiatría contemporánea entiende que la ansiedad persistente, los estados depresivos, el insomnio crónico y las dificultades atencionales tienen correlatos fisiológicos, bioquímicos y contextuales concretos. Consultar a un psiquiatra no implica medicar indiscriminadamente; significa contar con un médico entrenado para escuchar con detenimiento, ordenar el cuadro, descartar causas orgánicas y brindarte herramientas científicas para recuperar tu calidad de vida.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 ÁREAS DE ABORDAJE CLÍNICO -->
+    <section id="areas-de-atencion" class="py-24 bg-white border-b border-neutral-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Motivos de Consulta</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-6">
+            Áreas de atención psiquiátrica especializada
+          </h2>
+          <p class="text-neutral-600 text-lg leading-relaxed">
+            Abordaje integral basado en guías clínicas internacionales adaptadas a la realidad asistencial de Argentina.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <!-- 1. Ansiedad y Pánico -->
+          <div class="bg-neutral-50/60 rounded-2xl p-8 border border-neutral-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 6v6l4 2"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-neutral-950 mb-3">Trastornos de Ansiedad y Pánico</h3>
+              <p class="text-sm text-neutral-600 leading-relaxed mb-4">
+                Trastorno de ansiedad generalizada (TAG), crisis de pánico repentinas, agorafobia y fobia social. Evaluación médica orientada a calmar la hiperactivación neurovegetativa y brindar estabilidad psicofarmacológica sin sedación excesiva.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-neutral-200/60 text-xs text-sky-800 font-semibold">
+              Tratamientos de primera línea (ISRS, IRSN y modulación ansiolítica)
+            </div>
+          </div>
+
+          <!-- 2. Depresión y Ánimo -->
+          <div class="bg-neutral-50/60 rounded-2xl p-8 border border-neutral-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-neutral-950 mb-3">Depresión y Trastornos del Ánimo</h3>
+              <p class="text-sm text-neutral-600 leading-relaxed mb-4">
+                Episodios depresivos mayores, distimia, anhedonia (incapacidad de sentir placer), fatiga crónica sin causa orgánica y fluctuaciones afectivas. Elección precisa del fármaco según perfil de energía, sueño y apetito.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-neutral-200/60 text-xs text-sky-800 font-semibold">
+              Esquemas individualizados y monitoreo de remisión clínica
+            </div>
+          </div>
+
+          <!-- 3. TDAH Adulto -->
+          <div class="bg-neutral-50/60 rounded-2xl p-8 border border-neutral-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-neutral-950 mb-3">TDAH en Adultos</h3>
+              <p class="text-sm text-neutral-600 leading-relaxed mb-4">
+                Dificultades severas de concentración, procrastinación crónica, desorganización ejecutiva e impulsividad. Diagnóstico estructurado mediante instrumentos clínicos validados (ASRS-v1.1, DIVA-5) y tratamiento psicofarmacológico específico.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-neutral-200/60 text-xs text-sky-800 font-semibold">
+              Receta archivada para estimulantes y no estimulantes bajo estricto control
+            </div>
+          </div>
+
+          <!-- 4. Insomnio y Sueño -->
+          <div class="bg-neutral-50/60 rounded-2xl p-8 border border-neutral-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-neutral-950 mb-3">Trastornos del Sueño e Insomnio</h3>
+              <p class="text-sm text-neutral-600 leading-relaxed mb-4">
+                Insomnio de conciliación o mantenimiento, despertares precoces y sueño no reparador. Abordaje médico integral que combina pautas de cronobiología e intervenciones farmacológicas seguras no habituantes.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-neutral-200/60 text-xs text-sky-800 font-semibold">
+              Reemplazo seguro de benzodiacepinas y estabilización circadiana
+            </div>
+          </div>
+
+          <!-- 5. Manejo y Ajuste de Psicofármacos -->
+          <div class="bg-neutral-50/60 rounded-2xl p-8 border border-neutral-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M10.5 20.5l10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"></path>
+                  <path d="m8.5 8.5 7 7"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-neutral-950 mb-3">Ajuste y Retiro de Psicofármacos</h3>
+              <p class="text-sm text-neutral-600 leading-relaxed mb-4">
+                Segunda opinión médica sobre tratamientos previos, resolución de efectos secundarios, optimización de dosis o planes graduales de discontinuación (tapering) para evitar síndromes de abstinencia o rebote.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-neutral-200/60 text-xs text-sky-800 font-semibold">
+              Deshabituación segura y farmacovigilancia activa
+            </div>
+          </div>
+
+          <!-- 6. Interconsulta y Acompañamiento -->
+          <div class="bg-neutral-50/60 rounded-2xl p-8 border border-neutral-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-neutral-950 mb-3">Articulación con Terapeutas</h3>
+              <p class="text-sm text-neutral-600 leading-relaxed mb-4">
+                Coordinación con psicólogos, neurólogos y médicos clínicos. Si ya estás en terapia, el psiquiatra potencia el proceso terapéutico aportando la mirada médica y la eventual regulación farmacológica necesaria.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-neutral-200/60 text-xs text-sky-800 font-semibold">
+              Enfoque interdisciplinario centrado en el paciente
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EL PROTOCOLO CLÍNICO EN 4 ETAPAS -->
+    <section class="py-24 bg-neutral-50/70 border-b border-neutral-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Protocolo Asistencial</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-6">
+            Cómo cuidamos de vos en cada etapa
+          </h2>
+          <p class="text-neutral-600 text-lg leading-relaxed">
+            Una estructura clínica clara, con tiempos adecuados de consulta y seguimiento continuo.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div class="bg-white rounded-2xl p-8 border border-neutral-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-neutral-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              01
+            </div>
+            <h3 class="text-lg font-serif font-bold text-neutral-950">Admisión Clínica (Intake)</h3>
+            <p class="text-xs text-neutral-600 leading-relaxed">
+              Consulta inicial extendida por videollamada para escuchar tu motivo de consulta, revisar antecedentes médicos y establecer un vínculo de confianza seguro.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-neutral-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-neutral-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              02
+            </div>
+            <h3 class="text-lg font-serif font-bold text-neutral-950">Historia Médica Segura</h3>
+            <p class="text-xs text-neutral-600 leading-relaxed">
+              Registro clínico digital confidencial encriptado bajo Ley 25.326, accesible en todo momento para vos y disponible para tu continuidad asistencial.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-neutral-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-neutral-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              03
+            </div>
+            <h3 class="text-lg font-serif font-bold text-neutral-950">Plan Terapéutico Claro</h3>
+            <p class="text-xs text-neutral-600 leading-relaxed">
+              Consenso sobre los pasos a seguir: indicación de medicación sólo si es necesaria, pautas de higiene de vida y articulación con tu espacio psicoterapéutico.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-neutral-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-neutral-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              04
+            </div>
+            <h3 class="text-lg font-serif font-bold text-neutral-950">Receta CUIR y Controles</h3>
+            <p class="text-xs text-neutral-600 leading-relaxed">
+              Emisión de recetas oficiales para farmacia y coordinación de turnos de seguimiento para evaluar respuesta y bienestar sostenido en el tiempo.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AVISO CLÍNICO DE SEGURIDAD Y URGENCIAS -->
+    <section class="py-12 bg-neutral-50 border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="rounded-2xl p-6 md:p-8 bg-white border border-red-200/80 shadow-sm flex flex-col md:flex-row items-start gap-5">
+          <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <div class="space-y-2">
+            <h4 class="font-bold text-base text-neutral-950">Información importante sobre situaciones de crisis y urgencia</h4>
+            <p class="text-sm text-neutral-600 leading-relaxed font-light">
+              Las consultas por telemedicina están indicadas para evaluación diagnóstica, tratamientos ambulatorios programados y seguimiento. <strong>Si presentás pensamientos recurrentes de autolesión, crisis severas de angustia incontrolable o riesgo inminente</strong>, comunicate de inmediato al <strong>135</strong> (Centro de Asistencia al Suicida - CABA y GBA) o al <strong>0800-345-1435</strong> desde todo el país, o acercate a la guardia de emergencias más próxima.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREGUNTAS FRECUENTES -->
+    <section class="py-24 bg-white border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Dudas Habituales</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-4">
+            Preguntas frecuentes sobre la consulta con psiquiatra online
+          </h2>
+          <p class="text-neutral-600 text-base">
+            Respuestas médicas transparentes sobre el proceso, las recetas y el tratamiento.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white border border-neutral-200 rounded-2xl overflow-hidden transition-all shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none">
+                <span class="text-lg md:text-xl font-medium text-neutral-950 pr-4">{faq.question}</span>
+                <div class="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 transition-transform group-open:rotate-180 text-neutral-700">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"></path>
+                  </svg>
+                </div>
+              </summary>
+              <div class="px-6 pb-6 md:px-8 md:pb-8 text-neutral-600 leading-relaxed text-sm md:text-base border-t border-neutral-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <CTAFinal
+      title="Priorizá tu salud mental con atención médica especializada."
+      subtitle="Conectá con un médico psiquiatra matriculado desde la privacidad y tranquilidad de tu hogar."
+      buttonLabel="Consultar con Psiquiatra"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+  main {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Source Serif 4', serif;
+  }
+
+  .btn-primary-action {
+    background-color: #0284c7;
+    background-image: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  }
+  .btn-primary-action:hover {
+    background-color: #0369a1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+  }
+
+  .btn-secondary-action {
+    background-color: #ffffff;
+  }
+  .btn-secondary-action:hover {
+    background-color: #f8fafc;
+    border-color: #0284c7;
+    color: #0284c7;
+  }
+
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

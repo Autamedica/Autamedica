@@ -1,0 +1,533 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/certificados-medicos';
+
+const certificateTypes = [
+  {
+    title: 'Reposo Laboral y Licencia Médica',
+    href: '/certificado-medico-laboral',
+    badge: 'Ámbito Laboral',
+    description:
+      'Constancia oficial de reposo médico ambulatorio para presentar ante empleadores, departamentos de recursos humanos, medicina laboral y ART, conforme a la Ley de Contrato de Trabajo.',
+    features: ['Indicación precisa de días de reposo', 'Fecha de inicio y fin de la licencia', 'Respaldo con Matrícula Nacional o Provincial'],
+    icon: 'briefcase',
+  },
+  {
+    title: 'Justificativo Médico Formal',
+    href: '/justificativo-medico',
+    badge: 'Confidencialidad Garantizada',
+    description:
+      'Justificación de inasistencia laboral o académica con opción legal de diagnóstico reservado, protegiendo la intimidad del paciente según lo dispuesto por la Ley 25.326.',
+    features: ['Diagnóstico confidencial a solicitud del paciente', 'Aceptado en empresas y universidades', 'Código QR de verificación inmediata'],
+    icon: 'shield',
+  },
+  {
+    title: 'Reposo Escolar y Universitario',
+    href: '/certificado-medico-escolar',
+    badge: 'Instituciones Educativas',
+    description:
+      'Acreditación médica de inasistencias por cuadros febriles, respiratorios o gastrointestinales agudos en niveles inicial, primario, secundario y universitario.',
+    features: ['Atención pediátrica con acompañamiento de tutores', 'Justificación de exámenes y cursadas', 'Documento en PDF descargable al instante'],
+    icon: 'academic',
+  },
+  {
+    title: 'Certificado de Aptitud Física',
+    href: '/certificado-aptitud-fisica',
+    badge: 'Deporte y Salud',
+    description:
+      'Evaluación médica orientativa y apto físico para gimnasios, natación, deportes recreativos y torneos amateurs, con anamnesis cardiovascular y solicitud de estudios según riesgo.',
+    features: ['Anamnesis cardiovascular protocolizada', 'Criterio preventivo según antecedentes', 'Solicitud de ECG previo si corresponde'],
+    icon: 'heart',
+  },
+  {
+    title: 'Constancia de Atención Médica',
+    href: '/certificado-medico-online',
+    badge: 'Asistencia a Consulta',
+    description:
+      'Documento probatorio que acredita día, hora y tiempo de comparecencia a la consulta médica virtual, para presentar en el trabajo o centro de estudios.',
+    features: ['Registro cronológico exacto de la videoconsulta', 'Identificación del profesional actuante', 'Validez como constancia de trámite médico'],
+    icon: 'clock',
+  },
+  {
+    title: 'Certificado Médico Online (Guía de Trámite)',
+    href: '/certificado-medico-online',
+    badge: 'Proceso Integral',
+    description:
+      'Guía paso a paso sobre cómo se realiza el triaje clínico, la videoconsulta sincrónica, la emisión del certificado con CUIR y la descarga inmediata en PDF.',
+    features: ['Triaje médico previo', 'Evaluación cara a cara con el profesional', 'Emisión oficial con firma digital'],
+    icon: 'file-text',
+  },
+];
+
+const faqs = [
+  {
+    q: '¿Qué validez legal tiene un certificado médico digital en Argentina?',
+    a: 'En la República Argentina, los certificados médicos digitales emitidos mediante plataformas de teleasistencia son plenamente válidos según la Ley 27.553 (Reglamentada por Decreto 98/2023) y la Ley 25.506 de Firma Digital. Todo certificado emitido por un profesional con matrícula nacional o provincial vigente y firmado electrónicamente o digitalmente tiene la misma fuerza probatoria que un documento en papel.',
+  },
+  {
+    q: '¿Puede mi empleador o empresa rechazar un certificado médico emitido por telemedicina?',
+    a: 'No pueden rechazarlo por el solo hecho de ser digital o haber sido emitido en una teleconsulta. La normativa nacional equipara los actos médicos presenciales y virtuales realizados por profesionales matriculados. El empleador conserva la facultad que le otorga el artículo 210 de la Ley de Contrato de Trabajo (LCT 20.744) de auditar o controlar la patología a través de su servicio de medicina laboral o médico a domicilio, pero no puede anular unilateralmente la validez del certificado del médico tratante.',
+  },
+  {
+    q: '¿Qué es el código CUIR y cómo se valida el certificado?',
+    a: 'El CUIR (Código Único de Identificación de Recetas y Atestados) es un identificador alfanumérico único e irrepetible asignado a cada documento clínico emitido en AutaMedica. Cada certificado incluye un código QR que enlaza directamente a nuestro validador público en autamedica.com/verify/[cuir], donde la empresa, universidad o institución puede corroborar en segundos la autenticidad del documento, la vigencia de la matrícula del médico y las fechas de reposo.',
+  },
+  {
+    q: '¿Tengo derecho a que no figure mi diagnóstico en el justificativo laboral?',
+    a: 'Sí. De acuerdo con la Ley 25.326 de Protección de los Datos Personales y la Ley 26.529 de Derechos del Paciente, la información sobre tu salud constituye un dato sensible protegido por el secreto médico. En AutaMedica podés solicitar a tu médico que el certificado figure con diagnóstico reservado. El documento consignará las fechas y días de reposo indispensables para RRHH sin exponer tu patología íntima.',
+  },
+  {
+    q: '¿Se emiten certificados médicos en forma automática o sin consulta?',
+    a: 'Absolutamente no. En AutaMedica no se venden certificados ni recetas automáticas. La emisión de cualquier certificado es el resultado de un acto médico real: una consulta sincrónica por videoconsulta donde el profesional evalúa anamnesis, sintomatología y signos clínicos, determinando bajo su exclusiva responsabilidad y criterio deontológico si corresponde o no indicar reposo o aptitud.',
+  },
+  {
+    q: '¿Se pueden solicitar certificados con fechas retroactivas?',
+    a: 'No. La ética y la ley médica en Argentina prohíben certificar hechos que el profesional no haya constatado en el momento. El reposo médico rige a partir de la fecha de la consulta médica donde se corrobora el cuadro clínico.',
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: 'Certificados Médicos Digitales en Argentina | AutaMedica',
+      description:
+        'Servicio de emisión de certificados médicos digitales con validez legal en Argentina bajo Ley 27.553. Consulta médica virtual con médicos matriculados, código CUIR y verificación QR.',
+      inLanguage: 'es-AR',
+      isPartOf: {
+        '@type': 'WebSite',
+        '@id': 'https://www.autamedica.com/#website',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+      about: {
+        '@type': 'MedicalProcedure',
+        name: 'Emisión de Certificados Médicos Digitales y Reposo Laboral',
+        procedureType: 'https://schema.org/NoninvasiveProcedure',
+      },
+      publisher: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+      },
+      audience: {
+        '@type': 'PeopleAudience',
+        geographicArea: {
+          '@type': 'Country',
+          name: 'Argentina',
+        },
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Certificados Médicos',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.a,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Certificados Médicos Digitales en Argentina | AutaMedica"
+  description="Emisión de certificados médicos digitales con validez legal en Argentina (Ley 27.553). Firma digital, código CUIR inmutable y verificación pública por QR."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- HERO SECTION -->
+    <header class="relative bg-gradient-to-b from-slate-50 via-white to-sky-50/30 border-b border-slate-200/80 pt-16 pb-20 md:py-24">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider mb-6">
+            <svg class="w-4 h-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <span>Validez Legal Nacional · Ley 27.553</span>
+          </div>
+
+          <h1 class="text-4xl md:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12] mb-6">
+            Certificados médicos digitales con <span class="text-sky-700 italic">rigor clínico y validez legal.</span>
+          </h1>
+
+          <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed mb-8">
+            En AutaMedica cada certificado es el resultado de un acto médico real. Consulta por videoconsulta con profesionales matriculados, respaldo jurídico nacional, código CUIR inmutable y validación pública inmediata por código QR.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 mb-10">
+            <a
+              href="/auth/register"
+              class="inline-flex items-center justify-center px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5"
+            >
+              Solicitar Consulta Médica
+            </a>
+            <a
+              href="#verificacion-qr"
+              class="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 font-semibold rounded-xl border border-slate-200 transition-colors"
+            >
+              Cómo Validar con QR y CUIR
+            </a>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-200/70 text-xs text-slate-600">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+              <span>Médicos Matriculados SISA</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-sky-500"></div>
+              <span>Firma Digital & CUIR</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+              <span>Diagnóstico Confidencial</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-sky-500"></div>
+              <span>Verificación Pública 24/7</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- TIPOS DE CERTIFICADOS DISPONIBLES (CLUSTER GRID) -->
+    <section class="py-20 md:py-28 bg-white border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Cluster de Certificación Médica</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 mb-4">
+            Constancias médicas adaptadas a cada necesidad legal y administrativa.
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg">
+            Nuestra plataforma emite documentación homologada para el ámbito laboral, educativo y deportivo, preservando las garantías del paciente y facilitando el control fehaciente de las instituciones receptoras.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {certificateTypes.map((cert) => (
+            <article class="flex flex-col bg-slate-50/60 rounded-2xl border border-slate-200 p-8 hover:border-sky-300 hover:shadow-xl hover:shadow-sky-100/50 transition-all group">
+              <div class="flex items-center justify-between mb-4">
+                <span class="inline-block text-[11px] font-bold uppercase tracking-wider text-sky-700 bg-sky-100/70 px-2.5 py-1 rounded-md">
+                  {cert.badge}
+                </span>
+                <span class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                  &rarr;
+                </span>
+              </div>
+
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3 group-hover:text-sky-700 transition-colors">
+                <a href={cert.href} class="focus:outline-none focus:underline">
+                  {cert.title}
+                </a>
+              </h3>
+
+              <p class="text-slate-600 text-sm leading-relaxed mb-6 flex-grow">
+                {cert.description}
+              </p>
+
+              <ul class="space-y-2 mb-6 pt-4 border-t border-slate-200/60 text-xs text-slate-700">
+                {cert.features.map((feat) => (
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>{feat}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <a
+                href={cert.href}
+                class="inline-flex items-center gap-1.5 text-sm font-semibold text-sky-700 group-hover:text-sky-900 transition-colors"
+              >
+                <span>Conocer requisitos y validez</span>
+                <span>&rarr;</span>
+              </a>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- EXPLICACIÓN SISTEMA DE VERIFICACIÓN QR Y CUIR (MOCKUP Y ANATOMÍA) -->
+    <section id="verificacion-qr" class="py-20 md:py-28 bg-slate-900 text-white relative overflow-hidden">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div class="lg:col-span-6 space-y-6">
+            <span class="text-sky-400 font-bold text-xs uppercase tracking-widest block">Trazabilidad Criptográfica</span>
+            <h2 class="text-3xl md:text-5xl font-serif font-bold tracking-tight text-white leading-tight">
+              Validación instantánea con Código CUIR y QR oficial.
+            </h2>
+            <p class="text-slate-300 text-base md:text-lg leading-relaxed">
+              Para eliminar falsificaciones y trámites lentos, cada certificado emitido en AutaMedica incorpora un <strong class="text-white">Código Único de Identificación de Recetas y Atestados (CUIR)</strong> estructurado y firmado con sello de tiempo.
+            </p>
+
+            <div class="space-y-4 pt-2">
+              <div class="flex items-start gap-4">
+                <div class="w-8 h-8 rounded-lg bg-sky-950 border border-sky-800 text-sky-400 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                  1
+                </div>
+                <div>
+                  <h4 class="font-semibold text-white text-base">Escaneo en cualquier dispositivo</h4>
+                  <p class="text-slate-400 text-sm">El empleador, preceptor o institución escanea el QR con la cámara de su teléfono móvil o ingresa el CUIR en el portal público.</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-4">
+                <div class="w-8 h-8 rounded-lg bg-sky-950 border border-sky-800 text-sky-400 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                  2
+                </div>
+                <div>
+                  <h4 class="font-semibold text-white text-base">Verificación en tiempo real en autamedica.com/verify/[cuir]</h4>
+                  <p class="text-slate-400 text-sm">El sistema consulta el registro inmutable en nuestra base de datos segura y muestra el estado del certificado: fecha de emisión, médico actuante, matrícula y período de reposo otorgado.</p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-4">
+                <div class="w-8 h-8 rounded-lg bg-sky-950 border border-sky-800 text-sky-400 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                  3
+                </div>
+                <div>
+                  <h4 class="font-semibold text-white text-base">Protección de la privacidad médica</h4>
+                  <p class="text-slate-400 text-sm">Si el paciente solicitó certificado con diagnóstico reservado, el validador confirma la autenticidad y los días de reposo sin revelar detalles clínicos íntimos.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MOCKUP DEL CERTIFICADO CLÍNICO -->
+          <div class="lg:col-span-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 text-slate-900 shadow-2xl border border-slate-800">
+              <div class="flex items-center justify-between pb-4 border-b border-slate-200 mb-6">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-base">
+                    A
+                  </div>
+                  <div>
+                    <p class="font-bold text-slate-900 text-sm">AutaMedica Salud Digital</p>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-widest">Documento Oficial Certificado</p>
+                  </div>
+                </div>
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>Verificado</span>
+                </div>
+              </div>
+
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-5">
+                <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">Identificador Público Oficial</div>
+                <div class="font-mono text-xs sm:text-sm font-semibold text-sky-700 break-all">
+                  AR-CERT-18E4B072-5A92F1
+                </div>
+              </div>
+
+              <div class="space-y-3 text-xs text-slate-600 mb-6">
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                  <span class="font-medium text-slate-500">Tipo de Documento:</span>
+                  <span class="font-semibold text-slate-900">Reposo Laboral / Licencia Médica</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                  <span class="font-medium text-slate-500">Período de Reposo:</span>
+                  <span class="font-semibold text-slate-900">48 horas (2 días hábiles)</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                  <span class="font-medium text-slate-500">Diagnóstico:</span>
+                  <span class="font-semibold text-slate-700 italic">Reservado por solicitud del paciente (Ley 25.326)</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                  <span class="font-medium text-slate-500">Profesional Actuante:</span>
+                  <span class="font-semibold text-slate-900">Dra. M. S. López · MN 154.298</span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+                <div class="space-y-1">
+                  <p class="text-[11px] font-semibold text-slate-900">Firma Electrónica Avanzada</p>
+                  <p class="text-[10px] text-slate-500">Ley 25.506 · Ley 27.553 · Hash SHA-256</p>
+                </div>
+                <div class="w-16 h-16 rounded-lg bg-slate-100 border border-slate-300 flex items-center justify-center p-1">
+                  <!-- QR Code Preview Graphic -->
+                  <svg class="w-full h-full text-slate-800" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm8-2h8v8h-8V2zm2 2v4h4V4h-4zM2 14h8v8H2v-8zm2 2v4h4v-4H4zm11 0h2v2h-2v-2zm3 0h2v2h-2v-2zm-3 3h2v3h-2v-3zm3 1h2v2h-2v-2zm-6-4h2v2h-2v-2zm0 3h2v3h-2v-3z"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SUSTENTO LEGAL EN ARGENTINA -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Marco Regulatorio Nacional</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 mb-4">
+            Plena validez jurídica en todo el territorio argentino.
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg">
+            La telemedicina y la documentación sanitaria digital en Argentina están respaldadas por un cuerpo legislativo sólido y consolidado.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+            <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center font-bold text-lg mb-6">
+              27.553
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Ley de Recetas Electrónicas y Teleasistencia</h3>
+            <p class="text-slate-600 text-sm leading-relaxed mb-4">
+              Reglamentada por el Decreto 98/2023, faculta formalmente a los profesionales matriculados a prescribir tratamientos y emitir certificaciones mediante plataformas digitales seguras.
+            </p>
+            <p class="text-xs text-slate-500 font-medium">Equiparación legal entre formato digital y papel físico.</p>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+            <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center font-bold text-lg mb-6">
+              26.529
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Ley de Derechos del Paciente</h3>
+            <p class="text-slate-600 text-sm leading-relaxed mb-4">
+              Garantiza la autonomía de la voluntad, la confidencialidad de la historia clínica digital y el derecho de toda persona a recibir constancias fidedignas de su estado de salud.
+            </p>
+            <p class="text-xs text-slate-500 font-medium">Documento clínico auditable con consentimiento del paciente.</p>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+            <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center font-bold text-lg mb-6">
+              25.326
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Ley de Protección de Datos Personales</h3>
+            <p class="text-slate-600 text-sm leading-relaxed mb-4">
+              Clasifica los datos de salud como datos sensibles. Avala el derecho a emitir constancias laborales con reserva de diagnóstico para evitar discriminación en el ámbito laboral.
+            </p>
+            <p class="text-xs text-slate-500 font-medium">Derecho a la no revelación de la patología a terceros.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGOR CLÍNICO Y ACTO MÉDICO GENUINO -->
+    <section class="py-20 md:py-24 bg-white border-b border-slate-100">
+      <div class="max-w-4xl mx-auto px-6">
+        <div class="bg-sky-50/60 rounded-3xl border border-sky-200/80 p-8 md:p-12">
+          <div class="flex items-center gap-3 text-sky-800 font-bold text-xs uppercase tracking-widest mb-4">
+            <svg class="w-5 h-5 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>Declaración de Práctica Médica Responsable</span>
+          </div>
+
+          <h3 class="text-2xl md:text-3xl font-serif font-bold text-slate-950 mb-4">
+            Por qué no comercializamos certificados automáticos.
+          </h3>
+
+          <div class="space-y-4 text-slate-700 text-sm md:text-base leading-relaxed">
+            <p>
+              En internet proliferan servicios que ofrecen "certificados instantáneos" mediante formularios sin contacto médico. Estas prácticas constituyen una falta ética grave y son legalmente nulas en la República Argentina, exponiendo al trabajador a sanciones laborales y disciplinarias.
+            </p>
+            <p>
+              En <strong class="text-slate-900">AutaMedica</strong>, todo certificado requiere una <strong class="text-slate-900">videoconsulta sincrónica</strong> previa. Si durante el triaje o la consulta el médico detecta signos de alarma (dolor torácico severo, disnea aguda, abdomen agudo, pérdida de conciencia o traumatismos graves), indicará la derivación inmediata a un centro de urgencias presencial.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQS ACCORDION -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-4xl mx-auto px-6">
+        <div class="text-center mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Respuestas Frecuentes</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Preguntas frecuentes sobre certificados médicos digitales.
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white rounded-2xl border border-slate-200 overflow-hidden transition-colors">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none select-none">
+                <span class="text-base md:text-lg font-serif font-bold text-slate-900 pr-4">{faq.q}</span>
+                <span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-semibold group-open:rotate-180 group-open:bg-sky-50 group-open:text-sky-700 transition-transform flex-shrink-0">
+                  &darr;
+                </span>
+              </summary>
+              <div class="px-6 md:px-8 pb-6 md:pb-8 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4">
+                {faq.a}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL INSTITUCIONAL -->
+    <section class="py-20 md:py-28 bg-white text-center">
+      <div class="max-w-4xl mx-auto px-6">
+        <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+          Atención médica inmediata y documentación legal al instante.
+        </h2>
+        <p class="text-slate-600 text-base md:text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
+          Accedé a una consulta por videollamada con un médico matriculado. Obtené tu diagnóstico clínico y tu certificado oficial con verificación QR para tu trabajo o estudio.
+        </p>
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+          <a
+            href="/auth/register"
+            class="inline-flex items-center justify-center px-10 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5 text-base"
+          >
+            Iniciar Consulta Médica
+          </a>
+          <a
+            href="/consulta-medica-online"
+            class="inline-flex items-center justify-center px-10 py-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl transition-colors text-base"
+          >
+            Ver Funcionamiento de Telemedicina
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
+</Layout>

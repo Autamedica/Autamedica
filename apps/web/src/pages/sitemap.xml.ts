@@ -11,17 +11,28 @@ const ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
   // SEO Landing Pages
   { path: '/telemedicina-argentina', priority: '0.85', changefreq: 'weekly' },
   { path: '/consulta-medica-online', priority: '0.85', changefreq: 'weekly' },
+  { path: '/videoconsulta-medica', priority: '0.90', changefreq: 'daily' },
+  { path: '/guardia-medica-online', priority: '0.90', changefreq: 'daily' },
+  { path: '/consulta-medica-en-farmacia', priority: '0.85', changefreq: 'weekly' },
   { path: '/especialidades', priority: '0.8', changefreq: 'weekly' },
   { path: '/medico-online', priority: '0.85', changefreq: 'weekly' },
   { path: '/turno-medico-online', priority: '0.85', changefreq: 'weekly' },
   { path: '/psicologo-online', priority: '0.8', changefreq: 'weekly' },
+  { path: '/psiquiatra-online', priority: '0.85', changefreq: 'weekly' },
   { path: '/cardiologo-online', priority: '0.8', changefreq: 'weekly' },
   { path: '/dermatologo-online', priority: '0.8', changefreq: 'weekly' },
+  { path: '/receta-medica-online', priority: '0.85', changefreq: 'weekly' },
   { path: '/receta-electronica', priority: '0.8', changefreq: 'weekly' },
   { path: '/dolor-de-pecho', priority: '0.85', changefreq: 'weekly' },
   { path: '/fiebre-en-adultos', priority: '0.8', changefreq: 'weekly' },
   { path: '/ansiedad-sintomas-cuando-consultar', priority: '0.8', changefreq: 'weekly' },
-  { path: '/ley-27553-telemedicina', priority: '0.8', changefreq: 'weekly' },
+  // Cluster Certificados Médicos
+  { path: '/certificados-medicos', priority: '0.90', changefreq: 'weekly' },
+  { path: '/certificado-medico-online', priority: '0.90', changefreq: 'weekly' },
+  { path: '/justificativo-medico', priority: '0.85', changefreq: 'weekly' },
+  { path: '/certificado-medico-laboral', priority: '0.85', changefreq: 'weekly' },
+  { path: '/certificado-medico-escolar', priority: '0.80', changefreq: 'weekly' },
+  { path: '/certificado-aptitud-fisica', priority: '0.85', changefreq: 'weekly' },
 
   // Blog
   { path: '/blog', priority: '0.85', changefreq: 'weekly' },
@@ -34,6 +45,7 @@ const ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
   { path: '/blog/ansiedad-cronica-herramientas', priority: '0.7', changefreq: 'monthly' },
   { path: '/blog/dermatologia-acne-adulto', priority: '0.7', changefreq: 'monthly' },
   { path: '/blog/historia-clinica-digital', priority: '0.7', changefreq: 'monthly' },
+  { path: '/blog/certificado-medico-digital-validez', priority: '0.8', changefreq: 'monthly' },
 
   // SEO FAQ Articles (People Also Ask - Google)
   { path: '/blog/que-hizo-el-protomedicato', priority: '0.75', changefreq: 'monthly' },

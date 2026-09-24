@@ -1,0 +1,547 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/receta-medica-online';
+
+const faqs = [
+  {
+    question: '¿La receta médica digital es válida en todas las farmacias de Argentina?',
+    answer:
+      'Sí. Nuestras recetas se emiten en cumplimiento estricto de la Ley Nacional 27.553 y su Decreto Reglamentario 345/2024. Cuentan con firma digital/electrónica registrada, código de barras y Código Único de Identificación de Receta (CUIR), siendo válidas tanto en grandes cadenas farmacéuticas (Farmacity, Central Oeste, Dr. Ahorro, etc.) como en farmacias de barrio en todas las provincias de la República Argentina.',
+  },
+  {
+    question: '¿Qué es el código CUIR y por qué garantiza la seguridad de la receta?',
+    answer:
+      'El CUIR (Código Único de Identificación de Receta) es un identificador alfanumérico normado por el Ministerio de Salud de la Nación que se asocia a la base de datos oficial. Permite a la farmacia validar en tiempo real la identidad del profesional prescriptor, el estado de matrícula en REFEPS, la no duplicación y el registro de la dispensa del medicamento, eliminando riesgos de falsificación o adulteración.',
+  },
+  {
+    question: '¿Puedo renovar recetas de medicamentos para tratamientos crónicos?',
+    answer:
+      'Sí. Si contás con un diagnóstico previo o tratamiento en curso (por ejemplo, para hipertensión, hipotiroidismo con levotiroxina, diabetes tipo 2, dislipidemia o anticonceptivos), podés solicitar la renovación adjuntando tu última receta, foto del envase o resumen clínico. Un médico matriculado evaluará la continuidad y emitirá la prescripción correspondiente para evitar la interrupción de tu tratamiento.',
+  },
+  {
+    question: '¿Se emiten recetas para medicamentos de venta bajo receta archivada (psicofármacos)?',
+    answer:
+      'Sí, cuando existe indicación médica justificada. Para medicamentos que requieren receta archivada (como ansiolíticos, antidepresivos, hipnóticos o estabilizadores del ánimo), la evaluación clínica es realizada por profesionales del área médica o psiquiátrica, emitiendo el duplicado o formato regulatorio digital conforme a las listas de ANMAT y la normativa vigente de cada jurisdicción.',
+  },
+  {
+    question: '¿Cuánto tiempo demora la emisión de la receta digital?',
+    answer:
+      'El proceso habitual se completa en pocos minutos una vez realizada la evaluación médica. La receta digital en formato PDF de alta resolución con código QR y CUIR queda disponible de inmediato en tu perfil de paciente de AutaMedica y se envía a tu correo electrónico o WhatsApp para que puedas reenviarla o exhibirla directamente en el mostrador de la farmacia.',
+  },
+  {
+    question: '¿Las recetas sirven para obras sociales y empresas de medicina prepaga?',
+    answer:
+      'Las prescripciones se realizan según la Ley 25.649 de Promoción de la Utilización de Medicamentos por su Nombre Genérico (DCI), consignando los datos requeridos por los convenios de cobertura. Podés presentarla ante tu obra social, prepaga o solicitar el reintegro de acuerdo con el plan contratado.',
+  },
+  {
+    question: '¿Qué sucede si el médico considera que no corresponde emitir la medicación solicitada?',
+    answer:
+      'La prescripción es siempre un acto de responsabilidad médica basada en la evaluación del paciente. Si el profesional detecta señales de alarma, sospecha de interacción contraindicada o considera indispensable un examen presencial o estudios de laboratorio urgentes, priorizará tu seguridad clínica y te derivará al centro de atención adecuado.',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Trámites y Recetas',
+          item: 'https://www.autamedica.com/receta-electronica',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Receta Médica Online',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Receta Médica Online en Argentina | Validez Oficial Nacional',
+      url: canonicalUrl,
+      description:
+        'Solicitud y renovación de recetas médicas digitales con código CUIR y firma electrónica por médicos matriculados en Argentina. Validez en todas las farmacias del país bajo Ley 27.553.',
+      inLanguage: 'es-AR',
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'Thing', name: 'Receta médica online' },
+        { '@type': 'Thing', name: 'Receta digital oficial' },
+        { '@type': 'Thing', name: 'Código CUIR' },
+        { '@type': 'Thing', name: 'Ley 27553' },
+        { '@type': 'MedicalSpecialty', name: 'PrimaryCare' },
+      ],
+      publisher: {
+        '@id': 'https://www.autamedica.com/#organization',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Receta Médica Online en Argentina | Solicitud y Renovación Oficial | AutaMedica"
+  description="Gestioná tu receta médica online en minutos con médicos matriculados. Receta digital con código CUIR, firma electrónica y validez en farmacias de todo el país según Ley 27.553."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+  <Navbar />
+
+  <main class="bg-white text-neutral-900 pt-20">
+    <!-- HERO TRANSACCIONAL DE ALTA CONVERSIÓN -->
+    <section class="relative py-20 md:py-28 border-b border-neutral-100 overflow-hidden bg-gradient-to-b from-[#f8fafc] via-white to-white">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider">
+              <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+              Prescripción Oficial · Ley 27.553 · Código CUIR
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-medium leading-[1.12] tracking-tight text-neutral-950">
+              Receta médica online con <br class="hidden sm:inline" />
+              <span class="text-[var(--au-accent)]">validez oficial en farmacias</span> de toda la Argentina.
+            </h1>
+
+            <p class="text-lg md:text-xl text-neutral-600 font-light leading-relaxed max-w-2xl">
+              Solicitá o renová tu medicación crónica o aguda a través de una evaluación clínica rigurosa con médicos matriculados. Recibí tu receta digital con firma electrónica y código CUIR directo en tu celular, lista para presentar en cualquier farmacia del país.
+            </p>
+
+            <!-- Acciones Principales -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-2">
+              <a href="/auth/register" class="btn-primary-action inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all">
+                <span>Solicitar receta médica online</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="M12 5l7 7-7 7"></path>
+                </svg>
+              </a>
+              <a href="#como-funciona" class="btn-secondary-action inline-flex items-center justify-center px-7 py-4 rounded-xl text-neutral-700 font-semibold text-base border border-neutral-200 transition-all">
+                Ver cómo funciona el circuito
+              </a>
+            </div>
+
+            <!-- Trust Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-neutral-200/70 text-xs text-neutral-600">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Médicos REFEPS</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Código CUIR único</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Validez nacional</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Firma electrónica</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mockup Visual de Receta Digital Oficial -->
+          <div class="lg:col-span-5 flex justify-center">
+            <div class="w-full max-w-md bg-white rounded-2xl border border-neutral-200/90 shadow-2xl shadow-sky-950/5 p-6 relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-32 h-32 bg-sky-50 rounded-bl-full pointer-events-none"></div>
+              
+              <!-- Encabezado de la Receta -->
+              <div class="border-b border-neutral-100 pb-4 mb-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-[var(--au-accent)] text-white flex items-center justify-center font-bold text-base">
+                      A
+                    </div>
+                    <div>
+                      <div class="text-xs font-bold text-neutral-900 tracking-tight">AUTAMEDICA DIGITAL HEALTH</div>
+                      <div class="text-[10px] text-neutral-500 font-mono">ID SISPRO / CUIR VALIDATED</div>
+                    </div>
+                  </div>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    ACTIVA
+                  </span>
+                </div>
+              </div>
+
+              <!-- Metadata Médica -->
+              <div class="space-y-3 text-xs mb-4">
+                <div class="flex justify-between py-1 border-b border-dashed border-neutral-100">
+                  <span class="text-neutral-500">Profesional:</span>
+                  <span class="font-medium text-neutral-900">Dr. Nicolás Herrera (MN 148.920)</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-dashed border-neutral-100">
+                  <span class="text-neutral-500">Especialidad:</span>
+                  <span class="font-medium text-neutral-900">Medicina General y Familiar</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-dashed border-neutral-100">
+                  <span class="text-neutral-500">CUIR:</span>
+                  <span class="font-mono font-semibold text-sky-700">AR-2026-984210-MD</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-dashed border-neutral-100">
+                  <span class="text-neutral-500">Normativa:</span>
+                  <span class="font-medium text-neutral-900">Ley 27.553 · Res. 1195/24 MSAL</span>
+                </div>
+              </div>
+
+              <!-- Prescripción Simulada -->
+              <div class="bg-neutral-50 rounded-xl p-3.5 mb-4 border border-neutral-100">
+                <div class="text-[11px] font-bold text-neutral-800 uppercase tracking-wide mb-1">Medicamento Prescripto:</div>
+                <div class="text-sm font-semibold text-neutral-950">Levotiroxina Sódica 100 mcg</div>
+                <div class="text-xs text-neutral-600 mt-0.5">Comprimidos x 50 · Venta bajo receta médica</div>
+                <div class="text-[11px] text-neutral-500 mt-1 italic">Posología: 1 comprimido diario en ayunas. Tratamiento x 60 días.</div>
+              </div>
+
+              <!-- Footer de la Receta con QR -->
+              <div class="flex items-center justify-between pt-2">
+                <div class="space-y-1">
+                  <div class="text-[10px] text-neutral-500">Firma criptográfica verificable</div>
+                  <div class="flex items-center gap-1.5 text-emerald-700 text-xs font-semibold">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Firma digital válida</span>
+                  </div>
+                </div>
+                <div class="w-14 h-14 bg-white border border-neutral-200 rounded-lg p-1 flex items-center justify-center shadow-sm">
+                  <svg class="w-12 h-12 text-neutral-900" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 15h6v6H3v-6zm2 2v2h2v-2H5zm10-2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2zM11 3h2v2h-2V3zm0 4h2v2h-2V7zm0 4h2v2h-2v-2zm-4 0h2v2H7v-2zm0 4h2v2H7v-2zm8-4h2v2h-2v-2zm2-2h2v2h-2V9zm-2-2h2v2h-2V7z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MOTIVOS Y CASOS DE USO FRECUENTES -->
+    <section class="py-24 bg-neutral-50/70 border-b border-neutral-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mx-auto text-center mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Casos de Uso Frecuentes</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-6">
+            Soluciones para cada necesidad de prescripción
+          </h2>
+          <p class="text-neutral-600 text-lg leading-relaxed">
+            Eliminamos las salas de espera interminables para gestiones de medicación que requieren criterio clínico, rigor profesional y continuidad ininterrumpida.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <!-- Tarjeta 1: Medicación Crónica -->
+          <div class="bg-white rounded-2xl p-8 border border-neutral-200/80 shadow-sm hover:shadow-md transition-all">
+            <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-900 mb-3">Renovación Crónica</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed">
+              Tratamientos continuos para hipertensión (enalapril, losartán), hipotiroidismo (levotiroxina), diabetes tipo 2 (metformina), dislipidemias y anticonceptivos. Renovación sin cortar el esquema terapéutico.
+            </p>
+          </div>
+
+          <!-- Tarjeta 2: Cuadros Agudos -->
+          <div class="bg-white rounded-2xl p-8 border border-neutral-200/80 shadow-sm hover:shadow-md transition-all">
+            <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-900 mb-3">Cuadros Agudos</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed">
+              Prescripción tras videoconsulta médica para infecciones respiratorias, dolores musculares, cefaleas, cuadros gastrointestinales, alergias estacionales o tratamientos dérmicos específicos.
+            </p>
+          </div>
+
+          <!-- Tarjeta 3: Salud Mental y Psicofármacos -->
+          <div class="bg-white rounded-2xl p-8 border border-neutral-200/80 shadow-sm hover:shadow-md transition-all">
+            <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"></path>
+                <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-900 mb-3">Receta Archivada</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed">
+              Emisión de recetas para medicamentos bajo receta archivada (Lista II, III y IV) bajo evaluación de psiquiatras o médicos especialistas para ansiedad, insomnio, depresión y TDAH en adultos.
+            </p>
+          </div>
+
+          <!-- Tarjeta 4: Órdenes de Estudios -->
+          <div class="bg-white rounded-2xl p-8 border border-neutral-200/80 shadow-sm hover:shadow-md transition-all">
+            <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-900 mb-3">Órdenes de Estudios</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed">
+              Solicitud de análisis clínicos de sangre y orina, perfil lipídico, glucemia, ecografías, radiografías y derivaciones con firma digital oficial para presentar en centros de diagnóstico.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EL PROCESO CLÍNICO EN 4 PASOS -->
+    <section id="como-funciona" class="py-28 bg-white">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Paso a Paso</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-6">
+            Cómo solicitar y recibir tu receta médica digital
+          </h2>
+          <p class="text-neutral-600 text-lg leading-relaxed">
+            Un circuito clínico transparente, seguro y trazable desde el primer minuto hasta la entrega en la farmacia.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+          <!-- Paso 1 -->
+          <div class="space-y-4 relative">
+            <div class="w-12 h-12 rounded-2xl bg-neutral-950 text-white font-serif font-bold text-xl flex items-center justify-center">
+              01
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-900">Solicitud y Datos</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed">
+              Ingresá con tu cuenta, indicá el motivo de consulta o la medicación que tomás habitualmente. Podés adjuntar fotos de recetas anteriores o estudios recientes.
+            </p>
+          </div>
+
+          <!-- Paso 2 -->
+          <div class="space-y-4 relative">
+            <div class="w-12 h-12 rounded-2xl bg-neutral-950 text-white font-serif font-bold text-xl flex items-center justify-center">
+              02
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-900">Evaluación Médica</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed">
+              Un médico matriculado revisa tus antecedentes, verifica contraindicaciones y valida la prescripción por teleconsulta o triaje clínico según la complejidad del cuadro.
+            </p>
+          </div>
+
+          <!-- Paso 3 -->
+          <div class="space-y-4 relative">
+            <div class="w-12 h-12 rounded-2xl bg-neutral-950 text-white font-serif font-bold text-xl flex items-center justify-center">
+              03
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-900">Emisión con Código CUIR</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed">
+              Se genera el documento oficial con firma digital registrada, identificador CUIR y código QR. Lo descargás inmediatamente en formato PDF desde tu panel seguro.
+            </p>
+          </div>
+
+          <!-- Paso 4 -->
+          <div class="space-y-4 relative">
+            <div class="w-12 h-12 rounded-2xl bg-neutral-950 text-white font-serif font-bold text-xl flex items-center justify-center">
+              04
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-900">Dispensa en Farmacia</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed">
+              Mostrás la receta desde tu celular o la enviás por WhatsApp a cualquier farmacia del país. El farmacéutico escanea el código, valida la vigencia y dispensa el fármaco.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-14 p-6 rounded-2xl bg-sky-50/70 border border-sky-200/80 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-full bg-sky-600 text-white flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </div>
+            <div>
+              <h4 class="font-bold text-sm text-neutral-950">Cumplimiento Normativo Ley 27.553</h4>
+              <p class="text-xs text-neutral-600">Prescripción por principio activo (DCI), trazabilidad digital e interoperabilidad con farmacias de toda Argentina.</p>
+            </div>
+          </div>
+          <a href="/auth/register" class="btn-primary-action px-6 py-3 rounded-lg text-white font-semibold text-sm whitespace-nowrap">
+            Iniciar solicitud médica
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGOR CLÍNICO Y FARMACOVIGILANCIA -->
+    <section class="py-24 bg-neutral-950 text-white">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div class="lg:col-span-6 space-y-6">
+            <span class="text-xs font-bold uppercase tracking-widest text-sky-400 block">Ética y Farmacovigilancia</span>
+            <h2 class="text-3xl md:text-5xl font-serif font-medium leading-tight">
+              Prescripción basada en evaluación médica, <span class="italic text-neutral-400">nunca automática.</span>
+            </h2>
+            <p class="text-neutral-300 text-base leading-relaxed font-light">
+              En AutaMedica no comercializamos recetas ni operamos sistemas mecánicos de venta de medicamentos. Toda indicación es el resultado de un acto profesional donde un médico matriculado valida antecedentes, dosis, interacciones y pertinencia clínica.
+            </p>
+            <p class="text-neutral-400 text-sm leading-relaxed font-light">
+              Nuestra plataforma está integrada con la Red Federal de Profesionales de la Salud (REFEPS) y el Sistema de Información Sanitaria Argentino (SISA), garantizando que tu tratamiento sea emitido por profesionales habilitados legalmente para el ejercicio de la medicina.
+            </p>
+            
+            <div class="pt-4 flex flex-col sm:flex-row gap-4">
+              <a href="/ley-27553-telemedicina" class="inline-flex items-center gap-2 text-sm text-sky-400 hover:text-sky-300 font-semibold underline underline-offset-4">
+                Leer más sobre el marco legal de la Ley 27.553 →
+              </a>
+            </div>
+          </div>
+
+          <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div class="bg-neutral-900/90 border border-neutral-800 rounded-2xl p-6">
+              <div class="text-sky-400 text-2xl font-bold font-serif mb-2">REFEPS</div>
+              <h4 class="font-bold text-sm text-neutral-100 mb-1">Matrículas Auditadas</h4>
+              <p class="text-xs text-neutral-400 leading-relaxed">
+                Verificación automática de identidad profesional y vigencia de habilitación médica nacional y provincial.
+              </p>
+            </div>
+
+            <div class="bg-neutral-900/90 border border-neutral-800 rounded-2xl p-6">
+              <div class="text-sky-400 text-2xl font-bold font-serif mb-2">CUIR</div>
+              <h4 class="font-bold text-sm text-neutral-100 mb-1">Trazabilidad Única</h4>
+              <p class="text-xs text-neutral-400 leading-relaxed">
+                Identificador irrepetible que previene duplicaciones y permite auditoría en el sistema de dispensa farmacéutico.
+              </p>
+            </div>
+
+            <div class="bg-neutral-900/90 border border-neutral-800 rounded-2xl p-6">
+              <div class="text-sky-400 text-2xl font-bold font-serif mb-2">Ley 25.326</div>
+              <h4 class="font-bold text-sm text-neutral-100 mb-1">Privacidad Médica</h4>
+              <p class="text-xs text-neutral-400 leading-relaxed">
+                Encriptación de datos sensibles de salud conforme a las exigencias de protección de datos personales.
+              </p>
+            </div>
+
+            <div class="bg-neutral-900/90 border border-neutral-800 rounded-2xl p-6">
+              <div class="text-sky-400 text-2xl font-bold font-serif mb-2">24/7</div>
+              <h4 class="font-bold text-sm text-neutral-100 mb-1">Acceso Continuo</h4>
+              <p class="text-xs text-neutral-400 leading-relaxed">
+                Disponibilidad médica permanente para resolver gestiones urgentes de medicación desde cualquier punto del país.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREGUNTAS FRECUENTES -->
+    <section class="py-24 bg-neutral-50/70 border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Resolución de Dudas</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-4">
+            Preguntas frecuentes sobre la receta médica online
+          </h2>
+          <p class="text-neutral-600 text-base">
+            Todo lo que necesitás saber sobre validez, farmacias, obras sociales y seguridad.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white border border-neutral-200 rounded-2xl overflow-hidden transition-all shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none">
+                <span class="text-lg md:text-xl font-medium text-neutral-950 pr-4">{faq.question}</span>
+                <div class="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 transition-transform group-open:rotate-180 text-neutral-700">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"></path>
+                  </svg>
+                </div>
+              </summary>
+              <div class="px-6 pb-6 md:px-8 md:pb-8 text-neutral-600 leading-relaxed text-sm md:text-base border-t border-neutral-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL TRANSACCIONAL -->
+    <CTAFinal
+      title="Gestioná tu receta médica online en minutos."
+      subtitle="Conectá con un médico matriculado, validá tu prescripción y recibí tu receta oficial válida en farmacias de todo el país."
+      buttonLabel="Solicitar mi receta ahora"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+  main {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Source Serif 4', serif;
+  }
+
+  .btn-primary-action {
+    background-color: #0284c7;
+    background-image: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  }
+  .btn-primary-action:hover {
+    background-color: #0369a1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+  }
+
+  .btn-secondary-action {
+    background-color: #ffffff;
+  }
+  .btn-secondary-action:hover {
+    background-color: #f8fafc;
+    border-color: #0284c7;
+    color: #0284c7;
+  }
+
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

@@ -1,0 +1,375 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/certificado-medico-laboral';
+
+const requirements = [
+  {
+    title: 'Datos Filiatorios del Trabajador',
+    desc: 'Nombre y apellido completos, número de Documento Nacional de Identidad (DNI) o CUIL, garantizando la individualización inequívoca del dependiente.',
+  },
+  {
+    title: 'Cómputo Preciso de Reposo',
+    desc: 'Especificación exacta de la cantidad de días de licencia ambulatoria otorgados, fecha de inicio del reposo y fecha estimada de reintegro laboral.',
+  },
+  {
+    title: 'Profesional Matriculado Habilitado',
+    desc: 'Nombre completo del médico tratante, Matrícula Nacional (MN) o Provincial (MP) verificable ante el Registro Federal de Profesionales de Salud (REFEPS/SISA).',
+  },
+  {
+    title: 'Código CUIR y Validación por QR',
+    desc: 'Identificador único inmutable que permite al departamento de Recursos Humanos o Medicina Laboral auditar la autenticidad del documento en segundos.',
+  },
+];
+
+const legalFramework = [
+  {
+    article: 'Art. 208 LCT',
+    title: 'Plazos de Licencia Paga',
+    desc: 'Garantiza el cobro íntegro de la remuneración durante el reposo médico por enfermedad o accidente inculpable: hasta 3 o 6 meses según antigüedad (hasta 6 o 12 meses con cargas de familia).',
+  },
+  {
+    article: 'Art. 209 LCT',
+    title: 'Obligación de Aviso del Trabajador',
+    desc: 'El trabajador debe comunicar su inasistencia al empleador en la primera jornada laboral y poner a disposición la constancia médica emitida por el profesional habilitado.',
+  },
+  {
+    article: 'Art. 210 LCT',
+    title: 'Facultad de Control Patronal',
+    desc: 'El empleador está facultado para constatar el cuadro médico del trabajador mediante su servicio de medicina laboral o médico examinador a domicilio, sin invalidar el certificado del médico tratante.',
+  },
+];
+
+const faqs = [
+  {
+    q: '¿Qué validez tiene un certificado médico laboral emitido por telemedicina?',
+    a: 'Tiene plena validez legal en toda la República Argentina. La Ley 27.553 de Teleasistencia Médica y su Decreto Reglamentario 98/2023 establecen la equiparación de los actos médicos y certificados digitales con los emitidos en formato papel. Todo empleador debe recibir la constancia presentada en tiempo y forma.',
+  },
+  {
+    q: '¿Qué ocurre si el médico laboral de la empresa no coincide con el reposo otorgado?',
+    a: 'En caso de discrepancia médica entre el profesional tratante de AutaMedica y el médico de control laboral de la empresa, rige la jurisprudencia laboral argentina: ninguna de las partes puede imponer unilateralmente su criterio. De persistir el desacuerdo, suele convocarse a una junta médica ante la autoridad laboral competente o prevalecer el criterio protectorio del reposo mientras subsista el cuadro clínico agudo.',
+  },
+  {
+    q: '¿El certificado médico laboral de AutaMedica sirve ante una ART?',
+    a: 'Sirve como constancia médica asistencial inicial. Si sufriste un accidente de trabajo o in itinere, el médico de AutaMedica evaluará tus síntomas, constatará el cuadro agudo y te indicará la derivación inmediata a los prestadores de tu Aseguradora de Riesgos del Trabajo (ART), ya que las contingencias laborales requieren la apertura del siniestro formal ante la aseguradora según la Ley 24.557.',
+  },
+  {
+    q: '¿El certificado puede indicar tareas livianas o reducción horaria?',
+    a: 'Sí. El profesional evaluador puede determinar no solo el reposo absoluto, sino también pautas de reintegro gradual, alta médica definitiva o sugerencia de tareas livianas (adecuación transitoria del puesto de trabajo) cuando el paciente puede reincorporarse sin comprometer su recuperación.',
+  },
+  {
+    q: '¿Qué debe hacer el trabajador luego de recibir su certificado digital?',
+    a: 'Debe remitir el archivo PDF descargado a su departamento de Recursos Humanos o a su supervisor directo dentro del plazo habitual fijado por la empresa o el Convenio Colectivo de Trabajo, y guardar reposo en su domicilio para posibilitar el eventual control patronal.',
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: 'Certificado Médico Laboral y Licencia Médica | AutaMedica',
+      description:
+        'Certificado médico laboral para justificar reposo y licencia médica ante empleadores, medicina laboral y ART en Argentina. Firma digital y validación QR.',
+      inLanguage: 'es-AR',
+      isPartOf: {
+        '@type': 'WebSite',
+        '@id': 'https://www.autamedica.com/#website',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+      about: {
+        '@type': 'MedicalProcedure',
+        name: 'Emisión de Certificado Médico Laboral y Reposo por Telemedicina',
+        procedureType: 'https://schema.org/NoninvasiveProcedure',
+      },
+      publisher: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+      },
+      audience: {
+        '@type': 'PeopleAudience',
+        geographicArea: {
+          '@type': 'Country',
+          name: 'Argentina',
+        },
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Certificados Médicos',
+          item: 'https://www.autamedica.com/certificados-medicos',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Certificado Médico Laboral',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.a,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Certificado Médico Laboral y Licencia Médica | AutaMedica"
+  description="Certificado médico laboral para justificar reposo y licencia médica ante empleadores, medicina laboral y ART en Argentina. Firma digital y validación QR."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- HERO SECTION -->
+    <header class="relative bg-gradient-to-b from-slate-50 via-white to-sky-50/30 border-b border-slate-200/80 pt-16 pb-20 md:py-24">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider mb-6">
+            <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+            <span>Derecho Laboral Argentino · Ley 20.744</span>
+          </div>
+
+          <h1 class="text-4xl md:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12] mb-6">
+            Certificado médico laboral para <span class="text-sky-700 italic">licencias y reposo oficial.</span>
+          </h1>
+
+          <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed mb-8">
+            Constatación clínica y justificación fehaciente de inasistencias laborales por patologías agudas o accidentes ambulatorios. Documento oficial emitido por médicos matriculados con firma digital, trazabilidad CUIR y código QR para medicina laboral.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 mb-10">
+            <a
+              href="/auth/register"
+              class="inline-flex items-center justify-center px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5"
+            >
+              Solicitar Consulta Laboral
+            </a>
+            <a
+              href="#requisitos-laborales"
+              class="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 font-semibold rounded-xl border border-slate-200 transition-colors"
+            >
+              Requisitos de Validez Legal
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200/70 text-xs text-slate-600">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Conforme Art. 208 y 209 LCT</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Validación Inmediata de RRHH</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Médicos Matriculados SISA</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- REQUISITOS DE VALIDEZ ANTE RRHH Y MEDICINA LABORAL -->
+    <section id="requisitos-laborales" class="py-20 md:py-28 bg-white border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Estándar Documental</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 mb-4">
+            Requisitos de validez exigidos por departamentos médicos de empresas.
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg">
+            Para que una constancia de reposo laboral sea legalmente inatacable ante la patronal y organismos de auditoría, debe reunir estándares formales y clínicos rigurosos.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {requirements.map((req) => (
+            <div class="bg-slate-50 rounded-2xl border border-slate-200 p-8 flex flex-col justify-between">
+              <div>
+                <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center font-bold text-sm mb-6 border border-sky-100">
+                  ✓
+                </div>
+                <h3 class="text-lg font-serif font-bold text-slate-950 mb-3">{req.title}</h3>
+                <p class="text-slate-600 text-sm leading-relaxed">{req.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- MARCO LEGAL LEY DE CONTRATO DE TRABAJO -->
+    <section class="py-20 md:py-28 bg-slate-900 text-white">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-400 font-bold text-xs uppercase tracking-widest block mb-3">Régimen Legal Argentino</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold tracking-tight text-white mb-4">
+            El marco legal del reposo laboral en la Ley 20.744.
+          </h2>
+          <p class="text-slate-300 text-base md:text-lg">
+            La Ley de Contrato de Trabajo de la República Argentina protege el salario del dependiente ante contingencias de salud y define el procedimiento bilateral entre empleado y empleador.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {legalFramework.map((item) => (
+            <div class="bg-slate-800 rounded-2xl border border-slate-700 p-8">
+              <span class="inline-block font-mono text-sm font-bold text-sky-400 bg-sky-950 px-3 py-1 rounded-md mb-4 border border-sky-800">
+                {item.article}
+              </span>
+              <h3 class="text-xl font-serif font-bold text-white mb-3">{item.title}</h3>
+              <p class="text-slate-300 text-sm leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- GUÍA DE ACCIÓN PARA EL TRABAJADOR -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Protocolo de Notificación</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 mb-4">
+            Pasos recomendados para presentar tu certificado en el trabajo.
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg">
+            Seguir el protocolo asegura el cumplimiento cabal de tus deberes laborales y evita controversias salariales o descuentos indebidos.
+          </p>
+        </div>
+
+        <div class="space-y-6 max-w-4xl">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 flex items-start gap-6 shadow-sm">
+            <span class="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 font-bold flex items-center justify-center flex-shrink-0">1</span>
+            <div>
+              <h4 class="font-serif font-bold text-slate-950 text-lg mb-1">Avisar a la empresa a primera hora</h4>
+              <p class="text-slate-600 text-sm leading-relaxed">
+                Notificá a tu empleador o líder de equipo al inicio de la jornada laboral que te encontrás cursando un cuadro que te impide asistir, conforme exige el artículo 209 de la LCT.
+              </p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 flex items-start gap-6 shadow-sm">
+            <span class="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 font-bold flex items-center justify-center flex-shrink-0">2</span>
+            <div>
+              <h4 class="font-serif font-bold text-slate-950 text-lg mb-1">Realizar la consulta médica en AutaMedica</h4>
+              <p class="text-slate-600 text-sm leading-relaxed">
+                Conectate por videollamada con el médico matriculado. Describí tus síntomas y recibí la indicación clínica adecuada con la cantidad de días de reposo correspondientes.
+              </p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 flex items-start gap-6 shadow-sm">
+            <span class="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 font-bold flex items-center justify-center flex-shrink-0">3</span>
+            <div>
+              <h4 class="font-serif font-bold text-slate-950 text-lg mb-1">Enviar el PDF con QR al departamento de RRHH</h4>
+              <p class="text-slate-600 text-sm leading-relaxed">
+                Descargá el documento emitido y remitilo por email o el canal corporativo habitual. Informá que la empresa puede validar el CUIR en el validador oficial autamedica.com/verify.
+              </p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 flex items-start gap-6 shadow-sm">
+            <span class="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 font-bold flex items-center justify-center flex-shrink-0">4</span>
+            <div>
+              <h4 class="font-serif font-bold text-slate-950 text-lg mb-1">Guardar reposo y esperar el control patronal</h4>
+              <p class="text-slate-600 text-sm leading-relaxed">
+                Permanecé en tu domicilio en reposo clínico para facilitar el examen del médico laboral si tu empleador resuelve enviar facultativo a constatar tu estado físico.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQS ACCORDION -->
+    <section class="py-20 md:py-28 bg-white border-b border-slate-100">
+      <div class="max-w-4xl mx-auto px-6">
+        <div class="text-center mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Preguntas del Ámbito Laboral</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Preguntas frecuentes sobre certificados médicos laborales.
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden transition-colors">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none select-none">
+                <span class="text-base md:text-lg font-serif font-bold text-slate-900 pr-4">{faq.q}</span>
+                <span class="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 font-semibold group-open:rotate-180 group-open:bg-sky-50 group-open:text-sky-700 transition-transform flex-shrink-0">
+                  &darr;
+                </span>
+              </summary>
+              <div class="px-6 md:px-8 pb-6 md:pb-8 text-slate-600 text-sm leading-relaxed border-t border-slate-200/60 pt-4">
+                {faq.a}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="py-20 md:py-28 bg-slate-50 text-center">
+      <div class="max-w-3xl mx-auto px-6">
+        <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+          Iniciá tu consulta médica laboral con respaldo legal.
+        </h2>
+        <p class="text-slate-600 text-base md:text-lg mb-10 leading-relaxed">
+          Evaluación clínica por videollamada con médicos matriculados. Obtené tu certificado laboral con código CUIR y código QR verificable.
+        </p>
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+          <a
+            href="/auth/register"
+            class="inline-flex items-center justify-center px-10 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5 text-base"
+          >
+            Iniciar Consulta Laboral
+          </a>
+          <a
+            href="/certificados-medicos"
+            class="inline-flex items-center justify-center px-10 py-4 bg-white hover:bg-slate-100 text-slate-800 font-semibold rounded-xl border border-slate-200 transition-colors text-base"
+          >
+            Ver Hub de Certificados
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
+</Layout>
