@@ -102,6 +102,33 @@ const article = {
             </p>
           </section>
 
+          <!-- Banner destacado de conversión institucional -->
+          <div class="blog-cta-box" style="margin: 2.5rem 0; padding: 2rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 1rem;">
+            <span style="display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0369a1; background: #e0f2fe; padding: 0.25rem 0.75rem; border-radius: 9999px; margin-bottom: 0.75rem;">
+              Atención Médica Inmediata
+            </span>
+            <h3 style="font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem;">
+              ¿Necesitás una consulta médica para tramitar tu certificado?
+            </h3>
+            <p style="font-size: 0.95rem; color: #475569; line-height: 1.6; margin: 0 0 1.25rem;">
+              Conocé el servicio de certificados médicos de <strong>AutaMedica</strong>: videoconsulta con profesionales matriculados, código CUIR inmutable, firma digital y verificación pública inmediata por código QR.
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+              <a
+                href="/certificado-medico-online"
+                style="display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #0284c7; color: #ffffff; font-weight: 600; font-size: 0.875rem; border-radius: 0.75rem; text-decoration: none; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);"
+              >
+                Solicitar Consulta Online &rarr;
+              </a>
+              <a
+                href="/certificados-medicos"
+                style="display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #ffffff; color: #0f172a; font-weight: 600; font-size: 0.875rem; border: 1px solid #cbd5e1; border-radius: 0.75rem; text-decoration: none;"
+              >
+                Ver Tipos de Certificados
+              </a>
+            </div>
+          </div>
+
           <section>
             <h2>Recetas electrónicas: qué se puede recetar a distancia</h2>
             <p>
@@ -140,6 +167,48 @@ const article = {
               Lo que falta no es legislación: es implementación. Interoperabilidad entre sistemas, capacitación de profesionales, actualización de recursos humanos en empresas, y una cultura que deje de equiparar "original" con "papel con sello azul". Mientras esa transición se completa, lo mejor que podés hacer es conocer tus derechos y exigir que se cumplan.
             </p>
           </section>
+
+          <!-- Enlaces recomendados al cluster de certificados -->
+          <div style="margin: 3rem 0; padding: 1.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 1rem;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 0.75rem;">
+              Servicios de Certificación Médica en AutaMedica
+            </h3>
+            <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem; line-height: 1.6;">
+              Si requerís tramitar una constancia médica oficial para tu ámbito de trabajo, estudio o deporte, explorá nuestras guías y servicios:
+            </p>
+            <ul style="list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+              <li>
+                <a href="/certificados-medicos" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Hub de Certificados Médicos &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/certificado-medico-online" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Certificado Médico Online &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/justificativo-medico" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Justificativo Médico Laboral &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/certificado-medico-laboral" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Licencia Médica y ART &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/certificado-medico-escolar" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Certificado Escolar y Universitario &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/certificado-aptitud-fisica" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Certificado de Aptitud Física &rarr;
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <ShareButtons title={article.title} url="https://www.autamedica.com/blog/certificado-medico-digital-validez" description="Marco legal del certificado médico digital en Argentina: validez de la firma digital, telemedicina y recetas electrónicas." author={article.author} category={article.category} />

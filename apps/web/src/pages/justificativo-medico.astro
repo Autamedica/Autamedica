@@ -1,0 +1,355 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/justificativo-medico';
+
+const guidelines = [
+  {
+    title: 'Confidencialidad Médica Absoluta',
+    desc: 'Bajo el amparo de la Ley 25.326 de Protección de Datos Personales, tus antecedentes clínicos y diagnóstico son confidenciales. Tu empleador o casa de estudios no puede exigirte detallar tu enfermedad íntima para justificar la inasistencia.',
+  },
+  {
+    title: 'Validez Legal Fehadiente',
+    desc: 'Emitido por médicos matriculados (MN/MP) conforme a la Ley 27.553. Cumple acabadamente con la obligación de notificación del artículo 209 de la Ley de Contrato de Trabajo (LCT 20.744).',
+  },
+  {
+    title: 'Verificación Inmediata sin Papel',
+    desc: 'Cada justificativo incluye un código CUIR y un QR que el departamento de Recursos Humanos o la Secretaría Académica pueden auditar en segundos en autamedica.com/verify.',
+  },
+];
+
+const restPeriods = [
+  {
+    range: '24 a 48 Horas',
+    useCases: 'Cuadros febriles agudos en observación, gastroenteritis leve, cefalea tensional invalidante o reacciones posvacunales.',
+    criteria: 'Reposo sintomático inicial con pautas de hidratación y aislamiento ambulatorio temporal.',
+  },
+  {
+    range: '72 Horas',
+    useCases: 'Síndrome gripal con compromiso general, bronquitis aguda, lumbalgia con contractura paravertebral severa.',
+    criteria: 'Indicación de reposo en cama y reevaluación clínica en caso de persistencia térmica.',
+  },
+  {
+    range: '5 a 7 Días',
+    useCases: 'Infecciones bacterianas respiratorias, esguinces articulares que requieren inmovilización o cuadros respiratorios contagiosos.',
+    criteria: 'Tratamiento farmacológico específico, reposo físico completo y control coetáneo al finalizar el período.',
+  },
+];
+
+const faqs = [
+  {
+    q: '¿Puede mi empleador rechazar el justificativo si no figura el diagnóstico?',
+    a: 'No legalmente. De acuerdo con la Ley 25.326 (Habeas Data) y la Ley 26.529 (Derechos del Paciente), el diagnóstico es un dato sensible amparado por el secreto profesional médico. El empleador solo tiene derecho a conocer la indicación de reposo y su duración temporal para organizar el trabajo. Si la empresa desea auditar la patología, debe ejercer su facultad del Art. 210 de la Ley de Contrato de Trabajo enviando a su médico laboral a constatar el estado clínico.',
+  },
+  {
+    q: '¿Qué hago si Recursos Humanos exige un certificado en papel con sello de tinta?',
+    a: 'La Ley 27.553 de Recetas y Teleasistencia en Salud (Decreto 98/2023) y la Ley 25.506 de Firma Digital equiparan plenamente los documentos médicos electrónicos con los manuscritos. Podés presentar el documento en PDF y sugerir a RRHH que escanee el código QR o ingrese el código CUIR en autamedica.com/verify, donde constarán los datos del profesional matriculado.',
+  },
+  {
+    q: '¿El justificativo sirve para reprogramar un examen en la universidad?',
+    a: 'Sí. Las universidades públicas y privadas de la Argentina aceptan constancias médicas con firma electrónica emitida por profesionales habilitados que certifiquen la imposibilidad de comparecer al examen en la fecha y hora indicadas.',
+  },
+  {
+    q: '¿Cómo le envío el justificativo a mi empresa o facultad?',
+    a: 'Apenas finaliza tu videoconsulta, podés descargar el documento en formato PDF desde tu panel de paciente. Podés adjuntarlo directamente por correo electrónico a RRHH, remitirlo por WhatsApp o imprimirlo si la institución aún conserva mesa de entradas física.',
+  },
+  {
+    q: '¿Qué sucede si continúo enfermo cuando vence el plazo de reposo?',
+    a: 'Si al término de los días indicados persistís con síntomas que te impiden retomar tus tareas habituales, debés solicitar una nueva consulta de reevaluación. El médico evaluará la evolución del cuadro y, si corresponde, extenderá la licencia médica de manera fundada.',
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: 'Justificativo Médico Online y Laboral en Argentina | AutaMedica',
+      description:
+        'Justificativo médico digital para trabajo o estudio con opción de diagnóstico reservado bajo Ley 25.326. Validación inmediata por QR y firma digital de médicos matriculados.',
+      inLanguage: 'es-AR',
+      isPartOf: {
+        '@type': 'WebSite',
+        '@id': 'https://www.autamedica.com/#website',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+      about: {
+        '@type': 'MedicalProcedure',
+        name: 'Emisión de Justificativo Médico y Constancia de Reposo',
+        procedureType: 'https://schema.org/NoninvasiveProcedure',
+      },
+      publisher: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+      },
+      audience: {
+        '@type': 'PeopleAudience',
+        geographicArea: {
+          '@type': 'Country',
+          name: 'Argentina',
+        },
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Certificados Médicos',
+          item: 'https://www.autamedica.com/certificados-medicos',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Justificativo Médico',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.a,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Justificativo Médico Online y Laboral en Argentina | AutaMedica"
+  description="Justificativo médico digital para trabajo o estudio con diagnóstico reservado según Ley 25.326. Validación inmediata con QR y firma digital de médicos matriculados."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- HERO SECTION -->
+    <header class="relative bg-gradient-to-b from-slate-50 via-white to-sky-50/30 border-b border-slate-200/80 pt-16 pb-20 md:py-24">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider mb-6">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Derecho a la Intimidad · Ley 25.326</span>
+          </div>
+
+          <h1 class="text-4xl md:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12] mb-6">
+            Justificativo médico digital con <span class="text-sky-700 italic">diagnóstico confidencial.</span>
+          </h1>
+
+          <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed mb-8">
+            Acreditá formalmente tu inasistencia laboral o académica ante Recursos Humanos o tu universidad sin necesidad de exponer tu patología íntima. Documentación oficial emitida por médicos matriculados tras videoconsulta sincrónica.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 mb-10">
+            <a
+              href="/auth/register"
+              class="inline-flex items-center justify-center px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5"
+            >
+              Solicitar Justificativo Médico
+            </a>
+            <a
+              href="#derechos-paciente"
+              class="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 font-semibold rounded-xl border border-slate-200 transition-colors"
+            >
+              Conocer el Marco Legal
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200/70 text-xs text-slate-600">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Aceptado en Empresas y RRHH</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Protección de Datos Sensibles</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Validación CUIR en Tiempo Real</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- PILARES DEL JUSTIFICATIVO -->
+    <section class="py-20 md:py-24 bg-white border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {guidelines.map((g) => (
+            <div class="bg-slate-50/70 rounded-2xl border border-slate-200 p-8">
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">{g.title}</h3>
+              <p class="text-slate-600 text-sm leading-relaxed">{g.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- EL DERECHO A LA CONFIDENCIALIDAD DEL DIAGNÓSTICO -->
+    <section id="derechos-paciente" class="py-20 md:py-28 bg-slate-900 text-white">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div class="lg:col-span-6 space-y-6">
+            <span class="text-sky-400 font-bold text-xs uppercase tracking-widest block">Protección Legal del Trabajador</span>
+            <h2 class="text-3xl md:text-5xl font-serif font-bold tracking-tight text-white leading-tight">
+              ¿Por qué no estás obligado a revelar tu enfermedad?
+            </h2>
+            <p class="text-slate-300 text-base md:text-lg leading-relaxed">
+              En Argentina rige el principio de autodeterminación informativa. El empleador solo necesita conocer las fechas de reposo médico para organizar los recursos operativos y calcular la liquidación de haberes conforme al Art. 208 de la Ley de Contrato de Trabajo.
+            </p>
+            <p class="text-slate-300 text-base leading-relaxed">
+              Exigir a un empleado que exponga si padece una crisis depresiva, un cólico renal, una infección ginecológica o una afección gastrointestinal atenta contra su intimidad protegida por la <strong class="text-white">Ley 25.326</strong> y el secreto médico.
+            </p>
+            <div class="p-4 bg-slate-800 rounded-xl border border-slate-700 text-xs text-slate-300">
+              <strong class="text-white block mb-1">En AutaMedica podés elegir:</strong>
+              Al momento de emitir el certificado, el profesional puede tildar la opción de diagnóstico reservado. El documento consigna: <em class="text-sky-300">"Diagnóstico: Reservado a solicitud del paciente según Ley 25.326"</em>.
+            </div>
+          </div>
+
+          <div class="lg:col-span-6">
+            <div class="bg-white rounded-3xl p-8 text-slate-900 shadow-2xl">
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-4 pb-4 border-b border-slate-100">
+                Límites entre Control Patronal y Privacidad
+              </h3>
+              <div class="space-y-4 text-xs md:text-sm text-slate-600">
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <p class="font-bold text-slate-900 mb-1">Lo que el empleador SÍ tiene derecho a saber:</p>
+                  <ul class="list-disc pl-4 space-y-1 text-slate-600">
+                    <li>Que el trabajador está cursando un cuadro que le impide concurrir a prestar tareas.</li>
+                    <li>La fecha precisa de inicio del reposo y la fecha de alta prevista.</li>
+                    <li>Nombre, apellido y matrícula del médico tratante habilitado.</li>
+                    <li>Código CUIR para auditar que el documento es auténtico.</li>
+                  </ul>
+                </div>
+
+                <div class="p-4 rounded-xl bg-sky-50/50 border border-sky-200">
+                  <p class="font-bold text-sky-950 mb-1">Lo que el empleador NO puede exigir:</p>
+                  <ul class="list-disc pl-4 space-y-1 text-slate-700">
+                    <li>Conocer la naturaleza exacta de la patología o código CIE-10 contra la voluntad del paciente.</li>
+                    <li>Acceder a la historia clínica o detalles de la prescripción farmacéutica íntima.</li>
+                    <li>Obligar al paciente a presentar certificados manuscritos si ya cuenta con formato digital firmado.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CRITERIOS DE REPOSO (TABLA CLÍNICA) -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Criterios de Medicina Basada en la Evidencia</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 mb-4">
+            Pautas clínicas para la indicación de reposo médico.
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg">
+            La cantidad de días de licencia médica es asignada por el profesional actuante según el tiempo estimado de recuperación biológica y la necesidad de evitar contagios en el entorno comunitario.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {restPeriods.map((p) => (
+            <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+              <span class="inline-block text-xs font-bold text-sky-700 bg-sky-50 border border-sky-200 px-3 py-1 rounded-full mb-4">
+                {p.range}
+              </span>
+              <h3 class="text-lg font-serif font-bold text-slate-950 mb-3">Patologías Habituales</h3>
+              <p class="text-slate-600 text-sm leading-relaxed mb-6">{p.useCases}</p>
+              <div class="pt-4 border-t border-slate-100">
+                <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Criterio Médico:</p>
+                <p class="text-xs text-slate-700 leading-normal">{p.criteria}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQS ACCORDION -->
+    <section class="py-20 md:py-28 bg-white border-b border-slate-100">
+      <div class="max-w-4xl mx-auto px-6">
+        <div class="text-center mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Dudas Habituales</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Preguntas frecuentes sobre justificativos médicos.
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden transition-colors">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none select-none">
+                <span class="text-base md:text-lg font-serif font-bold text-slate-900 pr-4">{faq.q}</span>
+                <span class="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 font-semibold group-open:rotate-180 group-open:bg-sky-50 group-open:text-sky-700 transition-transform flex-shrink-0">
+                  &darr;
+                </span>
+              </summary>
+              <div class="px-6 md:px-8 pb-6 md:pb-8 text-slate-600 text-sm leading-relaxed border-t border-slate-200/60 pt-4">
+                {faq.a}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="py-20 md:py-28 bg-slate-50 text-center">
+      <div class="max-w-3xl mx-auto px-6">
+        <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+          Gestioná tu justificativo médico con plena seguridad legal.
+        </h2>
+        <p class="text-slate-600 text-base md:text-lg mb-10 leading-relaxed">
+          Atendete por videoconsulta con un médico matriculado y recibí tu certificado con diagnóstico confidencial y verificación por QR.
+        </p>
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+          <a
+            href="/auth/register"
+            class="inline-flex items-center justify-center px-10 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5 text-base"
+          >
+            Iniciar Consulta Médica
+          </a>
+          <a
+            href="/certificados-medicos"
+            class="inline-flex items-center justify-center px-10 py-4 bg-white hover:bg-slate-100 text-slate-800 font-semibold rounded-xl border border-slate-200 transition-colors text-base"
+          >
+            Ver Otros Certificados
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
+</Layout>

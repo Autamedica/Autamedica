@@ -1,0 +1,590 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/consulta-medica-en-farmacia';
+
+const faqItems = [
+  {
+    question: '¿Cómo funciona la consulta médica en farmacia con AutaMedica?',
+    answer:
+      'Cuando estás en la farmacia y necesitás una indicación médica o una receta para iniciar un tratamiento, escaneás el código QR de AutaMedica exhibido en el mostrador con la cámara de tu celular. Accedés al instante a nuestra guardia virtual sin descargar aplicaciones, te atiende un médico matriculado por videollamada y, si corresponde, emite la receta electrónica oficial con código CUIR en segundos para que la farmacia te dispense el medicamento en el mismo acto.',
+  },
+  {
+    question: '¿Qué es el código CUIR y por qué es importante para la farmacia?',
+    answer:
+      'El CUIR (Código Único de Identificación de Receta) es el identificador oficial estipulado por la Ley 27.553 y el Decreto 63 en la República Argentina. Permite que el profesional farmacéutico verifique en su sistema la autenticidad, vigencia y trazabilidad de la prescripción emitida por el médico de AutaMedica, evitando rechazos y garantizando una dispensa 100% legal.',
+  },
+  {
+    question: '¿Tengo que esperar turno o me atienden en el momento?',
+    answer:
+      'La atención es inmediata (On-Demand). El tiempo habitual de espera para conectarse con un médico clínico de guardia es de menos de 10 minutos, permitiéndote resolver la consulta y retirarte de la farmacia con el medicamento en mano en un solo trámite.',
+  },
+  {
+    question: '¿Qué tipo de problemas de salud se pueden atender en este circuito?',
+    answer:
+      'Es ideal para cuadros ambulatorios cotidianos que suelen motivar la visita a la farmacia: dolor de garganta o faringitis, resfríos y congestión, ardor al orinar (infección urinaria baja no complicada), erupciones cutáneas leves, picaduras, malestar estomacal, odontalgias menores y renovación de recetas para tratamientos crónicos (presión arterial, tiroides, diabetes).',
+  },
+  {
+    question: '¿Se pueden recetar antibióticos o medicamentos bajo receta archivada?',
+    answer:
+      'Sí. Si el profesional médico determina clínicamente que el cuadro requiere antibioticoterapia u otro fármaco bajo receta archivada, la receta electrónica emitida cumple con todos los requisitos formales de la autoridad sanitaria nacional para su dispensa y retención digital por parte de la farmacia.',
+  },
+  {
+    question: '¿Cómo puede una farmacia sumarse a la red de Puntos de Salud AutaMedica?',
+    answer:
+      'Cualquier farmacia habilitada puede integrarse a la red sin costo de instalación ni equipos complejos. Proveemos el material institucional con código QR para mostrador, acceso al portal de validación farmacéutica y soporte operativo continuo para brindar una mejor atención a su comunidad.',
+  },
+];
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: 'Consulta Médica en Farmacia | Atención Inmediata y Receta Digital | AutaMedica',
+      description:
+        'Accedé a una videoconsulta médica directa desde tu farmacia de confianza. Escaneá el QR, recibí atención con un médico matriculado y retirá tu medicación con receta oficial en el acto.',
+      inLanguage: 'es-AR',
+      aspect: ['Diagnosis', 'Treatment', 'Overview'],
+      medicalAudience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalSpecialty', name: 'PrimaryCare' },
+        { '@type': 'MedicalSpecialty', name: 'PharmacySpecialty' },
+        { '@type': 'Thing', name: 'Consulta médica en farmacia' },
+        { '@type': 'Thing', name: 'Receta electrónica CUIR' },
+      ],
+      provider: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Atención Médica',
+          item: 'https://www.autamedica.com/consulta-medica-online',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Consulta médica en farmacia',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Consulta Médica en Farmacia | Atención y Receta Digital en el Mostrador | AutaMedica"
+  description="Accedé a una videoconsulta médica inmediata desde tu farmacia de barrio. Escaneá el QR de AutaMedica, te atiende un médico matriculado y retirás tu medicación con receta oficial en el acto."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="website"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
+
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- Breadcrumbs -->
+    <nav class="border-b border-slate-100 bg-slate-50/60 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/consulta-medica-online" class="hover:text-sky-600 transition-colors">Atención Médica</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Consulta médica en farmacia</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="relative py-16 md:py-24 border-b border-slate-100 bg-gradient-to-b from-sky-50/30 via-white to-white">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 text-white text-xs font-semibold tracking-wide uppercase">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Red de Salud de Cercanía • Integración Punto a Punto
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12]">
+              La consulta médica en tu farmacia de barrio: <span class="text-sky-600">diagnóstico y medicación</span> en el mismo acto.
+            </h1>
+
+            <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl">
+              Sin perder el día en una sala de espera ni recurrir a la automedicación. Acudís a tu farmacia de confianza, escaneás el código QR de AutaMedica, te conectás con un médico matriculado por videoconsulta y la receta oficial con código CUIR se dispensa en el mostrador en minutos.
+            </p>
+
+            <!-- Key Indicators -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              <div class="flex items-center gap-2 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg p-3 shadow-xs">
+                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Resolución en 15 minutos</span>
+              </div>
+              <div class="flex items-center gap-2 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg p-3 shadow-xs">
+                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Receta oficial Ley 27.553</span>
+              </div>
+              <div class="flex items-center gap-2 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg p-3 shadow-xs">
+                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Dispensa inmediata</span>
+              </div>
+            </div>
+
+            <!-- CTAs -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-3">
+              <a href="/auth/register" class="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg bg-sky-600 text-white font-semibold text-base shadow-sm hover:bg-sky-700 transition-all transform hover:-translate-y-0.5">
+                <span>Iniciar consulta ahora</span>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </a>
+              <a href="/companies" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg border border-slate-300 bg-white text-slate-800 font-semibold text-base hover:bg-slate-50 hover:border-slate-400 transition-all">
+                <span>Sumar mi farmacia a la red</span>
+              </a>
+            </div>
+
+            <p class="text-xs text-slate-500">
+              Circuito homologado para pacientes y farmacias comunitarias en toda la Argentina.
+            </p>
+          </div>
+
+          <!-- Hero Circuit Visualization -->
+          <div class="lg:col-span-5">
+            <div class="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
+                    Rx
+                  </div>
+                  <div>
+                    <h2 class="text-sm font-bold text-slate-900 leading-tight">Punto de Salud en Farmacia</h2>
+                    <p class="text-xs text-slate-500">Circuito Integrado AutaMedica</p>
+                  </div>
+                </div>
+                <span class="text-[11px] font-semibold bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded-full">
+                  Homologado
+                </span>
+              </div>
+
+              <!-- Graphic Flow Steps -->
+              <div class="space-y-2.5 text-xs">
+                
+                <div class="p-3 rounded-lg border border-slate-200 bg-slate-50/70 flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-full bg-slate-950 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    1
+                  </div>
+                  <div class="flex-1">
+                    <span class="font-bold text-slate-900 block">QR en mostrador</span>
+                    <span class="text-slate-600 text-[11px]">El paciente escanea desde su teléfono móvil.</span>
+                  </div>
+                  <span class="text-emerald-600 font-mono text-[10px] font-bold">Sin App</span>
+                </div>
+
+                <div class="p-3 rounded-lg border border-sky-200 bg-sky-50/60 flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    2
+                  </div>
+                  <div class="flex-1">
+                    <span class="font-bold text-slate-900 block">Videoconsulta médica WebRTC</span>
+                    <span class="text-slate-600 text-[11px]">Atención directa con médico clínico matriculado.</span>
+                  </div>
+                  <span class="text-sky-700 font-mono text-[10px] font-bold">En vivo</span>
+                </div>
+
+                <div class="p-3 rounded-lg border border-slate-200 bg-slate-50/70 flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-full bg-slate-950 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    3
+                  </div>
+                  <div class="flex-1">
+                    <span class="font-bold text-slate-900 block">Receta Electrónica Oficial</span>
+                    <span class="text-slate-600 text-[11px]">Código CUIR emitido y firmado digitalmente.</span>
+                  </div>
+                  <span class="text-slate-600 font-mono text-[10px] font-bold">Ley 27.553</span>
+                </div>
+
+                <div class="p-3 rounded-lg border border-emerald-200 bg-emerald-50/60 flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    4
+                  </div>
+                  <div class="flex-1">
+                    <span class="font-bold text-slate-900 block">Dispensa en el mostrador</span>
+                    <span class="text-slate-600 text-[11px]">El farmacéutico valida el CUIR y entrega la medicación.</span>
+                  </div>
+                  <span class="text-emerald-700 font-mono text-[10px] font-bold">Inmediato</span>
+                </div>
+
+              </div>
+
+              <!-- Real summary banner -->
+              <div class="rounded-lg bg-slate-900 text-white p-3 text-center text-xs">
+                <span class="text-slate-300">Tiempo total de resolución estimada:</span>
+                <span class="text-emerald-400 font-bold ml-1">15 a 20 minutos</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ETHICAL CARE BOUNDARY CALLOUT -->
+    <section class="py-6 bg-slate-50 border-b border-slate-200">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="rounded-xl border border-slate-200 bg-white p-5 flex items-start gap-4 text-xs md:text-sm text-slate-600">
+          <div class="w-9 h-9 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div class="space-y-1">
+            <span class="font-bold text-slate-900 block">Seguridad del Paciente y Criterio Farmacéutico</span>
+            <p>
+              El servicio de consulta médica en farmacia está orientado a cuadros ambulatorios y tratamientos que no revisten gravedad inmediata. En situaciones de emergencia con compromiso vital (dolor torácico opresivo, traumatismos severos, asfixia o pérdida de conciencia), el personal farmacéutico activará de inmediato el protocolo de emergencia hospitalaria presencial o llamado al <strong>107 (SAME)</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- THE DETAILED PRODUCT CIRCUIT (REAL VALUE PROP) -->
+    <section class="py-20 md:py-28 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mx-auto text-center space-y-4 mb-16">
+          <span class="text-sky-600 font-bold text-xs uppercase tracking-widest">El Circuito Tecnológico y Asistencial</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 tracking-tight">
+            Cómo se transforma la experiencia de atención en la farmacia
+          </h2>
+          <p class="text-base md:text-lg text-slate-600 leading-relaxed">
+            Un flujo clínico sin fricciones que conecta al paciente, al médico clínico y al farmacéutico en un circuito trazable y seguro.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          
+          <div class="rounded-xl border border-slate-200 bg-white p-6 space-y-4 shadow-xs">
+            <div class="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-lg">
+              1
+            </div>
+            <h3 class="text-lg font-bold text-slate-950">Llegada y Escaneo</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              El vecino acude a la farmacia con síntomas o necesidad de renovar una medicación. Escanea el QR colocado en el mostrador desde su teléfono móvil o la tablet habilitada.
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 bg-white p-6 space-y-4 shadow-xs">
+            <div class="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-lg">
+              2
+            </div>
+            <h3 class="text-lg font-bold text-slate-950">Triaje & Videollamada</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Carga sus datos y síntoma principal. En menos de 10 minutos se conecta por videollamada WebRTC encriptada con un médico matriculado de la guardia de AutaMedica.
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 bg-white p-6 space-y-4 shadow-xs border-t-2 border-t-sky-600">
+            <div class="w-12 h-12 rounded-xl bg-sky-600 text-white flex items-center justify-center font-bold text-lg">
+              3
+            </div>
+            <h3 class="text-lg font-bold text-slate-950">Receta Oficial CUIR</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              El profesional formula el diagnóstico presuntivo y emite la receta digital con código CUIR y firma electrónica, registrada de inmediato en la Red Nacional.
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 bg-white p-6 space-y-4 shadow-xs">
+            <div class="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-lg">
+              4
+            </div>
+            <h3 class="text-lg font-bold text-slate-950">Dispensa en Mano</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              El farmacéutico ingresa el código CUIR en su sistema habitual o escanea el comprobante digital y entrega el medicamento en el mismo momento.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- DUAL BENEFIT SECTION (PATIENTS & PHARMACIES) -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mx-auto text-center space-y-4 mb-16">
+          <span class="text-sky-600 font-bold text-xs uppercase tracking-widest">Impacto en la Comunidad</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 tracking-tight">
+            Un beneficio tangible para el paciente y para la farmacia
+          </h2>
+          <p class="text-base md:text-lg text-slate-600 leading-relaxed">
+            Un modelo de salud de proximidad que descentraliza las salas de espera y formaliza el acceso al tratamiento médico.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-6xl mx-auto">
+          
+          <!-- Para Pacientes -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-8 space-y-6 shadow-xs">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-sky-100 text-sky-800 text-xs font-bold uppercase tracking-wider">
+              Para Pacientes y Familias
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-slate-950">
+              Salud inmediata cerca de casa, sin esperas ni traslados.
+            </h3>
+            
+            <ul class="space-y-4 text-sm text-slate-600">
+              <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Resolución en un solo viaje:</strong> Consultás y te llevás la medicación indicada sin tener que desplazarte a una clínica.</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Fin de las salas de espera atestadas:</strong> Evitás horas sentado en guardias hospitalarias con riesgo de contraer virus o bacterias.</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Seguridad clínica contra la automedicación:</strong> Un profesional matriculado evalúa tus síntomas y contraindicaciones antes de prescribir.</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Historia clínica digital unificada:</strong> Cada consulta y receta queda registrada en tu perfil personal para futuras revisiones.</span>
+              </li>
+            </ul>
+
+            <div class="pt-2">
+              <a href="/auth/register" class="inline-flex items-center gap-2 text-sky-600 font-bold text-sm hover:text-sky-700">
+                <span>Registrarme como paciente</span>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Para Farmacias -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-8 space-y-6 shadow-xs">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-slate-900 text-white text-xs font-bold uppercase tracking-wider">
+              Para Farmacias de la Red
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-slate-950">
+              Tu farmacia como Nodo de Atención Primaria y Salud Digital.
+            </h3>
+
+            <ul class="space-y-4 text-sm text-slate-600">
+              <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Resolución ética en mostrador:</strong> Brindás una respuesta inmediata a los pacientes que llegan sin receta para medicamentos éticos.</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Cumplimiento de la Ley 27.553:</strong> Cada dispensa cuenta con respaldo médico auditable, código CUIR oficial y firma electrónica.</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Mayor fidelización comunitaria:</strong> Los vecinos valoran encontrar en su farmacia de confianza una solución sanitaria completa.</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Cero costo de infraestructura:</strong> No requiere remodelaciones ni computadoras especiales; solo el tótem o cartel QR de AutaMedica.</span>
+              </li>
+            </ul>
+
+            <div class="pt-2">
+              <a href="/companies" class="inline-flex items-center gap-2 text-sky-600 font-bold text-sm hover:text-sky-700">
+                <span>Solicitar adhesión para mi farmacia</span>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- FREQUENT USE CASES IN PHARMACY -->
+    <section class="py-20 md:py-28 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mx-auto text-center space-y-4 mb-16">
+          <span class="text-sky-600 font-bold text-xs uppercase tracking-widest">Casos Habituales en Mostrador</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 tracking-tight">
+            Consultas que se resuelven en minutos en la farmacia
+          </h2>
+          <p class="text-base md:text-lg text-slate-600 leading-relaxed">
+            Situaciones cotidianas donde el paciente necesita evaluación clínica y prescripción legal inmediata.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          
+          <div class="border border-slate-200 rounded-xl p-6 space-y-3 bg-white shadow-xs">
+            <h3 class="text-lg font-bold text-slate-950">Infecciones Respiratorias Leves</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Odinofagia, dolor al tragar, rinitis, congestión nasal y tos seca. Diagnóstico diferencial entre cuadro viral y bacteriano, indicación analgésica y antibioticoterapia si amerita.
+            </p>
+          </div>
+
+          <div class="border border-slate-200 rounded-xl p-6 space-y-3 bg-white shadow-xs">
+            <h3 class="text-lg font-bold text-slate-950">Renovación de Recetas Crónicas</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Pacientes con hipertensión, hipotiroidismo o diabetes que se quedaron sin medicación durante el fin de semana o feriado. Verificación de tratamiento y emisión de receta CUIR.
+            </p>
+          </div>
+
+          <div class="border border-slate-200 rounded-xl p-6 space-y-3 bg-white shadow-xs">
+            <h3 class="text-lg font-bold text-slate-950">Molestias Urinarias Agudas</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Ardor miccional y urgencia en mujeres no complicadas. Evaluación de síntomas de alarma y prescripción antibiótica de primera línea con pedido de urocultivo.
+            </p>
+          </div>
+
+          <div class="border border-slate-200 rounded-xl p-6 space-y-3 bg-white shadow-xs">
+            <h3 class="text-lg font-bold text-slate-950">Reacciones Alérgicas y Piel</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Picaduras inflamadas, dermatitis por contacto, urticaria localizada. Prescripción de antihistamínicos orales o cremas con corticoides de baja potencia.
+            </p>
+          </div>
+
+          <div class="border border-slate-200 rounded-xl p-6 space-y-3 bg-white shadow-xs">
+            <h3 class="text-lg font-bold text-slate-950">Molestias Digestivas y Gastritis</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Acidez aguda, reflujo, náuseas o diarrea leve. Indicación de protectores de la mucosa gástrica, antiespasmódicos y pautas dietéticas de recuperación.
+            </p>
+          </div>
+
+          <div class="border border-slate-200 rounded-xl p-6 space-y-3 bg-white shadow-xs">
+            <h3 class="text-lg font-bold text-slate-950">Odontalgias de Urgencia</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Dolor dentario agudo que se manifiesta fuera del horario de los consultorios odontológicos. Analgesia combinada y antibióticos profilácticos si existe infección aparente.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- LEGAL & NORMATIVE BACKING -->
+    <section class="py-16 md:py-24 bg-slate-900 text-white">
+      <div class="container mx-auto px-6 max-w-5xl space-y-8">
+        <div class="text-center space-y-3">
+          <span class="text-xs uppercase font-extrabold tracking-widest text-sky-400">Marco Legal de la República Argentina</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-white">
+            100% Homologado bajo la Ley 27.553 y Decreto 63
+          </h2>
+          <p class="text-slate-300 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+            La integración entre telemedicina y farmacias comunitarias opera bajo el estricto marco legal sanitario argentino.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
+          <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-6 space-y-2">
+            <div class="text-sky-400 font-bold text-base">Ley 27.553</div>
+            <p class="text-slate-300 text-xs leading-relaxed">
+              Establece la validez jurídica plena de las recetas electrónicas y digitales en todo el territorio nacional, equiparándolas a la prescripción en papel.
+            </p>
+          </div>
+          <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-6 space-y-2">
+            <div class="text-sky-400 font-bold text-base">Código CUIR Oficial</div>
+            <p class="text-slate-300 text-xs leading-relaxed">
+              Cada prescripción emitida en AutaMedica incorpora el Código Único de Identificación de Receta garantizando autenticidad y no repudio.
+            </p>
+          </div>
+          <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-6 space-y-2">
+            <div class="text-sky-400 font-bold text-base">Ley 25.326 & 26.529</div>
+            <p class="text-slate-300 text-xs leading-relaxed">
+              Protección estricta de datos personales de salud e integridad inmutable de la historia clínica digital del paciente.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="py-20 md:py-28 bg-white border-b border-slate-100" id="faq">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center space-y-4 mb-14">
+          <span class="text-sky-600 font-bold text-xs uppercase tracking-widest">Preguntas Frecuentes</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 tracking-tight">
+            Dudas sobre la consulta médica en farmacias
+          </h2>
+          <p class="text-slate-600 text-sm md:text-base">
+            Respuestas para pacientes y profesionales farmacéuticos interesados en la red.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          {faqItems.map((item) => (
+            <details class="group rounded-xl border border-slate-200 bg-slate-50/50 p-5 transition-all [&_summary::-webkit-details-marker]:hidden">
+              <summary class="flex cursor-pointer items-center justify-between gap-4 font-bold text-slate-900 text-base">
+                <span>{item.question}</span>
+                <span class="shrink-0 rounded-full p-1.5 text-slate-400 group-open:rotate-180 transition-transform">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </span>
+              </summary>
+              <p class="mt-4 text-sm text-slate-600 leading-relaxed border-t border-slate-200 pt-3">
+                {item.answer}
+              </p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CROSS LINKS -->
+    <section class="py-14 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6 text-center">Canales de Atención Médica</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <a href="/guardia-medica-online" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Guardia Médica 24hs
+          </a>
+          <a href="/videoconsulta-medica" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Videoconsulta Médica
+          </a>
+          <a href="/receta-electronica" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Receta Oficial Ley 27.553
+          </a>
+          <a href="/companies" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Red de Farmacias
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <CTAFinal
+      title="Atendete en tu farmacia de confianza."
+      subtitle="Escaneá el código QR en el mostrador, realizá tu videoconsulta y retirá tu tratamiento médico en minutos."
+      buttonLabel="Iniciar consulta médica ahora"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>

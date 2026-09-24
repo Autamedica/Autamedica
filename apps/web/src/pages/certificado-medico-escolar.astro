@@ -1,0 +1,333 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/certificado-medico-escolar';
+
+const commonConditions = [
+  {
+    title: 'Cuadros Febriles e Infecciones Respiratorias',
+    items: ['Faringoamigdalitis aguda y angina bacteriana', 'Síndrome gripal y virosis estacionales', 'Bronquitis y laringotraqueítis aguda', 'Otitis media aguda dolorosa'],
+    desc: 'Indicación de reposo domiciliario para evitar complicaciones y frenar cadenas de contagio en el aula.',
+  },
+  {
+    title: 'Gastroenteritis y Cuadros Digestivos',
+    items: ['Gastroenteritis aguda viral o alimentaria', 'Vómitos incoercibles y diarrea aguda', 'Deshidratación leve con requerimiento de sales', 'Dolor abdominal cólico en estudio'],
+    desc: 'Acreditación de reposo con pautas de tolerancia oral y aislamiento hasta 24 horas después del cese de fiebre.',
+  },
+  {
+    title: 'Enfermedades Exantemáticas y Eruptivas',
+    items: ['Varicela y enfermedad boca-mano-pie', 'Escarlatina y eritema infeccioso', 'Exantemas virales inespecíficos', 'Conjuntivitis bacteriana o viral aguda'],
+    desc: 'Certificación estricta de aislamiento escolar hasta la fase de costra o remisión completa del período de contagio.',
+  },
+  {
+    title: 'Traumatismos y Exención de Educación Física',
+    items: ['Esguinces de tobillo o muñeca', 'Contusiones articulares leves', 'Contracturas y distensiones musculares', 'Recuperación post-inmovilización'],
+    desc: 'Justificación médica específica para eximir temporalmente al alumno de actividades de esfuerzo o educación física.',
+  },
+];
+
+const faqs = [
+  {
+    q: '¿El certificado médico es aceptado por colegios públicos y privados en Argentina?',
+    a: 'Sí. Los certificados emitidos en AutaMedica cumplen acabadamente con la Ley 27.553 de Teleasistencia y la Ley 25.506 de Firma Digital. Son aceptados por instituciones de gestión estatal y privada de nivel inicial, primario, secundario y terciario en todas las provincias y CABA.',
+  },
+  {
+    q: '¿Sirve para justificar inasistencia a un examen parcial o final en la universidad?',
+    a: 'Sí. Las universidades nacionales (como UBA, UTN, UNLP, UNC) y universidades privadas aceptan constancias médicas electrónicas emitidas por profesionales matriculados que indiquen la imposibilidad de comparecer en fecha y horario por razones de salud, habilitando la fecha de examen recuperatorio según los reglamentos de cada facultad.',
+  },
+  {
+    q: '¿Cómo se realiza la consulta si el paciente es menor de edad?',
+    a: 'En cumplimiento de la Ley 26.061 de Protección Integral de los Derechos de las Niñas, Niños y Adolescentes, la videoconsulta pediátrica o escolar de menores de 18 años debe realizarse siempre en compañía de su padre, madre o tutor legal, quien acreditará la identidad y brindará el consentimiento informado.',
+  },
+  {
+    q: '¿Cómo comprueba la secretaría escolar o la preceptora la autenticidad del certificado?',
+    a: 'Cada documento incluye un código QR institucional y un código alfanumérico CUIR. La autoridad escolar solo debe escanear el QR con su teléfono o ingresar a autamedica.com/verify para verificar la matrícula del médico, la fecha de consulta y el período de reposo indicado.',
+  },
+  {
+    q: '¿El médico puede extender una constancia de alta médica escolar?',
+    a: 'Sí. Una vez superado el cuadro de salud o completado el período de aislamiento por enfermedad contagiosa, el profesional puede emitir la constancia de alta médica escolar que habilita el regreso seguro del estudiante al aula.',
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: 'Certificado Médico Escolar y Universitario | AutaMedica',
+      description:
+        'Justificativo médico escolar y universitario por cuadros febriles, respiratorios o digestivos. Aceptado en instituciones públicas y privadas de Argentina con QR.',
+      inLanguage: 'es-AR',
+      isPartOf: {
+        '@type': 'WebSite',
+        '@id': 'https://www.autamedica.com/#website',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+      about: {
+        '@type': 'MedicalProcedure',
+        name: 'Emisión de Certificado Médico Escolar y Reposo Estudiantil',
+        procedureType: 'https://schema.org/NoninvasiveProcedure',
+      },
+      publisher: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+      },
+      audience: {
+        '@type': 'PeopleAudience',
+        geographicArea: {
+          '@type': 'Country',
+          name: 'Argentina',
+        },
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Certificados Médicos',
+          item: 'https://www.autamedica.com/certificados-medicos',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Certificado Médico Escolar',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.a,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Certificado Médico Escolar y Universitario | AutaMedica"
+  description="Justificativo médico escolar y universitario por cuadros febriles, respiratorios o digestivos. Aceptado en instituciones públicas y privadas de Argentina con QR."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- HERO SECTION -->
+    <header class="relative bg-gradient-to-b from-slate-50 via-white to-sky-50/30 border-b border-slate-200/80 pt-16 pb-20 md:py-24">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider mb-6">
+            <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+            <span>Instituciones Educativas · Nivel Escolar y Superior</span>
+          </div>
+
+          <h1 class="text-4xl md:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12] mb-6">
+            Certificado médico escolar y universitario <span class="text-sky-700 italic">al instante.</span>
+          </h1>
+
+          <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed mb-8">
+            Justificá formalmente inasistencias escolares, exámenes parciales y entregas académicas por cuadros agudos. Atención médica profesional por videollamada con pediatras y médicos clínicos matriculados, con firma digital y validación QR.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 mb-10">
+            <a
+              href="/auth/register"
+              class="inline-flex items-center justify-center px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5"
+            >
+              Solicitar Consulta Escolar
+            </a>
+            <a
+              href="#cuadros-escolares"
+              class="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 font-semibold rounded-xl border border-slate-200 transition-colors"
+            >
+              Ver Cuadros que se Evalúan
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200/70 text-xs text-slate-600">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Colegios Estatales y Privados</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Acompañamiento Pediátrico</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Reprogramación de Exámenes</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CUADROS CLÍNICOS FRECUENTES -->
+    <section id="cuadros-escolares" class="py-20 md:py-28 bg-white border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Salud Infantil y Juvenil</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 mb-4">
+            Patologías comunes que ameritan reposo escolar.
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg">
+            La indicación de reposo en la infancia y juventud prioriza la recuperación del paciente y la protección sanitaria de la comunidad educativa.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {commonConditions.map((cond) => (
+            <div class="bg-slate-50 rounded-2xl border border-slate-200 p-8">
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">{cond.title}</h3>
+              <p class="text-slate-600 text-sm leading-relaxed mb-6">{cond.desc}</p>
+              <ul class="space-y-2 pt-4 border-t border-slate-200/60 text-xs text-slate-700 font-medium">
+                {cond.items.map((item) => (
+                  <li class="flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-sky-600"></span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- VALIDEZ ACADÉMICA Y PROTOCOLO -->
+    <section class="py-20 md:py-28 bg-slate-900 text-white">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div class="lg:col-span-6 space-y-6">
+            <span class="text-sky-400 font-bold text-xs uppercase tracking-widest block">Cumplimiento Normativo Educativo</span>
+            <h2 class="text-3xl md:text-5xl font-serif font-bold tracking-tight text-white leading-tight">
+              Aceptación en colegios y universidades de todo el país.
+            </h2>
+            <p class="text-slate-300 text-base md:text-lg leading-relaxed">
+              Los certificados emitidos por los profesionales de AutaMedica reúnen todos los requerimientos solicitados por las Secretarías Académicas y Consejos Escolares provinciales.
+            </p>
+            <div class="space-y-4 pt-2 text-sm text-slate-300">
+              <div class="flex items-start gap-3">
+                <span class="text-sky-400 font-bold">✓</span>
+                <span><strong class="text-white">Para colegios y escuelas:</strong> Justificación de inasistencias en el boletín o registro digital de asistencia escolar.</span>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="text-sky-400 font-bold">✓</span>
+                <span><strong class="text-white">Para universidades:</strong> Presentación formal para acceder a fecha de recuperatorio o justificar faltas a trabajos prácticos obligatorios.</span>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="text-sky-400 font-bold">✓</span>
+                <span><strong class="text-white">Sin adulteración:</strong> El preceptor o directivo escanea el QR y accede a la confirmación oficial en el validador público de AutaMedica.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-6">
+            <div class="bg-white rounded-3xl p-8 text-slate-900 shadow-2xl">
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-4 pb-3 border-b border-slate-100">
+                Pautas para la Consulta Pediátrica
+              </h3>
+              <div class="space-y-4 text-xs md:text-sm text-slate-600">
+                <p>
+                  Para niños y adolescentes menores de 18 años, la consulta debe iniciarse con la presencia de un progenitor o tutor responsable.
+                </p>
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <p class="font-bold text-slate-900 mb-1">Qué tener preparado para la videollamada:</p>
+                  <ul class="list-disc pl-4 space-y-1 text-slate-600">
+                    <li>DNI del estudiante y del adulto responsable.</li>
+                    <li>Registro de temperatura si presentó fiebre (termometría).</li>
+                    <li>Medicación habitual o tratamientos en curso.</li>
+                    <li>Nombre de la institución educativa o colegio al que asiste.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQS ACCORDION -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-4xl mx-auto px-6">
+        <div class="text-center mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Preguntas Frecuentes</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Dudas sobre certificados escolares y universitarios.
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white rounded-2xl border border-slate-200 overflow-hidden transition-colors">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none select-none">
+                <span class="text-base md:text-lg font-serif font-bold text-slate-900 pr-4">{faq.q}</span>
+                <span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-semibold group-open:rotate-180 group-open:bg-sky-50 group-open:text-sky-700 transition-transform flex-shrink-0">
+                  &darr;
+                </span>
+              </summary>
+              <div class="px-6 md:px-8 pb-6 md:pb-8 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4">
+                {faq.a}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="py-20 md:py-28 bg-white text-center">
+      <div class="max-w-3xl mx-auto px-6">
+        <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+          Gestioná el certificado médico escolar sin demoras.
+        </h2>
+        <p class="text-slate-600 text-base md:text-lg mb-10 leading-relaxed">
+          Evitá traslados con tu hijo enfermo o filas en guardias hospitalarias. Recibí atención médica profesional y descargá el justificativo oficial en minutos.
+        </p>
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+          <a
+            href="/auth/register"
+            class="inline-flex items-center justify-center px-10 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5 text-base"
+          >
+            Iniciar Consulta Escolar
+          </a>
+          <a
+            href="/certificados-medicos"
+            class="inline-flex items-center justify-center px-10 py-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl transition-colors text-base"
+          >
+            Ver Otros Certificados
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
+</Layout>

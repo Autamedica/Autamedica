@@ -1,0 +1,532 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/guardia-medica-online';
+
+const faqItems = [
+  {
+    question: '¿Cómo funciona la guardia médica online de AutaMedica?',
+    answer:
+      'La guardia médica opera a demanda (On-Demand), las 24 horas y sin necesidad de turno previo. Al ingresar, completás un triaje sintomático estructurado de 90 segundos que clasifica tu motivo de consulta y evalúa la presencia de banderas rojas. Luego pasás a nuestra sala de espera virtual (Green Room) y te conectás por videollamada con un médico clínico de guardia.',
+  },
+  {
+    question: '¿Cuánto tiempo suele tardar la atención en la guardia virtual?',
+    answer:
+      'El tiempo promedio de espera suele ser inferior a los 10 minutos. Al no requerir traslados físicos ni permanencia en salas de espera hospitalarias expuestas a contagios cruzados, el proceso completo desde el registro hasta la obtención de la receta se resuelve habitualmente en menos de 20 minutos.',
+  },
+  {
+    question: '¿Qué cuadros clínicos se resuelven habitualmente en la guardia online?',
+    answer:
+      'Cuadros agudos de baja y mediana complejidad ambulatoria: fiebre aislada en adultos, faringitis y dolor de garganta, gastroenteritis leve sin deshidratación severa, infecciones urinarias bajas no complicadas en mujeres no embarazadas, reacciones alérgicas leves o dermatitis, conjuntivitis no traumática y odontalgias menores (alivio del dolor hasta la consulta con el odontólogo).',
+  },
+  {
+    question: '¿El médico de guardia puede otorgarme un certificado médico o reposo laboral?',
+    answer:
+      'Sí. Si tras la anamnesis y evaluación clínica el profesional determina que el cuadro amerita reposo ambulatorio (por ejemplo, en gastroenteritis aguda o síndrome febril), emitirá un certificado médico digital con firma electrónica válida y matrícula verificable, disponible al instante en tu portal de paciente.',
+  },
+  {
+    question: '¿Qué sucede si el triaje o el médico detectan un cuadro de gravedad?',
+    answer:
+      'AutaMedica aplica un protocolo ético y estricto de derivación. Si el sistema o el profesional identifican signos de alarma (como dolor de pecho opresivo, disnea aguda o déficit neurológico), se interrumpe la consulta remota y se activa la recomendación de asistencia presencial inmediata, con instrucción expresa de llamar al servicio de emergencias médicas (107 SAME / 911) o acudir al centro de salud más cercano.',
+  },
+  {
+    question: '¿Puedo comprar antibióticos en la farmacia con la receta emitida por la guardia?',
+    answer:
+      'Sí. Nuestras recetas cumplen con la Ley 27.553 de Recetas Electrónicas o Digitales y cuentan con código unívoco CUIR, firma digital y código de barras. Son válidas para la adquisición de antibióticos y medicamentos bajo receta archivada en farmacias de todo el país.',
+  },
+];
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: 'Guardia Médica Online 24 Horas | Atención Inmediata On-Demand | AutaMedica',
+      description:
+        'Guardia médica virtual 24/7 sin turno previo. Triaje sintomático inteligente, médicos clínicos matriculados, receta digital oficial y derivación ética responsable.',
+      inLanguage: 'es-AR',
+      aspect: ['Diagnosis', 'Treatment', 'Overview'],
+      medicalAudience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalSpecialty', name: 'Emergency' },
+        { '@type': 'MedicalSpecialty', name: 'PrimaryCare' },
+        { '@type': 'Thing', name: 'Guardia médica virtual' },
+        { '@type': 'Thing', name: 'Triaje médico online' },
+      ],
+      provider: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Atención Médica',
+          item: 'https://www.autamedica.com/consulta-medica-online',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Guardia médica online',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Guardia Médica Online 24 Horas | Atención Inmediata On-Demand | AutaMedica"
+  description="Guardia médica online 24/7 sin turno previo. Triaje sintomático previo, atención con médicos clínicos matriculados por videoconsulta WebRTC y recetas electrónicas en minutos."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="website"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
+
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- Breadcrumbs -->
+    <nav class="border-b border-slate-100 bg-slate-50/60 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/consulta-medica-online" class="hover:text-sky-600 transition-colors">Atención Médica</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Guardia médica online</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="relative py-16 md:py-24 border-b border-slate-100 bg-gradient-to-b from-slate-50 via-white to-white">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold tracking-wide uppercase">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+              Servicio On-Demand Activo • Atención 24/7
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12]">
+              Guardia médica online: atención clínica inmediata <span class="text-sky-600">sin turnos previos</span>.
+            </h1>
+
+            <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl">
+              Resolvé cuadros agudos ambulatorios con médicos de guardia clínica matriculados. Triaje previo responsable, videoconsulta WebRTC de baja latencia y receta electrónica con código CUIR en tu teléfono.
+            </p>
+
+            <!-- Proof Chips -->
+            <div class="flex flex-wrap gap-2 pt-1">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Espera estimada: &lt; 10 min
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Médicos matriculados en Argentina
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Recetas y certificados oficiales
+              </span>
+            </div>
+
+            <!-- CTAs -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-3">
+              <a href="/auth/register" class="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg bg-sky-600 text-white font-semibold text-base shadow-sm hover:bg-sky-700 transition-all transform hover:-translate-y-0.5">
+                <span>Ingresar a guardia online</span>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </a>
+              <a href="#cuadros-frecuentes" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg border border-slate-300 bg-white text-slate-800 font-semibold text-base hover:bg-slate-50 hover:border-slate-400 transition-all">
+                <span>Cuadros atendibles</span>
+              </a>
+            </div>
+
+            <p class="text-xs text-slate-500">
+              Disponible para adultos y orientación pediátrica. Sin suscripciones forzosas.
+            </p>
+          </div>
+
+          <!-- Hero Triage Graphic -->
+          <div class="lg:col-span-5">
+            <div class="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-5">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                    24h
+                  </div>
+                  <div>
+                    <h2 class="text-sm font-bold text-slate-900 leading-tight">Guardia Virtual AutaMedica</h2>
+                    <p class="text-xs text-slate-500">Triaje sintomático inteligente</p>
+                  </div>
+                </div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Online
+                </span>
+              </div>
+
+              <!-- Triage Status Tracker -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between text-xs text-slate-600">
+                  <span class="font-medium">Protocolo de Asignación Clínica</span>
+                  <span class="font-mono text-sky-600 font-bold">Fase 2 de 3</span>
+                </div>
+                
+                <div class="space-y-2">
+                  <div class="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/70 border border-emerald-100 text-xs">
+                    <svg class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <div>
+                      <div class="font-bold text-slate-900">Triaje inicial completado</div>
+                      <div class="text-slate-600">Cuadro catalogado como ambulatorio leve (Código Verde).</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-start gap-3 p-3 rounded-lg bg-sky-50/70 border border-sky-100 text-xs">
+                    <div class="w-4 h-4 rounded-full border-2 border-sky-600 border-t-transparent animate-spin shrink-0 mt-0.5"></div>
+                    <div>
+                      <div class="font-bold text-slate-900">Green Room / Asignación en curso</div>
+                      <div class="text-slate-600">Conectando con médico clínico disponible. Turno en cola: 1.</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs text-slate-400">
+                    <span class="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center shrink-0 text-[10px] font-bold">3</span>
+                    <div>
+                      <div class="font-medium text-slate-500">Videoconsulta e indicación médica</div>
+                      <div>Emisión inmediata de receta oficial y epicrisis.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick stats -->
+              <div class="border-t border-slate-100 pt-3 grid grid-cols-2 gap-4 text-center">
+                <div>
+                  <div class="text-2xl font-serif font-bold text-slate-950">&lt; 8 min</div>
+                  <div class="text-[11px] uppercase tracking-wider text-slate-500 font-medium">Demora promedio</div>
+                </div>
+                <div>
+                  <div class="text-2xl font-serif font-bold text-emerald-600">92%</div>
+                  <div class="text-[11px] uppercase tracking-wider text-slate-500 font-medium">Resolución en línea</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- CRITICAL ETHICAL WARNING / CÓDIGOS ROJOS (HARD GATE) -->
+    <section class="py-10 bg-slate-950 text-white">
+      <div class="container mx-auto px-6">
+        <div class="max-w-4xl mx-auto rounded-2xl border-2 border-red-500/80 bg-slate-900/95 p-6 md:p-8 space-y-6 shadow-2xl">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center shrink-0">
+              <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+            </div>
+            <div class="space-y-2">
+              <span class="text-xs uppercase font-extrabold tracking-widest text-red-400 bg-red-950/60 px-2.5 py-1 rounded border border-red-800/60">
+                Protocolo Médico Estricto de Seguridad
+              </span>
+              <h2 class="text-2xl font-serif font-bold text-white">
+                Cuándo NO utilizar la guardia online (Emergencias con Código Rojo)
+              </h2>
+            </div>
+          </div>
+
+          <p class="text-sm md:text-base text-slate-300 leading-relaxed">
+            La guardia médica digital resuelve cuadros ambulatorios que no comprometen la vida. <strong>Si vos o la persona que asistís presenta alguno de los siguientes síntomas</strong>, no esperes una videollamada:
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs md:text-sm text-slate-200">
+            <div class="flex items-center gap-2 p-2.5 rounded bg-slate-800/60 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400"></span>
+              <span>Dolor de pecho opresivo o irradiado al brazo/cuello</span>
+            </div>
+            <div class="flex items-center gap-2 p-2.5 rounded bg-slate-800/60 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400"></span>
+              <span>Dificultad respiratoria severa o sensación de asfixia</span>
+            </div>
+            <div class="flex items-center gap-2 p-2.5 rounded bg-slate-800/60 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400"></span>
+              <span>Pérdida de fuerza súbita en un lado o dificultad para hablar (ACV)</span>
+            </div>
+            <div class="flex items-center gap-2 p-2.5 rounded bg-slate-800/60 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400"></span>
+              <span>Pérdida de conocimiento, desmayo o convulsiones</span>
+            </div>
+            <div class="flex items-center gap-2 p-2.5 rounded bg-slate-800/60 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400"></span>
+              <span>Hemorragias profusas o heridas cortantes profundas</span>
+            </div>
+            <div class="flex items-center gap-2 p-2.5 rounded bg-slate-800/60 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400"></span>
+              <span>Traumatismos de cráneo con vómitos o confusión</span>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-slate-800">
+            <p class="text-xs text-slate-400">
+              En estos casos, llamá de inmediato a emergencias médicas o acudí a la guardia hospitalaria más cercana.
+            </p>
+            <a href="tel:107" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-red-600 text-white font-bold text-xs hover:bg-red-700 transition-colors shrink-0">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              <span>Llamar al 107 (SAME)</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUADROS CLÍNICOS FRECUENTES APTOS (DETAILED CLINICAL SECTION) -->
+    <section class="py-20 md:py-28 bg-white border-b border-slate-100" id="cuadros-frecuentes">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mx-auto text-center space-y-4 mb-16">
+          <span class="text-sky-600 font-bold text-xs uppercase tracking-widest">Resolución Clínica Ambulatoria</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 tracking-tight">
+            Motivos frecuentes aptos para la guardia virtual
+          </h2>
+          <p class="text-base md:text-lg text-slate-600 leading-relaxed">
+            Patologías cotidianas donde la evaluación remota y la prescripción médica oportuna evitan horas de traslado y exposición hospitalaria.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          
+          <!-- Fiebre en adultos -->
+          <div class="rounded-xl border border-slate-200 bg-white p-6 space-y-3 shadow-xs hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-950">Fiebre en Adultos</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Monitoreo térmico, búsqueda orientativa de foco infeccioso (respiratorio, urinario, cutáneo), pautas de hidratación y prescripción adecuada de antipiréticos sin automedicación perjudicial.
+            </p>
+          </div>
+
+          <!-- Gastroenteritis aguda leve -->
+          <div class="rounded-xl border border-slate-200 bg-white p-6 space-y-3 shadow-xs hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-950">Gastroenteritis y Vómitos</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Diarrea aguda, náuseas y vómitos sin deshidratación severa. Indicación de planes de reposición hidroelectrolítica oral, protectores gástricos y antiespasmódicos con control de tolerancia.
+            </p>
+          </div>
+
+          <!-- Infecciones Urinarias -->
+          <div class="rounded-xl border border-slate-200 bg-white p-6 space-y-3 shadow-xs hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-950">Infecciones Urinarias Bajas</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Disuria (ardor al orinar) y polaquiuria en mujeres no embarazadas sin fiebre ni dolor lumbar. Solicitud de urocultivo y prescripción de antibioticoterapia empírica según guías clínicas.
+            </p>
+          </div>
+
+          <!-- Dermatitis y Picaduras -->
+          <div class="rounded-xl border border-slate-200 bg-white p-6 space-y-3 shadow-xs hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-950">Dermatitis Aguda y Urticaria</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Erupciones cutáneas pruriginosas, picaduras de insectos y reacciones alérgicas leves sin edema facial ni dificultad para respirar. Evaluación visual e indicación de antihistamínicos.
+            </p>
+          </div>
+
+          <!-- Odontalgias Menores -->
+          <div class="rounded-xl border border-slate-200 bg-white p-6 space-y-3 shadow-xs hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-950">Odontalgias Menores</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Dolor de muelas o encías de inicio nocturno o de fin de semana. Alivio temporal mediante analgesia y antiinflamatorios hasta la concurrencia a la consulta odontológica presencial.
+            </p>
+          </div>
+
+          <!-- Conjuntivitis no traumática -->
+          <div class="rounded-xl border border-slate-200 bg-white p-6 space-y-3 shadow-xs hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-950">Conjuntivitis no Traumática</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Ojo rojo, secreción acuosa o mucosa y sensación de cuerpo extraño sin pérdida de visión ni dolor ocular profundo. Indicación de higiene palpebral y colirios adecuados.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- THE ON-DEMAND GREEN ROOM WORKFLOW -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mx-auto text-center space-y-4 mb-16">
+          <span class="text-sky-600 font-bold text-xs uppercase tracking-widest">Protocolo de Atención Rápida</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 tracking-tight">
+            De los síntomas a la receta en 4 etapas
+          </h2>
+          <p class="text-base md:text-lg text-slate-600 leading-relaxed">
+            Un flujo clínico diseñado para ordenar el motivo de consulta antes de que el médico abra la videollamada.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          
+          <div class="bg-white rounded-xl border border-slate-200 p-6 space-y-3 shadow-xs">
+            <div class="w-9 h-9 rounded-full bg-slate-950 text-white flex items-center justify-center font-bold text-sm">
+              1
+            </div>
+            <h3 class="font-bold text-slate-950">Triaje Inteligente</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Respondés preguntas breves sobre síntomas, tiempo de evolución y antecedentes. El sistema descarta emergencias críticas.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 p-6 space-y-3 shadow-xs">
+            <div class="w-9 h-9 rounded-full bg-slate-950 text-white flex items-center justify-center font-bold text-sm">
+              2
+            </div>
+            <h3 class="font-bold text-slate-950">Green Room Digital</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Ingresás a la sala de espera donde se verifica la conectividad de tu dispositivo y se asigna el profesional de guardia disponible.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 p-6 space-y-3 shadow-xs border-t-2 border-t-sky-600">
+            <div class="w-9 h-9 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-sm">
+              3
+            </div>
+            <h3 class="font-bold text-slate-950">Videoconsulta Clínica</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              El médico revisa tu triaje, profundiza en los signos clínicos y establece el diagnóstico presuntivo y las pautas de alarma.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 p-6 space-y-3 shadow-xs">
+            <div class="w-9 h-9 rounded-full bg-slate-950 text-white flex items-center justify-center font-bold text-sm">
+              4
+            </div>
+            <h3 class="font-bold text-slate-950">Receta & Certificado</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Recibís tu receta con código CUIR y, si corresponde, certificado médico oficial para presentar ante tu empleador o institución.
+            </p>
+          </div>
+
+        </div>
+
+        <div class="text-center mt-12">
+          <a href="/auth/register" class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-sky-600 text-white font-semibold text-base shadow-sm hover:bg-sky-700 transition-all">
+            <span>Ingresar a guardia médica ahora</span>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="py-20 md:py-28 bg-white border-b border-slate-100" id="faq">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center space-y-4 mb-14">
+          <span class="text-sky-600 font-bold text-xs uppercase tracking-widest">Preguntas Frecuentes</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 tracking-tight">
+            Dudas sobre el funcionamiento de la guardia online
+          </h2>
+          <p class="text-slate-600 text-sm md:text-base">
+            Todo lo que necesitás saber sobre la atención a demanda en AutaMedica.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          {faqItems.map((item) => (
+            <details class="group rounded-xl border border-slate-200 bg-slate-50/50 p-5 transition-all [&_summary::-webkit-details-marker]:hidden">
+              <summary class="flex cursor-pointer items-center justify-between gap-4 font-bold text-slate-900 text-base">
+                <span>{item.question}</span>
+                <span class="shrink-0 rounded-full p-1.5 text-slate-400 group-open:rotate-180 transition-transform">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </span>
+              </summary>
+              <p class="mt-4 text-sm text-slate-600 leading-relaxed border-t border-slate-200 pt-3">
+                {item.answer}
+              </p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CROSS LINKS -->
+    <section class="py-14 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6 text-center">Explorar Otros Servicios</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <a href="/videoconsulta-medica" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Videoconsulta Médica
+          </a>
+          <a href="/consulta-medica-en-farmacia" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Consulta en Farmacia
+          </a>
+          <a href="/receta-electronica" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Receta Oficial CUIR
+          </a>
+          <a href="/fiebre-en-adultos" class="p-3 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Fiebre en Adultos
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <CTAFinal
+      title="Atención médica inmediata cuando la necesitás."
+      subtitle="Sin salas de espera ni traslados. Conectate a la guardia virtual de AutaMedica en minutos."
+      buttonLabel="Entrar a guardia médica 24hs"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>

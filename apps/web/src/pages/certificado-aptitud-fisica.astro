@@ -1,0 +1,323 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/certificado-aptitud-fisica';
+
+const activities = [
+  {
+    title: 'Gimnasios y Centros de Fitness',
+    desc: 'Constancia obligatoria anual para musculación, crossfit, spinning y entrenamiento funcional, en cumplimiento de normativas sanitarias locales (Ley 139 CABA y ordenanzas provinciales).',
+  },
+  {
+    title: 'Natación y Deportes Acuáticos',
+    desc: 'Apto médico para piletas climatizadas, natación recreativa y escuelas deportivas acuáticas, incluyendo constatación de ausencia de lesiones micóticas o cutáneas infectocontagiosas.',
+  },
+  {
+    title: 'Torneos Amateurs y Running',
+    desc: 'Certificación de idoneidad clínica para maratones recreativas, ligas amateurs de fútbol, básquet, vóley, tenis o padel sin exigencia de alto rendimiento profesional.',
+  },
+  {
+    title: 'Actividad Física Escolar y Terciaria',
+    desc: 'Apto médico anual exigido por instituciones educativas para la participación en clases curriculares de educación física y campamentos.',
+  },
+];
+
+const evaluationTiers = [
+  {
+    tier: 'Nivel 1 · Actividad Recreativa de Bajo Riesgo',
+    badge: 'Emisión tras Videoconsulta',
+    target: 'Personas asintomáticas, sin antecedentes cardiovasculares previos ni factores de riesgo mayor que realizan actividad aeróbica o muscular moderada.',
+    protocol: 'Anamnesis cardiovascular protocolizada, examen de síntomas de esfuerzo (palpitaciones, mareos, dolor precordial) y revisión de hábitos.',
+  },
+  {
+    tier: 'Nivel 2 · Mediana / Alta Intensidad o Factores de Riesgo',
+    badge: 'Requiere Estudios Previos',
+    target: 'Mayores de 35 años, deportistas con alta demanda de esfuerzo o pacientes con antecedentes (hipertensión, dislipidemia, familiares con muerte súbita).',
+    protocol: 'El profesional solicitará adjuntar Electrocardiograma (ECG) reciente o Prueba Ergométrica Graduada antes de emitir la firma del certificado.',
+  },
+];
+
+const faqs = [
+  {
+    q: '¿El certificado de aptitud física emitido en AutaMedica es aceptado por gimnasios en Argentina?',
+    a: 'Sí. Los gimnasios y centros de entrenamiento de la República Argentina están obligados por ley (como la Ley 139 en CABA y legislaciones análogas en el resto del país) a exigir un certificado médico anual de aptitud física. El certificado emitido en AutaMedica por un médico matriculado con firma digital y código QR cumple con todos los requisitos legales.',
+  },
+  {
+    q: '¿Qué evalúa el médico durante la consulta virtual para el apto físico?',
+    a: 'El profesional realiza un cuestionario clínico cardiovascular protocolizado (anamnesis dirigida): antecedentes familiares de cardiopatías o muerte súbita, antecedentes personales de hipertensión, asma, diabetes, síntomas durante o después del ejercicio (dolor en el pecho, falta de aire desmedida, mareos o síncopes) y tipo de disciplina a practicar.',
+  },
+  {
+    q: '¿Cuándo es necesario presentar un electrocardiograma (ECG)?',
+    a: 'Si tenés más de 35 años, antecedentes cardiovasculares en familiares directos a edad temprana, factores de riesgo coronario o vas a realizar deportes de alta intensidad, el médico tratante te solicitará que adjuntes un electrocardiograma de reposo (con no más de 6 a 12 meses de antigüedad) para auditarlo antes de emitir el apto definitivo.',
+  },
+  {
+    q: '¿Puedo adjuntar estudios cardiológicos que ya me realicé?',
+    a: 'Sí. Al momento de la consulta o en tu perfil de paciente podés cargar fotos o archivos PDF de tu electrocardiograma, ergometría, ecocardiograma o análisis de laboratorio recientes para que el médico los evalúe durante la consulta.',
+  },
+  {
+    q: '¿Qué vigencia tiene el certificado de apto físico?',
+    a: 'En la República Argentina los certificados de aptitud física deportiva tienen habitualmente una validez de 12 meses (1 año) a partir de la fecha de emisión del acto médico, tras lo cual se debe renovar la evaluación preventiva.',
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: 'Certificado de Aptitud Física y Apto Médico Deportivo | AutaMedica',
+      description:
+        'Certificado de aptitud física para gimnasios, natación y deportes recreativos en Argentina. Anamnesis cardiovascular con médicos matriculados y validación QR.',
+      inLanguage: 'es-AR',
+      isPartOf: {
+        '@type': 'WebSite',
+        '@id': 'https://www.autamedica.com/#website',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+      about: {
+        '@type': 'MedicalProcedure',
+        name: 'Evaluación Médica de Aptitud Física Deportiva y Preventiva',
+        procedureType: 'https://schema.org/NoninvasiveProcedure',
+      },
+      publisher: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+      },
+      audience: {
+        '@type': 'PeopleAudience',
+        geographicArea: {
+          '@type': 'Country',
+          name: 'Argentina',
+        },
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Certificados Médicos',
+          item: 'https://www.autamedica.com/certificados-medicos',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Aptitud Física',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.a,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Certificado de Aptitud Física y Apto Médico Deportivo | AutaMedica"
+  description="Certificado de aptitud física para gimnasios, natación y deportes recreativos en Argentina. Anamnesis cardiovascular con médicos matriculados y validación QR."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- HERO SECTION -->
+    <header class="relative bg-gradient-to-b from-slate-50 via-white to-sky-50/30 border-b border-slate-200/80 pt-16 pb-20 md:py-24">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider mb-6">
+            <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+            <span>Medicina Preventiva y Deportiva · Ley 27.553</span>
+          </div>
+
+          <h1 class="text-4xl md:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12] mb-6">
+            Certificado de aptitud física y apto médico con <span class="text-sky-700 italic">criterio preventivo.</span>
+          </h1>
+
+          <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed mb-8">
+            Acreditación médica obligatoria para gimnasios, piletas, torneos amateurs y actividades deportivas. Anamnesis cardiovascular protocolizada por videoconsulta con profesionales matriculados y validación instantánea por código QR.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 mb-10">
+            <a
+              href="/auth/register"
+              class="inline-flex items-center justify-center px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5"
+            >
+              Solicitar Evaluación de Apto Físico
+            </a>
+            <a
+              href="#criterios-estudios"
+              class="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 font-semibold rounded-xl border border-slate-200 transition-colors"
+            >
+              Criterios de Evaluación y ECG
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200/70 text-xs text-slate-600">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Aceptado en Gimnasios de todo el país</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Prevención Cardiovascular Real</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Vigencia Anual Homologada</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ÁMBITOS DE APLICACIÓN -->
+    <section class="py-20 md:py-24 bg-white border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Destinos Frecuentes</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 mb-4">
+            Dónde podés presentar tu certificado de aptitud física.
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg">
+            Nuestros certificados cuentan con formato oficial aceptado en instituciones deportivas, recreativas y educativas de toda la Argentina.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {activities.map((act) => (
+            <div class="bg-slate-50 rounded-2xl border border-slate-200 p-8 flex flex-col justify-between">
+              <div>
+                <h3 class="text-lg font-serif font-bold text-slate-950 mb-3">{act.title}</h3>
+                <p class="text-slate-600 text-sm leading-relaxed">{act.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CRITERIOS CLÍNICOS Y RESPONSABILIDAD CARDIOVASCULAR -->
+    <section id="criterios-estudios" class="py-20 md:py-28 bg-slate-900 text-white">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-400 font-bold text-xs uppercase tracking-widest block mb-3">Protocolo de Seguridad Clínica</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold tracking-tight text-white mb-4">
+            La aptitud física no es un trámite: es prevención.
+          </h2>
+          <p class="text-slate-300 text-base md:text-lg">
+            En AutaMedica no comercializamos sellos mecánicos. Todo apto físico busca detectar factores de riesgo silentes para que tu práctica deportiva sea completamente segura.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+          {evaluationTiers.map((tier) => (
+            <div class="bg-slate-800 rounded-3xl border border-slate-700 p-8 flex flex-col justify-between">
+              <div>
+                <span class="inline-block text-xs font-bold text-sky-400 bg-sky-950 px-3 py-1 rounded-full mb-4 border border-sky-800">
+                  {tier.badge}
+                </span>
+                <h3 class="text-xl font-serif font-bold text-white mb-3">{tier.tier}</h3>
+                <p class="text-slate-300 text-sm leading-relaxed mb-6">{tier.target}</p>
+              </div>
+              <div class="pt-6 border-t border-slate-700">
+                <p class="text-xs text-sky-400 font-semibold uppercase tracking-wider mb-1">Conducta Médica:</p>
+                <p class="text-xs text-slate-300 leading-relaxed">{tier.protocol}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div class="p-6 md:p-8 bg-sky-950/60 rounded-2xl border border-sky-800 text-sm text-slate-300">
+          <strong class="text-white block mb-1">¿Cuándo se solicita un Electrocardiograma (ECG)?</strong>
+          Si tenés antecedentes directos de enfermedad coronaria, hipertensión arterial, tabaquismo severo o sos mayor de 35 años y vas a iniciar entrenamiento vigoroso, el médico te pedirá adjuntar un ECG reciente antes de firmar el certificado. Podés realizarlo en cualquier centro de diagnóstico y subir la imagen directamente a tu historial en AutaMedica.
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQS ACCORDION -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-4xl mx-auto px-6">
+        <div class="text-center mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Preguntas Habituales</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Preguntas frecuentes sobre el certificado de aptitud física.
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white rounded-2xl border border-slate-200 overflow-hidden transition-colors">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none select-none">
+                <span class="text-base md:text-lg font-serif font-bold text-slate-900 pr-4">{faq.q}</span>
+                <span class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-semibold group-open:rotate-180 group-open:bg-sky-50 group-open:text-sky-700 transition-transform flex-shrink-0">
+                  &darr;
+                </span>
+              </summary>
+              <div class="px-6 md:px-8 pb-6 md:pb-8 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4">
+                {faq.a}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="py-20 md:py-28 bg-white text-center">
+      <div class="max-w-3xl mx-auto px-6">
+        <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+          Entrená con tranquilidad y respaldo médico.
+        </h2>
+        <p class="text-slate-600 text-base md:text-lg mb-10 leading-relaxed">
+          Completá tu evaluación médica de aptitud física por videollamada y recibí tu certificado con QR homologado para tu gimnasio o club.
+        </p>
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+          <a
+            href="/auth/register"
+            class="inline-flex items-center justify-center px-10 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5 text-base"
+          >
+            Solicitar Apto Físico
+          </a>
+          <a
+            href="/certificados-medicos"
+            class="inline-flex items-center justify-center px-10 py-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl transition-colors text-base"
+          >
+            Ver Hub de Certificados
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />
+</Layout>
