@@ -1,0 +1,562 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/dolor-de-espalda';
+
+const faqs = [
+  {
+    question: '¿Cuándo el dolor de espalda requiere atención médica inmediata en una guardia?',
+    answer:
+      'Debés dirigirte de urgencia a una guardia presencial si el dolor se acompaña de pérdida de fuerza o dificultad para mover una pierna o el pie ("pie caído"), adormecimiento en la zona genital o glútea ("anestesia en silla de montar"), incontinencia o retención urinaria o fecal súbita (sospecha de síndrome de cauda equina), fiebre alta, dolor que no cede en reposo absoluto ni de noche, o si comenzó inmediatamente después de un traumatismo o caída de impacto.',
+  },
+  {
+    question: '¿Por qué la evidencia médica actual desaconseja el reposo prolongado en cama?',
+    answer:
+      'Durante muchos años se recomendaba guardar cama por varios días. Hoy las guías clínicas internacionales demuestran que el reposo estricto mayor a 48 horas prolonga la discapacidad, debilita la musculatura paravertebral y aumenta la rigidez articular. La indicación médica moderna consiste en mantener una actividad física suave tolerada, caminatas cortas y reanudar el movimiento progresivo tan pronto ceda el dolor más agudo.',
+  },
+  {
+    question: '¿Qué diferencia hay entre una contractura paravertebral y una lumbociatalgia?',
+    answer:
+      'La contractura paravertebral es un espasmo defensivo de los músculos que rodean la columna vertebral, habitualmente desencadenado por una sobrecarga mecánica, una mala postura sostenida o estrés físico. La lumbociatalgia, en cambio, implica la compresión o irritación de una raíz del nervio ciático (frecuentemente por una protrusión o hernia de disco), produciendo un dolor punzante o quemante que desciende desde la cintura por la nalga, el muslo y la pierna, pudiendo llegar hasta el pie.',
+  },
+  {
+    question: '¿Un médico de AutaMedica puede emitir una orden para kinesiología o fisioterapia?',
+    answer:
+      'Sí. Tras la evaluación clínica por videoconsulta, si el profesional determina que tu cuadro requiere rehabilitación kinésica, emitirá una orden médica digital oficial con diagnóstico, número de sesiones sugeridas (kinesiología motora, fisioterapia o RPG), firma electrónica registrada y código CUIR, válida para presentar ante tu obra social, medicina prepaga o centro de kinesiología.',
+  },
+  {
+    question: '¿Puedo obtener un certificado médico laboral si el dolor me impide trabajar?',
+    answer:
+      'Sí. Si la intensidad del dolor o la limitación funcional imposibilitan el desempeño de tus tareas habituales, el médico evaluará la necesidad de otorgar reposo ambulatorio justificado y emitirá un certificado médico laboral oficial con código CUIR y validación por QR, conforme a la Ley de Contrato de Trabajo (Art. 208 y 209 LCT).',
+  },
+  {
+    question: '¿Qué medicamentos se indican para el alivio del dolor agudo de espalda?',
+    answer:
+      'El esquema farmacológico se individualiza según la edad, antecedentes gastrointestinales, cardiovasculares y función renal de cada paciente. Generalmente incluye analgésicos de base como paracetamol o antiinflamatorios no esteroides (AINEs como ibuprofeno o naproxeno) por lapsos acotados, y en ocasiones miorrelajantes durante los primeros 3 a 5 días si predomina el espasmo muscular. Se desaconseja la automedicación sin supervisión médica previa.',
+  },
+  {
+    question: '¿Es indispensable realizarse una radiografía o resonancia magnética ante el primer episodio?',
+    answer:
+      'En ausencia de pautas de alarma o "banderas rojas", la mayoría de las guías clínicas recomiendan no solicitar estudios por imágenes durante las primeras 4 a 6 semanas de una lumbalgia aguda común. La gran mayoría de los episodios mecánicos resuelven favorablemente con tratamiento conservador. Los estudios de imagen se reservan para casos refractarios que no mejoran tras el tratamiento o cuando existen sospechas de compromiso radicular grave o patología subyacente.',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Síntomas y Patologías',
+          item: 'https://www.autamedica.com/especialidades',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Dolor de Espalda',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Dolor de Espalda y Lumbalgia en Argentina | Evaluación Médica Online',
+      url: canonicalUrl,
+      description:
+        'Evaluación clínica de lumbalgia aguda y subaguda, contracturas paravertebrales, dorsalgia y lumbociatalgia. Pautas de alarma, analgesia protocolizada, orden de kinesiología y certificado laboral.',
+      inLanguage: 'es-AR',
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalCondition', name: 'Lumbalgia aguda' },
+        { '@type': 'MedicalCondition', name: 'Contractura muscular paravertebral' },
+        { '@type': 'MedicalCondition', name: 'Dorsalgia' },
+        { '@type': 'MedicalCondition', name: 'Lumbociatalgia' },
+        { '@type': 'MedicalSpecialty', name: 'PrimaryCare' },
+        { '@type': 'MedicalSpecialty', name: 'PhysicalMedicineAndRehabilitation' },
+      ],
+      publisher: {
+        '@id': 'https://www.autamedica.com/#organization',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Dolor de Espalda y Lumbalgia: Evaluación y Tratamiento | AutaMedica"
+  description="Evaluación clínica de lumbalgia, contracturas paravertebrales, dorsalgia y ciática. Protocolos analgésicos, pautas ergonómicas, orden de kinesiología y certificado laboral."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+  <Navbar />
+
+  <main class="bg-white text-neutral-900 pt-20">
+    <!-- HERO PRINCIPAL -->
+    <section class="relative py-20 md:py-28 border-b border-neutral-100 overflow-hidden bg-gradient-to-b from-[#f8fafc] via-white to-white">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              Clínica Médica · Abordaje Osteomuscular Integral
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-medium leading-[1.12] tracking-tight text-neutral-950">
+              Dolor de espalda: <br class="hidden sm:inline" />
+              <span class="text-[var(--au-accent)]">evaluación médica precisa,</span> alivio del dolor y recuperación funcional.
+            </h1>
+
+            <p class="text-lg md:text-xl text-neutral-600 font-light leading-relaxed max-w-2xl">
+              El dolor lumbar y las contracturas musculares no se resuelven con reposo estricto en cama ni automedicación azarosa. Nuestro equipo de médicos clínicos evalúa el origen del cuadro, descarta señales de alarma, prescribe el esquema analgésico adecuado y emite las órdenes de kinesiología o certificados laborales requeridos.
+            </p>
+
+            <!-- Acciones -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-2">
+              <a href="/auth/register" class="btn-primary-action inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all">
+                <span>Consultar con Médico Clínico</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="M12 5l7 7-7 7"></path>
+                </svg>
+              </a>
+              <a href="#pautas-de-alarma" class="btn-secondary-action inline-flex items-center justify-center px-7 py-4 rounded-xl text-neutral-700 font-semibold text-base border border-neutral-200 transition-all">
+                Revisar pautas de alarma
+              </a>
+            </div>
+
+            <!-- Trust Badges -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-neutral-200/70 text-xs text-neutral-600">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Médicos matriculados</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Orden para kinesiología</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Certificado laboral oficial</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Receta digital CUIR</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Resumen Visual -->
+          <div class="lg:col-span-5 flex justify-center">
+            <div class="w-full max-w-md bg-white rounded-3xl border border-neutral-200/90 shadow-2xl shadow-sky-950/5 p-8 relative overflow-hidden">
+              <div class="absolute -top-10 -right-10 w-40 h-40 bg-sky-50 rounded-full blur-2xl pointer-events-none"></div>
+
+              <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center border border-sky-100 flex-shrink-0">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 2v20M8 5h8M7 9h10M6 13h12M7 17h10M8 21h8" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-wider text-sky-700">Protocolo Clínico</div>
+                  <h3 class="text-xl font-serif font-bold text-neutral-950">Columna y Lumbalgia</h3>
+                </div>
+              </div>
+
+              <div class="space-y-4 text-sm text-neutral-600 border-t border-neutral-100 pt-5">
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-neutral-900 block">Diferenciación de Gravedad</span>
+                    <span class="text-xs text-neutral-500">Separar causas mecánicas benignas de patologías con compromiso radicular agudo.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-neutral-900 block">Esquema Analgésico Escalonado</span>
+                    <span class="text-xs text-neutral-500">Prescripción médica racional según comorbilidades y riesgo gástrico o renal.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-neutral-900 block">Rehabilitación y Documentación</span>
+                    <span class="text-xs text-neutral-500">Orden médica para fisiokinesioterapia y constancia laboral con código CUIR.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 pt-5 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-500">
+                <span>Atención clínica en el día</span>
+                <span class="font-semibold text-sky-700">Sin demoras en sala de espera</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MANIFIESTO CLÍNICO -->
+    <section class="py-20 bg-neutral-50 border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="bg-white rounded-3xl p-8 md:p-14 border border-neutral-200/90 shadow-sm text-left">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Criterio Asistencial</span>
+          <h2 class="text-2xl md:text-4xl font-serif font-bold text-neutral-950 mb-6 leading-tight">
+            Comprender el mecanismo del dolor para tratar la causa y evitar la cronificación.
+          </h2>
+          <div class="space-y-4 text-neutral-600 leading-relaxed font-light text-base md:text-lg">
+            <p>
+              El dolor de espalda es una de las primeras causas de consulta ambulatoria y ausentismo laboral en todo el mundo. Con frecuencia, el paciente queda atrapado entre dos extremos perjudiciales: el reposo absoluto en cama por varios días —que debilita la musculatura paravertebral y retarda la curación— o el consumo descontrolado de antiinflamatorios y relajantes musculares sin indicación profesional.
+            </p>
+            <p>
+              La evidencia médica contemporánea es terminante: el abordaje óptimo combina un alivio farmacológico protocolizado en la etapa aguda con la reanudación precoz del movimiento suave y pautas de higiene postural. La telemedicina permite evaluar con rigor el caso desde las primeras horas, descartar de manera exhaustiva cualquier bandera roja y trazar un plan claro hacia la recuperación.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUADROS CLÍNICOS MÁS FRECUENTES -->
+    <section class="py-24 bg-white border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-6xl">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Diagnóstico Diferencial</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-4">
+            Cuadros clínicos habituales de la columna vertebral
+          </h2>
+          <p class="text-neutral-600 text-base md:text-lg font-light">
+            Identificar con exactitud la región anatómica y las características del dolor orienta la terapéutica adecuada.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Lumbalgia Aguda y Subaguda -->
+          <div class="bg-slate-50/70 rounded-3xl p-8 border border-neutral-200/80 hover:border-sky-300 transition-all">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100/70 text-sky-700 flex items-center justify-center font-bold text-lg mb-6">
+              01
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-neutral-950 mb-3">Lumbalgia Aguda y Subaguda</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm md:text-base font-light mb-4">
+              Dolor localizado en la zona baja de la espalda, entre el reborde costal inferior y los pliegues glúteos. La forma aguda dura menos de 6 semanas y suele obedecer a distensiones músculo-ligamentarias o sobrecargas mecánicas al levantar peso o realizar movimientos de torsión bruscos. La lumbalgia subaguda se extiende entre 6 y 12 semanas y requiere una revisión ergonómica profunda de las rutinas de trabajo.
+            </p>
+            <div class="text-xs text-neutral-500 border-t border-neutral-200/60 pt-4">
+              <strong class="text-neutral-800">Enfoque:</strong> Analgesia a corto plazo, calor local seco y reanudación progresiva de la marcha.
+            </div>
+          </div>
+
+          <!-- Contractura Paravertebral -->
+          <div class="bg-slate-50/70 rounded-3xl p-8 border border-neutral-200/80 hover:border-sky-300 transition-all">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100/70 text-sky-700 flex items-center justify-center font-bold text-lg mb-6">
+              02
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-neutral-950 mb-3">Contractura Paravertebral</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm md:text-base font-light mb-4">
+              Espasmo involuntario y sostenido de los fascículos musculares profundos que estabilizan la columna. Suele palparse como una "cuerda" tensa y sensible que limita de forma marcada la flexión o rotación del tronco. Con frecuencia es el resultado de posturas estáticas prolongadas frente a la computadora, estrés psicofísico o enfriamiento muscular reactivo.
+            </p>
+            <div class="text-xs text-neutral-500 border-t border-neutral-200/60 pt-4">
+              <strong class="text-neutral-800">Enfoque:</strong> Miorrelajantes por tiempo acotado, estiramientos pasivos guiados y ergonomía laboral.
+            </div>
+          </div>
+
+          <!-- Dorsalgia Funcional -->
+          <div class="bg-slate-50/70 rounded-3xl p-8 border border-neutral-200/80 hover:border-sky-300 transition-all">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100/70 text-sky-700 flex items-center justify-center font-bold text-lg mb-6">
+              03
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-neutral-950 mb-3">Dorsalgia Interescapular</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm md:text-base font-light mb-4">
+              Molestia u opresión concentrada entre los omóplatos o en la porción media de la columna torácica. Muy prevalente en personas que trabajan sentadas durante muchas horas con cifosis dorsal acentuada ("hombros caídos"). Puede generar sensación de dificultad para inspirar profundamente debido al espasmo de los músculos intercostales y romboides.
+            </p>
+            <div class="text-xs text-neutral-500 border-t border-neutral-200/60 pt-4">
+              <strong class="text-neutral-800">Enfoque:</strong> Pausas activas programadas cada 50 minutos, ejercicios de apertura torácica y RPG.
+            </div>
+          </div>
+
+          <!-- Lumbociatalgia (Compromiso Radicular) -->
+          <div class="bg-slate-50/70 rounded-3xl p-8 border border-neutral-200/80 hover:border-sky-300 transition-all">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100/70 text-sky-700 flex items-center justify-center font-bold text-lg mb-6">
+              04
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-neutral-950 mb-3">Lumbociatalgia y Ciática</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm md:text-base font-light mb-4">
+              Ocurre cuando el dolor lumbar no se limita a la cintura, sino que se proyecta hacia la nalga, la cara posterior o lateral del muslo y desciende hasta la pantorrilla o el pie. Describe un patrón de irritación de las raíces L4, L5 o S1 del nervio ciático, comúnmente asociado a discopatías, protusiones discales o canal lumbar estrecho.
+            </p>
+            <div class="text-xs text-neutral-500 border-t border-neutral-200/60 pt-4">
+              <strong class="text-neutral-800">Enfoque:</strong> Examen neurológico teleasistido, pautas de descompresión radicular y seguimiento estricto.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ALERTA ROJA: PAUTAS DE ALARMA (RED FLAGS) -->
+    <section id="pautas-de-alarma" class="py-20 bg-slate-50 border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="rounded-3xl p-8 md:p-12 bg-white border-2 border-red-200 shadow-md">
+          <div class="flex items-start gap-4 mb-6">
+            <div class="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 mt-1">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </div>
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-red-700 block">Seguridad Clínica Obligatoria</span>
+              <h3 class="text-2xl md:text-3xl font-serif font-bold text-neutral-950">
+                Pautas de alarma: cuándo acudir de urgencia a una guardia presencial
+              </h3>
+            </div>
+          </div>
+
+          <p class="text-neutral-600 text-base leading-relaxed mb-6 font-light">
+            La gran mayoría de los dolores de espalda son de curso benigno y resolución ambulatoria. Sin embargo, existen situaciones específicas denominadas <em>banderas rojas</em> que sugieren una emergencia neurológica o infecciosa y <strong>no deben ser evaluadas por telemedicina</strong>:
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-neutral-700">
+            <div class="p-4 rounded-xl bg-red-50/50 border border-red-100 flex items-start gap-3">
+              <span class="w-2 h-2 rounded-full bg-red-600 flex-shrink-0 mt-2"></span>
+              <div>
+                <strong class="text-neutral-900 block font-semibold">Síndrome de Cauda Equina</strong>
+                <span>Pérdida súbita del control de esfínteres (incontinencia o retención de orina o materia fecal) y pérdida de sensibilidad en la entrepierna ("anestesia en silla de montar").</span>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-red-50/50 border border-red-100 flex items-start gap-3">
+              <span class="w-2 h-2 rounded-full bg-red-600 flex-shrink-0 mt-2"></span>
+              <div>
+                <strong class="text-neutral-900 block font-semibold">Déficit Motor Progresivo</strong>
+                <span>Pérdida notoria de fuerza muscular en una o ambas piernas, dificultad para levantar la punta del pie al caminar o imposibilidad de sostenerse sobre talones.</span>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-red-50/50 border border-red-100 flex items-start gap-3">
+              <span class="w-2 h-2 rounded-full bg-red-600 flex-shrink-0 mt-2"></span>
+              <div>
+                <strong class="text-neutral-900 block font-semibold">Fiebre y Compromiso Infeccioso</strong>
+                <span>Dolor de columna que aparece acompañado de fiebre alta, escalofríos, malestar general severo o antecedente reciente de infecciones sistémicas (discitis o absceso).</span>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-red-50/50 border border-red-100 flex items-start gap-3">
+              <span class="w-2 h-2 rounded-full bg-red-600 flex-shrink-0 mt-2"></span>
+              <div>
+                <strong class="text-neutral-900 block font-semibold">Dolor Nocturno o Antecedente Oncológico</strong>
+                <span>Dolor continuo que despierta al paciente en plena noche, no mejora en ninguna posición y coexiste con pérdida inexplicable de peso o historia de cáncer.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 p-4 rounded-xl bg-neutral-50 border border-neutral-200 text-xs text-neutral-600 flex items-center justify-between">
+            <span>Si presentás cualquiera de estos síntomas, acercate de inmediato a la guardia médica de emergencias más próxima.</span>
+            <span class="font-bold text-red-700">Emergencias: 107 SAME</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABORDAJE AMBULATORIO Y PLAN TERAPÉUTICO -->
+    <section class="py-24 bg-white border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Manejo Asistencial</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-4">
+            El abordaje ambulatorio integral de AutaMedica
+          </h2>
+          <p class="text-neutral-600 text-base md:text-lg font-light leading-relaxed">
+            Una videoconsulta médica oportuna permite ordenar la terapéutica desde el primer momento, evitando la automedicación riesgosa y coordinando la rehabilitación adecuada.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="p-8 rounded-3xl bg-slate-50 border border-neutral-200/80 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100/80 text-sky-800 flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.5 20.5l10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"></path>
+                <path d="m8.5 8.5 7 7"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-950">Analgesia Protocolizada</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed font-light">
+              Prescripción de esquemas antiinflamatorios y analgésicos adaptados a tu perfil clínico (protección gástrica si es necesaria, consideración de función renal y presión arterial) y relajantes musculares por ciclos breves para evitar sedación diurna excesiva.
+            </p>
+          </div>
+
+          <div class="p-8 rounded-3xl bg-slate-50 border border-neutral-200/80 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100/80 text-sky-800 flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-950">Orden de Kinesiología y RPG</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed font-light">
+              Emisión de orden médica digital oficial con código CUIR para sesiones de kinesiología motora, fortalecimiento de core y reeducación postural global (RPG), aceptada por obras sociales y prestadores de todo el país.
+            </p>
+          </div>
+
+          <div class="p-8 rounded-3xl bg-slate-50 border border-neutral-200/80 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100/80 text-sky-800 flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            <h3 class="text-xl font-serif font-bold text-neutral-950">Certificado Médico Laboral</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed font-light">
+              Si la limitación física te impide desempeñar tus funciones laborales, el profesional evaluador indicará el reposo transitorio adecuado y extenderá el certificado correspondiente con firma digital y validación QR para presentar ante Recursos Humanos.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ENLACES A SERVICIOS RELACIONADOS -->
+    <section class="py-16 bg-neutral-50 border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h3 class="text-xs font-bold uppercase tracking-widest text-sky-700 mb-6">Trámites y Consultas Relacionadas</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <a href="/medico-clinico-online" class="p-6 bg-white rounded-2xl border border-neutral-200/80 hover:border-sky-400 hover:shadow-md transition-all group block">
+            <span class="text-xs font-semibold text-sky-700 uppercase tracking-wider block mb-2">Consulta Médica</span>
+            <h4 class="text-lg font-serif font-bold text-neutral-950 group-hover:text-sky-700 transition-colors mb-2">Médico Clínico Online</h4>
+            <p class="text-xs text-neutral-600 leading-relaxed font-light">Atención clínica general para evaluación diagnóstica, prescripción de analgésicos e indicación de kinesiología.</p>
+          </a>
+
+          <a href="/certificado-medico-laboral" class="p-6 bg-white rounded-2xl border border-neutral-200/80 hover:border-sky-400 hover:shadow-md transition-all group block">
+            <span class="text-xs font-semibold text-sky-700 uppercase tracking-wider block mb-2">Justificación de Licencia</span>
+            <h4 class="text-lg font-serif font-bold text-neutral-950 group-hover:text-sky-700 transition-colors mb-2">Certificado Médico Laboral</h4>
+            <p class="text-xs text-neutral-600 leading-relaxed font-light">Constancia oficial de reposo por lumbalgia conforme a la Ley de Contrato de Trabajo con código CUIR.</p>
+          </a>
+
+          <a href="/receta-medica-online" class="p-6 bg-white rounded-2xl border border-neutral-200/80 hover:border-sky-400 hover:shadow-md transition-all group block">
+            <span class="text-xs font-semibold text-sky-700 uppercase tracking-wider block mb-2">Farmacia Digital</span>
+            <h4 class="text-lg font-serif font-bold text-neutral-950 group-hover:text-sky-700 transition-colors mb-2">Receta Médica Digital</h4>
+            <p class="text-xs text-neutral-600 leading-relaxed font-light">Emisión de recetas electrónicas para antiinflamatorios y miorrelajantes válidas en farmacias de todo el país.</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREGUNTAS FRECUENTES -->
+    <section class="py-24 bg-white border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Evidencia Clínica</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-4">
+            Preguntas frecuentes sobre dolor de espalda y lumbalgia
+          </h2>
+          <p class="text-neutral-600 text-base">
+            Respuestas médicas fundamentadas para orientar tu recuperación y cuidados posturales.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white border border-neutral-200 rounded-2xl overflow-hidden transition-all shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none">
+                <span class="text-lg md:text-xl font-medium text-neutral-950 pr-4">{faq.question}</span>
+                <div class="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 transition-transform group-open:rotate-180 text-neutral-700">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"></path>
+                  </svg>
+                </div>
+              </summary>
+              <div class="px-6 pb-6 md:px-8 md:pb-8 text-neutral-600 leading-relaxed text-sm md:text-base border-t border-neutral-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <CTAFinal
+      title="Aliviá tu dolor de espalda con criterio médico profesional."
+      subtitle="Conectá en minutos con un médico clínico matriculado y recibí tu plan analgésico, orden de kinesiología o certificado laboral."
+      buttonLabel="Consultar con Médico Clínico"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+  main {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Source Serif 4', serif;
+  }
+
+  .btn-primary-action {
+    background-color: #0284c7;
+    background-image: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  }
+  .btn-primary-action:hover {
+    background-color: #0369a1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+  }
+
+  .btn-secondary-action {
+    background-color: #ffffff;
+  }
+  .btn-secondary-action:hover {
+    background-color: #f8fafc;
+    border-color: #0284c7;
+    color: #0284c7;
+  }
+
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

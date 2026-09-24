@@ -1,0 +1,590 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/neurologo-online';
+
+const faqs = [
+  {
+    question: '¿Cómo se evalúa a un paciente neurológico por videoconsulta?',
+    answer:
+      'En neurología clínica, más del 80% del diagnóstico certero se fundamenta en un interrogatorio exhaustivo (anamnesis): características del dolor de cabeza o síntoma, frecuencia, factores gatillo, antecedentes familiares y medicación previa. Mediante la cámara, el neurólogo evalúa además la motilidad ocular, la mímica facial, el habla, la postura y las pruebas de coordinación motora guiadas, complementando con la revisión de estudios.',
+  },
+  {
+    question: '¿Puedo enviar mis resonancias magnéticas, tomografías y electroencefalogramas?',
+    answer:
+      'Absolutamente. Podés subir los informes escritos y los enlaces a los visores DICOM o archivos de imagen de resonancias magnéticas cerebrales (RMN), angioresonancias, tomografías computadas (TAC) y trazados de electroencefalograma (EEG). El neurólogo revisa los estudios en alta resolución durante la consulta y explica los hallazgos en detalle.',
+  },
+  {
+    question: '¿El neurólogo online prescribe antiepilépticos y medicación bajo receta archivada?',
+    answer:
+      'Sí. Los especialistas de AutaMedica son médicos neurólogos matriculados y registrados formalmente. Emiten recetas digitales bajo la Ley 27.553 con código oficial CUIR y firma digital válida para farmacias de todo el país, incluyendo tratamientos preventivos de migraña, moduladores del dolor neuropático y fármacos antiepilépticos para pacientes en seguimiento regular.',
+  },
+  {
+    question: '¿Cuál es la diferencia entre el tratamiento de rescate y el preventivo en la migraña?',
+    answer:
+      'El tratamiento de rescate o agudo (triptanes, antiinflamatorios específicos) se toma al inicio del ataque para frenar el dolor. El tratamiento preventivo o profiláctico (betabloqueantes, neuromoduladores o anticuerpos monoclonales anti-CGRP) se administra a diario para reducir la frecuencia, intensidad y duración de las crisis, y evitar el riesgo de cefalea por abuso de analgésicos.',
+  },
+  {
+    question: '¿Cómo se hace el seguimiento de temblores o trastornos del movimiento?',
+    answer:
+      'El neurólogo solicita realizar movimientos específicos frente a la cámara (postura en extensión de brazos, prueba dedo-nariz, movimientos alternantes rápidos de las manos y reposo) para caracterizar si se trata de un temblor esencial, temblor postural, inducido por fármacos o parkinsoniano, ajustando la medicación según el impacto en la vida diaria.',
+  },
+  {
+    question: '¿Qué síntomas neurológicos constituyen una emergencia que exige llamar al 107 SAME?',
+    answer:
+      'Cualquier síntoma compatible con un Accidente Cerebrovascular (ACV): asimetría facial súbita, pérdida brusca de fuerza o sensibilidad en un lado del cuerpo, dificultad repentina para articular palabras o comprender el lenguaje. También una cefalea explosiva en estallido que alcanza máxima intensidad en segundos, o convulsiones de inicio reciente. Estos cuadros requieren guardia hospitalaria inmediata.',
+  },
+  {
+    question: '¿Cómo preparo la consulta si el motivo son olvidos o problemas de memoria?',
+    answer:
+      'Es muy recomendable que el paciente esté acompañado por un familiar cercano o conviviente que pueda brindar su perspectiva objetiva sobre los cambios en la memoria, orientación o conducta cotidiana. Además, es de gran utilidad contar con los últimos análisis de sangre generales (tiroides y vitamina B12) e imágenes cerebrales previas.',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Especialidades',
+          item: 'https://www.autamedica.com/especialidades',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Neurólogo Online',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Neurólogo Online en Argentina | Consulta Neurológica Virtual | AutaMedica',
+      url: canonicalUrl,
+      description:
+        'Atención neurológica online por médicos especialistas matriculados. Diagnóstico y tratamiento de migrañas, cefaleas, temblores, epilepsia controlada, revisión de neuroimágenes y recetas digitales oficiales.',
+      inLanguage: 'es-AR',
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalSpecialty', name: 'Neurologic' },
+        { '@type': 'Thing', name: 'Neurología online' },
+        { '@type': 'Thing', name: 'Migraña y cefaleas' },
+        { '@type': 'Thing', name: 'Temblor esencial' },
+        { '@type': 'Thing', name: 'Epilepsia en adultos' },
+        { '@type': 'Thing', name: 'Revisión de resonancia cerebral' },
+        { '@type': 'Thing', name: 'Receta digital oficial' },
+      ],
+      publisher: {
+        '@id': 'https://www.autamedica.com/#organization',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Neurólogo Online en Argentina | Consulta Neurológica Virtual | AutaMedica"
+  description="Consulta neurológica online con especialistas matriculados. Abordaje de migrañas, cefaleas, temblores, epilepsia controlada, revisión de neuroimágenes y recetas oficiales."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- Breadcrumbs -->
+    <nav class="border-b border-slate-100 bg-slate-50/60 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/especialidades" class="hover:text-sky-600 transition-colors">Especialidades</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Neurólogo online</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="relative py-16 md:py-24 border-b border-slate-100 bg-gradient-to-b from-slate-50 via-white to-white overflow-hidden">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider">
+              <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+              Especialidad Médica · Neurología Clínica
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-medium leading-[1.12] tracking-tight text-slate-950">
+              Neurólogo online: <br class="hidden sm:inline" />
+              <span class="text-[var(--au-accent)]">diagnóstico minucioso</span> y continuidad neurológica experta.
+            </h1>
+
+            <p class="text-lg md:text-xl text-slate-600 font-light leading-relaxed max-w-2xl">
+              Atención especializada en migrañas, cefaleas primarias, temblores, neuralgias y seguimiento de epilepsia con neurólogos matriculados. Revisión de resonancias y tomografías, titulación segura de fármacos y recetas digitales oficiales bajo Ley 27.553.
+            </p>
+
+            <!-- Acciones -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-2">
+              <a href="/auth/register" class="btn-primary-action inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all">
+                <span>Consultar con Neurólogo</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="M12 5l7 7-7 7"></path>
+                </svg>
+              </a>
+              <a href="#patologias-neurologicas" class="btn-secondary-action inline-flex items-center justify-center px-7 py-4 rounded-xl text-slate-700 font-semibold text-base border border-slate-200 transition-all">
+                Condiciones neurológicas evaluadas
+              </a>
+            </div>
+
+            <!-- Trust Badges -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-200/80 text-xs text-slate-600">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Neurólogos matriculados</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Revisión RMN y TAC</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Manejo de antimigrañosos</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Receta oficial CUIR</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Card -->
+          <div class="lg:col-span-5 flex justify-center">
+            <div class="w-full max-w-md bg-white rounded-3xl border border-slate-200/90 shadow-2xl shadow-sky-950/5 p-8 relative overflow-hidden">
+              <div class="absolute -top-10 -right-10 w-40 h-40 bg-sky-50 rounded-full blur-2xl pointer-events-none"></div>
+
+              <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center border border-sky-100 flex-shrink-0">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"></path>
+                    <path d="M9 21h6"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-wider text-sky-700">Consulta Neurológica</div>
+                  <h3 class="text-xl font-serif font-bold text-slate-950">Atención Especializada</h3>
+                </div>
+              </div>
+
+              <div class="space-y-4 text-sm text-slate-600 border-t border-slate-100 pt-5">
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-slate-900 block">Diferenciación de Cefaleas</span>
+                    <span class="text-xs text-slate-500">Clasificación precisa entre migraña, cefalea tensional y abuso medicamentoso.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-slate-900 block">Auditoría de Neuroimágenes</span>
+                    <span class="text-xs text-slate-500">Revisión exhaustiva de resonancias, tomografías y correlación anatomoclínica.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-slate-900 block">Prescripción Trazable Oficial</span>
+                    <span class="text-xs text-slate-500">Recetas digitales bajo Ley 27.553 válidas para fármacos archivados y controlados.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Historia clínica protegida</span>
+                <span class="font-semibold text-sky-700">Ley 25.326</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- MANIFIESTO: LA NEUROLOGÍA MODERNA A DISTANCIA -->
+    <section class="py-20 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="bg-white rounded-3xl p-8 md:p-14 border border-slate-200/90 shadow-sm text-left">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Rigor Clínico</span>
+          <h2 class="text-2xl md:text-4xl font-serif font-bold text-slate-950 mb-6 leading-tight">
+            El método neurológico: escuchar al paciente, analizar el tiempo y correlacionar la imagen.
+          </h2>
+          <div class="space-y-4 text-slate-600 leading-relaxed font-light text-base md:text-lg">
+            <p>
+              En la medicina del sistema nervioso, el diagnóstico no surge de un test apresurado, sino del análisis riguroso de los patrones temporales: cómo comienza un dolor, qué síntomas lo preceden, cómo evoluciona en las horas posteriores y de qué forma responde a cada familia farmacológica.
+            </p>
+            <p>
+              La telemedicina neurológica en AutaMedica brinda el tiempo y la serenidad que este proceso demanda. Permite revisar con calma los estudios de resonancia magnética o tomografía, evaluar la respuesta a tratamientos previos, desarmar el circuito vicioso del consumo diario de analgésicos comunes y establecer un plan profiláctico efectivo que devuelva autonomía al paciente.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 ÁREAS DE ABORDAJE NEUROLÓGICO -->
+    <section id="patologias-neurologicas" class="py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Condiciones Frecuentes</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+            Áreas de atención neurológica ambulatoria
+          </h2>
+          <p class="text-slate-600 text-lg leading-relaxed">
+            Abordaje clínico de trastornos del sistema nervioso central y periférico según las guías de la Sociedad Neurológica Argentina (SNA) y la International Headache Society (IHS).
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          
+          <!-- 1. Migrañas y Cefaleas Primarias -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Migrañas y Cefalea Tensional</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Migraña con o sin aura, dolor pulsátil hemicraneal, fotofobia, náuseas y cefalea tensional recurrente. Prescripción de triptanes para crisis agudas y esquemas profilácticos para reducir la frecuencia mensual de episodios.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Tratamiento agudo específico y profilaxis individualizada
+            </div>
+          </div>
+
+          <!-- 2. Neuralgias y Dolor Neuropático -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Neuralgias Craneofaciales</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Neuralgia del trigémino con dolores punzantes en descargas eléctricas, neuralgia occipital de Arnold, neuropatía postherpética y dolor neuropático periférico. Indicación de neuromoduladores específicos.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Titulación posológica de gabapentinoides y carbamazepina
+            </div>
+          </div>
+
+          <!-- 3. Temblores y Trastornos Motores -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="4"></circle>
+                  <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Temblores y Parkinsonismo</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Diferenciación entre temblor esencial y temblor de reposo, seguimiento de enfermedad de Parkinson estabilizada, optimización de dosis de levodopa y ajuste de agonistas dopaminérgicos para minimizar fluctuaciones motoras.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Evaluación motora y optimización de terapias de reemplazo
+            </div>
+          </div>
+
+          <!-- 4. Seguimiento de Epilepsia Controlada -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Epilepsia y FAEs</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Monitoreo de pacientes con diagnóstico establecido de epilepsia en fase libre de crisis. Monitoreo de adherencia, control de niveles plasmáticos, farmacovigilancia y renovación periódica de recetas oficiales bajo Ley 27.553.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Receta archivada CUIR para antiepilépticos
+            </div>
+          </div>
+
+          <!-- 5. Revisión de RMN, TAC y EEG -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Segunda Opinión en Neuroimágenes</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Lectura experta de resonancias de encéfalo, secuencias FLAIR (hiperintensidades inespecíficas de sustancia blanca), tomografías de cráneo y trazados electroencefalográficos, correlacionando con el cuadro clínico real.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Interpretación directa de imágenes DICOM y trazados EEG
+            </div>
+          </div>
+
+          <!-- 6. Deterioro Cognitivo y Memoria -->
+          <div class="bg-slate-50/70 rounded-2xl p-8 border border-slate-200/80 hover:border-sky-300 transition-all flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">Quejas de Memoria y Envejecimiento</h3>
+              <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Evaluación inicial de dificultades atencionales, olvidos cotidianos y quejas cognitivas en adultos mayores. Descarte de causas metabólicas o farmacológicas reversibles y solicitud de evaluación neurocognitiva formal.
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-200/60 text-xs text-sky-800 font-semibold">
+              Diagnóstico diferencial temprano de deterioro cognitivo
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- EL PROTOCOLO CLÍNICO EN 4 ETAPAS -->
+    <section class="py-24 bg-slate-50/80 border-b border-slate-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Protocolo Neurológico</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-6">
+            Estructura de la videoconsulta neurológica
+          </h2>
+          <p class="text-slate-600 text-lg leading-relaxed">
+            Metodología asistencial diseñada para maximizar la precisión diagnóstica y la seguridad del paciente.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              01
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Anamnesis Semiológica</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Descripción pormenorizada del motivo de consulta: modo de inicio, evolución temporal, disparadores, intensidad y tratamientos previos utilizados.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              02
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Examen por Video y RMN</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Pruebas motrices y de pares craneales guiadas por cámara, y revisión compartida de estudios de neuroimágenes (resonancias y tomografías).
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              03
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Esquema Terapéutico</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Definición del plan: estrategia abortiva para crisis, titulación progresiva de tratamiento preventivo y pautas de higiene de sueño y estrés.
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="w-10 h-10 rounded-xl bg-slate-950 text-white font-serif font-bold text-lg flex items-center justify-center">
+              04
+            </div>
+            <h3 class="text-lg font-serif font-bold text-slate-950">Receta CUIR y Cronograma</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Emisión de recetas oficiales para farmacias del país y fijación de fecha de control clínico para evaluar tolerancia y reducción de episodios.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- BANDERAS ROJAS NEUROLÓGICAS (SAFETY BANNER) -->
+    <section class="py-12 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="rounded-2xl p-6 md:p-8 bg-white border border-red-200/90 shadow-sm flex flex-col md:flex-row items-start gap-5">
+          <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <div class="space-y-3">
+            <h4 class="font-bold text-base text-slate-950">Banderas rojas neurológicas: llamado urgente al 107 SAME o guardia de emergencias</h4>
+            <p class="text-sm text-slate-600 leading-relaxed font-light">
+              La telemedicina neurológica está indicada exclusivamente para patologías ambulatorias y controles. Si vos o alguien cercano experimenta alguno de los siguientes signos, se debe activar de inmediato el sistema de emergencias médicas (<strong>107 SAME / 911</strong>):
+            </p>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 font-medium pt-1">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Asimetría facial, debilidad en un brazo o pierna (sospecha ACV)</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Dificultad súbita para hablar, pronunciar o comprender palabras</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Cefalea súbita en estallido ("la peor de la vida" en segundos)</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Convulsión de inicio reciente en un adulto sin antecedentes</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Dolor de cabeza con fiebre alta, rigidez de nuca y desorientación</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Pérdida súbita de visión en un ojo (amaurosis) o visión doble</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREGUNTAS FRECUENTES -->
+    <section class="py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Preguntas Habituales</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-slate-950 mb-4">
+            Dudas frecuentes sobre la consulta con neurólogo online
+          </h2>
+          <p class="text-slate-600 text-base">
+            Información médica calificada sobre diagnósticos, medicación y revisión de estudios.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none">
+                <span class="text-lg md:text-xl font-medium text-slate-950 pr-4">{faq.question}</span>
+                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 transition-transform group-open:rotate-180 text-slate-700">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"></path>
+                  </svg>
+                </div>
+              </summary>
+              <div class="px-6 pb-6 md:px-8 md:pb-8 text-slate-600 leading-relaxed text-sm md:text-base border-t border-slate-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <CTAFinal
+      title="Tomá el control de tus dolores de cabeza y salud neurológica."
+      subtitle="Conectá con un médico neurólogo matriculado desde la tranquilidad de tu hogar."
+      buttonLabel="Consultar con Neurólogo"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+  main {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Source Serif 4', serif;
+  }
+
+  .btn-primary-action {
+    background-color: #0284c7;
+    background-image: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  }
+  .btn-primary-action:hover {
+    background-color: #0369a1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+  }
+
+  .btn-secondary-action {
+    background-color: #ffffff;
+  }
+  .btn-secondary-action:hover {
+    background-color: #f8fafc;
+    border-color: #0284c7;
+    color: #0284c7;
+  }
+
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

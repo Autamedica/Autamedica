@@ -1,0 +1,605 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/dolor-de-cabeza';
+
+const faqs = [
+  {
+    question: '¿Cómo sé si mi dolor de cabeza es una cefalea tensional o una migraña?',
+    answer:
+      'La cefalea tensional suele ser bilateral (en ambos lados de la cabeza), con sensación de opresión constante ("en casco" o "en vincha"), de intensidad leve a moderada y no empeora con las actividades físicas cotidianas. En cambio, la migraña típicamente afecta un solo lado de la cabeza (hemicraneana), tiene carácter pulsátil ("late"), intensidad moderada a severa, empeora al caminar o subir escaleras, y se asocia a intolerancia a la luz (fotofobia), a los ruidos (fonofobia) y náuseas o vómitos.',
+  },
+  {
+    question: '¿Qué es el aura migrañosa y cuánto tiempo suele durar?',
+    answer:
+      'El aura es un conjunto de síntomas neurológicos reversibles y transitorios que preceden o acompañan al dolor de cabeza en aproximadamente un 20% a 30% de los pacientes con migraña. La forma más común es el aura visual (destellos, líneas en zigzag, manchas oscuras o escotomas centelleantes), aunque también puede causar hormigueo en un brazo o cara (sensitiva) o dificultad transitoria para encontrar palabras. Típicamente se desarrolla de forma gradual en 5 a 20 minutos y dura menos de una hora.',
+  },
+  {
+    question: '¿Por qué tomar analgésicos todos los días puede empeorar el dolor de cabeza?',
+    answer:
+      'Es un fenómeno clínico sumamente frecuente denominado Cefalea por Sobreuso de Medicación (cefalea de rebote). Cuando se toman analgésicos simples (paracetamol, ibuprofeno) durante más de 15 días al mes, o combinados con cafeína, ergotamina o triptanes durante más de 10 días al mes, los receptores del dolor cerebral se hipersensibilizan. Al bajar el efecto del fármaco, el dolor reaparece con más fuerza, creando un ciclo vicioso que solo se resuelve con un plan de desescalada médica supervisado por un profesional.',
+  },
+  {
+    question: '¿Qué es una "cefalea en trueno" y por qué requiere llamar al 107 de urgencia?',
+    answer:
+      'La cefalea en trueno (Thunderclap headache) es un dolor de cabeza de comienzo explosivo que alcanza su máxima intensidad (10/10) en cuestión de segundos o menos de un minuto, frecuentemente descripto como "el peor dolor de cabeza de mi vida". Es una emergencia neurológica porque en un porcentaje relevante de casos se debe a una hemorragia subaracnoidea por rotura de un aneurisma cerebral o disección arterial. Exige tomografía computarizada de encéfalo urgente en guardia presencial.',
+  },
+  {
+    question: '¿Cuándo está indicado un tratamiento preventivo para la migraña?',
+    answer:
+      'El tratamiento preventivo o profiláctico se recomienda cuando el paciente sufre 3 o más episodios de migraña al mes, cuando los ataques son muy prolongados o discapacitantes, o cuando los analgésicos de rescate no logran alivio adecuado. A diferencia de los calmantes que se toman en el momento del dolor, el preventivo se toma a diario durante varios meses para reducir la frecuencia, intensidad y duración de las crisis (utilizando fármacos como betabloqueantes, topiramato, amitriptilina o anticuerpos monoclonales anti-CGRP).',
+  },
+  {
+    question: '¿Se puede atender una cefalea crónica por videoconsulta?',
+    answer:
+      'Sí, es una de las áreas de mayor impacto de la telemedicina. Una vez descartadas las banderas rojas de urgencia presencial, un neurólogo o médico clínico puede realizar una anamnesis exhaustiva, confeccionar un diario de cefaleas, identificar desencadenantes ambientales o dietarios, desarticular el sobreuso de analgésicos y prescribir planes terapéuticos de rescate y preventivos con receta digital oficial.',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Dolor de Cabeza: Tipos de Cefalea, Pautas de Alarma y Tratamiento | AutaMedica',
+      url: canonicalUrl,
+      description:
+        'Guía médica sobre dolor de cabeza: diferencias entre cefalea tensional, migraña y cefalea por sobreuso de analgésicos. Criterios de alarma neurológica y consulta online.',
+      inLanguage: 'es-AR',
+      aspect: ['Diagnosis', 'Treatment', 'Overview'],
+      medicalAudience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalSignOrSymptom', name: 'Cefalea' },
+        { '@type': 'MedicalCondition', name: 'Migraña' },
+        { '@type': 'MedicalCondition', name: 'Cefalea tensional' },
+        { '@type': 'MedicalCondition', name: 'Cefalea por sobreuso de medicación' },
+        { '@type': 'MedicalSpecialty', name: 'Neurology' },
+        { '@type': 'MedicalSpecialty', name: 'PrimaryCare' },
+      ],
+      provider: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Guía de Síntomas',
+          item: 'https://www.autamedica.com/consulta-medica-online',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Dolor de Cabeza',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Dolor de Cabeza: Tipos de Cefalea, Pautas de Alarma y Tratamiento | AutaMedica"
+  description="Guía médica sobre cefalea tensional, migraña y dolor por sobreuso de analgésicos. Pautas de alarma neurológica, cuándo ir a guardia y consulta con neurólogo online."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="website"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- BREADCRUMBS -->
+    <nav class="border-b border-slate-100 bg-slate-50/60 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/consulta-medica-online" class="hover:text-sky-600 transition-colors">Guía de Síntomas</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Dolor de cabeza</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="relative py-16 md:py-24 border-b border-slate-100 bg-gradient-to-b from-slate-50 via-white to-white">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold tracking-wide uppercase">
+              <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+              Neurología y Medicina Clínica
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12]">
+              Dolor de cabeza: reconocer su origen para <span class="text-sky-600">tratarlo con precisión</span>.
+            </h1>
+
+            <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl">
+              La inmensa mayoría de las cefaleas corresponden a cuadros primarios benignos como migraña o tensión muscular. No obstante, aprender a diferenciar el tipo de dolor, no caer en el abuso de analgésicos y descartar banderas rojas neurológicas es indispensable para tu bienestar.
+            </p>
+
+            <!-- Proof Chips (Slate, Sky, Emerald) -->
+            <div class="flex flex-wrap gap-2 pt-1">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Criterios neurológicos SNOOP
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Manejo preventivo y de rescate
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Recetas oficiales de triptanes y profilaxis
+              </span>
+            </div>
+
+            <!-- CTAs requeridos -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-3">
+              <a href="/neurologo-online" class="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg bg-sky-600 text-white font-semibold text-base shadow-sm hover:bg-sky-700 transition-all transform hover:-translate-y-0.5">
+                <span>Consultar con neurólogo online</span>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </a>
+              <a href="/medico-online" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg border border-slate-300 bg-white text-slate-800 font-semibold text-base hover:bg-slate-50 hover:border-slate-400 transition-all">
+                <span>Atención clínica general</span>
+              </a>
+            </div>
+
+            <p class="text-xs text-slate-500">
+              Evaluación sincrónica con especialistas certificados. Abordaje de episodios agudos y cuadros crónicos.
+            </p>
+          </div>
+
+          <!-- Hero Graphic: Triaje de Cefaleas Primarias -->
+          <div class="lg:col-span-5">
+            <div class="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-5">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">
+                    IHS
+                  </div>
+                  <div>
+                    <h2 class="text-sm font-bold text-slate-900 leading-tight">Clasificación de Cefaleas</h2>
+                    <p class="text-xs text-slate-500">Criterios de la International Headache Society</p>
+                  </div>
+                </div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Triaje
+                </span>
+              </div>
+
+              <!-- Comparativa rápida -->
+              <div class="space-y-3 text-xs">
+                <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                  <div class="flex items-center justify-between">
+                    <strong class="text-slate-900 font-semibold">Cefalea Tensional</strong>
+                    <span class="font-mono text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-200">Bilateral</span>
+                  </div>
+                  <p class="text-slate-600">Opresiva ("en vincha"), intensidad leve-moderada, no pulsátil, sin náuseas.</p>
+                </div>
+
+                <div class="p-3 rounded-lg bg-sky-50/50 border border-sky-200 space-y-1">
+                  <div class="flex items-center justify-between">
+                    <strong class="text-slate-900 font-semibold">Migraña (Jaqueeca)</strong>
+                    <span class="font-mono text-sky-700 font-bold bg-sky-100 px-2 py-0.5 rounded border border-sky-300">Unilateral</span>
+                  </div>
+                  <p class="text-slate-600">Pulsátil ("late"), moderada a severa, empeora con movimiento, náuseas, fotofobia, aura.</p>
+                </div>
+
+                <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                  <div class="flex items-center justify-between">
+                    <strong class="text-slate-900 font-semibold">Sobreuso de Analgésicos</strong>
+                    <span class="font-mono text-slate-800 font-bold bg-slate-200 px-2 py-0.5 rounded">Rebote</span>
+                  </div>
+                  <p class="text-slate-600">Dolor casi diario matutino por consumo frecuente (&gt;10-15 días/mes) de analgésicos o triptanes.</p>
+                </div>
+              </div>
+
+              <div class="border-t border-slate-100 pt-3 flex items-center justify-between text-xs text-slate-500">
+                <span>¿Tomas calmantes más de 2 días por semana?</span>
+                <span class="text-sky-600 font-semibold">Riesgo de cefalea por rebote</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- CRITICAL WARNING / BANDERAS ROJAS NEUROLÓGICAS (HARD GATE) -->
+    <section class="py-12 bg-slate-950 text-white">
+      <div class="container mx-auto px-6">
+        <div class="max-w-4xl mx-auto rounded-2xl border-2 border-red-500/80 bg-slate-900/95 p-6 md:p-8 space-y-6 shadow-2xl">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center shrink-0">
+              <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+            </div>
+            <div class="space-y-2">
+              <span class="text-xs uppercase font-extrabold tracking-widest text-red-400 bg-red-950/60 px-2.5 py-1 rounded border border-red-800/60">
+                Criterios SNOOP de Alarma Neurológica
+              </span>
+              <h2 class="text-2xl font-serif font-bold text-white">
+                Banderas rojas: cuándo acudir a urgencias presenciales de inmediato
+              </h2>
+            </div>
+          </div>
+
+          <p class="text-sm md:text-base text-slate-300 leading-relaxed">
+            Aunque la mayoría de los dolores de cabeza son benignos, ciertas características indican la posibilidad de una patología intracraneal urgente (hemorragia, infección o lesión focal). <strong>Si presentás cualquiera de los siguientes síntomas, no uses la telemedicina: acudí de urgencia a una guardia con tomografía o llamá al 107 / 911:</strong>
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs md:text-sm text-slate-200">
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Cefalea "en trueno" (Thunderclap):</strong>
+                <span>Dolor explosivo de intensidad máxima inmediata (en segundos o menos de 1 minuto). Sospecha de rotura de aneurisma / hemorragia subaracnoidea.</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Rigidez de nuca con fiebre:</strong>
+                <span>Incapacidad para flexionar el mentón al pecho con dolor agudo, temperatura elevada y confusión (sospecha de meningitis).</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Déficit neurológico focal agudo:</strong>
+                <span>Pérdida de fuerza en un brazo o pierna, desviación de la boca, dificultad para articular palabras o visión doble brusca (sospecha de ACV).</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Inicio nuevo en personas mayores de 50 años:</strong>
+                <span>Cefalea que comienza por primera vez en la vida después de los 50 años (descartar arteritis temporal o lesiones expansivas).</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Empeoramiento postural marcado:</strong>
+                <span>Dolor que se agrava bruscamente al toser, estornudar, agacharse o hacer esfuerzo físico intenso (maniobras de Valsalva).</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Antecedentes de cáncer o inmunosupresión:</strong>
+                <span>Cualquier cefalea progresiva o de nuevo patrón en un paciente con diagnóstico oncológico previo o VIH.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t border-slate-800 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+            <span>Ante cefalea en trueno o pérdida de fuerza motora súbita:</span>
+            <span class="inline-flex items-center gap-2 font-bold text-red-400 text-sm">
+              Llamar de inmediato al 107 (SAME) o al 911
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANÁLISIS DE LOS 3 TIPOS DE CEFALEA -->
+    <section class="py-16 md:py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="text-center max-w-3xl mx-auto space-y-4 mb-14">
+          <span class="text-xs uppercase font-bold tracking-wider text-sky-700 bg-sky-50 px-3 py-1 rounded-full border border-sky-200">
+            Diagnóstico Clínico Diferencial
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-serif font-bold text-slate-950">
+            Cefalea tensional, migraña y dolor por sobreuso
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg leading-relaxed">
+            Comprender las diferencias clínicas entre los tres motivos más habituales de consulta permite instaurar el tratamiento farmacológico y los cambios de hábitos correctos.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Tarjeta 1: Cefalea Tensional -->
+          <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 space-y-4 hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-base">
+              T
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">
+              Cefalea Tensional
+            </h3>
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              La más común en la población
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Ubicación:</strong> bilateral, en frente, sienes, nuca o en casco completo.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Tipo de dolor:</strong> opresión continua, peso o tirantez constante.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Intensidad:</strong> leve a moderada; no impide realizar actividades habituales.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 shrink-0"></span>
+                <span><strong>Desencadenantes:</strong> estrés laboral, fatiga visual, bruxismo o mala postura cervical.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Tarjeta 2: Migraña -->
+          <div class="rounded-2xl border border-sky-300 bg-sky-50/40 p-6 space-y-4">
+            <div class="w-10 h-10 rounded-lg bg-sky-600 text-white flex items-center justify-center font-bold text-base">
+              M
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">
+              Migraña (Jaqueeca)
+            </h3>
+            <p class="text-xs font-semibold text-sky-800 uppercase tracking-wide">
+              Enfermedad neurovascular
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-600 mt-1.5 shrink-0"></span>
+                <span><strong>Ubicación:</strong> un solo lado de la cabeza (hemicraneana), aunque puede alternar.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-600 mt-1.5 shrink-0"></span>
+                <span><strong>Tipo de dolor:</strong> pulsátil, punzante, con latidos cardíacos perceptibles en la cabeza.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-600 mt-1.5 shrink-0"></span>
+                <span><strong>Intensidad:</strong> moderada a severa; obliga a recostarse en penumbra y silencio.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-600 mt-1.5 shrink-0"></span>
+                <span><strong>Acompañantes:</strong> intolerancia a la luz y ruido, náuseas, y en 30% aura visual previa.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Tarjeta 3: Cefalea por Sobreuso -->
+          <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-6 space-y-4 hover:border-sky-300 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold text-base">
+              R
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">
+              Sobreuso de Fármacos
+            </h3>
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              Efecto rebote paradójico
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-600 mt-1.5 shrink-0"></span>
+                <span><strong>Ubicación:</strong> dolor difuso, sordo, presente casi a diario desde el despertar.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-600 mt-1.5 shrink-0"></span>
+                <span><strong>Causa:</strong> consumo habitual de analgésicos o antimigrañosos (&gt;10-15 días al mes).</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-600 mt-1.5 shrink-0"></span>
+                <span><strong>Comportamiento:</strong> el calmante alivia unas horas y el dolor regresa con mayor intensidad.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-600 mt-1.5 shrink-0"></span>
+                <span><strong>Resolución:</strong> requiere desintoxicación analgésica planificada por un especialista.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Box educativo sobre la automedicación con ergotamina -->
+        <div class="mt-10 p-6 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs md:text-sm leading-relaxed">
+          <h4 class="font-bold text-slate-900 mb-2 flex items-center gap-2">
+            <svg class="w-5 h-5 text-sky-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            El peligro de los compuestos combinados con ergotamina y cafeína
+          </h4>
+          <p>
+            Muchos comprimidos de venta libre para el dolor de cabeza combinan paracetamol o dipirona con ergotamina y cafeína. Si bien pueden abortar una crisis aislada, su uso repetido es el principal motor de cronificación de la migraña y de cefalea de rebote, además de elevar la presión arterial. La neurología moderna cuenta con tratamientos específicos de rescate (triptanes) y medicamentos preventivos altamente eficaces que transforman la calidad de vida sin generar dependencia.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUÁNDO TELEMEDICINA VS CUÁNDO GUARDIA -->
+    <section class="py-16 md:py-24 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="text-center max-w-3xl mx-auto space-y-4 mb-14">
+          <span class="text-xs uppercase font-bold tracking-wider text-sky-700 bg-sky-100/60 px-3 py-1 rounded-full border border-sky-200">
+            Ruta Asistencial
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-serif font-bold text-slate-950">
+            ¿Cuándo consultar online y cuándo acudir a guardia?
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg leading-relaxed">
+            La telemedicina neurológica permite ordenar el diagnóstico, indicar tratamientos preventivos y realizar un seguimiento estrecho sin demoras en salas de espera.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Telemedicina -->
+          <div class="p-6 md:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
+              <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Videoconsulta con Neurólogo / Clínico
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">Abordaje programado y control</h3>
+            <p class="text-xs md:text-sm text-slate-600 leading-relaxed">
+              Casos con síntomas conocidos y recurrentes, sin banderas rojas de urgencia:
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Migrañas habituales que requieren ajuste de tratamiento.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Cefaleas tensionales frecuentes ligadas a estrés o bruxismo.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Sospecha de cefalea por rebote o abuso de analgésicos.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Prescripción de triptanes y esquemas preventivos orales.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Solicitud de resonancia magnética (RMN) o análisis de control.</span>
+              </li>
+            </ul>
+            <div class="pt-4">
+              <a href="/neurologo-online" class="block text-center py-3 px-4 rounded-lg bg-sky-600 text-white font-semibold text-sm hover:bg-sky-700 transition-colors">
+                Agendar videoconsulta con neurólogo
+              </a>
+            </div>
+          </div>
+
+          <!-- Guardia Presencial -->
+          <div class="p-6 md:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-red-50 text-red-700 text-xs font-bold border border-red-200">
+              <svg class="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              Guardia Presencial con Tomógrafo
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">Emergencias neurológicas</h3>
+            <p class="text-xs md:text-sm text-slate-600 leading-relaxed">
+              Situaciones que exigen neuroimagen y punción lumbar de urgencia:
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Cefalea en trueno de inicio súbito e insoportable.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Fiebre alta, vómitos en chorro y rigidez de nuca.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Pérdida de fuerza o sensibilidad en brazo o pierna.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Desviación de la comisura de la boca o problemas al hablar.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Dolor de cabeza tras un golpe fuerte en el cráneo (TEC).</span>
+              </li>
+            </ul>
+            <div class="pt-4">
+              <div class="text-center py-3 px-4 rounded-lg bg-slate-100 text-slate-700 font-semibold text-sm border border-slate-200">
+                Concurrir a centro hospitalario o llamar al 107
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="py-16 md:py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center space-y-4 mb-12">
+          <span class="text-xs uppercase font-bold tracking-wider text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+            Preguntas Frecuentes
+          </span>
+          <h2 class="text-3xl font-serif font-bold text-slate-950">
+            Dudas clínicas habituales sobre el dolor de cabeza
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group rounded-xl border border-slate-200 bg-white p-5 transition-all open:bg-slate-50/50 open:border-sky-300">
+              <summary class="flex cursor-pointer items-center justify-between text-base font-semibold text-slate-900 list-none">
+                <span>{faq.question}</span>
+                <span class="ml-4 text-sky-600 transition-transform group-open:rotate-180">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </span>
+              </summary>
+              <p class="mt-4 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                {faq.answer}
+              </p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CROSS LINKS -->
+    <section class="py-12 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-6 text-center">
+          Servicios y Especialidades Relacionadas
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <a href="/neurologo-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Neurólogo online
+          </a>
+          <a href="/medico-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Médico clínico online
+          </a>
+          <a href="/guardia-medica-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Guardia médica 24hs
+          </a>
+          <a href="/receta-medica-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Receta médica oficial
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <CTAFinal
+      title="Recuperá tu bienestar: consultá con un especialista en cefaleas."
+      subtitle="Evaluación neurológica integral por videoconsulta. Diagnóstico certero, desescalada de analgésicos y recetas de tratamientos preventivos en tu teléfono."
+      buttonLabel="Consultar con neurólogo online"
+      buttonHref="/neurologo-online"
+    />
+  </main>
+
+  <Footer />
+</Layout>

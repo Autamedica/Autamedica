@@ -1,0 +1,401 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/consulta-medica-express';
+
+const hallmarks = [
+  {
+    title: 'Espera Menor a 15 Minutos',
+    desc: 'Sin la frustración de buscar turnos a semanas de distancia. Te conectás directamente a nuestra sala de guardia activa y te atiende un profesional médico disponible.',
+  },
+  {
+    title: 'Resolución Clínica Concreta',
+    desc: 'Enfocada en resolver problemas ambulatorios delimitados: orientación diagnóstica, pautas de manejo sintomático, prescripciones farmacológicas y solicitud de estudios.',
+  },
+  {
+    title: 'Documentación Oficial Inmediata',
+    desc: 'Al terminar la videoconsulta, recibís en tu teléfono la receta electrónica oficial con código CUIR, constancia médica o indicaciones terapéuticas firmadas digitalmente.',
+  },
+];
+
+const clinicalScopes = [
+  {
+    title: 'Cuadros Respiratorios Agudos',
+    desc: 'Resfríos comunes, rinitis alérgica, congestión nasal, odinofagia leve a moderada y tos irritativa sin signos de dificultad respiratoria ni compromiso pulmonar.',
+  },
+  {
+    title: 'Malestares Gastrointestinales Leves',
+    desc: 'Epigastralgia, acidez, náuseas, gastroenteritis autolimitada y pautas de hidratación oral guiada sin signos de alarma ni deshidratación severa.',
+  },
+  {
+    title: 'Dermatología Ambultoria Inicial',
+    desc: 'Dermatitis por contacto, urticarias leves, picaduras de insectos, erupciones cutáneas en estudio y pautas de cuidado dérmico sintomático.',
+  },
+  {
+    title: 'Lectura de Estudios y Análisis',
+    desc: 'Interpretación de hemogramas, perfiles lipídicos, hepatogramas o ecografías de control para evacuar dudas antes de tu turno con el especialista de cabecera.',
+  },
+  {
+    title: 'Dolores Musculoesqueléticos Agudos',
+    desc: 'Lumbalgias posturales, contracturas cervicales y dolores articulares mecánicos sin déficit neurológico ni traumatismos de alto impacto.',
+  },
+  {
+    title: 'Renovación de Prescripciones',
+    desc: 'Continuidad de tratamientos crónicos de hipertensión, tiroides, diabetes o anticoncepción para evitar la interrupción de esquemas farmacológicos.',
+  },
+];
+
+const faqs = [
+  {
+    question: '¿Qué es una consulta médica express y en qué se diferencia de un turno programado?',
+    answer:
+      'La consulta médica express es un servicio de telemedicina a demanda diseñado para resolver afecciones ambulatorias puntuales sin necesidad de agendar turno previo con días de anticipación. El tiempo promedio de espera suele ser inferior a los 15 minutos, accediendo de forma inmediata a un médico clínico matriculado para obtener orientación diagnóstica y terapéutica.',
+  },
+  {
+    question: '¿La atención la realiza un médico real o un sistema automatizado?',
+    answer:
+      'Te atiende siempre un médico matriculado en la República Argentina con habilitación profesional verificada en el Registro Federal de Profesionales de Salud (REFEPS). No utilizamos chatbots ni respuestas generativas automáticas para diagnosticar: el triaje inicial solo ordena tus síntomas para que el profesional te evalúe cara a cara por videollamada.',
+  },
+  {
+    question: '¿Puedo obtener recetas y certificados en una consulta express?',
+    answer:
+      'Sí. Si el profesional médico corrobora la pertinencia clínica del tratamiento o del reposo, emitirá en el acto la receta digital con código CUIR (válida en farmacias de todo el país) o el certificado médico correspondiente con firma digital, disponible al instante en tu portal seguro.',
+  },
+  {
+    question: '¿Qué sucede si mi motivo de consulta requiere un examen físico complejo?',
+    answer:
+      'La ética clínica de AutaMedica establece que si el médico sospecha una patología que exija palpación profunda, auscultación cardíaca/pulmonar directa o estudios de mayor complejidad, te brindará pautas iniciales de cuidado y emitirá la derivación formal para consulta presencial o interconsulta con especialista.',
+  },
+  {
+    question: '¿Cuánto dura habitualmente la consulta express?',
+    answer:
+      'Dura el tiempo que el profesional estime necesario para realizar una anamnesis clínica completa, evacuar tus dudas y pautar el tratamiento (habitualmente entre 10 y 15 minutos de interacción directa). Se prioriza la claridad resolutiva y la seguridad del paciente.',
+  },
+  {
+    question: '¿Qué hago si tengo síntomas graves o dolor en el pecho?',
+    answer:
+      'La consulta médica express no está destinada a emergencias con riesgo de vida. Ante síntomas como dolor torácico opresivo, disnea aguda, debilidad súbita en extremidades, asimetría facial o pérdida de conciencia, debés llamar de inmediato al 107 (SAME) o al 911, o dirigirte a la guardia hospitalaria más cercana.',
+  },
+];
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: 'Consulta Médica Express Online | Atención Inmediata en Menos de 15 Minutos | AutaMedica',
+      description:
+        'Consulta médica express por videollamada sin turno previo. Atención con médicos matriculados en menos de 15 minutos, recetas digitales oficiales e indicaciones al instante.',
+      inLanguage: 'es-AR',
+      isPartOf: {
+        '@type': 'WebSite',
+        '@id': 'https://www.autamedica.com/#website',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+      about: [
+        { '@type': 'Thing', name: 'Consulta médica express' },
+        { '@type': 'Thing', name: 'Atención médica a demanda' },
+        { '@type': 'MedicalSpecialty', name: 'PrimaryCare' },
+        { '@type': 'Thing', name: 'Receta digital CUIR' },
+      ],
+      publisher: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+      },
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+        geographicArea: {
+          '@type': 'Country',
+          name: 'Argentina',
+        },
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Atención Médica',
+          item: 'https://www.autamedica.com/consulta-medica-online',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Consulta Médica Express',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Consulta Médica Express Online en Menos de 15 Minutos | AutaMedica"
+  description="Atención médica express sin turno previo por videoconsulta. Médicos clínicos matriculados en Argentina, recetas electrónicas con código CUIR y resolución ágil en minutos."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="website"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- Migas de pan -->
+    <nav class="border-b border-slate-100 bg-slate-50/70 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/consulta-medica-online" class="hover:text-sky-600 transition-colors">Atención Médica</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Consulta Médica Express</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <header class="relative bg-gradient-to-b from-slate-50 via-white to-sky-50/30 border-b border-slate-200/80 pt-16 pb-20 md:py-24">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider mb-6">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Atención Inmediata On-Demand · Sin Turno Previo</span>
+          </div>
+
+          <h1 class="text-4xl md:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12] mb-6">
+            Consulta médica express con <span class="text-sky-700 italic">espera menor a 15 minutos.</span>
+          </h1>
+
+          <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed mb-8">
+            Resolvé tus consultas ambulatorias cotidianas sin esperar semanas por un turno ni perder el día en una sala de espera. Conectate por videollamada con médicos clínicos matriculados y recibí tus indicaciones y recetas oficiales en el acto.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 mb-10">
+            <a
+              href="/auth/register"
+              class="inline-flex items-center justify-center px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5 text-base"
+            >
+              Iniciar Consulta Express Ahora
+            </a>
+            <a
+              href="#motivos-atencion"
+              class="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 font-semibold rounded-xl border border-slate-200 transition-colors text-base"
+            >
+              Ver Motivos Atendidos
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200/70 text-xs text-slate-600">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Tiempo promedio de espera: 8 min</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Médicos matriculados en REFEPS</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Recetas digitales con código CUIR</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- PILARES DE LA CONSULTA EXPRESS -->
+    <section class="py-20 md:py-24 bg-white border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Eficiencia y Rigor Clínico</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            ¿Por qué elegir la consulta médica express de AutaMedica?
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {hallmarks.map((h) => (
+            <div class="bg-slate-50/70 rounded-2xl border border-slate-200 p-8 shadow-sm">
+              <div class="w-10 h-10 rounded-xl bg-sky-100 border border-sky-200 flex items-center justify-center text-sky-700 font-bold text-sm mb-6">
+                ✓
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">{h.title}</h3>
+              <p class="text-slate-600 text-sm leading-relaxed">{h.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- MOTIVOS DE ATENCIÓN FRECUENTES -->
+    <section id="motivos-atencion" class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Alcance Resolutivo</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950 mb-4">
+            Cuadros ambulatorios ideales para consulta express
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg">
+            Atención oportuna para dolencias cotidianas donde la orientación médica y la terapéutica inicial evitan la progresión de la enfermedad.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {clinicalScopes.map((scope) => (
+            <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <h3 class="text-lg font-serif font-bold text-slate-950 mb-3">{scope.title}</h3>
+                <p class="text-xs text-slate-600 leading-relaxed mb-4">{scope.desc}</p>
+              </div>
+              <span class="text-[11px] font-semibold text-sky-700 uppercase tracking-wider">
+                Resolución Inmediata
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- TIEMPOS DEL CIRCUITO EXPRESS (NAVY SECTION) -->
+    <section class="py-20 md:py-28 bg-slate-900 text-white">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-400 font-bold text-xs uppercase tracking-widest block mb-3">Cronología de Atención</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-white mb-4">
+            De tu primer síntoma a la indicación médica en 15 minutos
+          </h2>
+          <p class="text-slate-300 text-base md:text-lg">
+            Un circuito digital sin esperas innecesarias que respeta tu tiempo y te conecta con la respuesta médica que necesitás hoy.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="p-8 rounded-3xl bg-slate-800 border border-slate-700">
+            <span class="text-4xl font-serif font-bold text-sky-400 block mb-2">2 min</span>
+            <h3 class="text-lg font-serif font-bold text-white mb-2">Triaje y Motivo de Consulta</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Cargás tus síntomas en un formulario médico guiado que clasifica la urgencia y descarta banderas rojas.
+            </p>
+          </div>
+
+          <div class="p-8 rounded-3xl bg-slate-800 border border-slate-700">
+            <span class="text-4xl font-serif font-bold text-sky-400 block mb-2">8 min</span>
+            <h3 class="text-lg font-serif font-bold text-white mb-2">Sala de Espera Virtual</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Permanecés en la Green Room de AutaMedica hasta que el médico de guardia activa abre la videollamada.
+            </p>
+          </div>
+
+          <div class="p-8 rounded-3xl bg-slate-800 border border-slate-700">
+            <span class="text-4xl font-serif font-bold text-sky-400 block mb-2">5 min</span>
+            <h3 class="text-lg font-serif font-bold text-white mb-2">Diagnóstico y Receta CUIR</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Videoconsulta sincrónica, plan de cuidados y envío directo de recetas y constancias digitales a tu celular.
+            </p>
+          </div>
+        </div>
+
+        <!-- PROTOCOLO DE EXCLUSIÓN (RED FLAGS) -->
+        <div class="mt-12 p-6 rounded-2xl bg-red-950/40 border border-red-800/60 flex flex-col md:flex-row items-start md:items-center gap-6">
+          <div class="w-12 h-12 rounded-xl bg-red-900/60 border border-red-700 flex items-center justify-center text-red-300 font-bold text-xl flex-shrink-0">
+            !
+          </div>
+          <div class="space-y-1">
+            <h4 class="text-base font-serif font-bold text-red-200">Límites de Seguridad Clínica</h4>
+            <p class="text-xs text-red-300/90 leading-relaxed">
+              La consulta express no atiende emergencias críticas. Si experimentás dolor de pecho con irradiación al brazo o mandíbula, dificultad respiratoria extrema, pérdida de fuerza unilateral o traumatismos graves, <strong class="text-white">llamá inmediatamente al 107 (SAME) o al 911</strong> para recibir auxilio de emergencia en ambulancia.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQS ACCORDION -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-4xl mx-auto px-6">
+        <div class="text-center mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Preguntas Frecuentes</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Dudas sobre la consulta médica express
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white rounded-2xl border border-slate-200 overflow-hidden transition-colors shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none select-none">
+                <span class="text-base md:text-lg font-serif font-bold text-slate-900 pr-4">{faq.question}</span>
+                <span class="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 font-semibold group-open:rotate-180 group-open:bg-sky-50 group-open:text-sky-700 transition-transform flex-shrink-0">
+                  &darr;
+                </span>
+              </summary>
+              <div class="px-6 md:px-8 pb-6 md:pb-8 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CROSS LINKS -->
+    <section class="py-14 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6 text-center">Servicios de Atención On-Demand</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <a href="/guardia-medica-online" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Guardia Médica 24hs
+          </a>
+          <a href="/receta-digital" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Receta Digital CUIR
+          </a>
+          <a href="/constancia-atencion-medica" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Constancia de Atención
+          </a>
+          <a href="/consulta-medica-online" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Consulta Programada
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <CTAFinal
+      title="Atendete ahora con un médico matriculado."
+      subtitle="Sin turnos ni demoras. Accedé a tu consulta médica express en menos de 15 minutos desde tu celular."
+      buttonLabel="Iniciar Consulta Médica Express"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>

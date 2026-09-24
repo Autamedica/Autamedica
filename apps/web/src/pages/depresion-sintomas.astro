@@ -1,0 +1,530 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/depresion-sintomas';
+
+const faqs = [
+  {
+    question: '¿Qué es la anhedonia y por qué es un síntoma cardinal de la depresión?',
+    answer:
+      'La anhedonia es la incapacidad persistente de experimentar placer, satisfacción o interés por actividades, relaciones o proyectos que anteriormente resultaban gratificantes. Junto con el estado de ánimo deprimido sostenido durante más de dos semanas, constituye uno de los dos síntomas nucleares del Trastorno Depresivo Mayor según los manuales clínicos internacionales (DSM-5 y CIE-11). No se trata de "desgano pasajero" o aburrimiento, sino de una alteración neurobiológica en los circuitos cerebrales de recompensa dopaminérgica.',
+  },
+  {
+    question: '¿Cuándo conviene consultar a un psicólogo y cuándo a un psiquiatra?',
+    answer:
+      'Ambos profesionales trabajan de forma articulada y complementaria. El psicólogo clínico realiza intervenciones psicoterapéuticas (como terapia cognitivo-conductual o de aceptación y compromiso) para trabajar patrones de pensamiento, regulación emocional y resolución de conflictos. El médico psiquiatra evalúa la dimensión biológica y farmacológica del cuadro, realiza diagnósticos diferenciales con condiciones orgánicas (como hipotiroidismo o deficiencias nutricionales) y prescribe medicación antidepresiva cuando la severidad de los síntomas limita la funcionalidad cotidiana. En cuadros moderados o severos, el tratamiento combinado ofrece la mayor tasa de recuperación.',
+  },
+  {
+    question: '¿Los medicamentos antidepresivos generan adicción o cambian la personalidad?',
+    answer:
+      'No. Los antidepresivos modernos (como los inhibidores selectivos de la recaptación de serotonina —ISRS— o de serotonina y noradrenalina —IRSN—) no generan adicción, no provocan tolerancia compulsiva ni alteran los rasgos de tu personalidad. Su objetivo es restablecer la neurotransmisión y estimular la neuroplasticidad cerebral para que puedas recuperar tu nivel habitual de funcionamiento y bienestar. Requieren entre 2 y 4 semanas para alcanzar su efecto terapéutico pleno y su suspensión se realiza siempre de forma gradual y planificada con el psiquiatra.',
+  },
+  {
+    question: '¿Cómo se diferencia un estado de tristeza común de un cuadro de depresión clínica?',
+    answer:
+      'La tristeza es una emoción humana adaptativa y transitoria en respuesta a pérdidas, rupturas o dificultades de la vida, que fluctúa a lo largo de los días y no anula por completo la capacidad de conectarse con momentos positivos. La depresión clínica, en cambio, es un cuadro sindrómico más profundo y prolongado (al menos 2 semanas consecutivas) donde la tristeza o el vacío son casi constantes, se pierde la capacidad de disfrute (anhedonia) y coexisten síntomas somáticos como fatiga intensa, alteraciones del sueño, cambios de peso, dificultades para concentrarse y sentimientos desmedidos de culpa o desesperanza.',
+  },
+  {
+    question: '¿Qué líneas de ayuda inmediata existen en Argentina ante una crisis aguda o ideación de autolesión?',
+    answer:
+      'Si vos o alguien cercano está atravesando una crisis emocional grave con pensamientos de no querer vivir o riesgo autolesivo, podés comunicarte de inmediato y de forma gratuita y anónima con el Centro de Asistencia al Suicida al 135 (CABA y Gran Buenos Aires) o al 0800-345-1435 (desde todo el país). También está disponible la Línea de Salud Mental del Ministerio de Salud al 0800-999-0091 y el servicio de emergencias médicas 107 (SAME) o concurrir a la guardia hospitalaria más cercana.',
+  },
+  {
+    question: '¿Las consultas de salud mental por videollamada son confidenciales y seguras?',
+    answer:
+      'Absolutamente. En AutaMedica las consultas se desarrollan a través de salas médicas encriptadas punto a punto, bajo estricto secreto profesional médico y en cumplimiento riguroso de la Ley Nacional de Protección de Datos Personales N° 25.326 y la Ley de Derechos del Paciente N° 26.529. Tu historia clínica es privada y solo accesible para vos y tu profesional tratante.',
+  },
+  {
+    question: '¿El psiquiatra online puede emitir recetas de psicofármacos?',
+    answer:
+      'Sí. Los médicos psiquiatras de AutaMedica están matriculados y registrados ante el Ministerio de Salud. Emiten recetas oficiales con firma electrónica registrada y código CUIR bajo la Ley 27.553 para medicamentos de venta bajo receta simple y archivada (antidepresivos, ansiolíticos y estabilizadores), aceptadas en todas las farmacias de la República Argentina.',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Salud Mental',
+          item: 'https://www.autamedica.com/especialidades',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Síntomas de Depresión',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Síntomas de Depresión: Reconocimiento y Tratamiento Integral | AutaMedica',
+      url: canonicalUrl,
+      description:
+        'Reconocimiento clínico de síntomas del trastorno depresivo mayor: anhedonia, fatiga persistente, insomnio y culpa. Abordaje psicoterapéutico y psiquiátrico sin estigmas, y líneas de ayuda en crisis.',
+      inLanguage: 'es-AR',
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalCondition', name: 'Trastorno Depresivo Mayor' },
+        { '@type': 'MedicalCondition', name: 'Anhedonia' },
+        { '@type': 'MedicalCondition', name: 'Distimia' },
+        { '@type': 'MedicalSpecialty', name: 'Psychiatry' },
+        { '@type': 'MedicalSpecialty', name: 'ClinicalPsychology' },
+      ],
+      publisher: {
+        '@id': 'https://www.autamedica.com/#organization',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Síntomas de Depresión: Reconocimiento y Tratamiento | AutaMedica"
+  description="Identificación clínica del trastorno depresivo: anhedonia, tristeza persistente y fatiga. Abordaje integral con psiquiatras y psicólogos matriculados. Espacio confidencial."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+  <Navbar />
+
+  <main class="bg-white text-neutral-900 pt-20">
+    <!-- HERO PRINCIPAL -->
+    <section class="relative py-20 md:py-28 border-b border-neutral-100 overflow-hidden bg-gradient-to-b from-[#f8fafc] via-white to-white">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              Salud Mental Integral · Psiquiatría & Psicología Clínica
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-medium leading-[1.12] tracking-tight text-neutral-950">
+              Síntomas de depresión: <br class="hidden sm:inline" />
+              <span class="text-[var(--au-accent)]">reconocimiento temprano</span> y atención médica humana sin estigmas.
+            </h1>
+
+            <p class="text-lg md:text-xl text-neutral-600 font-light leading-relaxed max-w-2xl">
+              La depresión no es una debilidad de carácter ni un estado que se resuelva con "fuerza de voluntad". Es una condición médica real, tratable y frecuente que compromete el estado de ánimo, la energía vital, el sueño y la capacidad de disfrute. Nuestro equipo interdisciplinario brinda un espacio confidencial para evaluar tu situación y construir un camino sólido de recuperación.
+            </p>
+
+            <!-- Acciones -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-2">
+              <a href="/psiquiatra-online" class="btn-primary-action inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all">
+                <span>Consultar con Psiquiatra</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="M12 5l7 7-7 7"></path>
+                </svg>
+              </a>
+              <a href="/psicologo-online" class="btn-secondary-action inline-flex items-center justify-center px-7 py-4 rounded-xl text-neutral-700 font-semibold text-base border border-neutral-200 transition-all">
+                Consultar con Psicólogo
+              </a>
+            </div>
+
+            <!-- Trust Badges -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-neutral-200/70 text-xs text-neutral-600">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Especialistas matriculados</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Espacio 100% confidencial</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Recetas con código CUIR</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Abordaje interdisciplinario</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Resumen Visual -->
+          <div class="lg:col-span-5 flex justify-center">
+            <div class="w-full max-w-md bg-white rounded-3xl border border-neutral-200/90 shadow-2xl shadow-sky-950/5 p-8 relative overflow-hidden">
+              <div class="absolute -top-10 -right-10 w-40 h-40 bg-sky-50 rounded-full blur-2xl pointer-events-none"></div>
+
+              <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-sky-50 text-[var(--au-accent)] flex items-center justify-center border border-sky-100 flex-shrink-0">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"></path>
+                    <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-wider text-sky-700">Evaluación Clínica</div>
+                  <h3 class="text-xl font-serif font-bold text-neutral-950">Salud Mental y Bienestar</h3>
+                </div>
+              </div>
+
+              <div class="space-y-4 text-sm text-neutral-600 border-t border-neutral-100 pt-5">
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-neutral-900 block">Diagnóstico Riguroso</span>
+                    <span class="text-xs text-neutral-500">Diferenciar estados reactivos de pérdida de un trastorno depresivo mayor clínico.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-neutral-900 block">Psicoterapia + Psicofarmacología</span>
+                    <span class="text-xs text-neutral-500">Plan terapéutico integrado con psiquiatras y psicólogos según tus necesidades reales.</span>
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-3">
+                  <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-xs">✓</div>
+                  <div>
+                    <span class="font-semibold text-neutral-900 block">Seguimiento Confidencial</span>
+                    <span class="text-xs text-neutral-500">Atención desde tu hogar en un entorno libre de prejuicios y con secreto profesional.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 pt-5 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-500">
+                <span>Atención médica online</span>
+                <span class="font-semibold text-sky-700">Sin salas de espera</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MANIFIESTO: SALUD MENTAL SIN ESTIGMA -->
+    <section class="py-20 bg-neutral-50 border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="bg-white rounded-3xl p-8 md:p-14 border border-neutral-200/90 shadow-sm text-left">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Enfoque Humano y Clínico</span>
+          <h2 class="text-2xl md:text-4xl font-serif font-bold text-neutral-950 mb-6 leading-tight">
+            Comprender el sufrimiento psíquico como un proceso médico que tiene tratamiento.
+          </h2>
+          <div class="space-y-4 text-neutral-600 leading-relaxed font-light text-base md:text-lg">
+            <p>
+              Pedir ayuda cuando el ánimo no responde suele postergarse durante meses por temor al juicio ajeno o por la falsa creencia de que uno "debería poder solo". En ese tiempo, el aislamiento emocional, el desgaste físico y la culpa no hacen más que profundizar el malestar.
+            </p>
+            <p>
+              La neurobiología y la psiquiatría moderna han demostrado con solidez que los cuadros depresivos implican alteraciones medibles en la conectividad sináptica, la regulación de neurotransmisores y los niveles inflamatorios asociados al estrés prolongado. Consultar a un profesional de la salud mental no es una derrota; es un acto de cuidado responsable para restablecer tu estabilidad y retomar el curso de tu vida.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SÍNTOMAS DEL TRASTORNO DEPRESIVO MAYOR -->
+    <section class="py-24 bg-white border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-6xl">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Criterios Clínicos</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-4">
+            Cómo se manifiestan los síntomas de la depresión
+          </h2>
+          <p class="text-neutral-600 text-base md:text-lg font-light">
+            La depresión se expresa en múltiples dimensiones: anímica, cognitiva, corporal y vincular.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Anhedonia y Tristeza Persistente -->
+          <div class="bg-slate-50 rounded-3xl p-8 border border-neutral-200/80 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+              01
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-neutral-950">Anhedonia y Tristeza Persistente</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm md:text-base font-light">
+              Pérdida profunda y continua de la capacidad de disfrutar de actividades, pasatiempos, encuentros sociales o momentos que solían generar entusiasmo. Coexiste con una sensación cotidiana de vacío interior, desgano marcado, llanto fácil o embotamiento afectivo (sensación de "no poder sentir nada").
+            </p>
+          </div>
+
+          <!-- Fatiga Psicofísica y Agotamiento -->
+          <div class="bg-slate-50 rounded-3xl p-8 border border-neutral-200/80 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+              02
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-neutral-950">Fatiga y Falta de Energía Vital</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm md:text-base font-light">
+              Astenia intensa que no se repara con el descanso. Acciones cotidianas elementales —como levantarse de la cama, asearse, responder un mensaje o preparar la comida— se vivencian como obstáculos extenuantes. Puede haber lentitud en los movimientos corporales o, por el contrario, inquietud psicomotriz constante.
+            </p>
+          </div>
+
+          <!-- Alteraciones del Sueño y del Apetito -->
+          <div class="bg-slate-50 rounded-3xl p-8 border border-neutral-200/80 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+              03
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-neutral-950">Alteraciones del Sueño y Apetito</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm md:text-base font-light">
+              Es muy característico el insomnio de despertar precoz (despertar a las 3:00 o 4:00 AM con angustia y sin poder volver a dormir), aunque también puede presentarse hipersomnia como mecanismo de desconexión. En la alimentación, se observa pérdida notable del apetito con descenso de peso o ingesta compulsiva de hidratos.
+            </p>
+          </div>
+
+          <!-- Culpa Excesiva y Dificultad de Concentración -->
+          <div class="bg-slate-50 rounded-3xl p-8 border border-neutral-200/80 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+              04
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-neutral-950">Culpa Desmedida y Niebla Mental</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm md:text-base font-light">
+              Sentimientos desproporcionados de autorreproche, inutilidad o la sensación persistente de "ser una carga para los demás". Suele sumarse dificultad marcada para concentrarse en el trabajo o la lectura (bradipsiquia), olvidos frecuentes y bloqueo a la hora de tomar decisiones sencillas.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ALERTA ROJA: LÍNEAS DE CONTENCIÓN EN CRISIS -->
+    <section class="py-20 bg-slate-50 border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="rounded-3xl p-8 md:p-12 bg-white border-2 border-red-200 shadow-md">
+          <div class="flex items-start gap-4 mb-6">
+            <div class="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 mt-1">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </div>
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-red-700 block">Atención Inmediata y Contención</span>
+              <h3 class="text-2xl md:text-3xl font-serif font-bold text-neutral-950">
+                Protocolo de ayuda en crisis y prevención del suicidio
+              </h3>
+            </div>
+          </div>
+
+          <p class="text-neutral-600 text-base leading-relaxed mb-6 font-light">
+            Las consultas por telemedicina están diseñadas para evaluación diagnóstica, psicoterapia ambulatoria y seguimiento clínico programado. <strong>Si estás experimentando pensamientos de muerte o autolesión, desesperanza intolerable o una crisis incontrolable, no estás solo: hay ayuda profesional inmediata, confidencial y gratuita disponible las 24 horas</strong>.
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            <div class="p-6 rounded-2xl bg-red-50/60 border border-red-200">
+              <span class="text-xs font-bold uppercase tracking-wider text-red-800 block mb-1">CABA y Gran Buenos Aires</span>
+              <h4 class="text-2xl font-bold text-red-950 mb-2">Línea 135</h4>
+              <p class="text-xs text-neutral-700 leading-relaxed font-light">
+                Centro de Asistencia al Suicida (CAS). Atención telefónica gratuita, confidencial y anónima atendida por profesionales y voluntarios especializados las 24 horas del día.
+              </p>
+            </div>
+
+            <div class="p-6 rounded-2xl bg-red-50/60 border border-red-200">
+              <span class="text-xs font-bold uppercase tracking-wider text-red-800 block mb-1">Todo el País (Línea Gratuita)</span>
+              <h4 class="text-2xl font-bold text-red-950 mb-2">0800-345-1435</h4>
+              <p class="text-xs text-neutral-700 leading-relaxed font-light">
+                Línea nacional del Centro de Asistencia al Suicida accesible desde cualquier provincia argentina sin costo alguno desde líneas fijas o teléfonos celulares.
+              </p>
+            </div>
+
+            <div class="p-6 rounded-2xl bg-red-50/60 border border-red-200">
+              <span class="text-xs font-bold uppercase tracking-wider text-red-800 block mb-1">Ministerio de Salud de la Nación</span>
+              <h4 class="text-2xl font-bold text-red-950 mb-2">0800-999-0091</h4>
+              <p class="text-xs text-neutral-700 leading-relaxed font-light">
+                Línea Nacional de Salud Mental y Adicciones. Orientación, escucha activa y derivación articulada con efectores públicos de salud de todo el país.
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6 p-4 rounded-xl bg-neutral-50 border border-neutral-200 text-xs text-neutral-600 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span>En caso de riesgo inminente, concurrí a la guardia de salud mental o médica más cercana o comunicate con emergencias.</span>
+            <span class="font-bold text-red-700 text-sm">Emergencias: 107 SAME / 911</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EL ABORDAJE INTEGRAL: PSICOTERAPIA Y PSICOFARMACOLOGÍA -->
+    <section class="py-24 bg-white border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="max-w-3xl mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Terapéutica Científica</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-4">
+            El valor del abordaje interdisciplinario
+          </h2>
+          <p class="text-neutral-600 text-base md:text-lg font-light leading-relaxed">
+            La evidencia clínica internacional demuestra de forma reiterada que la combinación de psicoterapia basada en la evidencia y tratamiento médico psiquiátrico es el camino más eficaz para alcanzar la remisión completa y prevenir recaídas.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="p-8 rounded-3xl bg-slate-50 border border-neutral-200/80 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-neutral-950">Acompañamiento Psicoterapéutico</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm font-light">
+              Espacio semanal de terapia cognitivo-conductual (TCC) o terapias contextuales de tercera ola. Se trabaja en la identificación y reestructuración de pensamientos distorsionados, activación conductual progresiva, gestión de emociones difíciles y fortalecimiento de recursos personales para enfrentar situaciones de estrés.
+            </p>
+          </div>
+
+          <div class="p-8 rounded-3xl bg-slate-50 border border-neutral-200/80 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"></path>
+                <path d="m8.5 8.5 7 7"></path>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-neutral-950">Evaluación Médica y Farmacológica</h3>
+            <p class="text-neutral-600 leading-relaxed text-sm font-light">
+              El médico psiquiatra evalúa la indicación precisa de fármacos antidepresivos de última generación (ISRS como sertralina o escitalopram, o IRSN) para restablecer el equilibrio neuroquímico y la neuroplasticidad cerebral. La prescripción se realiza con recetas oficiales digitales trazables con código CUIR.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ENLACES CLÍNICOS DIRECTOS: PSIQUIATRA Y PSICÓLOGO -->
+    <section class="py-16 bg-neutral-50 border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h3 class="text-xs font-bold uppercase tracking-widest text-sky-700 mb-6">Especialidades Médicas de Salud Mental</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <a href="/psiquiatra-online" class="p-8 bg-white rounded-3xl border border-neutral-200/80 hover:border-sky-400 hover:shadow-md transition-all group block">
+            <span class="text-xs font-semibold text-sky-700 uppercase tracking-wider block mb-2">Consulta Médica Especializada</span>
+            <h4 class="text-2xl font-serif font-bold text-neutral-950 group-hover:text-sky-700 transition-colors mb-3">Psiquiatra Online</h4>
+            <p class="text-sm text-neutral-600 leading-relaxed font-light mb-4">
+              Entrevista diagnóstica exhaustiva, descartar causas médicas somáticas y prescripción de psicofármacos con receta digital oficial CUIR válida en todo el país.
+            </p>
+            <span class="text-sm font-semibold text-sky-700 inline-flex items-center gap-2">
+              Consultar con Psiquiatra &rarr;
+            </span>
+          </a>
+
+          <a href="/psicologo-online" class="p-8 bg-white rounded-3xl border border-neutral-200/80 hover:border-sky-400 hover:shadow-md transition-all group block">
+            <span class="text-xs font-semibold text-sky-700 uppercase tracking-wider block mb-2">Psicoterapia Online</span>
+            <h4 class="text-2xl font-serif font-bold text-neutral-950 group-hover:text-sky-700 transition-colors mb-3">Psicólogo Online</h4>
+            <p class="text-sm text-neutral-600 leading-relaxed font-light mb-4">
+              Sesiones individuales por videollamada con psicólogos clínicos matriculados. Terapia Cognitivo-Conductual y acompañamiento terapéutico continuo.
+            </p>
+            <span class="text-sm font-semibold text-sky-700 inline-flex items-center gap-2">
+              Consultar con Psicólogo &rarr;
+            </span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREGUNTAS FRECUENTES -->
+    <section class="py-24 bg-white border-b border-neutral-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center mb-16">
+          <span class="text-xs font-bold uppercase tracking-widest text-sky-700 block mb-3">Dudas Habituales</span>
+          <h2 class="text-3xl md:text-5xl font-serif font-bold text-neutral-950 mb-4">
+            Preguntas frecuentes sobre depresión y salud mental
+          </h2>
+          <p class="text-neutral-600 text-base">
+            Información médica transparente y desestigmatizante sobre tratamientos y cuidados.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white border border-neutral-200 rounded-2xl overflow-hidden transition-all shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none">
+                <span class="text-lg md:text-xl font-medium text-neutral-950 pr-4">{faq.question}</span>
+                <div class="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 transition-transform group-open:rotate-180 text-neutral-700">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"></path>
+                  </svg>
+                </div>
+              </summary>
+              <div class="px-6 pb-6 md:px-8 md:pb-8 text-neutral-600 leading-relaxed text-sm md:text-base border-t border-neutral-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <CTAFinal
+      title="No tenés que atravesar esto en soledad."
+      subtitle="Conectá con profesionales especializados en salud mental desde la seguridad y tranquilidad de tu hogar."
+      buttonLabel="Consultar con Psiquiatra"
+      buttonHref="/psiquiatra-online"
+    />
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+  main {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Source Serif 4', serif;
+  }
+
+  .btn-primary-action {
+    background-color: #0284c7;
+    background-image: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  }
+  .btn-primary-action:hover {
+    background-color: #0369a1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+  }
+
+  .btn-secondary-action {
+    background-color: #ffffff;
+  }
+  .btn-secondary-action:hover {
+    background-color: #f8fafc;
+    border-color: #0284c7;
+    color: #0284c7;
+  }
+
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

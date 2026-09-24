@@ -1,0 +1,420 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/medico-de-guardia-online';
+
+const guardiaFeatures = [
+  {
+    title: 'Disponibilidad Continua 24/7',
+    desc: 'Atención médica permanente durante el día, la noche, fines de semana y feriados. Acceso inmediato a médicos clínicos de guardia cuando los centros presenciales están saturados o cerrados.',
+  },
+  {
+    title: 'Médicos Clínicos Matriculados',
+    desc: 'Evaluación personalizada por profesionales con Matrícula Nacional (MN) o Provincial (MP) verificada ante el Ministerio de Salud de la Nación (REFEPS/SISA).',
+  },
+  {
+    title: 'Recetas Oficiales con Código CUIR',
+    desc: 'Prescripción de medicamentos con firma electrónica válida bajo la Ley 27.553 y Decreto 345/2024, aceptada en farmacias de todo el país en el acto.',
+  },
+];
+
+const scopeItems = [
+  {
+    category: 'Resolución Inmediata Online',
+    color: 'sky',
+    cases: [
+      'Fiebre en adultos y síndrome gripal agudo',
+      'Dolor de garganta, faringitis y congestión respiratoria',
+      'Gastroenteritis aguda, náuseas, vómitos y diarrea leve',
+      'Infección urinaria baja no complicada en mujeres adultas',
+      'Alergias cutáneas leves, picaduras y dermatitis',
+      'Contracturas musculares agudas y lumbalgias mecánicas',
+      'Renovación urgente de recetas crónicas',
+    ],
+  },
+  {
+    category: 'Emergencias: Derivación a SAME (107)',
+    color: 'red',
+    cases: [
+      'Dolor de pecho opresivo o sensación de asfixia',
+      'Dificultad respiratoria severa o estridor',
+      'Pérdida súbita de fuerza en brazos, piernas o asimetría facial (ACV)',
+      'Pérdida de conocimiento, síncope o convulsiones',
+      'Traumatismo encéfalo-craneano con mareo o vómitos',
+      'Hemorragias copiosas o heridas penetrantes',
+      'Dolor abdominal agudo e intratable con defensa muscular',
+    ],
+  },
+];
+
+const faqs = [
+  {
+    question: '¿Qué es el servicio de médico de guardia online de AutaMedica?',
+    answer:
+      'Es un servicio de atención médica clínica inmediata y continua (24 horas al día, los 365 días del año) al que podés acceder desde cualquier lugar de Argentina a través de tu computadora o celular. Te conecta por videollamada con un médico clínico de guardia activa para diagnosticar dolencias agudas, indicar tratamientos y emitir recetas electrónicas oficiales.',
+  },
+  {
+    question: '¿Cuánto tiempo tardo en hablar con el médico de guardia?',
+    answer:
+      'El tiempo habitual de conexión en nuestra sala de guardia suele ser inferior a los 10 minutos. No requiere solicitar turno previo; el sistema clasifica tu consulta mediante un triaje sintomático inteligente y te asigna al primer profesional médico disponible.',
+  },
+  {
+    question: '¿El médico de guardia puede emitir recetas de medicamentos?',
+    answer:
+      'Sí. Si el profesional confirma la indicación médica, emite la receta digital oficial con código CUIR y código de barras bajo la Ley 27.553. Podés presentarla desde la pantalla de tu celular en cualquier farmacia del país para retirar el fármaco indicado (incluyendo antibióticos y venta bajo receta archivada).',
+  },
+  {
+    question: '¿Puedo obtener un certificado médico de reposo en la guardia?',
+    answer:
+      'Sí. Si tu cuadro clínico (por ejemplo, síndrome febril o gastroenteritis) requiere reposo físico en tu domicilio, el médico emitirá el certificado correspondiente con firma digital y código de validación QR para presentar ante tu trabajo o facultad.',
+  },
+  {
+    question: '¿Qué protocolo aplica AutaMedica si presento síntomas de extrema gravedad?',
+    answer:
+      'Contamos con un estricto protocolo ético y médico de derivación. Si se identifican signos de alarma o sospecha de patología de emergencia con riesgo de vida, la videoconsulta se interrumpe y se instruye al paciente o a sus acompañantes a comunicarse de urgencia con el SAME (107) o servicio de ambulancias local.',
+  },
+  {
+    question: '¿La atención de guardia médica online reemplaza una internación o quirófano?',
+    answer:
+      'No. La teleasistencia de guardia está concebida para la resolución de urgencias ambulatorias de baja y mediana complejidad que no requieren intervención quirúrgica, monitoreo continuo de signos vitales ni aparatología diagnóstica hospitalaria invasiva.',
+  },
+];
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: 'Médico de Guardia Online 24 Horas en Argentina | AutaMedica',
+      description:
+        'Atención médica de guardia online 24/7 sin turno previo. Médicos clínicos matriculados, recetas oficiales con código CUIR y derivación responsable a SAME (107).',
+      inLanguage: 'es-AR',
+      isPartOf: {
+        '@type': 'WebSite',
+        '@id': 'https://www.autamedica.com/#website',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+      about: [
+        { '@type': 'Thing', name: 'Médico de guardia online' },
+        { '@type': 'Thing', name: 'Guardia clínica 24 horas' },
+        { '@type': 'MedicalSpecialty', name: 'Emergency' },
+        { '@type': 'MedicalSpecialty', name: 'PrimaryCare' },
+        { '@type': 'Thing', name: 'Receta médica CUIR' },
+      ],
+      publisher: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+      },
+      audience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+        geographicArea: {
+          '@type': 'Country',
+          name: 'Argentina',
+        },
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Atención Médica',
+          item: 'https://www.autamedica.com/guardia-medica-online',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Médico de Guardia Online',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Médico de Guardia Online 24 Horas en Argentina | AutaMedica"
+  description="Atención con médico de guardia online 24hs sin turno previo. Médicos clínicos matriculados, recetas oficiales con código CUIR y derivación responsable a SAME 107."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="website"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- Migas de pan -->
+    <nav class="border-b border-slate-100 bg-slate-50/70 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/guardia-medica-online" class="hover:text-sky-600 transition-colors">Atención Médica</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Médico de Guardia Online</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <header class="relative bg-gradient-to-b from-slate-50 via-white to-sky-50/30 border-b border-slate-200/80 pt-16 pb-20 md:py-24">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold uppercase tracking-wider mb-6">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Guardia Activa 24 Horas · Los 365 Días del Año</span>
+          </div>
+
+          <h1 class="text-4xl md:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12] mb-6">
+            Médico de guardia online con <span class="text-sky-700 italic">atención clínica inmediata.</span>
+          </h1>
+
+          <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed mb-8">
+            Consultá con un médico clínico de guardia activa desde cualquier punto del país. Sin traslados, sin esperas en guardias saturadas y con emisión instantánea de recetas y certificados oficiales bajo la Ley 27.553.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 mb-10">
+            <a
+              href="/auth/register"
+              class="inline-flex items-center justify-center px-8 py-4 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5 text-base"
+            >
+              Hablar con Médico de Guardia
+            </a>
+            <a
+              href="#alcance-clinico"
+              class="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 font-semibold rounded-xl border border-slate-200 transition-colors text-base"
+            >
+              Qué Casos Atendemos
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200/70 text-xs text-slate-600">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Guardia activa las 24 horas</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+              <span>Recetas con código CUIR oficial</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-red-500"></span>
+              <span>Protocolo de derivación a SAME 107</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- PILARES DE LA GUARDIA 24HS -->
+    <section class="py-20 md:py-24 bg-white border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Cobertura Permanente</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Atención clínica disponible cuando más la necesitás
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {guardiaFeatures.map((gf) => (
+            <div class="bg-slate-50/70 rounded-2xl border border-slate-200 p-8 shadow-sm">
+              <div class="w-10 h-10 rounded-xl bg-sky-100 border border-sky-200 flex items-center justify-center text-sky-700 font-bold text-sm mb-6">
+                ✓
+              </div>
+              <h3 class="text-xl font-serif font-bold text-slate-950 mb-3">{gf.title}</h3>
+              <p class="text-slate-600 text-sm leading-relaxed">{gf.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ALCANCE CLÍNICO Y DIFERENCIACIÓN CON EMERGENCIAS (NAVY SECTION) -->
+    <section id="alcance-clinico" class="py-20 md:py-28 bg-slate-900 text-white">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-3xl mb-16">
+          <span class="text-sky-400 font-bold text-xs uppercase tracking-widest block mb-3">Criterios de Seguridad Sanitaria</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-white mb-4">
+            Distinción entre urgencia ambulatoria y emergencia crítica
+          </h2>
+          <p class="text-slate-300 text-base md:text-lg">
+            La telemedicina responsable delimita con rigor qué dolencias resuelve de forma segura y cuándo es imperativo recurrir al sistema presencial de ambulancias.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- CASOS DE RESOLUCIÓN ONLINE -->
+          <div class="p-8 rounded-3xl bg-slate-800 border border-slate-700 shadow-xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-950 border border-sky-600 text-sky-300 text-xs font-semibold uppercase tracking-wider mb-6">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>Atención y Resolución Online</span>
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-white mb-4">
+              Urgencias Ambulatorias Frecuentes
+            </h3>
+            <p class="text-xs text-slate-300 mb-6 leading-relaxed">
+              Cuadros agudos que requieren diagnóstico médico, prescripción farmacológica y pautas de cuidado en domicilio:
+            </p>
+            <ul class="space-y-3 text-xs md:text-sm text-slate-200">
+              {scopeItems[0].cases.map((c) => (
+                <li class="flex items-center gap-3">
+                  <span class="w-1.5 h-1.5 rounded-full bg-sky-400 flex-shrink-0"></span>
+                  <span>{c}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <!-- EMERGENCIAS CRÍTICAS (SAME 107) -->
+          <div class="p-8 rounded-3xl bg-red-950/40 border border-red-800/80 shadow-xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-900/60 border border-red-700 text-red-200 text-xs font-semibold uppercase tracking-wider mb-6">
+              <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+              <span>Llamar al 107 (SAME) / 911</span>
+            </div>
+            <h3 class="text-2xl font-serif font-bold text-red-100 mb-4">
+              Emergencias con Riesgo de Vida
+            </h3>
+            <p class="text-xs text-red-200/90 mb-6 leading-relaxed">
+              No esperes una videoconsulta. Ante la presencia de cualquiera de estos signos, acudí inmediatamente a la guardia hospitalaria más cercana o pedí auxilio en ambulancia:
+            </p>
+            <ul class="space-y-3 text-xs md:text-sm text-red-100/90">
+              {scopeItems[1].cases.map((c) => (
+                <li class="flex items-center gap-3">
+                  <span class="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0"></span>
+                  <span>{c}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CÓMO ACCEDER A LA GUARDIA -->
+    <section class="py-20 md:py-24 bg-white border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Atención Paso a Paso</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Cómo ingresar a la guardia médica virtual
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="p-8 rounded-2xl bg-slate-50 border border-slate-200">
+            <span class="text-3xl font-serif font-bold text-sky-700 block mb-3">01</span>
+            <h3 class="text-lg font-serif font-bold text-slate-950 mb-2">Ingreso y Triaje Guiado</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Cargás tus síntomas en un breve cuestionario que ayuda al equipo médico a priorizar la atención y descartar banderas rojas.
+            </p>
+          </div>
+
+          <div class="p-8 rounded-2xl bg-slate-50 border border-slate-200">
+            <span class="text-3xl font-serif font-bold text-sky-700 block mb-3">02</span>
+            <h3 class="text-lg font-serif font-bold text-slate-950 mb-2">Videoconsulta con el Médico</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Te conectás por videollamada segura con un médico clínico de guardia activa que evalúa tus síntomas y antecedentes.
+            </p>
+          </div>
+
+          <div class="p-8 rounded-2xl bg-slate-50 border border-slate-200">
+            <span class="text-3xl font-serif font-bold text-sky-700 block mb-3">03</span>
+            <h3 class="text-lg font-serif font-bold text-slate-950 mb-2">Receta CUIR e Indicaciones</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              El profesional firma digitalmente tu prescripción médica con código CUIR y tu constancia de atención para que las descargues al instante.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQS ACCORDION -->
+    <section class="py-20 md:py-28 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-4xl mx-auto px-6">
+        <div class="text-center mb-16">
+          <span class="text-sky-700 font-bold text-xs uppercase tracking-widest block mb-3">Dudas Habituales</span>
+          <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-950">
+            Preguntas frecuentes sobre la guardia médica online
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="group bg-white rounded-2xl border border-slate-200 overflow-hidden transition-colors shadow-sm">
+              <summary class="p-6 md:p-8 flex justify-between items-center cursor-pointer list-none select-none">
+                <span class="text-base md:text-lg font-serif font-bold text-slate-900 pr-4">{faq.question}</span>
+                <span class="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 font-semibold group-open:rotate-180 group-open:bg-sky-50 group-open:text-sky-700 transition-transform flex-shrink-0">
+                  &darr;
+                </span>
+              </summary>
+              <div class="px-6 md:px-8 pb-6 md:pb-8 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CROSS LINKS -->
+    <section class="py-14 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6 text-center">Servicios de Guardia y Farmacia</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <a href="/consulta-medica-express" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Consulta Express
+          </a>
+          <a href="/guardia-medica-en-farmacia" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Guardia en Farmacia
+          </a>
+          <a href="/receta-digital" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Receta Digital CUIR
+          </a>
+          <a href="/certificado-medico-reposo" class="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Certificado de Reposo
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <CTAFinal
+      title="Atendete ahora con el médico de guardia."
+      subtitle="Sin salas de espera ni traslados. Conectate a la guardia médica online de AutaMedica en minutos."
+      buttonLabel="Ingresar a la Guardia 24hs"
+      buttonHref="/auth/register"
+    />
+  </main>
+
+  <Footer />
+</Layout>

@@ -1,0 +1,594 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/dolor-de-garganta';
+
+const faqs = [
+  {
+    question: '¿Tener placas blancas en las amígdalas significa siempre que necesito antibióticos?',
+    answer:
+      'No necesariamente. Las placas blanquecinas o exudados amigdalinos también pueden presentarse en infecciones virales frecuentes, como la mononucleosis infecciosa (causada por el virus de Epstein-Barr), infecciones por adenovirus o cuadros de herpangina. Un médico evalúa el cuadro completo (presencia o ausencia de tos, ganglios cervicales anteriores dolorosos y fiebre) antes de definir si se justifica un hisopado, test rápido o prescripción de antibióticos.',
+  },
+  {
+    question: '¿Por qué no se debe tomar amoxicilina u otro antibiótico por cuenta propia?',
+    answer:
+      'Más del 70% de las faringitis y amigdalitis en adultos son de origen viral. Los antibióticos no tienen ningún efecto sobre los virus: no calman el dolor, no aceleran la curación y exponen al paciente a efectos adversos como diarrea, erupciones cutáneas alérgicas y resistencia antimicrobiana. El tratamiento antibiótico solo está indicado ante sospecha fundada o confirmación de Streptococcus pyogenes.',
+  },
+  {
+    question: '¿Cómo evalúa el médico el dolor de garganta en una videoconsulta?',
+    answer:
+      'A través de una anamnesis clínica detallada para calcular la probabilidad diagnóstica (Score de Centor / McIsaac) y una inspección orofaríngea asistida: el paciente ilumina el fondo de su garganta con la linterna de otro teléfono o lámpara frente a la cámara. Si el cuadro es compatible con faringitis viral, se indican analgésicos específicos y pautas de control; si se sospecha causa bacteriana o complicaciones, se emite la orden de hisopado o receta correspondiente.',
+  },
+  {
+    question: '¿Qué es el trismo y por qué es un signo de alarma médica inmediata?',
+    answer:
+      'El trismo es la dificultad o imposibilidad severa para abrir la boca por contractura de los músculos masticatorios. Cuando acompaña a un dolor de garganta intenso unilateral, suele indicar la formación de un flemón o absceso periamigdalino (colección de pus entre la amígdala y la pared faríngea), lo cual requiere drenaje y evaluación presencial urgente en guardia otorrinolaringológica.',
+  },
+  {
+    question: '¿Cuánto tiempo suele tardar en curarse una faringitis viral?',
+    answer:
+      'La faringitis viral típica tiene un pico de intensidad en las primeras 48 a 72 horas y suele resolverse de manera espontánea entre los 5 y 7 días. El tratamiento médico se enfoca en analgesia pautada (antiinflamatorios o paracetamol), hidratación abundante para mantener la mucosa húmeda y reposo de la voz.',
+  },
+  {
+    question: '¿El médico online puede emitir recetas oficiales y certificados de reposo?',
+    answer:
+      'Sí. Si el profesional médico matriculado constata odinofagia febril o malestar general que limite tus tareas laborales o escolares, emitirá un certificado médico digital con firma electrónica y código de verificación. En caso de requerir medicación bajo receta, se emite la prescripción oficial con código CUIR conforme a la Ley 27.553.',
+  },
+];
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'MedicalWebPage',
+      '@id': `${canonicalUrl}#webpage`,
+      name: 'Dolor de Garganta: Causas, Viral vs Bacteriana y Cuándo Consultar | AutaMedica',
+      url: canonicalUrl,
+      description:
+        'Guía clínica sobre dolor de garganta, faringitis y amigdalitis. Criterios de Centor para diferenciar cuadros virales de bacterianos, pautas de alarma y telemedicina.',
+      inLanguage: 'es-AR',
+      aspect: ['Diagnosis', 'Treatment', 'Overview'],
+      medicalAudience: {
+        '@type': 'MedicalAudience',
+        audienceType: 'Patient',
+      },
+      about: [
+        { '@type': 'MedicalCondition', name: 'Faringitis aguda' },
+        { '@type': 'MedicalCondition', name: 'Amigdalitis estreptocócica' },
+        { '@type': 'MedicalSignOrSymptom', name: 'Odinofagia' },
+        { '@type': 'MedicalSpecialty', name: 'PrimaryCare' },
+        { '@type': 'MedicalSpecialty', name: 'Otolaryngology' },
+      ],
+      provider: {
+        '@type': 'MedicalOrganization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonicalUrl}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Guía de Síntomas',
+          item: 'https://www.autamedica.com/consulta-medica-online',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'Dolor de Garganta',
+          item: canonicalUrl,
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#faq`,
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+};
+---
+
+<Layout
+  title="Dolor de Garganta: Causas, Viral vs Bacteriana y Cuándo Consultar | AutaMedica"
+  description="Orientación médica para dolor de garganta, faringitis y amigdalitis. Criterios clínicos de Centor, pautas de alarma, telemedicina y receta oficial en minutos."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="website"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(pageSchema)} />
+
+  <Navbar />
+
+  <main class="bg-white text-slate-900 pt-20">
+    <!-- BREADCRUMBS -->
+    <nav class="border-b border-slate-100 bg-slate-50/60 py-3 text-xs text-slate-500" aria-label="Migas de pan">
+      <div class="container mx-auto px-6 flex items-center gap-2">
+        <a href="/" class="hover:text-sky-600 transition-colors">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="/consulta-medica-online" class="hover:text-sky-600 transition-colors">Guía de Síntomas</a>
+        <span class="text-slate-300">/</span>
+        <span class="text-slate-800 font-medium">Dolor de garganta</span>
+      </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="relative py-16 md:py-24 border-b border-slate-100 bg-gradient-to-b from-slate-50 via-white to-white">
+      <div class="container mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-800 text-xs font-semibold tracking-wide uppercase">
+              <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+              Orientación Clínica y Triaje de Vía Aérea Superior
+            </div>
+
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-slate-950 tracking-tight leading-[1.12]">
+              Dolor de garganta: cuándo es viral, cuándo bacteriano y <span class="text-sky-600">cómo actuar</span>.
+            </h1>
+
+            <p class="text-lg md:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl">
+              La odinofagia o dolor al tragar es uno de los motivos de consulta más habituales. En más del 70% de los casos el origen es viral y autolimitado; diferenciar clínicamente si existe infección bacteriana por estreptococo evita el uso indiscriminado de antibióticos y previene complicaciones.
+            </p>
+
+            <!-- Proof Chips (Slate, Sky, Emerald) -->
+            <div class="flex flex-wrap gap-2 pt-1">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Atención médica en minutos
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Criterios de Centor / McIsaac
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Recetas oficiales y certificados
+              </span>
+            </div>
+
+            <!-- CTAs requeridos -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-3">
+              <a href="/guardia-medica-online" class="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg bg-sky-600 text-white font-semibold text-base shadow-sm hover:bg-sky-700 transition-all transform hover:-translate-y-0.5">
+                <span>Guardia médica online 24hs</span>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </a>
+              <a href="/medico-online" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg border border-slate-300 bg-white text-slate-800 font-semibold text-base hover:bg-slate-50 hover:border-slate-400 transition-all">
+                <span>Consulta programada con médico</span>
+              </a>
+            </div>
+
+            <p class="text-xs text-slate-500">
+              Evaluación sincrónica con médicos clínicos matriculados. Sin esperas en salas hospitalarias.
+            </p>
+          </div>
+
+          <!-- Hero Graphic: Centor Decision Matrix -->
+          <div class="lg:col-span-5">
+            <div class="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-5">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">
+                    Rx
+                  </div>
+                  <div>
+                    <h2 class="text-sm font-bold text-slate-900 leading-tight">Escala Clínica de Centor</h2>
+                    <p class="text-xs text-slate-500">Estratificación médica de riesgo</p>
+                  </div>
+                </div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Guía Clínica
+                </span>
+              </div>
+
+              <!-- Centor items -->
+              <div class="space-y-2 text-xs">
+                <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                  <span class="text-slate-700 font-medium">Ausencia de tos</span>
+                  <span class="font-mono text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-200">+1 punto</span>
+                </div>
+                <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                  <span class="text-slate-700 font-medium">Fiebre &gt; 38°C</span>
+                  <span class="font-mono text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-200">+1 punto</span>
+                </div>
+                <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                  <span class="text-slate-700 font-medium">Exudado o placas amigdalinas</span>
+                  <span class="font-mono text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-200">+1 punto</span>
+                </div>
+                <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                  <span class="text-slate-700 font-medium">Ganglios cervicales dolorosos</span>
+                  <span class="font-mono text-sky-700 font-bold bg-sky-50 px-2 py-0.5 rounded border border-sky-200">+1 punto</span>
+                </div>
+              </div>
+
+              <div class="border-t border-slate-100 pt-3 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-600 font-medium">0 - 1 punto:</span>
+                  <span class="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Viral (&lt;10% bacteriano) • No antibióticos</span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-600 font-medium">2 - 3 puntos:</span>
+                  <span class="text-sky-700 font-semibold bg-sky-50 px-2 py-0.5 rounded border border-sky-200">Evaluación médica • Hisopado / Test</span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-600 font-medium">4 puntos:</span>
+                  <span class="text-slate-800 font-semibold bg-slate-100 px-2 py-0.5 rounded border border-slate-300">Alta probabilidad • Tratamiento médico</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- CRITICAL WARNING / BANDERAS ROJAS (HARD GATE) -->
+    <section class="py-12 bg-slate-950 text-white">
+      <div class="container mx-auto px-6">
+        <div class="max-w-4xl mx-auto rounded-2xl border-2 border-red-500/80 bg-slate-900/95 p-6 md:p-8 space-y-6 shadow-2xl">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center shrink-0">
+              <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+            </div>
+            <div class="space-y-2">
+              <span class="text-xs uppercase font-extrabold tracking-widest text-red-400 bg-red-950/60 px-2.5 py-1 rounded border border-red-800/60">
+                Protocolo Médico Estricto de Seguridad
+              </span>
+              <h2 class="text-2xl font-serif font-bold text-white">
+                Banderas rojas: cuándo acudir a guardia presencial de inmediato
+              </h2>
+            </div>
+          </div>
+
+          <p class="text-sm md:text-base text-slate-300 leading-relaxed">
+            Aunque la mayoría de los dolores de garganta no presentan peligro inminente, ciertos signos indican riesgo de compromiso de la vía aérea o colecciones purulentas profundas. <strong>Si presentás alguno de los siguientes síntomas, no inicies una videoconsulta; acudí a una guardia presencial u otorrinolaringológica:</strong>
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs md:text-sm text-slate-200">
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Dificultad para tragar saliva (sialorrea):</strong>
+                <span>Imposibilidad de deglutir líquidos con babeo involuntario por obstrucción faríngea severa.</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Trismo (boca trabada):</strong>
+                <span>Imposibilidad o dolor intenso al intentar abrir la boca más de 1 a 2 cm (signo de absceso periamigdalino).</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Estridor respiratorio o falta de aire:</strong>
+                <span>Ruidos agudos al inhalar o sensación de sofocación (alerta de epiglotitis o edema de glotis).</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Fiebre mayor a 39°C sostenida:</strong>
+                <span>Fiebre alta que no responde a antitérmicos y se asocia a marcado deterioro del estado general.</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Asimetría amigdalina o úvula desviada:</strong>
+                <span>Una amígdala protruye hacia la línea media empujando la campanilla hacia el lado contrario.</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-800/70 border border-slate-700/60">
+              <span class="w-2 h-2 rounded-full bg-red-400 mt-1.5 shrink-0"></span>
+              <div>
+                <strong class="text-white block font-medium">Rigidez en el cuello o dolor al mover la cabeza:</strong>
+                <span>Dificultad para flexionar el mentón hacia el pecho (descartar infecciones del espacio retrofaríngeo).</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t border-slate-800 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+            <span>En caso de emergencia médica con asfixia o dificultad respiratoria:</span>
+            <span class="inline-flex items-center gap-2 font-bold text-red-400 text-sm">
+              Llamar al 107 (SAME) o al 911 en todo el país
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUADRO COMPARATIVO: VIRAL VS BACTERIANA -->
+    <section class="py-16 md:py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="text-center max-w-3xl mx-auto space-y-4 mb-14">
+          <span class="text-xs uppercase font-bold tracking-wider text-sky-700 bg-sky-50 px-3 py-1 rounded-full border border-sky-200">
+            Diferenciación Clínica
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-serif font-bold text-slate-950">
+            Faringitis viral vs. amigdalitis bacteriana
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg leading-relaxed">
+            Aprender a distinguir los signos característicos ayuda a comprender por qué el tratamiento adecuado para la gran mayoría de los casos no incluye antibióticos.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Columna Viral -->
+          <div class="rounded-2xl border border-emerald-200 bg-emerald-50/30 p-6 md:p-8 space-y-5">
+            <div class="flex items-center justify-between border-b border-emerald-200/60 pb-4">
+              <div>
+                <span class="text-xs font-semibold text-emerald-800 uppercase tracking-wide">Frecuencia: 70% a 85% de los casos</span>
+                <h3 class="text-2xl font-serif font-bold text-slate-900 mt-1">Cuadro Viral (Común)</h3>
+              </div>
+              <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                V
+              </span>
+            </div>
+
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Causado habitualmente por rinovirus, adenovirus, coronavirus estacionales o el virus de Epstein-Barr. Suele formar parte de un cuadro de vías aéreas superiores más amplio.
+            </p>
+
+            <ul class="space-y-3 text-xs md:text-sm text-slate-700">
+              <li class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Síntomas nasales:</strong> congestión, rinitis serosa o estornudos.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Presencia de tos:</strong> seca o con catarro leve.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Voz ronca o disfonía:</strong> irritación de cuerdas vocales (laringitis).</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Inicio gradual:</strong> el dolor se incrementa progresivamente en 24 a 48 hs.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Tratamiento:</strong> analgésicos / antiinflamatorios (ibuprofeno, paracetamol), gárgaras con soluciones tibias e hidratación abundante. Cero antibióticos.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Columna Bacteriana -->
+          <div class="rounded-2xl border border-sky-300 bg-sky-50/40 p-6 md:p-8 space-y-5">
+            <div class="flex items-center justify-between border-b border-sky-200 pb-4">
+              <div>
+                <span class="text-xs font-semibold text-sky-800 uppercase tracking-wide">Frecuencia: 15% a 30% en niños, 5% a 15% en adultos</span>
+                <h3 class="text-2xl font-serif font-bold text-slate-900 mt-1">Estreptocócica (Bacteriana)</h3>
+              </div>
+              <span class="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">
+                B
+              </span>
+            </div>
+
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Causada por <em>Streptococcus pyogenes</em> (estreptococo beta-hemolítico del Grupo A). Es fundamental tratarla con antibiótico indicado para prevenir complicaciones inflamatorias y supurativas.
+            </p>
+
+            <ul class="space-y-3 text-xs md:text-sm text-slate-700">
+              <li class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-sky-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Comienzo súbito:</strong> dolor intenso de garganta que aparece en pocas horas.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-sky-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Ausencia de tos y de rinitis:</strong> la garganta duele sola, sin moco nasal ni tos.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-sky-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Fiebre alta (&gt;38.5°C):</strong> habitualmente acompañada de cefalea y decaimiento.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-sky-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Exudado pultáceo:</strong> amígdalas eritematosas y edematizadas con placas de pus.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <svg class="w-4 h-4 text-sky-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Tratamiento:</strong> requiere diagnóstico y prescripción médica formal de penicilina o amoxicilina durante el tiempo exacto estipulado.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Box educativo sobre el uso de antibióticos -->
+        <div class="mt-10 p-6 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs md:text-sm leading-relaxed">
+          <h4 class="font-bold text-slate-900 mb-2 flex items-center gap-2">
+            <svg class="w-5 h-5 text-sky-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            ¿Por qué es dañino tomar amoxicilina "por las dudas"?
+          </h4>
+          <p>
+            Automedicarse con antibióticos ante un dolor de garganta viral no alivia los síntomas más rápido ni baja la fiebre. Por el contrario, destruye la microbiota digestiva, favorece infecciones fúngicas oportunistas y genera bacterias resistentes que harán que futuros cuadros infecciosos reales sean mucho más difíciles de curar. Una consulta médica de 10 minutos aclara la sospecha con criterio clínico objetivo.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUÁNDO TELEMEDICINA VS CUÁNDO PRESENCIAL -->
+    <section class="py-16 md:py-24 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <div class="text-center max-w-3xl mx-auto space-y-4 mb-14">
+          <span class="text-xs uppercase font-bold tracking-wider text-sky-700 bg-sky-100/60 px-3 py-1 rounded-full border border-sky-200">
+            Criterio de Atención
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-serif font-bold text-slate-950">
+            ¿Cuándo resolver por telemedicina y cuándo acudir a guardia?
+          </h2>
+          <p class="text-slate-600 text-base md:text-lg leading-relaxed">
+            La telemedicina de AutaMedica resuelve de manera segura y ágil los cuadros de baja y moderada complejidad, orientando con responsabilidad hacia la guardia física solo cuando es indispensable.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Telemedicina -->
+          <div class="p-6 md:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
+              <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Apto para Videoconsulta Online
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">Cuadros ambulatorios estables</h3>
+            <p class="text-xs md:text-sm text-slate-600 leading-relaxed">
+              Casos en los que el paciente conserva la capacidad de deglutir líquidos y medicación oral, sin dificultad respiratoria:
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Odinofagia leve a moderada de inicio reciente.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Dolor de garganta acompañado de congestión, mocos o tos.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Fiebre controlable que cede adecuadamente con paracetamol o ibuprofeno.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Necesidad de certificado laboral o escolar por síndrome gripal.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Indicación de test rápido o hisopado de fauces ambulatorio.</span>
+              </li>
+            </ul>
+            <div class="pt-4">
+              <a href="/guardia-medica-online" class="block text-center py-3 px-4 rounded-lg bg-sky-600 text-white font-semibold text-sm hover:bg-sky-700 transition-colors">
+                Ingresar a guardia online ahora
+              </a>
+            </div>
+          </div>
+
+          <!-- Guardia Presencial -->
+          <div class="p-6 md:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-red-50 text-red-700 text-xs font-bold border border-red-200">
+              <svg class="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              Requiere Guardia Presencial
+            </div>
+            <h3 class="text-xl font-serif font-bold text-slate-900">Urgencias con compromiso anatómico</h3>
+            <p class="text-xs md:text-sm text-slate-600 leading-relaxed">
+              Casos en los que se sospecha afectación obstructiva o infección de planos profundos del cuello:
+            </p>
+            <ul class="space-y-2 text-xs md:text-sm text-slate-700">
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Imposibilidad total de tragar saliva, agua o medicación.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Trismo severo (la boca no abre).</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Estridor o ruidos silbantes al respirar en reposo.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Sospecha de flemón o absceso periamigdalino unilateral.</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Fiebre &gt;39.5°C refractaria con obnubilación o rigidez de nuca.</span>
+              </li>
+            </ul>
+            <div class="pt-4">
+              <div class="text-center py-3 px-4 rounded-lg bg-slate-100 text-slate-700 font-semibold text-sm border border-slate-200">
+                Concurrir a centro hospitalario u ORL
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="py-16 md:py-24 bg-white border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-4xl">
+        <div class="text-center space-y-4 mb-12">
+          <span class="text-xs uppercase font-bold tracking-wider text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+            Preguntas Frecuentes
+          </span>
+          <h2 class="text-3xl font-serif font-bold text-slate-950">
+            Dudas clínicas habituales sobre el dolor de garganta
+          </h2>
+        </div>
+
+        <div class="space-y-4">
+          {faqs.map((faq, index) => (
+            <details class="group rounded-xl border border-slate-200 bg-white p-5 transition-all open:bg-slate-50/50 open:border-sky-300">
+              <summary class="flex cursor-pointer items-center justify-between text-base font-semibold text-slate-900 list-none">
+                <span>{faq.question}</span>
+                <span class="ml-4 text-sky-600 transition-transform group-open:rotate-180">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </span>
+              </summary>
+              <p class="mt-4 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                {faq.answer}
+              </p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CROSS LINKS -->
+    <section class="py-12 bg-slate-50 border-b border-slate-100">
+      <div class="container mx-auto px-6 max-w-5xl">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-6 text-center">
+          Servicios y Guías Relacionadas
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          <a href="/guardia-medica-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Guardia médica 24hs
+          </a>
+          <a href="/medico-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Médico clínico online
+          </a>
+          <a href="/fiebre-en-adultos" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Fiebre en adultos
+          </a>
+          <a href="/receta-medica-online" class="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-500 hover:text-sky-600 transition-colors text-sm font-medium text-slate-700">
+            Receta médica oficial
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <CTAFinal
+      title="Atención médica para tu dolor de garganta hoy."
+      subtitle="Evaluación clínica profesional por videollamada sin exponerte a salas de espera hospitalarias. Recibí tu indicación y receta en tu teléfono."
+      buttonLabel="Consultar con médico ahora"
+      buttonHref="/guardia-medica-online"
+    />
+  </main>
+
+  <Footer />
+</Layout>
