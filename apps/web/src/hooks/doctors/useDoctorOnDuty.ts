@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { fetchApi } from '@/lib/api-client'
+import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import type {
   ClaimConsultationResult,
   DoctorOnDutyStatus,
@@ -40,7 +41,7 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
       const data = await fetchApi<DoctorOnDutyStatus>('/api/doctors/on-duty/toggle')
       setOnDuty(data.onDuty)
       setSince(data.since)
-    } catch (err) {
+    } catch {
       // If unauthorized or not doctor, handle gracefully
       setOnDuty(false)
     } finally {
@@ -48,16 +49,57 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     }
   }, [])
 
-  // Fetch pending queue
+  // Fetch pending queue Gen 2 (pharmacy_dispatch_requests con status = 'searching')
   const fetchQueue = useCallback(async () => {
     try {
-      const data = await fetchApi<{ queue: OnDemandQueueItem[]; count: number }>(
-        '/api/doctors/on-duty/queue',
-      )
-      setQueue(data.queue)
+      let items: OnDemandQueueItem[] = []
+      const supabase = getBrowserSupabaseClient()
+      const { data, error: dbError } = await supabase
+        .from('pharmacy_dispatch_requests')
+        .select(`
+          id,
+          pharmacy_id,
+          patient_dni,
+          patient_name,
+          patient_phone,
+          tier_requested,
+          symptom_summary,
+          status,
+          created_at,
+          cloudflare_room_id
+        `)
+        .eq('status', 'searching')
+        .order('created_at', { ascending: true })
+
+      if (!dbError && data) {
+        const now = Date.now()
+        items = data.map((row) => {
+          const createdTime = new Date(row.created_at).getTime()
+          const diffMs = Math.max(0, now - createdTime)
+          return {
+            id: String(row.id),
+            pharmacyId: row.pharmacy_id ? String(row.pharmacy_id) : null,
+            pharmacyName: 'Farmacia / Kiosco On-Demand',
+            patientDni: String(row.patient_dni),
+            patientName: String(row.patient_name || 'Paciente Kiosco'),
+            patientPhone: String(row.patient_phone),
+            reason: String(row.symptom_summary || `Consulta ${row.tier_requested || 'General'}`),
+            status: row.status,
+            createdAt: String(row.created_at),
+            minutesWaiting: Math.floor(diffMs / 60000),
+          }
+        })
+      } else {
+        const dataRes = await fetchApi<{ queue: OnDemandQueueItem[]; count: number }>(
+          '/api/doctors/on-duty/queue',
+        )
+        items = dataRes.queue || []
+      }
+
+      setQueue(items)
 
       // Audio notification if new patients arrived in queue and doctor is on duty
-      if (onDuty && data.count > prevQueueLengthRef.current && typeof window !== 'undefined') {
+      if (onDuty && items.length > prevQueueLengthRef.current && typeof window !== 'undefined') {
         try {
           const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
           const osc = ctx.createOscillator()
@@ -75,7 +117,7 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
           // Audio autoplay might be blocked
         }
       }
-      prevQueueLengthRef.current = data.count
+      prevQueueLengthRef.current = items.length
     } catch {
       // Ignorar fallos transitorios
     }
@@ -159,19 +201,51 @@ export function useDoctorOnDuty(): UseDoctorOnDutyReturn {
     [onDuty, fetchQueue],
   )
 
-  // Claim a patient consultation
+  // Reclamar consulta Gen 2 llamando a POST /api/pharmacy/dispatch/claim (claim_pharmacy_request_tier)
   const claimPatient = useCallback(
     async (requestId: string): Promise<ClaimConsultationResult | null> => {
       try {
         setClaimingId(requestId)
         setError(null)
-        const result = await fetchApi<ClaimConsultationResult>('/api/doctors/on-duty/claim', {
+        const result = await fetchApi<{
+          success: boolean
+          code?: string
+          message?: string
+          request_id?: string
+          cloudflare_room_id?: string
+          patient_dni?: string
+          patient_phone?: string
+          tier_requested?: string
+        }>('/api/pharmacy/dispatch/claim', {
           method: 'POST',
           body: { requestId },
         })
-        // Remove claimed item from local queue immediately
+
+        if (!result.success || !result.cloudflare_room_id) {
+          throw new Error(result.message || 'La consulta ya no está disponible')
+        }
+
+        // Remover elemento reclamado de la cola local inmediatamente
         setQueue((prev) => prev.filter((item) => item.id !== requestId))
-        return result
+
+        const roomId = result.cloudflare_room_id
+        const doctorRoomUrl = `/doctors/call/${encodeURIComponent(roomId)}`
+
+        return {
+          requestId: result.request_id || requestId,
+          callId: result.request_id || requestId,
+          roomId,
+          guestInviteId: '',
+          doctorRoomUrl,
+          patientJoinUrl: '',
+          patient: {
+            dni: result.patient_dni || '',
+            name: 'Paciente',
+            phone: result.patient_phone || '',
+            reason: result.tier_requested || 'Consulta General',
+            pharmacyName: 'Farmacia / Kiosco On-Demand',
+          },
+        }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Error al tomar paciente'
         setError(msg)

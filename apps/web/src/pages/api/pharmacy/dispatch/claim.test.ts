@@ -32,23 +32,32 @@ const CLAIM_CONFLICT = {
   message: 'La consulta ya no está disponible',
 }
 
-function buildDoctorChain(data: unknown, error: unknown): any {
-  const chain: any = {
+type DoctorChain = {
+  then: (resolve: (value: unknown) => void) => void
+  select: ReturnType<typeof vi.fn>
+  eq: ReturnType<typeof vi.fn>
+  maybeSingle: ReturnType<typeof vi.fn>
+}
+
+function buildDoctorChain(data: unknown, error: unknown): DoctorChain {
+  const chain: DoctorChain = {
     then(resolve: (value: unknown) => void) {
       resolve({ data, error })
-      return undefined
     },
-    select: vi.fn(() => chain),
-    eq: vi.fn(() => chain),
-    maybeSingle: vi.fn(() => chain),
+    select: vi.fn(),
+    eq: vi.fn(),
+    maybeSingle: vi.fn(),
   }
+  chain.select.mockReturnValue(chain)
+  chain.eq.mockReturnValue(chain)
+  chain.maybeSingle.mockReturnValue(chain)
   return chain
 }
 
 function makeContext(options?: {
   session?: { user: { id: string } } | null
   body?: unknown
-}): any {
+}): Parameters<typeof POST>[0] {
   const request = new Request('http://localhost/api/pharmacy/dispatch/claim', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -67,7 +76,7 @@ function makeContext(options?: {
       session,
       runtime: { env: {} },
     },
-  }
+  } as unknown as Parameters<typeof POST>[0]
 }
 
 describe('API: /api/pharmacy/dispatch/claim', () => {

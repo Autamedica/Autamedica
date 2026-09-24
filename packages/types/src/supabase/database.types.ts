@@ -10419,10 +10419,12 @@ export type Database = {
         Row: {
           assigned_doctor_id: string | null
           call_ended_at: string | null
+          call_id: string | null
           call_started_at: string | null
           cloudflare_room_id: string
           created_at: string
           doctor_cf_session_id: string | null
+          guest_invite_id: string | null
           id: string
           kiosk_id: string | null
           matched_at: string | null
@@ -10434,6 +10436,7 @@ export type Database = {
           patient_phone: string
           pharmacy_id: string | null
           previous_doctor_id: string | null
+          price_brl: number | null
           requested_by_user_id: string | null
           search_timeout_at: string
           status: Database["public"]["Enums"]["dispatch_request_status"]
@@ -10443,10 +10446,12 @@ export type Database = {
         Insert: {
           assigned_doctor_id?: string | null
           call_ended_at?: string | null
+          call_id?: string | null
           call_started_at?: string | null
           cloudflare_room_id: string
           created_at?: string
           doctor_cf_session_id?: string | null
+          guest_invite_id?: string | null
           id?: string
           kiosk_id?: string | null
           matched_at?: string | null
@@ -10458,6 +10463,7 @@ export type Database = {
           patient_phone: string
           pharmacy_id?: string | null
           previous_doctor_id?: string | null
+          price_brl?: number | null
           requested_by_user_id?: string | null
           search_timeout_at?: string
           status?: Database["public"]["Enums"]["dispatch_request_status"]
@@ -10467,10 +10473,12 @@ export type Database = {
         Update: {
           assigned_doctor_id?: string | null
           call_ended_at?: string | null
+          call_id?: string | null
           call_started_at?: string | null
           cloudflare_room_id?: string
           created_at?: string
           doctor_cf_session_id?: string | null
+          guest_invite_id?: string | null
           id?: string
           kiosk_id?: string | null
           matched_at?: string | null
@@ -10482,6 +10490,7 @@ export type Database = {
           patient_phone?: string
           pharmacy_id?: string | null
           previous_doctor_id?: string | null
+          price_brl?: number | null
           requested_by_user_id?: string | null
           search_timeout_at?: string
           status?: Database["public"]["Enums"]["dispatch_request_status"]

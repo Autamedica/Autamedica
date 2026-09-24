@@ -38,9 +38,12 @@ export function DoctorOnDutyWidget({ className = '', compact = false }: DoctorOn
 
   const handleClaim = async (requestId: string) => {
     const result = await claimPatient(requestId)
-    if (result?.doctorRoomUrl) {
+    const targetUrl =
+      result?.doctorRoomUrl ||
+      (result?.roomId ? `/doctors/call/${encodeURIComponent(result.roomId)}` : null)
+    if (targetUrl) {
       // Direct navigation to doctor videocall room
-      window.location.href = result.doctorRoomUrl
+      window.location.href = targetUrl
     }
   }
 

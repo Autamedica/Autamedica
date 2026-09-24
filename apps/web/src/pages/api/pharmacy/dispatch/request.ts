@@ -21,38 +21,116 @@ const VALID_TIERS: DispatchTierCategory[] = [
   'endocrinologia',
 ]
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = await request.json().catch(() => null)
-    if (!body) {
+    if (!body || typeof body !== 'object') {
       return badRequest('Cuerpo de solicitud inválido')
     }
 
     const { patientDni, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary } = body
 
-    if (!patientDni || typeof patientDni !== 'string' || patientDni.trim().length < 5) {
+    // 1. Validar campos mínimos obligatorios y sanitizar
+    if (!patientDni || typeof patientDni !== 'string') {
+      return badRequest('Número de documento requerido')
+    }
+    const sanitizedDni = patientDni.trim().replace(/[^\w.-]/g, '')
+    if (sanitizedDni.length < 5 || sanitizedDni.length > 20) {
       return badRequest('Número de documento inválido')
     }
 
-    if (!patientPhone || typeof patientPhone !== 'string' || patientPhone.trim().length < 6) {
+    if (!patientPhone || typeof patientPhone !== 'string') {
+      return badRequest('Teléfono celular requerido')
+    }
+    const sanitizedPhone = patientPhone.trim().replace(/[^\d+()-\s]/g, '')
+    if (sanitizedPhone.replace(/\D/g, '').length < 6 || sanitizedPhone.length > 30) {
       return badRequest('Teléfono celular inválido')
     }
 
-    const selectedTier: DispatchTierCategory = VALID_TIERS.includes(tier) ? tier : 'general'
-    const cloudflareRoomId = generateCloudflareRoomId(selectedTier, patientDni)
+    const sanitizedName = typeof patientName === 'string' && patientName.trim()
+      ? patientName.trim().slice(0, 120)
+      : null
+
+    const sanitizedSymptoms = typeof symptomSummary === 'string' && symptomSummary.trim()
+      ? symptomSummary.trim().slice(0, 500)
+      : null
+
+    const selectedTier: DispatchTierCategory = (typeof tier === 'string' && VALID_TIERS.includes(tier as DispatchTierCategory))
+      ? (tier as DispatchTierCategory)
+      : 'general'
 
     const supabase = createAstroAdminClient(locals.runtime?.env)
 
+    // 2. Validar pertenencia a kiosco registrado si kioskId viene provisto
+    let resolvedKioskId: string | null = null
+    let resolvedPharmacyId: string | null = null
+
+    if (kioskId) {
+      if (typeof kioskId !== 'string' || !UUID_REGEX.test(kioskId.trim())) {
+        return badRequest('ID de kiosco con formato inválido')
+      }
+      const cleanKioskId = kioskId.trim()
+      const { data: kiosk, error: kioskErr } = await supabase
+        .from('pharmacy_kiosks')
+        .select('id, pharmacy_id, active')
+        .eq('id', cleanKioskId)
+        .maybeSingle()
+
+      if (kioskErr || !kiosk) {
+        return badRequest('Kiosco no registrado')
+      }
+      if (!kiosk.active) {
+        return badRequest('El kiosco no se encuentra activo')
+      }
+
+      resolvedKioskId = kiosk.id
+      if (kiosk.pharmacy_id) {
+        resolvedPharmacyId = kiosk.pharmacy_id
+      }
+    }
+
+    // 3. Validar pharmacyId si viene provisto
+    if (pharmacyId) {
+      if (typeof pharmacyId !== 'string' || !UUID_REGEX.test(pharmacyId.trim())) {
+        return badRequest('ID de farmacia con formato inválido')
+      }
+      const cleanPharmacyId = pharmacyId.trim()
+
+      if (resolvedPharmacyId && resolvedPharmacyId !== cleanPharmacyId) {
+        return badRequest('El kiosco no pertenece a la farmacia indicada')
+      }
+
+      const { data: pharmacy, error: pharmErr } = await supabase
+        .from('pharmacies')
+        .select('id')
+        .eq('id', cleanPharmacyId)
+        .maybeSingle()
+
+      if (pharmErr || !pharmacy) {
+        return badRequest('Farmacia no registrada o inválida')
+      }
+      resolvedPharmacyId = pharmacy.id
+    }
+
+    const cloudflareRoomId = generateCloudflareRoomId(selectedTier, sanitizedDni)
+
+    // Asociar usuario dueño si la petición proviene de un usuario autenticado
+    const sessionUser = (locals as { user?: { id: string } }).user ?? locals.session?.user
+    const requestedByUserId = sessionUser?.id || null
+
     const insertPayload = {
-      patient_dni: patientDni.trim(),
-      patient_phone: patientPhone.trim(),
-      patient_name: patientName?.trim() || null,
+      patient_dni: sanitizedDni,
+      patient_phone: sanitizedPhone,
+      patient_name: sanitizedName,
       tier_requested: selectedTier,
-      kiosk_id: kioskId || null,
-      pharmacy_id: pharmacyId || null,
-      symptom_summary: symptomSummary || null,
+      kiosk_id: resolvedKioskId,
+      pharmacy_id: resolvedPharmacyId,
+      symptom_summary: sanitizedSymptoms,
       cloudflare_room_id: cloudflareRoomId,
       status: 'searching' as const,
+      requested_by_user_id: requestedByUserId,
     }
 
     const { data, error } = await supabase
@@ -72,8 +150,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return serviceUnavailable('guest_token_not_configured')
     }
 
-    // Mint guest access token so the kiosk can join the Cloudflare Calls room
-    // via the same guest media plane used by invite-based calls.
+    // Generar token de acceso criptográfico (JWT firmado con HS256)
     const accessToken = await signGuestToken(
       {
         callId: data.id,

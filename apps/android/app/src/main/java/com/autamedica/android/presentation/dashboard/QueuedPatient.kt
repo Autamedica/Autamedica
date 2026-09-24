@@ -1,6 +1,11 @@
 package com.autamedica.android.presentation.dashboard
 
 import com.autamedica.android.domain.model.PharmacyConsultationRequest
+import com.autamedica.android.domain.model.PharmacyConsultationStatus
+import com.autamedica.android.domain.model.PharmacyDispatchRequest
+import com.autamedica.android.domain.model.dispatchTierLabel
+import java.time.Duration
+import java.time.OffsetDateTime
 
 enum class TriageLevel {
     URGENCY,
@@ -56,6 +61,55 @@ fun PharmacyConsultationRequest.toQueuedPatient(): QueuedPatient {
         antecedents = antecedentsText,
         waitMinutes = minutesWaiting.toInt(),
         intakeSummary = intakeText,
+    )
+}
+
+fun PharmacyDispatchRequest.toQueuedPatient(): QueuedPatient {
+    val cleanReason = symptomSummary?.ifBlank { null } ?: "Derivación para atención médica inmediata"
+    val (triageLevel, triageScale) = inferTriageFromReason(cleanReason)
+    val extractedAge = extractPatientAge(patientName, cleanReason)
+    val cleanName = cleanPatientName(patientName).ifBlank { "Paciente DNI $patientDni" }
+    val cleanPharmacy = if (tierRequested.isBlank()) "Farmacia de Guardia" else dispatchTierLabel(tierRequested)
+    val minutesWaiting = runCatching {
+        val created = OffsetDateTime.parse(createdAt)
+        Duration.between(created, OffsetDateTime.now()).toMinutes().coerceAtLeast(0)
+    }.getOrDefault(0L)
+
+    val vitalsText = "📍 $cleanPharmacy • Espera: ${minutesWaiting} min"
+    val antecedentsText = "DNI: ${patientDni.ifBlank { "No informado" }} • Tel: ${patientPhone.ifBlank { "No informado" }}"
+    val intakeText = "Derivación en tiempo real desde $cleanPharmacy para $cleanName. Motivo clínico: $cleanReason. Paciente a la espera de consulta médica."
+
+    return QueuedPatient(
+        id = id,
+        name = cleanName,
+        age = extractedAge,
+        triage = triageLevel,
+        triageScale = triageScale,
+        reason = cleanReason,
+        vitals = vitalsText,
+        antecedents = antecedentsText,
+        waitMinutes = minutesWaiting.toInt(),
+        intakeSummary = intakeText,
+    )
+}
+
+fun PharmacyDispatchRequest.toConsultationRequest(): PharmacyConsultationRequest {
+    val created = runCatching { OffsetDateTime.parse(createdAt) }.getOrNull()
+    val mins = created?.let {
+        Duration.between(it, OffsetDateTime.now()).toMinutes().coerceAtLeast(0)
+    } ?: 0L
+    return PharmacyConsultationRequest(
+        id = id,
+        pharmacyId = null,
+        pharmacyName = if (tierRequested.isBlank()) "Farmacia de Guardia" else dispatchTierLabel(tierRequested),
+        patientDni = patientDni,
+        patientName = patientName?.ifBlank { null } ?: "Paciente en espera",
+        patientPhone = patientPhone,
+        reason = symptomSummary?.ifBlank { null } ?: "Derivación para atención médica inmediata",
+        status = PharmacyConsultationStatus.PENDING,
+        roomId = cloudflareRoomId,
+        createdAt = created,
+        minutesWaiting = mins,
     )
 }
 

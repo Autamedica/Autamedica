@@ -94,6 +94,12 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         return _searchingRequests.asStateFlow()
     }
 
+    override fun observeIncomingOffers(): kotlinx.coroutines.flow.StateFlow<List<PharmacyDispatchRequest>> =
+        observeSearchingRequests()
+
+    override val incomingOffers: kotlinx.coroutines.flow.StateFlow<List<PharmacyDispatchRequest>>
+        get() = observeSearchingRequests()
+
     override suspend fun claimPharmacyRequest(
         requestId: String,
         doctorId: String,
@@ -232,10 +238,10 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             }
         }
 
-        // Polling ticker fallback (500ms): guarantees near-instant state updates even if websocket reconnects/lags
+        // Polling ticker fallback (3000ms): guarantees state updates even if websocket reconnects/lags
         val pollJob = launch {
             while (isActive) {
-                delay(500L)
+                delay(3000L)
                 fetchCurrent()
             }
         }

@@ -280,49 +280,7 @@ class PharmacyOnDemandRepositoryImpl @Inject constructor(
 
         val rpcRefused = rpcResult?.code?.takeIf { it.isNotBlank() } ?: "CLAIM_RPC_UNAVAILABLE"
 
-        // Fallback to Gen 1 legacy claim ONLY IF the request lives in the legacy table
-        val legacyExists = supabaseClient.postgrest
-            .from("pharmacy_consultation_requests")
-            .select(Columns.list("id")) {
-                filter {
-                    eq("id", requestId)
-                    eq("status", "pending")
-                }
-            }
-            .decodeList<PharmacyRequestDto>()
-            .isNotEmpty()
-
-        if (legacyExists) {
-            val uniqueRoomId = "room_pharmacy_" + java.util.UUID.randomUUID().toString().substring(0, 8)
-            val now = OffsetDateTime.now().toString()
-
-            supabaseClient.postgrest
-                .from("pharmacy_consultation_requests")
-                .update(
-                    mapOf(
-                        "status" to "assigned",
-                        "doctor_id" to effectiveDoctorId,
-                        "room_id" to uniqueRoomId,
-                        "assigned_at" to now
-                    )
-                ) {
-                    filter {
-                        eq("id", requestId)
-                        eq("status", "pending")
-                    }
-                }
-
-            return@runCatching PharmacyClaimResult(
-                requestId = requestId,
-                callId = requestId,
-                roomId = uniqueRoomId,
-                guestInviteId = "",
-                doctorRoomUrl = "/doctors/call/$uniqueRoomId",
-                patientJoinUrl = "/call/join/$uniqueRoomId"
-            )
-        }
-
-        // No request found in either plane: surface the real failure with clear clinical context
+        // Propagate real clinical failure when Gen 2 atomic claim does not succeed
         val userFriendlyMessage = rpcResult?.message?.takeIf { it.isNotBlank() }
             ?: when (rpcRefused) {
                 "DOCTOR_ALREADY_IN_CALL" -> "Ya tienes una consulta activa en curso. Finalízala antes de aceptar otra."

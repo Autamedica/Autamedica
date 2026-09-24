@@ -28,8 +28,8 @@ import kotlinx.coroutines.flow.update
 import com.autamedica.android.di.IoDispatcher
 import com.autamedica.android.domain.model.DoctorOnDutyPharmacyState
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
-import com.autamedica.android.domain.repository.PharmacyOnDemandRepository
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.OffsetDateTime
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
@@ -70,7 +70,6 @@ class DoctorDashboardViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val telemedicineRepository: TelemedicineRepository,
     private val chatRepository: ChatRepository,
-    private val pharmacyOnDemandRepository: PharmacyOnDemandRepository,
     private val pharmacyDispatchRepository: PharmacyDispatchRepository,
     private val connectivityObserver: com.autamedica.android.util.ConnectivityObserver,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -79,10 +78,14 @@ class DoctorDashboardViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(DoctorDashboardUiState())
     val uiState: StateFlow<DoctorDashboardUiState> = _uiState.asStateFlow()
 
+    private val _dismissedRequestIds = MutableStateFlow<Set<String>>(emptySet())
+    private val _isOnDuty = MutableStateFlow(false)
+    private var incomingOffersJob: Job? = null
+
     init {
         loadAll()
         observeChatSummary()
-        observePharmacyDuty()
+        observeIncomingOffers()
     }
 
     fun refresh() {
@@ -164,10 +167,7 @@ class DoctorDashboardViewModel @Inject constructor(
                     )
                 }
                 // Load pharmacy on duty status
-                loadPharmacyDuty()
-                if (_uiState.value.pharmacyOnDutyState.isOnDuty) {
-                    startHeartbeat(profile.id)
-                }
+                loadPharmacyDuty(profile.id)
             }.onFailure { error ->
                 SecureLog.error("[DoctorDashboard] Failed loading doctor profile", error)
                 _uiState.update {
@@ -250,99 +250,40 @@ class DoctorDashboardViewModel @Inject constructor(
         networkObservationJob = null
     }
 
-    private fun observePharmacyDuty() {
-        viewModelScope.launch {
-            pharmacyOnDemandRepository.observeOnDutyState().collect { state ->
-                val mappedQueue = state.pendingRequests.map { it.toQueuedPatient() }
-                _uiState.update {
-                    it.copy(
-                        pharmacyOnDutyState = state,
+    private fun observeIncomingOffers() {
+        incomingOffersJob?.cancel()
+        incomingOffersJob = viewModelScope.launch {
+            combine(
+                pharmacyDispatchRepository.observeIncomingOffers(),
+                _dismissedRequestIds,
+                _isOnDuty,
+            ) { requests, dismissed, onDuty ->
+                Triple(requests.filter { it.id !in dismissed }, dismissed, onDuty)
+            }.collect { (activeOffers, _, onDuty) ->
+                val nextAlert = if (onDuty) activeOffers.firstOrNull() else null
+                val mappedQueue = activeOffers.map { it.toQueuedPatient() }
+                val mappedConsultations = activeOffers.map { it.toConsultationRequest() }
+
+                _uiState.update { state ->
+                    state.copy(
+                        simulatedDispatchAlert = nextAlert,
+                        activelyDispatchedPatientId = nextAlert?.id,
                         liveWaitingQueue = mappedQueue,
+                        pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
+                            waitingQueueCount = activeOffers.size,
+                            pendingRequests = mappedConsultations,
+                        ),
                     )
                 }
-                if (state.isOnDuty) {
-                    startDispatchEngine()
-                    startHeartbeat()
-                } else {
-                    stopDispatchEngine()
-                    stopHeartbeat()
-                }
             }
-        }
-    }
-
-    private fun startDispatchEngine() {
-        if (dispatchEngineJob?.isActive == true) return
-        dispatchEngineJob = viewModelScope.launch {
-            // Initial breathing pause (2.5s) so the doctor sees the live dashboard status
-            delay(2500L)
-
-            while (isActive) {
-                val currentState = _uiState.value
-                if (!currentState.pharmacyOnDutyState.isOnDuty) break
-
-                // Poll real pending queue from repository to keep in sync with database
-                val pendingResult = pharmacyOnDemandRepository.getPendingQueue()
-                val realPendingRequests = pendingResult.getOrNull()
-                if (realPendingRequests != null) {
-                    val mappedQueue = realPendingRequests.map { it.toQueuedPatient() }
-                    _uiState.update { state ->
-                        state.copy(
-                            liveWaitingQueue = mappedQueue,
-                            pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
-                                waitingQueueCount = realPendingRequests.size,
-                                pendingRequests = realPendingRequests,
-                            ),
-                        )
-                    }
-                }
-
-                // If no alert is currently shown to the doctor, offer the next eligible real patient
-                val updatedState = _uiState.value
-                if (updatedState.simulatedDispatchAlert == null) {
-                    val realPending = updatedState.pharmacyOnDutyState.pendingRequests
-                        .firstOrNull { it.id !in updatedState.dismissedRequestIds }
-
-                    if (realPending != null) {
-                        val dispatch = PharmacyDispatchRequest(
-                            id = realPending.id,
-                            patientDni = realPending.patientDni,
-                            patientPhone = realPending.patientPhone,
-                            patientName = realPending.patientName,
-                            tierRequested = realPending.pharmacyName,
-                            symptomSummary = realPending.reason,
-                            status = realPending.status.name.lowercase(),
-                            assignedDoctorId = realPending.doctorId,
-                            cloudflareRoomId = realPending.roomId ?: realPending.id,
-                            createdAt = realPending.createdAt?.toString() ?: "",
-                        )
-                        _uiState.update {
-                            it.copy(
-                                simulatedDispatchAlert = dispatch,
-                                activelyDispatchedPatientId = realPending.id,
-                            )
-                        }
-                    }
-                }
-
-                delay(5000L)
-            }
-        }
-    }
-
-    private fun stopDispatchEngine() {
-        dispatchEngineJob?.cancel()
-        dispatchEngineJob = null
-        _uiState.update {
-            it.copy(
-                simulatedDispatchAlert = null,
-                activelyDispatchedPatientId = null,
-            )
         }
     }
 
     fun dismissDispatchAlert(requestId: String? = null) {
         val targetId = requestId ?: _uiState.value.simulatedDispatchAlert?.id
+        if (targetId != null) {
+            _dismissedRequestIds.update { it + targetId }
+        }
         _uiState.update { state ->
             state.copy(
                 simulatedDispatchAlert = null,
@@ -353,34 +294,47 @@ class DoctorDashboardViewModel @Inject constructor(
     }
 
     fun togglePharmacyOnDuty(onDuty: Boolean) {
+        val doctorId = _uiState.value.doctorId
+        if (doctorId.isBlank()) return
+
         viewModelScope.launch {
             _uiState.update { it.copy(pharmacyOnDutyState = it.pharmacyOnDutyState.copy(isLoading = true)) }
-            pharmacyOnDemandRepository.toggleOnDuty(onDuty)
-                .onSuccess { state ->
-                    _uiState.update { it.copy(pharmacyOnDutyState = state) }
-                    if (state.isOnDuty) {
-                        startDispatchEngine()
-                        startHeartbeat()
-                    } else {
-                        stopDispatchEngine()
-                        stopHeartbeat()
-                    }
-                }
-                .onFailure { error ->
-                    SecureLog.error("[DoctorDashboard] Error toggling pharmacy duty", error)
-                    val fallback = _uiState.value.pharmacyOnDutyState.copy(
-                        isOnDuty = onDuty,
-                        isLoading = false,
+            pharmacyDispatchRepository.setDoctorDutyStatus(
+                doctorId = doctorId,
+                isOnDuty = onDuty,
+                activeTiers = listOf("general"),
+            ).onSuccess {
+                _isOnDuty.value = onDuty
+                _uiState.update { state ->
+                    state.copy(
+                        pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
+                            isOnDuty = onDuty,
+                            isLoading = false,
+                        ),
                     )
-                    _uiState.update { it.copy(pharmacyOnDutyState = fallback) }
-                    if (onDuty) {
-                        startDispatchEngine()
-                        startHeartbeat()
-                    } else {
-                        stopDispatchEngine()
-                        stopHeartbeat()
-                    }
                 }
+                if (onDuty) {
+                    startHeartbeat(doctorId)
+                } else {
+                    stopHeartbeat()
+                }
+            }.onFailure { error ->
+                SecureLog.error("[DoctorDashboard] Error toggling pharmacy duty", error)
+                _isOnDuty.value = onDuty
+                _uiState.update { state ->
+                    state.copy(
+                        pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
+                            isOnDuty = onDuty,
+                            isLoading = false,
+                        ),
+                    )
+                }
+                if (onDuty) {
+                    startHeartbeat(doctorId)
+                } else {
+                    stopHeartbeat()
+                }
+            }
         }
     }
 
@@ -394,12 +348,14 @@ class DoctorDashboardViewModel @Inject constructor(
         com.autamedica.android.telemetry.CallTelemetry.recordMilestone(traceId, "T0_TAP_INGRESAR")
 
         // 1. Optimistic UI transition: dismiss alert immediately and navigate on tick 0 (<5ms)
+        _dismissedRequestIds.update { it + requestId }
         _uiState.update { state ->
             state.copy(
                 claimingPharmacyRequestId = null,
                 simulatedDispatchAlert = null,
                 activelyDispatchedPatientId = null,
                 liveWaitingQueue = state.liveWaitingQueue.filter { it.id != requestId },
+                dismissedRequestIds = state.dismissedRequestIds + requestId,
                 claimErrorMessage = null,
             )
         }
@@ -412,15 +368,27 @@ class DoctorDashboardViewModel @Inject constructor(
             return
         }
 
+        val doctorId = _uiState.value.doctorId
         // 2. Concurrently execute atomic DB claim in background without blocking video navigation
         viewModelScope.launch {
-            pharmacyOnDemandRepository.claimRequest(requestId)
+            pharmacyDispatchRepository.claimPharmacyRequest(requestId, doctorId)
                 .onSuccess { claim ->
-                    com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
-                        traceId,
-                        "T1_BACKEND_CLAIM",
-                        mapOf("success" to true, "claimed_room" to claim.roomId)
-                    )
+                    if (claim.success) {
+                        pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
+                        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
+                            traceId,
+                            "T1_BACKEND_CLAIM",
+                            mapOf("success" to true, "claimed_room" to (claim.cloudflareRoomId ?: alertRoomId))
+                        )
+                    } else {
+                        val errMsg = claim.message ?: claim.code.ifBlank { "No se pudo aceptar la consulta" }
+                        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
+                            traceId,
+                            "T1_BACKEND_CLAIM",
+                            mapOf("success" to false, "error" to errMsg)
+                        )
+                        _uiState.update { it.copy(claimErrorMessage = errMsg) }
+                    }
                 }
                 .onFailure { error ->
                     SecureLog.error("[DoctorDashboard] Error claiming pharmacy request in background", error)
@@ -434,19 +402,24 @@ class DoctorDashboardViewModel @Inject constructor(
         }
     }
 
-    private fun loadPharmacyDuty() {
+    private fun loadPharmacyDuty(doctorIdParam: String? = null) {
+        val doctorId = doctorIdParam?.takeIf { it.isNotBlank() } ?: _uiState.value.doctorId
+        if (doctorId.isBlank()) return
+
         viewModelScope.launch {
-            pharmacyOnDemandRepository.getOnDutyStatus()
-                .onSuccess { state ->
-                    val mappedQueue = state.pendingRequests.map { it.toQueuedPatient() }
-                    _uiState.update {
-                        it.copy(
-                            pharmacyOnDutyState = state,
-                            liveWaitingQueue = mappedQueue,
+            pharmacyDispatchRepository.getDoctorDutyStatus(doctorId)
+                .onSuccess { duty ->
+                    _isOnDuty.value = duty.isOnDuty
+                    _uiState.update { state ->
+                        state.copy(
+                            pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
+                                isOnDuty = duty.isOnDuty,
+                                isLoading = false,
+                            ),
                         )
                     }
-                    if (state.isOnDuty) {
-                        startHeartbeat()
+                    if (duty.isOnDuty) {
+                        startHeartbeat(doctorId)
                     } else {
                         stopHeartbeat()
                     }
@@ -527,6 +500,7 @@ class DoctorDashboardViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopHeartbeat()
-        stopDispatchEngine()
+        incomingOffersJob?.cancel()
+        incomingOffersJob = null
     }
 }
