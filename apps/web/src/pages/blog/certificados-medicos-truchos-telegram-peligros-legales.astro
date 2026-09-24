@@ -1,0 +1,486 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'El peligro de comprar certificados médicos por Telegram: despido con causa y causa penal (Art. 292 CP)',
+  author: 'Equipo AutaMedica',
+  role: 'Derecho Penal y Medicina Legal',
+  date: '24 de septiembre, 2026',
+  readTime: '10 min',
+  image: '/images/article_telemed.webp',
+  category: 'Seguridad y Marco Legal',
+};
+
+const canonicalUrl = 'https://www.autamedica.com/blog/certificados-medicos-truchos-telegram-peligros-legales';
+const publishedTime = '2026-09-24T00:00:00Z';
+
+const faqItems = [
+  {
+    question: '¿Cómo se dan cuenta las empresas de que un certificado médico es falso?',
+    answer:
+      'Las auditorías de Recursos Humanos y Medicina Laboral cruzan la matrícula en el SISA/REFEPS en tiempo real, llaman al nosocomio emisor para verificar el libro de guardia y analizan los metadatos del PDF. Si el paciente no estuvo registrado en el sistema asistencial o la matrícula está inactiva, la falsificación queda expuesta de inmediato.',
+  },
+  {
+    question: '¿Me pueden despedir con causa sin indemnización por presentar un certificado trucho?',
+    answer:
+      'Sí. Conforme al Artículo 242 de la Ley de Contrato de Trabajo N° 20.744, la presentación de un documento médico apócrifo constituye una injuria laboral gravísima que quebranta de forma irreversible el deber de fidelidad y confianza (Arts. 62 y 63 LCT), facultando el despido inmediato con justa causa sin derecho a indemnización por antigüedad, preaviso ni integración del mes.',
+  },
+  {
+    question: '¿Qué pena prevé el Código Penal para quien presenta un certificado comprado por redes?',
+    answer:
+      'El Artículo 296 del Código Penal reprime a quien hiciere uso de un documento falso con la misma pena aplicable al falsificador (Art. 292 CP): de 6 meses a 2 años de prisión en caso de instrumentos privados y de 1 a 6 años si involucra documentos públicos o sellos de instituciones sanitarias oficiales, además de la imputación por estafa (Art. 172 CP).',
+  },
+  {
+    question: '¿Comprar un certificado por Telegram deja antecedentes penales?',
+    answer:
+      'Sí. Si la empresa o el nosocomio afectado radica la denuncia penal en fiscalía, se inicia una causa penal que culmina en indagatoria y procesamiento. Una condena o probation genera registro en el Registro Nacional de Reincidencia (RNR), impidiendo acceder a empleos formales futuros o emitir certificados de buena conducta.',
+  },
+];
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BlogPosting',
+      headline: article.title,
+      description:
+        'Peligros legales y penales de comprar certificados médicos truchos por Telegram o WhatsApp. Despido con causa bajo Art. 242 LCT, delitos de falsificación y uso de documento falso bajo Arts. 292 y 296 del Código Penal Argentino.',
+      image: [`https://www.autamedica.com${article.image}`],
+      datePublished: publishedTime,
+      dateModified: publishedTime,
+      inLanguage: 'es-AR',
+      mainEntityOfPage: canonicalUrl,
+      author: {
+        '@type': 'Organization',
+        name: article.author,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'AutaMedica',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://www.autamedica.com/images/brand/app_icon_glass.png',
+        },
+      },
+      isPartOf: {
+        '@type': 'Blog',
+        name: 'Blog de Salud y Derecho Sanitario de AutaMedica',
+        url: 'https://www.autamedica.com/blog',
+      },
+      about: [
+        { '@type': 'Legislation', name: 'Código Penal Argentino Artículo 292' },
+        { '@type': 'Legislation', name: 'Código Penal Argentino Artículo 296' },
+        { '@type': 'Legislation', name: 'Ley de Contrato de Trabajo Artículo 242' },
+        { '@type': 'Thing', name: 'Falsificación de Certificado Médico' },
+      ],
+      mentions: [
+        {
+          '@type': 'Legislation',
+          name: 'Código Penal de la Nación Argentina',
+          url: 'https://servicios.infoleg.gob.ar/infolegInternet/anexos/15000-19999/16546/texact.htm',
+        },
+        {
+          '@type': 'Legislation',
+          name: 'Ley 20.744',
+          url: 'https://servicios.infoleg.gob.ar/infolegInternet/anexos/25000-29999/25552/texact.htm',
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Blog',
+          item: 'https://www.autamedica.com/blog',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: article.title,
+          item: canonicalUrl,
+        },
+      ],
+    },
+  ],
+};
+---
+
+<Layout
+  title={article.title}
+  description="Comprar certificados médicos en Telegram o WhatsApp por $4.000 puede costarte el trabajo y la libertad. Análisis del despido con causa (Art. 242 LCT) y las penas de prisión del Art. 292 y 296 del Código Penal."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime={publishedTime}
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(articleSchema)} />
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+          <span>Actualizado septiembre 2026</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt="Riesgos penales y laborales de certificados médicos falsificados en Telegram" loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <!-- Introducción -->
+          <section>
+            <h2>La oferta de $4.000 que destruye una carrera laboral</h2>
+            <p>
+              Basta una búsqueda rápida en canales públicos de Telegram, grupos de compraventa de Facebook o foros barriales para encontrar publicaciones que prometen soluciones mágicas: <em>"Certificados médicos laborales y escolares en el acto"</em>, <em>"Sanatorios de primera línea de CABA y GBA"</em>, <em>"Firma y sello de médico clínico por $4.000 o $7.000"</em>, <em>"Elegís diagnóstico y días de reposo"</em>.
+            </p>
+            <p>
+              Para quien despierta agotado un lunes, sufre una indisposición menor o simplemente busca justificar un fin de semana largo sin someterse a cuatro horas de espera en una guardia colapsada, la oferta parece inofensiva. Un mensaje directo, una transferencia por billetera virtual y, en quince minutos, un archivo PDF llega al celular con membrete institucional, diagnóstico de gastroenteritis aguda y un sello prolijo.
+            </p>
+            <p>
+              Lo que el vendedor anónimo de Telegram nunca aclara es que ese archivo PDF constituye una bomba de tiempo judicial. En el momento exacto en que enviás ese archivo a Recursos Humanos, estás cometiendo un delito penal tipificado en el Código Penal Argentino y otorgando a tu empleador la causal legal perfecta para <strong>despedirte de forma inmediata, sin derecho a un solo peso de indemnización</strong>.
+            </p>
+          </section>
+
+          <!-- Cuadro de Alerta Penal -->
+          <div class="danger-box">
+            <span class="danger-badge">Alerta Jurídica de Máxima Gravedad</span>
+            <h3 class="danger-title">Código Penal de la Nación Argentina</h3>
+            <p class="danger-text">
+              <strong>Artículo 292:</strong> "El que hiciere en todo o en parte un documento falso o adultere uno verdadero, de modo que pueda resultar perjuicio, será reprimido con reclusión o prisión de uno a seis años, si se tratare de un instrumento público y con prisión de seis meses a dos años, si se tratare de un instrumento privado."
+            </p>
+            <p class="danger-text">
+              <strong>Artículo 296:</strong> "El que hiciere uso de un documento o certificado falso o adulterado, será reprimido como si fuere autor de la falsedad."
+            </p>
+          </div>
+
+          <!-- Cómo auditan RRHH y Medicina Laboral -->
+          <section>
+            <h2>1. Cómo auditan hoy las empresas: La ilusión del sello que nadie mira</h2>
+            <p>
+              Quienes recurren al mercado negro suelen creer que los departamentos de personal archivan los certificados en un cajón sin revisarlos. Esta percepción está completamente desactualizada.
+            </p>
+            <p>
+              Hoy en día, las áreas de Medicina Laboral y Recursos Humanos de medianas y grandes empresas cuentan con protocolos automatizados de auditoría médica forense que detectan certificados apócrifos en menos de 90 segundos:
+            </p>
+            <ul>
+              <li>
+                <strong>Cruce inmediato con REFEPS / SISA:</strong> El departamento médico ingresa el número de matrícula nacional o provincial que figura en el sello en el Registro Federal de Profesionales de la Salud (SISA). Con un clic comprueban si la matrícula corresponde al profesional indicado, si está dada de baja, si el médico falleció o si pertenece a una especialidad completamente ajena (por ejemplo, sellos de ginecólogos o traumatólogos utilizados para justificar cuadros respiratorios).
+              </li>
+              <li>
+                <strong>Auditoría con el Libro de Guardia y Admisión del Sanatorio:</strong> Las empresas tienen comunicación fluida con los servicios de medicina laboral de los principales hospitales y sanatorios (Hospital Italiano, Hospital Alemán, Sanatorio Trinidad, Swiss Medical, etc.). La empresa envía un correo institucional solicitando verificación: <em>"¿El paciente ingresó por guardia en el día y horario consignado?"</em>. El sanatorio revisa el sistema de admisión centralizado. Si el paciente no estuvo físicamente ni tiene historia clínica abierta, el sanatorio responde formalmente: <strong>"Paciente no atendido en esta institución. El documento es apócrifo"</strong>.
+              </li>
+              <li>
+                <strong>Análisis de metadatos forenses del PDF:</strong> Los falsificadores aficionados suelen usar plantillas de Canva, editores web o Photoshop. La medicina laboral inspecciona los metadatos del archivo digital: fechas de renderizado, capas superpuestas, software de edición y tipografías adulteradas.
+              </li>
+              <li>
+                <strong>Denuncia del propio médico afectado:</strong> En la gran mayoría de los casos de Telegram, los estafadores clonan el nombre y matrícula de médicos reales extraídos de internet. Cuando la empresa contacta al profesional, este desconoce de inmediato la firma e inicia una denuncia penal por usurpación de identidad y daño a su matrícula.
+              </li>
+            </ul>
+          </section>
+
+          <!-- Consecuencias Laborales: Despido con Causa -->
+          <section>
+            <h2>2. La consecuencia laboral inmediata: Despido con causa sin indemnización (Art. 242 LCT)</h2>
+            <p>
+              La relación laboral entre empleado y empleador se rige por los principios fundamentales de buena fe, fidelidad y lealtad recíproca (Artículos 62 y 63 de la Ley de Contrato de Trabajo N° 20.744). La presentación de documentación médica fraudulenta dinamita esos principios en su totalidad.
+            </p>
+            <p>
+              El <strong>Artículo 242 de la LCT</strong> faculta a cualquiera de las partes a rescindir el contrato de trabajo con justa causa ante una <em>injuria laboral de tal gravedad que no consienta la prosecución del vínculo</em>. La jurisprudencia unánime de los tribunales laborales de todo el país considera que falsificar un certificado médico es un acto de deshonestidad mayúscula que habilita la expulsión inmediata.
+            </p>
+            
+            <div class="impact-grid">
+              <div class="impact-card">
+                <h4>Pérdida de la Indemnización por Antigüedad</h4>
+                <p>No cobrás el mes de sueldo por cada año de servicio ni fracción mayor de tres meses (Art. 245 LCT). Si tenías 5, 8 o 12 años de antigüedad acumulada, perdés millones de pesos de indemnización en el acto.</p>
+              </div>
+              <div class="impact-card">
+                <h4>Sin Preaviso ni Integración</h4>
+                <p>La empresa no te abona la indemnización sustitutiva de preaviso (Art. 231 LCT) ni los días restantes del mes en curso. El despido surte efecto inmediato con la notificación por Carta Documento.</p>
+              </div>
+              <div class="impact-card">
+                <h4>Bloqueo del Seguro de Desempleo</h4>
+                <p>Al configurarse un despido con justa causa imputable a dolo del trabajador, ANSES deniega el acceso a la prestación por desempleo, dejándote sin ingresos económicos de subsistencia.</p>
+              </div>
+              <div class="impact-card">
+                <h4>Cero Tolerancia en Juicio Laboral</h4>
+                <p>Si intentás demandar a la empresa alegando despido incausado, la empresa aporta el informe del hospital y la pericia caligráfica. No solo perdés el juicio, sino que sos condenado a pagar las costas y honorarios de los abogados.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Banner destacado de conversión institucional -->
+          <div class="blog-cta-box">
+            <span class="cta-kicker">Atención Médica 100% Legal</span>
+            <h3 class="cta-title">No arriesgues tu trabajo ni tu libertad: Atendete con un médico real</h3>
+            <p class="cta-desc">
+              Por qué recurrir a grupos clandestinos cuando podés acceder en minutos a una videoconsulta formal con médicos matriculados en <strong>AutaMedica</strong>. Tu certificado se emite bajo la Ley 27.553, con código CUIR inviolable, firma electrónica legal y verificación pública instantánea.
+            </p>
+            <div class="cta-actions">
+              <a href="/consulta-medica-express" class="btn-primary">
+                Consulta Médica Express &rarr;
+              </a>
+              <a href="/certificado-medico-online" class="btn-secondary">
+                Certificado Médico Online
+              </a>
+            </div>
+          </div>
+
+          <!-- La Causa Penal: El Art. 296 CP -->
+          <section>
+            <h2>3. La causa penal: El error de creer que "el delito es de quien vende"</h2>
+            <p>
+              El argumento más repetido por quienes son descubiertos con un certificado trucho es: <em>"Yo no falsifiqué nada, solo le compré el servicio a alguien en internet"</em>.
+            </p>
+            <p>
+              Desde la perspectiva del derecho penal argentino, este argumento es absolutamente irrelevante. El <strong>Artículo 296 del Código Penal</strong> es contundente: quien utiliza un documento falso responde con la misma escala penal que el falsificador original. Al imprimirlo o enviarlo por correo electrónico a tu empleador, consumaste materialmente el delito de <strong>uso de documento falso</strong>.
+            </p>
+            <p>
+              Las consecuencias procesales son devastadoras:
+            </p>
+            <ol>
+              <li>
+                <strong>Radicación de denuncia penal:</strong> Las empresas, a través de sus apoderados legales, radican formalmente la denuncia en la fiscalía o juzgado penal de turno. Están obligadas a hacerlo para justificar el despido y evitar contingencias ante sus propias aseguradoras de riesgos del trabajo (ART).
+              </li>
+              <li>
+                <strong>Concurrencia con el delito de Estafa (Art. 172 CP):</strong> Al pretender percibir el salario devengado por una jornada no trabajada valiéndose de un instrumento fraudulento, el fiscal imputa también la figura de <em>estafa y defraudación</em> contra el patrimonio de la empresa.
+              </li>
+              <li>
+                <strong>Allanamiento y secuestro de dispositivos:</strong> La división de Delitos Tecnológicos de la Policía solicita el secuestro del teléfono móvil del empleado para rastrear la cadena de pago y los chats de Telegram con la banda delictiva.
+              </li>
+              <li>
+                <strong>Antecedentes en el Registro Nacional de Reincidencia:</strong> El procesamiento penal queda asentado. Aunque el imputado logre una suspensión de juicio a prueba (probation), la mancha en los antecedentes penales impide a futuro obtener certificados de conducta para trabajar en empresas multinacionales, bancos o en la función pública.
+              </li>
+            </ol>
+          </section>
+
+          <!-- Comparativa visual -->
+          <section>
+            <h2>4. Comparativa: Certificado de Telegram vs. Certificado Digital Legal AutaMedica</h2>
+            <p>
+              Observá la abismal diferencia técnica y legal entre un comprobante fraudulento y una certificación legítima respaldada por teleasistencia médica profesional:
+            </p>
+
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Atributo</th>
+                    <th>Certificado Clandestino (Telegram)</th>
+                    <th>Certificado Digital Oficial (AutaMedica)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Acto médico</strong></td>
+                    <td>Inexistente. No hay anamnesis, evaluación clínica ni diagnóstico real.</td>
+                    <td>Consulta médica real por videoconsulta o teleasistencia registrada.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Historia clínica</strong></td>
+                    <td>No existe registro en ninguna institución de salud.</td>
+                    <td>Historia clínica electrónica versionada conforme a Ley 26.529 y Ley 27.706.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Matrícula profesional</strong></td>
+                    <td>Clonada, usurpada o de médicos inactivos.</td>
+                    <td>Profesional habilitado y activo en el REFEPS / SISA Nacional.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Trazabilidad y validación</strong></td>
+                    <td>PDF estático fácilmente detectable por Medicina Laboral.</td>
+                    <td>Código CUIR inmutable y QR de validación pública criptográfica.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Consecuencia jurídica</strong></td>
+                    <td>Despido con causa (Art. 242 LCT) y prisión de 6 meses a 2 años (Art. 296 CP).</td>
+                    <td>Plena eficacia jurídica bajo Ley 27.553, Decreto 98/2023 y Art. 208 LCT.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Por qué el código CUIR es inviolable -->
+          <section>
+            <h2>5. La revolución de la trazabilidad CUIR y la teleconsulta real</h2>
+            <p>
+              El Código Único de Identificación de Receta/Certificado (CUIR), implementado a partir de la normativa del Ministerio de Salud de la Nación, transformó radicalmente la seguridad documental en la salud argentina.
+            </p>
+            <p>
+              Cada vez que un médico atiende en <strong>AutaMedica</strong>:
+            </p>
+            <ul>
+              <li>El profesional valida su identidad mediante credenciales criptográficas seguras.</li>
+              <li>Se genera un identificador alfanumérico único e irrepetible para ese certificado específico.</li>
+              <li>El documento contiene un código QR dinámico. Cuando el responsable de Recursos Humanos o el médico auditor de la empresa escanea el código con su teléfono, accede en el acto a la plataforma oficial de verificación de AutaMedica, donde visualiza el nombre del paciente, el profesional firmante, su matrícula en el REFEPS, la fecha y hora exacta de emisión y los días de reposo autorizados.</li>
+            </ul>
+            <p>
+              No hay dudas, no hay sospechas y no hay riesgo laboral. El empleador ejerce su control conforme a la ley y vos te recuperás en tu domicilio con el respaldo de un acto médico irreprochable.
+            </p>
+          </section>
+
+          <!-- Enlaces recomendados al cluster de certificados -->
+          <div class="cluster-links">
+            <h3 class="cluster-title">Servicios Médicos Seguros y Transparentes</h3>
+            <p class="cluster-desc">
+              Accedé a atención médica inmediata sin moverte de tu casa y con total tranquilidad jurídica:
+            </p>
+            <ul class="cluster-grid">
+              <li>
+                <a href="/certificados-medicos" class="cluster-card">
+                  <strong>Hub de Certificados Médicos &rarr;</strong>
+                  <span>Toda la información sobre constancias, licencias y validez legal.</span>
+                </a>
+              </li>
+              <li>
+                <a href="/consulta-medica-express" class="cluster-card">
+                  <strong>Consulta Médica Express &rarr;</strong>
+                  <span>Atención inmediata en línea para cuadros clínicos agudos.</span>
+                </a>
+              </li>
+              <li>
+                <a href="/certificado-medico-online" class="cluster-card">
+                  <strong>Certificado Médico Online &rarr;</strong>
+                  <span>Videoconsulta con médico matriculado y verificación por código CUIR.</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <ShareButtons
+          title={article.title}
+          url={canonicalUrl}
+          description="Comprar certificados médicos en Telegram o redes sociales puede llevarte a un despido con causa y una causa penal. Conocé los riesgos bajo los Arts. 292 y 296 del Código Penal."
+          author={article.author}
+          category={article.category}
+        />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo de Redacción</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — Especialistas en derecho penal, medicina legal y seguridad sanitaria. Nuestro compromiso es brindar información fáctica y legalmente sólida para erradicar el fraude documental y promover la salud con rigor ético.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/empleador-rechaza-certificado-medico-telemedicina-validez" class="seo-card">
+              <span class="seo-badge">Legislación Laboral</span>
+              <h4>¿Tu empleador rechazó el certificado de telemedicina? Qué dice la Ley (Art. 210 LCT)</h4>
+            </a>
+            <a href="/blog/certificado-medico-digital-validez" class="seo-card">
+              <span class="seo-badge">Marco Legal</span>
+              <h4>El Certificado Médico Digital: Qué Vale y Qué No en Argentina</h4>
+            </a>
+            <a href="/blog/privacidad-datos-salud-argentina" class="seo-card">
+              <span class="seo-badge">Privacidad</span>
+              <h4>Privacidad de Datos de Salud en Argentina: Tu Historia Clínica</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 760px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: clamp(1.4rem, 2.5vw, 1.85rem); font-weight: 700; color: #0f172a; margin: 2.75rem 0 1rem; text-align: left; line-height: 1.3; }
+  .blog-prose h3 { font-size: 1.2rem; font-weight: 600; color: #0f172a; margin: 2rem 0 0.75rem; }
+  .blog-prose p { color: #334155; line-height: 1.8; margin-bottom: 1.25rem; font-size: 1.05rem; }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: 1.5rem; }
+  .blog-prose li { color: #334155; line-height: 1.75; margin-bottom: 0.6rem; font-size: 1.02rem; }
+  .blog-prose strong { color: #0f172a; font-weight: 600; }
+  .blog-back { display: inline-block; color: #0284c7; text-decoration: none; font-size: 0.875rem; font-weight: 500; margin-bottom: 1.5rem; }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-top: 1rem; font-size: 0.875rem; color: #64748b; }
+  .blog-image { width: 100%; max-width: 760px; margin: 0 auto 2.5rem; border-radius: 1rem; overflow: hidden; border: 1px solid #e2e8f0; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  
+  /* Cajas de Alerta de Riesgo Penal (Rojo sin amarillo) */
+  .danger-box { background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: 0.875rem; padding: 1.5rem 1.75rem; margin: 2rem 0; }
+  .danger-badge { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #b91c1c; background: #fee2e2; padding: 0.25rem 0.65rem; border-radius: 9999px; margin-bottom: 0.75rem; }
+  .danger-title { font-size: 1.2rem; font-weight: 700; color: #7f1d1d; margin: 0 0 0.75rem; }
+  .danger-text { font-size: 0.95rem; color: #991b1b; margin-bottom: 0.75rem; line-height: 1.6; }
+  .danger-text:last-child { margin-bottom: 0; }
+  
+  /* Grilla de impactos */
+  .impact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin: 1.75rem 0; }
+  .impact-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.875rem; padding: 1.25rem; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04); }
+  .impact-card h4 { font-size: 1rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem; }
+  .impact-card p { font-size: 0.9rem; color: #475569; margin: 0; line-height: 1.55; }
+  
+  /* Tablas de datos */
+  .table-container { overflow-x: auto; margin: 2rem 0; border: 1px solid #e2e8f0; border-radius: 0.875rem; }
+  .data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
+  .data-table th { background: #f8fafc; padding: 1rem; color: #0f172a; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+  .data-table td { padding: 1rem; color: #334155; border-bottom: 1px solid #e2e8f0; vertical-align: top; line-height: 1.6; }
+  .data-table tr:last-child td { border-bottom: none; }
+  
+  /* CTA Box */
+  .blog-cta-box { margin: 2.75rem 0; padding: 2rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 1rem; }
+  .cta-kicker { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0369a1; background: #e0f2fe; padding: 0.25rem 0.75rem; border-radius: 9999px; margin-bottom: 0.75rem; }
+  .cta-title { font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem; }
+  .cta-desc { font-size: 0.95rem; color: #475569; line-height: 1.6; margin: 0 0 1.25rem; }
+  .cta-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .btn-primary { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #0284c7; color: #ffffff; font-weight: 600; font-size: 0.875rem; border-radius: 0.75rem; text-decoration: none; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25); }
+  .btn-primary:hover { background: #0369a1; }
+  .btn-secondary { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #ffffff; color: #0f172a; font-weight: 600; font-size: 0.875rem; border: 1px solid #cbd5e1; border-radius: 0.75rem; text-decoration: none; }
+  .btn-secondary:hover { background: #f8fafc; }
+  
+  /* Cluster de links */
+  .cluster-links { margin: 3rem 0; padding: 1.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 1rem; }
+  .cluster-title { font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem; }
+  .cluster-desc { font-size: 0.9rem; color: #64748b; margin-bottom: 1.25rem; line-height: 1.6; }
+  .cluster-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.85rem; }
+  .cluster-card { display: flex; flex-direction: column; gap: 0.25rem; padding: 1rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; text-decoration: none; color: #0f172a; transition: border-color 0.2s; }
+  .cluster-card:hover { border-color: #0284c7; }
+  .cluster-card strong { color: #0284c7; font-size: 0.9rem; }
+  .cluster-card span { font-size: 0.8rem; color: #64748b; line-height: 1.4; }
+
+  /* Autor y relacionados */
+  .blog-author { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.875rem; padding: 1.5rem; margin: 3rem auto; max-width: 760px; }
+  .blog-author h3 { font-size: 1.1rem; color: #0f172a; margin-bottom: 0.5rem; }
+  .blog-author p { color: #475569; margin: 0; font-size: 0.92rem; line-height: 1.6; }
+  .blog-related { max-width: 760px; margin: 3.5rem auto 0; }
+  .blog-related h3 { font-size: 1.25rem; color: #0f172a; margin-bottom: 1.5rem; }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: #0f172a; font-size: 1rem; font-weight: 600; line-height: 1.4; margin: 0.75rem 0 0; }
+</style>

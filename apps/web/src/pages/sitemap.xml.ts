@@ -66,6 +66,13 @@ const ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
   { path: '/blog/dermatologia-acne-adulto', priority: '0.7', changefreq: 'monthly' },
   { path: '/blog/historia-clinica-digital', priority: '0.7', changefreq: 'monthly' },
   { path: '/blog/certificado-medico-digital-validez', priority: '0.8', changefreq: 'monthly' },
+  { path: '/blog/empleador-rechaza-certificado-medico-telemedicina-validez', priority: '0.85', changefreq: 'monthly' },
+  { path: '/blog/certificados-medicos-truchos-telegram-peligros-legales', priority: '0.85', changefreq: 'monthly' },
+  { path: '/blog/constancia-atencion-guardia-vs-certificado-reposo-diferencia', priority: '0.85', changefreq: 'monthly' },
+  { path: '/blog/receta-clonazepam-psicofarmacos-urgente-argentina', priority: '0.85', changefreq: 'monthly' },
+  { path: '/blog/licencia-psiquiatrica-burnout-diagnostico-reservado-trabajo', priority: '0.85', changefreq: 'monthly' },
+  { path: '/blog/por-que-farmacias-rechazan-recetas-whatsapp-pdf-decreto-63', priority: '0.85', changefreq: 'monthly' },
+  { path: '/blog/calculadora-dosis-pediatrica-paracetamol-ibuprofeno-peso', priority: '0.85', changefreq: 'monthly' },
 
   // SEO FAQ Articles (People Also Ask - Google)
   { path: '/blog/que-hizo-el-protomedicato', priority: '0.75', changefreq: 'monthly' },

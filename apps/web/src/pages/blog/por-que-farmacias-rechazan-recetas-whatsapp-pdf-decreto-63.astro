@@ -1,0 +1,433 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Por qué las farmacias ya no aceptan recetas por WhatsApp en Argentina y cómo exigir tu código CUIR legal',
+  description: 'La foto de la receta por WhatsApp y el PDF casero murieron con el Decreto 63/2024 y el Decreto 345/2024. Por qué las farmacias sufren débitos millonarios y qué es el código CUIR que garantiza la validez de tu medicamento.',
+  author: 'Equipo de Farmacología y Regulación Sanitaria AutaMedica',
+  role: 'Dirección Farmacéutica & Asuntos Regulatorios',
+  date: '24 de septiembre, 2026',
+  readTime: '9 min',
+  image: '/images/article_telemed.webp',
+  category: 'Regulación Farmacéutica',
+  slug: 'por-que-farmacias-rechazan-recetas-whatsapp-pdf-decreto-63',
+};
+
+const canonicalUrl = `https://www.autamedica.com/blog/${article.slug}`;
+const publishedTime = '2026-09-24T00:00:00Z';
+
+const faqItems = [
+  {
+    question: '¿Por qué antes me aceptaban la foto de la receta por WhatsApp y ahora no?',
+    answer: 'Durante el inicio de la pandemia en 2020, el Ministerio de Salud dictó la Resolución 696/2020, una medida de excepción transitoria que permitía temporalmente enviar fotos de recetas manuscritas por WhatsApp o correo electrónico. Dicha resolución fue formalmente derogada. Tras el Decreto 63/2024 y el Decreto 345/2024 reglamentario de la Ley 27.553, las fotos y PDFs caseros carecen de validez legal en toda la República Argentina.',
+  },
+  {
+    question: '¿Qué es el código CUIR y para qué sirve?',
+    answer: 'El CUIR (Código Único de Identificación de Receta) es un identificador alfanumérico irrepetible asignado a cada prescripción médica electrónica. Se genera a través del Repositorio Nacional de Recetas y permite a la farmacia validar en tiempo real la matrícula del médico prescriptor (REFEPS), la vigencia del tratamiento y registrar la dispensa para evitar la duplicación de medicamentos.',
+  },
+  {
+    question: '¿Qué le pasa a la farmacia si acepta una receta en PDF sin código CUIR?',
+    answer: 'La farmacia sufre lo que en el sector se denomina un "débito por auditoría". Si la farmacia entrega el medicamento con descuento de obra social o medicina prepaga respaldada por un simple PDF o foto, la auditoría médica de la aseguradora rechaza la liquidación a fin de mes y le debita el 100% del costo a la farmacia. Por eso, el farmacéutico no puede aceptar documentos sin trazabilidad oficial.',
+  },
+  {
+    question: '¿Cómo sé si mi receta electrónica es válida antes de ir a la farmacia?',
+    answer: 'Una receta electrónica válida debe exhibir: el código CUIR visible, código de barras o código QR que enlace a la validación oficial en el repositorio nacional, datos del paciente (DNI), principio activo por denominación genérica (Ley 25.649), fecha de emisión (validez de 30 días corridos) y la constancia de firma digital del médico matriculado.',
+  },
+  {
+    question: '¿Las recetas emitidas en AutaMedica son aceptadas en todas las farmacias de Argentina?',
+    answer: 'Sí. Las recetas emitidas por los médicos matriculados de AutaMedica cumplen al 100% con los estándares de la Ley 27.553, el Decreto 345/2024 y la Ley 25.506 de Firma Digital. Cuentan con código CUIR trazable y son compatibles con los principales sistemas de validación farmacéutica del país (Farmalink, IMED, etc.) tanto para compra particular como para cobertura médica.',
+  },
+];
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': ['BlogPosting', 'MedicalWebPage'],
+      '@id': `${canonicalUrl}#article`,
+      isPartOf: {
+        '@type': 'Blog',
+        name: 'Blog de Salud de AutaMedica',
+        url: 'https://www.autamedica.com/blog',
+      },
+      headline: article.title,
+      description: article.description,
+      url: canonicalUrl,
+      datePublished: publishedTime,
+      dateModified: publishedTime,
+      inLanguage: 'es-AR',
+      mainEntityOfPage: canonicalUrl,
+      image: {
+        '@type': 'ImageObject',
+        url: `https://www.autamedica.com${article.image}`,
+      },
+      author: {
+        '@type': 'Organization',
+        name: article.author,
+        url: 'https://www.autamedica.com',
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+        },
+      },
+      about: [
+        { '@type': 'MedicalSpecialty', name: 'Clinical Pharmacology' },
+        { '@type': 'MedicalSpecialty', name: 'Pharmacy' },
+        { '@type': 'Thing', name: 'Receta Electrónica' },
+        { '@type': 'Thing', name: 'Código CUIR' },
+      ],
+      mentions: [
+        {
+          '@type': 'Legislation',
+          name: 'Ley 27553',
+          description: 'Ley de Recetas Electrónicas o Digitales de la República Argentina',
+        },
+        {
+          '@type': 'Legislation',
+          name: 'Decreto 345/2024',
+          description: 'Reglamentación del ejercicio de prescripción electrónica y repositorio federal',
+        },
+        {
+          '@type': 'Legislation',
+          name: 'Decreto 63/2024',
+          description: 'Derogación de mecanismos de emergencia y exigencia de plataformas habilitadas',
+        },
+        {
+          '@type': 'Legislation',
+          name: 'Ley 17565',
+          description: 'Régimen legal del ejercicio de la actividad farmacéutica en Argentina',
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Blog',
+          item: 'https://www.autamedica.com/blog',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: article.title,
+          item: canonicalUrl,
+        },
+      ],
+    },
+  ],
+};
+---
+
+<Layout
+  title={`${article.title} | AutaMedica`}
+  description={article.description}
+  canonical={canonicalUrl}
+  ogImage={article.image}
+  ogType="article"
+  publishedTime={publishedTime}
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(articleSchema)} />
+  <Navbar />
+  <main>
+    <!-- Header Hero -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+          <span>• Normativa 2026</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Imagen Principal -->
+    <div class="blog-image">
+      <img src={article.image} alt="Farmacéutico validando código CUIR de receta electrónica en Argentina" loading="eager" />
+    </div>
+
+    <!-- Contenido del Artículo -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+
+          <section>
+            <h2>El choque cotidiano en el mostrador de la farmacia</h2>
+            <p>
+              La escena se repite a diario en miles de farmacias desde La Quiaca hasta Ushuaia. Una persona llega al mostrador tras esperar 15 minutos en la fila, apoya su teléfono celular sobre el vidrio y le muestra al empleado una imagen: la foto de un recetario manuscrito sobre un escritorio de madera, o un archivo PDF generado en un procesador de textos doméstico enviado por un médico a través de WhatsApp.
+            </p>
+            <p>
+              El farmacéutico apenas le echa un vistazo a la pantalla y mueve la cabeza en señal negativa:
+            </p>
+            <p>
+              <em>"Esto no te lo puedo tomar. Las fotos por WhatsApp y los PDFs simples ya no son válidos. Necesito la receta electrónica oficial con el código CUIR o el recetario en papel con firma y sello físico original."</em>
+            </p>
+            <p>
+              La reacción inmediata del paciente suele oscilar entre la confusión y la furia: <em>"¡Pero si mi médico me lo mandó hace una hora por WhatsApp! ¡Siempre me lo aceptaron así durante la pandemia! ¿Por qué de golpe me complican la vida cuando necesito un antibiótico o mi remedio de la presión?"</em>
+            </p>
+            <p>
+              Detrás de esta negativa no hay mala fe ni burocracia caprichosa del farmacéutico. Hay un cambio regulatorio trascendental en la República Argentina —el <strong>Decreto 63/2024</strong> y el <strong>Decreto 345/2024</strong> reglamentario de la <strong>Ley 27.553</strong>— y una realidad financiera implacable: si la farmacia te acepta ese archivo informal, <strong>la obra social o prepaga no le paga el medicamento</strong>.
+            </p>
+          </section>
+
+          <section>
+            <h2>La pesadilla del farmacéutico: el "débito por auditoría"</h2>
+            <p>
+              Para comprender por qué ninguna farmacia seria acepta hoy una foto de WhatsApp, hay que entender cómo funciona el circuito económico entre la farmacia, la droguería y las obras sociales o prepagas (PAMI, IOMA, OSDE, Swiss Medical, Galeno, Medifé, etc.).
+            </p>
+            <p>
+              Cuando vos comprás un medicamento con un 40%, 70% o 100% de descuento por tu cobertura de salud:
+            </p>
+            <ol>
+              <li>Vos pagás en el mostrador únicamente el copago diferencial (o nada, si tenés cobertura total).</li>
+              <li>La farmacia ya le pagó a la droguería el valor completo de esa caja de medicamentos cuando la compró para tenerla en stock.</li>
+              <li>La farmacia debe presentar las recetas ante el colegio de farmacéuticos o los sistemas concentradores de facturación para que la obra social o prepaga le reembolse ese porcentaje de descuento a los 30, 60 o 90 días.</li>
+            </ol>
+            <p>
+              ¿Qué ocurre si la receta que respaldó la venta no cumple con la normativa digital nacional? Las auditorías médicas de las obras sociales y prepagas rechazan la liquidación y aplican lo que se conoce técnicamente como <strong>débito</strong>.
+            </p>
+            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 1.25rem; border-radius: 0.5rem; margin: 1.5rem 0;">
+              <p style="margin: 0; color: #991b1b; font-size: 0.95rem; font-weight: 600;">
+                El costo del débito farmacéutico:
+              </p>
+              <p style="margin: 0.35rem 0 0; color: #7f1d1d; font-size: 0.9rem; line-height: 1.6;">
+                Un débito significa que la obra social no le abona ni un solo peso del medicamento a la farmacia. El comercio absorbe el 100% del costo económico de la caja entregada. Si una farmacia de barrio aceptara 10 recetas informales por día en tratamientos crónicos de alto costo, acumularía pérdidas de millones de pesos a fin de mes que la llevarían directamente a la quiebra.
+              </p>
+            </div>
+          </section>
+
+          <!-- Banner destacado CTA 1 -->
+          <div style="margin: 2.5rem 0; padding: 2rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 1rem;">
+            <span style="display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0369a1; background: #e0f2fe; padding: 0.25rem 0.75rem; border-radius: 9999px; margin-bottom: 0.75rem;">
+              Prescripción Legal Inmediata • Validación 100%
+            </span>
+            <h3 style="font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem;">
+              ¿Tu farmacia te rebotó la receta por WhatsApp?
+            </h3>
+            <p style="font-size: 0.95rem; color: #475569; line-height: 1.6; margin: 0 0 1.25rem;">
+              En <strong>AutaMedica</strong> solucionamos tu prescripción en minutos mediante videoconsulta oficial. Obtené tu receta médica electrónica con <strong>Código CUIR homologado</strong> y firma digital verificable por código QR, garantizando la dispensa inmediata de tu medicación en cualquier farmacia del país sin riesgo de rechazo.
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+              <a
+                href="/receta-medica-online"
+                style="display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #0284c7; color: #ffffff; font-weight: 600; font-size: 0.875rem; border-radius: 0.75rem; text-decoration: none; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);"
+              >
+                Tramitar Receta Médica Oficial &rarr;
+              </a>
+              <a
+                href="/consulta-medica-en-farmacia"
+                style="display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #ffffff; color: #0f172a; font-weight: 600; font-size: 0.875rem; border: 1px solid #cbd5e1; border-radius: 0.75rem; text-decoration: none;"
+              >
+                Conocé la Consulta Médica en Farmacia
+              </a>
+            </div>
+          </div>
+
+          <section>
+            <h2>El fin del PDF trucho: Decreto 63/2024 y Decreto 345/2024</h2>
+            <p>
+              Durante el confinamiento de 2020, el Ministerio de Salud de la Nación autorizó temporalmente mediante la Resolución 696/2020 la utilización de fotos de recetas manuscritas enviadas por mensajería instantánea. Fue un parche de emergencia para evitar la circulación de personas en medio del aislamiento preventivo.
+            </p>
+            <p>
+              Sin embargo, ese esquema precario abrió la puerta a fraudes masivos: recetas clonadas, fotos de un mismo recetario presentadas simultáneamente en tres farmacias distintas para retirar psicofármacos o antibióticos, y sellos médicos escaneados e incrustados sobre PDFs sin ningún tipo de control clínico.
+            </p>
+            <p>
+              Con la sanción del <strong>Decreto 63/2024</strong> y la reglamentación integral del <strong>Decreto 345/2024</strong>, el Estado Nacional clausuró definitivamente esa etapa de improvisación y fijó los estándares obligatorios de la <strong>Ley 27.553</strong>:
+            </p>
+            <ul>
+              <li><strong>Prohibición total de fotos y PDFs caseros:</strong> Las imágenes enviadas por WhatsApp, capturas de pantalla de recetarios de papel o documentos digitales no generados en plataformas registradas carecen de todo valor legal.</li>
+              <li><strong>Registro de plataformas sanitarias:</strong> Toda prescripción digital debe originarse en un software inscripto y certificado por el Ministerio de Salud.</li>
+              <li><strong>Trazabilidad en tiempo real:</strong> La receta no viaja como un "archivo suelto", sino como un registro interoperable con firma digital que se consume y bloquea en el momento de la dispensa en la farmacia para evitar dobles entregas.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Qué es el código CUIR y por qué es el único que te garantiza el remedio</h2>
+            <p>
+              El corazón de la nueva receta electrónica en Argentina es el <strong>CUIR: Código Único de Identificación de Receta</strong>.
+            </p>
+            <p>
+              El CUIR es una secuencia alfanumérica irrepetible y criptográfica que el sistema nacional le asigna a cada prescripción médica en el momento exacto en que el profesional matriculado la firma digitalmente.
+            </p>
+            <p>
+              Cuando el farmacéutico tipea el código CUIR o escanea su código de barras/QR en su terminal de mostrador, el sistema se conecta automáticamente con la Red Federal y valida en milisegundos:
+            </p>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1.5rem; margin: 1.5rem 0;">
+              <h3 style="color: #0f172a; margin-top: 0; font-size: 1.15rem;">¿Qué verifica la farmacia con el código CUIR?</h3>
+              <ul style="margin-bottom: 0; padding-left: 1.25rem;">
+                <li style="margin-bottom: 0.5rem;">
+                  <strong>Matrícula profesional activa:</strong> Verifica que el médico prescriptor existe, tiene matrícula vigente en el REFEPS y está habilitado por el colegio médico correspondiente.
+                </li>
+                <li style="margin-bottom: 0.5rem;">
+                  <strong>Firma digital licenciada (Ley 25.506):</strong> Constata que el documento no fue alterado ni adulterado tras su emisión.
+                </li>
+                <li style="margin-bottom: 0.5rem;">
+                  <strong>Vigencia cronológica:</strong> Comprueba que la receta no haya superado los 30 días corridos desde su emisión (plazo de caducidad legal).
+                </li>
+                <li style="margin-bottom: 0;">
+                  <strong>Estado de dispensa:</strong> Bloquea el medicamento una vez entregado para impedir que la misma prescripción sea reutilizada en otra farmacia.
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2>Lista de verificación: cómo saber si tu receta electrónica es válida antes de salir</h2>
+            <p>
+              Para no perder tiempo ni pasar un mal momento en la farmacia, asegurate de que la prescripción que te entregó tu médico cuente con estos 5 elementos indispensables:
+            </p>
+            <ol>
+              <li><strong>Presencia visible del código CUIR:</strong> Debe figurar claramente impreso o en el encabezado del documento digital como un código alfanumérico identificatorio.</li>
+              <li><strong>Código QR o de barras de lectura directa:</strong> Debe permitir al farmacéutico la captura óptica inmediata con el lector láser de mostrador.</li>
+              <li><strong>Denominación por principio activo (Ley 25.649):</strong> Debe indicar la droga genérica (ej. <em>Amoxicilina 500 mg</em>), su forma farmacéutica y la cantidad de unidades. Puede sugerir una marca comercial, pero la droga genérica es obligatoria.</li>
+              <li><strong>Datos completos del profesional:</strong> Nombre, apellido, profesión, matrícula nacional o provincial y jurisdicción emisora registradas en REFEPS.</li>
+              <li><strong>Fecha y vigencia clara:</strong> Recordá que toda receta médica en Argentina vence a los 30 días corridos de su confección (salvo tratamientos prolongados que cuenten con fecha diferida especificada).</li>
+            </ol>
+            <p>
+              Si tu médico te envió una simple foto de un recetario en un chat de WhatsApp, no vayas a la farmacia: pedile formalmente que te emita la prescripción a través de una plataforma habilitada con código CUIR.
+            </p>
+          </section>
+
+          <section>
+            <h2>Preguntas Frecuentes sobre Recetas Electrónicas y Rechazos en Farmacia</h2>
+            <div style="margin-top: 1.5rem;">
+              {faqItems.map((item) => (
+                <div style="margin-bottom: 1.25rem; padding: 1.25rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                  <h3 style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem;">
+                    {item.question}
+                  </h3>
+                  <p style="font-size: 0.925rem; color: #475569; line-height: 1.6; margin: 0;">
+                    {item.answer}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <!-- Enlaces de navegación interna -->
+          <div style="margin: 3rem 0; padding: 1.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 1rem;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 0.75rem;">
+              Soluciones de Prescripción y Farmacia en AutaMedica
+            </h3>
+            <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem; line-height: 1.6;">
+              Accedé a consultas y recetas médicas electrónicas con trazabilidad oficial según las normativas del Ministerio de Salud:
+            </p>
+            <ul style="list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+              <li>
+                <a href="/receta-medica-online" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Receta Médica Online Oficial &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/consulta-medica-en-farmacia" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Consulta Médica Directa en Farmacia &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/receta-digital" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Sistema de Receta Digital Nacional &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/consulta-medica-express" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Consulta Médica Express &rarr;
+                </a>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+
+        <ShareButtons
+          title={article.title}
+          url={canonicalUrl}
+          description={article.description}
+          author={article.author}
+          category={article.category}
+        />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre la Dirección Farmacéutica</h3>
+            <p>
+              <strong>{article.author}</strong> — Documento elaborado por farmacéuticos y especialistas en legislación farmacéutica de AutaMedica, bajo los parámetros fijados por la Ley 27.553, el Decreto 63/2024 y el Decreto 345/2024.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/medicamentos-genericos-originales-argentina" class="seo-card">
+              <span class="seo-badge">Farmacología</span>
+              <h4>Genéricos vs Originales: Ley 25.649 y Bioequivalencia</h4>
+            </a>
+            <a href="/blog/receta-electronica-argentina" class="seo-card">
+              <span class="seo-badge">Marco Legal</span>
+              <h4>Receta Electrónica en Argentina: Ley 27.553</h4>
+            </a>
+            <a href="/blog/certificado-medico-digital-validez" class="seo-card">
+              <span class="seo-badge">Marco Legal</span>
+              <h4>El Certificado Médico Digital: Validez y Firma Digital</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

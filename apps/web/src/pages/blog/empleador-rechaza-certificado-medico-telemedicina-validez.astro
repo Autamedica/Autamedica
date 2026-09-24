@@ -1,0 +1,526 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: '¿Tu empleador te rechazó el certificado médico de telemedicina? Qué dice la Ley (Art. 210 LCT)',
+  author: 'Equipo AutaMedica',
+  role: 'Derecho Sanitario y Medicina Laboral',
+  date: '24 de septiembre, 2026',
+  readTime: '9 min',
+  image: '/images/article_telemed.webp',
+  category: 'Legislación Laboral',
+};
+
+const canonicalUrl = 'https://www.autamedica.com/blog/empleador-rechaza-certificado-medico-telemedicina-validez';
+const publishedTime = '2026-09-24T00:00:00Z';
+
+const faqItems = [
+  {
+    question: '¿La empresa puede rechazar mi certificado médico solo porque fue emitido por telemedicina?',
+    answer:
+      'No. En la República Argentina, la Ley 27.553 de Teleasistencia en Salud y Recetas Electrónicas y su Decreto Reglamentario 98/2023 otorgan plena validez legal a las consultas médicas y certificados emitidos a través de plataformas habilitadas por profesionales matriculados en REFEPS/SISA. El empleador no tiene potestad legal para desestimar de plano un certificado emitido por un facultativo.',
+  },
+  {
+    question: '¿Qué debe hacer el empleador si duda del diagnóstico o de los días de reposo?',
+    answer:
+      'Conforme al Artículo 210 de la Ley de Contrato de Trabajo N° 20.744, el empleador tiene la facultad de ejercer el control médico domiciliario o laboral. Es decir, enviar un médico de control al domicilio del trabajador. Si el empleador no ejerce este control facultativo, el certificado del médico tratante conserva plena validez y la empresa debe abonar la jornada de conformidad con el Art. 208 de la LCT.',
+  },
+  {
+    question: '¿Pueden descontarme el presentismo o el sueldo del día si la empresa rechazó el justificativo digital?',
+    answer:
+      'El descuento automático es improcedente y constituye una retención indebida de haberes si el trabajador cumplió con el deber de avisar (Art. 209 LCT) y aportó el certificado con firma y matrícula verificable. Si la empresa no envió médico de control, no existe controversia médica válida que habilite la sanción.',
+  },
+  {
+    question: '¿Tengo obligación de revelar mi diagnóstico clínico exacto a Recursos Humanos?',
+    answer:
+      'No. La Ley 26.529 de Derechos del Paciente y la Ley 25.326 de Protección de Datos Personales protegen el secreto médico y califican a la patología como dato sensible. El certificado laboral debe acreditar la inaptitud laboral temporal y el plazo de reposo requerido, sin que sea exigible violar la confidencialidad clínica del paciente.',
+  },
+];
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BlogPosting',
+      headline: article.title,
+      description:
+        'Análisis jurídico y laboral sobre el rechazo de certificados médicos de telemedicina por parte de empleadores. Artículos 208, 209 y 210 de la Ley de Contrato de Trabajo N° 20.744, Ley 27.553 y jurisprudencia.',
+      image: [`https://www.autamedica.com${article.image}`],
+      datePublished: publishedTime,
+      dateModified: publishedTime,
+      inLanguage: 'es-AR',
+      mainEntityOfPage: canonicalUrl,
+      author: {
+        '@type': 'Organization',
+        name: article.author,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'AutaMedica',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://www.autamedica.com/images/brand/app_icon_glass.png',
+        },
+      },
+      isPartOf: {
+        '@type': 'Blog',
+        name: 'Blog de Salud y Derecho Sanitario de AutaMedica',
+        url: 'https://www.autamedica.com/blog',
+      },
+      about: [
+        { '@type': 'Legislation', name: 'Ley de Contrato de Trabajo 20.744 Art 210' },
+        { '@type': 'Legislation', name: 'Ley 27.553 de Teleasistencia y Recetas Digitales' },
+        { '@type': 'MedicalSpecialty', name: 'Occupational Medicine' },
+        { '@type': 'Thing', name: 'Certificado Médico Laboral' },
+      ],
+      mentions: [
+        {
+          '@type': 'Legislation',
+          name: 'Ley 20.744',
+          url: 'https://servicios.infoleg.gob.ar/infolegInternet/anexos/25000-29999/25552/texact.htm',
+        },
+        {
+          '@type': 'Legislation',
+          name: 'Ley 27.553',
+          url: 'https://www.boletinoficial.gob.ar/detalleAviso/primera/233439/20200811',
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Blog',
+          item: 'https://www.autamedica.com/blog',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: article.title,
+          item: canonicalUrl,
+        },
+      ],
+    },
+  ],
+};
+---
+
+<Layout
+  title={article.title}
+  description="¿Tu empleador rechazó tu certificado médico emitido por telemedicina? Conocé qué dice el Art. 210 de la Ley de Contrato de Trabajo, la validez de la Ley 27.553 y cómo defender tu salario."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime={publishedTime}
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(articleSchema)} />
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+          <span>Actualizado septiembre 2026</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt="Consulta médica online y validez laboral de certificados médicos" loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <!-- Introducción -->
+          <section>
+            <h2>El conflicto de todos los lunes en Recursos Humanos</h2>
+            <p>
+              Despertás a las 6:00 AM con 39 grados de fiebre, cefalea intensa y un cuadro de gastroenteritis aguda que te impide levantarte de la cama. Avisás a tu supervisor laboral por los canales habituales antes del inicio de tu turno. Ante la imposibilidad física de trasladarte y esperar cinco horas en una sala de guardia abarrotada, accedés a una teleconsulta médica formal con un profesional matriculado.
+            </p>
+            <p>
+              El médico evalúa tu cuadro clínico, prescribe tratamiento farmacológico, indica 48 horas de reposo psicofísico domiciliario y emite un certificado médico digital con firma electrónica certificada, código QR de verificación pública y código CUIR registrado. Minutos después, lo adjuntás por correo electrónico a Recursos Humanos.
+            </p>
+            <p>
+              A las 11:30 AM recibís una respuesta tajante:
+            </p>
+            <blockquote class="quote-box">
+              "La empresa no acepta certificados emitidos por telemedicina ni constancias digitales en PDF. Debe concurrir a un centro asistencial y presentar certificado original en papel con firma y sello húmedo antes de las 14:00 hs. De lo contrario, se computará inasistencia injustificada y se descontará el día y el adicional por presentismo."
+            </blockquote>
+            <p>
+              Esta intimación patronal no solo es abusiva: <strong>carece de sustento jurídico en el derecho laboral argentino</strong>. Desconoce de forma flagrante la Ley de Teleasistencia Médica N° 27.553 y confunde deliberadamente la potestad patronal de control con una atribución inexistente de rechazo unilateral.
+            </p>
+          </section>
+
+          <!-- Marco normativo: Ley 27.553 -->
+          <section>
+            <h2>1. ¿Puede una empresa rechazar de plano un certificado de telemedicina?</h2>
+            <p>
+              La respuesta jurídica es categórica: <strong>No</strong>. En la República Argentina, los departamentos de Recursos Humanos y el personal jerárquico no son autoridades sanitarias ni jueces laborales. No tienen atribución legal para anular un acto médico celebrado entre un paciente y un facultativo habilitado.
+            </p>
+            <p>
+              El marco legal vigente descansa sobre tres pilares normativos ineludibles:
+            </p>
+            <ul>
+              <li>
+                <strong>Ley N° 27.553 (Recetas Electrónicas o Digitales y Teleasistencia Médica):</strong> Sancionada por el Congreso de la Nación y reglamentada por el Decreto 98/2023, homologa en todo el territorio nacional la validez de la teleasistencia en salud. Un acto médico realizado por videoconsulta tiene exactamente la misma fuerza probatoria y eficacia jurídica que una consulta presencial en consultorio o guardia.
+              </li>
+              <li>
+                <strong>Matriculación Federal en REFEPS / SISA:</strong> Todo médico que atiende por telemedicina legítima cuenta con matrícula habilitante provincial o nacional verificable en el Registro Federal de Profesionales de la Salud (SISA). El documento médico emitido por un facultativo matriculado goza de presunción de legitimidad.
+              </li>
+              <li>
+                <strong>Ley N° 25.506 de Firma Digital y Decreto Reglamentario:</strong> Los certificados digitales emitidos con mecanismos criptográficos de trazabilidad, sellado de tiempo (timestamping) y Código Único de Identificación de Receta/Certificado (CUIR) garantizan la autoría, integridad y no repudio del documento.
+              </li>
+            </ul>
+            <p>
+              Si el documento cumple los requisitos formales de individualización del paciente, fecha, matrícula profesional y reposo prescripto, <strong>el empleador no puede desestimarlo in limine (de plano)</strong> argumentando una simple política interna de la empresa. Las directivas de una compañía jamás pueden estar por encima de una ley nacional de orden público.
+            </p>
+          </section>
+
+          <!-- El Art 210 de la LCT -->
+          <section>
+            <h2>2. La trampa del Art. 210 de la LCT: El derecho a controlar no es el derecho a rechazar</h2>
+            <p>
+              La Ley de Contrato de Trabajo N° 20.744 regula con precisión el régimen de accidentes y enfermedades inculpables en sus artículos 208, 209 y 210. Comprender el orden de estas obligaciones es indispensable para desactivar los abusos de las empresas.
+            </p>
+            
+            <div class="legal-card">
+              <span class="legal-badge">Ley de Contrato de Trabajo N° 20.744</span>
+              <p class="legal-text">
+                <strong>Artículo 209 (Aviso de la enfermedad):</strong> "El trabajador, salvo casos de fuerza mayor, deberá dar aviso de la enfermedad o accidente y del lugar en que se encuentra, en el transcurso de la primera jornada de trabajo respecto de la cual estuviere imposibilitado de concurrir por alguna de esas causas."
+              </p>
+              <p class="legal-text">
+                <strong>Artículo 210 (Control médico):</strong> "El trabajador está obligado a someterse al control que se efectúe por el facultativo designado por el empleador."
+              </p>
+            </div>
+
+            <p>
+              Analicemos el alcance legal de estos preceptos:
+            </p>
+            <ol>
+              <li>
+                <strong>Tu única obligación legal como trabajador:</strong> Notificar fehacientemente a la empresa que te encontrás enfermo, indicar el domicilio exacto donde estás guardando reposo (para que el empleador pueda fiscalizar) y aportar la certificación médica que acredite tu inaptitud transitoria.
+              </li>
+              <li>
+                <strong>La facultad (no obligación) del empleador:</strong> El Artículo 210 le otorga a la empresa la <em>facultad de control</em>. Si la patronal tiene dudas sobre la veracidad del cuadro, la especialidad del médico, la modalidad digital o la duración del reposo, <strong>la ley le indica con exactitud qué hacer: debe enviar un médico laboral a tu domicilio</strong> (médico de control domiciliario) o citarte al consultorio de medicina laboral de la empresa siempre que tu estado de salud te permita trasladarte sin riesgo.
+              </li>
+              <li>
+                <strong>Consecuencia de no ejercer el control:</strong> Si el empleador fue debidamente notificado, se le informó el lugar de reposo y <strong>decide no enviar el médico de control</strong>, pierde automáticamente todo derecho a discutir la existencia o gravedad de la enfermedad. La jurisprudencia pacífica y constante de la Cámara Nacional de Apelaciones del Trabajo (CNAT) establece que ante la inacción del empleador, prevalece de pleno derecho el certificado presentado por el médico tratante.
+              </li>
+            </ol>
+          </section>
+
+          <!-- Banner destacado de conversión institucional -->
+          <div class="blog-cta-box">
+            <span class="cta-kicker">Respaldo Médico y Jurídico</span>
+            <h3 class="cta-title">¿Necesitás un certificado médico laboral con validez legal verificable?</h3>
+            <p class="cta-desc">
+              En <strong>AutaMedica</strong> accedés a videoconsulta inmediata con médicos matriculados en REFEPS/SISA. Tu certificado incluye trazabilidad inmutable, firma digital certificada, código CUIR oficial y código QR para verificación pública instantánea por parte de cualquier departamento de RRHH.
+            </p>
+            <div class="cta-actions">
+              <a href="/certificado-medico-laboral" class="btn-primary">
+                Gestionar Certificado Laboral &rarr;
+              </a>
+              <a href="/justificativo-medico" class="btn-secondary">
+                Ver Justificativo Médico
+              </a>
+            </div>
+          </div>
+
+          <!-- Jurisprudencia y discrepancias médicas -->
+          <section>
+            <h2>3. ¿Qué pasa si el médico laboral de la empresa discrepa con el médico tratante?</h2>
+            <p>
+              Un escenario frecuente ocurre cuando la empresa envía el médico a domicilio o te cita a su consultorio laboral y este facultativo emite una opinión contradictoria: mientras tu médico de cabecera te indicó 72 horas de reposo por una contractura lumbar aguda, el médico de la empresa dictamina que estás en condiciones de reintegrarte de inmediato.
+            </p>
+            <p>
+              ¿Quién tiene la razón ante la ley? Los tribunales laborales argentinos han sentado doctrina clara sobre esta controversia:
+            </p>
+            <ul>
+              <li>
+                <strong>Preeminencia del médico tratante:</strong> La doctrina judicial mayoritaria sostiene que, en principio de igualdad, debe asignarse mayor peso al criterio del médico tratante, pues es quien examinó al paciente con fines terapéuticos y asume la responsabilidad ética, civil y penal por su evolución y restablecimiento. El médico de control empresarial persigue primordialmente una finalidad de fiscalización laboral.
+              </li>
+              <li>
+                <strong>Prohibición de auto-tutela patronal:</strong> La empresa no puede actuar como árbitro imparcial. Ante una discordancia de criterios médicos, el empleador no está facultado para descontar los días de manera unilateral ni considerar al empleado incurso en abandono de trabajo.
+              </li>
+              <li>
+                <strong>Junta Médica Oficial:</strong> La vía procesal legal que la jurisprudencia exige es la convocatoria a una Junta Médica en sede administrativa (Subsecretaría o Ministerio de Trabajo de la jurisdicción) o pericial judicial para dirimir la discrepancia diagnóstica.
+              </li>
+            </ul>
+          </section>
+
+          <!-- El Secreto Médico y Datos Sensibles -->
+          <section>
+            <h2>4. ¿Estás obligado a revelar tu diagnóstico íntimo a Recursos Humanos?</h2>
+            <p>
+              Muchas intimaciones de empresas exigen que el certificado detalle taxativamente el "diagnóstico con código CIE-10" o la historia clínica completa, bajo amenaza de no computar el reposo. Esto constituye una vulneración al derecho constitucional a la intimidad.
+            </p>
+            <p>
+              Conforme a la <strong>Ley N° 26.529 de Derechos del Paciente</strong> (Art. 2 inc. d) y la <strong>Ley N° 25.326 de Protección de los Datos Personales</strong>, los datos relativos a la salud tienen la calificación estricta de <em>datos sensibles</em>. El empleador solo tiene derecho a conocer:
+            </p>
+            <ol>
+              <li>Que el trabajador presenta una patología que le ocasiona una <strong>incapacidad laborativa transitoria</strong>.</li>
+              <li>La fecha de inicio de la afección y la <strong>cantidad de días de reposo recomendados</strong>.</li>
+              <li>El lugar donde el paciente cumplirá el reposo para permitir la fiscalización del Art. 210 LCT.</li>
+            </ol>
+            <p>
+              El médico tratante puede consignar un diagnóstico genérico o reservar el diagnóstico específico por razones de secreto profesional, salvo que se trate de enfermedades infectocontagiosas de denuncia obligatoria que pongan en riesgo la salud pública en el ámbito de trabajo.
+            </p>
+          </section>
+
+          <!-- Guía Práctica de Acción -->
+          <section>
+            <h2>5. Guía de acción: Qué responder ante la intimación o amenaza de descuento</h2>
+            <p>
+              Si tu empleador o el responsable de personal te comunica el rechazo de tu certificado digital de telemedicina, mantené la calma y seguí este protocolo formal:
+            </p>
+            
+            <div class="action-card">
+              <h3 class="action-title">Protocolo de Respaldo ante Recursos Humanos</h3>
+              <ul>
+                <li><strong>No concurras a trabajar si el médico te prescribió reposo:</strong> Si desobedeces la prescripción médica para ir a la empresa a "discutir", ponés en riesgo tu salud y convalidás tácticamente la supuesta inexistencia de incapacidad.</li>
+                <li><strong>Comunicate por escrito:</strong> Evitá las discusiones telefónicas informales. Todo descargo debe quedar asentado por correo electrónico corporativo o mensaje verificable.</li>
+                <li><strong>Ponete formalmente a disposición del control médico:</strong> Notificá que te encontrás guardando el reposo indicado en tu domicilio y que el médico laboral del Art. 210 LCT puede acudir a examinarte cuando la empresa lo disponga.</li>
+              </ul>
+            </div>
+
+            <h3>Modelo de respuesta por escrito para enviar a Recursos Humanos:</h3>
+            <div class="code-box">
+              <p>
+                <strong>Asunto:</strong> Respuesta a comunicación - Justificación médica y puesta a disposición Art. 210 LCT - [Tu Nombre y Apellido] - Legajo N° [Número]
+              </p>
+              <hr class="code-hr" />
+              <p>
+                Estimados miembros de Recursos Humanos / Gerencia de Personal:
+              </p>
+              <p>
+                En respuesta a su comunicación de la fecha mediante la cual manifiestan el rechazo del certificado médico digital remitido a las [Hora del envío], cumplo en señalarles que el referido instrumento médico fue emitido por un profesional de la salud debidamente matriculado ante el Ministerio de Salud de la Nación (SISA/REFEPS), tras una consulta de teleasistencia médica celebrada conforme al marco regulatorio de la Ley Nacional N° 27.553 y su Decreto Reglamentario 98/2023.
+              </p>
+              <p>
+                Dicho certificado cuenta con firma electrónica verificable, código CUIR oficial y código QR de validación pública de autenticidad, reuniendo la totalidad de los recaudos formales exigidos por la legislación sanitaria y laboral vigente.
+              </p>
+              <p>
+                Habiendo dado estricto cumplimiento al deber de aviso contemplado en el Art. 209 de la Ley de Contrato de Trabajo N° 20.744, les reitero que me encuentro guardando el estricto reposo psicofísico por 48 horas prescripto por el facultativo en mi domicilio sito en [Calle, Número, Piso, Localidad].
+              </p>
+              <p>
+                Asimismo, pongo en su conocimiento que me encuentro a su entera disposición en dicho domicilio para que procedan a ejercer la facultad de control médico patronal prevista en el Artículo 210 de la LCT a través del profesional de medicina laboral que tengan a bien designar.
+              </p>
+              <p>
+                Por lo expuesto, rechazo cualquier consideración de inasistencia injustificada o advertencia de descuento de salarios y presentismo, reservándome los derechos que la ley me confiere.
+              </p>
+              <p>
+                Atentamente,<br />
+                [Tu Nombre Completo]<br />
+                DNI N° [Tu DNI] - Legajo [Tu Legajo]
+              </p>
+            </div>
+            <p>
+              Enviar este descargo bloquea legalmente la posibilidad de que la empresa alegue "falta injustificada" o "abandono de trabajo", ya que demostrás fehacientemente tu buena fe, tu reposo efectivo y tu apertura al control médico del Art. 210 LCT.
+            </p>
+          </section>
+
+          <!-- Tabla de cotejo -->
+          <section>
+            <h2>6. Resumen de derechos y obligaciones según la LCT</h2>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Situación Laboral</th>
+                    <th>Postura Ilegal de RRHH</th>
+                    <th>Lo que establece la Ley Argentina</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Presentación de certificado digital</strong></td>
+                    <td>"No aceptamos PDFs ni telemedicina; solo papel original".</td>
+                    <td>Plena validez legal bajo Ley 27.553, Dto. 98/2023 y Ley 25.506. Es válido en todo el país.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Duda de la empresa sobre el cuadro</strong></td>
+                    <td>Rechazar el comprobante y descontar el día de sueldo.</td>
+                    <td>Obligación de enviar médico de control al domicilio (Art. 210 LCT). Si no lo envían, deben pagar el salario (Art. 208 LCT).</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Diagnóstico médico</strong></td>
+                    <td>Exigir diagnóstico exhaustivo para admitir la licencia.</td>
+                    <td>Protegido por secreto médico y Ley 25.326 de Datos Personales. Solo se requiere inaptitud y días de reposo.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Descuento de presentismo</strong></td>
+                    <td>Quita automática del adicional por enfermedad.</td>
+                    <td>Improcedente si el empleado justificó en término y la empresa no acreditó fraude mediante control médico oficial.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Enlaces recomendados al cluster de certificados -->
+          <div class="cluster-links">
+            <h3 class="cluster-title">Servicios y Guías Laborales en AutaMedica</h3>
+            <p class="cluster-desc">
+              Si requerís tramitar una constancia médica oficial para tu ámbito de trabajo con respaldo legal inmutable, explorá nuestras guías especializadas:
+            </p>
+            <ul class="cluster-grid">
+              <li>
+                <a href="/certificado-medico-laboral" class="cluster-card">
+                  <strong>Certificado Médico Laboral &rarr;</strong>
+                  <span>Licencias médicas, reposo y normativa de control ART.</span>
+                </a>
+              </li>
+              <li>
+                <a href="/justificativo-medico" class="cluster-card">
+                  <strong>Justificativo Médico Online &rarr;</strong>
+                  <span>Constancia de inaptitud temporal para ausencias de 24 a 72 hs.</span>
+                </a>
+              </li>
+              <li>
+                <a href="/certificados-medicos" class="cluster-card">
+                  <strong>Hub de Certificados Médicos &rarr;</strong>
+                  <span>Conocé todos los tipos de certificados y su validez legal.</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <ShareButtons
+          title={article.title}
+          url={canonicalUrl}
+          description="¿Tu empleador rechazó tu certificado médico emitido por telemedicina? Conocé qué dice el Art. 210 de la Ley de Contrato de Trabajo y cómo defender tu salario."
+          author={article.author}
+          category={article.category}
+        />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo de Redacción</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — Artículo elaborado por especialistas en derecho sanitario y medicina del trabajo. Información rigurosa basada en el marco normativo de la República Argentina y doctrina judicial de la Cámara Nacional de Apelaciones del Trabajo (CNAT).
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/certificado-medico-digital-validez" class="seo-card">
+              <span class="seo-badge">Marco Legal</span>
+              <h4>El Certificado Médico Digital: Qué Vale y Qué No en Argentina</h4>
+            </a>
+            <a href="/blog/que-dice-la-ley-26529" class="seo-card">
+              <span class="seo-badge">Derechos del Paciente</span>
+              <h4>¿Qué dice la Ley 26.529? Derechos del Paciente y Secreto Médico</h4>
+            </a>
+            <a href="/blog/segunda-opinion-medica-derecho" class="seo-card">
+              <span class="seo-badge">Derechos del Paciente</span>
+              <h4>Segunda Opinión Médica: Tu Derecho y Cómo Ejercerlo</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 760px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: clamp(1.4rem, 2.5vw, 1.85rem); font-weight: 700; color: #0f172a; margin: 2.75rem 0 1rem; text-align: left; line-height: 1.3; }
+  .blog-prose h3 { font-size: 1.2rem; font-weight: 600; color: #0f172a; margin: 2rem 0 0.75rem; }
+  .blog-prose p { color: #334155; line-height: 1.8; margin-bottom: 1.25rem; font-size: 1.05rem; }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: 1.5rem; }
+  .blog-prose li { color: #334155; line-height: 1.75; margin-bottom: 0.6rem; font-size: 1.02rem; }
+  .blog-prose strong { color: #0f172a; font-weight: 600; }
+  .blog-back { display: inline-block; color: #0284c7; text-decoration: none; font-size: 0.875rem; font-weight: 500; margin-bottom: 1.5rem; }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-top: 1rem; font-size: 0.875rem; color: #64748b; }
+  .blog-image { width: 100%; max-width: 760px; margin: 0 auto 2.5rem; border-radius: 1rem; overflow: hidden; border: 1px solid #e2e8f0; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  
+  /* Citas y advertencias */
+  .quote-box { border-left: 4px solid #0284c7; background: #f8fafc; padding: 1.25rem 1.5rem; margin: 1.75rem 0; color: #1e293b; font-style: italic; border-radius: 0 0.75rem 0.75rem 0; line-height: 1.7; font-size: 1.02rem; }
+  
+  /* Bloques legales */
+  .legal-card { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 0.875rem; padding: 1.5rem; margin: 1.75rem 0; }
+  .legal-badge { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0369a1; background: #e0f2fe; padding: 0.25rem 0.65rem; border-radius: 9999px; margin-bottom: 0.75rem; }
+  .legal-text { font-size: 0.95rem; color: #0f172a; margin-bottom: 0.75rem; line-height: 1.6; }
+  .legal-text:last-child { margin-bottom: 0; }
+  
+  /* Cajas de acción */
+  .action-card { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 0.875rem; padding: 1.5rem; margin: 1.75rem 0; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04); }
+  .action-title { font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 1rem; }
+  
+  /* Caja de texto copiable */
+  .code-box { background: #0f172a; color: #f8fafc; border-radius: 0.875rem; padding: 1.75rem; margin: 2rem 0; font-family: inherit; font-size: 0.92rem; line-height: 1.65; border: 1px solid #1e293b; }
+  .code-box strong { color: #38bdf8; }
+  .code-box p { color: #e2e8f0; margin-bottom: 1rem; font-size: 0.92rem; }
+  .code-box p:last-child { margin-bottom: 0; }
+  .code-hr { border: none; border-top: 1px solid #334155; margin: 1rem 0; }
+  
+  /* Tablas de datos */
+  .table-container { overflow-x: auto; margin: 2rem 0; border: 1px solid #e2e8f0; border-radius: 0.875rem; }
+  .data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
+  .data-table th { background: #f8fafc; padding: 1rem; color: #0f172a; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+  .data-table td { padding: 1rem; color: #334155; border-bottom: 1px solid #e2e8f0; vertical-align: top; line-height: 1.6; }
+  .data-table tr:last-child td { border-bottom: none; }
+  
+  /* CTA Box */
+  .blog-cta-box { margin: 2.75rem 0; padding: 2rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 1rem; }
+  .cta-kicker { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0369a1; background: #e0f2fe; padding: 0.25rem 0.75rem; border-radius: 9999px; margin-bottom: 0.75rem; }
+  .cta-title { font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem; }
+  .cta-desc { font-size: 0.95rem; color: #475569; line-height: 1.6; margin: 0 0 1.25rem; }
+  .cta-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .btn-primary { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #0284c7; color: #ffffff; font-weight: 600; font-size: 0.875rem; border-radius: 0.75rem; text-decoration: none; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25); }
+  .btn-primary:hover { background: #0369a1; }
+  .btn-secondary { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #ffffff; color: #0f172a; font-weight: 600; font-size: 0.875rem; border: 1px solid #cbd5e1; border-radius: 0.75rem; text-decoration: none; }
+  .btn-secondary:hover { background: #f8fafc; }
+  
+  /* Cluster de links */
+  .cluster-links { margin: 3rem 0; padding: 1.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 1rem; }
+  .cluster-title { font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem; }
+  .cluster-desc { font-size: 0.9rem; color: #64748b; margin-bottom: 1.25rem; line-height: 1.6; }
+  .cluster-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.85rem; }
+  .cluster-card { display: flex; flex-direction: column; gap: 0.25rem; padding: 1rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; text-decoration: none; color: #0f172a; transition: border-color 0.2s; }
+  .cluster-card:hover { border-color: #0284c7; }
+  .cluster-card strong { color: #0284c7; font-size: 0.9rem; }
+  .cluster-card span { font-size: 0.8rem; color: #64748b; line-height: 1.4; }
+
+  /* Autor y relacionados */
+  .blog-author { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.875rem; padding: 1.5rem; margin: 3rem auto; max-width: 760px; }
+  .blog-author h3 { font-size: 1.1rem; color: #0f172a; margin-bottom: 0.5rem; }
+  .blog-author p { color: #475569; margin: 0; font-size: 0.92rem; line-height: 1.6; }
+  .blog-related { max-width: 760px; margin: 3.5rem auto 0; }
+  .blog-related h3 { font-size: 1.25rem; color: #0f172a; margin-bottom: 1.5rem; }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: #0f172a; font-size: 1rem; font-weight: 600; line-height: 1.4; margin: 0.75rem 0 0; }
+</style>

@@ -1,0 +1,443 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Por qué nunca debés dosificar paracetamol o ibuprofeno infantil por la edad: el cálculo exacto por peso',
+  description: 'Dosificar antitérmicos por la edad o por cucharadas es una de las principales causas de toxicidad hepática y falla renal en pediatría. Conocé la fórmula médica exacta en mg/kg/dosis y las señales de alarma.',
+  author: 'Equipo de Pediatría y Farmacología Clínica AutaMedica',
+  role: 'Dirección Médica Pediátrica',
+  date: '24 de septiembre, 2026',
+  readTime: '11 min',
+  image: '/images/hero_doctor.webp',
+  category: 'Pediatría & Farmacología',
+  slug: 'calculadora-dosis-pediatrica-paracetamol-ibuprofeno-peso',
+};
+
+const canonicalUrl = `https://www.autamedica.com/blog/${article.slug}`;
+const publishedTime = '2026-09-24T00:00:00Z';
+
+const faqItems = [
+  {
+    question: '¿Por qué no se debe dosificar paracetamol o ibuprofeno según la edad del prospecto?',
+    answer: 'Porque el crecimiento infantil es biológicamente heterogéneo. Dos niños de 3 años pueden pesar 11 kg o 17 kg. Administrarles la misma dosis basada en la edad cronológica provoca que uno quede subdosificado (manteniendo la fiebre alta sin control) y el otro quede en sobredosis con riesgo de acumulación tóxica. La farmacocinética pediátrica se calcula estrictamente por kilogramo de peso corporal real.',
+  },
+  {
+    question: '¿Cuál es la dosis médica exacta de paracetamol en pediatría?',
+    answer: 'La dosis terapéutica pediátrica de paracetamol es de 10 a 15 mg por cada kilogramo de peso por toma, pudiendo repetirse cada 6 u 8 horas según indicación médica, sin exceder los 60 mg/kg/día. En gotas pediátricas de solución al 10% (100 mg/ml), la regla clínica estandarizada equivale aproximadamente a 2 gotas por cada kilogramo de peso real por toma.',
+  },
+  {
+    question: '¿Cuál es la dosis médica exacta de ibuprofeno en pediatría y cuál es el mayor peligro?',
+    answer: 'La dosis de ibuprofeno es de 5 a 10 mg por cada kilogramo de peso por toma, cada 8 horas (dosis máxima: 30 a 40 mg/kg/día). El mayor peligro radica en confundir la concentración del jarabe: existen presentaciones al 2% (20 mg/ml) y presentaciones al 4% o forte (40 mg/ml). Si se administra el volumen del jarabe al 2% utilizando el frasco al 4%, se duplica la dosis real, provocando toxicidad gástrica o renal.',
+  },
+  {
+    question: '¿Es recomendable alternar paracetamol e ibuprofeno cada 4 horas?',
+    answer: 'No. Tanto la Sociedad Argentina de Pediatría (SAP) como las guías internacionales desaconsejan la alternancia sistemática de antitérmicos en el hogar. Dicha práctica multiplica el riesgo de errores de cálculo, confusión de horarios e intoxicaciones combinadas, sin demostrar beneficios clínicos significativos en la evolución de la enfermedad.',
+  },
+  {
+    question: '¿Cuándo la fiebre en un niño es una emergencia médica impostergable?',
+    answer: 'En cualquier bebé menor de 3 meses con 38°C o más (debe ser evaluado de urgencia presencial para descartar infección bacteriana grave), o a cualquier edad si la fiebre se acompaña de manchas violáceas en la piel (petequias), rigidez de cuello, dificultad para respirar con hundimiento de costillas o somnolencia extrema donde el niño no reacciona al estímulo.',
+  },
+];
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': ['BlogPosting', 'MedicalWebPage'],
+      '@id': `${canonicalUrl}#article`,
+      isPartOf: {
+        '@type': 'Blog',
+        name: 'Blog de Salud de AutaMedica',
+        url: 'https://www.autamedica.com/blog',
+      },
+      headline: article.title,
+      description: article.description,
+      url: canonicalUrl,
+      datePublished: publishedTime,
+      dateModified: publishedTime,
+      inLanguage: 'es-AR',
+      mainEntityOfPage: canonicalUrl,
+      image: {
+        '@type': 'ImageObject',
+        url: `https://www.autamedica.com${article.image}`,
+      },
+      author: {
+        '@type': 'Organization',
+        name: article.author,
+        url: 'https://www.autamedica.com',
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+        },
+      },
+      about: [
+        { '@type': 'MedicalSpecialty', name: 'Pediatrics' },
+        { '@type': 'MedicalSpecialty', name: 'Clinical Pharmacology' },
+        { '@type': 'Drug', name: 'Paracetamol' },
+        { '@type': 'Drug', name: 'Ibuprofen' },
+      ],
+      mentions: [
+        {
+          '@type': 'Legislation',
+          name: 'Ley 26061',
+          description: 'Ley de Protección Integral de los Derechos de las Niñas, Niños y Adolescentes',
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Blog',
+          item: 'https://www.autamedica.com/blog',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: article.title,
+          item: canonicalUrl,
+        },
+      ],
+    },
+  ],
+};
+---
+
+<Layout
+  title={`${article.title} | AutaMedica`}
+  description={article.description}
+  canonical={canonicalUrl}
+  ogImage={article.image}
+  ogType="article"
+  publishedTime={publishedTime}
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(articleSchema)} />
+  <Navbar />
+  <main>
+    <!-- Header Hero -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+          <span>• Guía Clínica de Seguridad Infantil</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Imagen Principal -->
+    <div class="blog-image">
+      <img src={article.image} alt="Cálculo clínico exacto de dosis pediátrica de antitérmicos por peso corporal" loading="eager" />
+    </div>
+
+    <!-- Contenido del Artículo -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+
+          <!-- Alerta Roja de Emergencia Pediátrica -->
+          <div style="margin: 0 0 2rem; padding: 1.25rem 1.5rem; background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 0.5rem;">
+            <p style="margin: 0; color: #991b1b; font-size: 0.95rem; font-weight: 700;">
+              Regla de Oro en Lactantes Menores de 3 Meses:
+            </p>
+            <p style="margin: 0.35rem 0 0; color: #7f1d1d; font-size: 0.9rem; line-height: 1.6;">
+              Si tu bebé tiene menos de 90 días de vida y presenta 38.0°C o más de temperatura axilar, <strong>no le administres antitérmicos por tu cuenta</strong>: concurrí inmediatamente a una guardia pediátrica presencial. En menores de 3 meses, la fiebre es un signo de alarma médica que exige descartar infecciones bacterianas graves.
+            </p>
+          </div>
+
+          <section>
+            <h2>El pánico de las 3:30 AM: el termómetro en 39.2°C</h2>
+            <p>
+              Son las tres y media de la madrugada. Te despertás sobresaltado por el llanto ardiente e inconsolable de tu hijo. Le ponés la mano en la frente y sentís un calor que quema. El termómetro digital confirma la sospecha: <strong>39.2 °C</strong>.
+            </p>
+            <p>
+              Con el corazón en la garganta y la lucidez enturbiada por el sueño, vas al botiquín familiar. Encontrás una caja arrugada de paracetamol en gotas o un frasco de jarabe de ibuprofeno que compraste hace seis meses. Das vuelta la caja y leés la tabla orientativa impresa en el cartón:
+            </p>
+            <p style="text-align: center; font-style: italic; color: #475569; background: #f1f5f9; padding: 0.75rem; border-radius: 0.5rem;">
+              "Niños de 2 a 4 años: 1 cucharadita (5 ml) cada 8 horas."
+            </p>
+            <p>
+              Tu hijo tiene 2 años y 10 meses. Agarrás una cuchara de té de la cocina, intentás llenarla a oscuras mientras el niño patalea, y le introducís el líquido en la boca rezando para que la fiebre baje rápido.
+            </p>
+            <p>
+              Sin saberlo, acabás de cometer <strong>uno de los errores médicos más frecuentes y peligrosos de la farmacología pediátrica doméstica</strong>. Una práctica que satura las guardias de toxicología de los hospitales pediátricos de toda la Argentina.
+            </p>
+          </section>
+
+          <section>
+            <h2>Por qué la edad es una trampa: la enorme dispersión del peso infantil</h2>
+            <p>
+              Los prospectos farmacéuticos y las etiquetas comerciales suelen resumir la posología en rangos etarios arbitrarios por motivos de marketing y espacio físico en el envase. Sin embargo, en pediatría clínica basada en evidencia, <strong>el concepto de "dosis por edad" es biológicamente inadmisible</strong>.
+            </p>
+            <p>
+              De acuerdo con las tablas percentilares de crecimiento de la Sociedad Argentina de Pediatría (SAP) y la Organización Mundial de la Salud (OMS):
+            </p>
+            <ul>
+              <li>Un niño sano de 3 años en percentil 10 puede pesar <strong>11.5 kg</strong>.</li>
+              <li>Otro niño sano de la misma edad en percentil 95 puede pesar <strong>17.5 kg</strong>.</li>
+            </ul>
+            <p>
+              Existe una diferencia del <strong>52% en la masa corporal</strong> entre dos niños que tienen exactamente la misma edad cronológica.
+            </p>
+            <p>
+              Si a ambos pacientes se les administra la misma dosis fija de una "cucharadita":
+            </p>
+            <ol>
+              <li>El niño de 17.5 kg recibirá una cantidad insuficiente de fármaco, provocando <strong>falla terapéutica</strong>: la fiebre no cederá, la angustia familiar se disparará y los padres tenderán a redosificar antes de tiempo por desesperación.</li>
+              <li>El niño de 11.5 kg recibirá una <strong>sobredosis relativa</strong> que sobrecargará sus órganos de metabolización y excreción. Y si este error se repite cuatro veces al día durante tres jornadas consecutivas, el efecto acumulativo puede ser catastrófico.</li>
+            </ol>
+          </section>
+
+          <!-- Banner destacado CTA 1 -->
+          <div style="margin: 2.5rem 0; padding: 2rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 1rem;">
+            <span style="display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0369a1; background: #e0f2fe; padding: 0.25rem 0.75rem; border-radius: 9999px; margin-bottom: 0.75rem;">
+              Pediatría Online Inmediata • Sin Esperas
+            </span>
+            <h3 style="font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem;">
+              ¿Tenés dudas con la dosis o tu hijo levantó fiebre alta?
+            </h3>
+            <p style="font-size: 0.95rem; color: #475569; line-height: 1.6; margin: 0 0 1.25rem;">
+              No arriesgues la salud de tu hijo adivinando gotas o cucharadas. Conectate por videoconsulta en minutos con un <strong>médico pediatra matriculado de AutaMedica</strong>. Evaluamos el cuadro clínico, calculamos la dosis exacta por peso y te brindamos tranquilidad médica profesional desde tu casa.
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+              <a
+                href="/pediatra-online"
+                style="display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #0284c7; color: #ffffff; font-weight: 600; font-size: 0.875rem; border-radius: 0.75rem; text-decoration: none; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);"
+              >
+                Consultar con Pediatra Online Ahora &rarr;
+              </a>
+            </div>
+          </div>
+
+          <section>
+            <h2>Farmacocinética pediátrica: el peligro real de cada fármaco</h2>
+            <p>
+              El organismo de un bebé o un niño pequeño no es una versión miniatura del cuerpo de un adulto. Su hígado, sus riñones y su volumen de agua corporal operan con cinéticas muy específicas.
+            </p>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1.5rem; margin: 1.5rem 0;">
+              <h3 style="color: #0f172a; margin-top: 0; font-size: 1.15rem;">1. Paracetamol: la amenaza de la necrosis hepática fulminante</h3>
+              <p style="color: #334155; line-height: 1.7; font-size: 0.95rem;">
+                A dosis normales, el paracetamol se metaboliza en el hígado mediante sulfatación y glucuronidación. Una fracción minúscula se desvía por la enzima citocromo P450 hacia un metabolito intermedio altamente reactivo: la <strong>N-acetil-p-benzoquinoneimina (NAPQI)</strong>, la cual es neutralizada de inmediato por el glutatión hepático.
+              </p>
+              <p style="color: #334155; line-height: 1.7; font-size: 0.95rem;">
+                Cuando un niño recibe dosis por encima de lo indicado de forma repetida, las vías principales se saturan y el glutatión se agota. El NAPQI libre se une covalentemente a las proteínas celulares del hígado, provocando <strong>necrosis centrolobulillar aguda</strong>. La intoxicación por paracetamol es, en pediatría, la causa número uno de falla hepática fulminante con indicación de trasplante hepático de origen toxicológico.
+              </p>
+
+              <h3 style="color: #0f172a; margin-top: 1.5rem; font-size: 1.15rem;">2. Ibuprofeno: riesgo renal y gástrico en niños deshidratados</h3>
+              <p style="color: #334155; line-height: 1.7; font-size: 0.95rem; margin-bottom: 0;">
+                El ibuprofeno actúa inhibiendo las enzimas ciclooxigenasas (COX-1 y COX-2). En los riñones, las prostaglandinas sintetizadas por estas enzimas son vitales para mantener la vasodilatación de la arteriola aferente y asegurar el filtrado glomerular. Si un niño tiene fiebre acompañada de vómitos, diarrea o baja ingesta de líquidos (deshidratación leve a moderada), el ibuprofeno bloquea esa protección y puede desencadenar una <strong>insuficiencia renal aguda prerrenal</strong>, además de gastritis erosiva y sangrado digestivo.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2>La fórmula médica exacta: cómo se calcula en pediatría</h2>
+            <p>
+              Toda administración de antitérmicos debe calcularse en base a los <strong>miligramos de droga por cada kilogramo de peso real</strong>:
+            </p>
+
+            <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 1.25rem 1.5rem; border-radius: 0.5rem; margin: 1.5rem 0;">
+              <h3 style="color: #065f46; margin-top: 0; font-size: 1.1rem; font-weight: 700;">
+                Cálculo de Paracetamol:
+              </h3>
+              <p style="color: #047857; margin: 0 0 0.5rem; font-size: 0.95rem;">
+                <strong>Dosis estándar:</strong> 10 a 15 mg / kg / toma (cada 6 u 8 horas). Dosis máxima diaria: 60 mg/kg/día.
+              </p>
+              <p style="color: #065f46; margin: 0; font-size: 0.9rem; line-height: 1.6;">
+                <strong>En gotas al 10% (100 mg/ml):</strong> La equivalencia clínica práctica en Argentina es de <strong>2 gotas por cada kilogramo de peso corporal</strong> por toma. Ejemplo: Si el niño pesa 12 kg, la dosis es de 24 gotas cada 6 u 8 horas (si hay fiebre superior a 38°C con malestar).
+              </p>
+            </div>
+
+            <div style="background: #f0fdf4; border-left: 4px solid #059669; padding: 1.25rem 1.5rem; border-radius: 0.5rem; margin: 1.5rem 0;">
+              <h3 style="color: #065f46; margin-top: 0; font-size: 1.1rem; font-weight: 700;">
+                Cálculo de Ibuprofeno:
+              </h3>
+              <p style="color: #047857; margin: 0 0 0.5rem; font-size: 0.95rem;">
+                <strong>Dosis estándar:</strong> 5 a 10 mg / kg / toma (cada 8 horas). Dosis máxima diaria: 30 a 40 mg/kg/día.
+              </p>
+              <p style="color: #065f46; margin: 0 0 0.75rem; font-size: 0.9rem; line-height: 1.6;">
+                <strong>¡Atención crítica con las concentraciones en jarabe!</strong>
+              </p>
+              <ul style="color: #065f46; font-size: 0.9rem; margin-bottom: 0; padding-left: 1.25rem;">
+                <li style="margin-bottom: 0.35rem;">
+                  <strong>Jarabe al 2% (20 mg/ml):</strong> Contiene 20 mg por mililitro. Para dar 10 mg/kg a un niño de 10 kg (100 mg), se necesitan <strong>5 ml</strong>.
+                </li>
+                <li>
+                  <strong>Jarabe al 4% o "Forte" (40 mg/ml):</strong> Contiene el doble de droga por mililitro (40 mg/ml). Para la misma dosis de 100 mg se necesitan únicamente <strong>2.5 ml</strong>.
+                </li>
+              </ul>
+            </div>
+            <p style="font-size: 0.95rem; color: #475569;">
+              El error más catastrófico que vemos en las guardias ocurre cuando una familia que siempre compraba ibuprofeno al 2% adquiere por error la presentación al 4% y le administra al niño los mismos 5 ml de siempre: <strong>le están administrando el doble de la dosis máxima recomendada</strong>.
+            </p>
+          </section>
+
+          <section>
+            <h2>El mito de la alternancia sistemática: por qué la SAP no la recomienda</h2>
+            <p>
+              Muchos padres tienen la costumbre de alternar paracetamol con ibuprofeno cada 4 horas ("a las 12 paracetamol, a las 16 ibuprofeno, a las 20 paracetamol...").
+            </p>
+            <p>
+              Tanto la <strong>Sociedad Argentina de Pediatría (SAP)</strong> como la <strong>Academia Americana de Pediatría (AAP)</strong> han emitido consensos desaconsejando esta conducta en el ámbito domiciliario por tres razones contundentes:
+            </p>
+            <ul>
+              <li><strong>Multiplicación de errores:</strong> Es el escenario donde más confusiones horarias y sobredosificaciones accidentales se producen, especialmente durante la noche.</li>
+              <li><strong>Fiebre-fobia innecesaria:</strong> La fiebre no es una enfermedad, sino una respuesta defensiva fisiológica del sistema inmunitario. El objetivo del antitérmico no es "dejar el termómetro en 36.5°C a toda costa", sino <strong>aliviar el dolor y el malestar general</strong> del niño para que pueda hidratarse y descansar.</li>
+              <li><strong>Toxicidad cruzada:</strong> El uso combinado sobrecarga el eje metabólico hepático y renal simultáneamente en un niño cuyo estado de hidratación puede ser lábil.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>El amparo de la Ley 26.061: el derecho a la protección de la salud infantil</h2>
+            <p>
+              La <strong>Ley 26.061 de Protección Integral de los Derechos de las Niñas, Niños y Adolescentes</strong> establece en su artículo 3 el principio del <em>Interés Superior del Niño</em> y en su artículo 14 el <em>Derecho a la Salud</em>, garantizando que todo niño debe recibir atención médica de calidad, oportuna y fundada en el conocimiento científico más riguroso.
+            </p>
+            <p>
+              Los padres y cuidadores tienen la responsabilidad de evitar prácticas empíricas riesgosas y recurrir siempre a la consulta profesional matriculada antes de administrar fármacos de venta bajo receta a menores de edad.
+            </p>
+          </section>
+
+          <section>
+            <h2>Preguntas Frecuentes sobre Dosificación Pediátrica y Fiebre</h2>
+            <div style="margin-top: 1.5rem;">
+              {faqItems.map((item) => (
+                <div style="margin-bottom: 1.25rem; padding: 1.25rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                  <h3 style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem;">
+                    {item.question}
+                  </h3>
+                  <p style="font-size: 0.925rem; color: #475569; line-height: 1.6; margin: 0;">
+                    {item.answer}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <!-- Enlaces de navegación interna -->
+          <div style="margin: 3rem 0; padding: 1.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 1rem;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 0.75rem;">
+              Atención Médica Pediátrica en AutaMedica
+            </h3>
+            <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem; line-height: 1.6;">
+              Consultá con médicos especialistas en pediatría clínica desde cualquier punto del país sin demoras:
+            </p>
+            <ul style="list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+              <li>
+                <a href="/pediatra-online" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Consulta con Pediatra Online &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/consulta-pediatrica-online" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Guía de Consulta Pediátrica &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/receta-medica-online" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Receta Médica Digital &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/certificado-medico-escolar" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Apto Físico y Escolar &rarr;
+                </a>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+
+        <ShareButtons
+          title={article.title}
+          url={canonicalUrl}
+          description={article.description}
+          author={article.author}
+          category={article.category}
+        />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre la Dirección Pediátrica</h3>
+            <p>
+              <strong>{article.author}</strong> — Guía elaborada por médicos pediatras y especialistas en farmacología clínica de AutaMedica, bajo los consensos y guías de dosificación de la Sociedad Argentina de Pediatría (SAP) y la Ley 26.061.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/cuando-ir-guardia-cuando-esperar" class="seo-card">
+              <span class="seo-badge">Guía Práctica</span>
+              <h4>Cuándo Ir a la Guardia y Cuándo Esperar: Triage Pediátrico</h4>
+            </a>
+            <a href="/blog/consulta-pediatrica-online" class="seo-card">
+              <span class="seo-badge">Pediatría</span>
+              <h4>Consulta Pediátrica Online: Qué Resolver a Distancia</h4>
+            </a>
+            <a href="/blog/medicamentos-genericos-originales-argentina" class="seo-card">
+              <span class="seo-badge">Farmacología</span>
+              <h4>Genéricos vs Originales: Seguridad y Equivalencia</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

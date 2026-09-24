@@ -1,0 +1,439 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Cómo obtener receta oficial de clonazepam, alprazolam o psicofármacos un fin de semana en Argentina (Ley 27.553)',
+  description: 'Quedarse sin psicofármacos un viernes por la noche es una urgencia médica real. Riesgo de abstinencia, marco legal del Decreto 345/2024, receta archivada con CUIR y evaluación psiquiátrica digital.',
+  author: 'Equipo de Psiquiatría y Farmacología Clínica AutaMedica',
+  role: 'Dirección Médica & Salud Mental',
+  date: '24 de septiembre, 2026',
+  readTime: '10 min',
+  image: '/images/article_mental.webp',
+  category: 'Psiquiatría & Farmacología',
+  slug: 'receta-clonazepam-psicofarmacos-urgente-argentina',
+};
+
+const canonicalUrl = `https://www.autamedica.com/blog/${article.slug}`;
+const publishedTime = '2026-09-24T00:00:00Z';
+
+const faqItems = [
+  {
+    question: '¿Es legal emitir recetas de clonazepam o alprazolam por telemedicina en Argentina?',
+    answer: 'Sí. Conforme a la Ley 27.553 de Recetas Electrónicas y el Decreto Reglamentario 345/2024, las benzodiazepinas y psicofármacos pertenecientes a la Lista IV de la Ley 19.303 de Psicotrópicos (venta bajo receta archivada) pueden prescribirse mediante plataformas de telemedicina inscriptas en el Registro Federal. La receta debe contar con firma digital válida y Código Único de Identificación de Receta (CUIR).',
+  },
+  {
+    question: '¿Por qué la mayoría de las apps de videoconsulta rechazan recetar psicofármacos?',
+    answer: 'La mayoría de las plataformas de telemedicina generalistas operan con médicos clínicos de guardia que carecen de especialidad en psiquiatría y no cuentan con módulos integrados al validador nacional de psicofármacos con firma digital de token estricto. Para evitar auditorías y responsabilidad clínica, prefieren colocar leyendas restrictivas de deslinde sin ofrecer contención al paciente.',
+  },
+  {
+    question: '¿Qué riesgos tiene interrumpir bruscamente el clonazepam o alprazolam un fin de semana?',
+    answer: 'La suspensión brusca de una benzodiazepina desestabiliza los receptores GABA-A del sistema nervioso central. Puede provocar síndrome de abstinencia agudo: taquicardia paroxística, insomnio de rebote extremo, temblores, hiperacusia, crisis de pánico severas y, en tratamientos crónicos a dosis medias o altas, riesgo real de convulsiones y estatus epiléptico.',
+  },
+  {
+    question: '¿Qué exige la farmacia para entregar psicofármacos con receta digital?',
+    answer: 'La farmacia de turno o de guardia exige que la receta electrónica cuente con el código alfanumérico CUIR registrado en la base nacional, los datos del profesional matriculado en REFEPS, el nombre genérico de la molécula según Ley 25.649, la fecha de emisión (validez de 30 días) y la indicación de duplicado/archivada.',
+  },
+  {
+    question: '¿AutaMedica entrega recetas de psicofármacos a cualquier persona que lo solicite?',
+    answer: 'No. AutaMedica no es una máquina expendedora de recetas. La emisión de una receta archivada de psicofármacos requiere una videoconsulta psiquiátrica clínica, verificación de identidad mediante DNI/ReNaPer, revisión del tratamiento previo y fundamentación médica para garantizar la continuidad terapéutica y la reducción de daños.',
+  },
+];
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': ['BlogPosting', 'MedicalWebPage'],
+      '@id': `${canonicalUrl}#article`,
+      isPartOf: {
+        '@type': 'Blog',
+        name: 'Blog de Salud de AutaMedica',
+        url: 'https://www.autamedica.com/blog',
+      },
+      headline: article.title,
+      description: article.description,
+      url: canonicalUrl,
+      datePublished: publishedTime,
+      dateModified: publishedTime,
+      inLanguage: 'es-AR',
+      mainEntityOfPage: canonicalUrl,
+      image: {
+        '@type': 'ImageObject',
+        url: `https://www.autamedica.com${article.image}`,
+      },
+      author: {
+        '@type': 'Organization',
+        name: article.author,
+        url: 'https://www.autamedica.com',
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+        },
+      },
+      about: [
+        { '@type': 'MedicalSpecialty', name: 'Psychiatry' },
+        { '@type': 'MedicalSpecialty', name: 'Clinical Pharmacology' },
+        { '@type': 'Drug', name: 'Clonazepam' },
+        { '@type': 'Drug', name: 'Alprazolam' },
+      ],
+      mentions: [
+        {
+          '@type': 'Legislation',
+          name: 'Ley 27553',
+          description: 'Ley de Recetas Electrónicas o Digitales en Argentina',
+        },
+        {
+          '@type': 'Legislation',
+          name: 'Decreto 345/2024',
+          description: 'Reglamentación integral del ejercicio de prescripción electrónica y repositorio nacional CUIR',
+        },
+        {
+          '@type': 'Legislation',
+          name: 'Ley 19303',
+          description: 'Régimen legal de Sustancias Psicotrópicas (Lista IV)',
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Blog',
+          item: 'https://www.autamedica.com/blog',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: article.title,
+          item: canonicalUrl,
+        },
+      ],
+    },
+  ],
+};
+---
+
+<Layout
+  title={`${article.title} | AutaMedica`}
+  description={article.description}
+  canonical={canonicalUrl}
+  ogImage={article.image}
+  ogType="article"
+  publishedTime={publishedTime}
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(articleSchema)} />
+  <Navbar />
+  <main>
+    <!-- Header Hero -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+          <span>• Actualizado septiembre 2026</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Imagen Principal -->
+    <div class="blog-image">
+      <img src={article.image} alt="Consulta psiquiátrica y receta oficial de psicofármacos en Argentina" loading="eager" />
+    </div>
+
+    <!-- Contenido del Artículo -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+
+          <!-- Alerta de Urgencia Clínica -->
+          <div style="margin: 0 0 2rem; padding: 1.25rem 1.5rem; background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 0.5rem;">
+            <p style="margin: 0; color: #991b1b; font-size: 0.95rem; font-weight: 600;">
+              Aviso médico de seguridad urgente:
+            </p>
+            <p style="margin: 0.35rem 0 0; color: #7f1d1d; font-size: 0.9rem; line-height: 1.6;">
+              Si estás experimentando confusión mental aguda, alucinaciones, temblores corporales incontrolables o rigidez muscular tras haber suspendido psicofármacos, no esperes a un turno virtual: concurrí de inmediato a una guardia de emergencias o comunicate con el SAME (107).
+            </p>
+          </div>
+
+          <section>
+            <h2>El escenario de las 21:00 un viernes: el blíster vacío</h2>
+            <p>
+              Son las 21:15 de un viernes. Abrís el pastillero o el cajón de la mesa de luz y descubrís lo que ningún paciente bajo tratamiento psiquiátrico quiere ver: el último comprimido de clonazepam ya fue tomado anoche. Quedan por delante 60 horas hasta que el consultorio de tu psiquiatra de cabecera vuelva a abrir sus puertas el lunes por la mañana.
+            </p>
+            <p>
+              Vas a la farmacia de turno de tu barrio con la esperanza de que entiendan la situación. El farmacéutico te mira con empatía contenida pero con una negativa categórica: <em>"Sin la receta archivada oficial no te lo puedo dispensar. Con el Decreto 345/2024 y el control del CUIR, si vendo un comprimido de Lista IV sin registro electrónico, la droguería me bloquea la cuenta y el Ministerio me clausura el libro recetario."</em>
+            </p>
+            <p>
+              Buscás en tu celular las aplicaciones de medicina prepaga o servicios de teleconsulta rápida. La respuesta en los términos y condiciones es casi idéntica en todas: <em>"Este servicio no prescribe psicofármacos, estupefacientes ni medicamentos bajo receta archivada."</em>
+            </p>
+            <p>
+              ¿Por qué ocurre esto? ¿Es realmente ilegal prescribir un psicofármaco a distancia en Argentina? ¿O se trata de una barrera administrativa de conveniencia corporativa que deja al paciente desamparado frente a un riesgo neurológico severo?
+            </p>
+          </section>
+
+          <section>
+            <h2>El peligro silencioso: síndrome de abstinencia y desensibilización GABA</h2>
+            <p>
+              En la cultura popular y en los medios no especializados, las benzodiazepinas (clonazepam, alprazolam, lorazepam, diazepam) suelen ser etiquetadas superficialmente como "pastillas para los nervios" o "ansiolíticos comunes". Sin embargo, desde la neurofarmacología clínica, son moduladores alostéricos positivos del receptor ionotrópico <strong>GABA-A</strong>.
+            </p>
+            <p>
+              Cuando un paciente lleva consumiendo estos fármacos durante más de 4 a 6 semanas de manera continuada, el cerebro experimenta una neuroadaptación: disminuye la sensibilidad intrínseca de los receptores GABA y reduce la producción endógena del ácido gamma-aminobutírico. El fármaco se convierte en el sostén externo que mantiene el tono inhibitorio neuronal.
+            </p>
+            <p>
+              Si ese sostén se corta de forma brusca de un día para el otro, el sistema nervioso central sufre una <strong>tormenta hiperglutamatérgica</strong>:
+            </p>
+            <ul>
+              <li><strong>Efecto rebote autonómico:</strong> Taquicardia paroxística, crisis hipertensivas, sudoración fría, hiperventilación y sensación inminente de asfixia.</li>
+              <li><strong>Exacerbación psíquica severa:</strong> Cuadros de despersonalización, desrealización y ataques de pánico que superan con creces los síntomas que motivaron el inicio del tratamiento original.</li>
+              <li><strong>Riesgo neurobiológico crítico:</strong> En pacientes con dosis moderadas a altas (por ejemplo, más de 1.5 mg/día de clonazepam o alprazolam), el corte abrupto reduce drásticamente el umbral convulsivo, pudiendo desencadenar crisis tónico-clónicas generalizadas o estatus epiléptico, con riesgo de secuelas neurológicas irreversibles.</li>
+            </ul>
+            <p>
+              Por este motivo, en psiquiatría clínica rigurosa, la interrupción involuntaria de psicofármacos durante un fin de semana <strong>no es un capricho del paciente: es una emergencia médica que exige continuidad terapéutica asistida</strong>.
+            </p>
+          </section>
+
+          <!-- Banner destacado CTA 1 -->
+          <div style="margin: 2.5rem 0; padding: 2rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 1rem;">
+            <span style="display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0369a1; background: #e0f2fe; padding: 0.25rem 0.75rem; border-radius: 9999px; margin-bottom: 0.75rem;">
+              Salud Mental Inmediata • Psiquiatría Matriculada
+            </span>
+            <h3 style="font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem;">
+              ¿Te quedaste sin medicación psiquiátrica y tu médico no responde?
+            </h3>
+            <p style="font-size: 0.95rem; color: #475569; line-height: 1.6; margin: 0 0 1.25rem;">
+              En <strong>AutaMedica</strong> no te dejamos solo. Accedé a una videoconsulta de evaluación con psiquiatras matriculados que analizan tu tratamiento habitual y, si corresponde clínicamente, emiten tu receta electrónica oficial con código CUIR y firma digital válida en farmacias de todo el país.
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+              <a
+                href="/psiquiatra-online"
+                style="display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #0284c7; color: #ffffff; font-weight: 600; font-size: 0.875rem; border-radius: 0.75rem; text-decoration: none; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);"
+              >
+                Consultar con Psiquiatra Online &rarr;
+              </a>
+              <a
+                href="/receta-digital"
+                style="display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #ffffff; color: #0f172a; font-weight: 600; font-size: 0.875rem; border: 1px solid #cbd5e1; border-radius: 0.75rem; text-decoration: none;"
+              >
+                Conocer el Sistema de Receta Digital
+              </a>
+            </div>
+          </div>
+
+          <section>
+            <h2>El marco regulatorio argentino: Ley 27.553 y Decreto 345/2024</h2>
+            <p>
+              Existe una confusión generalizada entre la población, e incluso entre muchos profesionales de la salud, sobre qué se puede recetar de forma electrónica en Argentina.
+            </p>
+            <p>
+              La <strong>Ley 19.303 de Sustancias Psicotrópicas</strong> clasifica los fármacos en cuatro listas:
+            </p>
+            <ol>
+              <li><strong>Lista I:</strong> Sustancias prohibidas para uso médico habitual.</li>
+              <li><strong>Lista II:</strong> Fármacos que requieren <em>receta oficial triplicada</em> emitida por el Ministerio de Salud (ej. ciertos psicoestimulantes de altísimo control).</li>
+              <li><strong>Lista III:</strong> Requieren receta archivada especial.</li>
+              <li><strong>Lista IV:</strong> Benzodiazepinas (clonazepam, alprazolam, lorazepam, bromazepam, diazepam), antidepresivos y anticonvulsivantes. Se comercializan bajo <strong>Venta Bajo Receta Archivada</strong>.</li>
+            </ol>
+            <p>
+              Con la entrada en vigencia plena de la <strong>Ley 27.553</strong> y su <strong>Decreto Reglamentario 345/2024</strong>, el marco legal dio un salto cualitativo definitivo:
+            </p>
+            <p>
+              <strong>Las sustancias de Lista IV están formalmente autorizadas para ser prescritas a través de plataformas de telemedicina</strong>, siempre y cuando la plataforma y el médico cumplan con los siguientes requisitos obligatorios:
+            </p>
+            <ul>
+              <li><strong>Identidad profesional verificada:</strong> El médico debe estar inscripto y activo en el Registro Federal de Profesionales de la Salud (REFEPS).</li>
+              <li><strong>Firma digital licenciada:</strong> Cumpliendo con los estándares de la Ley 25.506, con certificado criptográfico no repudiable.</li>
+              <li><strong>Código CUIR:</strong> Asignación de un Código Único de Identificación de Receta interoperable con el Sistema Nacional de Trazabilidad Farmacéutica.</li>
+              <li><strong>Prescripción por denominación genérica:</strong> Cumplimiento de la Ley 25.649 de Medicamentos Genéricos.</li>
+            </ul>
+            <p>
+              Por ende, cuando una aplicación de medicina prepaga te dice <em>"la ley prohíbe recetar psicofármacos online"</em>, <strong>está faltando a la verdad</strong>. La ley no lo prohíbe; lo que ocurre es que esas plataformas no han querido invertir en la infraestructura técnica, la homologación criptográfica del CUIR y los honorarios de psiquiatras especialistas para asumir la responsabilidad clínica.
+            </p>
+          </section>
+
+          <section>
+            <h2>Por qué una guardia presencial no resuelve tu problema un sábado</h2>
+            <p>
+              Frente a la negativa virtual, muchos pacientes acuden a la guardia de un hospital o sanatorio general un sábado por la tarde. Allí se encuentran con otro obstáculo previsible:
+            </p>
+            <p>
+              El médico clínico de guardia está saturado atendiendo politraumatismos, cólicos renales, infecciones respiratorias y crisis hipertensivas agudas. Al recibir a un paciente sin dolor físico visible solicitando una receta de clonazepam, suele activarse un sesgo de desconfianza (el temor al uso recreativo o al abuso de sustancias).
+            </p>
+            <p>
+              En el mejor de los casos, la guardia te administrará un comprimido sublingual para contener la crisis de ansiedad en el momento, pero rara vez te emitirá la receta archivada para los dos días restantes. El paciente sale de la guardia con el alivio temporal de 8 horas, pero vuelve a quedar en punto cero a la mañana siguiente.
+            </p>
+          </section>
+
+          <section>
+            <h2>El estándar clínico de AutaMedica: evaluación responsable, no despacho automático</h2>
+            <p>
+              En AutaMedica rechazamos tajantemente tanto el abandono del paciente como la mercantilización irresponsable de psicofármacos. No creemos en los "formularios web mágicos" donde alguien paga con tarjeta de crédito y recibe un PDF sin haber hablado con un médico. Eso es mala praxis y viola la Ley 17.132 de Ejercicio de la Medicina.
+            </p>
+            <p>
+              Nuestro protocolo de atención para contingencias de psicofármacos opera con el más riguroso estándar psiquiátrico:
+            </p>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1.5rem; margin: 1.5rem 0;">
+              <h3 style="color: #0f172a; margin-top: 0;">Paso a paso de la atención en AutaMedica:</h3>
+              <ol style="margin-bottom: 0; padding-left: 1.25rem;">
+                <li style="margin-bottom: 0.75rem;">
+                  <strong>Validación de identidad biométrica:</strong> Cotejo con DNI para garantizar la titularidad y evitar suplantaciones o prescripciones a terceros no autorizados.
+                </li>
+                <li style="margin-bottom: 0.75rem;">
+                  <strong>Acreditación de tratamiento previo:</strong> El paciente presenta fotos de envases anteriores, recetas previas, resúmenes de historia clínica o constancia de su médico tratante habitual.
+                </li>
+                <li style="margin-bottom: 0.75rem;">
+                  <strong>Videoconsulta psiquiátrica clínica:</strong> Un médico psiquiatra matriculado evalúa el estado psicopatológico actual, confirma la indicación, calcula el riesgo de abstinencia y determina la dosis exacta.
+                </li>
+                <li style="margin-bottom: 0;">
+                  <strong>Emisión oficial con CUIR:</strong> Se genera la receta electrónica archivada con firma digital oficial, lista para ser dispensada en cualquier farmacia del territorio nacional mediante lectura de pantalla o código de barras.
+                </li>
+              </ol>
+            </div>
+            <p>
+              El objetivo clínico es la <strong>reducción de daños y la continuidad del cuidado</strong>: cubrir de manera segura el intervalo crítico hasta que puedas reinsertarte en tu seguimiento ambulatorio habitual con tu psiquiatra tratante.
+            </p>
+          </section>
+
+          <section>
+            <h2>Preguntas Frecuentes sobre Psicofármacos y Recetas Electrónicas</h2>
+            <div style="margin-top: 1.5rem;">
+              {faqItems.map((item) => (
+                <div style="margin-bottom: 1.25rem; padding: 1.25rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                  <h3 style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem;">
+                    {item.question}
+                  </h3>
+                  <p style="font-size: 0.925rem; color: #475569; line-height: 1.6; margin: 0;">
+                    {item.answer}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <!-- Enlaces de navegación interna -->
+          <div style="margin: 3rem 0; padding: 1.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 1rem;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 0.75rem;">
+              Servicios Clínicos Relacionados en AutaMedica
+            </h3>
+            <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem; line-height: 1.6;">
+              Accedé a atención médica profesional, certificaciones y prescripciones conforme a la normativa sanitaria vigente en Argentina:
+            </p>
+            <ul style="list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+              <li>
+                <a href="/psiquiatra-online" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Consulta con Psiquiatra Online &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/receta-digital" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Receta Digital con Código CUIR &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/receta-medica-online" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Guía de Recetas Médicas Online &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/consulta-medica-express" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Consulta Médica Express &rarr;
+                </a>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+
+        <ShareButtons
+          title={article.title}
+          url={canonicalUrl}
+          description={article.description}
+          author={article.author}
+          category={article.category}
+        />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre la Dirección Médica</h3>
+            <p>
+              <strong>{article.author}</strong> — Artículo elaborado por médicos especialistas en Psiquiatría y Farmacología Clínica de AutaMedica, bajo los lineamientos éticos de la Ley 17.132 y las regulaciones sanitarias de la Ley 27.553 y el Decreto 345/2024.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/ansiedad-vs-ataque-panico" class="seo-card">
+              <span class="seo-badge">Salud Mental</span>
+              <h4>Ansiedad vs Ataque de Pánico: Diferencias Fisiológicas y Qué Hacer</h4>
+            </a>
+            <a href="/blog/receta-electronica-argentina" class="seo-card">
+              <span class="seo-badge">Marco Legal</span>
+              <h4>Receta Electrónica en Argentina: Qué Dice la Ley</h4>
+            </a>
+            <a href="/blog/insomnio-no-solo-falta-sueno" class="seo-card">
+              <span class="seo-badge">Salud Mental</span>
+              <h4>Las 3 Dimensiones del Insomnio y Por Qué Evitar la Automedicación</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

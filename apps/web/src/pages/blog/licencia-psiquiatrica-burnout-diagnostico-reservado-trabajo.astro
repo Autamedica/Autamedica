@@ -1,0 +1,415 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Burnout y estrés laboral: cómo presentar certificado médico sin revelar tu diagnóstico a tu jefe (Ley 25.326)',
+  description: 'Agotamiento extremo, ataques de pánico y depresión laboral: cómo ampararte en el derecho legal de Diagnóstico Reservado, la Ley 25.326 y la Ley 26.529 para cuidar tu salud sin sufrir discriminación en tu trabajo.',
+  author: 'Equipo de Medicina del Trabajo y Asesoría Legal AutaMedica',
+  role: 'Salud Ocupacional & Derecho Sanitario',
+  date: '24 de septiembre, 2026',
+  readTime: '9 min',
+  image: '/images/blog/salud-mental-calma.png',
+  category: 'Salud Laboral & Derechos',
+  slug: 'licencia-psiquiatrica-burnout-diagnostico-reservado-trabajo',
+};
+
+const canonicalUrl = `https://www.autamedica.com/blog/${article.slug}`;
+const publishedTime = '2026-09-24T00:00:00Z';
+
+const faqItems = [
+  {
+    question: '¿Puede mi empleador o Recursos Humanos exigirme que el certificado detalle el diagnóstico psiquiátrico?',
+    answer: 'No. Bajo la legislación argentina vigente (Ley 25.326 de Protección de Datos Personales y Ley 26.529 de Derechos del Paciente), el diagnóstico médico constituye un "dato sensible". El empleador no tiene potestad jurídica para exigir conocer la patología exacta. El certificado médico laboral es plenamente válido con la fórmula "Diagnóstico Reservado" o "Por razones de salud", indicando los días de reposo y la fecha de reintegro.',
+  },
+  {
+    question: '¿Qué información mínima debe contener el certificado médico laboral para ser legalmente inobjetable?',
+    answer: 'Debe contener la fecha de emisión, los datos del trabajador (nombre completo y DNI), la prescripción médica explícita de reposo laboral con indicación de cantidad de días o período (desde/hasta), el lugar de reposo (domicilio del paciente), los datos identificatorios del médico (nombre, apellido, matrícula nacional o provincial) y firma médica (manuscrita o digital certificada).',
+  },
+  {
+    question: '¿Qué facultades tiene el médico laboral de control de la empresa (médico de ART o patronal)?',
+    answer: 'El artículo 210 de la Ley de Contrato de Trabajo (Ley 20.744) faculta a la empresa a constatar el estado del trabajador mediante un médico auditor. No obstante, dicho médico laboral está igualmente obligado por el secreto profesional médico (art. 156 del Código Penal). El médico de control puede evaluar al paciente, pero su informe hacia la empresa debe limitarse a convalidar o no la pertinencia del reposo laboral, sin divulgar intimidades clínicas a gerencias o RRHH.',
+  },
+  {
+    question: '¿Qué es el síndrome de burnout y qué reconocimiento tiene ante la ley?',
+    answer: 'El burnout o síndrome de desgaste ocupacional está reconocido por la Organización Mundial de la Salud en la Clasificación Internacional de Enfermedades (CIE-11, código QD85) como un fenómeno ocupacional resultante del estrés crónico no gestionado con éxito en el lugar de trabajo. Provoca agotamiento de energía, distanciamiento mental y deterioro de la eficacia, constituyendo una causa médica justificada de reposo.',
+  },
+  {
+    question: '¿Cómo emite AutaMedica los certificados por estrés laboral o salud mental?',
+    answer: 'Los profesionales de AutaMedica realizan una videoconsulta de evaluación psicofísica rigurosa. Si el estado clínico amerita reposo para preservar la salud del paciente, se emite un certificado médico digital con firma electrónica/digital de validez legal nacional, provisto de código QR de verificación y preservando estrictamente la cláusula de Diagnóstico Reservado amparada por las leyes 25.326 y 26.529.',
+  },
+];
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': ['BlogPosting', 'MedicalWebPage'],
+      '@id': `${canonicalUrl}#article`,
+      isPartOf: {
+        '@type': 'Blog',
+        name: 'Blog de Salud de AutaMedica',
+        url: 'https://www.autamedica.com/blog',
+      },
+      headline: article.title,
+      description: article.description,
+      url: canonicalUrl,
+      datePublished: publishedTime,
+      dateModified: publishedTime,
+      inLanguage: 'es-AR',
+      mainEntityOfPage: canonicalUrl,
+      image: {
+        '@type': 'ImageObject',
+        url: `https://www.autamedica.com${article.image}`,
+      },
+      author: {
+        '@type': 'Organization',
+        name: article.author,
+        url: 'https://www.autamedica.com',
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'AutaMedica',
+        url: 'https://www.autamedica.com',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://www.autamedica.com/images/brand/logo_bioceramic.png',
+        },
+      },
+      about: [
+        { '@type': 'MedicalSpecialty', name: 'Occupational Medicine' },
+        { '@type': 'MedicalSpecialty', name: 'Psychiatry' },
+        { '@type': 'MedicalCondition', name: 'Burnout Syndrome' },
+        { '@type': 'MedicalCondition', name: 'Panic Disorder' },
+      ],
+      mentions: [
+        {
+          '@type': 'Legislation',
+          name: 'Ley 25326',
+          description: 'Ley de Protección de los Datos Personales (Habeas Data) en Argentina',
+        },
+        {
+          '@type': 'Legislation',
+          name: 'Ley 26529',
+          description: 'Derechos del Paciente en su Relación con los Profesionales e Instituciones de la Salud',
+        },
+        {
+          '@type': 'Legislation',
+          name: 'Ley 20744',
+          description: 'Ley de Contrato de Trabajo (artículos 208 a 210)',
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Blog',
+          item: 'https://www.autamedica.com/blog',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: article.title,
+          item: canonicalUrl,
+        },
+      ],
+    },
+  ],
+};
+---
+
+<Layout
+  title={`${article.title} | AutaMedica`}
+  description={article.description}
+  canonical={canonicalUrl}
+  ogImage={article.image}
+  ogType="article"
+  publishedTime={publishedTime}
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(articleSchema)} />
+  <Navbar />
+  <main>
+    <!-- Header Hero -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+          <span>• Actualizado septiembre 2026</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Imagen Principal -->
+    <div class="blog-image">
+      <img src={article.image} alt="Derecho al secreto médico y diagnóstico reservado en el ámbito laboral" loading="eager" />
+    </div>
+
+    <!-- Contenido del Artículo -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+
+          <section>
+            <h2>El doble calvario: colapsar por estrés y temer la represalia laboral</h2>
+            <p>
+              El cuadro suele manifestarse en silencio meses antes de que el cuerpo diga basta. Comienza con insomnio de conciliación, dolores cervicales opresivos y una irritabilidad persistente ante cualquier notificación de Slack, Teams o correo electrónico. Luego sobrevienen los domingos por la tarde cargados de una angustia visceral, los bloqueos mentales frente a la pantalla y, finalmente, el colapso: una crisis de pánico en pleno horario de oficina, llanto incontrolable en el baño o una fatiga tan aniquilante que levantarse de la cama parece físicamente imposible.
+            </p>
+            <p>
+              En ese instante límite, cuando el médico psiquiatra o el médico clínico determina que continuar trabajando pone en riesgo inminente tu integridad psicofísica y prescribe 5, 10 o 15 días de reposo, suele aparecer un miedo todavía más paralizante que el propio agotamiento:
+            </p>
+            <p>
+              <em>"Si presento un certificado que dice 'trastorno de ansiedad generalizada', 'crisis de pánico' o 'depresión reactiva', en Recursos Humanos me van a marcar como un empleado problemático, mis compañeros van a pensar que 'me volví loco', me van a apartar de los proyectos clave y, en la primera oportunidad de reestructuración, voy a ser la primera persona despedida."</em>
+            </p>
+            <p>
+              Este temor no es una paranoia infundada: el estigma en torno a la salud mental en las empresas argentinas sigue estando fuertemente arraigado. Lo que la gran mayoría de los trabajadores desconoce es que <strong>la ley argentina te protege de forma categórica e inquebrantable</strong>: tenés el derecho legal absoluto a presentar un certificado con <strong>Diagnóstico Reservado</strong>. Tu empleador no tiene ningún derecho a saber qué te pasa por dentro.
+            </p>
+          </section>
+
+          <section>
+            <h2>El escudo normativo: Ley 25.326 de Habeas Data y Ley 26.529 de Derechos del Paciente</h2>
+            <p>
+              Para desarmar la prepotencia de ciertos departamentos de personal que intimidan a los empleados exigiendo diagnósticos explícitos, es fundamental conocer los dos pilares normativos de la República Argentina:
+            </p>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1.5rem; margin: 1.5rem 0;">
+              <h3 style="color: #0f172a; margin-top: 0; font-size: 1.15rem;">1. Ley 25.326 de Protección de Datos Personales (Artículos 2 y 7)</h3>
+              <p style="color: #334155; line-height: 1.7; font-size: 0.95rem;">
+                La legislación define expresamente a los datos relativos a la salud física o psíquica como <strong>"datos sensibles"</strong>. El artículo 7 establece con claridad meridiana que <em>"ninguna persona puede ser obligada a proporcionar datos sensibles"</em> y que su tratamiento o revelación sin consentimiento expreso está terminantemente prohibido. Exigir que un empleado revele una patología psiquiátrica constituye una infracción flagrante a la ley federal de datos personales.
+              </p>
+
+              <h3 style="color: #0f172a; margin-top: 1.5rem; font-size: 1.15rem;">2. Ley 26.529 de Derechos del Paciente (Artículo 2, incisos c y d)</h3>
+              <p style="color: #334155; line-height: 1.7; font-size: 0.95rem; margin-bottom: 0;">
+                Esta ley consagra el <strong>derecho a la intimidad</strong> y el <strong>derecho a la confidencialidad</strong>. Toda la información clínica asentada en una historia clínica o en una consulta médica está blindada por el secreto profesional médico (reforzado por el artículo 156 del Código Penal, que castiga penalmente a quien divulgue secretos confiados en razón de su profesión). El médico no solo tiene el derecho, sino la <strong>obligación legal y ética</strong> de resguardar el diagnóstico si su divulgación puede perjudicar o discriminar al paciente.
+              </p>
+            </div>
+          </section>
+
+          <!-- Banner destacado CTA 1 -->
+          <div style="margin: 2.5rem 0; padding: 2rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 1rem;">
+            <span style="display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0369a1; background: #e0f2fe; padding: 0.25rem 0.75rem; border-radius: 9999px; margin-bottom: 0.75rem;">
+              Certificados Médicos Oficiales • 100% Confidencial
+            </span>
+            <h3 style="font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem;">
+              ¿Necesitás justificar reposo laboral por estrés o crisis sin exponer tu intimidad?
+            </h3>
+            <p style="font-size: 0.95rem; color: #475569; line-height: 1.6; margin: 0 0 1.25rem;">
+              En <strong>AutaMedica</strong> realizamos evaluaciones médicas serias mediante videoconsulta. Nuestros certificados laborales cuentan con firma digital homologada, verificación mediante código QR y cláusula de <strong>Diagnóstico Reservado</strong>, garantizando que tu empleador reciba un documento jurídicamente impecable sin vulnerar tu privacidad.
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+              <a
+                href="/justificativo-medico"
+                style="display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #0284c7; color: #ffffff; font-weight: 600; font-size: 0.875rem; border-radius: 0.75rem; text-decoration: none; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);"
+              >
+                Solicitar Justificativo Médico &rarr;
+              </a>
+              <a
+                href="/certificado-medico-laboral"
+                style="display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #ffffff; color: #0f172a; font-weight: 600; font-size: 0.875rem; border: 1px solid #cbd5e1; border-radius: 0.75rem; text-decoration: none;"
+              >
+                Guía de Certificado Médico Laboral
+              </a>
+            </div>
+          </div>
+
+          <section>
+            <h2>Qué dice la Ley de Contrato de Trabajo: qué tiene derecho a saber tu empleador</h2>
+            <p>
+              El régimen de licencias por enfermedades inculpables en Argentina está gobernado por los artículos 208, 209 y 210 de la <strong>Ley de Contrato de Trabajo (Ley 20.744)</strong>. Analicemos con rigor qué exige cada artículo:
+            </p>
+            <ul>
+              <li>
+                <strong>Artículo 209 (Aviso de la enfermedad):</strong> El trabajador tiene la obligación de dar aviso al empleador sobre la imposibilidad de prestar tareas laborales en el transcurso de la primera jornada de trabajo respecto de la cual estuviere imposibilitado de concurrir, indicando el lugar en que se encuentra descansando.
+              </li>
+              <li>
+                <strong>Artículo 210 (Control médico patronal):</strong> El trabajador está obligado a someterse al control que se efectúe por el facultativo designado por el empleador (el denominado médico laboral o servicio de medicina del trabajo de la empresa).
+              </li>
+            </ul>
+            <p>
+              Notá lo que la ley <strong>NO dice</strong>: en ninguna parte del texto legal se exige que el certificado médico entregado por el dependiente deba contener el diagnóstico nosológico de la patología.
+            </p>
+            <p>
+              Al empleador sólo le corresponde saber:
+            </p>
+            <ol>
+              <li>Que existe una <strong>causa médica legítima</strong> que genera una incapacidad laboral transitoria para cumplir funciones.</li>
+              <li>La <strong>duración exacta</strong> de la licencia (cantidad de días de reposo recomendados y fecha estimada de alta o reevaluación).</li>
+              <li>El <strong>lugar donde el trabajador permanece</strong> cumpliendo el reposo (para que la empresa pueda enviar al médico de control si así lo decide).</li>
+            </ol>
+          </section>
+
+          <section>
+            <h2>El límite ético y legal del médico auditor de la empresa</h2>
+            <p>
+              Muchas empresas, al recibir un certificado con la leyenda <em>"Diagnóstico Reservado amparado en Leyes 25.326 y 26.529"</em>, envían un médico laboral al domicilio del trabajador o lo citan a un consultorio externo de control.
+            </p>
+            <p>
+              ¿Qué puede y qué no puede hacer ese médico laboral de la empresa?
+            </p>
+            <p>
+              El médico auditor es un profesional matriculado regido por el Código de Ética Médica y el artículo 156 del Código Penal. Durante el examen de control, el trabajador puede comentarle sus síntomas y antecedentes médicos en el estricto ámbito de la relación médico-paciente. Sin embargo, <strong>el médico auditor NO puede transmitirle a la gerencia de Recursos Humanos ni al jefe directo el contenido de esa conversación íntima</strong>.
+            </p>
+            <p>
+              El informe que el médico de control emite para la empresa debe limitarse exclusivamente a una conclusión técnico-laboral:
+            </p>
+            <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 1rem 1.25rem; border-radius: 0.5rem; margin: 1.25rem 0;">
+              <p style="margin: 0; color: #065f46; font-size: 0.95rem; font-weight: 500;">
+                <em>"En el día de la fecha se procedió al examen de control del dependiente. Se constata la existencia de cuadro clínico compatible con la incapacidad laboral temporaria dictaminada por su médico tratante, aconsejándose la convalidación del reposo laboral por el lapso de X días."</em>
+              </p>
+            </div>
+            <p>
+              Si el médico auditor revela detalles sobre la salud mental del empleado a directivos de la compañía, comete el delito de violación de secreto profesional y puede ser denunciado penalmente y ante el Tribunal de Ética del Colegio Médico correspondiente.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué responder si en Recursos Humanos insisten con rechazar tu certificado</h2>
+            <p>
+              Si en tu trabajo te envían un mensaje afirmando: <em>"La empresa no acepta certificados con diagnóstico reservado, tenés que traer uno con el código de la enfermedad o no te justificamos los días"</em>, tenés que responder con serenidad, por escrito y fundamentando tu postura legal:
+            </p>
+            <blockquote style="border-left: 3px solid #0284c7; padding-left: 1rem; color: #334155; font-style: normal; background: #f8fafc; padding: 1rem; border-radius: 0.5rem;">
+              "Estimados: En cumplimiento de los arts. 208 y 209 de la Ley de Contrato de Trabajo, he cumplido debidamente con el aviso de inasistencia y la acreditación médica del reposo prescripto por profesional matriculado. Asimismo, les informo que conforme a los arts. 2 y 7 de la Ley 25.326 de Protección de Datos Personales y el art. 2 de la Ley 26.529 de Derechos del Paciente, el diagnóstico médico específico constituye un dato sensible sujeto a confidencialidad y secreto profesional. Pongo mi domicilio a disposición para el examen que estime conveniente realizar el servicio médico laboral de la empresa conforme a las facultades del art. 210 de la LCT."
+            </blockquote>
+            <p>
+              Ante una respuesta fundada en la ley, el 99% de las áreas de personal desisten de su requerimiento ilegal, ya que cualquier sanción, apercibimiento o descuento salarial basado en el rechazo de un certificado médico emitido por profesional matriculado expone a la empresa a un reclamo por despido indirecto y discriminación laboral (Ley 23.592).
+            </p>
+          </section>
+
+          <section>
+            <h2>Preguntas Frecuentes sobre Certificados Laborales y Salud Mental</h2>
+            <div style="margin-top: 1.5rem;">
+              {faqItems.map((item) => (
+                <div style="margin-bottom: 1.25rem; padding: 1.25rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem;">
+                  <h3 style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem;">
+                    {item.question}
+                  </h3>
+                  <p style="font-size: 0.925rem; color: #475569; line-height: 1.6; margin: 0;">
+                    {item.answer}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <!-- Enlaces de navegación interna -->
+          <div style="margin: 3rem 0; padding: 1.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 1rem;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 0.75rem;">
+              Servicios de Certificación Médica y Salud Ocupacional
+            </h3>
+            <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem; line-height: 1.6;">
+              Obtené constancias médicas oficiales emitidas por profesionales matriculados con total respaldo ético y legal:
+            </p>
+            <ul style="list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+              <li>
+                <a href="/justificativo-medico" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Justificativo Médico Laboral &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/certificado-medico-laboral" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Certificado Médico Laboral y ART &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/certificado-medico-online" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Certificado Médico Online Oficial &rarr;
+                </a>
+              </li>
+              <li>
+                <a href="/certificados-medicos" style="display: block; padding: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.5rem; text-decoration: none; color: #0369a1; font-weight: 600; font-size: 0.85rem;">
+                  Hub Central de Certificados &rarr;
+                </a>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+
+        <ShareButtons
+          title={article.title}
+          url={canonicalUrl}
+          description={article.description}
+          author={article.author}
+          category={article.category}
+        />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo de Asesoría Médica y Legal</h3>
+            <p>
+              <strong>{article.author}</strong> — Contenido revisado por médicos del trabajo y abogados especialistas en derecho sanitario y laboral de AutaMedica, bajo la estricta vigencia de las leyes 20.744, 25.326 y 26.529.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/burnout-medico-argentina" class="seo-card">
+              <span class="seo-badge">Salud Ocupacional</span>
+              <h4>Burnout en Profesionales de la Salud: Causas y Señales</h4>
+            </a>
+            <a href="/blog/privacidad-datos-salud-argentina" class="seo-card">
+              <span class="seo-badge">Privacidad y Legal</span>
+              <h4>Privacidad de Datos de Salud en Argentina: Qué Exigir</h4>
+            </a>
+            <a href="/blog/ausentismo-laboral-salud-costo" class="seo-card">
+              <span class="seo-badge">Gestión Laboral</span>
+              <h4>Ausentismo Laboral por Salud: El Costo Real del Estrés</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

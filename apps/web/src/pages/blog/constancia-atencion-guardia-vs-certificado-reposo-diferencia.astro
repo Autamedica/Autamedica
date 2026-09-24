@@ -1,0 +1,483 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Constancia de atención en guardia vs. certificado de reposo: cómo evitar que te descuenten el día de trabajo',
+  author: 'Equipo AutaMedica',
+  role: 'Medicina Laboral y Gestión de Ausentismo',
+  date: '24 de septiembre, 2026',
+  readTime: '8 min',
+  image: '/images/article_telemed.webp',
+  category: 'Guías Laborales',
+};
+
+const canonicalUrl = 'https://www.autamedica.com/blog/constancia-atencion-guardia-vs-certificado-reposo-diferencia';
+const publishedTime = '2026-09-24T00:00:00Z';
+
+const faqItems = [
+  {
+    question: '¿Una constancia de atención en guardia justifica la ausencia a toda la jornada laboral?',
+    answer:
+      'No necesariamente. La constancia de atención solo certifica el rango horario en que permaneciste en el establecimiento de salud (por ejemplo, de 09:00 a 12:30 hs). Salvo que el médico consigne expresamente que se indica reposo laboral por el resto del día o por 24/48 horas, la empresa tiene la potestad de computar inasistencia injustificada sobre las horas restantes del turno de trabajo.',
+  },
+  {
+    question: '¿Qué debe decir el certificado para que Recursos Humanos no pueda descontar el presentismo?',
+    answer:
+      'El documento debe contener la prescripción explícita de reposo laboral o inaptitud para prestar tareas laborales, indicando con precisión la cantidad de horas o días de reposo necesarios para la recuperación (Art. 208 LCT), junto con fecha, hora, datos del paciente y firma/matrícula del profesional.',
+  },
+  {
+    question: '¿Qué hago si el médico de guardia solo me dio una constancia horaria pero sigo enfermo en cama?',
+    answer:
+      'Podés complementar tu atención mediante una teleconsulta médica formal. Un médico clínico evalúa tu cuadro clínico, valora los síntomas sobrevinientes y emite un certificado médico de reposo laboral con valor legal pleno bajo la Ley 27.553 y código CUIR, notificando fehacientemente a tu empleador según el Art. 209 de la LCT.',
+  },
+  {
+    question: '¿Por qué en los hospitales públicos y sanatorios suelen negar el reposo médico laboral?',
+    answer:
+      'Las guardias de emergencias están diseñadas para resolver urgencias vitales con alta rotación de pacientes. Por protocolos internos de sobrecarga asistencial o políticas restrictivas de prestadores, muchas veces el personal administrativo emite por defecto plantillas de constancia de asistencia horaria en lugar de redactar un certificado prescriptivo de reposo individualizado.',
+  },
+];
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BlogPosting',
+      headline: article.title,
+      description:
+        'Diferencias legales y laborales entre una constancia de atención en guardia y un certificado de reposo médico. Cómo evitar descuentos de sueldo y presentismo bajo la Ley de Contrato de Trabajo N° 20.744.',
+      image: [`https://www.autamedica.com${article.image}`],
+      datePublished: publishedTime,
+      dateModified: publishedTime,
+      inLanguage: 'es-AR',
+      mainEntityOfPage: canonicalUrl,
+      author: {
+        '@type': 'Organization',
+        name: article.author,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'AutaMedica',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://www.autamedica.com/images/brand/app_icon_glass.png',
+        },
+      },
+      isPartOf: {
+        '@type': 'Blog',
+        name: 'Blog de Salud y Derecho Sanitario de AutaMedica',
+        url: 'https://www.autamedica.com/blog',
+      },
+      about: [
+        { '@type': 'Thing', name: 'Constancia de Atención Médica' },
+        { '@type': 'Thing', name: 'Certificado de Reposo Laboral' },
+        { '@type': 'Legislation', name: 'Ley de Contrato de Trabajo Artículo 208' },
+        { '@type': 'MedicalSpecialty', name: 'Occupational Medicine' },
+      ],
+      mentions: [
+        {
+          '@type': 'Legislation',
+          name: 'Ley 20.744',
+          url: 'https://servicios.infoleg.gob.ar/infolegInternet/anexos/25000-29999/25552/texact.htm',
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Blog',
+          item: 'https://www.autamedica.com/blog',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: article.title,
+          item: canonicalUrl,
+        },
+      ],
+    },
+  ],
+};
+---
+
+<Layout
+  title={article.title}
+  description="Esperaste 5 horas en la guardia y te dieron una constancia horaria. Por qué Recursos Humanos te descuenta el día y el presentismo, y cómo exigir el certificado de reposo correcto."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime={publishedTime}
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(articleSchema)} />
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+          <span>Actualizado septiembre 2026</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt="Diferencia entre constancia de guardia y certificado médico de reposo" loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <!-- Introducción -->
+          <section>
+            <h2>La trampa de esperar 5 horas en la guardia para volver con las manos vacías</h2>
+            <p>
+              La escena se repite cotidianamente en hospitales públicos y sanatorios privados de toda la Argentina: un trabajador amanece con fiebre alta, dolor articular o una crisis gastrointestinal severa. Cumple con avisar a su trabajo antes del ingreso y se traslada como puede a una guardia médica.
+            </p>
+            <p>
+              Pasa cuatro o cinco horas en una sala de espera ruidosa, entre personas tosiendo y demoras extenuantes. Finalmente lo atienden durante seis minutos en el consultorio de guardia, le aplican un inyectable o le entregan una receta de analgesia y le dicen: <em>"Andá a ventanilla que te dan la constancia para el trabajo"</em>.
+            </p>
+            <p>
+              El empleado retira el papel membretado, vuelve a su casa, duerme para recuperarse y envía la foto del comprobante a Recursos Humanos con la total tranquilidad de haber justificado su ausencia.
+            </p>
+            <p>
+              El golpe llega a fin de mes con el recibo de sueldo:
+            </p>
+            <div class="warning-box">
+              <span class="warning-badge">Liquidación Salarial Imprevista</span>
+              <p class="warning-text"><strong>Descuento por inasistencia injustificada:</strong> -1 jornada completa de salario.</p>
+              <p class="warning-text"><strong>Pérdida de adicional por puntualidad y presentismo:</strong> -$40.000 a -$90.000 (según el Convenio Colectivo de Trabajo).</p>
+            </div>
+            <p>
+              Al reclamar a Recursos Humanos, la respuesta es tajante e inapelable: <em>"El papel que trajiste es una constancia de asistencia horaria que certifica que estuviste en la guardia de 09:15 a 13:40 hs. Tu jornada laboral terminaba a las 18:00 hs. No presentaste indicación de reposo médico domiciliario, por lo que tenías la obligación de presentarte a trabajar al terminar la atención o justificar el resto de las horas con un certificado de reposo"</em>.
+            </p>
+            <p>
+              Aunque la situación resulte frustrante y desconsiderada, desde el punto de vista del derecho laboral estricto, <strong>la empresa tiene la ley a su favor si el papel no contiene orden expresa de reposo</strong>.
+            </p>
+          </section>
+
+          <!-- Diferencia Técnica y Legal -->
+          <section>
+            <h2>1. Diferencias técnicas y jurídicas: No todo papel de sanatorio es un certificado</h2>
+            <p>
+              En la práctica administrativa y legal argentina existen dos instrumentos completamente distintos que jamás deben confundirse:
+            </p>
+
+            <div class="comparison-grid">
+              <div class="comparison-card">
+                <span class="card-tag tag-blue">Instrumento Administrativo</span>
+                <h3>Constancia de Atención o Asistencia</h3>
+                <ul>
+                  <li><strong>Qué acredita:</strong> Que la persona física se encontró presente en el establecimiento de salud durante una franja horaria acotada (ej. de 10:00 a 12:30 hs).</li>
+                  <li><strong>Naturaleza médica:</strong> Es un comprobante meramente constatativo, no prescriptivo. No evalúa tu capacidad para trabajar en las horas posteriores.</li>
+                  <li><strong>Efecto en el trabajo:</strong> Solo justifica las horas efectivas de permanencia en el nosocomio y el tiempo de traslado prudencial. No justifica ausentarse todo el día ni faltar al día siguiente.</li>
+                  <li><strong>Riesgo patronal:</strong> Si tu turno continúa después de la hora consignada en el papel, RRHH puede imputar abandono de jornada o falta sin goce de sueldo.</li>
+                </ul>
+              </div>
+
+              <div class="comparison-card highlight-card">
+                <span class="card-tag tag-emerald">Acto Médico Prescriptivo</span>
+                <h3>Certificado Médico con Reposo Laboral</h3>
+                <ul>
+                  <li><strong>Qué acredita:</strong> Que el paciente padece una patología clínica que le ocasiona una <strong>inaptitud psicofísica transitoria para prestar tareas laborales</strong>.</li>
+                  <li><strong>Naturaleza médica:</strong> Es una prescripción terapéutica obligatoria dictada por un profesional en ejercicio de su arte de curar.</li>
+                  <li><strong>Efecto en el trabajo:</strong> Amparado por el <strong>Artículo 208 de la Ley de Contrato de Trabajo (LCT)</strong>. El empleador está legalmente obligado a abonar el 100% de los salarios devengados durante los días de reposo indicados.</li>
+                  <li><strong>Protección del presentismo:</strong> La inasistencia queda plenamente justificada de acuerdo con las pautas del convenio colectivo correspondiente.</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- Marco normativo: Art 208 LCT -->
+          <section>
+            <h2>2. Qué exige el Artículo 208 de la LCT para pagar los salarios de reposo</h2>
+            <p>
+              El Artículo 208 de la Ley N° 20.744 establece que los accidentes y enfermedades inculpables que impidan la prestación del servicio no afectarán el derecho del trabajador a percibir su remuneración.
+            </p>
+            <p>
+              Sin embargo, la palabra clave del artículo es <strong>"impidan"</strong>. El derecho al cobro de haberes no nace por haber pisado un hospital: nace de la <em>imposibilidad psicofísica de ejecutar la labor contratada</em>.
+            </p>
+            <p>
+              Si el documento emitido por la institución médica solo consigna que estuviste esperando en la guardia pero omite la frase <em>"se indica reposo domiciliario por 24 horas"</em> o <em>"inaptitud laboral por 48 horas"</em>, el auditor médico de la empresa interpreta que el cuadro clínico no revestía gravedad impeditiva y que, finalizada la consulta, estabas en condiciones de retornar a tus tareas habituales.
+            </p>
+          </section>
+
+          <!-- Banner destacado de conversión institucional -->
+          <div class="blog-cta-box">
+            <span class="cta-kicker">Solución Inmediata en Salud</span>
+            <h3 class="cta-title">¿Saliste de la guardia con una constancia horaria y no das más del dolor?</h3>
+            <p class="cta-desc">
+              No esperes otras 5 horas en una sala de espera ni arriesgues tu salario. En <strong>AutaMedica</strong> realizás una videoconsulta inmediata con un médico matriculado que evalúa tu cuadro, analiza la atención previa y emite un certificado médico oficial con reposo laboral legal (Ley 27.553) y código CUIR inmutable.
+            </p>
+            <div class="cta-actions">
+              <a href="/certificado-medico-reposo" class="btn-primary">
+                Certificado Médico de Reposo &rarr;
+              </a>
+              <a href="/constancia-atencion-medica" class="btn-secondary">
+                Constancia de Atención Médica
+              </a>
+            </div>
+          </div>
+
+          <!-- Por qué en la guardia no dan reposo -->
+          <section>
+            <h2>3. Por qué los médicos de guardia retacean el certificado de reposo</h2>
+            <p>
+              Muchos trabajadores se preguntan indignados: <em>"¿Por qué el médico me vio con fiebre o gastroenteritis y solo me firmó un papel que dice que estuve ahí?"</em>.
+            </p>
+            <p>
+              La explicación radica en la dinámica asistencial y administrativa de los servicios de urgencia:
+            </p>
+            <ol>
+              <li>
+                <strong>Sobrecarga del sistema de triaje:</strong> Las guardias están diseñadas para riesgo de vida, emergencias y patologías agudas no diferibles. Atender a 60 pacientes por médico en turnos de 24 horas genera una presión enorme para evacuar la sala con rapidez.
+              </li>
+              <li>
+                <strong>Directivas administrativas restrictivas:</strong> Muchas prepagas, sanatorios privados y obras sociales bajan instrucciones implícitas a sus médicos de guardia para limitar la emisión de certificados de reposo prolongado, derivando esa responsabilidad al médico de cabecera en consultorio externo.
+              </li>
+              <li>
+                <strong>El cuello de botella de la ventanilla administrativa:</strong> En muchas instituciones, el médico atiende al paciente y le dice verbalmente <em>"andá a descansar a tu casa"</em>, pero el paciente retira el comprobante en una ventanilla administrativa donde el personal no médico imprime automáticamente una plantilla genérica de "asistencia de pacientes" sin consultar la historia clínica.
+              </li>
+            </ol>
+          </section>
+
+          <!-- Cómo exigir el certificado correcto -->
+          <section>
+            <h2>4. Cómo pedir la indicación médica correcta antes de retirarte de la guardia</h2>
+            <p>
+              Para blindar tu salario y evitar conflictos con Recursos Humanos, nunca te retires del consultorio de guardia sin verificar el documento. Seguí este protocolo de diálogo con el profesional:
+            </p>
+
+            <div class="dialogue-box">
+              <span class="dialogue-tag">Pregunta Fundamental en Consultorio</span>
+              <p class="dialogue-text">
+                <em>"Doctor/a: por los síntomas que tengo y la medicación que me indicó, ¿estoy en condiciones de trabajar hoy o mañana?"</em>
+              </p>
+              <p class="dialogue-note">
+                Si el médico te responde que debés quedarte en cama o descansar, solicitale de inmediato con cortesía pero con total firmeza:
+              </p>
+              <p class="dialogue-text">
+                <em>"Por favor, ¿podría asentar expresamente en el certificado que se me indican [24 / 48] horas de reposo laboral a partir de hoy? En mi trabajo me descuentan el día completo si no figura la orden médica de reposo domiciliario."</em>
+              </p>
+            </div>
+
+            <p>
+              Antes de salir del sanatorio, revisá que el documento cumpla indefectiblemente con estos <strong>5 elementos indispensables</strong>:
+            </p>
+            <ul>
+              <li><strong>Tus datos personales exactos:</strong> Nombre, apellido completo y número de DNI legibles sin tachaduras.</li>
+              <li><strong>Fecha y hora cierta:</strong> Con indicación del momento de inicio y finalización del acto médico.</li>
+              <li><strong>Indicación explícita de reposo:</strong> Frases claras como <em>"Se indica reposo psicofísico laboral por 48 hs"</em> o <em>"Inaptitud laboral transitoria desde el día de la fecha"</em>.</li>
+              <li><strong>Sello y matrícula del médico tratante:</strong> Número de Matrícula Nacional (MN) o Provincial (MP) y firma legible.</li>
+              <li><strong>Identificación institucional:</strong> Membrete oficial de la institución médica pública o privada.</li>
+            </ul>
+          </section>
+
+          <!-- Tabla de cotejo -->
+          <section>
+            <h2>5. Comparativa directa: Qué cubre cada comprobante</h2>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Aspecto Evaluado</th>
+                    <th>Constancia de Asistencia en Guardia</th>
+                    <th>Certificado Médico con Reposo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Validez temporal</strong></td>
+                    <td>Exclusivamente la franja horaria consignada en el papel.</td>
+                    <td>Las 24, 48, 72 horas o días corridos que ordene el facultativo.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Cobro de salarios (Art. 208 LCT)</strong></td>
+                    <td>Solo cubre las horas dentro del hospital; el resto puede ser descontado.</td>
+                    <td>Obliga al empleador a abonar la totalidad del salario de los días indicados.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Presentismo y puntualidad</strong></td>
+                    <td>Alto riesgo de pérdida del adicional por jornada incompleta no justificada.</td>
+                    <td>Protegido bajo la figura de enfermedad inculpable debidamente justificada.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Fiscalización patronal (Art. 210 LCT)</strong></td>
+                    <td>No aplica control domiciliario, ya que no se declaró reposo en domicilio.</td>
+                    <td>La empresa puede enviar médico de control laboral a tu domicilio.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Enlaces recomendados al cluster de certificados -->
+          <div class="cluster-links">
+            <h3 class="cluster-title">Soluciones Sanitarias para Ámbitos Laborales</h3>
+            <p class="cluster-desc">
+              Conocé cómo tramitar tus documentos médicos con validez legal garantizada y sin esperas innecesarias:
+            </p>
+            <ul class="cluster-grid">
+              <li>
+                <a href="/constancia-atencion-medica" class="cluster-card">
+                  <strong>Constancia de Atención Médica &rarr;</strong>
+                  <span>Comprobante de atención por telemedicina para gestiones administrativas.</span>
+                </a>
+              </li>
+              <li>
+                <a href="/certificado-medico-reposo" class="cluster-card">
+                  <strong>Certificado Médico de Reposo &rarr;</strong>
+                  <span>Licencia domiciliaria y justificación laboral de inaptitud psicofísica.</span>
+                </a>
+              </li>
+              <li>
+                <a href="/certificados-medicos" class="cluster-card">
+                  <strong>Hub de Certificados Médicos &rarr;</strong>
+                  <span>Toda la información sobre validez legal, normativas y tipos de certificados.</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <ShareButtons
+          title={article.title}
+          url={canonicalUrl}
+          description="Constancia de atención en guardia vs. certificado de reposo: conocé por qué Recursos Humanos te descuenta el día y cómo pedir el documento correcto."
+          author={article.author}
+          category={article.category}
+        />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo de Redacción</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — Especialistas en medicina laboral, gestión hospitalaria y derechos de los trabajadores. Nuestro objetivo es evitar que la burocracia administrativa perjudique los derechos salariales y de salud de las personas.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/empleador-rechaza-certificado-medico-telemedicina-validez" class="seo-card">
+              <span class="seo-badge">Legislación Laboral</span>
+              <h4>¿Tu empleador rechazó el certificado de telemedicina? Qué dice la Ley (Art. 210 LCT)</h4>
+            </a>
+            <a href="/blog/certificados-medicos-truchos-telegram-peligros-legales" class="seo-card">
+              <span class="seo-badge">Marco Legal</span>
+              <h4>El peligro de comprar certificados en Telegram: despido con causa y delito penal</h4>
+            </a>
+            <a href="/blog/cuando-ir-guardia-cuando-esperar" class="seo-card">
+              <span class="seo-badge">Guía Práctica</span>
+              <h4>Cuándo Ir a la Guardia y Cuándo Puede Esperar: Guía de Triage</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 760px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: clamp(1.4rem, 2.5vw, 1.85rem); font-weight: 700; color: #0f172a; margin: 2.75rem 0 1rem; text-align: left; line-height: 1.3; }
+  .blog-prose h3 { font-size: 1.2rem; font-weight: 600; color: #0f172a; margin: 2rem 0 0.75rem; }
+  .blog-prose p { color: #334155; line-height: 1.8; margin-bottom: 1.25rem; font-size: 1.05rem; }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: 1.5rem; }
+  .blog-prose li { color: #334155; line-height: 1.75; margin-bottom: 0.6rem; font-size: 1.02rem; }
+  .blog-prose strong { color: #0f172a; font-weight: 600; }
+  .blog-back { display: inline-block; color: #0284c7; text-decoration: none; font-size: 0.875rem; font-weight: 500; margin-bottom: 1.5rem; }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-top: 1rem; font-size: 0.875rem; color: #64748b; }
+  .blog-image { width: 100%; max-width: 760px; margin: 0 auto 2.5rem; border-radius: 1rem; overflow: hidden; border: 1px solid #e2e8f0; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  
+  /* Cajas de Advertencia Salarial (Rojo sin amarillo) */
+  .warning-box { background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: 0.875rem; padding: 1.25rem 1.5rem; margin: 1.75rem 0; }
+  .warning-badge { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #b91c1c; background: #fee2e2; padding: 0.25rem 0.65rem; border-radius: 9999px; margin-bottom: 0.75rem; }
+  .warning-text { font-size: 0.95rem; color: #991b1b; margin-bottom: 0.5rem; line-height: 1.6; }
+  .warning-text:last-child { margin-bottom: 0; }
+  
+  /* Cajas de Diálogo y Protocolo */
+  .dialogue-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 0.875rem; padding: 1.5rem; margin: 1.75rem 0; }
+  .dialogue-tag { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0369a1; background: #e0f2fe; padding: 0.25rem 0.65rem; border-radius: 9999px; margin-bottom: 0.75rem; }
+  .dialogue-text { font-size: 1.05rem; color: #0f172a; margin-bottom: 0.75rem; line-height: 1.6; }
+  .dialogue-note { font-size: 0.92rem; color: #475569; margin-bottom: 0.75rem; line-height: 1.55; }
+  
+  /* Grilla comparativa */
+  .comparison-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; margin: 2rem 0; }
+  .comparison-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04); }
+  .highlight-card { border-color: #a7f3d0; background: #f0fdf4; }
+  .card-tag { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.25rem 0.65rem; border-radius: 9999px; margin-bottom: 0.75rem; }
+  .tag-blue { color: #0369a1; background: #e0f2fe; }
+  .tag-emerald { color: #047857; background: #d1fae5; }
+  .comparison-card h3 { font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 1rem; }
+  .comparison-card ul { list-style: none; padding: 0; margin: 0; }
+  .comparison-card li { font-size: 0.9rem; color: #334155; margin-bottom: 0.75rem; line-height: 1.55; }
+  .comparison-card li:last-child { margin-bottom: 0; }
+  
+  /* Tablas de datos */
+  .table-container { overflow-x: auto; margin: 2rem 0; border: 1px solid #e2e8f0; border-radius: 0.875rem; }
+  .data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
+  .data-table th { background: #f8fafc; padding: 1rem; color: #0f172a; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+  .data-table td { padding: 1rem; color: #334155; border-bottom: 1px solid #e2e8f0; vertical-align: top; line-height: 1.6; }
+  .data-table tr:last-child td { border-bottom: none; }
+  
+  /* CTA Box */
+  .blog-cta-box { margin: 2.75rem 0; padding: 2rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 1rem; }
+  .cta-kicker { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #0369a1; background: #e0f2fe; padding: 0.25rem 0.75rem; border-radius: 9999px; margin-bottom: 0.75rem; }
+  .cta-title { font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem; }
+  .cta-desc { font-size: 0.95rem; color: #475569; line-height: 1.6; margin: 0 0 1.25rem; }
+  .cta-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .btn-primary { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #0284c7; color: #ffffff; font-weight: 600; font-size: 0.875rem; border-radius: 0.75rem; text-decoration: none; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25); }
+  .btn-primary:hover { background: #0369a1; }
+  .btn-secondary { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; background: #ffffff; color: #0f172a; font-weight: 600; font-size: 0.875rem; border: 1px solid #cbd5e1; border-radius: 0.75rem; text-decoration: none; }
+  .btn-secondary:hover { background: #f8fafc; }
+  
+  /* Cluster de links */
+  .cluster-links { margin: 3rem 0; padding: 1.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 1rem; }
+  .cluster-title { font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: #0f172a; margin: 0 0 0.5rem; }
+  .cluster-desc { font-size: 0.9rem; color: #64748b; margin-bottom: 1.25rem; line-height: 1.6; }
+  .cluster-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.85rem; }
+  .cluster-card { display: flex; flex-direction: column; gap: 0.25rem; padding: 1rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; text-decoration: none; color: #0f172a; transition: border-color 0.2s; }
+  .cluster-card:hover { border-color: #0284c7; }
+  .cluster-card strong { color: #0284c7; font-size: 0.9rem; }
+  .cluster-card span { font-size: 0.8rem; color: #64748b; line-height: 1.4; }
+
+  /* Autor y relacionados */
+  .blog-author { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.875rem; padding: 1.5rem; margin: 3rem auto; max-width: 760px; }
+  .blog-author h3 { font-size: 1.1rem; color: #0f172a; margin-bottom: 0.5rem; }
+  .blog-author p { color: #475569; margin: 0; font-size: 0.92rem; line-height: 1.6; }
+  .blog-related { max-width: 760px; margin: 3.5rem auto 0; }
+  .blog-related h3 { font-size: 1.25rem; color: #0f172a; margin-bottom: 1.5rem; }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: #0f172a; font-size: 1rem; font-weight: 600; line-height: 1.4; margin: 0.75rem 0 0; }
+</style>
