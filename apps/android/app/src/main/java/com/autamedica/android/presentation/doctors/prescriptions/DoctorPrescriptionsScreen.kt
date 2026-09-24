@@ -701,7 +701,7 @@ private fun StatusBadge(prescription: Prescription) {
         prescription.isCancelled -> Triple(stringResource(R.string.doctor_rx_badge_cancelled), AuDanger.copy(alpha = 0.12f), AuDanger)
         prescription.isDispensed -> Triple(stringResource(R.string.doctor_rx_badge_dispensed), Color(0xFF0284C7).copy(alpha = 0.12f), Color(0xFF0284C7))
         prescription.isActive -> Triple(stringResource(R.string.doctor_rx_badge_active), AuSuccess.copy(alpha = 0.12f), AuSuccess)
-        prescription.isExpired -> Triple(stringResource(R.string.doctor_rx_badge_expired), Color(0xFFEAB308).copy(alpha = 0.12f), Color(0xFFCA8A04))
+        prescription.isExpired -> Triple(stringResource(R.string.doctor_rx_badge_expired), Color(0xFF64748B).copy(alpha = 0.12f), Color(0xFF475569))
         else -> Triple(prescription.status.uppercase(), AuSurfaceHover, AuTextSecondary)
     }
 

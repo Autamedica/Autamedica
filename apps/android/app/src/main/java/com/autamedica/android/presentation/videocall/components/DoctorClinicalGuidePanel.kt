@@ -192,12 +192,12 @@ fun DoctorClinicalGuidePanel(
                             Icon(
                                 imageVector = Icons.Filled.Warning,
                                 contentDescription = null,
-                                tint = Color(0xFFFBBF24),
+                                tint = Color(0xFF06B6D4),
                                 modifier = Modifier.size(13.dp),
                             )
                             Text(
                                 text = flag,
-                                color = Color(0xFFFDE68A),
+                                color = Color(0xFFE0F2FE),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
@@ -255,7 +255,7 @@ private fun GuideQuestionRow(
 ) {
     val priorityColor = when (question.priority) {
         "critical" -> Color(0xFFEF4444)
-        "high" -> Color(0xFFF59E0B)
+        "high" -> Color(0xFF06B6D4)
         else -> Color(0xFF38BDF8)
     }
 

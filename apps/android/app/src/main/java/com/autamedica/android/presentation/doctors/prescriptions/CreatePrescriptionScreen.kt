@@ -356,8 +356,8 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
 
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = if (isEligible) AuSuccess.copy(alpha = 0.08f) else Color(0xFFFEF3C7),
-        border = BorderStroke(1.dp, if (isEligible) AuSuccess.copy(alpha = 0.25f) else Color(0xFFF59E0B)),
+        color = if (isEligible) AuSuccess.copy(alpha = 0.08f) else AuCrimson.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, if (isEligible) AuSuccess.copy(alpha = 0.25f) else AuCrimson.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -368,7 +368,7 @@ private fun DoctorRegulatoryBanner(eligibility: com.autamedica.android.domain.mo
             Icon(
                 imageVector = if (isEligible) Icons.Outlined.CheckCircle else Icons.Default.Warning,
                 contentDescription = null,
-                tint = if (isEligible) AuSuccess else Color(0xFFD97706),
+                tint = if (isEligible) AuSuccess else AuCrimson,
                 modifier = Modifier.size(20.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
