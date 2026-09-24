@@ -64,7 +64,7 @@
     if (!prompt || !updateBtn || !dismissBtn) return;
 
     // Escuchar el evento de actualización lanzado desde Layout.astro
-    window.addEventListener('pwa:update-available', (event: any) => {
+    window.addEventListener('pwa:update-available', (event) => {
       console.log('[PWA] UI de actualización capturó evento.');
       newWorkerRegistration = event.detail;
 
