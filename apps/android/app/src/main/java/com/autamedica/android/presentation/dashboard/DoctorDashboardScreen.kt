@@ -122,6 +122,10 @@ import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.domain.model.PharmacyConsultationRequest
 import com.autamedica.android.domain.model.PharmacyDispatchRequest
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
+import com.autamedica.android.presentation.dashboard.components.DoctorCockpitHeader
+import com.autamedica.android.presentation.dashboard.components.LivePatientRadarDrawer
+import com.autamedica.android.presentation.dashboard.components.NubankClinicalMetricsSection
+import com.autamedica.android.presentation.dashboard.components.QuickClinicalActionsBar
 import com.autamedica.android.presentation.dashboard.components.UberIncomingDispatchAlert
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuTextPrimary
@@ -301,40 +305,69 @@ fun DoctorDashboardScreen(
                     val nextReason = cleanConsultationReason(nextInQueue.notes, nextInQueue.type, 0)
                     val isNextJoinable = nextInQueue.id in uiState.joinableAppointmentIds || nextInQueue.isTelemedicineJoinCandidate()
 
+                    var inspectingPatient by remember { mutableStateOf<QueuedPatient?>(null) }
+
+                    inspectingPatient?.let { patient ->
+                        PreConsultationBottomSheet(
+                            patient = patient,
+                            onDismiss = { inspectingPatient = null },
+                        )
+                    }
+
                     LazyColumn(
                         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 140.dp),
-                        verticalArrangement = Arrangement.spacedBy(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(22.dp),
                     ) {
-                        // 1. Cabecera médica y saludo
+                        // 1. COCKPIT HEADER & STATUS RING (Uber Driver + Epic Haiku)
                         item {
-                            DoctorGreetingHeader(
-                                name = uiState.userName,
+                            DoctorCockpitHeader(
+                                doctorName = uiState.userName,
+                                specialty = uiState.doctorProfile?.specialty,
                                 licenseNumber = uiState.doctorProfile?.licenseNumber,
-                            )
-                        }
-
-                        // 2. EL PROTAGONISTA: HERO DE GUARDIA ON-DEMAND (Uber Driver para médicos)
-                        // Card radius: 28dp, Switch Muy Grande (Uber Driver scale 1.5f)
-                        item {
-                            AutaMedicaOsDutyHero(
+                                avatarUrl = null,
                                 isOnDuty = uiState.pharmacyOnDutyState.isOnDuty,
                                 isLoading = uiState.pharmacyOnDutyState.isLoading,
                                 onToggleOnDuty = viewModel::togglePharmacyOnDuty,
                             )
                         }
 
-                        // 3. COLA DE PACIENTES EN TIEMPO REAL (Despacho Uber Driver)
-                        // Triaje por colores: Rojo urgencia, Amarillo prioritario, Azul control
+                        // 2. NUBANK-STYLE METRICS TICKER (FinTech / Clinical KPIs)
                         item {
-                            LivePatientQueueSection(
-                                isOnDuty = uiState.pharmacyOnDutyState.isOnDuty,
-                                liveWaitingQueue = uiState.liveWaitingQueue,
-                                activelyDispatchedPatientId = uiState.activelyDispatchedPatientId,
+                            NubankClinicalMetricsSection(
+                                stats = uiState.stats,
+                                consultationsTodayCount = uiState.todayAppointments.count { it.status == AppointmentStatus.COMPLETED },
+                                accumulatedEarnings = "R$ 1.840,00",
+                                averageResponseTime = "1.8 min",
+                                acceptanceRate = "99.2%",
+                                onOpenFinancials = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
                             )
                         }
 
-                        // 4. PRÓXIMO EN COLA / CONSULTA AGENDADA (Uber Driver Next Job)
-                        // Card radius: 28dp, Botón principal prominente de 58dp de altura y 20dp de radio
+                        // 3. LIVE PATIENT RADAR & WAITING DRAWER (Cockpit de guardia)
+                        item {
+                            LivePatientRadarDrawer(
+                                isOnDuty = uiState.pharmacyOnDutyState.isOnDuty,
+                                liveWaitingQueue = uiState.liveWaitingQueue,
+                                activelyDispatchedPatientId = uiState.activelyDispatchedPatientId,
+                                onViewPatientChart = { patient ->
+                                    inspectingPatient = patient
+                                },
+                                onNavigateToRadarDetail = onNavigateToDoctorOnDemand,
+                            )
+                        }
+
+                        // 4. QUICK CLINICAL ACTIONS BAR (Herramientas de 1 toque)
+                        item {
+                            QuickClinicalActionsBar(
+                                onNavigateToPrescriptions = onNavigateToDoctorPrescriptions,
+                                onNavigateToCertificates = onNavigateToDoctorCertificates,
+                                onNavigateToMedicalOrders = onNavigateToDoctorMedicalOrders,
+                                onNavigateToDoctorOnDemand = onNavigateToDoctorOnDemand,
+                                onNavigateToCreateAppointment = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
+                            )
+                        }
+
+                        // 5. PRÓXIMO EN ESPERA / CONSULTA TELEMEDICINA DESTACADA
                         item {
                             HeroNextInQueueCard(
                                 appointment = nextInQueue,
@@ -346,24 +379,7 @@ fun DoctorDashboardScreen(
                             )
                         }
 
-                        // 5. RESUMEN SEMANAL ESTILO STRIPE (Stripe Analytics FinTech)
-                        // 22 Consultas, 16 Pacientes, 94% Satisfacción, 18 min Tiempo medio
-                        item {
-                            StripeWeeklySummaryCard()
-                        }
-
-                        // 6. QUICK ACTIONS BAR MÉDICA (Card radius: 28dp, espacios amplios)
-                        item {
-                            DoctorQuickActionsBar(
-                                onNavigateToPrescriptions = onNavigateToDoctorPrescriptions,
-                                onNavigateToCertificates = onNavigateToDoctorCertificates,
-                                onNavigateToMedicalOrders = onNavigateToDoctorMedicalOrders,
-                                onNavigateToCreateAppointment = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
-                            )
-                        }
-
-                        // 7. SEGUIMIENTO COMO FUNCIÓN ESTRELLA (Continuidad Asistencial & Telemetría)
-                        // Card radius: 28dp, Iconografía Outlined + Filled
+                        // 6. CONTINUIDAD ASISTENCIAL (Seguimiento a 30 días)
                         if (uiState.recentPatients.isNotEmpty()) {
                             item {
                                 FollowUpStarSection(
@@ -373,7 +389,7 @@ fun DoctorDashboardScreen(
                             }
                         }
 
-                        // 8. AGENDA DE HOY ESTILO UBER EATS (Lista Viva)
+                        // 7. AGENDA DE HOY ESTILO UBER EATS (Lista Viva)
                         item {
                             UberEatsLiveAgendaSection(
                                 appointments = uiState.todayAppointments,
