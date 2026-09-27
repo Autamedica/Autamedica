@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
-import { badRequest, forbidden, internalError, jsonOk, unauthorized } from '@/lib/api-helpers';
+import { forbidden, internalError, jsonOk, unauthorized } from '@/lib/api-helpers';
 import { resolveDoctorContext } from '@/lib/doctors/api/doctor-context';
 import { doctorHasPatientAccess } from '@/lib/doctors/lib/resolve-room';
 import { createAstroAdminClient } from '@/lib/supabase';
@@ -16,19 +16,22 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   const url = new URL(request.url);
   const patientId = url.searchParams.get('patientId');
-  if (!patientId) return badRequest('patientId is required');
 
   try {
     const admin = createAstroAdminClient(getRuntimeEnv(locals));
-    const canAccess = await doctorHasPatientAccess(admin, context.doctorId, patientId as never);
-    if (!canAccess) return forbidden('forbidden_patient_access');
-
-    const { data: orders, error: ordersError } = await admin
+    let orderQuery = admin
       .from('dispensation_orders')
-      .select('id, prescription_id, pharmacy_id, medication, status')
+      .select('id, prescription_id, pharmacy_id, medication, status, patient_id')
       .eq('doctor_id', context.doctorId)
-      .eq('patient_id', patientId)
       .eq('status', 'clarification_requested');
+
+    if (patientId) {
+      const canAccess = await doctorHasPatientAccess(admin, context.doctorId, patientId as never);
+      if (!canAccess) return forbidden('forbidden_patient_access');
+      orderQuery = orderQuery.eq('patient_id', patientId);
+    }
+
+    const { data: orders, error: ordersError } = await orderQuery;
 
     if (ordersError) {
       logger.error('[doctors/prescriptions/clarifications] Order query failed', ordersError);
@@ -78,6 +81,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
           id: clarification.id,
           order_id: clarification.order_id,
           prescription_id: order.prescription_id,
+          patient_id: order.patient_id,
           medication: order.medication,
           pharmacy_name: order.pharmacy_id ? pharmacyById.get(order.pharmacy_id) ?? null : null,
           question: clarification.question,
