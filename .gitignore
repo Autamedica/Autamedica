@@ -191,3 +191,13 @@ apps/web/scratch/
 # YouTube tool scraping cache and pycache
 tools/obs/scraped_videos.json
 tools/obs/__pycache__/
+
+# AutaMedica TV — material audiovisual de produccion (2.7 GB)
+# Vive en /mnt/data/autamedica-tv/, nunca en el repo del producto.
+video_exports/
+tools/obs/images/
+tools/obs/content_engine/video_exports/
+
+# Scripts de verificacion manual de videollamada con PII y service-role
+apps/web/verify_*.mjs
+apps/web/test_web_to_web.mjs
