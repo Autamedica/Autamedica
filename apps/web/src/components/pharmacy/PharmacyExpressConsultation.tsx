@@ -80,7 +80,10 @@ export function PharmacyExpressConsultation({
       const req = data?.request
       if (!req) return
 
-      if (req.status === 'matched' || req.status === 'assigned' || req.status === 'in_call') {
+      // `assigned` no pertenece al enum `dispatch_request_status` de la tabla
+      // `pharmacy_dispatch_requests` (ver #530). La comparacion era codigo muerto
+      // y rompia el typecheck. `matched` es el estado real de asignacion.
+      if (req.status === 'matched' || req.status === 'in_call') {
         const roomId = req.cloudflare_room_id || callRoomId
         if (roomId) {
           setCallRoomId(roomId)
