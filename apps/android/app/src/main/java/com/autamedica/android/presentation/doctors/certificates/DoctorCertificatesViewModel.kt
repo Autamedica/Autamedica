@@ -9,6 +9,7 @@ import com.autamedica.android.domain.model.MedicalCertificate
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -166,7 +167,7 @@ class DoctorCertificatesViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoadingPatients = false,
-                            createError = "Error al cargar lista de pacientes: ${error.localizedMessage}",
+                            createError = "Error al cargar lista de pacientes: ${UiErrorMapper.map(error, "Fallo de conexión")}",
                         )
                     }
                 }
@@ -285,7 +286,7 @@ class DoctorCertificatesViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            createError = "Error al emitir el certificado: ${error.localizedMessage ?: "Fallo de conexión"}",
+                            createError = "Error al emitir el certificado: ${UiErrorMapper.map(error, "Fallo de conexión")}",
                         )
                     }
                 }

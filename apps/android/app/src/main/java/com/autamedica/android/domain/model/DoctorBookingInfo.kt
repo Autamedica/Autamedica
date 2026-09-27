@@ -2,7 +2,7 @@ package com.autamedica.android.domain.model
 
 data class DoctorBookingInfo(
     val id: String,
-    val userId: String,
+    val userId: String? = null,
     val name: String,
     val specialty: String,
     val licenseNumber: String,

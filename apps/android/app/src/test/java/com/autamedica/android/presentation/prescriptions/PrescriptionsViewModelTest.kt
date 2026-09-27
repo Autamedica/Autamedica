@@ -4,6 +4,7 @@ import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.CreateCertificateRequest
 import com.autamedica.android.domain.model.MedicalCertificate
 import com.autamedica.android.domain.model.Prescription
+import com.autamedica.android.domain.model.PrescriptionDispensation
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
@@ -192,6 +193,9 @@ private class FakePrescriptionRepository(
 
     override suspend fun getDoctorPrescriptions(patientId: String?, status: String?): Result<List<Prescription>> =
         Result.success(items)
+
+    override suspend fun getPrescriptionDispensation(prescriptionId: String): Result<PrescriptionDispensation> =
+        Result.failure(NoSuchElementException())
 
     override suspend fun createPrescription(request: com.autamedica.android.domain.model.CreatePrescriptionRequest): Result<Prescription> =
         Result.success(items.first())

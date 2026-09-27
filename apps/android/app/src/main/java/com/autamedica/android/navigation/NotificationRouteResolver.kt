@@ -139,6 +139,15 @@ object NotificationRouteResolver {
             return Route.ClinicalDocuments
         }
 
+        if (firstSegment == "on-demand" || firstSegment == "ondemand" || firstSegment == "express" || firstSegment == "intake") {
+            val tier = if (segments.size > 1 && segments[1].lowercase() != "entry" && segments[1].lowercase() != "intake") {
+                segments[1].lowercase()
+            } else {
+                "general"
+            }
+            return Route.OnDemandEntry(tier = tier)
+        }
+
         if (segments.size < 2) return null
 
         val identifier = segments.last().normalizedOrNull() ?: return null

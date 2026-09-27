@@ -18,6 +18,7 @@ import com.autamedica.android.domain.model.PatientPreventiveProfile
 import com.autamedica.android.domain.model.PatientProfileSnapshot
 import com.autamedica.android.domain.model.PracticeItem
 import com.autamedica.android.domain.model.Prescription
+import com.autamedica.android.domain.model.PrescriptionDispensation
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.model.StudyType
 import com.autamedica.android.domain.model.User
@@ -320,6 +321,8 @@ class ConsultationHubViewModelTest {
                 ?: Result.failure(Exception("Not found"))
         override suspend fun getDoctorPrescriptions(patientId: String?, status: String?): Result<List<Prescription>> =
             Result.success(prescriptions)
+        override suspend fun getPrescriptionDispensation(prescriptionId: String): Result<PrescriptionDispensation> =
+            Result.failure(NoSuchElementException())
         override suspend fun createPrescription(request: CreatePrescriptionRequest): Result<Prescription> =
             Result.failure(Exception("Not implemented"))
         override suspend fun cancelPrescription(prescriptionId: String, reason: String): Result<Unit> = Result.success(Unit)

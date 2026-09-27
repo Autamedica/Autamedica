@@ -18,28 +18,26 @@ SERVICE_ACCOUNT_FILE = Path("/home/edu/.android-secrets/autamedica-play-store-se
 AAB_PATH = Path("/mnt/data/Autamedica/apps/android/app/build/outputs/bundle/release/app-release.aab")
 PACKAGE_NAME = "com.autamedica.android"
 TRACK = "internal"  # internal → alpha → beta → production
-VERSION_NAME = "1.2.8"
+VERSION_NAME = "1.2.13"
 
 RELEASE_NOTES = {
     "es-419": (
-        "v1.2.8 — Evolución SOAP en Consulta, Cierre Clínico y Estabilidad RLS\n\n"
-        "• Evolución clínica SOAP interactiva integrada en videollamada con selector CIE-10\n"
-        "• Vinculación atómica en equipo de atención médica y resolución de permisos RLS\n"
-        "• Cierre automatizado de sala y sincronización de estado de consulta en base de datos\n"
-        "• Hoja de notas y registro clínico en tiempo real sin salir de la videollamada\n"
-        "• Optimizaciones críticas de rendimiento WebRTC y compatibilidad del sistema"
+        "v1.2.13 — Soporte Brasil (Rio Grande do Sul), Validación CPF y Telemedicina Integrada\n\n"
+        "• Localización completa al portugués (pt-BR) y soporte regional Brasil (RS)\n"
+        "• Validación algorítmica de CPF y recetas con certificación ICP-Brasil\n"
+        "• Números de emergencia adaptativos SAMU 192 y planes de cuidado en reales\n"
+        "• Evolución clínica SOAP interactiva integrada y optimizaciones críticas WebRTC"
     ),
     "en-US": (
-        "v1.2.8 — In-Call SOAP Evolution, Clinical Closing and RLS Stability\n\n"
-        "• In-call interactive SOAP clinical evolution with ICD-10 diagnosis picker\n"
-        "• Atomic care team linking resolving database RLS permissions\n"
-        "• Automated room closure and real-time consultation state synchronization\n"
-        "• Real-time clinical notes and documentation directly from the video call\n"
-        "• Critical WebRTC performance optimizations and system stability"
+        "v1.2.13 — Brazil Support (Rio Grande do Sul), CPF Validation and Telemedicine\n\n"
+        "• Full Portuguese (pt-BR) localization and Brazil regional support (RS)\n"
+        "• Algorithmic CPF validation and ICP-Brasil electronic prescription support\n"
+        "• Adaptive emergency dialing (SAMU 192) and localized care plans\n"
+        "• Integrated in-call SOAP evolution and critical WebRTC stability optimizations"
     ),
     "pt-BR": (
-        "v1.2.8 — Suporte Brasil (Quaraí), Validação CPF e Telemedicina Integrada\n\n"
-        "• Localização completa em português (pt-BR) e suporte regional Brasil\n"
+        "v1.2.13 — Suporte Brasil (Rio Grande do Sul), Validação CPF e Telemedicina Integrada\n\n"
+        "• Localização completa em português (pt-BR) e suporte regional Brasil (RS)\n"
         "• Validação algorítmica de CPF e suporte a prescrições ICP-Brasil\n"
         "• Números de emergência adaptativos SAMU 192 e planos de cuidado\n"
         "• Evolução clínica SOAP integrada e otimizações de videoconsulta WebRTC"

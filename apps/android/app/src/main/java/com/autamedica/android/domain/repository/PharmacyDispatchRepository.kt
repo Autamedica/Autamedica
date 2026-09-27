@@ -38,4 +38,16 @@ interface PharmacyDispatchRepository {
         doctorId: String,
         requestId: String,
     ): Result<Unit>
+
+    /** Patient side: Create an on-demand intake request in `pharmacy_dispatch_requests`. */
+    suspend fun createPatientDispatchRequest(
+        patientDni: String,
+        patientPhone: String,
+        patientName: String?,
+        tierRequested: String,
+        symptomSummary: String?,
+    ): Result<PharmacyDispatchRequest>
+
+    /** Patient side: Observe a specific on-demand request by id until matched/in_call. */
+    fun observePatientRequest(requestId: String): kotlinx.coroutines.flow.Flow<PharmacyDispatchRequest>
 }

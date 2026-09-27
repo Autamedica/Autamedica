@@ -30,6 +30,8 @@ interface CloudflareCallsPayload {
 
 const TERMINAL_CALL_STATUSES = new Set(['declined', 'canceled', 'ended'])
 
+const TERMINAL_DISPATCH_STATUSES = new Set(['cancelled', 'expired', 'completed'])
+
 const ALLOWED_PATHS = new RegExp(
   '^sessions/new$'
     + '|^sessions/[A-Za-z0-9._-]+/tracks/new$'
@@ -141,6 +143,15 @@ export async function handler(req: Request): Promise<Response> {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    let call: {
+      id: string
+      room_id: string
+      doctor_id: string | null
+      patient_id: string | null
+      appointment_id: string | null
+      status: string
+    } | null = null
+
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roomId)
     let callQuery = supabaseAdmin
       .from('calls')
@@ -156,7 +167,7 @@ export async function handler(req: Request): Promise<Response> {
         .order('created_at', { ascending: false })
     }
 
-    const { data: call, error: callError } = await callQuery
+    const { data: callRow, error: callError } = await callQuery
       .limit(1)
       .maybeSingle()
 
@@ -168,15 +179,60 @@ export async function handler(req: Request): Promise<Response> {
       )
     }
 
+    // 2b. Fallback: salas de consulta on-demand (kiosco farmacia / vía pública) viven en
+    // `pharmacy_dispatch_requests.cloudflare_room_id`, no en `calls`. El doctor lotero
+    // (`assigned_doctor_id`) entra a la sala tras el claim con su JWT. La sala se
+    // autoriza por el mismo plano de medios que las llamadas regulares.
+    if (!callRow) {
+      console.info('[cloudflare-calls] Room not in `calls`, trying pharmacy dispatch:', { roomId, userId })
+
+      const { data: dispatch, error: dispatchError } = await supabaseAdmin
+        .from('pharmacy_dispatch_requests')
+        .select('id, status, cloudflare_room_id, assigned_doctor_id')
+        .eq('cloudflare_room_id', roomId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (dispatchError) {
+        console.error('[cloudflare-calls] Error resolving dispatch by room:', dispatchError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to resolve room' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      if (!dispatch) {
+        console.warn('[cloudflare-calls] Room not found (neither call nor dispatch):', { roomId, userId })
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: not a participant of this call' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Modelado equivalente a una fila de `calls` para reusar la validación de participantes:
+      // doctor_id ya es el id del profesional (doctors.id) asignado al dispatch.
+      call = {
+        id: dispatch.id,
+        room_id: dispatch.cloudflare_room_id,
+        doctor_id: dispatch.assigned_doctor_id,
+        patient_id: null,
+        appointment_id: null,
+        status: dispatch.status,
+      }
+    } else {
+      call = callRow
+    }
+
     if (!call) {
-      console.warn('[cloudflare-calls] Room not found for call:', { roomId, userId })
+      console.warn('[cloudflare-calls] Room could not be resolved to an active call:', { roomId, userId })
       return new Response(
         JSON.stringify({ error: 'Forbidden: not a participant of this call' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    if (TERMINAL_CALL_STATUSES.has(call.status)) {
+    if (TERMINAL_CALL_STATUSES.has(call.status) || TERMINAL_DISPATCH_STATUSES.has(call.status)) {
       console.warn('[cloudflare-calls] Call is terminal, media plane closed:', {
         callId: call.id,
         status: call.status,

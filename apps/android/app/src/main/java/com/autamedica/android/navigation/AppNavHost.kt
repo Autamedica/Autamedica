@@ -111,6 +111,11 @@ fun AppNavHost(
                         launchSingleTop = true
                     }
                 },
+                onNavigateToDoctorOnDemand = {
+                    navController.navigate(Route.DoctorOnDemand) {
+                        launchSingleTop = true
+                    }
+                },
                 onNavigateToLogin = {
                     navController.navigate(Route.Login) {
                         popUpTo(Route.Main) { inclusive = true }
@@ -176,6 +181,19 @@ fun AppNavHost(
                 onNavigateToCall = { roomId ->
                     navController.navigate(Route.VideoCall(appointmentId = "", roomId = roomId)) {
                         launchSingleTop = true
+                    }
+                },
+            )
+        }
+
+        composable<Route.OnDemandEntry> { backStackEntry ->
+            val route = backStackEntry.toRoute<Route.OnDemandEntry>()
+            com.autamedica.android.presentation.ondemand.OnDemandEntryScreen(
+                initialTier = route.tier,
+                onBack = { navController.popBackStack() },
+                onJoinCall = { roomId ->
+                    navController.navigate(Route.VideoCall(appointmentId = "", roomId = roomId, isIncomingCall = true)) {
+                        popUpTo<Route.OnDemandEntry> { inclusive = true }
                     }
                 },
             )

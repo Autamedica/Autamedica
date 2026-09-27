@@ -6,6 +6,7 @@ import com.autamedica.android.domain.model.AnamnesisSection
 import com.autamedica.android.domain.model.AnamnesisSummary
 import com.autamedica.android.domain.repository.HealthRepository
 import com.autamedica.android.logging.SecureLog
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -123,14 +124,14 @@ class AnamnesisFormViewModel @Inject constructor(
                         .onFailure { e ->
                             SecureLog.error("[Anamnesis] Failed loading sections", e)
                             _uiState.update {
-                                it.copy(isLoading = false, error = e.message ?: "No se pudieron cargar las secciones")
+                                it.copy(isLoading = false, error = UiErrorMapper.map(e, "No se pudieron cargar las secciones"))
                             }
                         }
                 }
                 .onFailure { e ->
                     SecureLog.error("[Anamnesis] Failed creating anamnesis", e)
                     _uiState.update {
-                        it.copy(isLoading = false, error = e.message ?: "No se pudo iniciar la anamnesis")
+                        it.copy(isLoading = false, error = UiErrorMapper.map(e, "No se pudo iniciar la anamnesis"))
                     }
                 }
         }
@@ -258,7 +259,7 @@ class AnamnesisFormViewModel @Inject constructor(
                             _uiState.update {
                                 it.copy(
                                     isSaving = false,
-                                    error = e.message ?: "No se pudo guardar la seccion",
+                                    error = UiErrorMapper.map(e, "No se pudo guardar la seccion"),
                                 )
                             }
                         }
@@ -268,7 +269,7 @@ class AnamnesisFormViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            error = e.message ?: "No se pudo guardar la seccion",
+                            error = UiErrorMapper.map(e, "No se pudo guardar la seccion"),
                         )
                     }
                 }
@@ -375,7 +376,7 @@ class AnamnesisFormViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            error = e.message ?: "No se pudo enviar la anamnesis",
+                            error = UiErrorMapper.map(e, "No se pudo enviar la anamnesis"),
                         )
                     }
                 }

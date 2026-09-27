@@ -111,4 +111,9 @@ sealed interface Route {
 
     @Serializable
     data object TdahEvaluation : Route
+
+    @Serializable
+    data class OnDemandEntry(
+        val tier: String = "general",
+    ) : Route
 }

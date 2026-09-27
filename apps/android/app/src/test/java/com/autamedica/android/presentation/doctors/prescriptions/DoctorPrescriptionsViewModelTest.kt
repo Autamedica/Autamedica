@@ -3,6 +3,7 @@ package com.autamedica.android.presentation.doctors.prescriptions
 import com.autamedica.android.domain.model.CreatePrescriptionRequest
 import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.Prescription
+import com.autamedica.android.domain.model.PrescriptionDispensation
 import com.autamedica.android.domain.model.PrescriptionItem
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.repository.PrescriptionRepository
@@ -285,6 +286,9 @@ private class FakeDoctorPrescriptionRepository(
         val found = prescriptions.find { it.id == id }
         return if (found != null) Result.success(found) else Result.failure(NoSuchElementException())
     }
+
+    override suspend fun getPrescriptionDispensation(prescriptionId: String): Result<PrescriptionDispensation> =
+        Result.failure(NoSuchElementException())
 
     override suspend fun getDoctorPrescriptions(patientId: String?, status: String?): Result<List<Prescription>> {
         var filtered = prescriptions.toList()

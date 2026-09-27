@@ -1,5 +1,7 @@
 package com.autamedica.android.presentation.ondemand
 
+import android.media.AudioManager
+import android.media.ToneGenerator
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -38,6 +40,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +65,8 @@ import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalDoctors
+import java.time.OffsetDateTime
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,6 +87,32 @@ fun DoctorOnDemandScreen(
         }
     }
 
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var highlightedId by remember { mutableStateOf<String?>(null) }
+    var flashStartedAt by remember { mutableLongStateOf(0L) }
+
+    LaunchedEffect(uiState.searchingRequests.isEmpty()) {
+        while (uiState.searchingRequests.isNotEmpty()) {
+            delay(1_000)
+            now = System.currentTimeMillis()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.newRequestEvents.collect { requestId ->
+            highlightedId = requestId
+            flashStartedAt = System.currentTimeMillis()
+            runCatching {
+                val toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, 60)
+                toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 200)
+                delay(300)
+                toneGen.release()
+            }
+        }
+    }
+
+    val flashActive = highlightedId != null && System.currentTimeMillis() - flashStartedAt < 3_000
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -94,7 +128,7 @@ fun DoctorOnDemandScreen(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = "Guardia en farmacias y vía pública",
+                            text = "Ofertas en vivo · 25 s de ventana",
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                             fontWeight = FontWeight.SemiBold,
@@ -162,6 +196,11 @@ fun DoctorOnDemandScreen(
                         }
                     }
 
+                    uiState.activeRequestId?.let {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        ActiveConsultBanner(onFinish = viewModel::finishCurrent)
+                    }
+
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Row(
@@ -204,10 +243,19 @@ fun DoctorOnDemandScreen(
                                 uiState.searchingRequests[index].id
                             }) { index ->
                                 val request = uiState.searchingRequests[index]
+                                val remainingMs = requestRemainingMs(request, now)
                                 DispatchRequestCard(
                                     request = request,
                                     isClaiming = uiState.claimingId == request.id,
+                                    remainingSeconds = remainingMs
+                                        ?.coerceAtLeast(0L)
+                                        ?.div(1_000)
+                                        ?.toInt()
+                                        ?: 0,
+                                    isFresh = remainingMs != null && remainingMs <= 12_000,
+                                    isNewHighlight = flashActive && highlightedId == request.id,
                                     onAccept = { viewModel.accept(request) },
+                                    onExpired = { viewModel.expireRequest(request.id) },
                                 )
                             }
                         }
@@ -302,17 +350,34 @@ private fun DutyToggleCard(
 private fun DispatchRequestCard(
     request: PharmacyDispatchRequest,
     isClaiming: Boolean,
+    remainingSeconds: Int,
+    isFresh: Boolean,
+    isNewHighlight: Boolean,
     onAccept: () -> Unit,
+    onExpired: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(remainingSeconds) {
+        if (remainingSeconds <= 0 && !isClaiming) {
+            onExpired()
+        }
+    }
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .clickable(enabled = !isClaiming, onClick = onAccept),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-        shadowElevation = 1.dp,
+        color = if (isNewHighlight) Color(0xFFFFFBEB) else Color.White,
+        border = BorderStroke(
+            1.dp,
+            when {
+                isNewHighlight -> Color(0xFFF59E0B)
+                isFresh -> Color(0xFFFCA5A5)
+                else -> Color(0xFFE2E8F0)
+            },
+        ),
+        shadowElevation = if (isNewHighlight) 4.dp else 1.dp,
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -323,20 +388,61 @@ private fun DispatchRequestCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = PortalDoctors.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.3f)),
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = dispatchTierLabel(request.tierRequested),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                        color = PortalDoctors,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = PortalDoctors.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.3f)),
+                    ) {
+                        Text(
+                            text = dispatchTierLabel(request.tierRequested),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            color = PortalDoctors,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        )
+                    }
+                    if (isNewHighlight) {
+                        Surface(
+                            shape = RoundedCornerShape(999.dp),
+                            color = Color(0xFFF59E0B),
+                        ) {
+                            Text(
+                                text = "NUEVA",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                ),
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            )
+                        }
+                    }
+                    if (remainingSeconds > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(999.dp),
+                            color = if (isFresh) Color(0xFFFEF2F2) else Color(0xFFF1F5F9),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isFresh) Color(0xFFFCA5A5) else Color(0xFFE2E8F0),
+                            ),
+                        ) {
+                            Text(
+                                text = if (isFresh) "Cierra en ${remainingSeconds}s" else "Vence en ${remainingSeconds}s",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isFresh) Color(0xFFB91C1C) else AuTextTertiary,
+                                ),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            )
+                        }
+                    }
                 }
                 Text(
                     text = relativeTime(request.createdAt),
@@ -487,4 +593,86 @@ private fun relativeTime(iso: String): String {
         seconds < 3600 -> "hace ${(seconds / 60).toInt()} min"
         else -> "hace ${(seconds / 3600).toInt()} h"
     }
+}
+
+@Composable
+private fun ActiveConsultBanner(
+    onFinish: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = PortalDoctors.copy(alpha = 0.10f),
+        border = BorderStroke(1.dp, PortalDoctors.copy(alpha = 0.35f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = CircleShape,
+                color = PortalDoctors.copy(alpha = 0.16f),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Videocam,
+                        contentDescription = null,
+                        tint = PortalDoctors,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Consulta en curso",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = AuTextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "La videollamada está activa. Finalizala al terminar para volver a recibir ofertas.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AuTextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Button(
+                onClick = onFinish,
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PortalDoctors,
+                    contentColor = Color.White,
+                ),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    text = "Finalizar",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+    }
+}
+
+private fun requestRemainingMs(request: PharmacyDispatchRequest, nowMillis: Long): Long? {
+    val deadline = requestDeadlineMillis(request) ?: return null
+    return deadline - nowMillis
+}
+
+private fun requestDeadlineMillis(request: PharmacyDispatchRequest): Long? {
+    request.searchTimeoutAt?.takeIf { it.isNotBlank() }?.let { raw ->
+        runCatching { OffsetDateTime.parse(raw).toInstant().toEpochMilli() }
+            .getOrNull()
+            ?.let { return it }
+    }
+    return runCatching {
+        OffsetDateTime.parse(request.createdAt).plusSeconds(25).toInstant().toEpochMilli()
+    }.getOrNull()
 }

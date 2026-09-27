@@ -242,4 +242,70 @@ class NotificationRouteResolverTest {
         assertThat(NotificationRouteResolver.isCallNotification("followup")).isFalse()
         assertThat(NotificationRouteResolver.isCallNotification(null)).isFalse()
     }
+
+    @Test
+    fun `deep link autamedica on-demand entry resolves to OnDemandEntry with general tier`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = "autamedica://on-demand/entry",
+        )
+
+        assertThat(route).isEqualTo(Route.OnDemandEntry(tier = "general"))
+    }
+
+    @Test
+    fun `deep link autamedica on-demand resolves to OnDemandEntry with general tier`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = "autamedica://on-demand",
+        )
+
+        assertThat(route).isEqualTo(Route.OnDemandEntry(tier = "general"))
+    }
+
+    @Test
+    fun `deep link autamedica express resolves to OnDemandEntry with general tier`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = "autamedica://express",
+        )
+
+        assertThat(route).isEqualTo(Route.OnDemandEntry(tier = "general"))
+    }
+
+    @Test
+    fun `deep link autamedica on-demand with specific tier resolves to OnDemandEntry with that tier`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = "autamedica://on-demand/pediatrico",
+        )
+
+        assertThat(route).isEqualTo(Route.OnDemandEntry(tier = "pediatrico"))
+    }
+
+    @Test
+    fun `deep link autamedica on-demand intake resolves to OnDemandEntry with general tier`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = "autamedica://on-demand/intake",
+        )
+
+        assertThat(route).isEqualTo(Route.OnDemandEntry(tier = "general"))
+    }
+
+    @Test
+    fun `deep link autamedica intake resolves to OnDemandEntry with general tier`() {
+        val route = NotificationRouteResolver.resolve(
+            appointmentId = null,
+            chatRoomId = null,
+            deepLink = "autamedica://intake",
+        )
+
+        assertThat(route).isEqualTo(Route.OnDemandEntry(tier = "general"))
+    }
 }

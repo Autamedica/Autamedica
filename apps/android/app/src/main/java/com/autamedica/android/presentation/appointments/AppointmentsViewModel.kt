@@ -8,6 +8,7 @@ import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.DoctorBookingInfo
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,7 @@ data class AppointmentsUiState(
     // Datos compartidos con Consultar (fuente única: PatientClinicStore)
     val appointments: List<Appointment> = emptyList(),
     val joinableAppointmentIds: Set<String> = emptySet(),
+    val patientNames: Map<String, String> = emptyMap(),
     val isLoading: Boolean = true,
     val error: String? = null,
     val telemedicineError: String? = null,
@@ -55,6 +57,7 @@ class AppointmentsViewModel @Inject constructor(
     private val clinicStore: PatientClinicStore,
     private val appointmentRepository: AppointmentRepository,
     private val authRepository: AuthRepository,
+    private val doctorRepository: DoctorRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AppointmentsUiState())
@@ -82,6 +85,7 @@ class AppointmentsViewModel @Inject constructor(
                         },
                     )
                 }
+                resolvePatientNamesIfDoctor(data.appointments)
             }
         }
     }
@@ -361,7 +365,25 @@ class AppointmentsViewModel @Inject constructor(
                 _uiState.update { state ->
                     state.copy(userRole = user.role.wireName)
                 }
+                if (user.role.wireName == "doctor") {
+                    resolvePatientNamesIfDoctor(_uiState.value.appointments)
+                }
             }
+        }
+    }
+
+    private fun resolvePatientNamesIfDoctor(appointments: List<Appointment>) {
+        if (_uiState.value.userRole != "doctor") return
+        val patientIds = appointments.mapNotNull { it.patientId }.distinct()
+        if (patientIds.isEmpty()) return
+        viewModelScope.launch {
+            doctorRepository.resolvePatientNames(patientIds)
+                .onSuccess { names ->
+                    _uiState.update { it.copy(patientNames = names) }
+                }
+                .onFailure { err ->
+                    SecureLog.warn("[AppointmentsVM] Error resolving patient names: ${err.message}")
+                }
         }
     }
 }

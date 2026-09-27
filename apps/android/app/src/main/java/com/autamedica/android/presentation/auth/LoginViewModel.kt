@@ -175,7 +175,7 @@ class LoginViewModel @Inject constructor(
                         registerFcmToken()
                     },
                     onFailure = { error ->
-                        Timber.e(error, "[Auth] Login failed: %s", error.message)
+                        SecureLog.error("[Auth] Login failed", error)
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
@@ -185,7 +185,7 @@ class LoginViewModel @Inject constructor(
                     },
                 )
             } catch (e: Throwable) {
-                Timber.e(e, "[Auth] Unexpected login exception")
+                SecureLog.error("[Auth] Unexpected login exception", e)
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -212,7 +212,7 @@ class LoginViewModel @Inject constructor(
                         registerFcmToken()
                     },
                     onFailure = { error ->
-                        Timber.e(error, "[Auth] Google login failed: %s", error.message)
+                        SecureLog.error("[Auth] Google login failed", error)
                         _uiState.update {
                             it.copy(
                                 isGoogleLoading = false,
@@ -222,7 +222,7 @@ class LoginViewModel @Inject constructor(
                     },
                 )
             } catch (e: Throwable) {
-                Timber.e(e, "[Auth] Unexpected error during Google login")
+                SecureLog.error("[Auth] Unexpected error during Google login", e)
                 _uiState.update {
                     it.copy(
                         isGoogleLoading = false,
@@ -235,7 +235,6 @@ class LoginViewModel @Inject constructor(
 
     fun onGoogleSignInError(error: Throwable) {
         SecureLog.error("[Auth] Google sign-in error", error)
-        Timber.e(error, "[Auth] Google sign-in error: %s", error.message)
         var errorResId: Int? = null
         val friendlyMessage = when {
             error is androidx.credentials.exceptions.GetCredentialCancellationException -> {

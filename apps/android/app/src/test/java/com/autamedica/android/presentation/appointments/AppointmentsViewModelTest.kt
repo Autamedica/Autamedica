@@ -9,6 +9,7 @@ import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.repository.TelemedicineSessionInfo
 import com.autamedica.android.domain.repository.UserRegistrationResult
@@ -103,6 +104,13 @@ private class TestTelemedicineRepository : TelemedicineRepository {
     override suspend fun updateCallStatus(callId: String, status: String): Result<Unit> = Result.success(Unit)
 }
 
+private class TestDoctorRepository : DoctorRepository {
+    override suspend fun getDoctorProfile(userId: String): Result<com.autamedica.android.domain.model.DoctorProfile> = Result.failure(NotImplementedError())
+    override suspend fun getDoctorStats(doctorId: String): Result<com.autamedica.android.domain.model.DoctorStats> = Result.failure(NotImplementedError())
+    override suspend fun getDoctorPatients(doctorId: String): Result<List<com.autamedica.android.domain.model.PatientSummary>> = Result.failure(NotImplementedError())
+    override suspend fun getPatientDetail(doctorId: String, patientId: String): Result<com.autamedica.android.domain.model.PatientDetail> = Result.failure(NotImplementedError())
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppointmentsViewModelTest {
 
@@ -110,6 +118,7 @@ class AppointmentsViewModelTest {
     private lateinit var appointmentRepository: TestAppointmentRepository
     private lateinit var authRepository: TestAuthRepository
     private lateinit var telemedicineRepository: TestTelemedicineRepository
+    private lateinit var doctorRepository: DoctorRepository
     private lateinit var clinicStore: PatientClinicStore
 
     @Before
@@ -118,6 +127,7 @@ class AppointmentsViewModelTest {
         appointmentRepository = TestAppointmentRepository()
         authRepository = TestAuthRepository()
         telemedicineRepository = TestTelemedicineRepository()
+        doctorRepository = TestDoctorRepository()
         clinicStore = PatientClinicStore(appointmentRepository, telemedicineRepository, testDispatcher)
     }
 
@@ -127,7 +137,7 @@ class AppointmentsViewModelTest {
     }
 
     private fun createViewModel(): AppointmentsViewModel =
-        AppointmentsViewModel(clinicStore, appointmentRepository, authRepository)
+        AppointmentsViewModel(clinicStore, appointmentRepository, authRepository, doctorRepository)
 
     @Test
     fun `initializes with available dates and doctors, selectedDoctor is null by default`() = runTest(testDispatcher) {

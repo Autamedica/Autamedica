@@ -16,6 +16,7 @@ import com.autamedica.android.domain.model.PortalNotification
 import com.autamedica.android.domain.repository.NotificationRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.repository.WalletRepository
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -150,7 +151,7 @@ class DashboardViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isTopupLoading = false,
-                            error = error.message ?: "Error al generar enlace de recarga",
+                            error = UiErrorMapper.map(error, "Error al generar enlace de recarga"),
                         )
                     }
                 }

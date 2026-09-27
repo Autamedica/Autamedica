@@ -8,6 +8,7 @@ import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.repository.WalletRepository
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -85,7 +86,7 @@ class ProfileViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            error = error.message ?: "Error al guardar",
+                            error = UiErrorMapper.map(error, "Error al guardar"),
                         )
                     }
                 },
@@ -126,7 +127,7 @@ class ProfileViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = error.message ?: "Error cargando perfil",
+                            error = UiErrorMapper.map(error, "Error cargando perfil"),
                         )
                     }
                 },
@@ -167,7 +168,7 @@ class ProfileViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isTopupLoading = false,
-                            error = error.message ?: "Error al generar enlace de recarga",
+                            error = UiErrorMapper.map(error, "Error al generar enlace de recarga"),
                         )
                     }
                 }

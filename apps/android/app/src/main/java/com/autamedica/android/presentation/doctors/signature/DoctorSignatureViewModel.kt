@@ -2,6 +2,7 @@ package com.autamedica.android.presentation.doctors.signature
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
@@ -149,7 +150,7 @@ class DoctorSignatureViewModel @Inject constructor(
                     } else {
                         "No se pudo verificar la matrícula. Intente nuevamente."
                     }
-                    val message = error.message?.takeIf { it.isNotBlank() } ?: fallbackMessage
+                    val message = UiErrorMapper.map(error, fallbackMessage)
                     _state.update {
                         it.copy(
                             isLoading = false,

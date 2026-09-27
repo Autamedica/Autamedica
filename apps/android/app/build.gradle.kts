@@ -46,8 +46,8 @@ android {
         applicationId = "com.autamedica.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 18
-        versionName = "1.2.8"
+        versionCode = 26
+        versionName = "1.2.16"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         resourceConfigurations += listOf("es", "pt", "pt-rBR")

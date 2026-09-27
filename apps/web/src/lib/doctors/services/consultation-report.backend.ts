@@ -8,6 +8,7 @@ import { buildAnamnesisSummary, domainEvents, logger } from '@autamedica/shared'
 import { generateConsultationReport } from '@/lib/doctors/services/consultation-report-service';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { GenerateReportRequest } from '@autamedica/types';
+import { orchestrateRacRegistration } from '@/lib/datasus/rac-orchestrator';
 import { resolvePatientProfile } from '@/lib/doctors/lib/resolve-room';
 import { consultationReportRepo } from '../lib/repos/consultation-report';
 import { appointmentBackendService } from './appointment.backend';
@@ -139,6 +140,69 @@ export async function generateAndSaveReport(
       error: err,
     });
   }
+
+  // RNDS (DATASUS) RAC registration: non-blocking, disabled by default.
+  void (async () => {
+    try {
+      const [patient, doctor] = await Promise.all([
+        admin.from('patients')
+          .select('cns, cpf')
+          .eq('id', patientId)
+          .maybeSingle(),
+        admin.from('doctors')
+          .select('cpf, license_number, license_type, uf_brazil, enrollment_jurisdiction')
+          .eq('id', doctorId)
+          .maybeSingle(),
+      ]);
+
+      const patientRow = patient as { cns?: string | null; cpf?: string | null } | null;
+      const doctorRow = doctor as {
+        cpf?: string | null;
+        license_number?: string | null;
+        license_type?: string | null;
+        uf_brazil?: string | null;
+        enrollment_jurisdiction?: string | null;
+      } | null;
+
+      const isBrazil = doctorRow?.license_type === 'CRM' || !!doctorRow?.uf_brazil;
+      if (!isBrazil) return;
+
+      const allergies = (result.report as { alergias?: Array<{ categoria?: string; criticidade?: string; agente?: string; manifestacao?: string }> }).alergias ?? [];
+      const medications = (result.report as { medicamentos?: Array<{ texto?: string; quantidade?: number; apresentacao?: string }> }).medicamentos ?? [];
+
+      await orchestrateRacRegistration({
+        consultationId: saved.id,
+        cns: patientRow?.cns,
+        cpf: patientRow?.cpf,
+        dataHoraAtendimento: new Date().toISOString(),
+        motivos: result.chiefComplaint ? [result.chiefComplaint] : [],
+        problemas: (result.differentialDiagnosis ?? []).map((descricao) => ({ codigo: '', descricao })),
+        alergias: allergies.map((alergia) => ({
+          categoria: alergia.categoria ?? 'medicacao',
+          criticidade: alergia.criticidade ?? 'baixa',
+          agente: alergia.agente ?? '',
+          manifestacao: alergia.manifestacao,
+        })),
+        medicamentos: medications.map((med) => ({
+          texto: med.texto ?? '',
+          quantidade: med.quantidade,
+          apresentacao: med.apresentacao,
+        })),
+        profissional: {
+          cpf: doctorRow?.cpf ?? '',
+          conselhoTipo: (doctorRow?.license_type as 'CRM' | 'COREN' | 'CRF' | 'CRO' | 'CRMV' | 'CREFITO') ?? 'CRM',
+          conselhoUf: doctorRow?.uf_brazil ?? doctorRow?.enrollment_jurisdiction ?? 'RS',
+          conselhoNumero: doctorRow?.license_number ?? '',
+        },
+        runtimeEnv,
+      }, admin);
+    } catch (err) {
+      logger.warn('[consultation-report] RNDS RAC registration skipped (non-blocking)', {
+        recordId: saved.id,
+        error: err,
+      });
+    }
+  })();
 
   logger.info('[consultation-report] Generated and saved', {
     roomId,

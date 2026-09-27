@@ -91,6 +91,7 @@ fun DoctorDashboardScreen(
     onNavigateToDoctorPrescriptions: () -> Unit = {},
     onNavigateToDoctorCertificates: () -> Unit = {},
     onNavigateToDoctorMedicalOrders: () -> Unit = {},
+    onNavigateToDoctorOnDemand: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: DoctorDashboardViewModel = hiltViewModel(),
 ) {
@@ -206,6 +207,44 @@ fun DoctorDashboardScreen(
                                     joinableAppointmentIds = uiState.joinableAppointmentIds,
                                     onJoinCall = onNavigateToVideoCall,
                                 )
+                            }
+                        }
+
+                        // 4. On-demand dispatch entry → opens doctor-on-demand module
+                        item {
+                            Surface(
+                                onClick = onNavigateToDoctorOnDemand,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color(0xFF0F0F11),
+                                border = BorderStroke(1.dp, Color(0xFF26262B)),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(20.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Schedule,
+                                        contentDescription = "Atención bajo demanda",
+                                        modifier = Modifier.size(28.dp),
+                                        tint = Color(0xFF38BDF8),
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            "Atención bajo demanda",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = Color(0xFFF8FAFC),
+                                        )
+                                        Text(
+                                            "Atendé consultas agendables sin turno previo",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color(0xFF94A3B8),
+                                        )
+                                    }
+                                }
                             }
                         }
 

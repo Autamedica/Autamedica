@@ -3,6 +3,7 @@ package com.autamedica.android.presentation.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.data.remote.SupabaseAuthDataSource
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,7 +49,7 @@ class ForgotPasswordViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Ocurrió un error. Intenta nuevamente."
+                        error = UiErrorMapper.map(e, "Ocurrió un error. Intenta nuevamente.")
                     )
                 }
             }

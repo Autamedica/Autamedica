@@ -114,7 +114,7 @@ fun DoctorCertificatesScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = AuSurface),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = AuBackground),
             )
         },
         floatingActionButton = {

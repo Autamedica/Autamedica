@@ -8,6 +8,7 @@ import com.autamedica.android.domain.model.FollowupStatus
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.FollowupRepository
 import com.autamedica.android.logging.SecureLog
+import com.autamedica.android.presentation.common.UiErrorMapper
 import com.autamedica.android.util.WhatsAppBridge
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -163,7 +164,7 @@ class ContinuityStatusViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 SecureLog.error("[ContinuityStatusViewModel] Failed to load status", e)
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
+                _uiState.update { it.copy(isLoading = false, error = UiErrorMapper.map(e, "No se pudo cargar el estado")) }
             }
         }
     }

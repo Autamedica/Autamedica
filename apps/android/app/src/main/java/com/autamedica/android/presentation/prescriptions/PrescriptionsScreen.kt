@@ -758,7 +758,7 @@ private fun PrescriptionDetailBottomSheet(
                     modifier = Modifier.padding(16.dp),
                 ) {
                     Text(
-                        text = "PRESENTÁ ESTE CÓDIGO EN LA FARMACIA",
+                        text = if (isBrazil) "APRESENTE ESTE CÓDIGO NA FARMÁCIA" else "PRESENTÁ ESTE CÓDIGO EN LA FARMACIA",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0284C7), // sky-600
@@ -860,9 +860,80 @@ private fun PrescriptionDetailBottomSheet(
                         }
                     }
 
-                    // Caja de CUIR grande y legible con botón copiar
-                    prescription.cuir?.takeIf { it.isNotBlank() }?.let { cuir ->
-                        Spacer(modifier = Modifier.height(12.dp))
+                    if (isBrazil) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFEFF6FF), // blue-50
+                            border = BorderStroke(1.5.dp, Color(0xFF3B82F6)), // blue-500
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "CÓDIGO BALCÃO (LINX / TIER):",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF1D4ED8),
+                                        fontSize = 11.sp,
+                                    )
+                                    Text(
+                                        text = prescription.codigoBalcao,
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Black,
+                                        color = Color(0xFF0F172A),
+                                        letterSpacing = 2.sp,
+                                    )
+                                    Text(
+                                        text = "Dispensação eletrônica sem papel no balcão da farmácia",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF64748B),
+                                        fontSize = 10.sp,
+                                    )
+                                }
+                                OutlinedButton(
+                                    onClick = { onCopyCuir(prescription.codigoBalcao) },
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, Color(0xFF3B82F6)),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ContentCopy,
+                                        contentDescription = "Copiar Código",
+                                        tint = Color(0xFF1D4ED8),
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Copiar",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF1D4ED8),
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "1ª VIA. FARMÁCIA (RETENÇÃO SNGPC) | 2ª VIA. PACIENTE",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF475569),
+                            fontSize = 9.5.sp,
+                        )
+                    }
+
+                    // Caja de CUIR grande y legible con botón copiar (para Argentina o registro general)
+                    prescription.cuir?.takeIf { it.isNotBlank() && (!isBrazil || it != prescription.codigoBalcao) }?.let { cuir ->
+                        Spacer(modifier = Modifier.height(10.dp))
                         Surface(
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFFF8FAFC), // slate-50
@@ -878,7 +949,7 @@ private fun PrescriptionDetailBottomSheet(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "CÓDIGO CUIR:",
+                                        text = if (isBrazil) "ID DA PRESCRIÇÃO:" else "CÓDIGO CUIR:",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF64748B),
@@ -935,7 +1006,7 @@ private fun PrescriptionDetailBottomSheet(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Descargar Receta (PDF)",
+                                text = if (isBrazil) "Baixar Receita Digital (PDF)" else "Descargar Receta (PDF)",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                             )

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.AnamnesisSummary
 import com.autamedica.android.domain.repository.HealthRepository
 import com.autamedica.android.logging.SecureLog
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,7 +50,7 @@ class HealthViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = error.message ?: "No se pudo cargar anamnesis",
+                            error = UiErrorMapper.map(error, "No se pudo cargar anamnesis"),
                         )
                     }
                 }

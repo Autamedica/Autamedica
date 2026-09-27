@@ -2,6 +2,7 @@ package com.autamedica.android.presentation.patients.consent
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.presentation.common.UiErrorMapper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +39,7 @@ class ConsentViewModel : ViewModel() {
                 delay(1000)
                 _uiState.update { it.copy(isLoading = false, isSuccess = true) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
+                _uiState.update { it.copy(isLoading = false, error = UiErrorMapper.map(e, "No se pudo procesar el consentimiento")) }
             }
         }
     }

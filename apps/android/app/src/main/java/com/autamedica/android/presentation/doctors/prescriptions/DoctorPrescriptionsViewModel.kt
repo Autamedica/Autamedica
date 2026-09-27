@@ -1,13 +1,16 @@
 package com.autamedica.android.presentation.doctors.prescriptions
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.CreatePrescriptionRequest
 import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.Prescription
 import com.autamedica.android.domain.model.PrescriptionItem
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.repository.PrescriptionRepository
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,6 +43,8 @@ data class DoctorPrescriptionsUiState(
     val prescriptionToCancel: Prescription? = null,
     val isCancelling: Boolean = false,
     val cancellationError: String? = null,
+    @StringRes val cancellationErrorResId: Int? = null,
+    val cancellationErrorArgs: List<String> = emptyList(),
 
     // Creation
     val patientId: String = "",
@@ -55,7 +60,11 @@ data class DoctorPrescriptionsUiState(
     val isSubmitting: Boolean = false,
     val createdPrescription: Prescription? = null,
     val createError: String? = null,
+    @StringRes val createErrorResId: Int? = null,
+    val createErrorArgs: List<String> = emptyList(),
     val userMessage: String? = null,
+    @StringRes val userMessageResId: Int? = null,
+    val userMessageArgs: List<String> = emptyList(),
 )
 
 @HiltViewModel
@@ -95,10 +104,13 @@ class DoctorPrescriptionsViewModel @Inject constructor(
                     }
                 }
                 .onFailure { error ->
+                    val errMsg = UiErrorMapper.map(error, "Error desconocido")
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            userMessage = "Error al cargar recetas: ${error.message ?: "Error desconocido"}"
+                            userMessage = "Error al cargar recetas: $errMsg",
+                            userMessageResId = R.string.doctor_rx_val_load_error,
+                            userMessageArgs = listOf(errMsg),
                         )
                     }
                 }
@@ -138,38 +150,71 @@ class DoctorPrescriptionsViewModel @Inject constructor(
     }
 
     fun onRequestCancelPrescription(prescription: Prescription) {
-        _uiState.update { it.copy(prescriptionToCancel = prescription, cancellationError = null) }
+        _uiState.update {
+            it.copy(
+                prescriptionToCancel = prescription,
+                cancellationError = null,
+                cancellationErrorResId = null,
+                cancellationErrorArgs = emptyList(),
+            )
+        }
     }
 
     fun onDismissCancelDialog() {
-        _uiState.update { it.copy(prescriptionToCancel = null, cancellationError = null) }
+        _uiState.update {
+            it.copy(
+                prescriptionToCancel = null,
+                cancellationError = null,
+                cancellationErrorResId = null,
+                cancellationErrorArgs = emptyList(),
+            )
+        }
     }
 
     fun onConfirmCancelPrescription(reason: String) {
         val target = _uiState.value.prescriptionToCancel ?: return
         if (reason.isBlank()) {
-            _uiState.update { it.copy(cancellationError = "Debe indicar el motivo clínico de anulación") }
+            _uiState.update {
+                it.copy(
+                    cancellationError = "Debe indicar el motivo clínico de anulación",
+                    cancellationErrorResId = R.string.doctor_rx_val_cancel_motive_required,
+                    cancellationErrorArgs = emptyList(),
+                )
+            }
             return
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isCancelling = true, cancellationError = null) }
+            _uiState.update {
+                it.copy(
+                    isCancelling = true,
+                    cancellationError = null,
+                    cancellationErrorResId = null,
+                    cancellationErrorArgs = emptyList(),
+                )
+            }
             prescriptionRepository.cancelPrescription(target.id, reason.trim())
                 .onSuccess {
+                    val cuirOrId = target.cuir ?: target.id.take(8)
                     _uiState.update {
                         it.copy(
                             isCancelling = false,
                             prescriptionToCancel = null,
-                            userMessage = "Receta ${target.cuir ?: target.id.take(8)} cancelada correctamente",
+                            userMessage = "Receta $cuirOrId cancelada correctamente",
+                            userMessageResId = R.string.doctor_rx_val_cancelled_success,
+                            userMessageArgs = listOf(cuirOrId),
                         )
                     }
                     loadPrescriptions()
                 }
                 .onFailure { error ->
+                    val errMsg = UiErrorMapper.map(error, "No se pudo actualizar")
                     _uiState.update {
                         it.copy(
                             isCancelling = false,
-                            cancellationError = "Error al cancelar: ${error.message ?: "No se pudo actualizar"}"
+                            cancellationError = "Error al cancelar: $errMsg",
+                            cancellationErrorResId = R.string.doctor_rx_val_cancel_error,
+                            cancellationErrorArgs = listOf(errMsg),
                         )
                     }
                 }
@@ -278,32 +323,68 @@ class DoctorPrescriptionsViewModel @Inject constructor(
 
         // Validations
         if (state.patientId.isBlank()) {
-            _uiState.update { it.copy(createError = "Debe seleccionar un paciente") }
+            _uiState.update {
+                it.copy(
+                    createError = "Debe seleccionar un paciente",
+                    createErrorResId = R.string.doctor_rx_val_patient_required,
+                    createErrorArgs = emptyList(),
+                )
+            }
             return
         }
 
         if (state.items.isEmpty()) {
-            _uiState.update { it.copy(createError = "Debe indicar al menos un medicamento") }
+            _uiState.update {
+                it.copy(
+                    createError = "Debe indicar al menos un medicamento",
+                    createErrorResId = R.string.doctor_rx_val_medication_required,
+                    createErrorArgs = emptyList(),
+                )
+            }
             return
         }
 
         for ((idx, item) in state.items.withIndex()) {
             if (item.medicationName.isBlank()) {
-                _uiState.update { it.copy(createError = "Complete el nombre del medicamento #${idx + 1}") }
+                _uiState.update {
+                    it.copy(
+                        createError = "Complete el nombre del medicamento #${idx + 1}",
+                        createErrorResId = R.string.doctor_rx_val_med_name_required,
+                        createErrorArgs = listOf("${idx + 1}"),
+                    )
+                }
                 return
             }
             if (item.dosage.isBlank()) {
-                _uiState.update { it.copy(createError = "Indique la dosis para ${item.medicationName}") }
+                _uiState.update {
+                    it.copy(
+                        createError = "Indique la dosis para ${item.medicationName}",
+                        createErrorResId = R.string.doctor_rx_val_dosage_required,
+                        createErrorArgs = listOf(item.medicationName),
+                    )
+                }
                 return
             }
             if (item.frequency.isBlank()) {
-                _uiState.update { it.copy(createError = "Indique la frecuencia de toma para ${item.medicationName}") }
+                _uiState.update {
+                    it.copy(
+                        createError = "Indique la frecuencia de toma para ${item.medicationName}",
+                        createErrorResId = R.string.doctor_rx_val_frequency_required,
+                        createErrorArgs = listOf(item.medicationName),
+                    )
+                }
                 return
             }
         }
 
         if (state.diagnosis.isBlank()) {
-            _uiState.update { it.copy(createError = "Indique el diagnóstico clínico (CIE-10)") }
+            _uiState.update {
+                it.copy(
+                    createError = "Indique el diagnóstico clínico (CIE-10)",
+                    createErrorResId = R.string.doctor_rx_val_diagnosis_required,
+                    createErrorArgs = emptyList(),
+                )
+            }
             return
         }
 
@@ -311,13 +392,24 @@ class DoctorPrescriptionsViewModel @Inject constructor(
         val eligibility = state.doctorEligibility
         if (eligibility != null && !eligibility.isEligible && eligibility.doctorLicense.isNullOrBlank()) {
             _uiState.update {
-                it.copy(createError = "Debe configurar su matrícula médica antes de emitir recetas")
+                it.copy(
+                    createError = "Debe configurar su matrícula médica antes de emitir recetas",
+                    createErrorResId = R.string.doctor_rx_val_license_required,
+                    createErrorArgs = emptyList(),
+                )
             }
             return
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true, createError = null) }
+            _uiState.update {
+                it.copy(
+                    isSubmitting = true,
+                    createError = null,
+                    createErrorResId = null,
+                    createErrorArgs = emptyList(),
+                )
+            }
 
             val domainItems = state.items.map { item ->
                 PrescriptionItem(
@@ -340,21 +432,27 @@ class DoctorPrescriptionsViewModel @Inject constructor(
 
             prescriptionRepository.createPrescription(request)
                 .onSuccess { created ->
+                    val cuirOrId = created.cuir ?: created.id.take(8)
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
                             createdPrescription = created,
-                            userMessage = "Receta emitida con éxito: CUIR ${created.cuir ?: created.id.take(8)}",
+                            userMessage = "Receta emitida con éxito: CUIR $cuirOrId",
+                            userMessageResId = R.string.doctor_rx_val_issued_success,
+                            userMessageArgs = listOf(cuirOrId),
                         )
                     }
                     loadPrescriptions()
                     onSuccess(created)
                 }
                 .onFailure { error ->
+                    val errMsg = UiErrorMapper.map(error, "No se pudo completar la emisión")
                     _uiState.update {
                         it.copy(
                             isSubmitting = false,
-                            createError = "Error al emitir: ${error.message ?: "No se pudo completar la emisión"}"
+                            createError = "Error al emitir: $errMsg",
+                            createErrorResId = R.string.doctor_rx_val_issue_error,
+                            createErrorArgs = listOf(errMsg),
                         )
                     }
                 }
@@ -366,7 +464,13 @@ class DoctorPrescriptionsViewModel @Inject constructor(
     }
 
     fun clearUserMessage() {
-        _uiState.update { it.copy(userMessage = null) }
+        _uiState.update {
+            it.copy(
+                userMessage = null,
+                userMessageResId = null,
+                userMessageArgs = emptyList(),
+            )
+        }
     }
 
     private fun updateItemAt(index: Int, transform: (PrescriptionItemFormState) -> PrescriptionItemFormState) {
@@ -374,7 +478,12 @@ class DoctorPrescriptionsViewModel @Inject constructor(
             if (index in current.items.indices) {
                 val updated = current.items.toMutableList()
                 updated[index] = transform(updated[index])
-                current.copy(items = updated, createError = null)
+                current.copy(
+                    items = updated,
+                    createError = null,
+                    createErrorResId = null,
+                    createErrorArgs = emptyList(),
+                )
             } else current
         }
     }

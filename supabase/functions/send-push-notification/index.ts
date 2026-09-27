@@ -213,8 +213,12 @@ Deno.serve(async (req) => {
       },
     }
 
-    if (data?.type !== 'CALL_STARTED' && data?.type !== 'PATIENT_CONNECTED' && data?.type !== 'INCOMING_CALL') {
-      message.notification = { title: title ?? 'AutaMedica', body: body ?? '' }
+    // Data-only: the Android app builds the notification in onMessageReceived so
+    // the branded large icon (logo cyan sobre transparente) se muestra. Si se
+    // incluye un bloque `notification`, el system tray renderiza solo la silueta
+    // y el large icon cae al ícono de launcher (objetivo: evitar blob negro).
+    if (data?.type === 'CALL_STARTED' || data?.type === 'PATIENT_CONNECTED' || data?.type === 'INCOMING_CALL') {
+      message.notification = { title: title ?? 'AutaMedica', body: body ?? '', priority: 'high' }
     }
 
     const result = await sendFcm(sa, message)

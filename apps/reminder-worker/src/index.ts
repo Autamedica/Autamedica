@@ -22,6 +22,7 @@ import type { OpenClawConfig } from '@autamedica/scheduling';
 import { getServerEnvOrDefault } from '@autamedica/shared';
 import { processDoctorWhatsAppJobs } from './doctor-whatsapp-notifications';
 import { processClinicalOutboxJobs } from './clinical-safety-outbox';
+import { processPushNotificationJobs } from './push-notification-queue';
 
 // Config from env
 const SUPABASE_URL = getServerEnvOrDefault('SUPABASE_URL');
@@ -77,6 +78,10 @@ async function tick() {
       batchSize: 25,
       dryRun: effectiveDryRun,
     });
+    const pushQueueResult = await processPushNotificationJobs(supabase, {
+      batchSize: 50,
+      dryRun: effectiveDryRun,
+    });
 
     if (
       result.processed > 0 ||
@@ -84,14 +89,15 @@ async function tick() {
       result.waitlistExpired > 0 ||
       result.noShowsMarked > 0 ||
       doctorWhatsAppResult.processed > 0 ||
-      clinicalOutboxResult.processed > 0
+      clinicalOutboxResult.processed > 0 ||
+      pushQueueResult.processed > 0
     ) {
       console.log(
-        `[${new Date().toISOString()}] Processed: ${result.processed} | Sent: ${result.sent} | Skipped: ${result.skipped} | Failed: ${result.failed} | Waitlist sent: ${result.waitlistOffersSent} | Waitlist expired: ${result.waitlistExpired} | No-show marked: ${result.noShowsMarked} | Doctor WA sent: ${doctorWhatsAppResult.sent} | Doctor WA skipped: ${doctorWhatsAppResult.skipped} | Doctor WA failed: ${doctorWhatsAppResult.failed} | Clinical Outbox processed: ${clinicalOutboxResult.processed} | Dispatched: ${clinicalOutboxResult.dispatched} | Skipped: ${clinicalOutboxResult.skipped}`,
+        `[${new Date().toISOString()}] Processed: ${result.processed} | Sent: ${result.sent} | Skipped: ${result.skipped} | Failed: ${result.failed} | Waitlist sent: ${result.waitlistOffersSent} | Waitlist expired: ${result.waitlistExpired} | No-show marked: ${result.noShowsMarked} | Doctor WA sent: ${doctorWhatsAppResult.sent} | Doctor WA skipped: ${doctorWhatsAppResult.skipped} | Doctor WA failed: ${doctorWhatsAppResult.failed} | Clinical Outbox processed: ${clinicalOutboxResult.processed} | Dispatched: ${clinicalOutboxResult.dispatched} | Skipped: ${clinicalOutboxResult.skipped} | Push Queue processed: ${pushQueueResult.processed} | Dispatched: ${pushQueueResult.dispatched} | Failed: ${pushQueueResult.failed} | Skipped: ${pushQueueResult.skipped}`,
       );
     }
 
-    const errors = [...result.errors, ...doctorWhatsAppResult.errors, ...clinicalOutboxResult.errors];
+    const errors = [...result.errors, ...doctorWhatsAppResult.errors, ...clinicalOutboxResult.errors, ...pushQueueResult.errors];
     if (errors.length > 0) {
       for (const err of errors) {
         console.error(`  ❌ ${err}`);

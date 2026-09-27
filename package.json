@@ -28,7 +28,7 @@
     "release:org-roles": "./scripts/release-org-roles.sh",
     "build": "turbo run build",
     "build:packages": "pnpm run build:packages:core",
-    "build:packages:core": "turbo run build --filter=@autamedica/types --filter=@autamedica/shared --filter=@autamedica/auth --filter=@autamedica/hooks --filter=@autamedica/session --filter=@autamedica/tailwind-config --filter=@autamedica/telemedicine --filter=@autamedica/ui --filter=@autamedica/scheduling --filter=@autamedica/prescriptions --filter=@autamedica/supabase-client --log-order stream",
+    "build:packages:core": "turbo run build --filter=@autamedica/types --filter=@autamedica/shared --filter=@autamedica/auth --filter=@autamedica/hooks --filter=@autamedica/session --filter=@autamedica/tailwind-config --filter=@autamedica/telemedicine --filter=@autamedica/ui --filter=@autamedica/scheduling --filter=@autamedica/prescriptions --filter=@autamedica/supabase-client --filter=@autamedica/datasus --log-order stream",
     "build:packages-fallback": "cd packages/types && pnpm build && cd ../shared && pnpm build && cd ../auth && pnpm build && cd ../hooks && pnpm build",
     "build:apps": "turbo run build --filter='./apps/*'",
     "build:all": "bash scripts/build-all.sh build",

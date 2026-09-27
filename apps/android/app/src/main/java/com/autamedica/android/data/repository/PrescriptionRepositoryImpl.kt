@@ -627,7 +627,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val doctors = try {
             supabaseClient.postgrest
                 .from("doctors")
-                .select(Columns.list("id", "user_id", "license_number")) {
+                .select(Columns.list("id", "user_id", "license_number", "bio", "license_type", "uf_brazil")) {
                     filter { isIn("id", doctorIds) }
                 }
                 .decodeList<DoctorRecordDto>()
@@ -664,12 +664,26 @@ class PrescriptionRepositoryImpl @Inject constructor(
                     .filter { it.isNotEmpty() }
                     .joinToString(" ")
                 if (names.isNotEmpty()) "Dr. $names" else "Dr. Médico Tratante"
+            } else if (!doc.bio.isNullOrBlank()) {
+                val extracted = doc.bio.lines().firstOrNull()?.trim()
+                if (!extracted.isNullOrBlank()) {
+                    if (extracted.startsWith("Dr.") || extracted.startsWith("Dra.")) extracted else "Dr. $extracted"
+                } else {
+                    "Dr. Médico Tratante"
+                }
             } else {
                 "Dr. Médico Tratante"
             }
             nameMap[doc.id] = fullName
-            doc.licenseNumber?.takeIf { it.isNotBlank() }?.let {
-                licenseMap[doc.id] = it
+
+            val formattedLicense = when {
+                !doc.licenseNumber.isNullOrBlank() && !doc.ufBrazil.isNullOrBlank() -> "CRM-${doc.ufBrazil} ${doc.licenseNumber}"
+                !doc.licenseNumber.isNullOrBlank() && doc.licenseType.equals("CRM", ignoreCase = true) -> "CRM ${doc.licenseNumber}"
+                !doc.licenseNumber.isNullOrBlank() -> doc.licenseNumber
+                else -> null
+            }
+            if (formattedLicense != null) {
+                licenseMap[doc.id] = formattedLicense
             }
         }
 
@@ -895,6 +909,9 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val id: String,
         @SerialName("user_id") val userId: String? = null,
         @SerialName("license_number") val licenseNumber: String? = null,
+        @SerialName("bio") val bio: String? = null,
+        @SerialName("license_type") val licenseType: String? = null,
+        @SerialName("uf_brazil") val ufBrazil: String? = null,
     )
 
     @Serializable

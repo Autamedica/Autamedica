@@ -71,6 +71,32 @@ export const callSessionRepo = {
     throw primary.error
   },
 
+  async findDispatchByRoomId(
+    supabase: Db,
+    roomId: string,
+  ): Promise<{
+    id: string
+    status: string
+    cloudflare_room_id: string
+    assigned_doctor_id: string | null
+    created_at: string
+  } | null> {
+    const { data, error } = await supabase
+      .from('pharmacy_dispatch_requests')
+      .select('id, status, cloudflare_room_id, assigned_doctor_id, created_at')
+      .eq('cloudflare_room_id', roomId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) {
+      logger.error('[callSessionRepo] findDispatchByRoomId failed', error)
+      throw error
+    }
+
+    return (data as { id: string; status: string; cloudflare_room_id: string; assigned_doctor_id: string | null; created_at: string } | null) ?? null
+  },
+
   async resolveDoctorProfileIdByUserId(supabase: Db, userId: string): Promise<string | null> {
     const { data, error } = await supabase
       .from('doctors')

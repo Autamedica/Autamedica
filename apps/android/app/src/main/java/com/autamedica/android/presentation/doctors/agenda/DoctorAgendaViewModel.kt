@@ -13,6 +13,7 @@ import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.logging.SecureLog
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -237,7 +238,7 @@ class DoctorAgendaViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             availabilitySaveStatus = SaveStatus.ERROR,
-                            availabilityError = error.message ?: "No se pudo guardar la disponibilidad",
+                            availabilityError = UiErrorMapper.map(error, "No se pudo guardar la disponibilidad"),
                         )
                     }
                 }
@@ -460,7 +461,7 @@ class DoctorAgendaViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            error = error.message ?: "No se pudo cargar la agenda médica",
+                            error = UiErrorMapper.map(error, "No se pudo cargar la agenda médica"),
                         )
                     }
                 }

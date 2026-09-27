@@ -22,6 +22,7 @@ import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
+import com.autamedica.android.presentation.common.UiErrorMapper
 import com.autamedica.android.presentation.videocall.webrtc.TurnManager
 import com.autamedica.android.presentation.videocall.webrtc.sfu.CloudflareCallsEngine
 import com.autamedica.android.service.CallNotificationService
@@ -541,7 +542,7 @@ class VideoCallViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isSavingSoap = false,
-                        soapError = "Error al guardar evolución: ${error.message ?: "Intente nuevamente"}",
+                        soapError = "Error al guardar evolución: ${UiErrorMapper.map(error, "Intente nuevamente")}",
                     )
                 }
             }

@@ -76,6 +76,17 @@ data class Prescription(
             ?: "https://autamedica.com/prescriptions/$id"
 
     /**
+     * Código Balcão para farmácias brasileiras (Linx / Tier / SNGPC).
+     */
+    val codigoBalcao: String
+        get() {
+            val code = cuir?.trim().orEmpty()
+            if (code.isBlank()) return id.take(4).uppercase()
+            val parts = code.split("-")
+            return if (parts.isNotEmpty()) parts.last().uppercase() else code.takeLast(4).uppercase()
+        }
+
+    /**
      * Resolved list of items, falling back to primary medication if items list is empty.
      */
     val displayItems: List<PrescriptionItem>

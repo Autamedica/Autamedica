@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.MedicalCertificate
 import com.autamedica.android.domain.model.Prescription
+import com.autamedica.android.domain.model.PrescriptionDispensation
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
 import com.autamedica.android.domain.repository.PrescriptionRepository
 import com.autamedica.android.logging.SecureLog
+import com.autamedica.android.presentation.common.UiErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +38,9 @@ data class PrescriptionsUiState(
     val selectedFilter: PrescriptionFilter = PrescriptionFilter.TODAS,
     val selectedPrescription: Prescription? = null,
     val selectedCertificate: MedicalCertificate? = null,
+    val dispensation: PrescriptionDispensation? = null,
+    val dispensationLoading: Boolean = false,
+    val dispensationError: String? = null,
     val error: String? = null,
 ) {
     val activeCount: Int
@@ -108,10 +113,35 @@ class PrescriptionsViewModel @Inject constructor(
 
     fun selectPrescription(prescription: Prescription) {
         _uiState.update { it.copy(selectedPrescription = prescription) }
+        loadDispensation(prescription.id)
+    }
+
+    private fun loadDispensation(prescriptionId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(dispensation = null, dispensationLoading = true, dispensationError = null) }
+            val result = prescriptionRepository.getPrescriptionDispensation(prescriptionId)
+            _uiState.update { state ->
+                result.fold(
+                    onSuccess = { dispensation ->
+                        state.copy(dispensation = dispensation, dispensationLoading = false, dispensationError = null)
+                    },
+                    onFailure = { failure ->
+                        state.copy(dispensation = null, dispensationLoading = false, dispensationError = UiErrorMapper.map(failure, "No se pudo completar la dispensación"))
+                    },
+                )
+            }
+        }
     }
 
     fun clearSelectedPrescription() {
-        _uiState.update { it.copy(selectedPrescription = null) }
+        _uiState.update {
+            it.copy(
+                selectedPrescription = null,
+                dispensation = null,
+                dispensationLoading = false,
+                dispensationError = null,
+            )
+        }
     }
 
     fun selectCertificate(certificate: MedicalCertificate) {

@@ -9,8 +9,11 @@ import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
@@ -41,6 +44,11 @@ class DoctorOnDemandViewModel @Inject constructor(
 
     private val _navigateToCall = MutableStateFlow<DispatchClaimResult?>(null)
     val navigateToCall: StateFlow<DispatchClaimResult?> = _navigateToCall.asStateFlow()
+
+    private val _newRequestEvents = MutableSharedFlow<String>(extraBufferCapacity = 4)
+    val newRequestEvents: SharedFlow<String> = _newRequestEvents.asSharedFlow()
+
+    private val seenRequestIds = mutableSetOf<String>()
 
     init {
         viewModelScope.launch {
@@ -178,9 +186,27 @@ class DoctorOnDemandViewModel @Inject constructor(
             pharmacyDispatchRepository.observeSearchingRequests()
                 .collect { requests ->
                     _uiState.update { it.copy(searchingRequests = requests) }
+                    emittedArrivalEvents(requests)
                 }
         } catch (error: Throwable) {
             SecureLog.error("[DoctorOnDemand] Error observing searching queue", error)
         }
+    }
+
+    fun expireRequest(requestId: String) {
+        val current = _uiState.value.searchingRequests
+        if (current.none { it.id == requestId }) return
+        _uiState.update {
+            it.copy(searchingRequests = it.searchingRequests.filter { r -> r.id != requestId })
+        }
+    }
+
+    private fun emittedArrivalEvents(requests: List<PharmacyDispatchRequest>) {
+        for (request in requests) {
+            if (seenRequestIds.add(request.id)) {
+                _newRequestEvents.tryEmit(request.id)
+            }
+        }
+        seenRequestIds.retainAll(requests.map { it.id })
     }
 }

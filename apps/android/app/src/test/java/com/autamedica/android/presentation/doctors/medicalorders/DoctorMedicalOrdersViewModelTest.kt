@@ -6,6 +6,7 @@ import com.autamedica.android.domain.model.DoctorEligibility
 import com.autamedica.android.domain.model.MedicalOrder
 import com.autamedica.android.domain.model.PracticeItem
 import com.autamedica.android.domain.model.Prescription
+import com.autamedica.android.domain.model.PrescriptionDispensation
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.model.StudyType
 import com.autamedica.android.domain.repository.MedicalOrderRepository
@@ -237,6 +238,7 @@ private class FakePrescriptionRepository(
 
     override suspend fun getPatientPrescriptions(): Result<List<Prescription>> = Result.success(emptyList())
     override suspend fun getDoctorPrescriptions(patientId: String?, status: String?): Result<List<Prescription>> = Result.success(emptyList())
+    override suspend fun getPrescriptionDispensation(prescriptionId: String): Result<PrescriptionDispensation> = Result.failure(NotImplementedError())
     override suspend fun getPrescriptionById(id: String): Result<Prescription> = Result.failure(NotImplementedError())
     override suspend fun createPrescription(request: CreatePrescriptionRequest): Result<Prescription> = Result.failure(NotImplementedError())
     override suspend fun cancelPrescription(prescriptionId: String, reason: String): Result<Unit> = Result.success(Unit)

@@ -35,12 +35,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.MedicalOrder
 import com.autamedica.android.domain.model.StudyType
 import com.autamedica.android.presentation.prescriptions.components.QrCodeView
@@ -60,16 +62,26 @@ fun DoctorMedicalOrdersScreen(
 
     var selectedOrderForQr by remember { mutableStateOf<MedicalOrder?>(null) }
 
-    LaunchedEffect(uiState.userMessage) {
-        uiState.userMessage?.let { msg ->
-            snackbarHostState.showSnackbar(msg)
+    LaunchedEffect(uiState.userMessage, uiState.userMessageResId) {
+        val msg = when {
+            uiState.userMessageResId != null -> context.getString(uiState.userMessageResId!!, *uiState.userMessageArgs.toTypedArray())
+            uiState.userMessage != null -> uiState.userMessage
+            else -> null
+        }
+        msg?.let {
+            snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
 
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { err ->
-            snackbarHostState.showSnackbar(err)
+    LaunchedEffect(uiState.errorMessage, uiState.errorMessageResId) {
+        val err = when {
+            uiState.errorMessageResId != null -> context.getString(uiState.errorMessageResId!!)
+            uiState.errorMessage != null -> uiState.errorMessage
+            else -> null
+        }
+        err?.let {
+            snackbarHostState.showSnackbar(it)
             viewModel.clearMessages()
         }
     }
@@ -81,7 +93,7 @@ fun DoctorMedicalOrdersScreen(
             }
             context.startActivity(intent)
         }.onFailure {
-            Toast.makeText(context, "No se pudo abrir el documento PDF.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.doctor_orders_pdf_error_toast), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -94,13 +106,13 @@ fun DoctorMedicalOrdersScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Órdenes Médicas",
+                            text = stringResource(R.string.doctor_orders_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "${uiState.orders.size} órdenes emitidas",
+                            text = stringResource(R.string.doctor_orders_subtitle, uiState.orders.size),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
@@ -110,7 +122,7 @@ fun DoctorMedicalOrdersScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.doctor_orders_action_back),
                             tint = AuTextPrimary,
                         )
                     }
@@ -119,7 +131,7 @@ fun DoctorMedicalOrdersScreen(
                     IconButton(onClick = { viewModel.loadOrders() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "Actualizar",
+                            contentDescription = stringResource(R.string.doctor_orders_action_refresh),
                             tint = AuTextSecondary,
                         )
                     }
@@ -139,8 +151,8 @@ fun DoctorMedicalOrdersScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Nueva Orden")
-                    Text("Nueva Orden", fontWeight = FontWeight.Bold)
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.doctor_orders_action_new))
+                    Text(stringResource(R.string.doctor_orders_action_new), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -157,14 +169,18 @@ fun DoctorMedicalOrdersScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Buscar por paciente, DNI, práctica o CUIR...") },
+                placeholder = { Text(stringResource(R.string.doctor_orders_search_placeholder)) },
                 leadingIcon = {
                     Icon(Icons.Default.Search, contentDescription = null, tint = AuTextTertiary)
                 },
                 trailingIcon = {
                     if (uiState.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = AuTextTertiary)
+                            Icon(
+                                Icons.Default.Clear,
+                                contentDescription = stringResource(R.string.doctor_orders_clear_search_desc),
+                                tint = AuTextTertiary
+                            )
                         }
                     }
                 },
@@ -195,13 +211,20 @@ fun DoctorMedicalOrdersScreen(
                         OrderFilter.CARDIOLOGY -> uiState.cardioCount
                         OrderFilter.OTHER -> uiState.otherCount
                     }
+                    val filterLabel = when (filter) {
+                        OrderFilter.ALL -> stringResource(R.string.doctor_orders_filter_all)
+                        OrderFilter.LABORATORY -> stringResource(R.string.doctor_orders_filter_lab)
+                        OrderFilter.IMAGING -> stringResource(R.string.doctor_orders_filter_imaging)
+                        OrderFilter.CARDIOLOGY -> stringResource(R.string.doctor_orders_filter_cardiology)
+                        OrderFilter.OTHER -> stringResource(R.string.doctor_orders_filter_other)
+                    }
 
                     FilterChip(
                         selected = isSelected,
                         onClick = { viewModel.setFilter(filter) },
                         label = {
                             Text(
-                                text = "${filter.label} ($count)",
+                                text = "$filterLabel ($count)",
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                             )
                         },
@@ -253,9 +276,9 @@ fun DoctorMedicalOrdersScreen(
                             )
                             Text(
                                 text = if (uiState.searchQuery.isNotEmpty()) {
-                                    "No se encontraron órdenes con el criterio de búsqueda"
+                                    stringResource(R.string.doctor_orders_empty_filtered)
                                 } else {
-                                    "No hay órdenes médicas emitidas en esta categoría"
+                                    stringResource(R.string.doctor_orders_empty_category)
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = AuTextTertiary,
@@ -291,12 +314,12 @@ fun DoctorMedicalOrdersScreen(
             onDismissRequest = { selectedOrderForQr = null },
             confirmButton = {
                 TextButton(onClick = { selectedOrderForQr = null }) {
-                    Text("Cerrar", color = PortalDoctors)
+                    Text(stringResource(R.string.doctor_orders_qr_dialog_close), color = PortalDoctors)
                 }
             },
             title = {
                 Text(
-                    text = "Verificación de Orden Médica",
+                    text = stringResource(R.string.doctor_orders_qr_dialog_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -329,7 +352,7 @@ fun DoctorMedicalOrdersScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Código CUIR",
+                                        text = stringResource(R.string.doctor_orders_qr_dialog_cuir_label),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = AuTextTertiary,
                                     )
@@ -344,12 +367,12 @@ fun DoctorMedicalOrdersScreen(
                                     onClick = {
                                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                         clipboard.setPrimaryClip(ClipData.newPlainText("CUIR", cuir))
-                                        Toast.makeText(context, "CUIR copiado al portapapeles", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, context.getString(R.string.doctor_orders_qr_dialog_copied_toast), Toast.LENGTH_SHORT).show()
                                     }
                                 ) {
                                     Icon(
                                         Icons.Default.ContentCopy,
-                                        contentDescription = "Copiar CUIR",
+                                        contentDescription = stringResource(R.string.doctor_orders_qr_dialog_copy_desc),
                                         tint = PortalDoctors,
                                     )
                                 }
@@ -358,7 +381,7 @@ fun DoctorMedicalOrdersScreen(
                     }
 
                     Text(
-                        text = "Válido ante centros de diagnóstico, laboratorios e instituciones según Decreto 63/2024.",
+                        text = stringResource(R.string.doctor_orders_qr_dialog_legal),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextSecondary,
                     )
@@ -378,17 +401,17 @@ fun MedicalOrderCard(
     val context = LocalContext.current
 
     val (badgeBg, badgeColor, badgeText) = when (order.status.lowercase()) {
-        "signed", "sent" -> Triple(AuSuccess.copy(alpha = 0.12f), AuSuccess, "Firmada")
-        "draft" -> Triple(AuWarning.copy(alpha = 0.12f), AuWarning, "Borrador")
-        "cancelled" -> Triple(AuDanger.copy(alpha = 0.12f), AuDanger, "Cancelada")
+        "signed", "sent" -> Triple(AuSuccess.copy(alpha = 0.12f), AuSuccess, stringResource(R.string.doctor_orders_badge_signed))
+        "draft" -> Triple(AuWarning.copy(alpha = 0.12f), AuWarning, stringResource(R.string.doctor_orders_badge_draft))
+        "cancelled" -> Triple(AuDanger.copy(alpha = 0.12f), AuDanger, stringResource(R.string.doctor_orders_badge_cancelled))
         else -> Triple(PortalDoctorsSoft, PortalDoctors, order.status.replaceFirstChar { it.uppercase() })
     }
 
-    val (studyBg, studyColor) = when (order.studyType) {
-        StudyType.LABORATORY -> PortalPatientsSoft to PortalPatients
-        StudyType.IMAGING -> Color(0x1F8B5CF6) to Color(0xFF8B5CF6)
-        StudyType.CARDIOLOGY -> Color(0x1FE11D48) to Color(0xFFE11D48)
-        StudyType.OTHER -> PortalDoctorsSoft to PortalDoctors
+    val (studyBg, studyColor, studyLabel) = when (order.studyType) {
+        StudyType.LABORATORY -> Triple(PortalPatientsSoft, PortalPatients, stringResource(R.string.doctor_orders_filter_lab))
+        StudyType.IMAGING -> Triple(Color(0x1F8B5CF6), Color(0xFF8B5CF6), stringResource(R.string.doctor_orders_filter_imaging))
+        StudyType.CARDIOLOGY -> Triple(Color(0x1FE11D48), Color(0xFFE11D48), stringResource(R.string.doctor_orders_filter_cardiology))
+        StudyType.OTHER -> Triple(PortalDoctorsSoft, PortalDoctors, stringResource(R.string.doctor_orders_filter_other))
     }
 
     Card(
@@ -416,7 +439,7 @@ fun MedicalOrderCard(
                     border = BorderStroke(1.dp, studyColor.copy(alpha = 0.3f)),
                 ) {
                     Text(
-                        text = order.studyType.displayName,
+                        text = studyLabel,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = studyColor,
@@ -471,7 +494,7 @@ fun MedicalOrderCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = order.patientName ?: "Paciente",
+                        text = order.patientName ?: stringResource(R.string.doctor_orders_card_patient_default),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
@@ -480,7 +503,7 @@ fun MedicalOrderCard(
                     )
                     Text(
                         text = buildString {
-                            order.patientDni?.let { append("DNI: $it · ") }
+                            order.patientDni?.let { append("${stringResource(R.string.doctor_create_order_patient_dni_short, it)} · ") }
                             append(order.createdAt.take(10))
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -494,7 +517,7 @@ fun MedicalOrderCard(
             // Practices List
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Prácticas y estudios solicitados:",
+                    text = stringResource(R.string.doctor_orders_practices_header),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                     fontWeight = FontWeight.SemiBold,
@@ -523,7 +546,7 @@ fun MedicalOrderCard(
             // Diagnosis
             if (!order.diagnosis.isNullOrBlank()) {
                 Text(
-                    text = "Dx: ${order.diagnosis}",
+                    text = stringResource(R.string.doctor_orders_dx_prefix, order.diagnosis),
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextSecondary,
                     fontWeight = FontWeight.Medium,
@@ -538,7 +561,7 @@ fun MedicalOrderCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        text = "Indicaciones: ${order.notes}",
+                        text = stringResource(R.string.doctor_orders_notes_prefix, order.notes),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextSecondary,
                         modifier = Modifier.padding(8.dp),
@@ -558,7 +581,7 @@ fun MedicalOrderCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text = "CUIR: ${order.cuir}",
+                            text = stringResource(R.string.doctor_orders_cuir_prefix, order.cuir),
                             style = MaterialTheme.typography.labelSmall,
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
@@ -568,13 +591,13 @@ fun MedicalOrderCard(
                             onClick = {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 clipboard.setPrimaryClip(ClipData.newPlainText("CUIR", order.cuir))
-                                Toast.makeText(context, "CUIR copiado", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.doctor_orders_cuir_copied_toast), Toast.LENGTH_SHORT).show()
                             },
                             modifier = Modifier.size(24.dp)
                         ) {
                             Icon(
                                 Icons.Default.ContentCopy,
-                                contentDescription = "Copiar",
+                                contentDescription = stringResource(R.string.doctor_orders_copy_cuir_desc),
                                 tint = AuTextTertiary,
                                 modifier = Modifier.size(14.dp),
                             )
@@ -592,7 +615,7 @@ fun MedicalOrderCard(
                     ) {
                         Icon(
                             Icons.Outlined.QrCode,
-                            contentDescription = "Ver QR",
+                            contentDescription = stringResource(R.string.doctor_orders_view_qr_desc),
                             tint = PortalDoctors,
                             modifier = Modifier.size(20.dp),
                         )
@@ -606,7 +629,7 @@ fun MedicalOrderCard(
                         ) {
                             Icon(
                                 Icons.Outlined.PictureAsPdf,
-                                contentDescription = "Ver PDF",
+                                contentDescription = stringResource(R.string.doctor_orders_view_pdf_desc),
                                 tint = AuDanger,
                                 modifier = Modifier.size(20.dp),
                             )

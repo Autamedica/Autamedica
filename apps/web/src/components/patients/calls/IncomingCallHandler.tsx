@@ -151,30 +151,41 @@ export function IncomingCallHandler({
       const baseTime = activeContext.currentTime + 0.02
       const master = activeContext.createGain()
       master.gain.setValueAtTime(0.0001, baseTime)
-      master.gain.exponentialRampToValueAtTime(0.12, baseTime + 0.03)
-      master.gain.exponentialRampToValueAtTime(0.0001, baseTime + 0.62)
+      master.gain.exponentialRampToValueAtTime(0.25, baseTime + 0.025)
+      master.gain.exponentialRampToValueAtTime(0.0001, baseTime + 1.5)
       master.connect(activeContext.destination)
 
       const notes = [
-        { frequency: 659.25, offset: 0 },
-        { frequency: 830.61, offset: 0.18 },
+        { frequency: 440.0, offset: 0, gain: 0.28 },
+        { frequency: 554.37, offset: 0.16, gain: 0.2 },
+        { frequency: 659.26, offset: 0.34, gain: 0.14 },
       ]
 
-      notes.forEach(({ frequency, offset }) => {
+      const partials = [
+        { mult: 1, amp: 1 },
+        { mult: 2, amp: 0.32 },
+        { mult: 2.76, amp: 0.12 },
+        { mult: 5.4, amp: 0.05 },
+      ]
+
+      notes.forEach(({ frequency, offset, gain }) => {
         const startAt = baseTime + offset
-        const oscillator = activeContext.createOscillator()
-        const gain = activeContext.createGain()
 
-        oscillator.type = 'triangle'
-        oscillator.frequency.setValueAtTime(frequency, startAt)
-        gain.gain.setValueAtTime(0.0001, startAt)
-        gain.gain.exponentialRampToValueAtTime(0.22, startAt + 0.03)
-        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.18)
+        partials.forEach(({ mult, amp }) => {
+          const oscillator = activeContext.createOscillator()
+          const partialGain = activeContext.createGain()
 
-        oscillator.connect(gain)
-        gain.connect(master)
-        oscillator.start(startAt)
-        oscillator.stop(startAt + 0.2)
+          oscillator.type = 'sine'
+          oscillator.frequency.setValueAtTime(frequency * mult, startAt)
+          partialGain.gain.setValueAtTime(0.0001, startAt)
+          partialGain.gain.exponentialRampToValueAtTime(gain * amp, startAt + 0.008)
+          partialGain.gain.exponentialRampToValueAtTime(0.0001, startAt + 1.4)
+
+          oscillator.connect(partialGain)
+          partialGain.connect(master)
+          oscillator.start(startAt)
+          oscillator.stop(startAt + 1.45)
+        })
       })
       setAudioAvailability('playing')
       return true
@@ -197,7 +208,7 @@ export function IncomingCallHandler({
       if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
         navigator.vibrate([220, 100, 220])
       }
-    }, 2400)
+    }, 3000)
   }, [playIncomingRingtoneBurst, stopIncomingRingtone])
 
   function getCallService() {

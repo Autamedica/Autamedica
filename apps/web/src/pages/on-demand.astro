@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { PharmacyExpressConsultation } from '@/components/pharmacy/PharmacyExpressConsultation';
+
+const title = 'Atención Médica On-Demand | Guardia de Mostrador AutaMedica';
+const description = 'Conexión directa e inmediata con médicos matriculados y emisión de recetas oficiales en el mostrador.';
+---
+
+<Layout title={title} description={description}>
+  <PharmacyExpressConsultation client:load />
+</Layout>

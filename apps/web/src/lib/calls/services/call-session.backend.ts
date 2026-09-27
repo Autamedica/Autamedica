@@ -225,7 +225,10 @@ export const callSessionBackendService = {
     const call = await callSessionRepo.findLatestByRoomId(supabase, roomId)
 
     if (!call) {
-      return { kind: 'not_found' }
+      // Fallback: dispatch (on-demand pharmacy) rooms live in pharmacy_dispatch_requests,
+      // not in `calls` (patient may be anonymous until matched). The guest token minted by
+      // POST /api/pharmacy/dispatch/request carries callId = dispatch request id.
+      return this.buildDispatchGuestBootstrap(supabase, roomId, guest, guestToken)
     }
 
     if (call.id !== guest.callId || call.room_id !== guest.roomId) {
@@ -276,6 +279,97 @@ export const callSessionBackendService = {
       peer: {
         id: peerUserId ?? call.doctor_id,
         displayName: peerDisplayName,
+      },
+      permissions: {
+        canJoin: true,
+        canPublishAudio: true,
+        canPublishVideo: true,
+        canUseChat: false,
+        canRecord: false,
+      },
+      mediaPolicy: {
+        requireCamera: false,
+        requireMicrophone: true,
+        allowAudioOnlyFallback: true,
+      },
+      transport: {
+        iceServers,
+        cloudflareCallsApiUrl: `/api/calls/guest/cloudflare-calls?token=${encodeURIComponent(guestToken)}`,
+      },
+      waitingRoom: { enabled: false },
+    }
+
+    return { kind: 'ok', data }
+  },
+
+  /** Directly accessible for testing the dispatch branch. */
+  async buildDispatchGuestBootstrap(
+    supabase: Db,
+    roomId: string,
+    guest: { callId: string; roomId: string; guestName: string },
+    guestToken: string,
+  ): Promise<BootstrapResolution> {
+    const dispatch = await callSessionRepo.findDispatchByRoomId(supabase, roomId)
+
+    if (!dispatch) {
+      return { kind: 'not_found' }
+    }
+
+    if (dispatch.id !== guest.callId || dispatch.cloudflare_room_id !== guest.roomId) {
+      return { kind: 'forbidden' }
+    }
+
+    const TERMINAL_DISPATCH_STATUSES = new Set(['completed', 'cancelled', 'expired'])
+    if (TERMINAL_DISPATCH_STATUSES.has(dispatch.status)) {
+      const message =
+        dispatch.status === 'completed'
+          ? 'call_ended'
+          : dispatch.status === 'cancelled'
+            ? 'call_canceled'
+            : 'call_declined'
+      return { kind: 'conflict', message }
+    }
+
+    // Guest always uses Cloudflare Calls SFU (no Supabase Realtime for signaling)
+    let runtime = resolveRuntime()
+    if (runtime === 'webrtc-p2p') {
+      const hasCf =
+        Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_ID) &&
+        Boolean(import.meta.env.CLOUDFLARE_CALLS_APP_SECRET)
+      if (hasCf) {
+        runtime = 'cloudflare-calls'
+      } else {
+        logger.error('[callSessionBackendService] Dispatch guest call requires Cloudflare Calls but credentials missing')
+        return { kind: 'conflict', message: 'guest_calls_unavailable' }
+      }
+    }
+
+    const turnServers = await fetchCloudflareTurnServers()
+    const iceServers = turnServers.length > 0 ? turnServers : getIceServersConfig()
+
+    // Resolve assigned doctor identity when matched/in_call
+    let peerUserId: string | null = null
+    let peerDisplayName: string | undefined
+    if (dispatch.assigned_doctor_id) {
+      peerUserId = await callSessionRepo.resolveDoctorUserId(supabase, dispatch.assigned_doctor_id)
+      peerDisplayName = peerUserId
+        ? await callSessionRepo.resolveDisplayNameByUserId(supabase, peerUserId)
+        : undefined
+    }
+
+    const data: CallSessionBootstrap = {
+      callId: dispatch.id,
+      roomId: dispatch.cloudflare_room_id,
+      appointmentId: null,
+      runtime,
+      user: {
+        id: `guest:${dispatch.id}`,
+        role: 'guest',
+        displayName: guest.guestName,
+      },
+      peer: {
+        id: peerUserId ?? `doctor:${dispatch.assigned_doctor_id ?? 'unassigned'}`,
+        ...(peerDisplayName ? { displayName: peerDisplayName } : {}),
       },
       permissions: {
         canJoin: true,

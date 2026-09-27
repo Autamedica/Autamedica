@@ -178,10 +178,26 @@ async function markAttemptStarted(messageId: string, nextAttemptCount: number): 
   if (error) throw new Error(`update attempt metadata: ${error.message}`);
 }
 
+const MAX_INBOUND_ATTEMPTS = 5;
+
 async function markAttemptFailed(messageId: string, attemptCount: number, reason: string): Promise<void> {
+  const isDeadLetter = attemptCount >= MAX_INBOUND_ATTEMPTS;
+  const updatePayload = isDeadLetter
+    ? {
+        status: 'ignored',
+        processed_at: new Date().toISOString(),
+        next_attempt_at: null,
+        last_error: reason,
+        webhook_result: { action: 'dead_letter', reason: 'max_attempts_exceeded', final_error: reason },
+      }
+    : {
+        next_attempt_at: computeRetryAt(attemptCount),
+        last_error: reason,
+      };
+
   const { error } = await supabase
     .from('appointment_inbound_messages')
-    .update({ next_attempt_at: computeRetryAt(attemptCount), last_error: reason })
+    .update(updatePayload)
     .eq('id', messageId);
   if (error) throw new Error(`schedule inbound retry: ${error.message}`);
 }

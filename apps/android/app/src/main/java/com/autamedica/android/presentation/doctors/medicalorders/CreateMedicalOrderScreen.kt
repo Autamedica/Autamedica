@@ -33,12 +33,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.R
 import com.autamedica.android.domain.model.PracticeItem
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.model.StudyType
@@ -108,13 +110,13 @@ fun CreateMedicalOrderScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Nueva Orden Médica",
+                            text = stringResource(R.string.doctor_create_order_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Estudios y Prácticas Diagnósticas",
+                            text = stringResource(R.string.doctor_create_order_subtitle),
                             style = MaterialTheme.typography.labelSmall,
                             color = AuTextTertiary,
                         )
@@ -124,7 +126,7 @@ fun CreateMedicalOrderScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.doctor_create_order_action_back),
                             tint = AuTextPrimary,
                         )
                     }
@@ -144,7 +146,12 @@ fun CreateMedicalOrderScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    uiState.errorMessage?.let { err ->
+                    val errorMessageText = when {
+                        uiState.errorMessageResId != null -> stringResource(uiState.errorMessageResId!!)
+                        uiState.errorMessage != null -> uiState.errorMessage
+                        else -> null
+                    }
+                    errorMessageText?.let { err ->
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = AuDanger.copy(alpha = 0.10f),
@@ -171,7 +178,7 @@ fun CreateMedicalOrderScreen(
                         onClick = {
                             viewModel.createOrder(
                                 onSuccess = {
-                                    Toast.makeText(context, "Orden médica emitida con éxito", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.doctor_create_order_success_toast), Toast.LENGTH_SHORT).show()
                                     onBack()
                                 }
                             )
@@ -190,11 +197,11 @@ fun CreateMedicalOrderScreen(
                                 strokeWidth = 2.dp,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Emitiendo orden médica...")
+                            Text(stringResource(R.string.doctor_create_order_submitting))
                         } else {
                             Icon(Icons.Outlined.HealthAndSafety, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Emitir Orden Oficial", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.doctor_create_order_submit_button), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -283,7 +290,7 @@ private fun PatientSelectorCard(
             ) {
                 Icon(Icons.Outlined.Person, contentDescription = null, tint = PortalDoctors)
                 Text(
-                    text = "Paciente destinatario",
+                    text = stringResource(R.string.doctor_create_order_patient_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = AuTextPrimary,
@@ -311,8 +318,13 @@ private fun PatientSelectorCard(
                                 fontWeight = FontWeight.Bold,
                                 color = AuTextPrimary,
                             )
+                            val noDni = stringResource(R.string.doctor_create_order_patient_no_dni)
                             Text(
-                                text = "DNI: ${selectedPatient.dni ?: "Sin DNI"} · ID: ${selectedPatient.patientId.take(8)}",
+                                text = stringResource(
+                                    R.string.doctor_create_order_patient_id_format,
+                                    selectedPatient.dni ?: noDni,
+                                    selectedPatient.patientId.take(8)
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextTertiary,
                             )
@@ -320,7 +332,11 @@ private fun PatientSelectorCard(
                         Icon(Icons.Default.Check, contentDescription = null, tint = PortalDoctors)
                     } else {
                         Text(
-                            text = if (isLoadingPatients) "Cargando pacientes..." else "Seleccionar paciente elegible",
+                            text = if (isLoadingPatients) {
+                                stringResource(R.string.doctor_create_order_patient_loading)
+                            } else {
+                                stringResource(R.string.doctor_create_order_patient_unselected)
+                            },
                             style = MaterialTheme.typography.bodyMedium,
                             color = AuTextTertiary,
                         )
@@ -340,7 +356,7 @@ private fun PatientSelectorCard(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = onSearchQueryChange,
-                        placeholder = { Text("Buscar paciente por nombre o DNI...") },
+                        placeholder = { Text(stringResource(R.string.doctor_create_order_patient_search_placeholder)) },
                         leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = AuTextTertiary) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -354,7 +370,7 @@ private fun PatientSelectorCard(
 
                     if (filteredList.isEmpty()) {
                         Text(
-                            text = "No se encontraron pacientes",
+                            text = stringResource(R.string.doctor_create_order_patient_empty),
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextTertiary,
                             modifier = Modifier.padding(8.dp),
@@ -380,8 +396,12 @@ private fun PatientSelectorCard(
                                             fontWeight = FontWeight.Medium,
                                             color = AuTextPrimary,
                                         )
+                                        val sdText = stringResource(R.string.doctor_create_order_patient_no_dni_short)
                                         Text(
-                                            text = "DNI: ${patient.dni ?: "S/D"}",
+                                            text = stringResource(
+                                                R.string.doctor_create_order_patient_dni_short,
+                                                patient.dni ?: sdText
+                                            ),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = AuTextTertiary,
                                         )
@@ -420,7 +440,7 @@ private fun StudyTypeSelectorCard(
             ) {
                 Icon(Icons.Outlined.MedicalServices, contentDescription = null, tint = PortalDoctors)
                 Text(
-                    text = "Tipo de estudio",
+                    text = stringResource(R.string.doctor_create_order_study_type_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = AuTextPrimary,
@@ -435,6 +455,12 @@ private fun StudyTypeSelectorCard(
                         StudyType.IMAGING -> Icons.Outlined.Visibility to Color(0xFF8B5CF6)
                         StudyType.CARDIOLOGY -> Icons.Outlined.Favorite to Color(0xFFE11D48)
                         StudyType.OTHER -> Icons.Outlined.Description to PortalDoctors
+                    }
+                    val typeName = when (type) {
+                        StudyType.LABORATORY -> stringResource(R.string.doctor_create_order_type_lab_name)
+                        StudyType.IMAGING -> stringResource(R.string.doctor_create_order_type_imaging_name)
+                        StudyType.CARDIOLOGY -> stringResource(R.string.doctor_create_order_type_cardiology_name)
+                        StudyType.OTHER -> stringResource(R.string.doctor_create_order_type_other_name)
                     }
 
                     Surface(
@@ -465,17 +491,17 @@ private fun StudyTypeSelectorCard(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = type.displayName,
+                                    text = typeName,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isSelected) color else AuTextPrimary,
                                 )
                                 Text(
                                     text = when (type) {
-                                        StudyType.LABORATORY -> "Análisis clínicos, sangre, orina y serologías"
-                                        StudyType.IMAGING -> "Ecografías, Rayos X, Tomografías y Resonancias"
-                                        StudyType.CARDIOLOGY -> "ECG, Ecocardiograma, Ergometría y Holter"
-                                        StudyType.OTHER -> "Estudios especializados y procedimientos"
+                                        StudyType.LABORATORY -> stringResource(R.string.doctor_create_order_type_lab_desc)
+                                        StudyType.IMAGING -> stringResource(R.string.doctor_create_order_type_imaging_desc)
+                                        StudyType.CARDIOLOGY -> stringResource(R.string.doctor_create_order_type_cardiology_desc)
+                                        StudyType.OTHER -> stringResource(R.string.doctor_create_order_type_other_desc)
                                     },
                                     style = MaterialTheme.typography.labelSmall,
                                     color = AuTextTertiary,
@@ -526,7 +552,7 @@ private fun DynamicPracticesCard(
                 ) {
                     Icon(Icons.Outlined.Description, contentDescription = null, tint = PortalDoctors)
                     Text(
-                        text = "Prácticas solicitadas",
+                        text = stringResource(R.string.doctor_create_order_practices_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
@@ -536,14 +562,14 @@ private fun DynamicPracticesCard(
                 TextButton(onClick = { onAddPractice("") }) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = PortalDoctors)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Agregar práctica", color = PortalDoctors, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.doctor_create_order_add_practice), color = PortalDoctors, fontWeight = FontWeight.Bold)
                 }
             }
 
             // Quick suggestions chips
             if (suggestions.isNotEmpty()) {
                 Text(
-                    text = "Sugerencias frecuentes:",
+                    text = stringResource(R.string.doctor_create_order_suggestions_title),
                     style = MaterialTheme.typography.labelSmall,
                     color = AuTextTertiary,
                 )
@@ -588,8 +614,8 @@ private fun DynamicPracticesCard(
                     OutlinedTextField(
                         value = practiceText,
                         onValueChange = { onUpdatePractice(index, it) },
-                        label = { Text("Práctica #${index + 1}") },
-                        placeholder = { Text("Ej: Hemograma completo") },
+                        label = { Text(stringResource(R.string.doctor_create_order_practice_label, index + 1)) },
+                        placeholder = { Text(stringResource(R.string.doctor_create_order_practice_placeholder)) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
@@ -605,7 +631,7 @@ private fun DynamicPracticesCard(
                         IconButton(onClick = { onRemovePractice(index) }) {
                             Icon(
                                 Icons.Default.Delete,
-                                contentDescription = "Eliminar",
+                                contentDescription = stringResource(R.string.doctor_create_order_delete_practice_desc),
                                 tint = AuDanger.copy(alpha = 0.8f),
                             )
                         }
@@ -632,20 +658,20 @@ private fun DiagnosisCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "Diagnóstico presuntivo / CIE-10",
+                text = stringResource(R.string.doctor_create_order_diagnosis_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = AuTextPrimary,
             )
             Text(
-                text = "Indique el motivo clínico o diagnóstico que justifica la solicitud de las prácticas.",
+                text = stringResource(R.string.doctor_create_order_diagnosis_desc),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuTextTertiary,
             )
             OutlinedTextField(
                 value = diagnosis,
                 onValueChange = onDiagnosisChange,
-                placeholder = { Text("Ej: Control anual de rutina / Hipertensión arterial esencial (I10)") },
+                placeholder = { Text(stringResource(R.string.doctor_create_order_diagnosis_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = false,
                 minLines = 2,
@@ -677,20 +703,20 @@ private fun PreparationNotesCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "Preparación e indicaciones clínicas (Opcional)",
+                text = stringResource(R.string.doctor_create_order_notes_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = AuTextPrimary,
             )
             Text(
-                text = "Instrucciones de preparación para el paciente (ayuno, hidratación, medicación previa, etc.).",
+                text = stringResource(R.string.doctor_create_order_notes_desc),
                 style = MaterialTheme.typography.labelSmall,
                 color = AuTextTertiary,
             )
             OutlinedTextField(
                 value = notes,
                 onValueChange = onNotesChange,
-                placeholder = { Text("Ej: Ayuno estricto de 8 horas. No suspender medicación habitual.") },
+                placeholder = { Text(stringResource(R.string.doctor_create_order_notes_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = false,
                 minLines = 2,

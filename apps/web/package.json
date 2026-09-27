@@ -23,6 +23,7 @@
     "@astrojs/sitemap": "^3.7.2",
     "@astrojs/tailwind": "^5.0.0",
     "@autamedica/auth": "workspace:^",
+    "@autamedica/datasus": "workspace:^",
     "@autamedica/hooks": "workspace:^",
     "@autamedica/prescriptions": "workspace:^",
     "@autamedica/scheduling": "workspace:^",

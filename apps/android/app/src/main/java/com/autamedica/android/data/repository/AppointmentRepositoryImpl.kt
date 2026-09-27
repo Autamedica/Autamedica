@@ -310,7 +310,7 @@ class AppointmentRepositoryImpl @Inject constructor(
             return@runCatching emptyList()
         }
 
-        val userIds = doctors.map { it.userId }.filter { it.isNotBlank() }
+        val userIds = doctors.mapNotNull { it.userId }.filter { it.isNotBlank() }
         val profilesMap = if (userIds.isNotEmpty()) {
             try {
                 supabaseClient.postgrest
@@ -380,7 +380,7 @@ class AppointmentRepositoryImpl @Inject constructor(
         )
 
         val doctorList = doctors.map { doc ->
-            val profile = profilesMap[doc.userId]
+            val profile = doc.userId?.let { profilesMap[it] }
             val firstName = profile?.firstName?.trim().orEmpty()
             val lastName = profile?.lastName?.trim().orEmpty()
 
@@ -388,6 +388,10 @@ class AppointmentRepositoryImpl @Inject constructor(
                 firstName.isNotBlank() && lastName.isNotBlank() -> "$firstName $lastName"
                 firstName.isNotBlank() -> firstName
                 lastName.isNotBlank() -> lastName
+                !doc.bio.isNullOrBlank() -> {
+                    val firstSegment = doc.bio.split(" - ", " | ").firstOrNull()?.trim().orEmpty()
+                    if (firstSegment.startsWith("Dr", ignoreCase = true)) firstSegment else "Dr. $firstSegment"
+                }
                 else -> ""
             }
 
@@ -410,7 +414,12 @@ class AppointmentRepositoryImpl @Inject constructor(
             val docSpecialty = if (rawSpecialty.equals("General", ignoreCase = true)) "Medicina General" else rawSpecialty
 
             val rawLicense = doc.licenseNumber?.trim().orEmpty()
+            val isBrazilDoc = doc.licenseType.equals("CRM", ignoreCase = true) || !doc.ufBrazil.isNullOrBlank()
             val formattedLicense = when {
+                isBrazilDoc && rawLicense.isNotBlank() -> {
+                    val uf = doc.ufBrazil?.trim()?.uppercase() ?: "RS"
+                    if (rawLicense.startsWith("CRM", ignoreCase = true)) rawLicense else "CRM-$uf $rawLicense"
+                }
                 rawLicense.isBlank() || rawLicense.startsWith("PENDING", ignoreCase = true) -> "MN Colegiado"
                 rawLicense.matches(Regex("^[0-9a-fA-F-]{8,}$")) -> "MN Colegiado"
                 rawLicense.matches(Regex("^\\d{4,8}$")) -> "MN $rawLicense"
@@ -747,7 +756,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                     }
                     .decodeList<DoctorBookingRowDto>()
 
-                val userIds = missingDoctors.map { it.userId }.filter { it.isNotBlank() }
+                val userIds = missingDoctors.mapNotNull { it.userId }.filter { it.isNotBlank() }
                 val profilesMap = if (userIds.isNotEmpty()) {
                     supabaseClient.postgrest
                         .from("profiles")
@@ -759,13 +768,17 @@ class AppointmentRepositoryImpl @Inject constructor(
                 } else emptyMap()
 
                 for (doc in missingDoctors) {
-                    val profile = profilesMap[doc.userId]
+                    val profile = doc.userId?.let { profilesMap[it] }
                     val firstName = profile?.firstName?.trim().orEmpty()
                     val lastName = profile?.lastName?.trim().orEmpty()
                     val rawName = when {
                         firstName.isNotBlank() && lastName.isNotBlank() -> "$firstName $lastName"
                         firstName.isNotBlank() -> firstName
                         lastName.isNotBlank() -> lastName
+                        !doc.bio.isNullOrBlank() -> {
+                            val firstSegment = doc.bio.split(" - ", " | ").firstOrNull()?.trim().orEmpty()
+                            if (firstSegment.startsWith("Dr", ignoreCase = true)) firstSegment else "Dr. $firstSegment"
+                        }
                         else -> "Médico Especialista"
                     }
                     val fullName = if (rawName.startsWith("Dr.", ignoreCase = true) || rawName.startsWith("Dra.", ignoreCase = true)) {
@@ -965,12 +978,15 @@ private data class AppointmentPaymentIdStatusDto(
 @Serializable
 private data class DoctorBookingRowDto(
     val id: String,
-    @SerialName("user_id") val userId: String,
+    @SerialName("user_id") val userId: String? = null,
     @SerialName("license_number") val licenseNumber: String? = null,
     val specialty: String? = null,
     val subspecialty: String? = null,
     @SerialName("consultation_fee") val consultationFee: Double? = null,
     val active: Boolean = true,
+    @SerialName("bio") val bio: String? = null,
+    @SerialName("license_type") val licenseType: String? = null,
+    @SerialName("uf_brazil") val ufBrazil: String? = null,
 )
 
 @Serializable

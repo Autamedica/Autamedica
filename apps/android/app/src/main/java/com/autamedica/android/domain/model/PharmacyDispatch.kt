@@ -11,6 +11,7 @@ data class PharmacyDispatchRequest(
     val assignedDoctorId: String? = null,
     val cloudflareRoomId: String,
     val createdAt: String,
+    val searchTimeoutAt: String? = null,
 )
 
 data class DoctorDutyStatus(
