@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { DispatchRequestStatus } from './pharmacy-on-demand.service'
 
 export type PharmacyConsultationStatus =
   | 'pending'
@@ -52,7 +53,18 @@ export interface OnDemandQueueItem {
   patientName: string
   patientPhone: string
   reason: string
-  status: PharmacyConsultationStatus
+  /**
+   * La cola se alimenta de dos fuentes: el endpoint legacy
+   * `/api/doctors/on-duty/queue` (Gen-1, produce `pending`) y la consulta
+   * directa a `pharmacy_dispatch_requests` (Gen-2, produce `searching`).
+   *
+   * El enum de Postgres `dispatch_request_status` no incluye `pending` ni
+   * `assigned`, y la tabla legacy `pharmacy_consultation_requests` no
+   * incluye `searching` ni `matched`, asi que este tipo tiene que cubrir
+   * ambos conjuntos. Sin esta union, `useDoctorOnDuty.ts` no compila
+   * porque lee la tabla Gen-2 y la mapea a `OnDemandQueueItem[]`.
+   */
+  status: PharmacyConsultationStatus | DispatchRequestStatus
   createdAt: string
   minutesWaiting: number
 }
