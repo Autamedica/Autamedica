@@ -54,3 +54,8 @@ DROP TRIGGER IF EXISTS guard_signup_privileged_metadata ON auth.users;
 CREATE TRIGGER guard_signup_privileged_metadata
   BEFORE INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.guard_signup_privileged_metadata();
+
+-- Remove a SECURITY DEFINER diagnostic SQL executor left in the public schema.
+-- The original migration grants service_role but never revokes PUBLIC EXECUTE.
+-- No production data is modified by removing this function.
+DROP FUNCTION IF EXISTS public.execute_sql_temp(text);
