@@ -45,14 +45,9 @@ export async function authenticateSocket(
     return { authenticated: false };
   }
 
-  // Si no hay Supabase configurado, permitir en desarrollo
   if (!supabase) {
-    logger.warn('[Auth] Supabase not configured, allowing connection');
-    return {
-      authenticated: true,
-      role: 'patient',
-      userId,
-    };
+    logger.error('[Auth] Supabase not configured: rejecting socket');
+    return { authenticated: false };
   }
 
   try {
@@ -70,16 +65,13 @@ export async function authenticateSocket(
       return { authenticated: false };
     }
 
-    // Obtener rol del usuario desde metadata
-    const role = data.user.user_metadata?.role || 'patient';
-
-    logger.info(`[Auth] User authenticated: ${userId} (${role})`);
-
-    return {
-      authenticated: true,
-      role: role as 'patient' | 'doctor',
-      userId,
-    };
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles').select('role').eq('user_id', userId).maybeSingle();
+    const role = profile?.role;
+    if (profileError || (role !== 'patient' && role !== 'doctor')) {
+      return { authenticated: false };
+    }
+    return { authenticated: true, role, userId };
   } catch (error) {
     logger.error('[Auth] Authentication error:', error);
     return { authenticated: false };
