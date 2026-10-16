@@ -116,6 +116,16 @@ export async function handler(req: Request): Promise<Response> {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    // Never authorize patient wallet creation from editable user_metadata.
+    const { data: roleProfile, error: roleError } = await supabaseAdmin
+      .from('profiles').select('role').eq('user_id', user.id).maybeSingle()
+    if (roleError || roleProfile?.role !== 'patient') {
+      return new Response(JSON.stringify({ error: 'Forbidden: patient role required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Fetch patient row
     let { data: patient, error: patientError } = await supabaseAdmin
       .from('patients')
@@ -123,9 +133,8 @@ export async function handler(req: Request): Promise<Response> {
       .eq('user_id', user.id)
       .maybeSingle<PatientRow>()
 
-    // If not found and role is patient, auto-create
-    const userRole = (user.app_metadata?.role as string | undefined) ?? (user.user_metadata?.role as string | undefined)
-    if (!patient && !patientError && (userRole === 'patient' || !userRole)) {
+    // Profile role has already been verified against trusted database state.
+    if (!patient && !patientError) {
       const { data: insertedPatient, error: insertError } = await supabaseAdmin
         .from('patients')
         .upsert({ user_id: user.id, active: true }, { onConflict: 'user_id' })
