@@ -81,9 +81,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
       patientProfileId = patientProfile?.id ?? undefined
     }
 
+    // User-facing role is consistent with database-authoritative authorization.
     const effectiveRole = declaredRole
-      ?? (doctorProfileId ? 'doctor' : undefined)
-      ?? (patientProfileId ? 'patient' : undefined)
 
     return jsonOk({
       id: user.id,
