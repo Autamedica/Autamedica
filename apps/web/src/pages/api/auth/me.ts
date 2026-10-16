@@ -16,13 +16,6 @@ export const GET: APIRoute = async ({ request, locals }) => {
   try {
     const { user, supabase } = auth
 
-    const metadataRole =
-      typeof user.user_metadata?.role === 'string'
-        ? user.user_metadata.role
-        : typeof user.app_metadata?.role === 'string'
-          ? user.app_metadata.role
-          : undefined
-
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
@@ -55,7 +48,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       profile && typeof profile.role === 'string' && profile.role.trim().length > 0
         ? profile.role
         : undefined
-    const declaredRole = metadataRole ?? profileRole
+    const declaredRole = profileRole
 
     let doctorProfileId: string | undefined
     let patientProfileId: string | undefined
