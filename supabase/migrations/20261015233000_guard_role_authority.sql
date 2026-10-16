@@ -8,7 +8,7 @@ SET search_path = ''
 AS $$
 BEGIN
   IF current_user IN ('anon', 'authenticated') THEN
-    IF TG_OP = 'INSERT' AND NEW.role::text NOT IN ('patient', 'doctor', 'pharmacist', 'company', 'company_admin') THEN
+    IF TG_OP = 'INSERT' AND NEW.role::text <> 'patient' THEN
       RAISE EXCEPTION 'Privileged role requires trusted provisioning' USING ERRCODE = '42501';
     END IF;
     IF TG_OP = 'UPDATE' AND NEW.role IS DISTINCT FROM OLD.role THEN
