@@ -15,21 +15,19 @@ import { logger } from '@autamedica/shared'
 import { withAuth, isAuthed } from '@/lib/api-auth'
 import { forbidden, badRequest, internalError, jsonOk } from '@/lib/api-helpers'
 
-type UserRole = 'doctor' | 'admin' | 'patient' | 'company'
-
-function resolveRole(user: { user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> }): UserRole | undefined {
-  const meta = user.user_metadata?.role
-  if (typeof meta === 'string' && meta.length > 0) return meta as UserRole
-  const app = user.app_metadata?.role
-  if (typeof app === 'string' && app.length > 0) return app as UserRole
-  return undefined
+// Role authority is public.profiles.role, never mutable auth metadata.
+async function trustedRole(auth: Awaited<ReturnType<typeof withAuth>>): Promise<string | null> {
+  if (auth instanceof Response) return null
+  const { data, error } = await auth.supabase
+    .from('profiles').select('role').eq('user_id', auth.user.id).maybeSingle()
+  return error ? null : data?.role ?? null
 }
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const auth = await withAuth(request, locals)
   if (!isAuthed(auth)) return auth
 
-  const role = resolveRole(auth.user)
+  const role = await trustedRole(auth)
   if (role !== 'doctor' && role !== 'admin') {
     return forbidden('doctor_or_admin_only')
   }
@@ -67,7 +65,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
   const auth = await withAuth(request, locals)
   if (!isAuthed(auth)) return auth
 
-  const role = resolveRole(auth.user)
+  const role = await trustedRole(auth)
   if (role !== 'doctor' && role !== 'admin') {
     return forbidden('doctor_or_admin_only')
   }
