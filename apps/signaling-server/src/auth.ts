@@ -65,7 +65,13 @@ export async function authenticateSocket(
       return { authenticated: false };
     }
 
-    const { data: profile, error: profileError } = await supabase
+    // Authenticated PostgREST query: a global anon client alone does not
+    // carry the incoming user's JWT and would be denied by profiles RLS.
+    const scopedClient = createClient<Database>(supabaseUrl!, supabaseKey!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: profile, error: profileError } = await scopedClient
       .from('profiles').select('role').eq('user_id', userId).maybeSingle();
     const role = profile?.role;
     if (profileError || (role !== 'patient' && role !== 'doctor')) {
