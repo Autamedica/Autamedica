@@ -4,6 +4,7 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/tests/role_authority_guard_smoke.sql'
+      - 'supabase/tests/role_authority_ci_bootstrap.sql'
       - '.github/workflows/security-role-staging.yml'
   workflow_dispatch:
 
@@ -11,6 +12,58 @@ permissions:
   contents: read
 
 jobs:
+  role-guard-isolated:
+    name: Role authority (disposable PostgreSQL)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-local-database-only
+          POSTGRES_DB: role_guard_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d role_guard_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Run actual role-guard migrations and negative tests
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: ci-local-database-only
+          PGDATABASE: role_guard_ci
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/role_authority_ci_bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021210023_guard_role_authority_emergency_20261021.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021210159_revoke_guard_trigger_rpc_grants_20261021.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/role_authority_guard_smoke.sql
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $check$
+          BEGIN
+            IF EXISTS (
+              SELECT 1 FROM pg_proc p
+              JOIN pg_namespace n ON n.oid=p.pronamespace
+              WHERE n.nspname='public'
+                AND p.proname IN ('guard_profile_role_authority','guard_signup_privileged_metadata')
+                AND (
+                  has_function_privilege('anon',p.oid,'EXECUTE')
+                  OR has_function_privilege('authenticated',p.oid,'EXECUTE')
+                )
+            ) THEN
+              RAISE EXCEPTION 'Untrusted role can execute guard trigger function';
+            END IF;
+          END;
+          $check$;
+          SQL
+
   role-boundary-regressions:
     name: Role authority (isolated staging)
     runs-on: ubuntu-24.04
