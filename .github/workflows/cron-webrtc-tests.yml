@@ -26,7 +26,7 @@ env:
 jobs:
   webrtc-e2e-tests:
     name: WebRTC Videocall Flow
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout repository
@@ -59,8 +59,8 @@ jobs:
           SIGNALING_URL: ${{ secrets.PUBLIC_SIGNALING_URL }}
           
           # Test credentials (fallback to demo credentials if secrets are not defined)
-          DOCTOR_DEMO_EMAIL: ${{ secrets.DOCTOR_DEMO_EMAIL || 'doctor.demo@autamedica.com' }}
-          DOCTOR_DEMO_PASSWORD: ${{ secrets.DOCTOR_DEMO_PASSWORD || 'Demo1234' }}
+          DOCTOR_DEMO_EMAIL: ${{ secrets.DOCTOR_DEMO_EMAIL }}
+          DOCTOR_DEMO_PASSWORD: ${{ secrets.DOCTOR_DEMO_PASSWORD }}
           
           # Protocol compatibility
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
