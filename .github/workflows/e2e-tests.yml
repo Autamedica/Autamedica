@@ -29,7 +29,7 @@ env:
 jobs:
   e2e-critical:
     name: Critical Paths
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.target == 'local')
     steps:
@@ -74,7 +74,7 @@ jobs:
 
   e2e-production:
     name: Production
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     if: github.event_name == 'workflow_dispatch' && inputs.target == 'production'
     steps:
