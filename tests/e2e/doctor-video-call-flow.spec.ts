@@ -4,6 +4,10 @@ import { writeFile } from 'node:fs/promises';
 
 const DOCTOR_EMAIL = process.env.DOCTOR_DEMO_EMAIL ?? '';
 const DOCTOR_PASSWORD = process.env.DOCTOR_DEMO_PASSWORD ?? '';
+const APP_BASE_URL = process.env.BASE_URL ?? 'https://www.autamedica.com'
+const DOCTOR_PORTAL_URL = process.env.DOCTORS_URL ?? 'https://doctor.autamedica.com'
+const PATIENT_PORTAL_URL = process.env.PATIENTS_URL ?? 'https://paciente.autamedica.com'
+const DOCTOR_PORTAL_ORIGIN = new URL(DOCTOR_PORTAL_URL).origin
 const SUPABASE_URL = process.env.SUPABASE_URL
   ?? process.env.NEXT_PUBLIC_SUPABASE_URL
   ?? 'https://qxjjrpksmwwrmubhvjew.supabase.co';
@@ -65,20 +69,20 @@ test.describe('Doctor Portal – Login + Video Call', () => {
       const doctorConsole: string[] = [];
       doctorPage.on('console', (message) => doctorConsole.push(message.text()));
 
-      await doctorPage.goto('https://www.autamedica.com/auth/login?role=doctor', { waitUntil: 'networkidle' });
+      await doctorPage.goto(new URL('/auth/login?role=doctor', APP_BASE_URL).toString(), { waitUntil: 'networkidle' });
 
     await doctorPage.locator('input#email').fill(DOCTOR_EMAIL);
     await doctorPage.locator('input#password').fill(DOCTOR_PASSWORD);
     const loginSubmitButton = doctorPage.locator('form button[type="submit"]').first();
 
     await Promise.all([
-      doctorPage.waitForURL('**//doctors.autamedica.com/**', { timeout: 60_000 }),
+      doctorPage.waitForURL((url) => url.origin === DOCTOR_PORTAL_ORIGIN, { timeout: 60_000 }),
       loginSubmitButton.click(),
     ]);
 
     await doctorPage.waitForLoadState('networkidle');
 
-    await expect(doctorPage).toHaveURL(/doctors\.autamedica\.com/);
+    expect(new URL(doctorPage.url()).origin).toBe(DOCTOR_PORTAL_ORIGIN);
     await expect(doctorPage.locator('header')).toContainText(/Conectado/i, { timeout: 30_000 });
 
     const headerSnapshot = await doctorPage.evaluate(() => {
@@ -235,7 +239,7 @@ test.describe('Doctor Portal – Login + Video Call', () => {
       const patientConsole: string[] = [];
       patientPage.on('console', (message) => patientConsole.push(message.text()));
 
-      await patientPage.goto('https://patients.autamedica.com/test-call', { waitUntil: 'networkidle' });
+      await patientPage.goto(new URL('/test-call', PATIENT_PORTAL_URL).toString(), { waitUntil: 'networkidle' });
     await patientPage.getByLabel('Room ID (Código de Consulta)').fill(roomId);
     await patientPage.getByRole('button', { name: /Unirse a Consulta Médica/i }).click();
 
