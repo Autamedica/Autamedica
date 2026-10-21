@@ -72,13 +72,13 @@ test.describe('Doctor Portal – Login + Video Call', () => {
     const loginSubmitButton = doctorPage.locator('form button[type="submit"]').first();
 
     await Promise.all([
-      doctorPage.waitForURL('**//doctors.autamedica.com/**', { timeout: 60_000 }),
+      doctorPage.waitForURL('**//doctor.autamedica.com/**', { timeout: 60_000 }),
       loginSubmitButton.click(),
     ]);
 
     await doctorPage.waitForLoadState('networkidle');
 
-    await expect(doctorPage).toHaveURL(/doctors\.autamedica\.com/);
+    await expect(doctorPage).toHaveURL(/doctor\.autamedica\.com/);
     await expect(doctorPage.locator('header')).toContainText(/Conectado/i, { timeout: 30_000 });
 
     const headerSnapshot = await doctorPage.evaluate(() => {
@@ -235,7 +235,7 @@ test.describe('Doctor Portal – Login + Video Call', () => {
       const patientConsole: string[] = [];
       patientPage.on('console', (message) => patientConsole.push(message.text()));
 
-      await patientPage.goto('https://patients.autamedica.com/test-call', { waitUntil: 'networkidle' });
+      await patientPage.goto('https://paciente.autamedica.com/test-call', { waitUntil: 'networkidle' });
     await patientPage.getByLabel('Room ID (Código de Consulta)').fill(roomId);
     await patientPage.getByRole('button', { name: /Unirse a Consulta Médica/i }).click();
 
