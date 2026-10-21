@@ -5,6 +5,7 @@ on:
       - 'supabase/migrations/**'
       - 'supabase/tests/role_authority_guard_smoke.sql'
       - 'supabase/tests/role_authority_ci_bootstrap.sql'
+      - 'supabase/tests/clinical_view_acl_smoke.sql'
       - '.github/workflows/security-role-staging.yml'
   workflow_dispatch:
   workflow_call:
@@ -91,6 +92,7 @@ jobs:
           STAGING_DB_URL: ${{ secrets.SUPABASE_STAGING_DB_URL }}
         run: |
           psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/role_authority_guard_smoke.sql
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/clinical_view_acl_smoke.sql
           psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
           DO $check$
           DECLARE
