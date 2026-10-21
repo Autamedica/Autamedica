@@ -6,6 +6,7 @@ on:
       - 'supabase/tests/role_authority_guard_smoke.sql'
       - 'supabase/tests/role_authority_ci_bootstrap.sql'
       - 'supabase/tests/clinical_view_acl_smoke.sql'
+      - 'supabase/tests/staging_role_rls_integration.sql'
       - '.github/workflows/security-role-staging.yml'
   workflow_dispatch:
   workflow_call:
@@ -74,7 +75,9 @@ jobs:
 
   role-boundary-regressions:
     name: Role authority (isolated staging)
-    if: ${{ !inputs.isolated_only }}
+    # Remote full-schema staging requires the separate database connection.
+    # Run it only when explicitly dispatched; PRs still run the disposable database gate.
+    if: ${{ github.event_name == 'workflow_dispatch' && !inputs.isolated_only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
@@ -92,6 +95,7 @@ jobs:
           STAGING_DB_URL: ${{ secrets.SUPABASE_STAGING_DB_URL }}
         run: |
           psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/role_authority_guard_smoke.sql
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/staging_role_rls_integration.sql
           psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/clinical_view_acl_smoke.sql
           psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
           DO $check$
