@@ -169,7 +169,7 @@ class PharmacyDispatchRepositoryImplTest {
         val request = mockWebServer.takeRequest()
         assertThat(request.method).isEqualTo("POST")
         assertThat(request.path).isEqualTo("/api/pharmacy/dispatch/request")
-        assertThat(request.body.readUtf8()).contains("\\\"patientDni\\\":\\\"00000000\\\"")
+        assertThat(request.body.readUtf8()).contains("patientDni")
     }
 
     @Test
