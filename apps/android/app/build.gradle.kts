@@ -65,6 +65,11 @@ android {
         )
         buildConfigField(
             "String",
+            "WEB_API_URL",
+            quoteForBuildConfig(optionalBuildProperty("WEB_API_URL", "https://www.autamedica.com"))
+        )
+        buildConfigField(
+            "String",
             "SIGNALING_URL",
             quoteForBuildConfig(
                 optionalBuildProperty(
