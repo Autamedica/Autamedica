@@ -1,0 +1,69 @@
+name: Role Security - Staging
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/role_authority_guard_smoke.sql'
+      - '.github/workflows/security-role-staging.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  role-boundary-regressions:
+    name: Role authority (isolated staging)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Require staging database credentials
+        env:
+          STAGING_DB_URL: ${{ secrets.SUPABASE_STAGING_DB_URL }}
+        run: |
+          if [[ -z "$STAGING_DB_URL" ]]; then
+            echo "::error::Missing SUPABASE_STAGING_DB_URL. Configure a staging database; do not use a production connection."
+            exit 1
+          fi
+      - name: Validate privileged functions and guards
+        env:
+          STAGING_DB_URL: ${{ secrets.SUPABASE_STAGING_DB_URL }}
+        run: |
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/role_authority_guard_smoke.sql
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $check$
+          DECLARE
+            v_count integer;
+          BEGIN
+            SELECT count(*) INTO v_count
+            FROM pg_proc p
+            JOIN pg_namespace n ON n.oid=p.pronamespace
+            WHERE n.nspname='public'
+              AND p.proname IN (
+                'execute_sql_temp',
+                'grant_patient_wallet_credit',
+                'grant_medical_record_authorization',
+                'set_user_role',
+                'set_portal_and_role',
+                'guard_profile_role_authority',
+                'guard_signup_privileged_metadata'
+              )
+              AND (
+                has_function_privilege('anon',p.oid,'EXECUTE')
+                OR has_function_privilege('authenticated',p.oid,'EXECUTE')
+              );
+            IF v_count > 0 THEN
+              RAISE EXCEPTION '% restricted functions remain executable by a public API role',v_count;
+            END IF;
+            IF NOT EXISTS(
+              SELECT 1 FROM pg_trigger
+              WHERE tgrelid='public.profiles'::regclass AND tgname='guard_profile_role_authority' AND tgenabled='O'
+            ) OR NOT EXISTS(
+              SELECT 1 FROM pg_trigger
+              WHERE tgrelid='auth.users'::regclass AND tgname='guard_signup_privileged_metadata' AND tgenabled='O'
+            ) THEN
+              RAISE EXCEPTION 'Required role guard trigger missing';
+            END IF;
+          END;
+          $check$;
+          SQL
