@@ -1,44 +1,38 @@
-# P0 — pharmacy_dispatch_requests RLS exposure
+# AutaMedica — Pharmacy dispatch privacy remediation (2026-10-21)
 
-## Production finding (read-only inspection; 2026-10-21)
+## Severity and initial finding
 
-Production project `qxjjrpksmwwrmubhvjew` currently grants **SELECT and UPDATE to `anon`**, and permits `authenticated` sessions to SELECT or UPDATE rows based on broad status rules rather than ownership.
+Production `public.pharmacy_dispatch_requests` contained patient CPF/DNI, phone, names, symptoms and call/session IDs. Anon and authenticated roles had SELECT/UPDATE rights; the old status-based policy exposed all `searching`, `matched` or `in_call` rows to unrelated roles. This is a **potential exposure**, not proof of prior access or exploitation.
 
-The `pharmacy_dispatch_requests_select_kiosk_or_confined` policy exposes all `searching`, `matched` or `in_call` rows to callers meeting no identity requirement. The underlying table contains `patient_cpf`, `patient_dni`, `patient_name`, `patient_phone` and `symptom_summary`, as well as call/session IDs. This is a **risk of unauthorized disclosure**, not evidence of past compromise.
+## Production interventions, deployed and SQL-verified
 
-The companion update policy grants callers broad rights to update `searching` rows even when no actor identity is bound. Supabase database advisor was not the source of this finding; it was detected by direct RLS policy and GRANT inspection.
+- **20261021233845** `contain_anon_kiosk_dispatch_pii_20261021` — revoked anon SELECT/UPDATE, preserved anon INSERT and service_role CRUD.
+- **20261021234110** `revoke_untrusted_public_table_truncate_trigger_references_20261021` — restricted TRUNCATE/TRIGGER/REFERENCES over ordinary public tables (separate PR #540).
+- **20261021234645** `restrict_authenticated_kiosk_dispatch_pii_20261021` — replaced status-only SELECT/UPDATE policies with authenticated requester, assigned doctor, on-duty doctor for searching queue, or trusted system admin; limited authenticated UPDATE to status/lifecycle fields.
 
-## Proposed migration
+The migration SQL in this PR uses the **actual production ledger version 20261021234645**, not the earlier draft version 20261021232500.
 
-`supabase/migrations/20261021232500_harden_pharmacy_dispatch_pii_rls.sql`
+## Tests performed
 
-- Remove anonymous read/update privileges on the dispatch table, preserve anonymous INSERT for registered kiosk flows that use a server-controlled API.
-- Scope authenticated SELECT to owning patient, assigned doctor, authorized system administrator, or current on-duty doctor for `searching` triage.
-- Restrict authenticated UPDATE to owner, assigned doctor or administrator; restrict ordinary client UPDATE to `status`, `call_started_at`, `call_ended_at` only.
-- Keep internal `service_role` access.
-- Preserve signed guest-token access via the existing server route `/api/pharmacy/dispatch/[id]` after verifying proper token processing.
+1. Exact policy migration passed a rollback-only transaction using synthetic doctor, duty and dispatch tables in Staging, with negative tests for anonymous read/update, patient isolation, doctor on-duty queue and protected clinical-column update.
+2. The proposed policy also passed a rollback-only dry run against production: unrelated authenticated caller could read active requests before the change, but none after the change.
+3. After actual production migration, verified `anon` SELECT=false, UPDATE=false, INSERT=true; `authenticated` sensitive-column UPDATE=false, status UPDATE=true; and `service_role` UPDATE=true.
+4. A read-only `supabase/tests/kiosk_dispatch_acl_smoke.sql` regression test passed against live production grants/policies.
+5. Production total dispatch record count remained at **153** during the verification; no row mutations were part of these migrations.
 
-## Verification executed (NO production write)
+## Residual operational risk — MUST test
 
-The exact proposed migration was executed on the separate Staging project inside a transaction after creating synthetic `doctors`, `doctor_duty_status`, `pharmacy_dispatch_requests` and policy fixtures.
+- Browser Express Consultation creates requests via a service-role server endpoint and polls through GET `/api/pharmacy/dispatch/[id]` with a signed guest token.
+- Existing Android clients use direct PostgREST access, including anonymous `INSERT ... RETURNING`, SELECT and update; their unauthenticated flows may fail now that anon SELECT/UPDATE grants are revoked.
+- The doctors-on-duty client queries dispatches directly: test with real synthetic doctor's Auth account and fresh heartbeat in a **complete schema staging**, not the minimal security fixture.
+- Direct user UPDATE of lifecycle status by an owning patient is still allowed; validate allowed state transitions to prevent malicious status changes.
+- Some server APIs use `service_role` and must themselves validate caller ownership and cryptographic guest tokens.
+- The current staging project is a **minimal Auth/RLS test fixture**, not a full production clone; no end-to-end clinical claims.
 
-Assertions passed:
-- `anon` SELECT denied.
-- `anon` UPDATE denied.
-- Signed-in doctor with fresh duty heartbeat sees searching triage and their assigned request, not unrelated in-call requests.
-- Authenticated patient sees only their own request.
-- Authenticated doctor cannot update a patient's `patient_phone` field.
-- The complete test transaction was rolled back, leaving the staging security fixture intact.
+## Remaining managed extension exceptions
 
-**Important limitation:** this is a database-level, synthetic-schema test; it is **not** a production-equivalent end-to-end test.
+`spatial_ref_sys` (PostGIS) and two `net` (pg_net) internal tables retain privileges from Supabase-managed `supabase_admin`. Treat as separate vendor-permissions follow-up; no unsupported change to extension-owned objects.
 
-## Release blockers / compatibility review
+## Deployment guidance
 
-1. The browser helper `apps/web/src/lib/pharmacy/pharmacy-on-demand.service.ts` uses direct `.select('*')` on this table; it may fail for unauthenticated guests after hardening. Search indicates only unit tests currently reference this helper directly, but runtime/component mapping should be confirmed.
-2. The Android `PharmacyDispatchRepositoryImpl.kt` creates, polls and updates dispatches directly using PostgREST; anonymous/guest handling needs a tested signed-API fallback before release.
-3. The browser doctors-on-duty hook directly reads patient identity and symptoms; the proposed on-duty heartbeat authorization must be verified with a real doctor session in a full staging schema.
-4. The secure server GET route requires a signed guest token. Verify its guest-token creation, validation, replay/expiry and response minimization before routing kiosks to it.
-5. No patient data was read or copied as part of the audit. Aggregate statuses were inspected without identifiers.
-6. Keep this PR **draft**, do not merge or deploy the migration before synthetic clinical E2E tests and a deployment/rollback plan.
-
-Immediate operational option, if authorized after compatibility review: revoke `anon` SELECT and UPDATE first, monitor patient intake failures, then deploy scoped authenticated policies.
+The above database changes are **already active**; merging this PR only records their source. Do not run bulk migration replay against production until the six missing historical versions identified in PR #538 are reconciled. Validate Android and kiosk compatibility and do not revert the privacy guard merely to restore anonymous client access.
