@@ -72,7 +72,8 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             networkInterceptors().removeAll { it is HttpLoggingInterceptor }
         }.build()
     }
-    private val guestApiOrigin = BuildConfig.WEB_API_URL.trimEnd('/')
+    // Visible to the repository's MockWebServer tests; production defaults to WEB_API_URL.
+    internal var guestApiOrigin = BuildConfig.WEB_API_URL.trimEnd('/')
 
     private suspend fun createGuestRequestViaSignedApi(payload: kotlinx.serialization.json.JsonObject): PharmacyDispatchRequest =
         withContext(ioDispatcher) {
