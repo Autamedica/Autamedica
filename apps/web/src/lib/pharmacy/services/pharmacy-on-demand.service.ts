@@ -40,7 +40,7 @@ export class PharmacyOnDemandService {
     }
 
     // Admin client bypasses RLS: never authorize clinical duty from role alone.
-    if (!doctor || doctor.active !== true) return null
+    if (doctor?.active !== true) return null
 
     // Safe casting for nested relationship
     const raw = doctor as Record<string, unknown>
