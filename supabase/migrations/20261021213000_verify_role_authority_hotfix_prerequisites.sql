@@ -1,5 +1,5 @@
--- PR #534 application auth changes depend on hotfix migrations mirrored in PR #536.
--- This is an explicit fail-closed prerequisite, not a substitute for staging tests.
+-- PR #534 application auth changes depend on hotfix migrations already merged through PR #538.
+-- This is an explicit fail-closed prerequisite, not a substitute for synthetic Auth and clinical integration tests.
 DO $role_hardening_prerequisite$
 BEGIN
   IF NOT EXISTS (
