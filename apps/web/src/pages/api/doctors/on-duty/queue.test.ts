@@ -52,9 +52,21 @@ describe('pharmacy queue privacy for medical accounts', () => {
     expect(admin.from).toHaveBeenCalledTimes(1)
   })
 
+  it('rejects an active doctor with a provisional license before reading patient requests', async () => {
+    admin.from.mockImplementation((table: string) => {
+      if (table === 'doctors') return chainForRow({
+        id: 'doc-provisional', active: true, license_number: 'PENDING-001',
+      })
+      throw new Error('Patient data accessed by provisional doctor')
+    })
+    const response = await GET(context())
+    expect(response.status).toBe(403)
+    expect(admin.from).toHaveBeenCalledTimes(1)
+  })
+
   it('rejects doctors without an active duty heartbeat', async () => {
     admin.from.mockImplementation((table: string) => {
-      if (table === 'doctors') return chainForRow({ id: 'doc1', active: true })
+      if (table === 'doctors') return chainForRow({ id: 'doc1', active: true, license_number: 'CRM-SYNTHETIC' })
       if (table === 'doctor_duty_status') return chainForRow(null)
       throw new Error('Patient requests queried despite inactive duty')
     })
@@ -66,7 +78,7 @@ describe('pharmacy queue privacy for medical accounts', () => {
   it('allows an active doctor with a recent duty heartbeat to access searching triage', async () => {
     const dutyChain = chainForRow({ doctor_id: 'doc1' })
     admin.from.mockImplementation((table: string) => {
-      if (table === 'doctors') return chainForRow({ id: 'doc1', active: true })
+      if (table === 'doctors') return chainForRow({ id: 'doc1', active: true, license_number: 'CRM-SYNTHETIC' })
       if (table === 'doctor_duty_status') return dutyChain
       if (table === 'pharmacy_dispatch_requests') return chainForRow([])
       throw new Error('Unexpected table: ' + table)
