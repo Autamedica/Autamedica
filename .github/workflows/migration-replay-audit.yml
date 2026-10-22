@@ -22,7 +22,7 @@ jobs:
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.121.0
       - name: Verify no remote credentials are in use
         run: |
           set -euo pipefail
@@ -49,3 +49,5 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/kiosk_dispatch_acl_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/untrusted_table_privileges_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/public_table_default_privileges_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/pending_doctor_signup_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/clinical_provisional_doctor_rls_smoke.sql
