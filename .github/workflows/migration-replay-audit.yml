@@ -37,3 +37,15 @@ jobs:
           # The runner is destroyed at the end; do not connect to remote staging.
           supabase db start
           supabase migration list --local
+      - name: Verify security contracts on reconstructed clinical schema
+        env:
+          PGCONNECT_TIMEOUT: '5'
+        run: |
+          set -euo pipefail
+          # Ephemeral local database only; no Supabase remote project credentials.
+          export PGHOST=127.0.0.1 PGPORT=54322 PGUSER=postgres PGPASSWORD=postgres PGDATABASE=postgres
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/role_authority_guard_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/clinical_view_acl_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/kiosk_dispatch_acl_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/untrusted_table_privileges_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/public_table_default_privileges_smoke.sql
