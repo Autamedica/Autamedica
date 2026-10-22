@@ -5,6 +5,12 @@ describe('sensitive doctor-route entitlement boundary', () => {
   it.each([
     '/api/doctors/patients',
     '/api/doctors/patients/names',
+    '/api/doctors/appointments',
+    '/api/doctors/consultations',
+    '/api/doctors/availability',
+    '/api/doctors/signature',
+    '/api/doctors/prescription-templates',
+    '/api/doctors/notifications',
     '/api/doctors/medical-records',
     '/api/doctors/medical-orders',
     '/api/doctors/prescriptions',
