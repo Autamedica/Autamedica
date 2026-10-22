@@ -79,7 +79,20 @@ ALTER POLICY medical_records_soft_delete ON public.medical_records
       )
     )
   )
-  WITH CHECK (deleted_at IS NOT NULL);
+  WITH CHECK (
+    deleted_at IS NOT NULL
+    AND (
+      public.is_system_admin()
+      OR (
+        public.is_doctor()
+        AND EXISTS (
+          SELECT 1 FROM public.doctors d
+          WHERE d.id = medical_records.doctor_id
+            AND d.user_id = (SELECT auth.uid())
+        )
+      )
+    )
+  );
 
 -- Medical orders: only approved doctors can create, read or update drafts.
 -- Patients retain their independent SELECT policy.
@@ -106,7 +119,13 @@ ALTER POLICY "Doctors can update their own draft medical orders" ON public.medic
       SELECT d.id FROM public.doctors d WHERE d.user_id = auth.uid()
     )
   )
-  WITH CHECK (status = 'draft'::text);
+  WITH CHECK (
+    status = 'draft'::text
+    AND public.is_doctor()
+    AND doctor_id IN (
+      SELECT d.id FROM public.doctors d WHERE d.user_id = auth.uid()
+    )
+  );
 
 -- Certificates: same doctor gate, with independent patient access preserved.
 ALTER POLICY "Doctors can insert their own certificates" ON public.medical_certificates
@@ -132,7 +151,13 @@ ALTER POLICY "Doctors can update their draft certificates" ON public.medical_cer
       SELECT d.id FROM public.doctors d WHERE d.user_id = auth.uid()
     )
   )
-  WITH CHECK (status = 'draft'::text);
+  WITH CHECK (
+    status = 'draft'::text
+    AND public.is_doctor()
+    AND doctor_id IN (
+      SELECT d.id FROM public.doctors d WHERE d.user_id = auth.uid()
+    )
+  );
 
 
 -- Reproductive-health chats and messages also contain patient information.
