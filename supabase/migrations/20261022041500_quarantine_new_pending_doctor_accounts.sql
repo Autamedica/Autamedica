@@ -76,7 +76,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.ensure_role_specific_record()
@@ -109,7 +109,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.guard_provisional_doctor_activation()
