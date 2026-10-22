@@ -19,35 +19,31 @@ interface AstroLocals {
 
 const DOCTOR_ALLOWED_ROLES = new Set(['doctor', 'organization_admin', 'platform_admin', 'admin']);
 
-function extractRole(metadata: Record<string, unknown> | undefined): string | undefined {
-  const raw = metadata?.role;
-  return typeof raw === 'string' ? raw : undefined;
-}
-
 export async function resolveDoctorContext(
   request: Request,
   locals?: AstroLocals,
 ): Promise<DoctorContext | null> {
   try {
     let userId = locals?.session?.user?.id ?? null;
-    let userRole = extractRole(locals?.session?.user?.app_metadata as Record<string, unknown> | undefined)
-      ?? extractRole(locals?.session?.user?.user_metadata);
 
     if (!userId) {
       const supabase = createAstroServerClientFromRequest(request, locals?.runtime?.env);
-      const { data } = await supabase.auth.getUser();
+      const { data, error } = await supabase.auth.getUser();
+      if (error) return null;
       userId = data.user?.id ?? null;
-      if (!userRole && data.user) {
-        userRole = extractRole(data.user.app_metadata as Record<string, unknown>)
-          ?? extractRole(data.user.user_metadata as Record<string, unknown>);
-      }
     }
 
-    if (!userId) {
-      return null;
-    }
+    if (!userId) return null;
 
-    if (!userRole || !DOCTOR_ALLOWED_ROLES.has(userRole)) {
+    const admin = createAstroAdminClient(locals?.runtime?.env);
+    const { data: profile, error: profileError } = await admin
+      .from('profiles')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle();
+    const userRole = profile?.role;
+
+    if (profileError || !userRole || !DOCTOR_ALLOWED_ROLES.has(userRole)) {
       logger.info('[resolveDoctorContext] User role does not grant doctor access', {
         userId,
         role: userRole ?? 'none',
@@ -55,7 +51,6 @@ export async function resolveDoctorContext(
       return null;
     }
 
-    const admin = createAstroAdminClient(locals?.runtime?.env);
     const { data: doctor, error } = await admin
       .from('doctors')
       .select('id, active')
