@@ -133,3 +133,72 @@ ALTER POLICY "Doctors can update their draft certificates" ON public.medical_cer
     )
   )
   WITH CHECK (status = 'draft'::text);
+
+
+-- Reproductive-health chats and messages also contain patient information.
+-- Their original specialist grants relied solely on a doctor-id relationship.
+-- Keep independent access for the patient, while requiring the same approved
+-- doctor predicate for the specialist side of the authorization.
+
+ALTER POLICY "Users can view their own chats" ON public.medical_chats
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.patients p
+      WHERE p.id = medical_chats.patient_id
+        AND p.user_id = (SELECT auth.uid())
+    )
+    OR (
+      public.is_doctor()
+      AND EXISTS (
+        SELECT 1
+        FROM public.reproductive_health_specialists rhs
+        JOIN public.doctors d ON d.id = rhs.doctor_id
+        WHERE rhs.id = medical_chats.specialist_id
+          AND d.user_id = (SELECT auth.uid())
+      )
+    )
+  );
+
+ALTER POLICY "Users can view messages from their chats" ON public.medical_messages
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.medical_chats c
+      JOIN public.patients p ON p.id = c.patient_id
+      WHERE c.id = medical_messages.chat_id
+        AND p.user_id = (SELECT auth.uid())
+    )
+    OR (
+      public.is_doctor()
+      AND EXISTS (
+        SELECT 1
+        FROM public.medical_chats c
+        JOIN public.reproductive_health_specialists rhs ON rhs.id = c.specialist_id
+        JOIN public.doctors d ON d.id = rhs.doctor_id
+        WHERE c.id = medical_messages.chat_id
+          AND d.user_id = (SELECT auth.uid())
+      )
+    )
+  );
+
+ALTER POLICY "Users can insert messages in their chats" ON public.medical_messages
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.medical_chats c
+      JOIN public.patients p ON p.id = c.patient_id
+      WHERE c.id = medical_messages.chat_id
+        AND p.user_id = (SELECT auth.uid())
+    )
+    OR (
+      public.is_doctor()
+      AND EXISTS (
+        SELECT 1
+        FROM public.medical_chats c
+        JOIN public.reproductive_health_specialists rhs ON rhs.id = c.specialist_id
+        JOIN public.doctors d ON d.id = rhs.doctor_id
+        WHERE c.id = medical_messages.chat_id
+          AND d.user_id = (SELECT auth.uid())
+      )
+    )
+  );
