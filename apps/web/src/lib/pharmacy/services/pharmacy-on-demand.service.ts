@@ -30,7 +30,7 @@ export class PharmacyOnDemandService {
   async resolveDoctor(admin: SupabaseClient, doctorUserId: string): Promise<DoctorProfileRow | null> {
     const { data: doctor, error } = await admin
       .from('doctors')
-      .select('id, user_id, license_number, specialty, on_duty_pharmacy, on_duty_since, profiles:user_id (first_name, last_name)')
+      .select('id, user_id, license_number, specialty, active, on_duty_pharmacy, on_duty_since, profiles:user_id (first_name, last_name)')
       .eq('user_id', doctorUserId)
       .maybeSingle()
 
@@ -39,7 +39,8 @@ export class PharmacyOnDemandService {
       return null
     }
 
-    if (!doctor) return null
+    // Admin client bypasses RLS: never authorize clinical duty from role alone.
+    if (doctor?.active !== true) return null
 
     // Safe casting for nested relationship
     const raw = doctor as Record<string, unknown>
