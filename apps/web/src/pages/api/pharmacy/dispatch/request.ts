@@ -32,6 +32,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const { patientDni, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary } = body
 
+    // Check signing capability before persisting any clinical intake data.
+    // A missing guest-token secret must fail closed without leaving orphaned PHI.
+    const secret = resolveGuestSecret(locals.runtime?.env)
+    if (!secret) {
+      logger.error('[api/pharmacy/dispatch/request] GUEST_TOKEN_SECRET not configured')
+      return serviceUnavailable('guest_token_not_configured')
+    }
+
     // 1. Validar campos mínimos obligatorios y sanitizar
     if (!patientDni || typeof patientDni !== 'string') {
       return badRequest('Número de documento requerido')
@@ -142,12 +150,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (error) {
       logger.error('[api/pharmacy/dispatch/request] Error inserting request', { error })
       return internalError(error.message)
-    }
-
-    const secret = resolveGuestSecret(locals.runtime?.env)
-    if (!secret) {
-      logger.error('[api/pharmacy/dispatch/request] GUEST_TOKEN_SECRET not configured')
-      return serviceUnavailable('guest_token_not_configured')
     }
 
     // Generar token de acceso criptográfico (JWT firmado con HS256)
