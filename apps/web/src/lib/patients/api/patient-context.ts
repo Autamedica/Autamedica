@@ -33,11 +33,6 @@ interface AstroLocals {
 
 const PATIENT_ALLOWED_ROLES = new Set(['patient', 'organization_admin', 'platform_admin', 'admin'])
 
-function extractRole(metadata: Record<string, unknown> | undefined): string | undefined {
-  const raw = metadata?.role
-  return typeof raw === 'string' ? raw : undefined
-}
-
 function getRequestAuthDebug(request: Request): {
   hasAuthorizationHeader: boolean
   hasAuthCookies: boolean
@@ -64,8 +59,6 @@ export async function resolvePatientContext(
     const authDebug = getRequestAuthDebug(request)
     // 1. PREFERRED: Use middleware-validated session from locals
     let userId: string | null = null
-    let userRole = extractRole(locals?.session?.user?.app_metadata as Record<string, unknown> | undefined)
-      ?? extractRole(locals?.session?.user?.user_metadata)
 
     if (locals?.session?.user?.id) {
       userId = locals.session.user.id
@@ -76,32 +69,11 @@ export async function resolvePatientContext(
     if (!userId) {
       const supabase = createAstroServerClientFromRequest(request, locals?.runtime?.env)
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        userId = session?.user?.id ?? null
-        if (!userRole && session?.user) {
-          userRole = extractRole(session.user.app_metadata as Record<string, unknown>)
-            ?? extractRole(session.user.user_metadata as Record<string, unknown>)
-        }
+        const { data: { user }, error } = await supabase.auth.getUser()
+        userId = error ? null : user?.id ?? null
+        if (error) logger.warn('[resolvePatientContext] getUser() failed', { msg: error.message, ...authDebug })
       } catch {
-        logger.warn('[resolvePatientContext] getSession() threw', authDebug)
-      }
-
-      if (!userId) {
-        try {
-          const { data: { user }, error } = await supabase.auth.getUser()
-          userId = user?.id ?? null
-          if (!userRole && user?.user_metadata) {
-            userRole = extractRole(user.user_metadata as Record<string, unknown>)
-          }
-          if (error) {
-            logger.warn('[resolvePatientContext] getUser() failed', {
-              msg: error.message,
-              ...authDebug,
-            })
-          }
-        } catch {
-          logger.warn('[resolvePatientContext] getUser() threw', authDebug)
-        }
+        logger.warn('[resolvePatientContext] getUser() threw', authDebug)
       }
     }
 
@@ -115,9 +87,6 @@ export async function resolvePatientContext(
           const { data: userRes, error: tokenUserError } = await adminClient.auth.getUser(token)
           if (!tokenUserError && userRes.user) {
             userId = userRes.user.id
-            if (!userRole && userRes.user.user_metadata) {
-              userRole = extractRole(userRes.user.user_metadata as Record<string, unknown>)
-            }
           }
         } catch (error) {
           logger.warn('[resolvePatientContext] Bearer token lookup failed', error)
@@ -133,7 +102,12 @@ export async function resolvePatientContext(
       return null
     }
 
-    if (!userRole || !PATIENT_ALLOWED_ROLES.has(userRole)) {
+    const admin = createAstroAdminClient(locals?.runtime?.env)
+    const { data: profile, error: profileError } = await admin
+      .from('profiles').select('role').eq('user_id', userId).maybeSingle()
+    const userRole = profile?.role
+
+    if (profileError || !userRole || !PATIENT_ALLOWED_ROLES.has(userRole)) {
       logger.info('[resolvePatientContext] User role does not grant patient access', {
         userId,
         role: userRole ?? 'none',
@@ -142,7 +116,6 @@ export async function resolvePatientContext(
     }
 
     // 4. Resolve Patient ID
-    const admin = createAstroAdminClient(locals?.runtime?.env)
 
     let { data: patient, error: patientError } = await admin
       .from('patients')

@@ -66,14 +66,6 @@ function isLocalDevBypass(request: Request): boolean {
 
 const ADMIN_ROLES = ["admin", "organization_admin", "platform_admin"] as const;
 
-function getMetadataRole(user: App.Locals["session"]["user"] | undefined): string | undefined {
-  const appRole = (user?.app_metadata as Record<string, unknown> | undefined)?.role;
-  if (typeof appRole === "string") return appRole;
-
-  const userRole = (user?.user_metadata as Record<string, unknown> | undefined)?.role;
-  return typeof userRole === "string" ? userRole : undefined;
-}
-
 async function isAuthorized(
   locals: App.Locals,
   request: Request,
@@ -83,8 +75,6 @@ async function isAuthorized(
 
   // Check session first (for admin UI)
   const user = locals.session?.user;
-  const role = getMetadataRole(user);
-  if (role && ADMIN_ROLES.includes(role as (typeof ADMIN_ROLES)[number])) return true;
 
   if (user?.id) {
     try {

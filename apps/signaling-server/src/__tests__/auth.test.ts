@@ -46,7 +46,7 @@ describe('authenticateSocket', () => {
     expect(result.role).toBe('patient');
   });
 
-  it('allows connection when Supabase is not configured', async () => {
+  it('rejects connection when Supabase is not configured', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', '');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', '');
@@ -54,8 +54,7 @@ describe('authenticateSocket', () => {
     const { authenticateSocket } = await import('../auth.js');
     const result = await authenticateSocket('user-123', 'some-token');
 
-    expect(result.authenticated).toBe(true);
-    expect(result.userId).toBe('user-123');
+    expect(result.authenticated).toBe(false);
   });
 
   it('rejects when Supabase getUser returns error', async () => {
@@ -98,7 +97,7 @@ describe('authenticateSocket', () => {
     expect(result.authenticated).toBe(false);
   });
 
-  it('authenticates and returns role from user metadata', async () => {
+  it('authenticates only when the verified database profile is doctor', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-anon-key');
@@ -110,17 +109,46 @@ describe('authenticateSocket', () => {
 
     vi.mocked(createClient).mockReturnValue({
       auth: { getUser: mockGetUser },
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: { role: 'doctor' }, error: null }),
+          }),
+        }),
+      }),
     } as unknown as ReturnType<typeof createClient>);
 
     const { authenticateSocket } = await import('../auth.js');
     const result = await authenticateSocket('user-123', 'valid-token');
 
+    expect(vi.mocked(createClient)).toHaveBeenCalledWith(
+      'https://test.supabase.co', 'test-anon-key',
+      expect.objectContaining({ global: { headers: { Authorization: 'Bearer valid-token' } } }),
+    );
     expect(result.authenticated).toBe(true);
     expect(result.userId).toBe('user-123');
     expect(result.role).toBe('doctor');
   });
 
-  it('defaults to patient role when metadata has no role', async () => {
+  it('rejects forged doctor role when the verified database profile is patient', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-anon-key');
+    vi.mocked(createClient).mockReturnValue({
+      auth: { getUser: vi.fn().mockResolvedValue({
+        data: { user: { id: 'user-123', user_metadata: { role: 'doctor' } } }, error: null,
+      }) },
+      from: vi.fn(() => ({
+        select: () => ({ eq: () => ({
+          maybeSingle: vi.fn().mockResolvedValue({ data: { role: 'patient' }, error: null }),
+        }) }),
+      })),
+    } as unknown as ReturnType<typeof createClient>);
+    const { authenticateSocket } = await import('../auth.js');
+    expect((await authenticateSocket('user-123', 'valid-token')).role).toBe('patient');
+  });
+
+  it('uses the trusted patient profile when metadata has no role', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-anon-key');
@@ -132,11 +160,22 @@ describe('authenticateSocket', () => {
 
     vi.mocked(createClient).mockReturnValue({
       auth: { getUser: mockGetUser },
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: { role: 'patient' }, error: null }),
+          }),
+        }),
+      }),
     } as unknown as ReturnType<typeof createClient>);
 
     const { authenticateSocket } = await import('../auth.js');
     const result = await authenticateSocket('user-123', 'valid-token');
 
+    expect(vi.mocked(createClient)).toHaveBeenCalledWith(
+      'https://test.supabase.co', 'test-anon-key',
+      expect.objectContaining({ global: { headers: { Authorization: 'Bearer valid-token' } } }),
+    );
     expect(result.authenticated).toBe(true);
     expect(result.role).toBe('patient');
   });
