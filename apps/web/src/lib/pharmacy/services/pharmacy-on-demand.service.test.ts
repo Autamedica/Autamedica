@@ -96,6 +96,8 @@ describe('PharmacyOnDemandService', () => {
                   data: {
                     id: 'doc-789',
                     user_id: 'user-doc-789',
+
+          active: true,
                     license_number: 'MN-99881',
                     specialty: 'Medicina General',
                     profiles: {
@@ -135,6 +137,8 @@ describe('PharmacyOnDemandService', () => {
                   data: {
                     id: 'doc-1',
                     user_id: 'user-1',
+
+          active: true,
                     license_number: 'MP-123',
                     specialty: 'Clinica Medica',
                     on_duty_pharmacy: false,
@@ -196,6 +200,8 @@ describe('PharmacyOnDemandService', () => {
                   data: {
                     id: 'doc-1',
                     user_id: 'user-1',
+
+          active: true,
                     license_number: 'MP-123',
                     specialty: 'Clinica Medica',
                     on_duty_pharmacy: true,
@@ -282,6 +288,8 @@ describe('PharmacyOnDemandService', () => {
                   data: {
                     id: 'doc-1',
                     user_id: 'user-1',
+
+          active: true,
                     license_number: 'MP-123',
                     specialty: 'Clinica Medica',
                     on_duty_pharmacy: true,
