@@ -109,13 +109,18 @@ describe('authenticateSocket', () => {
 
     vi.mocked(createClient).mockReturnValue({
       auth: { getUser: mockGetUser },
-      from: vi.fn().mockReturnValue({
+      from: vi.fn((table: string) => ({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({ data: { role: 'doctor' }, error: null }),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: table === 'profiles'
+                ? { role: 'doctor' }
+                : { active: true, license_number: 'CRM-SYNTHETIC' },
+              error: null,
+            }),
           }),
         }),
-      }),
+      })),
     } as unknown as ReturnType<typeof createClient>);
 
     const { authenticateSocket } = await import('../auth.js');
@@ -128,6 +133,37 @@ describe('authenticateSocket', () => {
     expect(result.authenticated).toBe(true);
     expect(result.userId).toBe('user-123');
     expect(result.role).toBe('doctor');
+  });
+
+  it.each([
+    [{ active: false, license_number: 'CRM-TEST' }, 'inactive'],
+    [{ active: true, license_number: 'PENDING-111' }, 'active placeholder'],
+    [{ active: true, license_number: '' }, 'missing license'],
+  ])('rejects %s doctor claiming clinical signaling access: %s', async (record) => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-anon-key');
+
+    vi.mocked(createClient).mockReturnValue({
+      auth: { getUser: vi.fn().mockResolvedValue({
+        data: { user: { id: 'user-123', user_metadata: { role: 'doctor' } } },
+        error: null,
+      }) },
+      from: vi.fn((table: string) => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: table === 'profiles' ? { role: 'doctor' } : record,
+              error: null,
+            }),
+          }),
+        }),
+      })),
+    } as unknown as ReturnType<typeof createClient>);
+
+    const { authenticateSocket } = await import('../auth.js');
+    const result = await authenticateSocket('user-123', 'valid-token');
+    expect(result.authenticated).toBe(false);
   });
 
   it('rejects forged doctor role when the verified database profile is patient', async () => {
