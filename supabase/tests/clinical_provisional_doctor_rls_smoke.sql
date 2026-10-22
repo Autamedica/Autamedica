@@ -72,7 +72,10 @@ BEGIN
     ('medical_orders','Doctors can update their own draft medical orders','qual'),
     ('medical_certificates','Doctors can insert their own certificates','with_check'),
     ('medical_certificates','Doctors can view their own certificates','qual'),
-    ('medical_certificates','Doctors can update their draft certificates','qual')
+    ('medical_certificates','Doctors can update their draft certificates','qual'),
+    ('medical_chats','Users can view their own chats','qual'),
+    ('medical_messages','Users can view messages from their chats','qual'),
+    ('medical_messages','Users can insert messages in their chats','with_check')
   ) expected(tbl, policy, predicate)
   LEFT JOIN pg_policies pol
     ON pol.schemaname='public' AND pol.tablename=expected.tbl
