@@ -3,6 +3,7 @@ import { internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers
 import { createAstroAdminClient } from '@/lib/supabase'
 import { resolveGuestSecret } from '@/lib/runtime-env'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
+import { canOnDutyDoctorTriageRequest } from '@/lib/pharmacy/dispatch-access'
 import { logger } from '@autamedica/shared'
 
 /**
@@ -48,7 +49,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       const secret = resolveGuestSecret(locals.runtime?.env)
       if (secret) {
         const guestPayload = await verifyGuestToken(candidateGuestToken, secret)
-        if (guestPayload?.callId === requestRecord.id) {
+        if (guestPayload?.callId === requestRecord.id && guestPayload.roomId === requestRecord.cloudflare_room_id) {
           isAuthorized = true
         }
       }
@@ -94,15 +95,19 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
             if (requestRecord.assigned_doctor_id && requestRecord.assigned_doctor_id === doctorRow.id) {
               isAuthorized = true
             } else {
-              // a.4) Doctor en guardia activa
-              const { data: dutyStatus } = await supabase
-                .from('doctor_duty_status')
-                .select('is_on_duty')
-                .eq('doctor_id', doctorRow.id)
-                .maybeSingle()
+              // a.4) Sólo triaje de solicitudes buscando médico, con guardia
+              // activa y un latido reciente. Los otros estados pertenecen
+              // exclusivamente al paciente o al médico asignado.
+              if (requestRecord.status === 'searching') {
+                const { data: dutyStatus } = await supabase
+                  .from('doctor_duty_status')
+                  .select('is_on_duty, last_heartbeat_at')
+                  .eq('doctor_id', doctorRow.id)
+                  .maybeSingle()
 
-              if (dutyStatus?.is_on_duty) {
-                isAuthorized = true
+                if (canOnDutyDoctorTriageRequest(requestRecord.status, dutyStatus)) {
+                  isAuthorized = true
+                }
               }
             }
           }
