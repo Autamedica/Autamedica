@@ -1,5 +1,6 @@
 import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
+import { hasClinicalDoctorApproval } from '../lib/clinical-approval';
 
 export interface DoctorContext {
   userId: string;
@@ -53,7 +54,7 @@ export async function resolveDoctorContext(
 
     const { data: doctor, error } = await admin
       .from('doctors')
-      .select('id, active')
+      .select('id, active, license_number')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -69,7 +70,7 @@ export async function resolveDoctorContext(
       return null;
     }
 
-    if (!doctor.id || doctor.active !== true) {
+    if (!doctor.id || !hasClinicalDoctorApproval(doctor)) {
       return null;
     }
 
