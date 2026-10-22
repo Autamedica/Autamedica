@@ -32,6 +32,9 @@ export class PharmacyOnDemandService {
       .from('doctors')
       .select('id, user_id, license_number, specialty, on_duty_pharmacy, on_duty_since, profiles:user_id (first_name, last_name)')
       .eq('user_id', doctorUserId)
+      // The admin client bypasses RLS, so clinical duty must explicitly
+      // require a doctor approved for active practice.
+      .eq('active', true)
       .maybeSingle()
 
     if (error) {
