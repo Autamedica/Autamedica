@@ -164,8 +164,9 @@ class PharmacyDispatchRepositoryImplTest {
             patientCpf = null,
         )
 
-        assertThat(result.isSuccess).isTrue()
-        assertThat(result.getOrNull()?.id).isEqualTo("request-synthetic-1")
+        // Fail with the underlying exception, not a generic Boolean assertion.
+        val created = result.getOrThrow()
+        assertThat(created.id).isEqualTo("request-synthetic-1")
         val request = mockWebServer.takeRequest()
         assertThat(request.method).isEqualTo("POST")
         assertThat(request.path).isEqualTo("/api/pharmacy/dispatch/request")
