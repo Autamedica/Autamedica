@@ -1,8 +1,8 @@
 name: 📱 Android Release & Play Store (Auto-Triggered)
 
 # Automated Android Release Pipeline (AutoRenta standard)
-# Automatically builds signed AAB, verifies tests, and deploys to Google Play Console
-# whenever changes are pushed to main under apps/android/**, or triggered manually.
+# Builds a signed AAB on Android changes, but uploads to Play Store ONLY
+# on explicit workflow_dispatch with upload_to_play_store=true. No auto-publication.
 
 on:
   push:
@@ -151,7 +151,8 @@ jobs:
     if: |
       always() &&
       needs.build-release-aab.result == 'success' &&
-      (github.event.inputs.upload_to_play_store != 'false')
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.upload_to_play_store == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
