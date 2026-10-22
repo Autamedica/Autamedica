@@ -3,6 +3,7 @@ import { logger } from '@autamedica/shared'
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth'
 import { internalError, jsonOk, forbidden } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
+import { hasClinicalDoctorApproval } from '@/lib/doctors/lib/clinical-approval'
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals)
@@ -15,11 +16,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
     // doctor profile and a recent duty heartbeat before exposing patient PHI.
     const { data: doctor, error: doctorError } = await admin
       .from('doctors')
-      .select('id, active')
+      .select('id, active, license_number')
       .eq('user_id', auth.user.id)
       .maybeSingle()
 
-    if (doctorError || !doctor?.id || doctor.active !== true) {
+    if (doctorError || !doctor?.id || !hasClinicalDoctorApproval(doctor)) {
       return forbidden('Médico no habilitado para consultas')
     }
 
