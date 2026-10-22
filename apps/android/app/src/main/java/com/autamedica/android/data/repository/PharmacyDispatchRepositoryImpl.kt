@@ -1,5 +1,17 @@
 package com.autamedica.android.data.repository
 
+import com.autamedica.android.BuildConfig
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.logging.HttpLoggingInterceptor
+import java.util.concurrent.ConcurrentHashMap
 import com.autamedica.android.di.IoDispatcher
 import com.autamedica.android.domain.model.DispatchClaimResult
 import com.autamedica.android.domain.model.DoctorDutyStatus
@@ -42,12 +54,70 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val authRepository: AuthRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val httpClient: OkHttpClient,
+    private val json: Json,
 ) : PharmacyDispatchRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
     private val _searchingRequests = MutableStateFlow<List<PharmacyDispatchRequest>>(emptyList())
     private var searchingChannel: RealtimeChannel? = null
+
+    // Never write guest access tokens to logs, analytics or persistent storage.
+    private val guestAccessTokens = ConcurrentHashMap<String, String>()
+    // The shared DEBUG HTTP client logs BODY and headers; this isolated client
+    // removes logging interceptors to protect names, DNI, symptoms and tokens.
+    private val guestClient: OkHttpClient by lazy {
+        httpClient.newBuilder().apply {
+            interceptors().removeAll { it is HttpLoggingInterceptor }
+            networkInterceptors().removeAll { it is HttpLoggingInterceptor }
+        }.build()
+    }
+    // Visible to the repository's MockWebServer tests; production defaults to WEB_API_URL.
+    internal var guestApiOrigin = BuildConfig.WEB_API_URL.trimEnd('/')
+
+    private suspend fun createGuestRequestViaSignedApi(payload: kotlinx.serialization.json.JsonObject): PharmacyDispatchRequest =
+        withContext(ioDispatcher) {
+            val request = Request.Builder()
+                .url("$guestApiOrigin/api/pharmacy/dispatch/request")
+                .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+
+            guestClient.newCall(request).execute().use { response ->
+                check(response.isSuccessful) { "Guest dispatch API rejected intake (HTTP ${response.code})" }
+                val body = response.body?.string() ?: error("Empty guest dispatch API response")
+                val root = json.parseToJsonElement(body).jsonObject
+                val data = root["data"]?.jsonObject ?: error("Missing signed dispatch response payload")
+                val dto = json.decodeFromJsonElement<DispatchRequestDto>(
+                    data["request"] ?: error("Missing signed dispatch request")
+                )
+                val token = data["accessToken"]?.jsonPrimitive?.content
+                    ?.takeIf { it.isNotBlank() } ?: error("Missing signed guest access token")
+                guestAccessTokens[dto.id] = token
+                dto.toDomain()
+            }
+        }
+
+    private suspend fun fetchGuestRequestViaSignedApi(requestId: String, token: String): PharmacyDispatchRequest? =
+        withContext(ioDispatcher) {
+            // Never place the signed guest token in a URL or in request logs.
+            val request = Request.Builder()
+                .url("$guestApiOrigin/api/pharmacy/dispatch/$requestId")
+                .header("Authorization", "Bearer $token")
+                .get()
+                .build()
+
+            guestClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext null
+                val body = response.body?.string() ?: return@withContext null
+                val data = json.parseToJsonElement(body).jsonObject["data"]?.jsonObject
+                    ?: return@withContext null
+                val dto = json.decodeFromJsonElement<DispatchRequestDto>(
+                    data["request"] ?: return@withContext null
+                )
+                dto.toDomain()
+            }
+        }
 
     override suspend fun getDoctorDutyStatus(doctorId: String): Result<DoctorDutyStatus> = runCatching {
         supabaseClient.postgrest
@@ -173,6 +243,20 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         symptomSummary: String?,
         patientCpf: String?,
     ): Result<PharmacyDispatchRequest> = runCatching {
+        val currentUser = authRepository.getCurrentUser()
+        if (currentUser == null) {
+            val guestPayload = buildJsonObject {
+                put("patientDni", patientDni.trim())
+                put("patientPhone", patientPhone.trim())
+                if (!patientName.isNullOrBlank()) put("patientName", patientName.trim())
+                put("tier", tierRequested.ifBlank { "general" })
+                if (!symptomSummary.isNullOrBlank()) put("symptomSummary", symptomSummary.trim())
+            }
+            // Anonymous users have no direct SELECT/UPDATE on the clinical table.
+            // The server creates the request and returns a scoped guest token.
+            return@runCatching createGuestRequestViaSignedApi(guestPayload)
+        }
+
         val sanitizedDni = patientDni.replace("\\D".toRegex(), "").takeLast(4).ifEmpty { "0000" }
         val randomSuffix = java.util.UUID.randomUUID().toString().take(5)
         val timestamp = System.currentTimeMillis().toString(36)
@@ -193,7 +277,7 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             }
             put("cloudflare_room_id", cloudflareRoomId)
             put("status", "searching")
-            authRepository.getCurrentUser()?.id?.let { put("requested_by_user_id", it) }
+            put("requested_by_user_id", currentUser.id)
         }
 
         val dto = supabaseClient.postgrest
@@ -218,13 +302,18 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 
         suspend fun fetchCurrent() {
             runCatching {
-                supabaseClient.postgrest
-                    .from("pharmacy_dispatch_requests")
-                    .select(Columns.ALL) {
-                        filter { eq("id", requestId) }
-                    }
-                    .decodeSingleOrNull<DispatchRequestDto>()
-                    ?.toDomain()
+                val guestToken = guestAccessTokens[requestId]
+                if (guestToken != null) {
+                    fetchGuestRequestViaSignedApi(requestId, guestToken)
+                } else {
+                    supabaseClient.postgrest
+                        .from("pharmacy_dispatch_requests")
+                        .select(Columns.ALL) {
+                            filter { eq("id", requestId) }
+                        }
+                        .decodeSingleOrNull<DispatchRequestDto>()
+                        ?.toDomain()
+                }
             }.getOrNull()?.let { trySend(it) }
         }
 

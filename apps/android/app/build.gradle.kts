@@ -65,6 +65,11 @@ android {
         )
         buildConfigField(
             "String",
+            "WEB_API_URL",
+            quoteForBuildConfig(optionalBuildProperty("WEB_API_URL", "https://www.autamedica.com"))
+        )
+        buildConfigField(
+            "String",
             "SIGNALING_URL",
             quoteForBuildConfig(
                 optionalBuildProperty(
@@ -246,4 +251,11 @@ dependencies {
     testImplementation(libs.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(libs.compose.ui.test.junit4)
+}
+
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    testLogging {
+        events(org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED)
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }

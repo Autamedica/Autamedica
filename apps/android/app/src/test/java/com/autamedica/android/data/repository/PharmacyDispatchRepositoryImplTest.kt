@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -56,7 +58,10 @@ class PharmacyDispatchRepositoryImplTest {
             supabaseClient = supabaseClient,
             authRepository = FakeAuthRepository(),
             ioDispatcher = testDispatcher,
+            httpClient = OkHttpClient(),
+            json = Json { ignoreUnknownKeys = true },
         )
+        repository.guestApiOrigin = mockWebServer.url("/").toString().trimEnd('/')
     }
 
     @After
@@ -120,4 +125,73 @@ class PharmacyDispatchRepositoryImplTest {
         assertThat(requestBody).contains("p_doctor_id")
         assertThat(requestBody).contains(doctorId)
     }
+
+    @Test
+    fun `anonymous dispatch uses signed server API instead of reading PostgREST`() = runTest {
+        val responseBody = """
+            {
+              "success": true,
+              "data": {
+                "request": {
+                  "id": "request-synthetic-1",
+                  "patient_dni": "00000000",
+                  "patient_phone": "000000000",
+                  "patient_name": "Patient Example",
+                  "tier_requested": "general",
+                  "symptom_summary": "synthetic symptom",
+                  "status": "searching",
+                  "assigned_doctor_id": null,
+                  "cloudflare_room_id": "synthetic-room",
+                  "created_at": "2026-10-21T00:00:00Z"
+                },
+                "accessToken": "synthetic-signed-token"
+              }
+            }
+        """.trimIndent()
+
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(responseBody)
+        )
+
+        val result = repository.createPatientDispatchRequest(
+            patientDni = "00000000",
+            patientPhone = "000000000",
+            patientName = "Patient Example",
+            tierRequested = "general",
+            symptomSummary = "synthetic symptom",
+            patientCpf = null,
+        )
+
+        // Fail with the underlying exception, not a generic Boolean assertion.
+        val created = result.getOrThrow()
+        assertThat(created.id).isEqualTo("request-synthetic-1")
+        val request = mockWebServer.takeRequest()
+        assertThat(request.method).isEqualTo("POST")
+        assertThat(request.path).isEqualTo("/api/pharmacy/dispatch/request")
+        assertThat(request.body.readUtf8()).contains("patientDni")
+    }
+
+    @Test
+    fun `anonymous dispatch refuses unsigned or malformed server responses`() = runTest {
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"success":true,"data":{"request":{"id":"bad-request"},"accessToken":""}}"""
+                )
+        )
+
+        val result = repository.createPatientDispatchRequest(
+            patientDni = "00000000",
+            patientPhone = "000000000",
+            patientName = "Patient Example",
+            tierRequested = "general",
+            symptomSummary = null,
+            patientCpf = null,
+        )
+        assertThat(result.isFailure).isTrue()
+    }
+
 }
