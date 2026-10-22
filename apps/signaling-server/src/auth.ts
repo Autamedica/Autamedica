@@ -77,6 +77,26 @@ export async function authenticateSocket(
     if (profileError || (role !== 'patient' && role !== 'doctor')) {
       return { authenticated: false };
     }
+
+    // A self-selected doctor role is only an onboarding request.
+    // Signaling access to clinical rooms requires an approved non-provisional
+    // doctor record, not just a profile role or JWT metadata.
+    if (role === 'doctor') {
+      const { data: doctor, error: doctorError } = await scopedClient
+        .from('doctors')
+        .select('active, license_number')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (
+        doctorError ||
+        doctor?.active !== true ||
+        !doctor.license_number?.trim() ||
+        /^PENDING(?:-|$)/i.test(doctor.license_number.trim())
+      ) {
+        return { authenticated: false };
+      }
+    }
+
     return { authenticated: true, role, userId };
   } catch (error) {
     logger.error('[Auth] Authentication error:', error);
