@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
+import { hasClinicalDoctorApproval } from '@/lib/doctors/lib/clinical-approval'
 import type {
   AssignedDoctorInfo,
   ClaimConsultationResult,
@@ -40,7 +41,7 @@ export class PharmacyOnDemandService {
     }
 
     // Admin client bypasses RLS: never authorize clinical duty from role alone.
-    if (doctor?.active !== true) return null
+    if (!hasClinicalDoctorApproval(doctor)) return null
 
     // Safe casting for nested relationship
     const raw = doctor as Record<string, unknown>
