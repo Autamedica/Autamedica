@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from './request'
+import { resolveGuestSecret } from '@/lib/runtime-env'
 
 vi.mock('@autamedica/shared', () => {
   const logMock = { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn(), child: vi.fn() }
@@ -85,6 +86,14 @@ function makeContext(options?: {
 describe('API: /api/pharmacy/dispatch/request', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(resolveGuestSecret).mockReturnValue(TEST_SECRET)
+  })
+
+  it('rechaza una consulta si no puede firmar el token, sin guardar datos clínicos', async () => {
+    vi.mocked(resolveGuestSecret).mockReturnValue(null)
+    const response = await POST(makeContext())
+    expect(response.status).toBe(503)
+    expect(supabaseMock.from).not.toHaveBeenCalled()
   })
 
   it('devuelve 400 si el DNI es inválido o menor a 5 caracteres', async () => {
