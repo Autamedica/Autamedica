@@ -67,6 +67,9 @@ BEGIN
   FROM (VALUES
     ('medical_records','medical_records_select_scoped','qual'),
     ('medical_records','medical_records_soft_delete','qual'),
+    ('medical_records','medical_records_soft_delete','with_check'),
+    ('medical_orders','Doctors can update their own draft medical orders','with_check'),
+    ('medical_certificates','Doctors can update their draft certificates','with_check'),
     ('medical_orders','Doctors can insert their own medical orders','with_check'),
     ('medical_orders','Doctors can view their own medical orders','qual'),
     ('medical_orders','Doctors can update their own draft medical orders','qual'),
