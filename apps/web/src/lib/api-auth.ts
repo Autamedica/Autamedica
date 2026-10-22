@@ -91,7 +91,19 @@ export const ADMIN_ROLES: UserRole[] = ['organization_admin', 'platform_admin', 
  * Keep nonclinical onboarding/profile editing reachable while pending.
  */
 export function requiresApprovedDoctorForPath(pathname: string): boolean {
-  return /^\\/api\\/doctors\\/(?:on-duty(?:\\/|$)|patients(?:\\/|$)|prescriptions(?:\\/|$)|medical-orders(?:\\/|$)|medical-records(?:\\/|$)|certificates(?:\\/|$)|calls(?:\\/|$)|cloudflare-calls(?:\\/|$)|turn-credentials(?:\\/|$)|clinical-safety(?:-|\\/|$))/.test(pathname)
+  const protectedPaths = [
+    '/api/doctors/on-duty',
+    '/api/doctors/patients',
+    '/api/doctors/prescriptions',
+    '/api/doctors/medical-orders',
+    '/api/doctors/medical-records',
+    '/api/doctors/certificates',
+    '/api/doctors/calls',
+    '/api/doctors/cloudflare-calls',
+    '/api/doctors/turn-credentials',
+  ]
+  return protectedPaths.some((prefix) => pathname === prefix || pathname.startsWith(prefix + '/'))
+    || pathname.startsWith('/api/doctors/clinical-safety-')
 }
 
 export async function withAuthRole(
