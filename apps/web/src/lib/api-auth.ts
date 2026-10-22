@@ -2,6 +2,7 @@ import type { SupabaseClient, User, Session } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { unauthorized, forbidden, jsonFail } from '@/lib/api-helpers'
 import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
+import { hasClinicalDoctorApproval } from '@/lib/doctors/lib/clinical-approval'
 
 type TypedClient = SupabaseClient<Database>
 type ApiKeyRow = {
@@ -94,6 +95,12 @@ export function requiresApprovedDoctorForPath(pathname: string): boolean {
   const protectedPaths = [
     '/api/doctors/on-duty',
     '/api/doctors/patients',
+    '/api/doctors/appointments',
+    '/api/doctors/consultations',
+    '/api/doctors/availability',
+    '/api/doctors/signature',
+    '/api/doctors/prescription-templates',
+    '/api/doctors/notifications',
     '/api/doctors/prescriptions',
     '/api/doctors/medical-orders',
     '/api/doctors/medical-records',
@@ -132,11 +139,11 @@ export async function withAuthRole(
   if (profile.role === 'doctor' && requiresApprovedDoctorForPath(new URL(request.url).pathname)) {
     const { data: doctor, error: doctorError } = await result.supabase
       .from('doctors')
-      .select('active')
+      .select('active, license_number')
       .eq('user_id', result.user.id)
       .maybeSingle()
 
-    if (doctorError || doctor?.active !== true) return forbidden()
+    if (doctorError || !hasClinicalDoctorApproval(doctor)) return forbidden()
   }
 
   return result
