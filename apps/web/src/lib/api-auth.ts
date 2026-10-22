@@ -87,6 +87,13 @@ export const ADMIN_ROLES: UserRole[] = ['organization_admin', 'platform_admin', 
  * Role authority: profiles.role in the database only.
  * User-editable metadata must never authorize privileged routes.
  */
+/** Clinical endpoints must not trust a signup role without an approved doctor.
+ * Keep nonclinical onboarding/profile editing reachable while pending.
+ */
+export function requiresApprovedDoctorForPath(pathname: string): boolean {
+  return /^\\/api\\/doctors\\/(?:on-duty(?:\\/|$)|patients(?:\\/|$)|prescriptions(?:\\/|$)|medical-orders(?:\\/|$)|medical-records(?:\\/|$)|certificates(?:\\/|$)|calls(?:\\/|$)|cloudflare-calls(?:\\/|$)|turn-credentials(?:\\/|$)|clinical-safety(?:-|\\/|$))/.test(pathname)
+}
+
 export async function withAuthRole(
   request: Request,
   allowedRoles: UserRole[],
@@ -105,6 +112,19 @@ export async function withAuthRole(
 
   if (error || !profile?.role || !allowedRoles.includes(profile.role as UserRole)) {
     return forbidden()
+  }
+
+  // An Auth signup can request the doctor role, but that alone never grants
+  // permission to access patient PHI, issue prescriptions or join clinical calls.
+  // Pending applicants still retain nonclinical onboarding/profile access.
+  if (profile.role === 'doctor' && requiresApprovedDoctorForPath(new URL(request.url).pathname)) {
+    const { data: doctor, error: doctorError } = await result.supabase
+      .from('doctors')
+      .select('active')
+      .eq('user_id', result.user.id)
+      .maybeSingle()
+
+    if (doctorError || doctor?.active !== true) return forbidden()
   }
 
   return result
