@@ -315,13 +315,6 @@ function isProtectedPath(pathname: string): boolean {
 }
 
 /** Type-safe role extraction from user metadata */
-function extractRole(
-  metadata: Record<string, unknown> | undefined,
-): string | undefined {
-  const raw = metadata?.role;
-  return typeof raw === "string" ? raw : undefined;
-}
-
 function isAdminRole(role: string | undefined): boolean {
   return role === "admin" || role === "organization_admin" || role === "platform_admin";
 }
@@ -800,13 +793,18 @@ export const onRequest = defineMiddleware(async (context, next) => {
     context.locals.supabase = supabase;
 
     const isAuthenticated = !!user;
+    let trustedUserRole: string | null = null;
+    if (user) {
+      const { data: roleProfile, error: roleError } = await supabase
+        .from("profiles").select("role").eq("user_id", user.id).maybeSingle();
+      if (roleError) logger.warn("Middleware: trusted role lookup failed", { pathname });
+      trustedUserRole = typeof roleProfile?.role === "string" ? roleProfile.role : null;
+    }
 
     // Redirigir a usuarios logueados que acceden a la landing raíz "/"
     // Pero solo si están en el dominio principal (no en los subdominios de portal como doctor.autamedica.com)
     if (pathname === "/" && isAuthenticated && !portal) {
-      const userRole =
-        extractRole(user.app_metadata as Record<string, unknown>) ??
-        extractRole(user.user_metadata as Record<string, unknown>);
+      const userRole = trustedUserRole;
       if (userRole) {
         const roleRedirect = getRoleRedirect(userRole);
         return context.redirect(roleRedirect);
@@ -816,10 +814,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // Auth routes: redirect authenticated users to their dashboard
     if (isAuthRoute) {
       if (isAuthenticated) {
-        const userRole =
-          extractRole(user.app_metadata as Record<string, unknown>) ??
-          extractRole(user.user_metadata as Record<string, unknown>);
+        const userRole = trustedUserRole;
         if (!userRole) {
+          if (pathname === "/auth/select-role") return secureNext();
           return context.redirect("/auth/select-role");
         }
         const roleRedirect = getRoleRedirect(userRole);
@@ -879,9 +876,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     // Role-based access control for protected routes
     if (isAuthenticated && isProtectedRoute) {
-      const userRole =
-        extractRole(user.app_metadata as Record<string, unknown>) ??
-        extractRole(user.user_metadata as Record<string, unknown>);
+      const userRole = trustedUserRole;
 
       if (!userRole) {
         return context.redirect("/auth/select-role");
