@@ -44,3 +44,6 @@ ip_version = "IPv4"
 [functions]
 
 [analytics]
+# Provider callback authenticates with a verified Mercado Pago HMAC, not a Supabase JWT.
+[functions.mobile-payments-webhook]
+verify_jwt = false
