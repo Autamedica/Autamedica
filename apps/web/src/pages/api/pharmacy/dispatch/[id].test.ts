@@ -287,7 +287,7 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
         return buildTableChain(otherDoctor, null)
       }
       if (table === 'doctor_duty_status') {
-        return buildTableChain({ is_on_duty: true }, null)
+        return buildTableChain({ is_on_duty: true, last_heartbeat_at: new Date().toISOString() }, null)
       }
       return buildTableChain(null, null)
     })
@@ -301,6 +301,48 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.success).toBe(true)
+  })
+
+  it('rechaza a un médico en guardia para una solicitud que ya no está buscando atención', async () => {
+    const alreadyMatched = { ...REQUEST_RECORD, assigned_doctor_id: null, status: 'matched' }
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_requests') return buildTableChain(alreadyMatched, null)
+      if (table === 'doctors') return buildTableChain({ id: 'doctor-2', user_id: 'doctor-2-user' }, null)
+      if (table === 'doctor_duty_status') {
+        return buildTableChain({ is_on_duty: true, last_heartbeat_at: new Date().toISOString() }, null)
+      }
+      return buildTableChain(null, null)
+    })
+    const response = await GET(makeContext({ session: { user: { id: 'doctor-2-user' } } }))
+    expect(response.status).toBe(401)
+  })
+
+  it('rechaza guardias con latido obsoleto', async () => {
+    const queueRequest = { ...REQUEST_RECORD, assigned_doctor_id: null }
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_requests') return buildTableChain(queueRequest, null)
+      if (table === 'doctors') return buildTableChain({ id: 'doctor-2', user_id: 'doctor-2-user' }, null)
+      if (table === 'doctor_duty_status') {
+        return buildTableChain({ is_on_duty: true, last_heartbeat_at: new Date(Date.now() - 120_000).toISOString() }, null)
+      }
+      return buildTableChain(null, null)
+    })
+    const response = await GET(makeContext({ session: { user: { id: 'doctor-2-user' } } }))
+    expect(response.status).toBe(401)
+  })
+
+  it('rechaza un token invitado firmado para otra sala de la misma solicitud', async () => {
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_requests') return buildTableChain(REQUEST_RECORD, null)
+      return buildTableChain(null, null)
+    })
+    const wrongRoomToken = await signGuestToken(
+      { callId: 'req-1', roomId: 'another-room', guestName: 'Synthetic Patient' }, TEST_SECRET,
+    )
+    const response = await GET(makeContext({
+      headers: { authorization: `Bearer ${wrongRoomToken}` },
+    }))
+    expect(response.status).toBe(401)
   })
 
   it('devuelve 401 si un usuario autenticado ajeno (no dueño, no asignado, no guardia) intenta acceder', async () => {
