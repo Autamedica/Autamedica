@@ -38,6 +38,9 @@ class WalletRepositoryImpl @Inject constructor(
         val response = supabaseClient.functions("patients-wallet-topup", payload)
         val text = response.bodyAsText()
         val dto = json.decodeFromString<TopupResponseDto>(text)
+        require(dto.currency == "BRL") {
+            "El proveedor no confirmó el cobro en reales (BRL). No se abrirá el pago."
+        }
         dto.checkoutUrl
             ?: dto.checkoutUrlSnake
             ?: dto.initPoint
@@ -60,6 +63,7 @@ private data class WalletBalanceInnerDto(
 
 @Serializable
 private data class TopupResponseDto(
+    val currency: String? = null,
     @SerialName("checkoutUrl") val checkoutUrl: String? = null,
     @SerialName("checkout_url") val checkoutUrlSnake: String? = null,
     @SerialName("init_point") val initPoint: String? = null,
