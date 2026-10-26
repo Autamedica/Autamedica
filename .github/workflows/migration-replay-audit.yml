@@ -50,5 +50,6 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/kiosk_dispatch_acl_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/untrusted_table_privileges_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/public_table_default_privileges_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/mobile_payment_market_security_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/critical_rpc_acl_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/additional_privileged_rpc_acl_smoke.sql

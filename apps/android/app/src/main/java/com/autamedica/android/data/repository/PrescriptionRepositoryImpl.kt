@@ -574,7 +574,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
 
         val doctor = supabaseClient.postgrest
             .from("doctors")
-            .select(Columns.list("id", "license_number")) {
+            .select(Columns.list("id", "license_number", "uf_brazil", "refeps_id", "active")) {
                 filter { eq("user_id", userId) }
             }
             .decodeSingleOrNull<DoctorRecordDto>()
@@ -599,11 +599,20 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val isStatusValid = validationStatus.equals("valid", ignoreCase = true) ||
                 validationStatus.equals("exempt", ignoreCase = true)
 
-        val isEligible = hasLicense && isStatusValid
+        // Argentina requires the SISA/REFEPS validation; Brazilian doctors
+        // are licensed by CRM + UF, not by Argentina's SSS registry.
+        val isEligible = hasLicense && doctor.active && when (countryCode) {
+            "AR" -> isStatusValid
+            "BR" -> true
+            else -> false
+        }
 
         val reason = when {
+            !doctor.active -> "Profesional inactivo"
             !hasLicense -> "Matrícula profesional no registrada en el perfil"
-            !isStatusValid -> "Validación profesional SISA / REFEPS pendiente (Decreto 63/2024)"
+            countryCode == null -> "Jurisdicción profesional no verificada"
+            countryCode == "AR" && !isStatusValid ->
+                "Validación profesional SISA / REFEPS pendiente (Decreto 63/2024)"
             else -> null
         }
 
@@ -924,6 +933,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
         @SerialName("license_number") val licenseNumber: String? = null,
         @SerialName("uf_brazil") val ufBrazil: String? = null,
         @SerialName("refeps_id") val refepsId: String? = null,
+        val active: Boolean = false,
     )
 
     @Serializable
