@@ -245,22 +245,19 @@ fun getPlanByTier(tierKey: String): ReservePlan =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HealthReserveDetailScreen(
-    subscriptionTier: String = "cuidado",
-    benefitBalanceCredits: Int = 22,
-    maxCapCredits: Int = 600,
+    subscriptionTier: String = "free"
+    benefitBalanceCredits: Int = 0
+    maxCapCredits: Int = 0
     onBack: () -> Unit = {},
-    onActivatePlan: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    var activeTier by remember(subscriptionTier) { mutableStateOf(subscriptionTier.lowercase()) }
-    var currentCredits by remember(benefitBalanceCredits) { mutableIntStateOf(benefitBalanceCredits) }
-    var currentMaxCap by remember(maxCapCredits) { mutableIntStateOf(if (maxCapCredits > 0) maxCapCredits else 600) }
+    val activeTier = subscriptionTier.lowercase()
+    val currentCredits = benefitBalanceCredits.coerceAtLeast(0)
+    val currentMaxCap = maxCapCredits.coerceAtLeast(0)
     var selectedPlanForActivation by remember { mutableStateOf<ReservePlan?>(null) }
-    var isActivating by remember { mutableStateOf(false) }
-    var activationSuccessMessage by remember { mutableStateOf<String?>(null) }
+    var activationErrorMessage by remember { mutableStateOf<String?>(null) }
     var simulatedMonths by remember { mutableIntStateOf(3) }
 
-    val coroutineScope = rememberCoroutineScope()
     val currentPlan = getPlanByTier(activeTier)
     val progressFraction = calculateProgressFraction(currentCredits, currentMaxCap)
 
@@ -328,7 +325,7 @@ fun HealthReserveDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // ── Feedback Banner de Éxito al activar plan ──────────────────
-            if (activationSuccessMessage != null) {
+            if (activationErrorMessage != null) {
                 item {
                     Surface(
                         shape = RoundedCornerShape(16.dp),
@@ -355,13 +352,13 @@ fun HealthReserveDetailScreen(
                                     color = Color.White,
                                 )
                                 Text(
-                                    text = activationSuccessMessage ?: "",
+                                    text = activationErrorMessage ?: "",
                                     fontSize = 12.sp,
                                     color = Color(0xFFD1FAE5),
                                 )
                             }
                             IconButton(
-                                onClick = { activationSuccessMessage = null },
+                                onClick = { activationErrorMessage = null },
                                 modifier = Modifier.size(36.dp),
                             ) {
                                 Icon(
@@ -763,9 +760,7 @@ fun HealthReserveDetailScreen(
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
             onDismissRequest = {
-                if (!isActivating) {
-                    selectedPlanForActivation = null
-                }
+                selectedPlanForActivation = null
             },
             sheetState = sheetState,
             containerColor = Color(0xFF0F172A),
@@ -799,7 +794,7 @@ fun HealthReserveDetailScreen(
                     }
                     IconButton(
                         onClick = { selectedPlanForActivation = null },
-                        enabled = !isActivating,
+                        enabled = true,
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Close,
@@ -912,48 +907,19 @@ fun HealthReserveDetailScreen(
                     }
                 }
 
-                // Botón de confirmación con estado de carga
+                // A subscription must be activated only after the payment webhook has
+                // confirmed it in patient_subscriptions. Android has no checkout
+                // confirmation flow in this screen, so activation is blocked.
                 Button(
                     onClick = {
-                        isActivating = true
-                        coroutineScope.launch {
-                            delay(500) // Feedback de transición fluida
-                            onActivatePlan(planToActivate.tierKey)
-                            activeTier = planToActivate.tierKey
-                            if (planToActivate.tierKey == "cuidado") {
-                                currentMaxCap = 600
-                                if (currentCredits == 0) currentCredits = 22
-                            } else if (planToActivate.tierKey == "familiar") {
-                                currentMaxCap = 1800
-                                if (currentCredits == 0) currentCredits = 66
-                            }
-                            isActivating = false
-                            selectedPlanForActivation = null
-                            activationSuccessMessage = "Has activado el Plan ${planToActivate.name}. Tu Reserva de Salud ya está sumando beneficios."
-                        }
+                        selectedPlanForActivation = null
+                        activationErrorMessage = "La activación requiere pago y confirmación del servidor. Esta versión de Android todavía no permite contratar planes desde esta pantalla."
                     },
-                    enabled = !isActivating,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .sizeIn(minHeight = 50.dp),
+                    modifier = Modifier.fillMaxWidth().sizeIn(minHeight = 50.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = planToActivate.color),
                 ) {
-                    if (isActivating) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Activando plan...", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    } else {
-                        Text(
-                            text = if (planToActivate.priceMonthlyArs > 0) "Confirmar y Activar" else "Confirmar Plan Gratuito",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                        )
-                    }
+                    Text("Plan no disponible desde Android", fontWeight = FontWeight.Bold)
                 }
 
                 Text(
