@@ -23,6 +23,7 @@ const MedicalCertificateCreateSchema = z.object({
   diagnosis: z.string().optional().nullable(),
   hide_diagnosis: z.boolean().default(false),
   observations: z.string().optional().nullable(),
+  treatment: z.string().trim().max(2000).optional().nullable(),
   country_code: z.string().default("AR"),
 });
 
@@ -84,6 +85,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
         diagnosis,
         hide_diagnosis,
         observations,
+        treatment,
         doctor_id,
         patient_id,
         appointment_id,
@@ -190,6 +192,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         diagnosis: result.data.diagnosis ?? null,
         hide_diagnosis: result.data.hide_diagnosis,
         observations: result.data.observations ?? null,
+        treatment: result.data.treatment ?? null,
         qr_code_content: qrContent,
         country_code: result.data.country_code,
       })
