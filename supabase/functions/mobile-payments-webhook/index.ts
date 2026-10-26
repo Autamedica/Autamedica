@@ -98,15 +98,16 @@ export async function handler(req: Request): Promise<Response> {
       if (walletError || !wallet || wallet.currency !== currency) {
         return json(409, { error: 'topup_wallet_currency_mismatch' })
       }
-      const { error } = await db.rpc('grant_patient_wallet_credit', {
+      const { data: creditRows, error } = await db.rpc('grant_patient_wallet_credit', {
         p_patient_id: patientId,
         p_amount_cents: amountCents,
         p_reason: `Mercado Pago confirmed top-up ${paymentId}`,
         p_idempotency_key: `wallet_topup:${paymentId}`,
       })
-      if (error) {
-        console.error('[mobile-payments-webhook] wallet credit failed:', error)
-        return json(503, { error: 'wallet_credit_failed' })
+      const credit = Array.isArray(creditRows) ? creditRows[0] : creditRows
+      if (error || !credit?.success || !credit?.ledger_id) {
+        console.error('[mobile-payments-webhook] wallet credit was not confirmed:', error)
+        return json(503, { error: 'wallet_credit_not_confirmed' })
       }
       return json(200, { received: true, credited: true })
     }
