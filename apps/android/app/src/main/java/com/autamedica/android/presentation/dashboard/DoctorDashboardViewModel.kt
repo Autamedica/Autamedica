@@ -322,84 +322,72 @@ class DoctorDashboardViewModel @Inject constructor(
                 }
             }.onFailure { error ->
                 SecureLog.error("[DoctorDashboard] Error toggling pharmacy duty", error)
-                _isOnDuty.value = onDuty
+                // Keep the previously confirmed server state. Never start a false heartbeat.
                 _uiState.update { state ->
                     state.copy(
                         pharmacyOnDutyState = state.pharmacyOnDutyState.copy(
-                            isOnDuty = onDuty,
                             isLoading = false,
                         ),
+                        error = "No se pudo actualizar el estado de guardia.",
                     )
                 }
-                if (onDuty) {
-                    startHeartbeat(doctorId)
-                } else {
-                    stopHeartbeat()
-                }
+                loadPharmacyDuty(doctorId)
             }
         }
     }
 
     fun claimPharmacyRequest(requestId: String, onNavigateToVideoCall: (String) -> Unit) {
-        val traceId = "trace-" + java.util.UUID.randomUUID().toString().substring(0, 8)
-        val alertRoomId = _uiState.value.simulatedDispatchAlert?.takeIf { it.id == requestId }?.cloudflareRoomId
-            ?: _uiState.value.pharmacyOnDutyState.pendingRequests.firstOrNull { it.id == requestId }?.roomId
-            ?: "room-$requestId"
-
-        com.autamedica.android.telemetry.CallTelemetry.startTrace(traceId = traceId, roomId = alertRoomId)
-        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(traceId, "T0_TAP_INGRESAR")
-
-        // 1. Optimistic UI transition: dismiss alert immediately and navigate on tick 0 (<5ms)
-        _dismissedRequestIds.update { it + requestId }
-        _uiState.update { state ->
-            state.copy(
-                claimingPharmacyRequestId = null,
-                simulatedDispatchAlert = null,
-                activelyDispatchedPatientId = null,
-                liveWaitingQueue = state.liveWaitingQueue.filter { it.id != requestId },
-                dismissedRequestIds = state.dismissedRequestIds + requestId,
-                claimErrorMessage = null,
-            )
-        }
-
-        onNavigateToVideoCall(alertRoomId)
-
-        val isSimulated = requestId.startsWith("sim-") || requestId.startsWith("q")
-        if (isSimulated) {
-            com.autamedica.android.telemetry.CallTelemetry.recordMilestone(traceId, "T1_BACKEND_CLAIM", mapOf("simulated" to true))
+        val doctorId = _uiState.value.doctorId
+        if (doctorId.isBlank() || requestId.isBlank()) {
+            _uiState.update { it.copy(claimErrorMessage = "No hay un médico o solicitud válida.") }
             return
         }
+        if (_uiState.value.claimingPharmacyRequestId != null) return
 
-        val doctorId = _uiState.value.doctorId
-        // 2. Concurrently execute atomic DB claim in background without blocking video navigation
+        val traceId = "trace-" + java.util.UUID.randomUUID().toString().substring(0, 8)
+        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(traceId, "T0_TAP_INGRESAR")
+        _uiState.update { it.copy(claimingPharmacyRequestId = requestId, claimErrorMessage = null) }
+
+        // Claim atomically first. Never open a call for unconfirmed/synthetic offers.
         viewModelScope.launch {
             pharmacyDispatchRepository.claimPharmacyRequest(requestId, doctorId)
                 .onSuccess { claim ->
-                    if (claim.success) {
+                    val roomId = claim.cloudflareRoomId?.takeIf { it.isNotBlank() }
+                    if (claim.success && roomId != null) {
+                        _dismissedRequestIds.update { it + requestId }
+                        _uiState.update { state ->
+                            state.copy(
+                                claimingPharmacyRequestId = null,
+                                simulatedDispatchAlert = null,
+                                activelyDispatchedPatientId = null,
+                                liveWaitingQueue = state.liveWaitingQueue.filter { it.id != requestId },
+                                dismissedRequestIds = state.dismissedRequestIds + requestId,
+                            )
+                        }
+                        // Claim is authoritative; status write is best effort and must not
+                        // be presented as evidence of a second successful operation.
                         pharmacyDispatchRepository.updateDispatchRequestStatus(requestId, "in_call")
+                            .onFailure { SecureLog.warn("[DoctorDashboard] Could not mark call in progress: ${it.message}") }
                         com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
-                            traceId,
-                            "T1_BACKEND_CLAIM",
-                            mapOf("success" to true, "claimed_room" to (claim.cloudflareRoomId ?: alertRoomId))
+                            traceId, "T1_BACKEND_CLAIM", mapOf("success" to true)
                         )
+                        onNavigateToVideoCall(roomId)
                     } else {
-                        val errMsg = claim.message ?: claim.code.ifBlank { "No se pudo aceptar la consulta" }
-                        com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
-                            traceId,
-                            "T1_BACKEND_CLAIM",
-                            mapOf("success" to false, "error" to errMsg)
-                        )
-                        _uiState.update { it.copy(claimErrorMessage = errMsg) }
+                        val reason = claim.message?.takeIf { it.isNotBlank() }
+                            ?: "La consulta no está disponible o no tiene sala asignada."
+                        _uiState.update {
+                            it.copy(claimingPharmacyRequestId = null, claimErrorMessage = reason)
+                        }
                     }
                 }
                 .onFailure { error ->
-                    SecureLog.error("[DoctorDashboard] Error claiming pharmacy request in background", error)
-                    com.autamedica.android.telemetry.CallTelemetry.recordMilestone(
-                        traceId,
-                        "T1_BACKEND_CLAIM",
-                        mapOf("success" to false, "error" to (UiErrorMapper.map(error, "unknown")))
-                    )
-                    _uiState.update { it.copy(claimErrorMessage = UiErrorMapper.map(error, "No se pudo aceptar la solicitud")) }
+                    SecureLog.error("[DoctorDashboard] Error claiming pharmacy request", error)
+                    _uiState.update {
+                        it.copy(
+                            claimingPharmacyRequestId = null,
+                            claimErrorMessage = UiErrorMapper.map(error, "No se pudo aceptar la solicitud"),
+                        )
+                    }
                 }
         }
     }
