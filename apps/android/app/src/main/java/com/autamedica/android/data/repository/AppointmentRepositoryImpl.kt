@@ -266,10 +266,8 @@ class AppointmentRepositoryImpl @Inject constructor(
         }.getOrThrow() // Fail closed if the real availability service is unavailable.
 
         val hasConflict = busy.any { busySlot ->
-            val busyStart = runCatching { OffsetDateTime.parse(busySlot.startTime) }.getOrNull()
-                ?: return@any false
-            val busyEnd = runCatching { OffsetDateTime.parse(busySlot.endTime) }.getOrNull()
-                ?: return@any false
+            val busyStart = OffsetDateTime.parse(busySlot.startTime)
+            val busyEnd = OffsetDateTime.parse(busySlot.endTime)
             newStart.isBefore(busyEnd) && newEnd.isAfter(busyStart)
         }
         if (hasConflict) {
@@ -615,8 +613,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                 .decodeList<DoctorAvailabilityOverrideRowDto>()
                 .firstOrNull()
         } catch (e: Exception) {
-            SecureLog.warn("[Appointments] Failed fetching doctor availability overrides: ${e.message}")
-            null
+            throw IllegalStateException("No se pudo verificar la disponibilidad excepcional del médico", e)
         }
 
         // If override explicitly marks day as not available (holiday, vacation, leave), return empty
@@ -651,8 +648,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                     }
                     .decodeList<DoctorAvailabilityRowDto>()
             } catch (e: Exception) {
-                SecureLog.warn("[Appointments] Failed fetching doctor availability: ${e.message}")
-                emptyList()
+                throw IllegalStateException("No se pudo verificar la agenda semanal del médico", e)
             }
 
             // Exclude fake 24/7 preset (7 days, 00:00 to 23:59)
@@ -678,17 +674,15 @@ class AppointmentRepositoryImpl @Inject constructor(
                 .rpc("get_doctor_busy_slots", params)
                 .decodeList<DoctorBusySlotDto>()
         } catch (e: Exception) {
-            SecureLog.warn("[Appointments] Failed calling get_doctor_busy_slots: ${e.message}")
-            emptyList()
+            throw IllegalStateException("No se pudo verificar las citas ya reservadas", e)
         }
 
         val localZone = ZoneId.systemDefault()
-        val bookedTimeWindows = busyRanges.mapNotNull { busy ->
-            runCatching {
-                val start = OffsetDateTime.parse(busy.startTime).atZoneSameInstant(localZone).toLocalTime()
-                val end = OffsetDateTime.parse(busy.endTime).atZoneSameInstant(localZone).toLocalTime()
-                start to end
-            }.getOrNull()
+        val bookedTimeWindows = busyRanges.map { busy ->
+            val start = OffsetDateTime.parse(busy.startTime).atZoneSameInstant(localZone).toLocalTime()
+            val end = OffsetDateTime.parse(busy.endTime).atZoneSameInstant(localZone).toLocalTime()
+            require(start != end) { "El servidor devolvió un horario ocupado inválido" }
+            start to end
         }
 
         val generatedSlots = mutableListOf<String>()
