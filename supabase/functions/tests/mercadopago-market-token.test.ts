@@ -1,4 +1,4 @@
-import { assertEquals } from 'jsr:@std/assert@1'
+import { assertEquals } from '@std/assert'
 import { getMercadoPagoMarketToken } from '../_shared/mercadopago-market-token.ts'
 
 Deno.test('MercadoPago market credentials never mix ARS with BRL', () => {
