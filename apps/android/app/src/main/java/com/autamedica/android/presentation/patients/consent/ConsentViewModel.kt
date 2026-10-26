@@ -66,9 +66,9 @@ class ConsentViewModel @Inject constructor(
                 val baseUrl = BuildConfig.WEB_API_URL.trimEnd('/')
                 require(baseUrl.startsWith("https://")) { "La API segura no está configurada" }
                 val payload = buildJsonObject {
-                    put("consentType", "general")
-                    put("templateVersion", "android-general-v1")
-                    put("acceptedSections", JsonArray(listOf(JsonPrimitive("general"))))
+                    put("consentType", "telemedicine")
+                    put("templateVersion", "android-telemedicine-limits-v1")
+                    put("acceptedSections", JsonArray(listOf(JsonPrimitive("telemedicine_limitations"))))
                 }
                 withContext(ioDispatcher) {
                     // Avoid dumping personal consent data or bearer tokens to debug logs.
