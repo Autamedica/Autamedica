@@ -187,7 +187,7 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
   Deno.env.set("SUPABASE_URL", "https://dummy.supabase.co");
   Deno.env.set("SUPABASE_ANON_KEY", "dummy_anon");
   Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "dummy_service_role");
-  Deno.env.set("MERCADOPAGO_ACCESS_TOKEN", "APP_USR_TEST_TOKEN");
+  Deno.env.set("MERCADOPAGO_ACCESS_TOKEN_AR", "APP_USR_AR_TEST_TOKEN");
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
