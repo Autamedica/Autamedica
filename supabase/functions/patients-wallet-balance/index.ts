@@ -4,6 +4,8 @@ import { resolveBillingCurrency } from '../_shared/billing-currency.ts'
 
 interface PatientRow {
   id: string
+  cpf?: string | null
+  dni?: string | null
 }
 
 interface WalletBalanceRow {
