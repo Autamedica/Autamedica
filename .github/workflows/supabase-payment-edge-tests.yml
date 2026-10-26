@@ -1,0 +1,35 @@
+name: Supabase Payment Edge Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/supabase-payment-edge-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  payments-country-isolation:
+    name: BRL / ARS checkout and wallet tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: supabase/functions
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Test currency resolver, merchant token, balance, topup and appointments
+        run: |
+          deno test --no-lock --allow-env --allow-net \
+            tests/billing-currency.test.ts \
+            tests/mercadopago-market-token.test.ts \
+            tests/patients-wallet-balance.test.ts \
+            tests/patients-wallet-topup.test.ts \
+            tests/create-appointment-payment.test.ts
