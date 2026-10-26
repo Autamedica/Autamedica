@@ -40,6 +40,7 @@ import kotlinx.coroutines.isActive
 data class DoctorDashboardUiState(
     val doctorProfile: DoctorProfile? = null,
     val stats: DoctorStats = DoctorStats(),
+    val statsAvailable: Boolean = false,
     val todayAppointments: List<Appointment> = emptyList(),
     val joinableAppointmentIds: Set<String> = emptySet(),
     val unreadMessagesCount: Int = 0,
@@ -155,6 +156,7 @@ class DoctorDashboardViewModel @Inject constructor(
                 _uiState.update { state ->
                     state.copy(
                         stats = stats.getOrDefault(DoctorStats()),
+                        statsAvailable = stats.isSuccess,
                         todayAppointments = prioritizeToday(allAppointments),
                         joinableAppointmentIds = joinableResult.first,
                         recentPatients = patientsList.take(5),
