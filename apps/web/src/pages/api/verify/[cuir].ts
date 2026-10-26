@@ -30,7 +30,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     if (!rx) {
       const { data: cert, error: certError } = await admin
         .from('medical_certificates')
-        .select('id, cuir, status, certificate_type, days_of_rest, start_date, end_date, doctor_id, patient_id, signed_pdf_url, qr_code_content, created_at, country_code, signature_verified_at, signature_hash, signature_method')
+        .select('*')
         .eq('cuir', cuir)
         .maybeSingle();
 
@@ -43,7 +43,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
       // Fail closed: a database row, locally generated code or unsigned PDF
       // must never be presented as a publicly verified medical certificate.
-      if (!isMedicalCertificatePubliclyVerifiable(cert)) {
+      if (!isMedicalCertificatePubliclyVerifiable(cert as unknown as Parameters<typeof isMedicalCertificatePubliclyVerifiable>[0])) {
         return jsonOk({
           valid: false,
           reason: 'certificate_not_verified',
