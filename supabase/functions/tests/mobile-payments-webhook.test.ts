@@ -146,3 +146,34 @@ Deno.test('provider currency mismatch cannot confirm payment', async () => {
     assertEquals(response.status, 409)
   } finally { globalThis.fetch = oldFetch }
 })
+
+
+Deno.test('mobile webhook never acknowledges a failed wallet credit RPC', async () => {
+  Deno.env.set('MERCADOPAGO_WEBHOOK_SECRET_BR', 'webhook-test-secret')
+  Deno.env.set('MERCADOPAGO_ACCESS_TOKEN_BR', 'br-merchant-token')
+  Deno.env.set('SUPABASE_URL', 'https://dummy.supabase.co')
+  Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'dummy-service')
+  const previousFetch = globalThis.fetch
+  let creditRpcCalled = false
+  globalThis.fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    if (url.includes('api.mercadopago.com/v1/payments/99881')) {
+      return Response.json({
+        id: 99881, status: 'approved', currency_id: 'BRL', transaction_amount: 79,
+        metadata: { type: 'wallet_topup', patient_id: 'patient-br-2', amount_cents: 7900, currency: 'BRL' },
+      })
+    }
+    if (url.includes('/rest/v1/patient_wallets')) return Response.json({ currency: 'BRL' })
+    if (url.includes('/rest/v1/rpc/grant_patient_wallet_credit')) {
+      creditRpcCalled = true
+      return Response.json([{ success: false, ledger_id: null }])
+    }
+    return previousFetch(input, init)
+  }
+  try {
+    const response = await handler(await signedRequest('BR', '99881'))
+    assertEquals(response.status, 503)
+    assertEquals((await response.json()).error, 'wallet_credit_not_confirmed')
+    assertEquals(creditRpcCalled, true)
+  } finally { globalThis.fetch = previousFetch }
+})
