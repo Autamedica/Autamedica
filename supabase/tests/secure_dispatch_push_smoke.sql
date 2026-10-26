@@ -4,6 +4,7 @@ DO $test$
 DECLARE
   m text;
   t text;
+  p text;
 BEGIN
   IF pg_catalog.has_schema_privilege('anon', 'app_private', 'USAGE')
      OR pg_catalog.has_schema_privilege('authenticated', 'app_private', 'USAGE')
@@ -22,6 +23,16 @@ BEGIN
      OR pg_catalog.has_function_privilege('authenticated', 'public.advance_expired_dispatch_offers()', 'EXECUTE')
   THEN
     RAISE EXCEPTION 'Dispatch engine executable from client';
+  END IF;
+
+  SELECT pg_get_functiondef(
+    'app_private.send_authenticated_dispatch_push(uuid,text,text,jsonb)'::regprocedure
+  ) INTO p;
+  IF position('autamedica_push_project_url' IN p) = 0
+     OR position('autamedica_push_dispatch_secret' IN p) = 0
+     OR position('v_project_url' IN p) = 0
+  THEN
+    RAISE EXCEPTION 'Push transport must use per-environment Vault URL and secret';
   END IF;
 
   SELECT pg_get_functiondef('public.match_dispatch_doctors(uuid)'::regprocedure) INTO m;
