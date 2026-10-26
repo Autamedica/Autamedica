@@ -26,7 +26,7 @@ DECLARE
 BEGIN
   IF p_appointment_id IS NULL OR p_patient_id IS NULL OR p_doctor_id IS NULL
     OR p_amount_cents IS NULL OR p_amount_cents <= 0
-    OR p_currency NOT IN ('ARS', 'BRL')
+    OR p_currency IS NULL OR p_currency NOT IN ('ARS', 'BRL')
     OR p_provider_payment_id IS NULL OR p_provider_payment_id !~ '^[0-9]{1,32}$'
   THEN
     RAISE EXCEPTION 'mobile_payment_invalid_arguments';
@@ -62,8 +62,10 @@ BEGIN
     RAISE EXCEPTION 'mobile_payment_status_not_confirmable';
   END IF;
 
-  IF v_payment.provider_payment_id IS NOT NULL
-     AND v_payment.provider_payment_id IS DISTINCT FROM p_provider_payment_id THEN
+  IF (v_payment.status = 'approved'
+       AND v_payment.provider_payment_id IS DISTINCT FROM p_provider_payment_id)
+     OR (v_payment.provider_payment_id IS NOT NULL
+       AND v_payment.provider_payment_id IS DISTINCT FROM p_provider_payment_id) THEN
     RAISE EXCEPTION 'mobile_payment_id_conflict';
   END IF;
 
@@ -83,6 +85,29 @@ BEGIN
        SET status = 'confirmed', updated_at = now()
      WHERE a.id = p_appointment_id;
   END IF;
+
+  -- Keep the consultation's included clinical follow-up. This used to be
+  -- created by the legacy web callback; mobile callbacks must provide parity.
+  -- Do not reset a care episode that a doctor has already closed.
+  INSERT INTO public.care_episodes (
+    patient_id, doctor_id, source_appointment_id, source_payment_id,
+    status, included_ceeds_reviews, used_ceeds_reviews, funding_source,
+    patient_visible_label, pricing_model, opened_at, valid_until, metadata
+  ) VALUES (
+    p_patient_id, p_doctor_id, p_appointment_id, v_payment.id,
+    'open', 1, 0, 'included_consultation',
+    'Consulta AutaMedica con revision de cierre incluida',
+    'episode_safe_closure',
+    COALESCE(p_paid_at, v_payment.paid_at, now()),
+    COALESCE(v_appointment.start_time, p_paid_at, v_payment.paid_at, now()) + INTERVAL '14 days',
+    jsonb_build_object(
+      'appointment_type', v_appointment.type,
+      'patient_charge_strategy', 'included_in_initial_consultation',
+      'patient_billable_ceeds_review', false,
+      'safe_closure_pool_amount', round(v_payment.gross_amount::numeric * 0.15)::integer,
+      'currency', p_currency
+    )
+  ) ON CONFLICT (source_appointment_id) DO NOTHING;
 
   appointment_payment_id := v_payment.id;
   already_approved := v_already;
