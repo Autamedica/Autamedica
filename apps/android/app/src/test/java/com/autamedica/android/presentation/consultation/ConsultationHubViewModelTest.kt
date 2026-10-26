@@ -120,7 +120,7 @@ class ConsultationHubViewModelTest {
     }
 
     @Test
-    fun `payAppointment marks appointment as CONFIRMED and updates state`() = runTest(testDispatcher) {
+    fun `payAppointment without payment backend never confirms appointment`() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -128,8 +128,8 @@ class ConsultationHubViewModelTest {
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertThat(state.pendingPaymentAppointment).isNull()
-        assertThat(state.paymentMessage).isNotNull()
+        assertThat(state.pendingPaymentAppointment?.status).isEqualTo(AppointmentStatus.PAYMENT_PENDING)
+        assertThat(state.paymentMessage).contains("No se pudo iniciar el proceso de pago")
     }
 
     @Test
