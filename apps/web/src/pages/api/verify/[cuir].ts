@@ -7,6 +7,7 @@ import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { jsonOk, internalError } from '@/lib/api-helpers';
+import { isMedicalCertificatePubliclyVerifiable } from '@/lib/doctors/services/medical-certificate-verification';
 
 export const GET: APIRoute = async ({ params, locals }) => {
   const cuir = params.cuir;
@@ -29,7 +30,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     if (!rx) {
       const { data: cert, error: certError } = await admin
         .from('medical_certificates')
-        .select('id, cuir, status, certificate_type, days_of_rest, start_date, end_date, diagnosis, hide_diagnosis, observations, doctor_id, patient_id, signed_pdf_url, qr_code_content, created_at, country_code')
+        .select('id, cuir, status, certificate_type, days_of_rest, start_date, end_date, doctor_id, patient_id, signed_pdf_url, qr_code_content, created_at, country_code, signature_verified_at, signature_hash, signature_method')
         .eq('cuir', cuir)
         .maybeSingle();
 
@@ -39,6 +40,18 @@ export const GET: APIRoute = async ({ params, locals }) => {
       }
 
       if (!cert) return jsonOk({ valid: false, prescription: null, certificate: null });
+
+      // Fail closed: a database row, locally generated code or unsigned PDF
+      // must never be presented as a publicly verified medical certificate.
+      if (!isMedicalCertificatePubliclyVerifiable(cert)) {
+        return jsonOk({
+          valid: false,
+          reason: 'certificate_not_verified',
+          documentType: 'certificate',
+          prescription: null,
+          certificate: null,
+        });
+      }
 
       let prescriberName = 'Médico';
       let prescriberLicense = '';
@@ -71,14 +84,14 @@ export const GET: APIRoute = async ({ params, locals }) => {
       }
 
       let patientName = 'Paciente';
-      let patientDni = '';
+
       const { data: patient } = await admin
         .from('patients')
-        .select('user_id, dni')
+        .select('user_id')
         .eq('id', cert.patient_id)
         .maybeSingle();
       if (patient) {
-        patientDni = patient.dni ?? '';
+
         const { data: pProfile } = await admin
           .from('profiles')
           .select('first_name, last_name')
@@ -98,12 +111,9 @@ export const GET: APIRoute = async ({ params, locals }) => {
           daysOfRest: cert.days_of_rest,
           startDate: cert.start_date,
           endDate: cert.end_date,
-          diagnosis: cert.hide_diagnosis ? null : cert.diagnosis,
-          observations: cert.observations,
           prescriberName,
           prescriberLicense,
           patientName,
-          patientDni,
           issuedAt: cert.created_at,
           pdfUrl: cert.signed_pdf_url,
           qrContent: cert.qr_code_content,
