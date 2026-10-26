@@ -126,7 +126,7 @@ Deno.test("create-appointment-payment - Wallet payment when balance is sufficien
             available_credit_cents: 200000,
             locked_credit_cents: 0,
             total_credit_cents: 200000,
-            currency: "ARS",
+            currency: "BRL",
           },
         ]),
         { status: 200, headers: { "Content-Type": "application/json" } }
@@ -231,7 +231,7 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
             available_credit_cents: 0,
             locked_credit_cents: 0,
             total_credit_cents: 0,
-            currency: "ARS",
+            currency: "BRL",
           },
         ]),
         { status: 200, headers: { "Content-Type": "application/json" } }
