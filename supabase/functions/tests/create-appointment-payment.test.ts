@@ -299,3 +299,41 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
     globalThis.fetch = originalFetch;
   }
 });
+
+
+Deno.test("create-appointment-payment - rejects old ARS checkout for Brazilian patient before returning it", async () => {
+  Deno.env.set("SUPABASE_URL", "https://dummy.supabase.co");
+  Deno.env.set("SUPABASE_ANON_KEY", "dummy_anon");
+  Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "dummy_service_role");
+  const previousFetch = globalThis.fetch;
+  let touchedWallet = false;
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("/auth/v1/user")) return Response.json({ id: "user-br" });
+    if (url.includes("/rest/v1/patients")) {
+      return Response.json({ id: "pat-br", user_id: "user-br", cpf: "12345678901", dni: null });
+    }
+    if (url.includes("/rest/v1/appointments")) return Response.json({
+      id: "apt-br", patient_id: "pat-br", doctor_id: "doc-br", status: "payment_pending",
+      doctor: { id: "doc-br", consultation_fee: 7900, uf_brazil: "RS", refeps_id: null },
+    });
+    if (url.includes("/rest/v1/appointment_payments")) return Response.json({
+      id: "old-payment", status: "pending", currency: "ARS", gross_amount: 7900,
+      checkout_url: "https://mp.example/old-argentine-checkout", provider_preference_id: "pref-old",
+    });
+    if (url.includes("/rest/v1/rpc/patient_wallet_get_balance") ||
+        url.includes("/rest/v1/patient_wallets")) touchedWallet = true;
+    return previousFetch(input, init);
+  };
+  try {
+    const req = new Request("http://localhost/create-appointment-payment", {
+      method: "POST", headers: { Authorization: "Bearer valid", "Content-Type": "application/json" },
+      body: JSON.stringify({ appointmentId: "apt-br" }),
+    });
+    const res = await handler(req);
+    assertEquals(res.status, 409);
+    const body = await res.json();
+    assertEquals(body.error, "billing_currency_conflict");
+    assertEquals(touchedWallet, false);
+  } finally { globalThis.fetch = previousFetch; }
+});
