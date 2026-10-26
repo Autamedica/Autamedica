@@ -185,7 +185,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             put("doctor_id", doctor.id)
             put("patient_id", request.patientId)
             put("cuir", cuir)
-            put("status", "signed")
+            put("status", "draft")
             put("certificate_type", request.certificateType.code)
             put("days_of_rest", request.daysOfRest)
             put("start_date", request.startDate)
@@ -207,7 +207,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         MedicalCertificate(
             id = certId,
             cuir = cuir,
-            status = "signed",
+            status = "draft",
             certificateType = request.certificateType,
             daysOfRest = request.daysOfRest,
             startDate = request.startDate,
