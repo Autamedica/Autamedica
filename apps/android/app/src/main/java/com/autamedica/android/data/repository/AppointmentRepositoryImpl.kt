@@ -682,11 +682,11 @@ class AppointmentRepositoryImpl @Inject constructor(
             emptyList()
         }
 
-        val argZone = ZoneId.of("America/Argentina/Buenos_Aires")
+        val localZone = ZoneId.of("America/Sao_Paulo")
         val bookedTimeWindows = busyRanges.mapNotNull { busy ->
             runCatching {
-                val start = OffsetDateTime.parse(busy.startTime).atZoneSameInstant(argZone).toLocalTime()
-                val end = OffsetDateTime.parse(busy.endTime).atZoneSameInstant(argZone).toLocalTime()
+                val start = OffsetDateTime.parse(busy.startTime).atZoneSameInstant(localZone).toLocalTime()
+                val end = OffsetDateTime.parse(busy.endTime).atZoneSameInstant(localZone).toLocalTime()
                 start to end
             }.getOrNull()
         }
