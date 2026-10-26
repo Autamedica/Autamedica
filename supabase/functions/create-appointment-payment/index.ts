@@ -393,7 +393,7 @@ export async function handler(req: Request): Promise<Response> {
           title: 'AutaMedica - Consulta medica',
           quantity: 1,
           unit_price: amountCents / 100,
-          currency_id: 'ARS',
+          currency_id: 'BRL',
         },
       ],
       back_urls: {
@@ -447,7 +447,7 @@ export async function handler(req: Request): Promise<Response> {
           patient_id: patient.id,
           doctor_id: appointment.doctor_id,
           gross_amount: amountCents,
-          currency: 'ARS',
+          currency: 'BRL',
           status: 'pending',
           provider: 'mercadopago',
           provider_preference_id: mpData.id,
