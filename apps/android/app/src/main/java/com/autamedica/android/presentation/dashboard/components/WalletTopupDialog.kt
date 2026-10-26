@@ -43,8 +43,8 @@ fun WalletTopupDialog(
     onConfirmTopup: (amount: Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var amountText by remember { mutableStateOf("5000") }
-    val quickAmounts = listOf("2000", "5000", "10000")
+    var amountText by remember { mutableStateOf("50") }
+    val quickAmounts = listOf("20", "50", "100")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -74,8 +74,8 @@ fun WalletTopupDialog(
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = { amountText = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Monto (ARS)") },
-                    prefix = { Text("$ ", fontWeight = FontWeight.Bold) },
+                    label = { Text("Valor (BRL)") },
+                    prefix = { Text("R$ ", fontWeight = FontWeight.Bold) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -109,7 +109,7 @@ fun WalletTopupDialog(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
                             ) {
                                 Text(
-                                    text = "$$amount",
+                                    text = "R$ $amount",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (isSelected) Color(0xFF0369A1) else AuTextSecondary,
