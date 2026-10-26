@@ -916,5 +916,5 @@ private fun EmptyConsultationsCard(
 }
 
 private fun formatBrlConsultationCents(amountCents: Double): String =
-    NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
+    NumberFormat.getCurrencyInstance(Locale.getDefault())
         .format(amountCents / 100.0)
