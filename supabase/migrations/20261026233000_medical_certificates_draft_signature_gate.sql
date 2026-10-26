@@ -33,6 +33,34 @@ CREATE POLICY "Doctors can insert their own certificates"
     AND doctor_id IN (SELECT id FROM public.doctors WHERE user_id = (SELECT auth.uid()))
   );
 
+-- Only the issuing clinician sees unsigned drafts. Patients should not
+-- receive or browse unsigned records before evidence-backed issuance.
+DROP POLICY IF EXISTS "Patients can view their own certificates" ON public.medical_certificates;
+CREATE POLICY "Patients can view their own certificates"
+  ON public.medical_certificates FOR SELECT TO authenticated
+  USING (
+    patient_id IN (SELECT id FROM public.patients WHERE user_id = (SELECT auth.uid()))
+    AND status = 'signed'
+    AND signed_pdf_url IS NOT NULL
+    AND signature_verified_at IS NOT NULL
+    AND signature_hash IS NOT NULL
+    AND signature_method IN ('ac_external', 'electronic_verified')
+  );
+
+-- Prevent a regular doctor client from rewriting an already issued document
+-- as a draft or updating an issued certificate through this policy.
+DROP POLICY IF EXISTS "Doctors can update their draft certificates" ON public.medical_certificates;
+CREATE POLICY "Doctors can update their draft certificates"
+  ON public.medical_certificates FOR UPDATE TO authenticated
+  USING (
+    status = 'draft'
+    AND doctor_id IN (SELECT id FROM public.doctors WHERE user_id = (SELECT auth.uid()))
+  )
+  WITH CHECK (
+    status = 'draft'
+    AND doctor_id IN (SELECT id FROM public.doctors WHERE user_id = (SELECT auth.uid()))
+  );
+
 -- The authorized signing flow (to be developed) must verify the signature,
 -- store immutable evidence, and transition draft -> signed server-side.
 
