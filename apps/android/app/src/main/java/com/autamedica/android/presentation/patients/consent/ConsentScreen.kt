@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +26,10 @@ fun ConsentScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    LaunchedEffect(uiState.isSuccess) {
+        if (uiState.isSuccess) onAccept()
+    }
+
     Column(
         modifier = modifier.fillMaxSize().background(AuBackground).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -44,12 +49,15 @@ fun ConsentScreen(
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
-            onClick = onAccept,
-            enabled = uiState.isAccepted,
+            onClick = viewModel::submitConsent,
+            enabled = uiState.isAccepted && uiState.hasReadConsent && !uiState.isLoading,
             modifier = Modifier.fillMaxWidth().height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AuAccent)
         ) {
-            Text(stringResource(R.string.consent_submit_button))
+            Text(if (uiState.isLoading) "Registrando..." else stringResource(R.string.consent_submit_button))
+        }
+        uiState.error?.let { error ->
+            Text(error, color = MaterialTheme.colorScheme.error)
         }
     }
 }
