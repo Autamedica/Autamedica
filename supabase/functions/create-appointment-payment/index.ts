@@ -319,8 +319,12 @@ export async function handler(req: Request): Promise<Response> {
       : (walletRows as WalletBalanceRow | null)
     const availableCreditCents = Number(walletBalance?.available_credit_cents ?? 0)
 
-    // 8. If wallet covers the amount, pay with wallet
-    if (availableCreditCents >= amountCents) {
+    // A balance denominated in ARS (legacy) must never be spent as BRL.
+    // Until the wallet has verified BRL denomination, use regular BRL checkout.
+    const walletIsBrl = walletBalance?.currency === 'BRL'
+
+    // 8. Use wallet only if the server explicitly proves BRL denomination.
+    if (walletIsBrl && availableCreditCents >= amountCents) {
       const { data: walletPayRows, error: walletPayError } = await supabaseAdmin
         .rpc('pay_appointment_with_patient_wallet', {
           p_appointment_id: appointmentId,
