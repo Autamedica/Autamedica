@@ -532,6 +532,8 @@ private data class DoctorDto(
     val bio: String? = null,
     @SerialName("consultation_fee") val consultationFee: Double? = null,
     val active: Boolean = true,
+    @SerialName("uf_brazil") val ufBrazil: String? = null,
+    @SerialName("refeps_id") val refepsId: String? = null,
 ) {
     fun toDomain(sssValidationStatus: String? = null) = DoctorProfile(
         id = id,
@@ -544,6 +546,11 @@ private data class DoctorDto(
         consultationFee = consultationFee,
         active = active,
         sssValidationStatus = sssValidationStatus,
+        countryCode = when {
+            !ufBrazil.isNullOrBlank() && refepsId.isNullOrBlank() -> "BR"
+            !refepsId.isNullOrBlank() && ufBrazil.isNullOrBlank() -> "AR"
+            else -> null
+        },
     )
 }
 
