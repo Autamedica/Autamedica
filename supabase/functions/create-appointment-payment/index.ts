@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
+import { resolveBillingCurrency } from '../_shared/billing-currency.ts'
 
 interface CreatePaymentBody {
   appointmentId?: string
@@ -10,6 +11,8 @@ interface DoctorRow {
   consultation_fee: number | string | null
   payout_cbu: string | null
   payout_alias: string | null
+  uf_brazil?: string | null
+  refeps_id?: string | null
 }
 
 interface AppointmentRow {
@@ -111,7 +114,7 @@ export async function handler(req: Request): Promise<Response> {
     // 2. Fetch patient record for this user
     const { data: patient, error: patientError } = await supabaseAdmin
       .from('patients')
-      .select('id, user_id')
+      .select('id, user_id, cpf, dni')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -166,7 +169,9 @@ export async function handler(req: Request): Promise<Response> {
           id,
           consultation_fee,
           payout_cbu,
-          payout_alias
+          payout_alias,
+          uf_brazil,
+          refeps_id
         )
       `)
       .eq('id', appointmentId)
@@ -226,7 +231,7 @@ export async function handler(req: Request): Promise<Response> {
     if (!doctor) {
       const { data: directDoctor, error: directDoctorError } = await supabaseAdmin
         .from('doctors')
-        .select('id, consultation_fee, payout_cbu, payout_alias')
+        .select('id, consultation_fee, payout_cbu, payout_alias, uf_brazil, refeps_id')
         .eq('id', appointment.doctor_id)
         .maybeSingle()
 
@@ -246,7 +251,7 @@ export async function handler(req: Request): Promise<Response> {
     // 5. Check if appointment already has payment
     const { data: existingPayment, error: paymentLookupError } = await supabaseAdmin
       .from('appointment_payments')
-      .select('id, status, checkout_url, provider_preference_id, gross_amount')
+      .select('id, status, checkout_url, provider_preference_id, gross_amount, currency')
       .eq('appointment_id', appointmentId)
       .maybeSingle()
 
@@ -268,6 +273,7 @@ export async function handler(req: Request): Promise<Response> {
             ok: true,
             status: 'approved',
             appointment_payment_id: existingPayment.id,
+            currency: existingPayment.currency,
           }),
           {
             status: 200,
@@ -285,6 +291,7 @@ export async function handler(req: Request): Promise<Response> {
             checkout_url: existingPayment.checkout_url,
             preference_id: existingPayment.provider_preference_id,
             appointment_payment_id: existingPayment.id,
+            currency: existingPayment.currency,
           }),
           {
             status: 200,
@@ -319,12 +326,33 @@ export async function handler(req: Request): Promise<Response> {
       : (walletRows as WalletBalanceRow | null)
     const availableCreditCents = Number(walletBalance?.available_credit_cents ?? 0)
 
-    // A balance denominated in ARS (legacy) must never be spent as BRL.
-    // Until the wallet has verified BRL denomination, use regular BRL checkout.
-    const walletIsBrl = walletBalance?.currency === 'BRL'
+    const { data: walletRecord, error: walletCurrencyError } = await supabaseAdmin
+      .from('patient_wallets')
+      .select('currency')
+      .eq('patient_id', patient.id)
+      .maybeSingle()
+    if (walletCurrencyError || walletError) {
+      return new Response(JSON.stringify({ error: 'wallet_currency_lookup_failed' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const billing = resolveBillingCurrency({
+      patientCpf: patient.cpf,
+      patientDni: patient.dni,
+      doctorBrazilUf: doctor.uf_brazil,
+      doctorArgentinaRefeps: doctor.refeps_id,
+      walletCurrency: walletRecord?.currency,
+    })
+    if (!billing.ok) {
+      return new Response(JSON.stringify({ error: billing.error }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const billingCurrency = billing.currency
 
-    // 8. Use wallet only if the server explicitly proves BRL denomination.
-    if (walletIsBrl && availableCreditCents >= amountCents) {
+
+    // 8. Spend wallet funds only when ledger and charge currency agree.
+    if (walletRecord?.currency === billingCurrency && walletBalance?.currency === billingCurrency && availableCreditCents >= amountCents) {
       const { data: walletPayRows, error: walletPayError } = await supabaseAdmin
         .rpc('pay_appointment_with_patient_wallet', {
           p_appointment_id: appointmentId,
@@ -367,6 +395,7 @@ export async function handler(req: Request): Promise<Response> {
             status: 'approved',
             payment_source: 'patient_wallet',
             appointment_payment_id: walletPayResult.appointment_payment_id,
+            currency: billingCurrency,
           }),
           {
             status: 200,
@@ -397,7 +426,7 @@ export async function handler(req: Request): Promise<Response> {
           title: 'AutaMedica - Consulta medica',
           quantity: 1,
           unit_price: amountCents / 100,
-          currency_id: 'BRL',
+          currency_id: billingCurrency,
         },
       ],
       back_urls: {
@@ -451,7 +480,7 @@ export async function handler(req: Request): Promise<Response> {
           patient_id: patient.id,
           doctor_id: appointment.doctor_id,
           gross_amount: amountCents,
-          currency: 'BRL',
+          currency: billingCurrency,
           status: 'pending',
           provider: 'mercadopago',
           provider_preference_id: mpData.id,
@@ -460,6 +489,7 @@ export async function handler(req: Request): Promise<Response> {
             appointment_id: appointmentId,
             patient_id: patient.id,
             doctor_id: appointment.doctor_id,
+            currency: billingCurrency,
           },
           updated_at: new Date().toISOString(),
         },
@@ -497,6 +527,7 @@ export async function handler(req: Request): Promise<Response> {
         payment_source: 'mercadopago',
         checkout_url: mpData.init_point,
         preference_id: mpData.id,
+        currency: billingCurrency,
       }),
       {
         status: 200,
