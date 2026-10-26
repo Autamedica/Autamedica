@@ -91,18 +91,31 @@ export function generateMedicalCertificatePdf(
   }
 
   y = 76;
+  const ensureSpace = (height: number) => {
+    if (y + height > 256) {
+      doc.addPage();
+      y = 25;
+    }
+  };
+
   const field = (title: string, text: string) => {
+    ensureSpace(14);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(71, 85, 105);
     doc.text(title.toUpperCase(), left, y);
     y += 5;
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
     doc.setTextColor(15, 23, 42);
-    const lines = doc.splitTextToSize(clean(text) || 'No informado', width);
-    doc.text(lines, left, y);
-    y += lines.length * 5.8 + 9;
+    const lines = doc.splitTextToSize(clean(text) || 'No informado', width) as string[];
+    for (const line of lines) {
+      ensureSpace(6);
+      doc.text(line, left, y);
+      y += 5.8;
+    }
+    y += 9;
   };
 
   field('Paciente', input.patientName);
@@ -114,26 +127,22 @@ export function generateMedicalCertificatePdf(
   field('Reposo indicado', `${input.daysOfRest} día(s). Desde ${date(input.startDate)}${input.endDate ? ' hasta ' + date(input.endDate) : ''}`);
   if (input.observations) field('Observaciones', input.observations);
 
-  if (y > 245) {
-    doc.addPage();
-    y = 25;
-  }
-
-  doc.setFontSize(8);
-  doc.setTextColor(71, 85, 105);
-  doc.text('La validez del documento está sujeta a firma y comprobación de autenticidad.', left, Math.min(260, y + 7));
-
-  if (mode === 'draft') {
-    doc.setDrawColor(220, 38, 38);
-    doc.setTextColor(185, 28, 28);
-    doc.setFontSize(27);
-    doc.setFont('helvetica', 'bold');
-    doc.text('BORRADOR - SIN FIRMA', 105, 274, { align: 'center' });
-  } else {
+  for (let pageNumber = 1; pageNumber <= doc.getNumberOfPages(); pageNumber++) {
+    doc.setPage(pageNumber);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(71, 85, 105);
-    doc.text('Original sujeto a validación de firma en la plataforma de emisión.', left, 274);
+    doc.text('La validez requiere una firma auténtica y verificable.', left, 267);
+    if (mode === 'draft') {
+      doc.setTextColor(185, 28, 28);
+      doc.setFontSize(25);
+      doc.setFont('helvetica', 'bold');
+      doc.text('BORRADOR - SIN FIRMA', 105, 282, { align: 'center' });
+    } else {
+      doc.setFontSize(8);
+      doc.setTextColor(71, 85, 105);
+      doc.text('Original pendiente de firma por el proveedor autorizado.', left, 278);
+    }
   }
   return new Uint8Array(doc.output('arraybuffer'));
 }
