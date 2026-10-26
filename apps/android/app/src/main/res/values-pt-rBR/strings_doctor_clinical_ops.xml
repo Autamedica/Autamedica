@@ -80,13 +80,13 @@
     <string name="cert_diagnosis_reserved">🔒 Diagnóstico preservado (Sigilo Médico / CFM)</string>
 
     <!-- 5. Emisión de Certificado (CreateCertificateScreen) -->
-    <string name="cert_create_title">Emitir Atestado Médico Digital</string>
-    <string name="cert_create_legal_basis">Resolução CFM nº 2.299/2021 · Portaria MS</string>
+    <string name="cert_create_title">Preparar atestado (rascunho)</string>
+    <string name="cert_create_legal_basis">Referência interna AutaMedica · Assinatura pendente</string>
     <string name="cert_create_submitting">Assinando com Certificado ICP-Brasil...</string>
-    <string name="cert_create_submit_button">Assinar e Emitir Atestado Oficial</string>
+    <string name="cert_create_submit_button">Salvar rascunho sem assinatura</string>
     <string name="cert_reg_active_title">Habilitação Médica Ativa</string>
     <string name="cert_reg_pending_title">Verificação de CRM Pendente</string>
-    <string name="cert_reg_license_active">CRM: %1$s · Assinatura digital qualificada</string>
+    <string name="cert_reg_license_active">CRM: %1$s · Identidade cadastrada</string>
     <string name="cert_reg_license_required">Requer CRM ativo no conselho para assinatura com validade oficial.</string>
     <string name="cert_reg_registered">Cadastrada</string>
     <string name="cert_patient_recipient_title">Paciente Destinatário</string>
@@ -115,10 +115,10 @@
     <string name="cert_privacy_hide_diagnosis_subtitle">Garantia de sigilo médico perante o empregador (Resolução CFM nº 1.658/2002)</string>
     <string name="cert_obs_section_title">Observações Clínicas e Recomendações (Opcional)</string>
     <string name="cert_obs_placeholder">Ex.: Repouso domiciliar, hidratação oral contínua. Válido para o setor de RH.</string>
-    <string name="cert_success_dialog_title">Atestado Emitido com Sucesso!</string>
-    <string name="cert_success_dialog_body">O atestado médico digital foi assinado e registrado com validade jurídica nacional.</string>
-    <string name="cert_success_cuir_header">CÓDIGO DE AUTENTICIDADE (CUIR):</string>
-    <string name="cert_success_dialog_footer">Documento oficial válido perante empresas, órgãos públicos e escolas via verificação online.</string>
+    <string name="cert_success_dialog_title">Rascunho salvo</string>
+    <string name="cert_success_dialog_body">O documento ainda não foi assinado e não é um atestado oficial válido.</string>
+    <string name="cert_success_cuir_header">REFERÊNCIA INTERNA:</string>
+    <string name="cert_success_dialog_footer">Não apresentar este rascunho a empregadores ou instituições.</string>
     <string name="cert_success_back_to_certificates">Voltar para Meus Atestados</string>
 
     <!-- 6. Diagnósticos Comunes Sugeridos -->
@@ -138,7 +138,7 @@
     <string name="cert_error_select_patient">Selecione um paciente cadastrado da lista</string>
     <string name="cert_error_enter_diagnosis">Informe o diagnóstico ou justificativa clínica do atestado</string>
     <string name="cert_error_not_eligible">CRM sem habilitação ativa para emissão de atestados digitais</string>
-    <string name="cert_success_issued_cuir">Atestado médico emitido com sucesso. Código: %1$s</string>
+    <string name="cert_success_issued_cuir">Rascunho salvo. Referência: %1$s</string>
     <string name="cert_error_issue_failed">Erro ao emitir o atestado médico: %1$s</string>
     <string name="cert_error_connection">Falha de conexão com o servidor</string>
 </resources>
