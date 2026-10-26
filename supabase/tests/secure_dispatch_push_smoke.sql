@@ -45,6 +45,12 @@ BEGIN
   IF position('doctorId' IN m) > 0 THEN
     RAISE EXCEPTION 'Dispatch payload targets doctorId instead of userId';
   END IF;
+  IF position('d.active IS TRUE' IN m) = 0
+     OR position('PENDING(-|$)' IN m) = 0
+     OR position('PENDING(-|$)' IN t) = 0
+  THEN
+    RAISE EXCEPTION 'Dispatch must reject inactive/provisional doctors';
+  END IF;
   IF position('net.http_post' IN m) > 0
      OR position('net.http_post' IN t) > 0
   THEN
