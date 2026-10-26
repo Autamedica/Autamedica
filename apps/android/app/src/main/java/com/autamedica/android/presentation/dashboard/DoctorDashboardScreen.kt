@@ -861,18 +861,11 @@ private fun UberEatsLiveAgendaSection(
     onNavigateToCreateAppointment: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val today = LocalDate.now()
-    val todayScheduled = appointments.filter { appointment ->
-        appointment.status in setOf(
-            AppointmentStatus.SCHEDULED,
-            AppointmentStatus.CONFIRMED,
-            AppointmentStatus.IN_PROGRESS,
-        ) && runCatching {
-            OffsetDateTime.parse(appointment.startTime)
-                .atZoneSameInstant(ZoneId.systemDefault())
-                .toLocalDate() == today
-        }.getOrDefault(false)
-    }
+    val todayScheduled = scheduledAppointmentsForLocalDay(
+        appointments,
+        LocalDate.now(),
+        ZoneId.systemDefault(),
+    )
     val countText = "${todayScheduled.size} consulta${if (todayScheduled.size == 1) "" else "s"} programada${if (todayScheduled.size == 1) "" else "s"}"
 
     Column(modifier = modifier.fillMaxWidth()) {
