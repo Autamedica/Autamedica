@@ -2,6 +2,7 @@ import type { SupabaseClient, User, Session } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { unauthorized, forbidden, jsonFail } from '@/lib/api-helpers'
 import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
+import { hasClinicalDoctorApproval } from '@/lib/doctors/lib/clinical-approval'
 
 type TypedClient = SupabaseClient<Database>
 type ApiKeyRow = {
@@ -84,9 +85,34 @@ export const ADMIN_ROLES: UserRole[] = ['organization_admin', 'platform_admin', 
  * Authenticate a request AND verify the user has one of the allowed roles.
  * Returns 401 if not authenticated, 403 if role doesn't match.
  *
- * Performance: Checks role in JWT metadata first (fast).
- * Reliability: Fallback to database (profiles table) if metadata is missing or outdated.
+ * Role authority: profiles.role in the database only.
+ * User-editable metadata must never authorize privileged routes.
  */
+/** Clinical endpoints must not trust a signup role without an approved doctor.
+ * Keep nonclinical onboarding/profile editing reachable while pending.
+ */
+export function requiresApprovedDoctorForPath(pathname: string): boolean {
+  const protectedPaths = [
+    '/api/doctors/on-duty',
+    '/api/doctors/patients',
+    '/api/doctors/appointments',
+    '/api/doctors/consultations',
+    '/api/doctors/availability',
+    '/api/doctors/signature',
+    '/api/doctors/prescription-templates',
+    '/api/doctors/notifications',
+    '/api/doctors/prescriptions',
+    '/api/doctors/medical-orders',
+    '/api/doctors/medical-records',
+    '/api/doctors/certificates',
+    '/api/doctors/calls',
+    '/api/doctors/cloudflare-calls',
+    '/api/doctors/turn-credentials',
+  ]
+  return protectedPaths.some((prefix) => pathname === prefix || pathname.startsWith(prefix + '/'))
+    || pathname.startsWith('/api/doctors/clinical-safety-')
+}
+
 export async function withAuthRole(
   request: Request,
   allowedRoles: UserRole[],
@@ -96,14 +122,7 @@ export async function withAuthRole(
   const result = await withAuth(request, locals)
   if (result instanceof Response) return result
 
-  // 1. Fast path: check app_metadata (server-controlled) or user_metadata (fallback)
-  const jwtRole = (result.user.app_metadata?.role ?? result.user.user_metadata?.role) as string | undefined
-  if (jwtRole && allowedRoles.includes(jwtRole as UserRole)) {
-    return result
-  }
-
-  // 2. Reliability path: Fallback to database if JWT role is missing or invalid
-  // This mitigates sync issues where Supabase Auth metadata doesn't match the profiles table.
+  // Check database-authoritative role on every request. Never authorize from user_metadata.
   const { data: profile, error } = await result.supabase
     .from('profiles')
     .select('role')
@@ -112,6 +131,19 @@ export async function withAuthRole(
 
   if (error || !profile?.role || !allowedRoles.includes(profile.role as UserRole)) {
     return forbidden()
+  }
+
+  // An Auth signup can request the doctor role, but that alone never grants
+  // permission to access patient PHI, issue prescriptions or join clinical calls.
+  // Pending applicants still retain nonclinical onboarding/profile access.
+  if (profile.role === 'doctor' && requiresApprovedDoctorForPath(new URL(request.url).pathname)) {
+    const { data: doctor, error: doctorError } = await result.supabase
+      .from('doctors')
+      .select('active, license_number')
+      .eq('user_id', result.user.id)
+      .maybeSingle()
+
+    if (doctorError || !hasClinicalDoctorApproval(doctor)) return forbidden()
   }
 
   return result

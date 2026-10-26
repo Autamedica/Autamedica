@@ -20,17 +20,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ["localhost", "127.0.0.1"].includes(url.hostname) &&
     url.searchParams.get("dev_admin") === "1";
 
-  // Check auth
+  // Only the server-side profile role may grant synchronization privileges.
   const session = locals.session;
   let isAuth = false;
-  if (session) {
-    const role = (session.user.user_metadata as Record<string, unknown>)?.role;
-    if (
-      typeof role === "string" &&
-      ["admin", "organization_admin", "platform_admin"].includes(role)
-    ) {
-      isAuth = true;
-    }
+  if (session?.user?.id) {
+    const admin = createAstroAdminClient(locals.runtime?.env);
+    const { data: profile, error } = await admin
+      .from("profiles").select("role").eq("user_id", session.user.id).maybeSingle();
+    isAuth = !error && !!profile?.role &&
+      ["admin", "organization_admin", "platform_admin"].includes(profile.role);
   }
 
   if (!isLocalDevBypass && !isAuth) {

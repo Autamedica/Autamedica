@@ -89,7 +89,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       payoutPixKey: optionalString(body, 'payout_pix_key'),
       signatureUrl: optionalString(body, 'signature_url'),
       stampUrl: optionalString(body, 'stamp_url'),
-      active: typeof body.active === 'boolean' ? body.active : undefined,
+      // A caller cannot approve their own medical credentials or activate themselves.
       fullName,
     })
 

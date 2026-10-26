@@ -45,14 +45,9 @@ export async function authenticateSocket(
     return { authenticated: false };
   }
 
-  // Si no hay Supabase configurado, permitir en desarrollo
   if (!supabase) {
-    logger.warn('[Auth] Supabase not configured, allowing connection');
-    return {
-      authenticated: true,
-      role: 'patient',
-      userId,
-    };
+    logger.error('[Auth] Supabase not configured: rejecting socket');
+    return { authenticated: false };
   }
 
   try {
@@ -70,16 +65,39 @@ export async function authenticateSocket(
       return { authenticated: false };
     }
 
-    // Obtener rol del usuario desde metadata
-    const role = data.user.user_metadata?.role || 'patient';
+    // Authenticated PostgREST query: a global anon client alone does not
+    // carry the incoming user's JWT and would be denied by profiles RLS.
+    const scopedClient = createClient<Database>(supabaseUrl!, supabaseKey!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: profile, error: profileError } = await scopedClient
+      .from('profiles').select('role').eq('user_id', userId).maybeSingle();
+    const role = profile?.role;
+    if (profileError || (role !== 'patient' && role !== 'doctor')) {
+      return { authenticated: false };
+    }
 
-    logger.info(`[Auth] User authenticated: ${userId} (${role})`);
+    // A self-selected doctor role is only an onboarding request.
+    // Signaling access to clinical rooms requires an approved non-provisional
+    // doctor record, not just a profile role or JWT metadata.
+    if (role === 'doctor') {
+      const { data: doctor, error: doctorError } = await scopedClient
+        .from('doctors')
+        .select('active, license_number')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (
+        doctorError ||
+        doctor?.active !== true ||
+        !doctor.license_number?.trim() ||
+        /^PENDING(?:-|$)/i.test(doctor.license_number.trim())
+      ) {
+        return { authenticated: false };
+      }
+    }
 
-    return {
-      authenticated: true,
-      role: role as 'patient' | 'doctor',
-      userId,
-    };
+    return { authenticated: true, role, userId };
   } catch (error) {
     logger.error('[Auth] Authentication error:', error);
     return { authenticated: false };

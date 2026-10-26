@@ -96,6 +96,8 @@ describe('PharmacyOnDemandService', () => {
                   data: {
                     id: 'doc-789',
                     user_id: 'user-doc-789',
+
+          active: true,
                     license_number: 'MN-99881',
                     specialty: 'Medicina General',
                     profiles: {
@@ -135,6 +137,8 @@ describe('PharmacyOnDemandService', () => {
                   data: {
                     id: 'doc-1',
                     user_id: 'user-1',
+
+          active: true,
                     license_number: 'MP-123',
                     specialty: 'Clinica Medica',
                     on_duty_pharmacy: false,
@@ -196,6 +200,8 @@ describe('PharmacyOnDemandService', () => {
                   data: {
                     id: 'doc-1',
                     user_id: 'user-1',
+
+          active: true,
                     license_number: 'MP-123',
                     specialty: 'Clinica Medica',
                     on_duty_pharmacy: true,
@@ -282,6 +288,8 @@ describe('PharmacyOnDemandService', () => {
                   data: {
                     id: 'doc-1',
                     user_id: 'user-1',
+
+          active: true,
                     license_number: 'MP-123',
                     specialty: 'Clinica Medica',
                     on_duty_pharmacy: true,
@@ -327,4 +335,33 @@ describe('PharmacyOnDemandService', () => {
     expect(result.prescriptionUrl).toContain('patientDni=30111222')
     expect(result.prescriptionUrl).toContain('source=pharmacy_express')
   })
+
+  it('rejects inactive provisional doctor before calling pharmacy operations', async () => {
+    const adminFrom = vi.fn((table: string) => {
+      if (table !== 'doctors') throw new Error('Unexpected patient-data access')
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                id: 'doc-pending',
+                user_id: 'user-pending',
+                active: false,
+                license_number: 'PENDING-TEST',
+                specialty: 'General',
+              },
+              error: null,
+            }),
+          }),
+        }),
+      }
+    })
+    const admin = { from: adminFrom } as unknown as SupabaseClient
+
+    await expect(service.toggleDoctorOnDuty(admin, 'user-pending', true))
+      .rejects.toThrow('doctor_not_found')
+    expect(adminFrom).toHaveBeenCalledTimes(1)
+    expect(adminFrom).toHaveBeenCalledWith('doctors')
+  })
+
 })

@@ -1,0 +1,8 @@
+-- SUPERSEDED: the production role-boundary guards have been applied already
+-- through versioned migrations 20261021205416, 20261021210023 and 20261021210159,
+-- now merged via PR #538. Repeating the original version from PR #534 would
+-- recreate an Auth trigger as SECURITY DEFINER and might loosen grants.
+--
+-- This file is intentionally a no-op to preserve migration history.
+-- PR #538 is merged; validate this PR against the full-schema local security gate before merging PR #534.
+-- Do NOT reintroduce the previous DDL in this migration.

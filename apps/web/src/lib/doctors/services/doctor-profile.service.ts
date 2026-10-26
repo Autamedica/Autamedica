@@ -105,11 +105,26 @@ export const doctorProfileService = {
     admin: AdminClient,
     input: DoctorProfileInput,
   ): Promise<{ id: string }> {
-    const isActive = input.active ?? true
+    // This endpoint is used by self-service onboarding. Neither the client's
+    // active flag nor a claimed license can authorize clinical practice.
+    // Preserve the current activation/license for existing approved doctors;
+    // new and pending applicants remain inactive until trusted verification.
+    const { data: existingDoctor, error: readError } = await admin
+      .from('doctors')
+      .select('active, license_number')
+      .eq('user_id', input.userId)
+      .maybeSingle()
+
+    if (readError) throw readError
+
+    const isActive = existingDoctor?.active === true
+    const trustedLicense = isActive
+      ? existingDoctor.license_number
+      : input.licenseNumber
 
     const doctorData: Database['public']['Tables']['doctors']['Insert'] = {
       user_id: input.userId,
-      license_number: input.licenseNumber,
+      license_number: trustedLicense,
       specialty: input.specialty,
       schedule: null,
       active: isActive,

@@ -91,48 +91,14 @@ export async function handler(req: Request): Promise<Response> {
 
     const user = authData.user
 
-    // 2. Role verification: must be an authenticated patient or doctor
-    const jwtRole = (user.app_metadata?.role ?? user.user_metadata?.role) as string | undefined
-    let isAuthorized = !!jwtRole && ALLOWED_ROLES.includes(jwtRole)
-
-    if (!isAuthorized) {
-      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      })
-
-      // Check if user exists in patients table
-      const { data: patient } = await supabaseAdmin
-        .from('patients')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (patient) {
-        isAuthorized = true
-      } else {
-        // Check if user exists in doctors table
-        const { data: doctor } = await supabaseAdmin
-          .from('doctors')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle()
-
-        if (doctor) {
-          isAuthorized = true
-        } else {
-          // Check profiles table
-          const { data: profile } = await supabaseAdmin
-            .from('profiles')
-            .select('role')
-            .eq('user_id', user.id)
-            .maybeSingle()
-
-          if (profile && ALLOWED_ROLES.includes(profile.role)) {
-            isAuthorized = true
-          }
-        }
-      }
-    }
+    // 2. Verified identity + database-authoritative role.
+    // Existence of a patient/doctor row is not a substitute for role authorization.
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles').select('role').eq('user_id', user.id).maybeSingle()
+    const isAuthorized = !profileError && !!profile && ALLOWED_ROLES.includes(profile.role)
 
     if (!isAuthorized) {
       console.warn('[turn-credentials] User is neither a patient nor a doctor:', user.id)
