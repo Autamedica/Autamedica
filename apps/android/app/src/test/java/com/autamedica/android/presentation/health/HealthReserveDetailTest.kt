@@ -104,6 +104,15 @@ class HealthReserveDetailTest {
     }
 
     @Test
+    fun `planPricesRemainBrazilianRealAmountsInCentavos`() {
+        assertThat(defaultReservePlans[1].priceMonthlyCents).isEqualTo(4_990)
+        assertThat(defaultReservePlans[2].priceMonthlyCents).isEqualTo(12_990)
+        assertThat(formatPlanPriceBrl(4_990)).contains("49,90")
+        assertThat(formatPlanPriceBrl(12_990)).contains("129,90")
+        assertThat(formatPlanPriceBrl(4_990)).contains("R$")
+    }
+
+    @Test
     fun `formatCredits formats numbers with thousands separators`() {
         val formatted = formatCredits(1800)
         assertThat(formatted).contains("1.800")
