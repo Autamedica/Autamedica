@@ -91,7 +91,7 @@ class DoctorSignatureViewModel @Inject constructor(
             result
                 .onSuccess { dto ->
                     val status = dto.data?.status
-                    val verified = status == "valid" || status == "exempt"
+                    val verified = dto.success && (status == "valid" || status == "exempt")
                     val (messageStr, messageRes) = when (status) {
                         "valid" -> Pair(null, R.string.signature_status_sisa_verified)
                         "exempt" -> Pair(null, R.string.signature_status_exempt)
@@ -130,20 +130,19 @@ class DoctorSignatureViewModel @Inject constructor(
         }
     }
 
+    /**
+     * The drawn bitmap is not a legally signed clinical document, and the app
+     * has no authenticated signature-storage endpoint. Fail closed until one
+     * is connected; never report a dummy signature as saved.
+     */
     fun saveSignature(signatureData: ByteArray) {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, errorMessage = null, errorMessageRes = null) }
-            if (_state.value.sisaValidated) {
-                _state.update { it.copy(isLoading = false, isSuccess = true) }
-            } else {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = null,
-                        errorMessageRes = R.string.signature_error_must_validate_before_saving,
-                    )
-                }
-            }
+        _state.update {
+            it.copy(
+                isLoading = false,
+                isSuccess = false,
+                errorMessage = "La firma no se guardó. Falta habilitar el registro seguro de firmas médicas.",
+                errorMessageRes = null,
+            )
         }
     }
 
