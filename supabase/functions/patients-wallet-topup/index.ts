@@ -249,7 +249,7 @@ export async function handler(req: Request): Promise<Response> {
       },
       auto_return: 'approved',
       statement_descriptor: 'AUTAMEDICA',
-      notification_url: `${appUrl}/api/payments/mercadopago/webhook`,
+      notification_url: `${supabaseUrl}/functions/v1/mobile-payments-webhook?market=${billingCurrency === 'BRL' ? 'BR' : 'AR'}`,
       metadata: {
         type: 'wallet_topup',
         patient_id: patientId,
