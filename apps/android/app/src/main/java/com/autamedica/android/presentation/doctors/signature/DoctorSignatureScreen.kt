@@ -165,11 +165,7 @@ fun DoctorSignatureScreen(
                 }
                 
                 Button(
-                    onClick = { 
-                        if (state.sisaValidated && paths.isNotEmpty()) {
-                            viewModel.saveSignature(ByteArray(0)) // Operation explicitly fails until verified storage is available
-                        }
-                    },
+                    onClick = { /* Backend signature storage must be connected first. */ },
                     enabled = false // A secure signature backend is required before enabling this action
                 ) {
                     Text("Guardar firma (no disponible)")
