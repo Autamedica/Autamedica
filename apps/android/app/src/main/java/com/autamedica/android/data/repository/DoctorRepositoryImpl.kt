@@ -22,6 +22,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -59,11 +60,13 @@ class DoctorRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getDoctorStats(doctorId: String): Result<DoctorStats> = runCatching {
-        val todayStart = LocalDate.now().atStartOfDay().atOffset(ZoneOffset.UTC)
+        // The clinic's local calendar day, not midnight UTC.
+        val localZone = ZoneId.systemDefault()
+        val todayStart = LocalDate.now(localZone).atStartOfDay(localZone).toOffsetDateTime()
             .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-        val todayEnd = LocalDate.now().plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC)
+        val todayEnd = LocalDate.now(localZone).plusDays(1).atStartOfDay(localZone).toOffsetDateTime()
             .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-        val weekStart = LocalDate.now().minusDays(6).atStartOfDay().atOffset(ZoneOffset.UTC)
+        val weekStart = LocalDate.now(localZone).minusDays(6).atStartOfDay(localZone).toOffsetDateTime()
             .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
         // Today's appointments (all statuses except cancelled)
