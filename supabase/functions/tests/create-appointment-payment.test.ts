@@ -250,6 +250,9 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
       );
     }
     if (url.includes("api.mercadopago.com/checkout/preferences")) {
+      const payload = JSON.parse(String(init?.body));
+      assertEquals(payload.notification_url,
+        "https://dummy.supabase.co/functions/v1/mobile-payments-webhook?market=AR");
       return new Response(
         JSON.stringify({
           id: "pref-mp-123456",
