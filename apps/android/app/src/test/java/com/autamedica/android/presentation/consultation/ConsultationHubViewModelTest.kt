@@ -133,7 +133,7 @@ class ConsultationHubViewModelTest {
     }
 
     @Test
-    fun `requestEmergencyConsultation assigns on-call doctor immediately`() = runTest(testDispatcher) {
+    fun `requestEmergencyConsultation creates appointment but does not open unconfirmed call`() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -143,10 +143,10 @@ class ConsultationHubViewModelTest {
         }
         advanceUntilIdle()
 
-        assertThat(enteredAppointmentId).isNotNull()
+        assertThat(enteredAppointmentId).isNull()
         val state = viewModel.uiState.value
         assertThat(state.isEmergencyQueueLoading).isFalse()
-        assertThat(state.paymentMessage).contains("Médico de guardia asignado")
+        assertThat(state.paymentMessage).contains("Turno registrado")
     }
 
     @Test
