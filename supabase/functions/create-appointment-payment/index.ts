@@ -267,7 +267,22 @@ export async function handler(req: Request): Promise<Response> {
       )
     }
 
+    // Existing payments must be checked against the current, authoritative
+    // patient + doctor market before returning an old checkout or approval.
+    // Otherwise an ARS preference can be silently reused for a BRL visit.
     if (existingPayment) {
+      const existingMarket = resolveBillingCurrency({
+        patientCpf: patient.cpf,
+        patientDni: patient.dni,
+        doctorBrazilUf: doctor.uf_brazil,
+        doctorArgentinaRefeps: doctor.refeps_id,
+        walletCurrency: existingPayment.currency,
+      })
+      if (!existingMarket.ok) {
+        return new Response(JSON.stringify({ error: existingMarket.error }), {
+          status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
       if (existingPayment.status === 'approved') {
         return new Response(
           JSON.stringify({
