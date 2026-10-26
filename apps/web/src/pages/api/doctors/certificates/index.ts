@@ -74,27 +74,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     const query = admin
       .from("medical_certificates")
-      .select(`
-        id,
-        cuir,
-        status,
-        certificate_type,
-        days_of_rest,
-        start_date,
-        end_date,
-        diagnosis,
-        hide_diagnosis,
-        observations,
-        treatment,
-        doctor_id,
-        patient_id,
-        appointment_id,
-        signed_pdf_url,
-        qr_code_content,
-        country_code,
-        created_at,
-        updated_at
-      `)
+      .select('*')
       .eq("doctor_id", context.doctorId);
 
     if (patientId) {
