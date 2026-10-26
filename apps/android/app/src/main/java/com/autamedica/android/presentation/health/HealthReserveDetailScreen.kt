@@ -237,6 +237,12 @@ fun formatArs(amount: Int): String {
     return format.format(amount)
 }
 
+/** Plan prices are stored in BRL cents, not in Argentine pesos. */
+fun formatPlanPriceBrl(priceCents: Int): String =
+    NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
+        .format(priceCents / 100.0)
+
+
 fun getPlanByTier(tierKey: String): ReservePlan =
     defaultReservePlans.find { it.tierKey == tierKey.lowercase() } ?: defaultReservePlans.first()
 
@@ -786,7 +792,7 @@ fun HealthReserveDetailScreen(
                             color = Color.White,
                         )
                         Text(
-                            text = if (planToActivate.priceMonthlyArs > 0) "${formatArs(planToActivate.priceMonthlyArs)} / mes" else "Gratis para siempre",
+                            text = if (planToActivate.priceMonthlyArs > 0) "${formatPlanPriceBrl(planToActivate.priceMonthlyArs)} / mes" else "Gratis para siempre",
                             fontSize = 14.sp,
                             color = Color(0xFF38BDF8),
                             fontWeight = FontWeight.SemiBold,
@@ -1132,7 +1138,7 @@ private fun DetailedPlanCard(
                         }
                     }
                     Text(
-                        text = if (plan.priceMonthlyArs > 0) "${formatArs(plan.priceMonthlyArs)} / mes" else "Gratis",
+                        text = if (plan.priceMonthlyArs > 0) "${formatPlanPriceBrl(plan.priceMonthlyArs)} / mes" else "Gratis",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (plan.priceMonthlyArs > 0) plan.color else AuTextSecondary,
