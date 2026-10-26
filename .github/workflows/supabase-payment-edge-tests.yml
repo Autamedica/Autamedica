@@ -30,6 +30,7 @@ jobs:
           deno test --no-lock --allow-env --allow-net \
             tests/billing-currency.test.ts \
             tests/mercadopago-market-token.test.ts \
+            tests/mobile-payments-webhook.test.ts \
             tests/patients-wallet-balance.test.ts \
             tests/patients-wallet-topup.test.ts \
             tests/create-appointment-payment.test.ts
