@@ -4,7 +4,8 @@ ALTER TABLE public.medical_certificates
   ALTER COLUMN status SET DEFAULT 'draft',
   ADD COLUMN IF NOT EXISTS signature_verified_at timestamptz,
   ADD COLUMN IF NOT EXISTS signature_hash text,
-  ADD COLUMN IF NOT EXISTS signature_method text;
+  ADD COLUMN IF NOT EXISTS signature_method text,
+  ADD COLUMN IF NOT EXISTS treatment text;
 
 -- Existing legacy signed records may not have signature evidence.
 -- NOT VALID enforces the gate for NEW inserts/updates without breaking migration
