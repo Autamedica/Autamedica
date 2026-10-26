@@ -163,6 +163,7 @@ fun DashboardScreen(
                 subscriptionTier = uiState.subscriptionTier,
                 subscriptionStatus = uiState.subscriptionStatus,
                 walletBalanceCents = uiState.walletBalanceCents,
+                walletCurrency = uiState.walletCurrency,
                 hasUpcomingAppointment = nextAppointment != null,
                 unreadNotificationsCount = uiState.unreadNotificationsCount,
                 onWalletClick = { viewModel.setWalletSheetVisible(true) },
@@ -356,6 +357,7 @@ fun DashboardScreen(
     if (uiState.isWalletSheetOpen) {
         PatientWalletBottomSheet(
             walletBalanceCents = uiState.walletBalanceCents,
+                walletCurrency = uiState.walletCurrency,
             freeConsultationsCount = uiState.freeConsultationsCount,
             onDismiss = { viewModel.setWalletSheetVisible(false) },
             onTopupClick = {
@@ -372,6 +374,7 @@ fun DashboardScreen(
     // Top-up Dialog
     if (uiState.isTopupDialogOpen) {
         WalletTopupDialog(
+            currency = uiState.walletCurrency,
             onDismiss = { viewModel.setTopupDialogVisible(false) },
             onConfirmTopup = { amount ->
                 viewModel.topupWallet(amount)
