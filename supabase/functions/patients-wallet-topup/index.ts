@@ -196,7 +196,7 @@ export async function handler(req: Request): Promise<Response> {
           description: 'Carga de credito virtual en billetera para consultas medicas en AutaMedica',
           quantity: 1,
           unit_price: amount,
-          currency_id: 'ARS',
+          currency_id: 'BRL',
         },
       ],
       payer: { email: payerEmail },
@@ -243,7 +243,7 @@ export async function handler(req: Request): Promise<Response> {
         checkoutUrl: mpData.init_point,
         preferenceId: mpData.id,
         amountCents: amountCents,
-        currency: 'ARS',
+        currency: 'BRL',
       }),
       {
         status: 200,
