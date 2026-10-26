@@ -51,7 +51,7 @@
 
     <!-- 4. Certificados Médicos / Atestados (DoctorCertificates & CreateCertificate) -->
     <string name="cert_screen_title">Atestados Médicos Emitidos</string>
-    <string name="cert_header_counts">%1$d válidos · %2$d emitidos</string>
+    <string name="cert_header_counts">%1$d registrados · %2$d documentos</string>
     <string name="cert_action_new_certificate">Emitir Novo Atestado</string>
     <string name="cert_search_placeholder">Buscar por paciente, CPF, código validador ou CID...</string>
     <string name="cert_filter_all">Todos (%1$d)</string>
@@ -73,7 +73,7 @@
     <string name="cert_card_default_patient_name">Paciente Atendido</string>
     <string name="cert_card_dni_label">CPF: %1$s</string>
     <string name="cert_status_draft">Rascunho sem assinatura</string>
-    <string name="cert_status_valid">Válido</string>
+    <string name="cert_status_valid">Registrado</string>
     <string name="cert_status_cancelled">Cancelado</string>
     <string name="cert_days_of_rest_count">%1$d dias de afastamento</string>
     <string name="cert_days_of_rest_one">1 dia de afastamento</string>
