@@ -225,8 +225,7 @@ class ConsultationHubViewModel @Inject constructor(
                 doctorName = doctor.name,
                 doctorSpecialty = doctor.specialty,
                 doctorAvatarUrl = doctor.avatarUrl,
-                doctorFee = doctor.consultationFee ?: 15000.0,
-                status = AppointmentStatus.CONFIRMED,
+                doctorFee = doctor.consultationFee,
             )
 
             clinicStore.applyMutation { data ->
@@ -236,10 +235,12 @@ class ConsultationHubViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isEmergencyQueueLoading = false,
-                    paymentMessage = "Médico de guardia asignado (${doctor.name}). Podés ingresar de inmediato.",
+                    paymentMessage = "Turno registrado con ${doctor.name}. Estado: ${booked.status}. La confirmación y el acceso dependen del pago y de la sala disponible.",
                 )
             }
-            onReadyToEnter(finalApt.id)
+            // A booked appointment is not proof of an approved payment or joinable room.
+            // The patient may enter only through the verified telemedicine flow.
+            clinicStore.refresh()
         }
     }
 }

@@ -1507,12 +1507,17 @@ class VideoCallViewModel @Inject constructor(
                     instructions = trimmedInstructions.ifBlank { "Tomar según indicaciones clínicas durante la videoconsulta." },
                 )
 
+                val issuingUser = callUserId.ifBlank { authRepository.getCurrentUser()?.id.orEmpty() }
+                require(issuingUser.isNotBlank()) { "Médico no autenticado" }
+                val issuingCountry = doctorRepository.getDoctorProfile(issuingUser).getOrThrow().countryCode
+                    ?: throw IllegalStateException("No se pudo verificar la jurisdicción BR/AR del médico")
+
                 val request = CreatePrescriptionRequest(
                     patientId = targetPatientId,
                     items = listOf(item),
                     diagnosis = _uiState.value.chiefComplaintPeek?.takeIf { it.isNotBlank() } ?: "Consulta médica por telemedicina",
                     notes = "Emitida en videollamada AutaMedica",
-                    countryCode = "AR",
+                    countryCode = issuingCountry,
                 )
 
                 prescriptionRepository.createPrescription(request).getOrThrow()
@@ -1578,6 +1583,11 @@ class VideoCallViewModel @Inject constructor(
                 val startDateStr = today.toString()
                 val endDateStr = if (effectiveRest > 0) today.plusDays(effectiveRest.toLong()).toString() else null
 
+                val issuingUser = callUserId.ifBlank { authRepository.getCurrentUser()?.id.orEmpty() }
+                require(issuingUser.isNotBlank()) { "Médico no autenticado" }
+                val issuingCountry = doctorRepository.getDoctorProfile(issuingUser).getOrThrow().countryCode
+                    ?: throw IllegalStateException("No se pudo verificar la jurisdicción BR/AR del médico")
+
                 val request = CreateCertificateRequest(
                     patientId = targetPatientId,
                     certificateType = type,
@@ -1587,7 +1597,7 @@ class VideoCallViewModel @Inject constructor(
                     diagnosis = trimmedDiagnosis.ifBlank { _uiState.value.chiefComplaintPeek?.takeIf { it.isNotBlank() } ?: "Consulta médica por telemedicina" },
                     hideDiagnosis = false,
                     observations = "Emitido durante videollamada AutaMedica",
-                    countryCode = "AR",
+                    countryCode = issuingCountry,
                 )
 
                 medicalCertificateRepository.createCertificate(request).getOrThrow()

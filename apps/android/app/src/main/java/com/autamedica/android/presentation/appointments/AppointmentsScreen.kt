@@ -1915,11 +1915,10 @@ private fun DoctorAgendaDaySection(
 ) {
     val isToday = day.date == LocalDate.now()
     val headerTitle = if (isToday) "Agenda de hoy" else formatSectionDate(day.date)
-    val headerSubtitle = if (isToday && day.appointments.size < 17) {
-        "17 consultas programadas"
+    val headerSubtitle = if (day.appointments.size == 1) {
+        stringResource(R.string.appointments_count_singular, day.appointments.size)
     } else {
-        if (day.appointments.size == 1) stringResource(R.string.appointments_count_singular, day.appointments.size)
-        else stringResource(R.string.appointments_count_plural, day.appointments.size)
+        stringResource(R.string.appointments_count_plural, day.appointments.size)
     }
 
     Column(
@@ -1982,37 +1981,22 @@ private fun DoctorAgendaDaySection(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Lista fluida directa sobre el fondo (sin cajas grandes ni tarjetas)
-        val canonicalPatients = listOf(
-            Triple("María López", "Control", "09:00"),
-            Triple("Juan Pérez", "Dolor lumbar", "09:30"),
-            Triple("Ana Silva", "Resultado de estudios", "10:00"),
-            Triple("Carlos Méndez", "Consulta general", "10:30"),
-        )
-
-        val displayCount = if (day.appointments.isEmpty()) canonicalPatients.size else day.appointments.size
-
+        // Cada fila representa una cita real. Sin nombres/horarios ficticios.
         Column(modifier = Modifier.fillMaxWidth()) {
-            for (i in 0 until displayCount) {
-                val appointment = day.appointments.getOrNull(i)
-                val isCandidate = appointment?.let { it.isTelemedicineJoinCandidate() || it.id in joinableAppointmentIds } == true
-                    || (appointment == null && i == 0)
-                val callAction: (() -> Unit)? = if (isCandidate) {
-                    {
-                        val id = appointment?.id ?: "apt-live-$i"
-                        onNavigateToVideoCall(id)
-                    }
-                } else null
+            day.appointments.forEachIndexed { i, appointment ->
+                val isCandidate = appointment.id in joinableAppointmentIds
+                val callAction: (() -> Unit)? =
+                    if (isCandidate) ({ onNavigateToVideoCall(appointment.id) }) else null
 
-                val patientName = appointment?.doctorName
-                    ?: canonicalPatients.getOrNull(i)?.first
-                    ?: "Paciente en consulta"
-                val reason = appointment?.notes?.takeIf { it.isNotBlank() }
-                    ?: canonicalPatients.getOrNull(i)?.second
-                    ?: "Consulta programada"
-                val timeStr = appointment?.let { parseDateTime(it.startTime)?.format(DateTimeFormatter.ofPattern("HH:mm")) }
-                    ?: canonicalPatients.getOrNull(i)?.third
-                    ?: "09:00"
+                // This screen does not resolve patient identities; do not confuse doctorName
+                // with the patient's name or substitute a made-up clinical record.
+                val patientName = "Paciente"
+                val reason = appointment.notes?.takeIf {
+                    it.isNotBlank() && !it.startsWith("http://") && !it.startsWith("https://")
+                } ?: "Consulta programada"
+                val timeStr = parseDateTime(appointment.startTime)
+                    ?.atZoneSameInstant(java.time.ZoneId.systemDefault())
+                    ?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--:--"
 
                 Row(
                     modifier = Modifier
@@ -2083,7 +2067,7 @@ private fun DoctorAgendaDaySection(
                     )
                 }
 
-                if (i < displayCount - 1) {
+                if (i < day.appointments.lastIndex) {
                     HorizontalDivider(
                         modifier = Modifier.padding(start = 56.dp),
                         color = Color(0xFFE2E8F0).copy(alpha = 0.6f),
@@ -2112,7 +2096,7 @@ private fun buildDoctorAgendaDays(
                 key = date.toString(),
                 date = date,
                 appointments = dayAppointments,
-                hasJoinableAppointment = dayAppointments.any { it.isTelemedicineJoinCandidate() || it.id in joinableAppointmentIds },
+                hasJoinableAppointment = dayAppointments.any { it.id in joinableAppointmentIds },
             )
         }
         .sortedBy { it.date }

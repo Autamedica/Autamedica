@@ -165,22 +165,23 @@ fun DoctorSignatureScreen(
                 }
                 
                 Button(
-                    onClick = { 
-                        if (state.sisaValidated && paths.isNotEmpty()) {
-                            viewModel.saveSignature(ByteArray(0)) // dummy signature
-                        }
-                    },
-                    enabled = state.sisaValidated && !state.isLoading
+                    onClick = { /* Backend signature storage must be connected first. */ },
+                    enabled = false // A secure signature backend is required before enabling this action
                 ) {
-                    Text(stringResource(R.string.signature_save_button))
+                    Text("Guardar firma (no disponible)")
                 }
             }
 
-            if (state.errorMessageRes != null && !state.sisaValidated) {
+            if (state.errorMessageRes != null) {
                 Text(stringResource(state.errorMessageRes!!), color = MaterialTheme.colorScheme.error)
-            } else if (state.errorMessage != null && !state.sisaValidated) {
+            } else if (state.errorMessage != null) {
                 Text(state.errorMessage!!, color = MaterialTheme.colorScheme.error)
             }
+            Text(
+                "La firma dibujada no se almacena todavía. La validación de matrícula no equivale a firmar un documento.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
             if (state.isSuccess) {
                 Text(stringResource(R.string.signature_saved_success), color = Color(0xFF00C853))
             }

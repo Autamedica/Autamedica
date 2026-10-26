@@ -153,11 +153,9 @@ class SupabaseAuthDataSource @Inject constructor(
     }
 
     private fun extractRole(user: io.github.jan.supabase.auth.user.UserInfo): String? {
-        val appRole = user.appMetadata?.get("role")?.jsonPrimitive?.content
-        if (!appRole.isNullOrBlank()) return appRole
-        val userRole = user.userMetadata?.jsonObject?.get("role")?.jsonPrimitive?.content
-        if (!userRole.isNullOrBlank()) return userRole
-        return null
+        // Only app_metadata is server-controlled; user_metadata can be edited by the user.
+        return user.appMetadata?.get("role")?.jsonPrimitive?.contentOrNull
+            ?.takeIf { it.isNotBlank() }
     }
 
     suspend fun fetchUserRole(userId: String): String? {

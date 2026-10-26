@@ -173,7 +173,10 @@ class AppointmentRepositoryImpl @Inject constructor(
             .from("appointments")
             .update(mapOf("notes" to notes)) {
                 filter { eq("id", id) }
+                select(Columns.list("id"))
             }
+            .decodeList<AppointmentRecordIdDto>()
+            .also { require(it.size == 1) { "La cita no fue actualizada" } }
         Unit
     }.onFailure {
         SecureLog.error("[Appointments] Failed updating appointment notes", it)
@@ -193,7 +196,10 @@ class AppointmentRepositoryImpl @Inject constructor(
             .from("appointments")
             .update(mapOf("status" to wireStatus)) {
                 filter { eq("id", id) }
+                select(Columns.list("id"))
             }
+            .decodeList<AppointmentRecordIdDto>()
+            .also { require(it.size == 1) { "El estado de la cita no fue actualizado" } }
         Unit
     }.onFailure {
         SecureLog.error("[Appointments] Failed updating appointment status", it)
@@ -214,7 +220,10 @@ class AppointmentRepositoryImpl @Inject constructor(
             .from("appointments")
             .update(mapOf("status" to "cancelled")) {
                 filter { eq("id", id) }
+                select(Columns.list("id"))
             }
+            .decodeList<AppointmentRecordIdDto>()
+            .also { require(it.size == 1) { "La cancelación no fue confirmada" } }
         appointmentDao.clearAppointmentsForUser(userId)
         Unit
     }.onFailure {
@@ -241,6 +250,10 @@ class AppointmentRepositoryImpl @Inject constructor(
         }
         val doctorId = appointment.doctorId ?: throw IllegalStateException("Cannot reschedule: no doctor assigned")
 
+        val newEnd = runCatching { OffsetDateTime.parse(newEndTime) }.getOrNull()
+            ?: throw IllegalArgumentException("end_time is invalid")
+        require(newEnd.isAfter(newStart)) { "La fecha de fin debe ser posterior al inicio" }
+
         val busy = runCatching {
             val params = buildJsonObject {
                 put("p_doctor_id", doctorId)
@@ -250,15 +263,11 @@ class AppointmentRepositoryImpl @Inject constructor(
             supabaseClient.postgrest
                 .rpc("get_doctor_busy_slots", params)
                 .decodeList<DoctorBusySlotDto>()
-        }.getOrDefault(emptyList())
+        }.getOrThrow() // Fail closed if the real availability service is unavailable.
 
         val hasConflict = busy.any { busySlot ->
-            val busyStart = runCatching { OffsetDateTime.parse(busySlot.startTime) }.getOrNull()
-                ?: return@any false
-            val busyEnd = runCatching { OffsetDateTime.parse(busySlot.endTime) }.getOrNull()
-                ?: return@any false
-            val newEnd = runCatching { OffsetDateTime.parse(newEndTime) }.getOrNull()
-                ?: return@any false
+            val busyStart = OffsetDateTime.parse(busySlot.startTime)
+            val busyEnd = OffsetDateTime.parse(busySlot.endTime)
             newStart.isBefore(busyEnd) && newEnd.isAfter(busyStart)
         }
         if (hasConflict) {
@@ -274,7 +283,10 @@ class AppointmentRepositoryImpl @Inject constructor(
                 ),
             ) {
                 filter { eq("id", id) }
+                select(Columns.list("id"))
             }
+            .decodeList<AppointmentRecordIdDto>()
+            .also { require(it.size == 1) { "La reprogramación no fue confirmada" } }
         appointmentDao.clearAppointmentsForUser(userId)
         Unit
     }.onFailure {
@@ -601,8 +613,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                 .decodeList<DoctorAvailabilityOverrideRowDto>()
                 .firstOrNull()
         } catch (e: Exception) {
-            SecureLog.warn("[Appointments] Failed fetching doctor availability overrides: ${e.message}")
-            null
+            throw IllegalStateException("No se pudo verificar la disponibilidad excepcional del médico", e)
         }
 
         // If override explicitly marks day as not available (holiday, vacation, leave), return empty
@@ -637,8 +648,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                     }
                     .decodeList<DoctorAvailabilityRowDto>()
             } catch (e: Exception) {
-                SecureLog.warn("[Appointments] Failed fetching doctor availability: ${e.message}")
-                emptyList()
+                throw IllegalStateException("No se pudo verificar la agenda semanal del médico", e)
             }
 
             // Exclude fake 24/7 preset (7 days, 00:00 to 23:59)
@@ -664,17 +674,15 @@ class AppointmentRepositoryImpl @Inject constructor(
                 .rpc("get_doctor_busy_slots", params)
                 .decodeList<DoctorBusySlotDto>()
         } catch (e: Exception) {
-            SecureLog.warn("[Appointments] Failed calling get_doctor_busy_slots: ${e.message}")
-            emptyList()
+            throw IllegalStateException("No se pudo verificar las citas ya reservadas", e)
         }
 
-        val argZone = ZoneId.of("America/Argentina/Buenos_Aires")
-        val bookedTimeWindows = busyRanges.mapNotNull { busy ->
-            runCatching {
-                val start = OffsetDateTime.parse(busy.startTime).atZoneSameInstant(argZone).toLocalTime()
-                val end = OffsetDateTime.parse(busy.endTime).atZoneSameInstant(argZone).toLocalTime()
-                start to end
-            }.getOrNull()
+        val localZone = ZoneId.systemDefault()
+        val bookedTimeWindows = busyRanges.map { busy ->
+            val start = OffsetDateTime.parse(busy.startTime).atZoneSameInstant(localZone).toLocalTime()
+            val end = OffsetDateTime.parse(busy.endTime).atZoneSameInstant(localZone).toLocalTime()
+            require(start != end) { "El servidor devolvió un horario ocupado inválido" }
+            start to end
         }
 
         val generatedSlots = mutableListOf<String>()
@@ -708,10 +716,10 @@ class AppointmentRepositoryImpl @Inject constructor(
             }
         }
 
-        val nowInArg = ZonedDateTime.now(argZone)
-        val filtered = if (targetDate == nowInArg.toLocalDate()) {
-            val currentHour = nowInArg.hour
-            val currentMin = nowInArg.minute
+        val nowInLocal = ZonedDateTime.now(localZone)
+        val filtered = if (targetDate == nowInLocal.toLocalDate()) {
+            val currentHour = nowInLocal.hour
+            val currentMin = nowInLocal.minute
             generatedSlots.filter { slot ->
                 val parts = slot.split(":")
                 val h = parts.getOrNull(0)?.toIntOrNull() ?: 0
@@ -867,6 +875,7 @@ class AppointmentRepositoryImpl @Inject constructor(
         val text = response.bodyAsText()
         val json = Json { ignoreUnknownKeys = true }
         val dto = json.decodeFromString<AppointmentPaymentResponseDto>(text)
+        check(dto.ok && dto.status.isNotBlank()) { "El proveedor no confirmó la creación del pago" }
         AppointmentPaymentExecution(
             status = dto.status,
             checkoutUrl = dto.checkoutUrl,
