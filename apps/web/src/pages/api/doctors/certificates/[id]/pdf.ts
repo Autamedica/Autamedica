@@ -41,6 +41,13 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
         .download(`certificates/signed/${id}.pdf`);
       if (error || !data) return notFound('signed_pdf_missing');
       pdf = new Uint8Array(await data.arrayBuffer());
+      const digest = await crypto.subtle.digest('SHA-256', pdf);
+      const actualHash = Array.from(new Uint8Array(digest))
+        .map(byte => byte.toString(16).padStart(2, '0')).join('');
+      const expectedHash = (cert as typeof cert & { signature_hash?: string | null }).signature_hash;
+      if (!expectedHash || actualHash !== expectedHash) {
+        return forbidden('signed_document_integrity_mismatch');
+      }
     } else {
       return forbidden('certificate_not_available');
     }
