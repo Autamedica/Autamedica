@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
 import { resolveBillingCurrency } from '../_shared/billing-currency.ts'
+import { getMercadoPagoMarketToken } from '../_shared/mercadopago-market-token.ts'
 
 interface TopupRequestBody {
   amount?: unknown
@@ -216,11 +217,11 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     // 4. MercadoPago Preference
-    const mpAccessToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
+    const mpAccessToken = getMercadoPagoMarketToken(billingCurrency)
     if (!mpAccessToken) {
-      console.error('[patients-wallet-topup] MERCADOPAGO_ACCESS_TOKEN is missing')
+      console.error('[patients-wallet-topup] Market-specific MercadoPago credential is missing')
       return new Response(
-        JSON.stringify({ error: 'MercadoPago access token is not configured' }),
+        JSON.stringify({ error: 'MercadoPago token for selected market is not configured' }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
