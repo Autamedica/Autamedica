@@ -61,7 +61,7 @@ BEGIN
       WHERE d.id = p_doctor_id AND d.user_id = v_user_id
     ))
     OR (v_user_id IS NOT NULL AND public.is_system_admin())
-    OR (auth.jwt()->>'role' = 'service_role')
+    OR COALESCE((auth.jwt()->>'role' = 'service_role'), false)
   ) THEN
     RAISE EXCEPTION 'availability_access_denied' USING ERRCODE = '42501';
   END IF;
