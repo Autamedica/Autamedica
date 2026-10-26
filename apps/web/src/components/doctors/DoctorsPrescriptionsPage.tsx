@@ -785,7 +785,9 @@ export function DoctorsPrescriptionsPage() {
                 {!certLoading && certificates.length > 0 && (
                   <div className="space-y-3">
                     {certificates.map((cert) => {
-                      const certUrl = cert.status === "signed" && cert.signed_pdf_url ? cert.signed_pdf_url : undefined;
+                      const certUrl = cert.status === "draft" || cert.status === "signed"
+                        ? `/api/doctors/certificates/${encodeURIComponent(cert.id)}/pdf`
+                        : undefined;
                       const typeLabel = CERT_TYPE_LABELS[cert.certificate_type] || "Atestado Médico";
                       return (
                         <div
@@ -851,10 +853,10 @@ export function DoctorsPrescriptionsPage() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 rounded-lg bg-teal-700 px-3 py-2 text-xs font-medium text-white transition hover:bg-teal-800 shadow-sm"
-                                  title="Abrir PDF registrado del certificado"
+                                  title={cert.status === "draft" ? "Descargar PDF privado sin firma" : "Descargar PDF firmado verificado"}
                                 >
                                   <Download className="h-3.5 w-3.5" />
-                                  Descargar PDF
+                                  {cert.status === "draft" ? "Descargar borrador" : "Descargar PDF"}
                                 </a>
                               )}
                               {cert.cuir && (
