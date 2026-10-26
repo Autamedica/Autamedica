@@ -169,7 +169,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const hasAccess = await doctorHasPatientAccess(admin, context.doctorId, result.data.patient_id);
     if (!hasAccess) return forbidden("forbidden_patient_access");
 
-    // Generate official CUIR and QR code content
+    // Generate an internal draft reference; this is not a national ReNaPDiS registration.
     const timestampHex = Date.now().toString(16).toUpperCase();
     const randomHex = crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
     const cuir = `AR-CERT-${timestampHex}-${randomHex}`;
@@ -182,7 +182,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         patient_id: result.data.patient_id,
         appointment_id: result.data.appointment_id ?? null,
         cuir,
-        status: "signed",
+        status: "draft",
         certificate_type: result.data.certificate_type,
         days_of_rest: result.data.days_of_rest,
         start_date: result.data.start_date,
@@ -198,7 +198,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (error) throw error;
 
-    logger.info("[api/doctors/certificates] certificate issued successfully", {
+    logger.info("[api/doctors/certificates] unsigned certificate draft saved", {
       certificateId: created.id,
       cuir: created.cuir,
       doctorId: context.doctorId,
