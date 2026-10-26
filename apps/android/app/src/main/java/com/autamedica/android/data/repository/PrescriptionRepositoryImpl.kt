@@ -205,7 +205,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
 
         val doctor = supabaseClient.postgrest
             .from("doctors")
-            .select(Columns.list("id", "license_number")) {
+            .select(Columns.list("id", "license_number", "uf_brazil", "refeps_id")) {
                 filter { eq("user_id", userId) }
             }
             .decodeSingleOrNull<DoctorRecordDto>()
@@ -591,6 +591,11 @@ class PrescriptionRepositoryImpl @Inject constructor(
         }.getOrNull()
 
         val hasLicense = !doctor.licenseNumber.isNullOrBlank()
+        val countryCode = when {
+            !doctor.ufBrazil.isNullOrBlank() && doctor.refepsId.isNullOrBlank() -> "BR"
+            !doctor.refepsId.isNullOrBlank() && doctor.ufBrazil.isNullOrBlank() -> "AR"
+            else -> null
+        }
         val isStatusValid = validationStatus.equals("valid", ignoreCase = true) ||
                 validationStatus.equals("exempt", ignoreCase = true)
 
@@ -607,6 +612,7 @@ class PrescriptionRepositoryImpl @Inject constructor(
             doctorLicense = doctor.licenseNumber,
             validationStatus = validationStatus,
             reason = reason,
+            countryCode = countryCode,
         )
     }.onFailure {
         SecureLog.error("[Prescriptions] Failed checking doctor eligibility", it)
@@ -916,6 +922,8 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val id: String,
         @SerialName("user_id") val userId: String? = null,
         @SerialName("license_number") val licenseNumber: String? = null,
+        @SerialName("uf_brazil") val ufBrazil: String? = null,
+        @SerialName("refeps_id") val refepsId: String? = null,
     )
 
     @Serializable
