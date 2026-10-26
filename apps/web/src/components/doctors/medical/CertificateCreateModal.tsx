@@ -153,7 +153,7 @@ export function CertificateCreateModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPatientId) {
-      setErrorMsg("Debe seleccionar un paciente para emitir el atestado.");
+      setErrorMsg("Debe seleccionar un paciente para guardar el borrador.");
       return;
     }
 
@@ -222,10 +222,10 @@ export function CertificateCreateModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-white tracking-tight">
-                Emitir Atestado Médico Digital
+                Preparar certificado médico (borrador)
               </h2>
               <p className="text-xs text-slate-400">
-                Ley 27.553 · Registro oficial con CUIR y verificación pública
+                Referencia interna de AutaMedica · Sin firma digital
               </p>
             </div>
           </div>
@@ -247,16 +247,16 @@ export function CertificateCreateModal({
                 <CheckCircle2 className="h-8 w-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">¡Atestado Emitido con Éxito!</h3>
+                <h3 className="text-xl font-bold text-white">Borrador guardado</h3>
                 <p className="text-sm text-slate-400 mt-1 max-w-md">
-                  El atestado médico ha sido firmado y registrado en la base de datos nacional con validez legal inmediata.
+                  Este documento aún no está firmado ni registrado como certificado oficial. No debe presentarse como justificativo válido.
                 </p>
               </div>
 
               {/* CUIR Box */}
               <div className="w-full rounded-xl border border-teal-500/30 bg-teal-950/30 p-4 text-left">
                 <div className="text-xs font-semibold uppercase tracking-wider text-teal-400">
-                  Código Único de Identificación de Recetas / Atestados (CUIR)
+                  Referencia interna del borrador
                 </div>
                 <div className="mt-1 flex items-center justify-between">
                   <span className="font-mono text-base font-bold text-white tracking-wide">
@@ -273,19 +273,9 @@ export function CertificateCreateModal({
                 </div>
               </div>
 
-              {/* Verification link info */}
-              <div className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-800/60 border border-slate-700/60 text-xs text-slate-300">
-                <span>Enlace de verificación pública institucional:</span>
-                <a
-                  href={`/verify/${successCert.cuir}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-teal-400 hover:text-teal-300 underline font-medium"
-                >
-                  Verificar Online
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
+              <p className="text-xs text-amber-300">
+                Pendiente de firma y validación. La referencia interna no es un CUIR oficial.
+              </p>
 
               <div className="flex gap-3 w-full pt-4">
                 <button
