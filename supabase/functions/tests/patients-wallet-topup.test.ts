@@ -71,7 +71,7 @@ Deno.test("patients-wallet-topup - Successful preference creation", async () => 
   Deno.env.set("SUPABASE_URL", "https://dummy.supabase.co");
   Deno.env.set("SUPABASE_ANON_KEY", "dummy_anon");
   Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "dummy_service_role");
-  Deno.env.set("MERCADOPAGO_ACCESS_TOKEN", "mp_test_token");
+  Deno.env.set("MERCADOPAGO_ACCESS_TOKEN_BR", "mp_br_test_token");
   Deno.env.set("APP_URL", "https://www.autamedica.com");
 
   let mpPayloadSent: Record<string, unknown> | null = null;
@@ -157,7 +157,7 @@ Deno.test("patients-wallet-topup - Successful ARS preference creation", async ()
   Deno.env.set("SUPABASE_URL", "https://dummy.supabase.co");
   Deno.env.set("SUPABASE_ANON_KEY", "dummy_anon");
   Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "dummy_service_role");
-  Deno.env.set("MERCADOPAGO_ACCESS_TOKEN", "mp_test_token");
+  Deno.env.set("MERCADOPAGO_ACCESS_TOKEN_AR", "mp_ar_test_token");
   Deno.env.set("APP_URL", "https://www.autamedica.com");
 
   let mpPayloadSent: Record<string, unknown> | null = null;
@@ -243,7 +243,7 @@ Deno.test("patients-wallet-topup - MercadoPago error returns 502", async () => {
   Deno.env.set("SUPABASE_URL", "https://dummy.supabase.co");
   Deno.env.set("SUPABASE_ANON_KEY", "dummy_anon");
   Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "dummy_service_role");
-  Deno.env.set("MERCADOPAGO_ACCESS_TOKEN", "mp_test_token");
+  Deno.env.set("MERCADOPAGO_ACCESS_TOKEN_BR", "mp_br_test_token");
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
