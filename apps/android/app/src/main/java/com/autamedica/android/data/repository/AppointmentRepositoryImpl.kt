@@ -722,10 +722,10 @@ class AppointmentRepositoryImpl @Inject constructor(
             }
         }
 
-        val nowInArg = ZonedDateTime.now(argZone)
-        val filtered = if (targetDate == nowInArg.toLocalDate()) {
-            val currentHour = nowInArg.hour
-            val currentMin = nowInArg.minute
+        val nowInLocal = ZonedDateTime.now(localZone)
+        val filtered = if (targetDate == nowInLocal.toLocalDate()) {
+            val currentHour = nowInLocal.hour
+            val currentMin = nowInLocal.minute
             generatedSlots.filter { slot ->
                 val parts = slot.split(":")
                 val h = parts.getOrNull(0)?.toIntOrNull() ?: 0
