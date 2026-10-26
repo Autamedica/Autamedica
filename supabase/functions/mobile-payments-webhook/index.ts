@@ -98,15 +98,16 @@ export async function handler(req: Request): Promise<Response> {
       if (walletError || !wallet || wallet.currency !== currency) {
         return json(409, { error: 'topup_wallet_currency_mismatch' })
       }
-      const { error } = await db.rpc('grant_patient_wallet_credit', {
+      const { data: creditRows, error } = await db.rpc('grant_patient_wallet_credit', {
         p_patient_id: patientId,
         p_amount_cents: amountCents,
         p_reason: `Mercado Pago confirmed top-up ${paymentId}`,
         p_idempotency_key: `wallet_topup:${paymentId}`,
       })
-      if (error) {
-        console.error('[mobile-payments-webhook] wallet credit failed:', error)
-        return json(503, { error: 'wallet_credit_failed' })
+      const credit = Array.isArray(creditRows) ? creditRows[0] : creditRows
+      if (error || !credit?.success || !credit?.ledger_id) {
+        console.error('[mobile-payments-webhook] wallet credit was not confirmed:', error)
+        return json(503, { error: 'wallet_credit_not_confirmed' })
       }
       return json(200, { received: true, credited: true })
     }
@@ -117,51 +118,25 @@ export async function handler(req: Request): Promise<Response> {
     if (!appointmentId || !doctorId || payment.external_reference !== appointmentId) {
       return json(409, { error: 'appointment_reference_mismatch' })
     }
-    const { data: record, error: recordError } = await db
-      .from('appointment_payments')
-      .select('id, appointment_id, patient_id, doctor_id, gross_amount, currency, provider, status, provider_payment_id')
-      .eq('appointment_id', appointmentId)
-      .maybeSingle()
-    if (recordError || !record) return json(409, { error: 'payment_record_not_found' })
-    if (record.patient_id !== patientId || record.doctor_id !== doctorId ||
-        record.currency !== currency || record.gross_amount !== amountCents ||
-        record.provider !== 'mercadopago') {
-      return json(409, { error: 'appointment_payment_mismatch' })
-    }
-    if (record.status === 'approved' && record.provider_payment_id !== paymentId) {
-      return json(409, { error: 'different_payment_already_approved' })
-    }
-    const { data: appointment, error: appointmentError } = await db
-      .from('appointments').select('id, patient_id, doctor_id, status')
-      .eq('id', appointmentId).maybeSingle()
-    if (appointmentError || !appointment ||
-        appointment.patient_id !== patientId || appointment.doctor_id !== doctorId) {
-      return json(409, { error: 'appointment_not_found_or_mismatch' })
-    }
-    if (!['payment_pending', 'pending_payment', 'scheduled', 'confirmed'].includes(appointment.status)) {
-      return json(409, { error: 'appointment_not_confirmable' })
-    }
-    if (record.status !== 'approved') {
-      const { data: saved, error: saveError } = await db
-        .from('appointment_payments')
-        .update({ status: 'approved', provider_payment_id: paymentId,
-          paid_at: payment.date_approved ?? new Date().toISOString(),
-          updated_at: new Date().toISOString() })
-        .eq('id', record.id).in('status', ['pending', 'approved'])
-        .select('id')
-      if (saveError || !saved || saved.length !== 1) {
-        return json(503, { error: 'payment_confirmation_failed' })
-      }
-    }
-    if (appointment.status !== 'confirmed') {
-      const { data: confirmed, error: confirmError } = await db
-        .from('appointments')
-        .update({ status: 'confirmed', updated_at: new Date().toISOString() })
-        .eq('id', appointmentId).in('status', ['payment_pending', 'pending_payment', 'scheduled'])
-        .select('id')
-      if (confirmError || !confirmed || confirmed.length !== 1) {
-        return json(503, { error: 'appointment_confirmation_failed' })
-      }
+    // One service-role RPC locks the appointment and payment, checks their
+    // ownership, fee, currency and processor ID, and commits both statuses.
+    // A failed confirmation leaves both records unchanged.
+    const { data: confirmationRows, error: confirmationError } = await db
+      .rpc('confirm_mobile_appointment_payment', {
+        p_appointment_id: appointmentId,
+        p_patient_id: patientId,
+        p_doctor_id: doctorId,
+        p_amount_cents: amountCents,
+        p_currency: currency,
+        p_provider_payment_id: paymentId,
+        p_paid_at: payment.date_approved ?? null,
+      })
+    const confirmed = Array.isArray(confirmationRows)
+      ? confirmationRows[0]
+      : confirmationRows
+    if (confirmationError || !confirmed?.appointment_payment_id) {
+      console.error('[mobile-payments-webhook] atomic appointment confirmation failed:', confirmationError)
+      return json(503, { error: 'appointment_confirmation_failed' })
     }
     return json(200, { received: true, confirmed: true })
   } catch (error) {

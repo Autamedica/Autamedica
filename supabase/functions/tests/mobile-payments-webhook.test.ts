@@ -87,12 +87,10 @@ Deno.test('ARS appointment payment confirms matched amount and currency only', a
   Deno.env.set('MERCADOPAGO_ACCESS_TOKEN_AR', 'ar-merchant-token')
   Deno.env.set('SUPABASE_URL', 'https://dummy.supabase.co')
   Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'dummy-service')
-  let savedPayment = false
-  let confirmedAppointment = false
+  let atomicConfirmation = false
   const previousFetch = globalThis.fetch
   globalThis.fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-    const method = init?.method ?? 'GET'
     if (url.includes('api.mercadopago.com/v1/payments/99113')) {
       assertEquals(new Headers(init?.headers).get('Authorization'), 'Bearer ar-merchant-token')
       return Response.json({
@@ -101,30 +99,26 @@ Deno.test('ARS appointment payment confirms matched amount and currency only', a
         metadata: { appointment_id: 'apt-1', patient_id: 'patient-ar-1', doctor_id: 'dr-ar-1' },
       })
     }
-    if (url.includes('/rest/v1/appointment_payments')) {
-      if (method === 'PATCH') {
-        savedPayment = true
-        return Response.json([{ id: 'payment-row' }])
-      }
-      return Response.json({
-        id: 'payment-row', appointment_id: 'apt-1', patient_id: 'patient-ar-1', doctor_id: 'dr-ar-1',
-        gross_amount: 11900, currency: 'ARS', provider: 'mercadopago', status: 'pending', provider_payment_id: null,
-      })
+    if (url.includes('/rest/v1/rpc/confirm_mobile_appointment_payment')) {
+      const payload = JSON.parse(String(init?.body))
+      assertEquals(payload.p_appointment_id, 'apt-1')
+      assertEquals(payload.p_patient_id, 'patient-ar-1')
+      assertEquals(payload.p_doctor_id, 'dr-ar-1')
+      assertEquals(payload.p_amount_cents, 11900)
+      assertEquals(payload.p_currency, 'ARS')
+      assertEquals(payload.p_provider_payment_id, '99113')
+      atomicConfirmation = true
+      return Response.json([{ appointment_payment_id: 'payment-row', already_approved: false }])
     }
-    if (url.includes('/rest/v1/appointments')) {
-      if (method === 'PATCH') {
-        confirmedAppointment = true
-        return Response.json([{ id: 'apt-1' }])
-      }
-      return Response.json({ id: 'apt-1', patient_id: 'patient-ar-1', doctor_id: 'dr-ar-1', status: 'payment_pending' })
+    if (url.includes('/rest/v1/appointment_payments') || url.includes('/rest/v1/appointments')) {
+      throw Error('Mobile payment must only confirm via atomic RPC')
     }
     return previousFetch(input, init)
   }
   try {
     const response = await handler(await signedRequest('AR', '99113'))
     assertEquals(response.status, 200)
-    assertEquals(savedPayment, true)
-    assertEquals(confirmedAppointment, true)
+    assertEquals(atomicConfirmation, true)
   } finally { globalThis.fetch = previousFetch }
 })
 
@@ -145,4 +139,35 @@ Deno.test('provider currency mismatch cannot confirm payment', async () => {
     const response = await handler(await signedRequest('BR', '99114'))
     assertEquals(response.status, 409)
   } finally { globalThis.fetch = oldFetch }
+})
+
+
+Deno.test('mobile webhook never acknowledges a failed wallet credit RPC', async () => {
+  Deno.env.set('MERCADOPAGO_WEBHOOK_SECRET_BR', 'webhook-test-secret')
+  Deno.env.set('MERCADOPAGO_ACCESS_TOKEN_BR', 'br-merchant-token')
+  Deno.env.set('SUPABASE_URL', 'https://dummy.supabase.co')
+  Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'dummy-service')
+  const previousFetch = globalThis.fetch
+  let creditRpcCalled = false
+  globalThis.fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    if (url.includes('api.mercadopago.com/v1/payments/99881')) {
+      return Response.json({
+        id: 99881, status: 'approved', currency_id: 'BRL', transaction_amount: 79,
+        metadata: { type: 'wallet_topup', patient_id: 'patient-br-2', amount_cents: 7900, currency: 'BRL' },
+      })
+    }
+    if (url.includes('/rest/v1/patient_wallets')) return Response.json({ currency: 'BRL' })
+    if (url.includes('/rest/v1/rpc/grant_patient_wallet_credit')) {
+      creditRpcCalled = true
+      return Response.json([{ success: false, ledger_id: null }])
+    }
+    return previousFetch(input, init)
+  }
+  try {
+    const response = await handler(await signedRequest('BR', '99881'))
+    assertEquals(response.status, 503)
+    assertEquals((await response.json()).error, 'wallet_credit_not_confirmed')
+    assertEquals(creditRpcCalled, true)
+  } finally { globalThis.fetch = previousFetch }
 })
