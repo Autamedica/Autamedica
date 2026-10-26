@@ -101,7 +101,12 @@ BEGIN
   SELECT d.id INTO v_doctor_id
   FROM public.doctors d
   JOIN public.doctor_duty_status dds ON dds.doctor_id = d.id
-  WHERE dds.is_on_duty = true
+  WHERE d.active IS TRUE
+    -- At minimum, a provisional or blank license cannot take a clinical dispatch.
+    -- Official license validation remains a separate mandatory human approval.
+    AND NULLIF(btrim(d.license_number), '') IS NOT NULL
+    AND upper(btrim(d.license_number)) !~ '^PENDING(-|$)'
+    AND dds.is_on_duty = true
     AND dds.last_heartbeat_at > NOW() - INTERVAL '90 seconds'
     AND dds.current_active_request_id IS NULL   -- no está en otra consulta
     AND NOT EXISTS (
@@ -195,7 +200,10 @@ BEGIN
         FROM public.doctor_duty_status dds
         JOIN public.doctors d ON d.id = dds.doctor_id
         JOIN public.profiles p ON p.user_id = d.user_id
-        WHERE dds.is_on_duty = true
+        WHERE d.active IS TRUE
+          AND NULLIF(btrim(d.license_number), '') IS NOT NULL
+          AND upper(btrim(d.license_number)) !~ '^PENDING(-|$)'
+          AND dds.is_on_duty = true
           AND p.fcm_token IS NOT NULL
           AND TRIM(p.fcm_token) <> ''
     LOOP
