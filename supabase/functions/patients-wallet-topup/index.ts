@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
+import { resolveBillingCurrency } from '../_shared/billing-currency.ts'
 
 interface TopupRequestBody {
   amount?: unknown
@@ -7,6 +8,8 @@ interface TopupRequestBody {
 
 interface PatientRow {
   id: string
+  cpf?: string | null
+  dni?: string | null
 }
 
 interface ProfileRow {
@@ -119,7 +122,7 @@ export async function handler(req: Request): Promise<Response> {
     // Fetch patient row
     let { data: patient, error: patientError } = await supabaseAdmin
       .from('patients')
-      .select('id')
+      .select('id, cpf, dni')
       .eq('user_id', user.id)
       .maybeSingle<PatientRow>()
 
@@ -129,7 +132,7 @@ export async function handler(req: Request): Promise<Response> {
       const { data: insertedPatient, error: insertError } = await supabaseAdmin
         .from('patients')
         .upsert({ user_id: user.id, active: true }, { onConflict: 'user_id' })
-        .select('id')
+        .select('id, cpf, dni')
         .maybeSingle<PatientRow>()
 
       if (insertError) {
@@ -174,6 +177,44 @@ export async function handler(req: Request): Promise<Response> {
       )
     }
 
+    // Currency must be backed by patient jurisdiction and/or existing wallet.
+    // A default ARS wallet must not silently turn a Brazilian payment into ARS.
+    const { data: existingWallet, error: walletLookupError } = await supabaseAdmin
+      .from('patient_wallets')
+      .select('currency')
+      .eq('patient_id', patientId)
+      .maybeSingle()
+    if (walletLookupError) {
+      return new Response(JSON.stringify({ error: 'wallet_currency_lookup_failed' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const billing = resolveBillingCurrency({
+      patientCpf: patient.cpf,
+      patientDni: patient.dni,
+      walletCurrency: existingWallet?.currency,
+    })
+    if (!billing.ok) {
+      return new Response(JSON.stringify({ error: billing.error }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const billingCurrency = billing.currency
+
+    // New verified patient wallet: preserve denomination at creation. Never
+    // overwrite an existing wallet's currency or convert an existing balance.
+    if (!existingWallet) {
+      const { error: createWalletError } = await supabaseAdmin
+        .from('patient_wallets')
+        .insert({ patient_id: patientId, currency: billingCurrency })
+      if (createWalletError) {
+        return new Response(JSON.stringify({ error: 'wallet_currency_creation_failed' }), {
+          status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
     // 4. MercadoPago Preference
     const mpAccessToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
     if (!mpAccessToken) {
@@ -196,7 +237,7 @@ export async function handler(req: Request): Promise<Response> {
           description: 'Carga de credito virtual en billetera para consultas medicas en AutaMedica',
           quantity: 1,
           unit_price: amount,
-          currency_id: 'BRL',
+          currency_id: billingCurrency,
         },
       ],
       payer: { email: payerEmail },
@@ -212,6 +253,7 @@ export async function handler(req: Request): Promise<Response> {
         type: 'wallet_topup',
         patient_id: patientId,
         amount_cents: amountCents,
+        currency: billingCurrency,
       },
     }
 
@@ -243,7 +285,7 @@ export async function handler(req: Request): Promise<Response> {
         checkoutUrl: mpData.init_point,
         preferenceId: mpData.id,
         amountCents: amountCents,
-        currency: 'BRL',
+        currency: billingCurrency,
       }),
       {
         status: 200,
