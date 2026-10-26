@@ -91,7 +91,7 @@ Deno.test("create-appointment-payment - Wallet payment when balance is sufficien
     }
     if (url.includes("/rest/v1/patients")) {
       return new Response(
-        JSON.stringify({ id: "patient-1", user_id: "user-patient-1" }),
+        JSON.stringify({ id: "patient-1", user_id: "user-patient-1", cpf: "12345678901", dni: null }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -103,6 +103,7 @@ Deno.test("create-appointment-payment - Wallet payment when balance is sufficien
           doctor_id: "doctor-1",
           status: "pending_payment",
           doctor: {
+            uf_brazil: "RS",
             id: "doctor-1",
             consultation_fee: 150000,
             payout_cbu: "1234567890123456789012",
@@ -116,6 +117,11 @@ Deno.test("create-appointment-payment - Wallet payment when balance is sufficien
       return new Response("null", {
         status: 200,
         headers: { "Content-Type": "application/json" },
+      });
+    }
+    if (url.includes("/rest/v1/patient_wallets")) {
+      return new Response(JSON.stringify({ currency: "BRL" }), {
+        status: 200, headers: { "Content-Type": "application/json" },
       });
     }
     if (url.includes("/rpc/patient_wallet_get_balance")) {
@@ -196,7 +202,7 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
     }
     if (url.includes("/rest/v1/patients")) {
       return new Response(
-        JSON.stringify({ id: "patient-2", user_id: "user-patient-2" }),
+        JSON.stringify({ id: "patient-2", user_id: "user-patient-2", dni: "30123456", cpf: null }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -208,6 +214,7 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
           doctor_id: "doctor-2",
           status: "pending_payment",
           doctor: {
+            refeps_id: "REFEPS-AR",
             id: "doctor-2",
             consultation_fee: 120000,
             payout_cbu: "1234567890123456789012",
@@ -223,6 +230,11 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
         headers: { "Content-Type": "application/json" },
       });
     }
+    if (url.includes("/rest/v1/patient_wallets")) {
+      return new Response(JSON.stringify({ currency: "ARS" }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
+    }
     if (url.includes("/rpc/patient_wallet_get_balance")) {
       return new Response(
         JSON.stringify([
@@ -231,7 +243,7 @@ Deno.test("create-appointment-payment - MercadoPago preference when wallet balan
             available_credit_cents: 0,
             locked_credit_cents: 0,
             total_credit_cents: 0,
-            currency: "BRL",
+            currency: "ARS",
           },
         ]),
         { status: 200, headers: { "Content-Type": "application/json" } }
