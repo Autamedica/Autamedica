@@ -132,7 +132,7 @@ Deno.test("patients-wallet-topup - Successful preference creation", async () => 
     assertEquals(data.preferenceId, "pref-topup-456");
     assertEquals(data.checkoutUrl, "https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-topup-456");
     assertEquals(data.amountCents, 250050);
-    assertEquals(data.currency, "ARS");
+    assertEquals(data.currency, "BRL");
 
     // Check payload sent to MP
     const sent = mpPayloadSent as Record<string, unknown> | null;
@@ -141,6 +141,8 @@ Deno.test("patients-wallet-topup - Successful preference creation", async () => 
     assertEquals(metadata?.type, "wallet_topup");
     assertEquals(metadata?.patient_id, "patient-123");
     assertEquals(metadata?.amount_cents, 250050);
+    const items = sent?.items as Array<{ currency_id?: string }>;
+    assertEquals(items?.[0]?.currency_id, "BRL");
   } finally {
     globalThis.fetch = originalFetch;
   }
