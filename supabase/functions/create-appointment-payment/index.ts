@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
 import { resolveBillingCurrency } from '../_shared/billing-currency.ts'
+import { getMercadoPagoMarketToken } from '../_shared/mercadopago-market-token.ts'
 
 interface CreatePaymentBody {
   appointmentId?: string
@@ -408,11 +409,11 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     // 9. Wallet insufficient: create preference in MercadoPago
-    const mpAccessToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
+    const mpAccessToken = getMercadoPagoMarketToken(billingCurrency)
     if (!mpAccessToken) {
-      console.error('[create-appointment-payment] MERCADOPAGO_ACCESS_TOKEN is missing')
+      console.error('[create-appointment-payment] Market-specific MercadoPago credential is missing')
       return new Response(
-        JSON.stringify({ error: 'MercadoPago access token is not configured' }),
+        JSON.stringify({ error: 'MercadoPago token for selected market is not configured' }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
