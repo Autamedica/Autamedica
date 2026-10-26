@@ -101,7 +101,7 @@ data class PlanFeature(
 data class ReservePlan(
     val name: String,
     val tierKey: String,
-    val priceMonthlyArs: Int,
+    val priceMonthlyCents: Int,
     val monthlyCredits: Int,
     val maxCapCredits: Int,
     val badgeText: String? = null,
@@ -116,7 +116,7 @@ data class BenefitCategoryItem(
     val categoryKey: String,
     val title: String,
     val creditsCost: Int,
-    val referenceMarketPriceArs: Int,
+    val referenceMarketPriceCents: Int,
     val description: String,
     val examples: String,
     val icon: ImageVector,
@@ -129,7 +129,7 @@ val defaultReservePlans: List<ReservePlan> = listOf(
     ReservePlan(
         name = "Free",
         tierKey = "free",
-        priceMonthlyArs = 0,
+        priceMonthlyCents = 0,
         monthlyCredits = 0,
         maxCapCredits = 0,
         badgeText = null,
@@ -148,7 +148,7 @@ val defaultReservePlans: List<ReservePlan> = listOf(
     ReservePlan(
         name = "Cuidado",
         tierKey = "cuidado",
-        priceMonthlyArs = 4_990,
+        priceMonthlyCents = 4_990,
         monthlyCredits = 22,
         maxCapCredits = 600,
         badgeText = "Más Elegido",
@@ -168,7 +168,7 @@ val defaultReservePlans: List<ReservePlan> = listOf(
     ReservePlan(
         name = "Familiar",
         tierKey = "familiar",
-        priceMonthlyArs = 12_990,
+        priceMonthlyCents = 12_990,
         monthlyCredits = 66,
         maxCapCredits = 1_800,
         badgeText = "Cobertura Compartida",
@@ -191,7 +191,7 @@ val defaultBenefitCategories: List<BenefitCategoryItem> = listOf(
         categoryKey = "specialists",
         title = "Consultas con Especialistas",
         creditsCost = 100,
-        referenceMarketPriceArs = 15_000,
+        referenceMarketPriceCents = 15_000,
         description = "Cardiología, dermatología, traumatología, ginecología y más de 20 especialidades en red.",
         examples = "Videoconsultas de 30 minutos o turnos presenciales sin copagos.",
         icon = Icons.Outlined.MedicalServices,
@@ -201,7 +201,7 @@ val defaultBenefitCategories: List<BenefitCategoryItem> = listOf(
         categoryKey = "labs",
         title = "Estudios y Laboratorios",
         creditsCost = 60,
-        referenceMarketPriceArs = 9_000,
+        referenceMarketPriceCents = 9_000,
         description = "Paneles completos de rutina preventiva y análisis clínicos en laboratorios conveniados.",
         examples = "Hemograma completo, perfil lipídico, glucemia y orina completa.",
         icon = Icons.Outlined.Biotech,
@@ -211,7 +211,7 @@ val defaultBenefitCategories: List<BenefitCategoryItem> = listOf(
         categoryKey = "pharmacy",
         title = "Farmacia y Medicamentos",
         creditsCost = 55,
-        referenceMarketPriceArs = 8_000,
+        referenceMarketPriceCents = 8_000,
         description = "Vouchers directos para medicamentos recetados de uso continuo y tratamientos crónicos.",
         examples = "Antihipertensivos, hipoglucemiantes y fármacos ambulatorios esenciales.",
         icon = Icons.Outlined.Medication,
@@ -221,7 +221,7 @@ val defaultBenefitCategories: List<BenefitCategoryItem> = listOf(
 
 // ── Pure Helper Functions ─────────────────────────────────────────────────────
 
-fun calculateEstimatedArs(credits: Int): Int = credits * 150
+fun calculateEstimatedBrlCents(credits: Int): Int = credits * 150
 
 fun calculateProgressFraction(credits: Int, maxCap: Int): Float {
     if (maxCap <= 0) return 0f
@@ -231,11 +231,9 @@ fun calculateProgressFraction(credits: Int, maxCap: Int): Float {
 fun formatCredits(credits: Int): String =
     NumberFormat.getNumberInstance(Locale("es", "AR")).format(credits)
 
-fun formatArs(amount: Int): String {
-    val format = NumberFormat.getCurrencyInstance(Locale("es", "AR"))
-    format.maximumFractionDigits = 0
-    return format.format(amount)
-}
+fun formatBrlFromCents(amountCents: Int): String =
+    NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
+        .format(amountCents / 100.0)
 
 /** Plan prices are stored in BRL cents, not in Argentine pesos. */
 fun formatPlanPriceBrl(priceCents: Int): String =
@@ -379,7 +377,7 @@ fun HealthReserveDetailScreen(
                 }
             }
 
-            // ── 1. Hero Card: Créditos Acumulados & Estimación ARS ────────
+            // ── 1. Hero Card: Créditos Acumulados & Estimación BRL ────────
             item {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
@@ -438,7 +436,7 @@ fun HealthReserveDetailScreen(
                             }
                         }
 
-                        // Contador de créditos y equivalente ARS
+                        // Contador de créditos y equivalente BRL
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -462,9 +460,9 @@ fun HealthReserveDetailScreen(
                                 }
 
                                 Column(horizontalAlignment = Alignment.End) {
-                                    val estimatedArs = calculateEstimatedArs(currentCredits)
+                                    val estimatedBrlCents = calculateEstimatedBrlCents(currentCredits)
                                     Text(
-                                        text = formatArs(estimatedArs),
+                                        text = formatBrlFromCents(estimatedBrlCents),
                                         fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF38BDF8),
@@ -623,7 +621,7 @@ fun HealthReserveDetailScreen(
                         }
 
                         val projectedCredits = simulatedMonths * 22
-                        val projectedArs = calculateEstimatedArs(projectedCredits)
+                        val projectedBrlCents = calculateEstimatedBrlCents(projectedCredits)
 
                         Surface(
                             shape = RoundedCornerShape(14.dp),
@@ -644,7 +642,7 @@ fun HealthReserveDetailScreen(
                                         color = Color.White,
                                     )
                                     Text(
-                                        text = "Equivalente estimado: ${formatArs(projectedArs)}",
+                                        text = "Equivalente estimado: ${formatBrlFromCents(projectedBrlCents)}",
                                         fontSize = 12.sp,
                                         color = Color(0xFF38BDF8),
                                     )
@@ -792,7 +790,7 @@ fun HealthReserveDetailScreen(
                             color = Color.White,
                         )
                         Text(
-                            text = if (planToActivate.priceMonthlyArs > 0) "${formatPlanPriceBrl(planToActivate.priceMonthlyArs)} / mes" else "Gratis para siempre",
+                            text = if (planToActivate.priceMonthlyCents > 0) "${formatPlanPriceBrl(planToActivate.priceMonthlyCents)} / mes" else "Gratis para siempre",
                             fontSize = 14.sp,
                             color = Color(0xFF38BDF8),
                             fontWeight = FontWeight.SemiBold,
@@ -847,7 +845,7 @@ fun HealthReserveDetailScreen(
                 }
 
                 // Selector de método de pago
-                if (planToActivate.priceMonthlyArs > 0) {
+                if (planToActivate.priceMonthlyCents > 0) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             text = "Método de pago:",
@@ -989,7 +987,7 @@ private fun BenefitCategoryCard(
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Valor particular ref.: ${formatArs(category.referenceMarketPriceArs)}",
+                            text = "Valor particular ref.: ${formatBrlFromCents(category.referenceMarketPriceCents)}",
                             fontSize = 11.sp,
                             color = AuTextTertiary,
                         )
@@ -1138,10 +1136,10 @@ private fun DetailedPlanCard(
                         }
                     }
                     Text(
-                        text = if (plan.priceMonthlyArs > 0) "${formatPlanPriceBrl(plan.priceMonthlyArs)} / mes" else "Gratis",
+                        text = if (plan.priceMonthlyCents > 0) "${formatPlanPriceBrl(plan.priceMonthlyCents)} / mes" else "Gratis",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (plan.priceMonthlyArs > 0) plan.color else AuTextSecondary,
+                        color = if (plan.priceMonthlyCents > 0) plan.color else AuTextSecondary,
                     )
                 }
 
@@ -1199,7 +1197,7 @@ private fun DetailedPlanCard(
                     colors = ButtonDefaults.buttonColors(containerColor = plan.color),
                 ) {
                     Text(
-                        text = if (plan.priceMonthlyArs > 0) "Activar Plan ${plan.name}" else "Elegir Plan Gratuito",
+                        text = if (plan.priceMonthlyCents > 0) "Activar Plan ${plan.name}" else "Elegir Plan Gratuito",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                     )
