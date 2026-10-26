@@ -173,7 +173,10 @@ class AppointmentRepositoryImpl @Inject constructor(
             .from("appointments")
             .update(mapOf("notes" to notes)) {
                 filter { eq("id", id) }
+                select(Columns.list("id"))
             }
+            .decodeList<AppointmentRecordIdDto>()
+            .also { require(it.size == 1) { "La cita no fue actualizada" } }
         Unit
     }.onFailure {
         SecureLog.error("[Appointments] Failed updating appointment notes", it)
@@ -193,7 +196,10 @@ class AppointmentRepositoryImpl @Inject constructor(
             .from("appointments")
             .update(mapOf("status" to wireStatus)) {
                 filter { eq("id", id) }
+                select(Columns.list("id"))
             }
+            .decodeList<AppointmentRecordIdDto>()
+            .also { require(it.size == 1) { "El estado de la cita no fue actualizado" } }
         Unit
     }.onFailure {
         SecureLog.error("[Appointments] Failed updating appointment status", it)
@@ -214,7 +220,10 @@ class AppointmentRepositoryImpl @Inject constructor(
             .from("appointments")
             .update(mapOf("status" to "cancelled")) {
                 filter { eq("id", id) }
+                select(Columns.list("id"))
             }
+            .decodeList<AppointmentRecordIdDto>()
+            .also { require(it.size == 1) { "La cancelación no fue confirmada" } }
         appointmentDao.clearAppointmentsForUser(userId)
         Unit
     }.onFailure {
@@ -241,6 +250,10 @@ class AppointmentRepositoryImpl @Inject constructor(
         }
         val doctorId = appointment.doctorId ?: throw IllegalStateException("Cannot reschedule: no doctor assigned")
 
+        val newEnd = runCatching { OffsetDateTime.parse(newEndTime) }.getOrNull()
+            ?: throw IllegalArgumentException("end_time is invalid")
+        require(newEnd.isAfter(newStart)) { "La fecha de fin debe ser posterior al inicio" }
+
         val busy = runCatching {
             val params = buildJsonObject {
                 put("p_doctor_id", doctorId)
@@ -250,14 +263,12 @@ class AppointmentRepositoryImpl @Inject constructor(
             supabaseClient.postgrest
                 .rpc("get_doctor_busy_slots", params)
                 .decodeList<DoctorBusySlotDto>()
-        }.getOrDefault(emptyList())
+        }.getOrThrow() // Fail closed if the real availability service is unavailable.
 
         val hasConflict = busy.any { busySlot ->
             val busyStart = runCatching { OffsetDateTime.parse(busySlot.startTime) }.getOrNull()
                 ?: return@any false
             val busyEnd = runCatching { OffsetDateTime.parse(busySlot.endTime) }.getOrNull()
-                ?: return@any false
-            val newEnd = runCatching { OffsetDateTime.parse(newEndTime) }.getOrNull()
                 ?: return@any false
             newStart.isBefore(busyEnd) && newEnd.isAfter(busyStart)
         }
@@ -274,7 +285,10 @@ class AppointmentRepositoryImpl @Inject constructor(
                 ),
             ) {
                 filter { eq("id", id) }
+                select(Columns.list("id"))
             }
+            .decodeList<AppointmentRecordIdDto>()
+            .also { require(it.size == 1) { "La reprogramación no fue confirmada" } }
         appointmentDao.clearAppointmentsForUser(userId)
         Unit
     }.onFailure {
@@ -867,6 +881,7 @@ class AppointmentRepositoryImpl @Inject constructor(
         val text = response.bodyAsText()
         val json = Json { ignoreUnknownKeys = true }
         val dto = json.decodeFromString<AppointmentPaymentResponseDto>(text)
+        check(dto.ok && dto.status.isNotBlank()) { "El proveedor no confirmó la creación del pago" }
         AppointmentPaymentExecution(
             status = dto.status,
             checkoutUrl = dto.checkoutUrl,
