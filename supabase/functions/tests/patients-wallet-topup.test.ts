@@ -103,7 +103,7 @@ Deno.test("patients-wallet-topup - Successful preference creation", async () => 
     }
     if (url.includes("/rest/v1/profiles")) {
       return new Response(
-        JSON.stringify({ email: "profile@example.com" }),
+        JSON.stringify({ email: "profile@example.com", role: "patient" }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -190,7 +190,7 @@ Deno.test("patients-wallet-topup - Successful ARS preference creation", async ()
     }
     if (url.includes("/rest/v1/profiles")) {
       return new Response(
-        JSON.stringify({ email: "profile@example.com" }),
+        JSON.stringify({ email: "profile@example.com", role: "patient" }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -269,7 +269,7 @@ Deno.test("patients-wallet-topup - MercadoPago error returns 502", async () => {
     }
     if (url.includes("/rest/v1/profiles")) {
       return new Response(
-        JSON.stringify({ email: "user@example.com" }),
+        JSON.stringify({ email: "user@example.com", role: "patient" }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -297,6 +297,50 @@ Deno.test("patients-wallet-topup - MercadoPago error returns 502", async () => {
     assertEquals(res.status, 502);
     const data = await res.json();
     assertEquals(data.error, "Failed to create MercadoPago preference");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+
+Deno.test("patients-wallet-topup - forged user_metadata role cannot create wallet", async () => {
+  Deno.env.set("SUPABASE_URL", "https://dummy.supabase.co");
+  Deno.env.set("SUPABASE_ANON_KEY", "dummy_anon");
+  Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "dummy_service_role");
+
+  let accessedPatientRecords = false;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input: RequestInfo | URL) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    if (url.includes("/auth/v1/user")) {
+      return new Response(JSON.stringify({
+        id: "unapproved-user",
+        email: "attacker@example.com",
+        user_metadata: { role: "patient" },
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (url.includes("/rest/v1/profiles")) {
+      return new Response(JSON.stringify({
+        email: "attacker@example.com", role: "doctor",
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (url.includes("/rest/v1/patients")) {
+      accessedPatientRecords = true;
+      return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    throw new Error("Unexpected request during unauthorized wallet operation: " + url);
+  };
+
+  try {
+    const response = await handler(new Request("http://localhost/patients-wallet-topup", {
+      method: "POST",
+      headers: { Authorization: "Bearer valid-token", "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: 100 }),
+    }));
+    assertEquals(response.status, 403);
+    const body = await response.json();
+    assertEquals(body.error, "Forbidden: patient role required");
+    assertEquals(accessedPatientRecords, false);
   } finally {
     globalThis.fetch = originalFetch;
   }

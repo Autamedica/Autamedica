@@ -15,6 +15,7 @@ interface PatientRow {
 
 interface ProfileRow {
   email: string | null
+  role: string | null
 }
 
 interface MercadoPagoPreferenceResponse {
@@ -120,6 +121,21 @@ export async function handler(req: Request): Promise<Response> {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    // The database profile is the authorization source. Never use user_metadata
+    // or a client-selected role to authorize patient wallet enrollment.
+    const { data: roleProfile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('email, role')
+      .eq('user_id', user.id)
+      .maybeSingle<ProfileRow>()
+
+    if (profileError || roleProfile?.role !== 'patient') {
+      return new Response(JSON.stringify({ error: 'Forbidden: patient role required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Fetch patient row
     let { data: patient, error: patientError } = await supabaseAdmin
       .from('patients')
@@ -127,9 +143,8 @@ export async function handler(req: Request): Promise<Response> {
       .eq('user_id', user.id)
       .maybeSingle<PatientRow>()
 
-    // If not found and role is patient, auto-create
-    const userRole = (user.app_metadata?.role as string | undefined) ?? (user.user_metadata?.role as string | undefined)
-    if (!patient && !patientError && (userRole === 'patient' || !userRole)) {
+    // Database role was verified before patient record creation.
+    if (!patient && !patientError) {
       const { data: insertedPatient, error: insertError } = await supabaseAdmin
         .from('patients')
         .upsert({ user_id: user.id, active: true }, { onConflict: 'user_id' })
@@ -156,18 +171,7 @@ export async function handler(req: Request): Promise<Response> {
 
     const patientId = patient.id
 
-    // Fetch profile email
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('email')
-      .eq('user_id', user.id)
-      .maybeSingle<ProfileRow>()
-
-    if (profileError) {
-      console.warn('[patients-wallet-topup] Error fetching profile:', profileError)
-    }
-
-    const payerEmail = profile?.email || user.email
+    const payerEmail = roleProfile.email || user.email
     if (!payerEmail) {
       return new Response(
         JSON.stringify({ error: 'patient_email_not_found' }),
