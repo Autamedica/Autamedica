@@ -5,6 +5,7 @@ DECLARE
   m text;
   t text;
   p text;
+  claim text;
 BEGIN
   IF pg_catalog.has_schema_privilege('anon', 'app_private', 'USAGE')
      OR pg_catalog.has_schema_privilege('authenticated', 'app_private', 'USAGE')
@@ -33,6 +34,16 @@ BEGIN
      OR position('v_project_url' IN p) = 0
   THEN
     RAISE EXCEPTION 'Push transport must use per-environment Vault URL and secret';
+  END IF;
+
+  SELECT pg_get_functiondef('public.claim_dispatch_offer(uuid)'::regprocedure)
+    INTO claim;
+  IF position('doctor_not_clinically_eligible' IN claim) = 0
+     OR position('d.active IS TRUE' IN claim) = 0
+     OR position('PENDING' IN claim) = 0
+     OR position('COALESCE(auth.jwt()' IN claim) = 0
+  THEN
+    RAISE EXCEPTION 'Existing offers can be claimed without doctor eligibility and ownership checks';
   END IF;
 
   SELECT pg_get_functiondef('public.match_dispatch_doctors(uuid)'::regprocedure) INTO m;
