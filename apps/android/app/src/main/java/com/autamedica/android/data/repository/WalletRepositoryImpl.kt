@@ -1,6 +1,7 @@
 package com.autamedica.android.data.repository
 
 import com.autamedica.android.domain.repository.WalletRepository
+import com.autamedica.android.domain.repository.WalletBalanceDetails
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
@@ -20,26 +21,33 @@ class WalletRepositoryImpl @Inject constructor(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun getWalletBalance(): Result<Long> = runCatching {
+    override suspend fun getWalletBalance(): Result<Long> =
+        getWalletBalanceDetails().map { it.availableCreditCents }
+
+    override suspend fun getWalletBalanceDetails(): Result<WalletBalanceDetails> = runCatching {
         val response = supabaseClient.functions.invoke("patients-wallet-balance")
-        val text = response.bodyAsText()
-        val dto = json.decodeFromString<WalletBalanceResponseDto>(text)
-        dto.availableCreditCents
-            ?: dto.balance?.availableCreditCents
-            ?: 0L
+        val dto = json.decodeFromString<WalletBalanceResponseDto>(response.bodyAsText())
+        val currency = dto.currency?.uppercase()?.takeIf { it == "BRL" || it == "ARS" }
+        WalletBalanceDetails(
+            availableCreditCents = dto.availableCreditCents ?: dto.balance?.availableCreditCents ?: 0L,
+            currency = currency,
+        )
     }.onFailure { e ->
-        SecureLog.warn("[WalletRepository] getWalletBalance failed: ${e.message}")
+        SecureLog.warn("[WalletRepository] Could not verify wallet denomination: ${e.message}")
     }
 
     override suspend fun createTopupPreference(amountArs: Double): Result<String> = runCatching {
+        require(amountArs.isFinite() && amountArs > 0) { "Importe inválido" }
+        val verifiedCurrency = getWalletBalanceDetails().getOrThrow().currency
+            ?: error("No se pudo verificar la moneda de la billetera")
         val payload = buildJsonObject {
             put("amount", amountArs)
         }
         val response = supabaseClient.functions("patients-wallet-topup", payload)
         val text = response.bodyAsText()
         val dto = json.decodeFromString<TopupResponseDto>(text)
-        require(dto.currency == "BRL") {
-            "El proveedor no confirmó el cobro en reales (BRL). No se abrirá el pago."
+        require(dto.currency == verifiedCurrency) {
+            "La moneda del pago no coincide con la billetera ($verifiedCurrency)."
         }
         dto.checkoutUrl
             ?: dto.checkoutUrlSnake
@@ -52,6 +60,7 @@ class WalletRepositoryImpl @Inject constructor(
 
 @Serializable
 private data class WalletBalanceResponseDto(
+    val currency: String? = null,
     @SerialName("available_credit_cents") val availableCreditCents: Long? = null,
     val balance: WalletBalanceInnerDto? = null,
 )
