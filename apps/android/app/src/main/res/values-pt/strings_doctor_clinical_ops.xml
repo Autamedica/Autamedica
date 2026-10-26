@@ -80,13 +80,13 @@
     <string name="cert_diagnosis_reserved">🔒 Diagnóstico reservado (Segredo médico)</string>
 
     <!-- 5. Emisión de Certificado (CreateCertificateScreen) -->
-    <string name="cert_create_title">Emitir Atestado Médico</string>
-    <string name="cert_create_legal_basis">Resolução CFM nº 2.299/2021 · Telemedicina</string>
+    <string name="cert_create_title">Preparar atestado (rascunho)</string>
+    <string name="cert_create_legal_basis">Referência interna AutaMedica · Assinatura pendente</string>
     <string name="cert_create_submitting">A assinar e selar digitalmente...</string>
-    <string name="cert_create_submit_button">Assinar e Emitir Certificado Oficial</string>
+    <string name="cert_create_submit_button">Guardar rascunho sem assinatura</string>
     <string name="cert_reg_active_title">Habilitação Profissional Ativa</string>
     <string name="cert_reg_pending_title">Verificação Pendente</string>
-    <string name="cert_reg_license_active">Matrícula: %1$s · Assinatura digital ativada</string>
+    <string name="cert_reg_license_active">Matrícula: %1$s · Identidade registada</string>
     <string name="cert_reg_license_required">Requer matrícula ativa para assinatura com validade oficial.</string>
     <string name="cert_reg_registered">Registada</string>
     <string name="cert_patient_recipient_title">Destinatário do Atestado</string>
@@ -115,10 +115,10 @@
     <string name="cert_privacy_hide_diagnosis_subtitle">Garantia de Segredo Médico e confidencialidade (CFM)</string>
     <string name="cert_obs_section_title">Indicações e Observações Clínicas (Opcional)</string>
     <string name="cert_obs_placeholder">Ex: Repouso domiciliário com hidratação contínua. Apresentar nos RH.</string>
-    <string name="cert_success_dialog_title">Atestado Emitido com Sucesso!</string>
-    <string name="cert_success_dialog_body">O atestado médico digital foi assinado com validade institucional.</string>
-    <string name="cert_success_cuir_header">CÓDIGO DE VALIDAÇÃO (CUIR):</string>
-    <string name="cert_success_dialog_footer">Válido perante entidades patronais, escolas ou instituições públicas através de verificação online.</string>
+    <string name="cert_success_dialog_title">Rascunho guardado</string>
+    <string name="cert_success_dialog_body">O documento ainda não foi assinado e não é um atestado oficial válido.</string>
+    <string name="cert_success_cuir_header">REFERÊNCIA INTERNA:</string>
+    <string name="cert_success_dialog_footer">Não apresentar este rascunho a empregadores ou instituições.</string>
     <string name="cert_success_back_to_certificates">Voltar aos Meus Atestados</string>
 
     <!-- 6. Diagnósticos Comunes Sugeridos -->
@@ -138,7 +138,7 @@
     <string name="cert_error_select_patient">Selecione um paciente da lista</string>
     <string name="cert_error_enter_diagnosis">Introduza um diagnóstico ou motivo clínico da certificação</string>
     <string name="cert_error_not_eligible">Não possui habilitação profissional ativa para emitir atestados oficiais</string>
-    <string name="cert_success_issued_cuir">Atestado médico emitido com sucesso. CUIR: %1$s</string>
+    <string name="cert_success_issued_cuir">Rascunho guardado. Referência: %1$s</string>
     <string name="cert_error_issue_failed">Erro ao emitir o certificado: %1$s</string>
     <string name="cert_error_connection">Falha de ligação</string>
 </resources>
