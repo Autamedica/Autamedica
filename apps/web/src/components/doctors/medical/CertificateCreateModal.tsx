@@ -11,7 +11,6 @@ import {
   Copy,
   AlertCircle,
   Loader2,
-  ExternalLink,
   Search,
   User,
 } from "lucide-react";
