@@ -146,6 +146,7 @@ Deno.test("patients-wallet-topup - Successful preference creation", async () => 
     assertEquals(metadata?.type, "wallet_topup");
     assertEquals(metadata?.patient_id, "patient-123");
     assertEquals(metadata?.amount_cents, 250050);
+    assertEquals(sent?.notification_url, "https://dummy.supabase.co/functions/v1/mobile-payments-webhook?market=BR");
     const items = sent?.items as Array<{ currency_id?: string }>;
     assertEquals(items?.[0]?.currency_id, "BRL");
   } finally {
