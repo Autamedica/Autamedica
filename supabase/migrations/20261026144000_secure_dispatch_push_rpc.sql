@@ -42,7 +42,12 @@ BEGIN
   -- Prevent accidental staging -> production delivery or secret exfiltration
   -- to a configured external host. Every deployment has its own Vault URL.
   IF v_project_url IS NULL
-    OR v_project_url !~ '^https://[a-z0-9-]+[.]supabase[.]co
+    OR v_project_url !~ '^https://[a-z0-9-]+[.]supabase[.]co$'
+  THEN
+    RAISE EXCEPTION 'dispatch_push_project_url_not_configured';
+  END IF;
+
+  SELECT net.http_post(
     url := v_project_url || '/functions/v1/send-push-notification',
     body := jsonb_build_object(
       'userId', p_user_id,
