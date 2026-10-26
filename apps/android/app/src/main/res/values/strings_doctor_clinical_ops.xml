@@ -72,6 +72,7 @@
     <string name="cert_detail_download_pdf">Descargar PDF</string>
     <string name="cert_card_default_patient_name">Paciente Asignado</string>
     <string name="cert_card_dni_label">DNI: %1$s</string>
+    <string name="cert_status_draft">Borrador sin firma</string>
     <string name="cert_status_valid">Válido</string>
     <string name="cert_status_cancelled">Cancelado</string>
     <string name="cert_days_of_rest_count">%1$d días de reposo</string>
