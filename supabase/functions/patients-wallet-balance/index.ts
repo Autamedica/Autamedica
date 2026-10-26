@@ -1,8 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
+import { resolveBillingCurrency } from '../_shared/billing-currency.ts'
 
 interface PatientRow {
   id: string
+  cpf?: string | null
+  dni?: string | null
 }
 
 interface WalletBalanceRow {
@@ -86,12 +89,14 @@ export async function handler(req: Request): Promise<Response> {
 
     const { data: patient, error: patientError } = await supabaseAdmin
       .from('patients')
-      .select('id')
+      .select('id, cpf, dni')
       .eq('user_id', user.id)
       .maybeSingle<PatientRow>()
 
     if (patientError) {
-      console.error('[patients-wallet-balance] Patient lookup error:', patientError)
+      return new Response(JSON.stringify({ error: 'patient_lookup_failed' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // If no patient record exists, return default zero balance
@@ -101,7 +106,7 @@ export async function handler(req: Request): Promise<Response> {
           available_credit_cents: 0,
           locked_credit_cents: 0,
           total_credit_cents: 0,
-          currency: 'ARS',
+          currency: null,
         }),
         {
           status: 200,
@@ -129,17 +134,40 @@ export async function handler(req: Request): Promise<Response> {
       ? (balanceRows[0] as WalletBalanceRow | undefined)
       : (balanceRows as WalletBalanceRow | null)
 
-    const availableCreditCents = balance?.available_credit_cents ?? 0
-    const lockedCreditCents = balance?.locked_credit_cents ?? 0
-    const totalCreditCents = balance?.total_credit_cents ?? 0
-    const currency = balance?.currency || 'ARS'
+    // The wallet RPC may default to ARS when no wallet exists. Read the
+    // actual stored denomination to avoid fictitious currency for BR users.
+    const { data: storedWallet, error: storedWalletError } = await supabaseAdmin
+      .from('patient_wallets')
+      .select('currency')
+      .eq('patient_id', patient.id)
+      .maybeSingle()
+    if (storedWalletError) {
+      return new Response(JSON.stringify({ error: 'wallet_currency_lookup_failed' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const resolved = resolveBillingCurrency({
+      patientCpf: patient.cpf,
+      patientDni: patient.dni,
+      walletCurrency: storedWallet?.currency,
+    })
+    if (!resolved.ok && resolved.error !== 'billing_currency_unresolved') {
+      return new Response(JSON.stringify({ error: resolved.error }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const availableCreditCents = storedWallet ? (balance?.available_credit_cents ?? 0) : 0
+    const lockedCreditCents = storedWallet ? (balance?.locked_credit_cents ?? 0) : 0
+    const totalCreditCents = storedWallet ? (balance?.total_credit_cents ?? 0) : 0
+    const currency = resolved.ok ? resolved.currency : null
 
     return new Response(
       JSON.stringify({
         available_credit_cents: Number(availableCreditCents),
         locked_credit_cents: Number(lockedCreditCents),
         total_credit_cents: Number(totalCreditCents),
-        currency: currency || 'ARS',
+        currency,
       }),
       {
         status: 200,

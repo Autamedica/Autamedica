@@ -45,7 +45,13 @@ jobs:
           # Ephemeral local database only; no Supabase remote project credentials.
           export PGHOST=127.0.0.1 PGPORT=54322 PGUSER=postgres PGPASSWORD=postgres PGDATABASE=postgres
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/role_authority_guard_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/secure_dispatch_push_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/clinical_view_acl_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/kiosk_dispatch_acl_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/untrusted_table_privileges_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/public_table_default_privileges_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/mobile_payment_market_security_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/critical_rpc_acl_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/additional_privileged_rpc_acl_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/pharmacy_kiosk_user_identity_smoke.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/patient_care_team_authority_smoke.sql

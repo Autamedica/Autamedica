@@ -308,6 +308,14 @@ class DoctorCertificatesViewModel @Inject constructor(
                 )
             }
 
+            val issuingCountry = state.doctorEligibility?.countryCode
+            if (issuingCountry == null) {
+                _uiState.update {
+                    it.copy(isSubmitting = false, createError = "No se pudo verificar la jurisdicción BR/AR del médico.")
+                }
+                return@launch
+            }
+
             val request = CreateCertificateRequest(
                 patientId = state.patientId,
                 certificateType = state.certificateType,
@@ -317,7 +325,7 @@ class DoctorCertificatesViewModel @Inject constructor(
                 diagnosis = state.diagnosis.trim(),
                 hideDiagnosis = state.hideDiagnosis,
                 observations = state.observations.trim().ifEmpty { null },
-                countryCode = "AR",
+                countryCode = issuingCountry,
             )
 
             certificateRepository.createCertificate(request)

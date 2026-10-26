@@ -130,8 +130,8 @@ class AppointmentsViewModel @Inject constructor(
             val hour = timeParts.getOrNull(0)?.toIntOrNull() ?: 9
             val minute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
 
-            val argZone = ZoneId.of("America/Argentina/Buenos_Aires")
-            val startDateTime = newDate.atTime(hour, minute).atZone(argZone).toOffsetDateTime()
+            val localZone = ZoneId.systemDefault()
+            val startDateTime = newDate.atTime(hour, minute).atZone(localZone).toOffsetDateTime()
             val durationMinutes = appointment.durationMinutes ?: 45
             val endDateTime = startDateTime.plusMinutes(durationMinutes.toLong())
 

@@ -27,8 +27,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import com.autamedica.android.domain.model.AppointmentStatus
-import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
-import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.presentation.dashboard.components.AvailableDoctorsCarousel
 import com.autamedica.android.presentation.dashboard.components.NotificationsBottomSheet
 import com.autamedica.android.presentation.dashboard.components.ChecklistItem
@@ -87,7 +85,6 @@ fun DashboardScreen(
         AppointmentStatus.NO_SHOW,
     )
     val nextAppointment = uiState.appointments.firstOrNull { it.status !in terminalStatuses }
-    val telemedicineCandidate = uiState.appointments.firstOrNull { it.isTelemedicineJoinCandidate() }
     val telemedicineAppointment = uiState.appointments.firstOrNull { it.id in uiState.joinableAppointmentIds }
     val isJoinableNow = nextAppointment?.id?.let { it in uiState.joinableAppointmentIds } == true
 
@@ -163,6 +160,7 @@ fun DashboardScreen(
                 subscriptionTier = uiState.subscriptionTier,
                 subscriptionStatus = uiState.subscriptionStatus,
                 walletBalanceCents = uiState.walletBalanceCents,
+                walletCurrency = uiState.walletCurrency,
                 hasUpcomingAppointment = nextAppointment != null,
                 unreadNotificationsCount = uiState.unreadNotificationsCount,
                 onWalletClick = { viewModel.setWalletSheetVisible(true) },
@@ -281,10 +279,10 @@ fun DashboardScreen(
                                     appointment = nextAppointment,
                                     isJoinableNow = isJoinableNow,
                                     onJoinCall = {
-                                        when {
-                                            telemedicineAppointment != null -> onNavigateToVideoCall(telemedicineAppointment.id)
-                                            telemedicineCandidate != null -> onNavigateToVideoCall(telemedicineCandidate.id)
-                                            else -> onNavigateToVideoCall(VIDEO_PREVIEW_APPOINTMENT_ID)
+                                        if (isJoinableNow && nextAppointment.id in uiState.joinableAppointmentIds) {
+                                            onNavigateToVideoCall(nextAppointment.id)
+                                        } else {
+                                            onNavigateToTab(PATIENT_TAB_APPOINTMENTS)
                                         }
                                     },
                                     onViewDetails = {
@@ -306,10 +304,10 @@ fun DashboardScreen(
                         item {
                             ClinicalServicesGrid(
                                 onOnlineDoctorClick = {
-                                    when {
-                                        telemedicineAppointment != null -> onNavigateToVideoCall(telemedicineAppointment.id)
-                                        telemedicineCandidate != null -> onNavigateToVideoCall(telemedicineCandidate.id)
-                                        else -> onNavigateToVideoCall(VIDEO_PREVIEW_APPOINTMENT_ID)
+                                    if (telemedicineAppointment != null) {
+                                        onNavigateToVideoCall(telemedicineAppointment.id)
+                                    } else {
+                                        onNavigateToTab(PATIENT_TAB_CONSULT)
                                     }
                                 },
                                 onSubscriptionClick = {
@@ -356,6 +354,7 @@ fun DashboardScreen(
     if (uiState.isWalletSheetOpen) {
         PatientWalletBottomSheet(
             walletBalanceCents = uiState.walletBalanceCents,
+                walletCurrency = uiState.walletCurrency,
             freeConsultationsCount = uiState.freeConsultationsCount,
             onDismiss = { viewModel.setWalletSheetVisible(false) },
             onTopupClick = {
@@ -372,6 +371,7 @@ fun DashboardScreen(
     // Top-up Dialog
     if (uiState.isTopupDialogOpen) {
         WalletTopupDialog(
+            currency = uiState.walletCurrency,
             onDismiss = { viewModel.setTopupDialogVisible(false) },
             onConfirmTopup = { amount ->
                 viewModel.topupWallet(amount)

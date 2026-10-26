@@ -40,11 +40,12 @@ import com.autamedica.android.presentation.theme.AuTextTertiary
 @Composable
 fun WalletTopupDialog(
     onDismiss: () -> Unit,
+    currency: String? = null,
     onConfirmTopup: (amount: Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var amountText by remember { mutableStateOf("5000") }
-    val quickAmounts = listOf("2000", "5000", "10000")
+    var amountText by remember(currency) { mutableStateOf(if (currency == "BRL") "50" else if (currency == "ARS") "5000" else "") }
+    val quickAmounts = if (currency == "BRL") listOf("20", "50", "100") else listOf("2000", "5000", "10000")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -74,8 +75,8 @@ fun WalletTopupDialog(
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = { amountText = it.filter { ch -> ch.isDigit() } },
-                    label = { Text("Monto (ARS)") },
-                    prefix = { Text("$ ", fontWeight = FontWeight.Bold) },
+                    label = { Text("Valor (${currency ?: "moneda no verificada"})") },
+                    prefix = { Text(if (currency == "BRL") "R$ " else "$ ", fontWeight = FontWeight.Bold) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -109,7 +110,7 @@ fun WalletTopupDialog(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
                             ) {
                                 Text(
-                                    text = "$$amount",
+                                    text = "${if (currency == "BRL") "R$" else "$"}$amount",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (isSelected) Color(0xFF0369A1) else AuTextSecondary,
@@ -125,11 +126,12 @@ fun WalletTopupDialog(
             Button(
                 onClick = {
                     val parsed = amountText.toDoubleOrNull() ?: 0.0
-                    if (parsed > 0) {
+                    if (parsed > 0 && (currency == "BRL" || currency == "ARS")) {
                         onConfirmTopup(parsed)
                     }
                 },
                 shape = RoundedCornerShape(999.dp),
+                enabled = currency == "BRL" || currency == "ARS",
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF0F172A),
                     contentColor = Color.White,

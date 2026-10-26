@@ -425,12 +425,20 @@ class DoctorPrescriptionsViewModel @Inject constructor(
                 )
             }
 
+            val issuingCountry = state.doctorEligibility?.countryCode
+            if (issuingCountry == null) {
+                _uiState.update {
+                    it.copy(isSubmitting = false, createError = "No se pudo verificar la jurisdicción BR/AR del médico.")
+                }
+                return@launch
+            }
+
             val request = CreatePrescriptionRequest(
                 patientId = effectivePatientId,
                 items = domainItems,
                 diagnosis = if (state.diagnosisCode != null) "${state.diagnosisCode} - ${state.diagnosis.trim()}" else state.diagnosis.trim(),
                 notes = state.notes.trim().takeIf { it.isNotEmpty() },
-                countryCode = "AR",
+                countryCode = issuingCountry,
             )
 
             prescriptionRepository.createPrescription(request)

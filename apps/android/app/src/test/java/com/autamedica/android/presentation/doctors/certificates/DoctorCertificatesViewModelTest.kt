@@ -253,5 +253,5 @@ private class FakeDoctorPrescriptionRepository(
     override suspend fun cancelPrescription(prescriptionId: String, reason: String): Result<Unit> = Result.success(Unit)
     override suspend fun getEligiblePatients(): Result<List<PrescriptionPatientItem>> = Result.success(patients)
     override suspend fun getDoctorEligibility(): Result<DoctorEligibility> =
-        Result.success(DoctorEligibility(true, "MP006402", "valid"))
+        Result.success(DoctorEligibility(true, "MP006402", "valid", countryCode = "AR"))
 }

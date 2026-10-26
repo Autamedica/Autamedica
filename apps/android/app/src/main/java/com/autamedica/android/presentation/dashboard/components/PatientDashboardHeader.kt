@@ -51,6 +51,7 @@ fun PatientDashboardHeader(
     subscriptionTier: String,
     subscriptionStatus: String,
     walletBalanceCents: Long,
+    walletCurrency: String? = null,
     hasUpcomingAppointment: Boolean,
     unreadNotificationsCount: Int = 0,
     onWalletClick: () -> Unit,
@@ -119,7 +120,7 @@ fun PatientDashboardHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                val walletText = formatCents(walletBalanceCents)
+                val walletText = formatCents(walletBalanceCents, walletCurrency)
 
                 // Wallet chip (48dp min touch target)
                 Surface(
@@ -204,9 +205,11 @@ fun PatientDashboardHeader(
     }
 }
 
-fun formatCents(cents: Long): String {
-    val amount = cents / 100.0
-    return NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
-        maximumFractionDigits = 0
-    }.format(amount)
+fun formatCents(cents: Long, currency: String? = null): String {
+    val locale = when (currency) {
+        "BRL" -> Locale.forLanguageTag("pt-BR")
+        "ARS" -> Locale.forLanguageTag("es-AR")
+        else -> return "—"
+    }
+    return NumberFormat.getCurrencyInstance(locale).format(cents / 100.0)
 }

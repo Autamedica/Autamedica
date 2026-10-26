@@ -6,13 +6,13 @@ import org.junit.Test
 class HealthReserveDetailTest {
 
     @Test
-    fun `calculateEstimatedArs calculates realistic healthcare market equivalents`() {
-        assertThat(calculateEstimatedArs(0)).isEqualTo(0)
-        assertThat(calculateEstimatedArs(22)).isEqualTo(3_300)
-        assertThat(calculateEstimatedArs(55)).isEqualTo(8_250)
-        assertThat(calculateEstimatedArs(60)).isEqualTo(9_000)
-        assertThat(calculateEstimatedArs(100)).isEqualTo(15_000)
-        assertThat(calculateEstimatedArs(600)).isEqualTo(90_000)
+    fun `calculateEstimatedBrlCents calculates realistic healthcare market equivalents`() {
+        assertThat(calculateEstimatedBrlCents(0)).isEqualTo(0)
+        assertThat(calculateEstimatedBrlCents(22)).isEqualTo(3_300)
+        assertThat(calculateEstimatedBrlCents(55)).isEqualTo(8_250)
+        assertThat(calculateEstimatedBrlCents(60)).isEqualTo(9_000)
+        assertThat(calculateEstimatedBrlCents(100)).isEqualTo(15_000)
+        assertThat(calculateEstimatedBrlCents(600)).isEqualTo(90_000)
     }
 
     @Test
@@ -29,20 +29,20 @@ class HealthReserveDetailTest {
     fun `getPlanByTier resolves canonical plans accurately`() {
         val freePlan = getPlanByTier("free")
         assertThat(freePlan.tierKey).isEqualTo("free")
-        assertThat(freePlan.priceMonthlyArs).isEqualTo(0)
+        assertThat(freePlan.priceMonthlyCents).isEqualTo(0)
         assertThat(freePlan.monthlyCredits).isEqualTo(0)
         assertThat(freePlan.maxCapCredits).isEqualTo(0)
 
         val cuidadoPlan = getPlanByTier("cuidado")
         assertThat(cuidadoPlan.tierKey).isEqualTo("cuidado")
-        assertThat(cuidadoPlan.priceMonthlyArs).isEqualTo(4_990)
+        assertThat(cuidadoPlan.priceMonthlyCents).isEqualTo(4_990)
         assertThat(cuidadoPlan.monthlyCredits).isEqualTo(22)
         assertThat(cuidadoPlan.maxCapCredits).isEqualTo(600)
         assertThat(cuidadoPlan.isPopular).isTrue()
 
         val familiarPlan = getPlanByTier("familiar")
         assertThat(familiarPlan.tierKey).isEqualTo("familiar")
-        assertThat(familiarPlan.priceMonthlyArs).isEqualTo(12_990)
+        assertThat(familiarPlan.priceMonthlyCents).isEqualTo(12_990)
         assertThat(familiarPlan.monthlyCredits).isEqualTo(66)
         assertThat(familiarPlan.maxCapCredits).isEqualTo(1_800)
 
@@ -89,18 +89,27 @@ class HealthReserveDetailTest {
 
         val specialists = defaultBenefitCategories[0]
         assertThat(specialists.creditsCost).isEqualTo(100)
-        assertThat(specialists.referenceMarketPriceArs).isEqualTo(15_000)
+        assertThat(specialists.referenceMarketPriceCents).isEqualTo(15_000)
         assertThat(specialists.title).contains("Especialistas")
 
         val labs = defaultBenefitCategories[1]
         assertThat(labs.creditsCost).isEqualTo(60)
-        assertThat(labs.referenceMarketPriceArs).isEqualTo(9_000)
+        assertThat(labs.referenceMarketPriceCents).isEqualTo(9_000)
         assertThat(labs.title).contains("Laboratorios")
 
         val pharmacy = defaultBenefitCategories[2]
         assertThat(pharmacy.creditsCost).isEqualTo(55)
-        assertThat(pharmacy.referenceMarketPriceArs).isEqualTo(8_000)
+        assertThat(pharmacy.referenceMarketPriceCents).isEqualTo(8_000)
         assertThat(pharmacy.title).contains("Farmacia")
+    }
+
+    @Test
+    fun `planPricesRemainBrazilianRealAmountsInCentavos`() {
+        assertThat(defaultReservePlans[1].priceMonthlyCents).isEqualTo(4_990)
+        assertThat(defaultReservePlans[2].priceMonthlyCents).isEqualTo(12_990)
+        assertThat(formatPlanPriceBrl(4_990)).contains("49,90")
+        assertThat(formatPlanPriceBrl(12_990)).contains("129,90")
+        assertThat(formatPlanPriceBrl(4_990)).contains("R$")
     }
 
     @Test
@@ -110,9 +119,9 @@ class HealthReserveDetailTest {
     }
 
     @Test
-    fun `formatArs formats currency without decimals`() {
-        val formatted = formatArs(15000)
-        assertThat(formatted).contains("15.000")
-        assertThat(formatted).contains("$")
+    fun `formatBrlFromCents renders exact BRL value`() {
+        val formatted = formatBrlFromCents(15000)
+        assertThat(formatted).contains("150,00")
+        assertThat(formatted).contains("R$")
     }
 }

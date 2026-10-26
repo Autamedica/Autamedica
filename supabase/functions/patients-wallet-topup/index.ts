@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { corsHeaders } from '../_shared/cors.ts'
+import { resolveBillingCurrency } from '../_shared/billing-currency.ts'
+import { getMercadoPagoMarketToken } from '../_shared/mercadopago-market-token.ts'
 
 interface TopupRequestBody {
   amount?: unknown
@@ -7,10 +9,13 @@ interface TopupRequestBody {
 
 interface PatientRow {
   id: string
+  cpf?: string | null
+  dni?: string | null
 }
 
 interface ProfileRow {
   email: string | null
+  role: string | null
 }
 
 interface MercadoPagoPreferenceResponse {
@@ -116,20 +121,34 @@ export async function handler(req: Request): Promise<Response> {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    // The database profile is the authorization source. Never use user_metadata
+    // or a client-selected role to authorize patient wallet enrollment.
+    const { data: roleProfile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('email, role')
+      .eq('user_id', user.id)
+      .maybeSingle<ProfileRow>()
+
+    if (profileError || roleProfile?.role !== 'patient') {
+      return new Response(JSON.stringify({ error: 'Forbidden: patient role required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Fetch patient row
     let { data: patient, error: patientError } = await supabaseAdmin
       .from('patients')
-      .select('id')
+      .select('id, cpf, dni')
       .eq('user_id', user.id)
       .maybeSingle<PatientRow>()
 
-    // If not found and role is patient, auto-create
-    const userRole = (user.app_metadata?.role as string | undefined) ?? (user.user_metadata?.role as string | undefined)
-    if (!patient && !patientError && (userRole === 'patient' || !userRole)) {
+    // Database role was verified before patient record creation.
+    if (!patient && !patientError) {
       const { data: insertedPatient, error: insertError } = await supabaseAdmin
         .from('patients')
         .upsert({ user_id: user.id, active: true }, { onConflict: 'user_id' })
-        .select('id')
+        .select('id, cpf, dni')
         .maybeSingle<PatientRow>()
 
       if (insertError) {
@@ -152,18 +171,7 @@ export async function handler(req: Request): Promise<Response> {
 
     const patientId = patient.id
 
-    // Fetch profile email
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('email')
-      .eq('user_id', user.id)
-      .maybeSingle<ProfileRow>()
-
-    if (profileError) {
-      console.warn('[patients-wallet-topup] Error fetching profile:', profileError)
-    }
-
-    const payerEmail = profile?.email || user.email
+    const payerEmail = roleProfile.email || user.email
     if (!payerEmail) {
       return new Response(
         JSON.stringify({ error: 'patient_email_not_found' }),
@@ -174,12 +182,50 @@ export async function handler(req: Request): Promise<Response> {
       )
     }
 
+    // Currency must be backed by patient jurisdiction and/or existing wallet.
+    // A default ARS wallet must not silently turn a Brazilian payment into ARS.
+    const { data: existingWallet, error: walletLookupError } = await supabaseAdmin
+      .from('patient_wallets')
+      .select('currency')
+      .eq('patient_id', patientId)
+      .maybeSingle()
+    if (walletLookupError) {
+      return new Response(JSON.stringify({ error: 'wallet_currency_lookup_failed' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const billing = resolveBillingCurrency({
+      patientCpf: patient.cpf,
+      patientDni: patient.dni,
+      walletCurrency: existingWallet?.currency,
+    })
+    if (!billing.ok) {
+      return new Response(JSON.stringify({ error: billing.error }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const billingCurrency = billing.currency
+
+    // New verified patient wallet: preserve denomination at creation. Never
+    // overwrite an existing wallet's currency or convert an existing balance.
+    if (!existingWallet) {
+      const { error: createWalletError } = await supabaseAdmin
+        .from('patient_wallets')
+        .insert({ patient_id: patientId, currency: billingCurrency })
+      if (createWalletError) {
+        return new Response(JSON.stringify({ error: 'wallet_currency_creation_failed' }), {
+          status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
     // 4. MercadoPago Preference
-    const mpAccessToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
+    const mpAccessToken = getMercadoPagoMarketToken(billingCurrency)
     if (!mpAccessToken) {
-      console.error('[patients-wallet-topup] MERCADOPAGO_ACCESS_TOKEN is missing')
+      console.error('[patients-wallet-topup] Market-specific MercadoPago credential is missing')
       return new Response(
-        JSON.stringify({ error: 'MercadoPago access token is not configured' }),
+        JSON.stringify({ error: 'MercadoPago token for selected market is not configured' }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -196,7 +242,7 @@ export async function handler(req: Request): Promise<Response> {
           description: 'Carga de credito virtual en billetera para consultas medicas en AutaMedica',
           quantity: 1,
           unit_price: amount,
-          currency_id: 'ARS',
+          currency_id: billingCurrency,
         },
       ],
       payer: { email: payerEmail },
@@ -207,11 +253,12 @@ export async function handler(req: Request): Promise<Response> {
       },
       auto_return: 'approved',
       statement_descriptor: 'AUTAMEDICA',
-      notification_url: `${appUrl}/api/payments/mercadopago/webhook`,
+      notification_url: `${supabaseUrl}/functions/v1/mobile-payments-webhook?market=${billingCurrency === 'BRL' ? 'BR' : 'AR'}`,
       metadata: {
         type: 'wallet_topup',
         patient_id: patientId,
         amount_cents: amountCents,
+        currency: billingCurrency,
       },
     }
 
@@ -243,7 +290,7 @@ export async function handler(req: Request): Promise<Response> {
         checkoutUrl: mpData.init_point,
         preferenceId: mpData.id,
         amountCents: amountCents,
-        currency: 'ARS',
+        currency: billingCurrency,
       }),
       {
         status: 200,

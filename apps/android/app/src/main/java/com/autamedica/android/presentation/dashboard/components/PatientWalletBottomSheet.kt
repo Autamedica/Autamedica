@@ -46,6 +46,7 @@ import java.util.Locale
 @Composable
 fun PatientWalletBottomSheet(
     walletBalanceCents: Long,
+    walletCurrency: String? = null,
     freeConsultationsCount: Int,
     onDismiss: () -> Unit,
     onTopupClick: () -> Unit,
@@ -136,9 +137,7 @@ fun PatientWalletBottomSheet(
                                 color = Color(0xFF334155),
                             )
                         }
-                        val formattedBalance = NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
-                            maximumFractionDigits = 0
-                        }.format(walletBalanceCents / 100.0)
+                        val formattedBalance = formatCents(walletBalanceCents, walletCurrency)
                         Text(
                             text = formattedBalance,
                             fontSize = 17.sp,

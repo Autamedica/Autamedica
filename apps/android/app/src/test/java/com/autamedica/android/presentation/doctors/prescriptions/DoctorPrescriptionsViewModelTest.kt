@@ -345,5 +345,5 @@ private class FakeDoctorPrescriptionRepository(
         Result.success(patients)
 
     override suspend fun getDoctorEligibility(): Result<DoctorEligibility> =
-        Result.success(DoctorEligibility(isEligible = true, doctorLicense = "MN 12345", validationStatus = "valid"))
+        Result.success(DoctorEligibility(isEligible = true, doctorLicense = "MN 12345", validationStatus = "valid", countryCode = "AR"))
 }

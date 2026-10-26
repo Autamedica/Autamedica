@@ -683,7 +683,7 @@ private fun PendingPaymentBanner(
                         color = AuTextTertiary,
                     )
                     Text(
-                        text = formatArs(appointment.doctorFee ?: 15000.0),
+                        text = appointment.doctorFee?.let(::formatBrlConsultationCents) ?: "Valor a confirmar",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
@@ -915,8 +915,6 @@ private fun EmptyConsultationsCard(
     }
 }
 
-private fun formatArs(amount: Double): String {
-    val format = NumberFormat.getCurrencyInstance(Locale("es", "AR"))
-    format.maximumFractionDigits = 0
-    return format.format(amount)
-}
+private fun formatBrlConsultationCents(amountCents: Double): String =
+    NumberFormat.getCurrencyInstance(Locale.getDefault())
+        .format(amountCents / 100.0)

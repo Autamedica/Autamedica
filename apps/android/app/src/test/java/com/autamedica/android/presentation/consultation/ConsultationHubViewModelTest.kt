@@ -120,7 +120,7 @@ class ConsultationHubViewModelTest {
     }
 
     @Test
-    fun `payAppointment marks appointment as CONFIRMED and updates state`() = runTest(testDispatcher) {
+    fun `payAppointment without payment backend never confirms appointment`() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -128,12 +128,12 @@ class ConsultationHubViewModelTest {
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertThat(state.pendingPaymentAppointment).isNull()
-        assertThat(state.paymentMessage).isNotNull()
+        assertThat(state.pendingPaymentAppointment?.status).isEqualTo(AppointmentStatus.PAYMENT_PENDING)
+        assertThat(state.paymentMessage).contains("No se pudo iniciar el proceso de pago")
     }
 
     @Test
-    fun `requestEmergencyConsultation assigns on-call doctor immediately`() = runTest(testDispatcher) {
+    fun `requestEmergencyConsultation creates appointment but does not open unconfirmed call`() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -143,10 +143,10 @@ class ConsultationHubViewModelTest {
         }
         advanceUntilIdle()
 
-        assertThat(enteredAppointmentId).isNotNull()
+        assertThat(enteredAppointmentId).isNull()
         val state = viewModel.uiState.value
         assertThat(state.isEmergencyQueueLoading).isFalse()
-        assertThat(state.paymentMessage).contains("Médico de guardia asignado")
+        assertThat(state.paymentMessage).contains("Turno registrado")
     }
 
     @Test
