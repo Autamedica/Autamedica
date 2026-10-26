@@ -249,9 +249,9 @@ fun getPlanByTier(tierKey: String): ReservePlan =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HealthReserveDetailScreen(
-    subscriptionTier: String = "free"
-    benefitBalanceCredits: Int = 0
-    maxCapCredits: Int = 0
+    subscriptionTier: String = "free",
+    benefitBalanceCredits: Int = 0,
+    maxCapCredits: Int = 0,
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
