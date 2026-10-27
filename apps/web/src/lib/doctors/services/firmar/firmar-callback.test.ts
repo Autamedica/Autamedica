@@ -14,6 +14,7 @@ const evidence = {
   certificateNotRevoked: true,
   certificateNotExpired: true,
   signerCuil: '20123456786',
+  certificateFingerprintSha256: 'a'.repeat(64),
   matchedOriginalDocument: true,
   signedAt: new Date().toISOString(),
 };
@@ -33,9 +34,17 @@ describe('FirmAR callback security (mock verifier; not official signature tests)
   it('accepts bytes only after independent verification evidence is supplied', async () => {
     const verify = vi.fn(async () => evidence);
     const result = await validateFirmArSignedDocument(payload, await pending(), verify);
+    expect(result.fingerprintSha256).toMatch(/^[a-f0-9]{64}$/);
     expect(result.signedPdfSha256).toHaveLength(64);
     expect(result.certificateId).toBe('test-certificate-uuid');
     expect(verify).toHaveBeenCalledOnce();
+  });
+
+  it('handles SIU FirmAR callbacks with an empty status object while still verifying the PDF', async () => {
+    const verifier = vi.fn(async () => evidence);
+    const signed = await validateFirmArSignedDocument({ ...payload, status: {} }, await pending(), verifier);
+    expect(signed.signedPdfSha256).toHaveLength(64);
+    expect(verifier).toHaveBeenCalledOnce();
   });
 
   it('rejects unverifiable signatures and signer substitution', async () => {
@@ -46,6 +55,7 @@ describe('FirmAR callback security (mock verifier; not official signature tests)
       { certificateNotExpired: false },
       { matchedOriginalDocument: false },
       { signerCuil: '20123456787' },
+      { certificateFingerprintSha256: 'invalid' },
     ]) {
       await expect(validateFirmArSignedDocument(
         payload, await pending(), async () => ({ ...evidence, ...override }),
