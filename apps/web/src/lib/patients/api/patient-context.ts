@@ -70,36 +70,25 @@ export async function resolvePatientContext(
       userId = locals.session.user.id
     }
 
-    // 2. Fallback: Parse cookies and create a Supabase client
-    // This path has the refresh problem -- it works only within the 1-hour access token window.
+    // 2. Fallback: validate the cookie token server-side with getUser().
+    // getSession() reads untrusted cookie state and must not authorize clinical access.
     if (!userId) {
-      const supabase = createAstroServerClientFromRequest(request, locals?.runtime?.env)
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        userId = session?.user?.id ?? null
-        if (!userRole && session?.user) {
-          userRole = extractRole(session.user.app_metadata as Record<string, unknown>)
-        }
-      } catch {
-        logger.warn('[resolvePatientContext] getSession() threw', authDebug)
-      }
-
-      if (!userId) {
-        try {
-          const { data: { user }, error } = await supabase.auth.getUser()
-          userId = user?.id ?? null
-          if (!userRole && user?.app_metadata) {
+        const supabase = createAstroServerClientFromRequest(request, locals?.runtime?.env)
+        const { data: { user }, error } = await supabase.auth.getUser()
+        if (!error && user) {
+          userId = user.id
+          if (!userRole) {
             userRole = extractRole(user.app_metadata as Record<string, unknown>)
           }
-          if (error) {
-            logger.warn('[resolvePatientContext] getUser() failed', {
-              msg: error.message,
-              ...authDebug,
-            })
-          }
-        } catch {
-          logger.warn('[resolvePatientContext] getUser() threw', authDebug)
+        } else if (error) {
+          logger.warn('[resolvePatientContext] Validated cookie auth failed', {
+            msg: error.message,
+            ...authDebug,
+          })
         }
+      } catch {
+        logger.warn('[resolvePatientContext] getUser() threw', authDebug)
       }
     }
 
