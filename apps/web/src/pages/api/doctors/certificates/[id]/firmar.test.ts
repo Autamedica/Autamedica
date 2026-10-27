@@ -32,12 +32,24 @@ describe('FirmAR physician API release gates', () => {
       locals: {
         runtime: { env: { FIRMAR_ENABLED: 'false', FIRMAR_INTEGRATION_APPROVED: 'false' } },
       },
-      request: new Request('https://www.autamedica.com/api/doctors/certificates/' + sampleCertificateId + '/firmar', { method: 'POST' }),
+      request: new Request('https://www.autamedica.com/api/doctors/certificates/' + sampleCertificateId + '/firmar', { method: 'POST', headers: { Origin: 'https://www.autamedica.com' } }),
     } as Parameters<typeof POST>[0]);
     expect(response.status).toBe(503);
     const result = await response.json();
     expect(result.success).toBe(false);
     expect(result.error?.message).toBe('firmar_integration_pending_authorization');
+  });
+
+  it('refuses CSRF attempts from a foreign origin even before contacting PFDR', async () => {
+    const response = await POST({
+      params: { id: sampleCertificateId },
+      locals: { runtime: { env: { FIRMAR_ENABLED: 'true', FIRMAR_INTEGRATION_APPROVED: 'true' } } },
+      request: new Request('https://www.autamedica.com/api/doctors/certificates/' + sampleCertificateId + '/firmar', {
+        method: 'POST',
+        headers: { Origin: 'https://evil.example' },
+      }),
+    } as Parameters<typeof POST>[0]);
+    expect(response.status).toBe(403);
   });
 
   it('rejects initiation with missing credentials even if both flags are set', async () => {
@@ -54,7 +66,7 @@ describe('FirmAR physician API release gates', () => {
           },
         },
       },
-      request: new Request('https://www.autamedica.com/api/doctors/certificates/' + sampleCertificateId + '/firmar', { method: 'POST' }),
+      request: new Request('https://www.autamedica.com/api/doctors/certificates/' + sampleCertificateId + '/firmar', { method: 'POST', headers: { Origin: 'https://www.autamedica.com' } }),
     } as Parameters<typeof POST>[0]);
     expect(response.status).toBe(503);
     const result = await response.json();
