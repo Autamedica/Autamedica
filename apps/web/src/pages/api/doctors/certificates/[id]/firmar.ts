@@ -107,7 +107,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       .eq('doctor_id', record.doctorId)
       .maybeSingle();
     if (enrollmentError) throw enrollmentError;
-    if (!enrollment || enrollment.verification_status !== 'verified') {
+    if (enrollment?.verification_status !== 'verified') {
       return forbidden('firmar_doctor_not_verified');
     }
 
