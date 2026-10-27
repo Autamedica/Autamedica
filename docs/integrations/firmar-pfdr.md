@@ -75,3 +75,24 @@
 
 Las pruebas de cliente son simuladas. **No constituyen certificación ni
 homologación** con la infraestructura estatal.
+
+
+## Callback registrado ante la PFDR (preflight seguro)
+
+La solicitud TAD `EX-2026-104186995- -APN-DNFDEIT#JGM` declaró exactamente:
+
+`https://www.autamedica.com/api/integrations/firmar/callback`
+
+En este PR existe `apps/web/src/pages/api/integrations/firmar/callback.ts`:
+
+- `GET` devuelve HTTP 200, `reachable: true` y **`acceptingSignatures: false`**.
+- `HEAD` devuelve HTTP 200 sin contenido.
+- `POST` devuelve **HTTP 503**: ninguna firma se acepta ni se marca como validada.
+
+Estas respuestas sólo están disponibles públicamente **una vez desplegado el PR**. Verificar que Cloudflare no redirija la ruta ni cambie el método HTTP antes de solicitar pruebas técnicas oficiales. Un resultado `GET 200` no representa autorización administrativa ni recepción funcional de firmas.
+
+### Validación separada del callback
+
+`apps/web/src/lib/doctors/services/firmar/firmar-callback.ts` contiene funciones que rechazan tokens falsos o reutilizados, solicitudes vencidas y evidencia criptográfica incongruente. **No verifican PAdES por sí mismas.** Para habilitar recepción será imprescindible un verificador independiente, una transacción de consumo único, almacenamiento privado y auditoría.
+
+El transporte de inicio que se mantiene como referencia única es `apps/web/src/lib/doctors/services/firmar-remote-client.ts`. Su contrato de prueba está simulado; los endpoints y modalidades definitivas deberán confirmarse con la autoridad.
