@@ -405,7 +405,7 @@ export function DoctorsPrescriptionsPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-teal-700 active:scale-[0.97]"
             >
               <FileText className="h-4 w-4" />
-              Emitir atestado
+              Preparar atestado
             </button>
           </div>
         </motion.div>
@@ -490,7 +490,7 @@ export function DoctorsPrescriptionsPage() {
                 className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700"
               >
                 <FileText className="h-4 w-4" />
-                Emitir atestado
+                Preparar atestado
               </button>
             </div>
           </motion.div>
@@ -546,7 +546,7 @@ export function DoctorsPrescriptionsPage() {
                   className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-teal-700 transition"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  Emitir atestado
+                  Preparar atestado
                 </button>
               )}
             </div>
@@ -777,7 +777,7 @@ export function DoctorsPrescriptionsPage() {
                       className="mt-4 inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700 shadow-sm"
                     >
                       <Plus className="h-4 w-4" />
-                      Emitir atestado
+                      Preparar atestado
                     </button>
                   </div>
                 )}
