@@ -25,7 +25,7 @@ export async function loadMedicalCertificateForDoctor(
     .eq('user_id', doctorUserId)
     .maybeSingle();
   if (doctorError) throw doctorError;
-  if (!doctor || !doctor.active) return null;
+  if (!doctor?.active) return null;
 
   const { data: cert, error: certError } = await admin
     .from('medical_certificates')
