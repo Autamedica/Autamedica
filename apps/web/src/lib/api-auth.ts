@@ -96,8 +96,8 @@ export async function withAuthRole(
   const result = await withAuth(request, locals)
   if (result instanceof Response) return result
 
-  // 1. Fast path: check app_metadata (server-controlled) or user_metadata (fallback)
-  const jwtRole = (result.user.app_metadata?.role ?? result.user.user_metadata?.role) as string | undefined
+  // 1. Fast path: only server-controlled app_metadata can grant a role.
+  const jwtRole = result.user.app_metadata?.role as string | undefined
   if (jwtRole && allowedRoles.includes(jwtRole as UserRole)) {
     return result
   }
