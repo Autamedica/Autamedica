@@ -1,4 +1,5 @@
 -- REVIEW-ONLY SQL DESIGN. Not an applied Supabase migration.
+-- Matches orchestrator states: reserve (pending), authorization, failed, verified.
 -- Pending PFDR approval and audited callback workflow.
 -- CUIL and request evidence are sensitive: never expose through browser/RLS.
 CREATE TABLE IF NOT EXISTS public.doctor_firmar_enrollments (
@@ -23,8 +24,10 @@ CREATE TABLE IF NOT EXISTS public.medical_certificate_signature_requests (
   token_hash char(64) NOT NULL UNIQUE CHECK (token_hash ~ '^[a-f0-9]{64}$'),
   original_pdf_sha256 char(64) NOT NULL CHECK (original_pdf_sha256 ~ '^[a-f0-9]{64}$'),
   status text NOT NULL DEFAULT 'pending'
-    CHECK (status IN ('pending', 'processing', 'verified', 'rejected', 'expired')),
+    CHECK (status IN ('pending', 'awaiting_doctor_authorization', 'processing', 'verified', 'rejected', 'failed', 'expired')),
   expires_at timestamptz NOT NULL,
+  authorization_url text,
+  CHECK (authorization_url IS NULL OR left(authorization_url, 8) = 'https://'),
   signed_pdf_sha256 char(64),
   signed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -32,10 +35,10 @@ CREATE TABLE IF NOT EXISTS public.medical_certificate_signature_requests (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_medical_certificate_pending_signature
   ON public.medical_certificate_signature_requests (certificate_id)
-  WHERE status IN ('pending', 'processing');
+  WHERE status IN ('pending', 'awaiting_doctor_authorization', 'processing');
 CREATE INDEX IF NOT EXISTS idx_signature_requests_pending_expiry
   ON public.medical_certificate_signature_requests (expires_at)
-  WHERE status IN ('pending', 'processing');
+  WHERE status IN ('pending', 'awaiting_doctor_authorization', 'processing');
 ALTER TABLE public.medical_certificate_signature_requests ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.medical_certificate_signature_requests FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.medical_certificate_signature_requests TO service_role;
