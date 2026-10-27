@@ -73,9 +73,11 @@ export function ClinicalIntelligenceDashboard() {
       setError(
         err instanceof ApiError && err.status === 401
           ? 'Acceso denegado. Debes poseer rol de administrador médico para visualizar este módulo.'
-          : err instanceof Error
-            ? err.message
-            : 'Error inesperado al conectar con el servidor analítico.'
+          : err instanceof ApiError && err.status === 503
+            ? 'Los datos clínicos no están disponibles. El panel no mostrará alertas hasta que la consulta real funcione.'
+            : err instanceof Error
+              ? err.message
+              : 'Error inesperado al conectar con el servidor analítico.'
       );
     } finally {
       setLoading(false);
