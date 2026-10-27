@@ -198,4 +198,4 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const errorName = err instanceof Error ? err.name : "UnknownError";
     logger.error("[admin/clinical-intelligence] Clinical data query failed", { errorName });
     return json({ success: false, error: "clinical_intelligence_unavailable" }, 503);
-  }
+  };
