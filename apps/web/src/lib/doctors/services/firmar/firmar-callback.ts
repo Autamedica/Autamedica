@@ -21,6 +21,7 @@ export interface PadesVerificationEvidence {
   certificateNotRevoked: boolean;
   certificateNotExpired: boolean;
   signerCuil: string;
+  certificateFingerprintSha256: string;
   matchedOriginalDocument: boolean;
   signedAt: string;
 }
@@ -51,10 +52,16 @@ function sameHash(a: string, b: string): boolean {
 export function parseFirmArCallback(payload: unknown): { token: string; pdf: Uint8Array } {
   if (!payload || typeof payload !== 'object') throw new Error('firmar_callback_invalid');
   const data = payload as Record<string, unknown>;
-  const success = data.status === true ||
-    (data.status !== null && typeof data.status === 'object' &&
-     (data.status as Record<string, unknown>).success === true);
-  if (!success) throw new Error('firmar_callback_unsuccessful');
+  // SIU's published callback sends "status": {}. Neither its presence nor
+  // an asserted success flag proves authenticity; full independent PAdES
+  // validation below is the real trust gate.
+  const callbackStatus = data.status;
+  if (callbackStatus !== true &&
+      (!callbackStatus || typeof callbackStatus !== 'object' ||
+       Array.isArray(callbackStatus) ||
+       (callbackStatus as Record<string, unknown>).success === false)) {
+    throw new Error('firmar_callback_unsuccessful');
+  }
 
   const metadata = Array.isArray(data.metadata)
     ? data.metadata.find(v => v && typeof v === 'object' && (v as Record<string, unknown>).tipo === 'firmar')
@@ -80,7 +87,7 @@ export async function validateFirmArSignedDocument(
   payload: unknown,
   pending: PendingFirmArRequest,
   verify: IndependentPadesVerifier,
-): Promise<{ certificateId: string; signedPdf: Uint8Array; signedPdfSha256: string; signedAt: string }> {
+): Promise<{ certificateId: string; signedPdf: Uint8Array; signedPdfSha256: string; signedAt: string; fingerprintSha256: string }> {
   const { token, pdf } = parseFirmArCallback(payload);
   if (pending.status !== 'pending' || !sameHash(await hashFirmArToken(token), pending.tokenHash)) {
     throw new Error('firmar_unknown_or_replayed_token');
@@ -92,6 +99,7 @@ export async function validateFirmArSignedDocument(
   if (!evidence.cryptographicallyValid || !evidence.trustedArgentineIssuer ||
       !evidence.certificateNotRevoked || !evidence.certificateNotExpired ||
       !evidence.matchedOriginalDocument ||
+      !/^[a-f0-9]{64}$/.test(evidence.certificateFingerprintSha256) ||
       evidence.signerCuil.replace(/\D/g, '') !== pending.doctorCuil.replace(/\D/g, '') ||
       !evidence.signedAt || !Number.isFinite(Date.parse(evidence.signedAt))) {
     throw new Error('firmar_unverified_signed_document');
@@ -103,5 +111,6 @@ export async function validateFirmArSignedDocument(
     signedPdf: pdf,
     signedPdfSha256: await sha256(pdf),
     signedAt: evidence.signedAt,
+    fingerprintSha256: evidence.certificateFingerprintSha256,
   };
 }
