@@ -15,6 +15,7 @@ export interface MedicalCertificatePdfInput {
   doctorLicense: string;
   jurisdiction?: string | null;
   diagnosis?: string | null;
+  hideDiagnosis?: boolean;
   treatment?: string | null;
   observations?: string | null;
   daysOfRest: number;
