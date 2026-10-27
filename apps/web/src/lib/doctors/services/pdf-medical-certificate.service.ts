@@ -123,7 +123,7 @@ export function generateMedicalCertificatePdf(
   field('Documento', input.patientDni ?? 'No registrado');
   field('Profesional', input.doctorName);
   field('Matrícula / jurisdicción', `${input.doctorLicense} ${input.jurisdiction ?? ''}`);
-  field('Diagnóstico', input.diagnosis ?? '');
+  if (!input.hideDiagnosis) field('Diagnóstico', input.diagnosis ?? '');
   if (input.treatment) field('Tratamiento indicado', input.treatment);
   field('Reposo indicado', `${input.daysOfRest} día(s). Desde ${date(input.startDate)}${input.endDate ? ' hasta ' + date(input.endDate) : ''}`);
   if (input.observations) field('Observaciones', input.observations);
