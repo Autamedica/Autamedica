@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
     if (inputDoctorId) {
       const { data, error } = await supabaseAdmin
         .from('doctors')
-        .select('id, user_id')
+        .select('id, user_id, active')
         .or(`id.eq.${inputDoctorId},user_id.eq.${inputDoctorId}`)
         .maybeSingle()
       if (error) console.error('Error finding doctor by inputDoctorId:', error)
@@ -76,14 +76,14 @@ Deno.serve(async (req) => {
     if (!doctorRecord) {
       const { data, error } = await supabaseAdmin
         .from('doctors')
-        .select('id, user_id')
+        .select('id, user_id, active')
         .eq('user_id', user.id)
         .maybeSingle()
       if (error) console.error('Error finding doctor by user.id:', error)
       doctorRecord = data
     }
 
-    if (!doctorRecord || (doctorRecord.user_id !== user.id)) {
+    if (!doctorRecord || doctorRecord.user_id !== user.id || doctorRecord.active !== true) {
       console.error('Doctor identity mismatch or not a doctor:', { userId: user.id, inputDoctorId, doctorRecord })
       return new Response(
         JSON.stringify({ error: 'Forbidden: authenticated user is not the specified doctor' }),
@@ -104,16 +104,83 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!resolvedPatientId) {
+    // Guest appointments deliberately have patient_id = NULL. Their verified
+    // appointment ID is the only permitted way to start a patient-less call.
+    if (!resolvedPatientId && !appointmentId) {
       return new Response(
         JSON.stringify({
-          error: 'Missing required patient: patientId or a valid appointmentId with a patient is required'
+          error: 'Missing required patient or appointment: patientId or appointmentId is required'
         }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
+    }
+
+    // Validate before reusing calls, changing appointment state or notifying a
+    // patient. Admin database clients bypass RLS; authorization is mandatory.
+    if (appointmentId) {
+      const { data: appointment, error: appointmentError } = await supabaseAdmin
+        .from('appointments')
+        .select('id, doctor_id, patient_id, type, status, deleted_at')
+        .eq('id', appointmentId)
+        .maybeSingle()
+
+      if (appointmentError) {
+        console.error('Failed to verify appointment:', appointmentError)
+        return new Response(JSON.stringify({ error: 'Appointment verification failed' }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      if (!appointment) {
+        return new Response(JSON.stringify({ error: 'Appointment not found' }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      if (
+        appointment.doctor_id !== doctorRecord.id ||
+        appointment.patient_id !== resolvedPatientId ||
+        appointment.deleted_at !== null
+      ) {
+        return new Response(JSON.stringify({ error: 'Appointment participant mismatch' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      if (
+        appointment.type !== 'telemedicine' ||
+        !['scheduled', 'confirmed', 'in_progress', 'no_show'].includes(appointment.status)
+      ) {
+        return new Response(JSON.stringify({ error: 'Appointment not callable' }), {
+          status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    // Verify authorization as the real doctor, not with service_role.
+    // Database helper supports pharmacy guests without an auth.users account.
+    const supabaseActor = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } },
+    )
+    const { data: canStartCall, error: accessError } = await supabaseActor
+      .rpc('can_start_call', {
+        p_doctor_id: doctorRecord.id,
+        p_patient_id: resolvedPatientId,
+        p_appointment_id: appointmentId || null,
+      })
+
+    if (accessError) {
+      console.error('Doctor-patient access check failed:', accessError)
+      return new Response(JSON.stringify({ error: 'Patient access verification failed' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (canStartCall !== true) {
+      return new Response(JSON.stringify({ error: 'Patient access denied' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     console.info('Creating/reusing call for:', {
@@ -137,6 +204,14 @@ Deno.serve(async (req) => {
         .maybeSingle()
 
       if (existingCall) {
+        if (
+          existingCall.doctor_id !== doctorRecord.id ||
+          existingCall.patient_id !== resolvedPatientId
+        ) {
+          return new Response(JSON.stringify({ error: 'Existing call participant mismatch' }), {
+            status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
         targetCall = existingCall
         reused = true
         if (existingCall.status === 'requested') {
