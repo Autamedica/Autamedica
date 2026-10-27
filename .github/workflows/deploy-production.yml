@@ -23,7 +23,7 @@ on:
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -103,11 +103,11 @@ jobs:
   build-and-deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
-    needs: [validate]
+    needs: [validate, deploy-db]
     timeout-minutes: 20
-    if: always() && needs.validate.result == 'success'
+    if: always() && !cancelled() && needs.validate.result == 'success' && (needs.deploy-db.result == 'success' || needs.deploy-db.result == 'skipped')
     outputs:
-      prev_deployment: ${{ steps.snapshot.outputs.id }}
+      prev_deployments: ${{ steps.snapshot.outputs.deployments }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -167,13 +167,21 @@ jobs:
       - name: Unit tests before deployment
         run: pnpm test:unit
 
-      - name: Snapshot current deployment
+      - name: Snapshot production deployments
         id: snapshot
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          ID=$(curl -sf "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects/autamedica-web/deployments?env=production&per_page=1" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" | jq -r '.result[0].id // empty') || true
-          echo "id=${ID}" >> $GITHUB_OUTPUT
-        continue-on-error: true
+          snapshots='{}'
+          for project in autamedica-web autamedica-doctors autamedica-patients autamedica-companies autamedica-admin; do
+            response=$(curl --fail --silent --show-error --max-time 30 \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$project" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")
+            id=$(jq -er 'select(.success == true) | .result.canonical_deployment.id | select(type == "string" and length > 0)' <<< "$response")
+            snapshots=$(jq -c --arg project "$project" --arg id "$id" '. + {($project): $id}' <<< "$snapshots")
+          done
+          echo "deployments=$snapshots" >> "$GITHUB_OUTPUT"
 
       - name: Deploy (www)
         uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
@@ -261,16 +269,32 @@ jobs:
     name: Rollback
     runs-on: ubuntu-latest
     needs: [build-and-deploy, smoke-tests]
-    if: failure() && needs.build-and-deploy.result == 'success' && needs.build-and-deploy.outputs.prev_deployment != ''
+    if: always() && (needs.build-and-deploy.result == 'failure' || needs.smoke-tests.result == 'failure') && needs.build-and-deploy.outputs.prev_deployments != ''
+    timeout-minutes: 10
     steps:
-      - name: Rollback to previous deployment
+      - name: Restore all changed production projects
+        env:
+          PREVIOUS_DEPLOYMENTS: ${{ needs.build-and-deploy.outputs.prev_deployments }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          PREV="${{ needs.build-and-deploy.outputs.prev_deployment }}"
-          echo "Rolling back to $PREV"
-          RESULT=$(curl -sf -X POST \
-            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/pages/projects/autamedica-web/deployments/${PREV}/rollback" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}")
-          echo "$RESULT" | jq -r '.success' | grep -q true
+          failed=0
+          for project in autamedica-web autamedica-doctors autamedica-patients autamedica-companies autamedica-admin; do
+            previous=$(jq -er --arg project "$project" '.[$project] | select(type == "string" and length > 0)' <<< "$PREVIOUS_DEPLOYMENTS") || { failed=1; continue; }
+            endpoint="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$project"
+            current=$(curl --fail --silent --show-error --max-time 30 "$endpoint" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -er 'select(.success == true) | .result.canonical_deployment.id') || { failed=1; continue; }
+            if [[ "$current" == "$previous" ]]; then
+              echo "$project unchanged"
+              continue
+            fi
+            response=$(curl --fail --silent --show-error --max-time 30 -X POST \
+              "$endpoint/deployments/$previous/rollback" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN") || { failed=1; continue; }
+            jq -e '.success == true' <<< "$response" > /dev/null || { failed=1; continue; }
+            echo "$project restored"
+          done
+          exit "$failed"
 
   summary:
     name: Summary
