@@ -17,11 +17,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const { user, supabase } = auth
 
     const metadataRole =
-      typeof user.user_metadata?.role === 'string'
-        ? user.user_metadata.role
-        : typeof user.app_metadata?.role === 'string'
-          ? user.app_metadata.role
-          : undefined
+      typeof user.app_metadata?.role === 'string'
+        ? user.app_metadata.role
+        : undefined
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')

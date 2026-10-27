@@ -92,7 +92,7 @@ export const GET: APIRoute = async ({ request, cookies, locals }) => {
         user: {
           id: user.id,
           email: user.email,
-          role: user.user_metadata?.role ?? user.app_metadata?.role,
+          role: user.app_metadata?.role,
         },
       }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }

@@ -47,12 +47,8 @@ export async function authenticateSocket(
 
   // Si no hay Supabase configurado, permitir en desarrollo
   if (!supabase) {
-    logger.warn('[Auth] Supabase not configured, allowing connection');
-    return {
-      authenticated: true,
-      role: 'patient',
-      userId,
-    };
+    logger.error('[Auth] Supabase not configured; refusing unauthenticated socket');
+    return { authenticated: false };
   }
 
   try {
@@ -70,8 +66,8 @@ export async function authenticateSocket(
       return { authenticated: false };
     }
 
-    // Obtener rol del usuario desde metadata
-    const role = data.user.user_metadata?.role || 'patient';
+    // Privileged roles must come from server-managed app_metadata only.
+    const role = data.user.app_metadata?.role === 'doctor' ? 'doctor' : 'patient';
 
     logger.info(`[Auth] User authenticated: ${userId} (${role})`);
 
