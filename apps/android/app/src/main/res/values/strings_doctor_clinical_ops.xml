@@ -142,4 +142,5 @@
     <string name="cert_success_issued_cuir">Borrador guardado. Referencia: %1$s</string>
     <string name="cert_error_issue_failed">Error al emitir el certificado: %1$s</string>
     <string name="cert_error_connection">Fallo de conexión</string>
+    <string name="signature_remote_pending_notice">La matrícula profesional puede verificarse aquí, pero todavía no es posible firmar certificados mediante FirmAR. La firma dibujada no equivale a firma digital. El certificado continuará como borrador hasta completar la firma oficial.</string>
 </resources>
