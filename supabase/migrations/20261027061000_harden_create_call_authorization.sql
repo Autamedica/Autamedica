@@ -16,7 +16,7 @@ LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = ''
-AS $
+AS $$
   SELECT EXISTS (
     SELECT 1
     FROM public.doctors AS d
@@ -62,7 +62,7 @@ AS $
         ))
       )
   );
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.can_start_call(uuid, uuid, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.can_start_call(uuid, uuid, uuid) TO authenticated;
