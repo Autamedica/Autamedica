@@ -104,10 +104,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!resolvedPatientId) {
+    // Guest appointments deliberately have patient_id = NULL. Their verified
+    // appointment ID is the only permitted way to start a patient-less call.
+    if (!resolvedPatientId && !appointmentId) {
       return new Response(
         JSON.stringify({
-          error: 'Missing required patient: patientId or a valid appointmentId with a patient is required'
+          error: 'Missing required patient or appointment: patientId or appointmentId is required'
         }),
         {
           status: 400,
