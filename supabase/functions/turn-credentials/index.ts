@@ -92,7 +92,7 @@ export async function handler(req: Request): Promise<Response> {
     const user = authData.user
 
     // 2. Role verification: must be an authenticated patient or doctor
-    const jwtRole = (user.app_metadata?.role ?? user.user_metadata?.role) as string | undefined
+    const jwtRole = user.app_metadata?.role as string | undefined
     let isAuthorized = !!jwtRole && ALLOWED_ROLES.includes(jwtRole)
 
     if (!isAuthorized) {
