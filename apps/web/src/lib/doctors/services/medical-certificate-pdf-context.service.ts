@@ -73,6 +73,7 @@ export async function loadMedicalCertificateForDoctor(
       doctorLicense: doctor.license_number ?? '',
       jurisdiction: doctor.enrollment_jurisdiction,
       diagnosis: cert.diagnosis,
+      hideDiagnosis: cert.hide_diagnosis === true,
       treatment: (cert as typeof cert & { treatment?: string | null }).treatment,
       observations: cert.observations,
       daysOfRest: cert.days_of_rest,
