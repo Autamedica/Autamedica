@@ -80,7 +80,7 @@ BEGIN
   INSERT INTO public.profiles(user_id) VALUES (v_user) ON CONFLICT (user_id) DO NOTHING;
   INSERT INTO public.doctors(id,user_id,license_number,specialty,active)
   VALUES (v_doctor,v_user,'TEST-' || v_doctor,'General',true),
-         (v_other_doctor,gen_random_uuid(),'TEST-' || v_other_doctor,'General',true);
+         (v_other_doctor,NULL,'TEST-' || v_other_doctor,'General',true);
   INSERT INTO public.patients(id,active) VALUES(v_patient,true);
   INSERT INTO public.appointments(id,doctor_id,patient_id,start_time,type,status,deleted_at)
   VALUES
