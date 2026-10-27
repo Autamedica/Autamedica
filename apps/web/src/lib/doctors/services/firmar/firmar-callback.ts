@@ -12,7 +12,7 @@ export interface PendingFirmArRequest {
   tokenHash: string;
   draftPdfSha256: string;
   expiresAt: string;
-  status: 'pending';
+  status: 'pending' | 'awaiting_doctor_authorization';
 }
 
 export interface PadesVerificationEvidence {
@@ -89,7 +89,8 @@ export async function validateFirmArSignedDocument(
   verify: IndependentPadesVerifier,
 ): Promise<{ certificateId: string; signedPdf: Uint8Array; signedPdfSha256: string; signedAt: string; fingerprintSha256: string }> {
   const { token, pdf } = parseFirmArCallback(payload);
-  if (pending.status !== 'pending' || !sameHash(await hashFirmArToken(token), pending.tokenHash)) {
+  if (!['pending', 'awaiting_doctor_authorization'].includes(pending.status) ||
+      !sameHash(await hashFirmArToken(token), pending.tokenHash)) {
     throw new Error('firmar_unknown_or_replayed_token');
   }
   if (!Number.isFinite(Date.parse(pending.expiresAt)) || Date.parse(pending.expiresAt) <= Date.now()) {
