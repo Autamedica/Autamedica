@@ -45,6 +45,18 @@ function apiOrigin(baseUrl: string): string {
   return url.origin;
 }
 
+export function validateDoctorCuil(input: string): string {
+  const digits = input.replace(/[-\s]/g, '');
+  if (!/^\d{11}$/.test(digits)) throw new Error('firmar_doctor_cuil_invalid');
+  const weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  const sum = weights.reduce((n, w, i) => n + w * Number(digits[i]), 0);
+  const check = 11 - (sum % 11);
+  if (check === 10 || (check === 11 ? 0 : check) !== Number(digits[10])) {
+    throw new Error('firmar_doctor_cuil_checksum_invalid');
+  }
+  return digits;
+}
+
 function base64(bytes: Uint8Array): string {
   let result = '';
   for (let i = 0; i < bytes.length; i += 8192) {
@@ -68,8 +80,9 @@ export class FirmarRemoteClient {
   }
 
   async createSigningSession(input: FirmarSignRequest): Promise<FirmarSigningSession> {
-    if (!/^\d{11}$/.test(input.doctorCuil)) throw new Error('firmar_doctor_cuil_invalid');
-    if (!input.pdfBytes.length || !new TextDecoder().decode(input.pdfBytes.subarray(0, 5)).startsWith('%PDF-')) {
+    const verifiedCuil = validateDoctorCuil(input.doctorCuil);
+    if (input.pdfBytes.length < 5 || input.pdfBytes.length > 8 * 1024 * 1024 ||
+        !new TextDecoder().decode(input.pdfBytes.subarray(0, 5)).startsWith('%PDF-')) {
       throw new Error('firmar_document_not_pdf');
     }
     if (!/^[A-Za-z0-9_-]{32,160}$/.test(input.requestToken)) {
@@ -91,6 +104,7 @@ export class FirmarRemoteClient {
       },
       body: new URLSearchParams({ grant_type: 'client_credentials' }).toString(),
       redirect: 'error',
+      signal: AbortSignal.timeout(15000),
     });
     if (!tokenResp.ok) throw new Error('firmar_auth_failed');
     const tokenJson: unknown = await tokenResp.json();
@@ -107,13 +121,14 @@ export class FirmarRemoteClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        cuil: input.doctorCuil,
+        cuil: verifiedCuil,
         metadata: { tipo: 'firmar', token: input.requestToken },
         urlRedirect: returnUrl.href,
         type: 'PDF',
         documento: base64(input.pdfBytes),
       }),
       redirect: 'manual',
+      signal: AbortSignal.timeout(30000),
     });
 
     if (docResp.status !== 200 && docResp.status !== 201) {
