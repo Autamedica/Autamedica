@@ -35,11 +35,28 @@ GRANT EXECUTE ON FUNCTION public.insert_geo_citation(text, text, boolean, text) 
 REVOKE ALL ON FUNCTION public.is_channel_enabled(text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.is_channel_enabled(text) TO service_role;
 
-REVOKE ALL ON FUNCTION public.claim_next_topic(text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.claim_next_topic(text) TO service_role;
-
-REVOKE ALL ON FUNCTION public.resolve_topic(bigint, text, uuid, text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.resolve_topic(bigint, text, uuid, text) TO service_role;
+-- These two legacy Growth OS RPCs exist in production but are absent from
+-- the versioned baseline. Keep their ACLs strict wherever they exist without
+-- creating placeholder routines or failing a clean database reconstruction.
+DO $legacy_rpc_acl$
+DECLARE
+  v_signature text;
+  v_function regprocedure;
+BEGIN
+  FOREACH v_signature IN ARRAY ARRAY[
+    'public.claim_next_topic(text)',
+    'public.resolve_topic(bigint,text,uuid,text)'
+  ] LOOP
+    v_function := pg_catalog.to_regprocedure(v_signature);
+    IF v_function IS NULL THEN
+      RAISE NOTICE 'Legacy optional RPC absent; no ACL to change: %', v_signature;
+    ELSE
+      EXECUTE pg_catalog.format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', v_function);
+      EXECUTE pg_catalog.format('GRANT EXECUTE ON FUNCTION %s TO service_role', v_function);
+    END IF;
+  END LOOP;
+END;
+$legacy_rpc_acl$;
 
 REVOKE ALL ON FUNCTION public.recalculate_all_rankings() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.recalculate_all_rankings() TO service_role;
