@@ -3,6 +3,70 @@
 -- No data migrations. Rejects any new call lacking an authorized doctor-patient link.
 -- Previously created calls are unchanged.
 
+-- Helper callable with the doctor's JWT before any privileged side effects.
+-- Ownership + relationship predicates mirror the create_call RPC.
+-- Supports pharmacy guest patients whose user_id is NULL.
+CREATE OR REPLACE FUNCTION public.can_start_call(
+  p_doctor_id uuid,
+  p_patient_id uuid,
+  p_appointment_id uuid DEFAULT NULL
+)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.doctors AS d
+    JOIN public.patients AS p ON p.id = p_patient_id
+    WHERE d.id = p_doctor_id
+      AND d.user_id = (SELECT auth.uid())
+      AND d.active = true
+      AND p.active = true
+      AND (
+        (p_appointment_id IS NOT NULL AND EXISTS (
+          SELECT 1 FROM public.appointments AS a
+          WHERE a.id = p_appointment_id
+            AND a.doctor_id = d.id
+            AND a.patient_id = p.id
+            AND a.deleted_at IS NULL
+            AND a.type = 'telemedicine'
+            AND a.status IN ('scheduled', 'confirmed', 'in_progress', 'no_show')
+        ))
+        OR
+        (p_appointment_id IS NULL AND (
+          EXISTS (
+            SELECT 1 FROM public.patient_care_team AS pct
+            WHERE pct.doctor_id = d.id AND pct.patient_id = p.id AND pct.active = true
+          )
+          OR EXISTS (
+            SELECT 1 FROM public.doctor_patient AS dp
+            WHERE dp.doctor_id = d.id AND dp.patient_id = p.id
+          )
+          OR EXISTS (
+            SELECT 1 FROM public.appointments AS a
+            WHERE a.doctor_id = d.id AND a.patient_id = p.id AND a.deleted_at IS NULL
+          )
+          OR EXISTS (
+            SELECT 1 FROM public.pharmacy_dispatch_requests AS r
+            WHERE (r.assigned_doctor_id = d.id OR r.previous_doctor_id = d.id)
+              AND (
+                r.patient_id = p.id
+                OR r.requested_by_user_id = p.user_id
+                OR (p.dni IS NOT NULL AND r.patient_dni = p.dni)
+                OR (p.cpf IS NOT NULL AND r.patient_cpf = p.cpf)
+              )
+          )
+        ))
+      )
+  );
+$;
+
+REVOKE ALL ON FUNCTION public.can_start_call(uuid, uuid, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.can_start_call(uuid, uuid, uuid) TO authenticated;
+
 CREATE OR REPLACE FUNCTION public.create_call(
   p_doctor_id uuid,
   p_patient_id uuid,
