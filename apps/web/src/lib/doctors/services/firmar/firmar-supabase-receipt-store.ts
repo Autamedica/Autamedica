@@ -7,6 +7,12 @@ import type { FirmArStoredSession, FirmArVerifiedReceiptStore } from './firmar-v
 
 const BUCKET = 'medical-documents';
 
+async function sha256Hex(pdfBytes: Uint8Array): Promise<string> {
+  const stable = Uint8Array.from(pdfBytes);
+  const digest = await crypto.subtle.digest('SHA-256', stable.buffer);
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
 export function createFirmArSupabaseReceiptStore(adminClient: unknown): FirmArVerifiedReceiptStore {
   const admin = adminClient as SupabaseClient;
 
@@ -46,7 +52,24 @@ export function createFirmArSupabaseReceiptStore(adminClient: unknown): FirmArVe
         .upload(path, Uint8Array.from(signedBytes), {
           contentType: 'application/pdf', upsert: false, cacheControl: '0',
         });
-      if (error) throw new Error('firmar_signed_pdf_private_upload_failed');
+      if (error) {
+        // A callback may be retried after storage succeeded but the DB
+        // transaction failed. Never overwrite signed clinical bytes. Allow a
+        // retry only if the already-stored private PDF is byte-for-byte equal
+        // to the independently verified incoming document (by SHA-256).
+        const { data: existing, error: downloadError } = await admin.storage
+          .from(BUCKET).download(path);
+        if (downloadError || !existing) {
+          throw new Error('firmar_signed_pdf_private_upload_failed');
+        }
+        const savedBytes = new Uint8Array(await existing.arrayBuffer());
+        const [savedHash, proposedHash] = await Promise.all([
+          sha256Hex(savedBytes), sha256Hex(signedBytes),
+        ]);
+        if (savedHash !== proposedHash) {
+          throw new Error('firmar_signed_pdf_conflict_integrity_mismatch');
+        }
+      }
       return path;
     },
 
