@@ -22,7 +22,7 @@ describe('FirmAR physician API release gates', () => {
       params: { id: '../other-doctor' },
       locals: {},
       request: new Request('https://www.autamedica.com/api/doctors/certificates/x/firmar', { method: 'POST' }),
-    } as Parameters<typeof POST>[0]);
+    } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(400);
   });
 
@@ -33,7 +33,7 @@ describe('FirmAR physician API release gates', () => {
         runtime: { env: { FIRMAR_ENABLED: 'false', FIRMAR_INTEGRATION_APPROVED: 'false' } },
       },
       request: new Request('https://www.autamedica.com/api/doctors/certificates/' + sampleCertificateId + '/firmar', { method: 'POST', headers: { Origin: 'https://www.autamedica.com' } }),
-    } as Parameters<typeof POST>[0]);
+    } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(503);
     const result = await response.json();
     expect(result.success).toBe(false);
@@ -48,7 +48,7 @@ describe('FirmAR physician API release gates', () => {
         method: 'POST',
         headers: { Origin: 'https://evil.example' },
       }),
-    } as Parameters<typeof POST>[0]);
+    } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(403);
   });
 
@@ -67,7 +67,7 @@ describe('FirmAR physician API release gates', () => {
         },
       },
       request: new Request('https://www.autamedica.com/api/doctors/certificates/' + sampleCertificateId + '/firmar', { method: 'POST', headers: { Origin: 'https://www.autamedica.com' } }),
-    } as Parameters<typeof POST>[0]);
+    } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(503);
     const result = await response.json();
     expect(result.error?.message).toBe('firmar_credentials_not_configured');
