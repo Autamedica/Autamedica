@@ -17,6 +17,11 @@ import { prepareFirmArSigningSession } from '@/lib/doctors/services/firmar/firma
 import { createFirmArSupabaseSessionStore } from '@/lib/doctors/services/firmar/firmar-supabase-session-store';
 import { logger } from '@autamedica/shared';
 
+// Hard release gate: do not initiate signatures until the callback can
+// independently verify PAdES and durably finalize them. Env flags alone cannot
+// bypass this programmatic gate.
+const CALLBACK_SIGNATURE_VERIFIER_READY = false;
+
 function runtimeConfig(locals: App.Locals) {
   const vars = (locals.runtime?.env ?? {}) as Record<string, unknown>;
   const configured = (key: string): string => {
@@ -54,7 +59,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       .limit(1)
       .maybeSingle();
     if (error) throw error;
-    return jsonOk({ integrationEnabled: runtimeConfig(locals).enabled && runtimeConfig(locals).approved,
+    return jsonOk({ integrationEnabled: CALLBACK_SIGNATURE_VERIFIER_READY && runtimeConfig(locals).enabled && runtimeConfig(locals).approved,
       certificateStatus: record.status,
       requestStatus: data?.status ?? null,
       expiresAt: data?.expires_at ?? null,
@@ -82,6 +87,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   if (!cfg.apiUser || !cfg.apiSecret || !cfg.baseUrl) {
     return serviceUnavailable('firmar_credentials_not_configured');
   }
+  if (!CALLBACK_SIGNATURE_VERIFIER_READY) return serviceUnavailable('firmar_callback_verifier_not_ready');
 
   try {
     const admin = createAstroAdminClient(locals.runtime?.env);
