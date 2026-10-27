@@ -41,7 +41,7 @@ export async function processVerifiedFirmArCallback(input: {
   const { token } = parseFirmArCallback(input.payload);
   const tokenHash = await hashFirmArToken(token);
   const pending = await input.store.findByTokenHash(tokenHash);
-  if (!pending || pending.status !== 'awaiting_doctor_authorization') {
+  if (pending?.status !== 'awaiting_doctor_authorization') {
     throw new Error('firmar_callback_not_pending');
   }
 
