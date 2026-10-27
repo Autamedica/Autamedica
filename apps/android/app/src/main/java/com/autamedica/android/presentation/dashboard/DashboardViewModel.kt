@@ -49,8 +49,9 @@ data class DashboardUiState(
     // Health Reserve Subscription
     val subscriptionTier: String = "free", // "free" | "cuidado"
     val subscriptionStatus: String = "active", // "active" | "past_due"
-    val benefitBalanceCredits: Int = 22,
-    val maxCapCredits: Int = 600,
+    // No verified subscription/credit source has been loaded yet. Never invent a balance.
+    val benefitBalanceCredits: Int = 0,
+    val maxCapCredits: Int = 0,
     val showReserveBanner: Boolean = true,
     // Wallet
     val walletBalanceCents: Long = 0L,

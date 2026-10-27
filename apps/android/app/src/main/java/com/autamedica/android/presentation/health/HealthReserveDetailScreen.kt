@@ -65,7 +65,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,8 +85,6 @@ import com.autamedica.android.presentation.theme.AuSurfaceHover
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -245,22 +242,21 @@ fun getPlanByTier(tierKey: String): ReservePlan =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HealthReserveDetailScreen(
-    subscriptionTier: String = "cuidado",
-    benefitBalanceCredits: Int = 22,
-    maxCapCredits: Int = 600,
+    subscriptionTier: String = "free",
+    benefitBalanceCredits: Int = 0,
+    maxCapCredits: Int = 0,
     onBack: () -> Unit = {},
-    onActivatePlan: (String) -> Unit = {},
+    onActivatePlan: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var activeTier by remember(subscriptionTier) { mutableStateOf(subscriptionTier.lowercase()) }
     var currentCredits by remember(benefitBalanceCredits) { mutableIntStateOf(benefitBalanceCredits) }
-    var currentMaxCap by remember(maxCapCredits) { mutableIntStateOf(if (maxCapCredits > 0) maxCapCredits else 600) }
+    var currentMaxCap by remember(maxCapCredits) { mutableIntStateOf(maxCapCredits.coerceAtLeast(0)) }
     var selectedPlanForActivation by remember { mutableStateOf<ReservePlan?>(null) }
     var isActivating by remember { mutableStateOf(false) }
     var activationSuccessMessage by remember { mutableStateOf<String?>(null) }
     var simulatedMonths by remember { mutableIntStateOf(3) }
 
-    val coroutineScope = rememberCoroutineScope()
     val currentPlan = getPlanByTier(activeTier)
     val progressFraction = calculateProgressFraction(currentCredits, currentMaxCap)
 
@@ -915,24 +911,12 @@ fun HealthReserveDetailScreen(
                 // Botón de confirmación con estado de carga
                 Button(
                     onClick = {
-                        isActivating = true
-                        coroutineScope.launch {
-                            delay(500) // Feedback de transición fluida
-                            onActivatePlan(planToActivate.tierKey)
-                            activeTier = planToActivate.tierKey
-                            if (planToActivate.tierKey == "cuidado") {
-                                currentMaxCap = 600
-                                if (currentCredits == 0) currentCredits = 22
-                            } else if (planToActivate.tierKey == "familiar") {
-                                currentMaxCap = 1800
-                                if (currentCredits == 0) currentCredits = 66
-                            }
-                            isActivating = false
-                            selectedPlanForActivation = null
-                            activationSuccessMessage = "Has activado el Plan ${planToActivate.name}. Tu Reserva de Salud ya está sumando beneficios."
-                        }
+                        // Request plan activation from a real backend owner only.
+                        // Do not change tier/credits or claim success before server confirmation.
+                        onActivatePlan?.invoke(planToActivate.tierKey)
+                        selectedPlanForActivation = null
                     },
-                    enabled = !isActivating,
+                    enabled = !isActivating && onActivatePlan != null,
                     modifier = Modifier
                         .fillMaxWidth()
                         .sizeIn(minHeight = 50.dp),
@@ -949,7 +933,7 @@ fun HealthReserveDetailScreen(
                         Text("Activando plan...", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     } else {
                         Text(
-                            text = if (planToActivate.priceMonthlyArs > 0) "Confirmar y Activar" else "Confirmar Plan Gratuito",
+                            text = if (onActivatePlan == null) "Activación no disponible" else if (planToActivate.priceMonthlyArs > 0) "Confirmar y Activar" else "Confirmar Plan Gratuito",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                         )
