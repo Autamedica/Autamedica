@@ -142,4 +142,5 @@
     <string name="cert_success_issued_cuir">Rascunho salvo. Referência: %1$s</string>
     <string name="cert_error_issue_failed">Erro ao emitir o atestado médico: %1$s</string>
     <string name="cert_error_connection">Falha de conexão com o servidor</string>
+    <string name="signature_remote_pending_notice">É possível verificar a habilitação profissional aqui, mas ainda não é possível assinar atestados com o FirmAR. Uma assinatura desenhada não equivale a uma assinatura digital. O documento permanece como rascunho até a assinatura oficial.</string>
 </resources>
