@@ -1,6 +1,5 @@
 package com.autamedica.android.data.remote
 
-import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
@@ -158,19 +157,16 @@ class SupabaseAuthDataSource @Inject constructor(
             ?.takeIf { it.isNotBlank() }
     }
 
+    fun isCurrentUser(userId: String): Boolean =
+        auth.currentSessionOrNull()?.user?.id == userId
+
     suspend fun fetchUserRole(userId: String): String? {
-        return try {
-            val result = supabase.postgrest.from("profiles")
-                .select(io.github.jan.supabase.postgrest.query.Columns.list("role")) {
-                    filter { eq("user_id", userId) }
-                }
-                .decodeList<ProfileRoleOnly>()
-                .firstOrNull()
-            result?.role
-        } catch (e: Exception) {
-            SecureLog.warn("Failed to fetch user role from profiles table", e)
-            null
-        }
+        return supabase.postgrest.from("profiles")
+            .select(io.github.jan.supabase.postgrest.query.Columns.list("role")) {
+                filter { eq("user_id", userId) }
+            }
+            .decodeList<ProfileRoleOnly>()
+            .firstOrNull()?.role
     }
 
     suspend fun sendPasswordResetEmail(email: String) {

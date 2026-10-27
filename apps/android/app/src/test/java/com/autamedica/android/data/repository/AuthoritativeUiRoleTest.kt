@@ -7,9 +7,10 @@ class AuthoritativeUiRoleTest {
     @Test
     fun missingDatabaseRoleNeverGrantsDoctorPrivileges() {
         // Login role preference or forged user_metadata must not become authority.
-        assertThat(authoritativeUiRole(null)).isEqualTo("patient")
-        assertThat(authoritativeUiRole("")).isEqualTo("patient")
-        assertThat(authoritativeUiRole("   ")).isEqualTo("patient")
+        for (role in listOf(null, "", "   ", "unknown")) {
+            assertThat(runCatching { authoritativeUiRole(role) }.exceptionOrNull())
+                .isInstanceOf(IllegalArgumentException::class.java)
+        }
     }
 
     @Test
