@@ -51,6 +51,11 @@ $audit$;
 
 -- Behavioral regression test. Disposable CI database ONLY; all fixtures roll back.
 BEGIN;
+-- Only in disposable CI: suppress application notification/audit triggers;
+-- ordinary FK constraints stay enabled, and the transaction rolls back.
+ALTER TABLE public.profiles DISABLE TRIGGER USER;
+ALTER TABLE public.doctors DISABLE TRIGGER USER;
+ALTER TABLE public.appointments DISABLE TRIGGER USER;
 DO $guest_calls$
 DECLARE
   v_user uuid := gen_random_uuid();
@@ -67,9 +72,12 @@ DECLARE
   v_call record;
   v_before bigint;
 BEGIN
-  -- Isolate fixture setup from reminder/email triggers and unrelated FK graphs.
-  -- Restore normal trigger/FK enforcement before exercising either RPC.
-  PERFORM set_config('session_replication_role', 'replica', true);
+  -- Create a real disposable auth identity so the doctor FK remains enforced.
+  INSERT INTO auth.users(id, instance_id, aud, role, email, created_at, updated_at)
+  VALUES (v_user, '00000000-0000-0000-0000-000000000000',
+          'authenticated', 'authenticated', 'ci-call-' || v_user || '@example.invalid',
+          now(), now());
+  INSERT INTO public.profiles(user_id) VALUES (v_user) ON CONFLICT (user_id) DO NOTHING;
   INSERT INTO public.doctors(id,user_id,license_number,specialty,active)
   VALUES (v_doctor,v_user,'TEST-' || v_doctor,'General',true),
          (v_other_doctor,gen_random_uuid(),'TEST-' || v_other_doctor,'General',true);
@@ -82,7 +90,6 @@ BEGIN
     (v_deleted,v_doctor,NULL,now() + interval '4 days','telemedicine','scheduled',now()),
     (v_cancelled,v_doctor,NULL,now() + interval '5 days','telemedicine','cancelled',NULL),
     (v_inperson,v_doctor,NULL,now() + interval '6 days','consultation','scheduled',NULL);
-  PERFORM set_config('session_replication_role', 'origin', true);
   PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_user,'role','authenticated')::text,true);
 
   IF public.can_start_call(v_doctor,NULL,v_guest) IS DISTINCT FROM true THEN
@@ -150,4 +157,7 @@ BEGIN
   RAISE NOTICE 'Guest and registered call authorization regression tests passed';
 END;
 $guest_calls$;
+ALTER TABLE public.appointments ENABLE TRIGGER USER;
+ALTER TABLE public.doctors ENABLE TRIGGER USER;
+ALTER TABLE public.profiles ENABLE TRIGGER USER;
 ROLLBACK;
