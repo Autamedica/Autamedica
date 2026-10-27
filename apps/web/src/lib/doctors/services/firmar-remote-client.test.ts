@@ -10,7 +10,7 @@ const config = {
 };
 
 const request = {
-  doctorCuil: '20123456789',
+  doctorCuil: '20123456786',
   requestToken: token,
   returnUrl: 'https://www.autamedica.com/doctors/certificates/return',
   pdfBytes: PDF,
@@ -58,6 +58,8 @@ describe('FirmAR remote API client', () => {
     const client = new FirmarRemoteClient(config, fetcher);
     await expect(client.createSigningSession({ ...request, doctorCuil: 'invalid' }))
       .rejects.toThrow('firmar_doctor_cuil_invalid');
+    await expect(client.createSigningSession({ ...request, doctorCuil: '20123456789' }))
+      .rejects.toThrow('firmar_doctor_cuil_checksum_invalid');
     await expect(client.createSigningSession({ ...request, pdfBytes: new Uint8Array([1]) }))
       .rejects.toThrow('firmar_document_not_pdf');
     await expect(client.createSigningSession({ ...request, requestToken: 'guessable' }))
