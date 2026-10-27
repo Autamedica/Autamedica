@@ -70,6 +70,13 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
   if (!isAuthed(auth)) return auth;
 
+  // Cookie-authenticated POST must originate from the same site as this route.
+  // Cross-site form requests must never trigger a remote signing session.
+  const origin = request.headers.get('origin');
+  if (!origin || origin !== new URL(request.url).origin) {
+    return forbidden('firmar_cross_origin_request');
+  }
+
   const cfg = runtimeConfig(locals);
   if (!cfg.enabled || !cfg.approved) return serviceUnavailable('firmar_integration_pending_authorization');
   if (!cfg.apiUser || !cfg.apiSecret || !cfg.baseUrl) {
