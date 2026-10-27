@@ -247,6 +247,9 @@ export function DoctorsPrescriptionsPage() {
   const [certificates, setCertificates] = useState<CertificateItem[]>([]);
   const [certLoading, setCertLoading] = useState(false);
   const [certError, setCertError] = useState<string | null>(null);
+  const [firmarAvailable, setFirmarAvailable] = useState(false);
+  const [firmarBusyId, setFirmarBusyId] = useState<string | null>(null);
+  const [firmarError, setFirmarError] = useState<string | null>(null);
 
   const fetchCertificates = useCallback(async () => {
     if (!selectedPatientId) {
@@ -278,6 +281,55 @@ export function DoctorsPrescriptionsPage() {
       setCertificates([]);
     }
   }, [selectedPatientId, fetchCertificates]);
+
+  // FirmAR is hidden until the server reports BOTH release gates enabled.
+  useEffect(() => {
+    const draft = docMode === "certificates" ? certificates.find(cert => cert.status === "draft") : undefined;
+    if (!draft) {
+      setFirmarAvailable(false);
+      return;
+    }
+    const controller = new AbortController();
+    setFirmarAvailable(false);
+    void fetch(`/api/doctors/certificates/${encodeURIComponent(draft.id)}/firmar`, {
+      credentials: "include",
+      signal: controller.signal,
+    }).then(async res => {
+      if (!res.ok) return;
+      const json: { success?: boolean; data?: { integrationEnabled?: boolean } } = await res.json();
+      if (!controller.signal.aborted) setFirmarAvailable(json.success === true && json.data?.integrationEnabled === true);
+    }).catch(() => {
+      if (!controller.signal.aborted) setFirmarAvailable(false);
+    });
+    return () => controller.abort();
+  }, [certificates, docMode]);
+
+  const startFirmarSignature = async (certificateId: string): Promise<void> => {
+    if (!firmarAvailable || firmarBusyId) return;
+    setFirmarBusyId(certificateId);
+    setFirmarError(null);
+    try {
+      const response = await fetch(`/api/doctors/certificates/${encodeURIComponent(certificateId)}/firmar`, {
+        method: "POST",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) throw new Error("No se pudo iniciar la firma digital.");
+      const json: { success?: boolean; data?: { status?: string; authorizationUrl?: string } } = await response.json();
+      if (json.success !== true || json.data?.status !== "awaiting_doctor_authorization") {
+        throw new Error("La solicitud no fue autorizada.");
+      }
+      const url = new URL(json.data.authorizationUrl ?? "");
+      if (url.protocol !== "https:" || !["firmar.gob.ar", "tst.firmar.gob.ar"].includes(url.hostname)) {
+        throw new Error("Destino de firma no autorizado.");
+      }
+      window.location.assign(url.href);
+    } catch (error) {
+      setFirmarError(error instanceof Error ? error.message : "Error al iniciar la firma");
+    } finally {
+      setFirmarBusyId(null);
+    }
+  };
 
   const selectedPatient = useMemo(
     () => patients.find((p) => p.id === selectedPatientId),
@@ -782,6 +834,11 @@ export function DoctorsPrescriptionsPage() {
                   </div>
                 )}
 
+                {firmarError && (
+                  <div role="alert" className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                    {firmarError}
+                  </div>
+                )}
                 {!certLoading && certificates.length > 0 && (
                   <div className="space-y-3">
                     {certificates.map((cert) => {
@@ -847,6 +904,18 @@ export function DoctorsPrescriptionsPage() {
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2">
+                              {firmarAvailable && cert.status === "draft" && (
+                                <button
+                                  type="button"
+                                  onClick={() => void startFirmarSignature(cert.id)}
+                                  disabled={firmarBusyId !== null}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-700 px-3 py-2 text-xs font-medium text-white hover:bg-blue-800 disabled:opacity-50"
+                                  title="El médico debe autorizar personalmente cada firma mediante FirmAR"
+                                >
+                                  <FileCheck className="h-3.5 w-3.5" />
+                                  {firmarBusyId === cert.id ? "Iniciando..." : "Firmar con FirmAR"}
+                                </button>
+                              )}
                               {certUrl && (
                                 <a
                                   href={certUrl}
