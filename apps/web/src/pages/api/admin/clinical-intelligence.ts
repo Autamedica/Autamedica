@@ -132,7 +132,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       };
 
     if (anomalyError) {
-      logger.error("[admin/clinical-intelligence] Early warning engine failed", anomalyError);
+      throw new Error("clinical_anomaly_analysis_failed");
     }
 
     // 3. CAPA PLATA: Fetch current Red Flags for live tracking
@@ -195,97 +195,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
       }
     });
   } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : "clinical_intelligence_failed";
-    logger.warn("[admin/clinical-intelligence] Failed to process database clinical intelligence. Initiating high-fidelity EWS fallback data simulation.", err);
-    
-    // High-fidelity fallback data to prevent dashboard crashes in databases without OLAP tables
-    const fallbackSeasonalSymptoms = {
-      Verano: [
-        { name: "Deshidratación Aguda", count: 124, snomed: "274640006", icd11: "MD20" },
-        { name: "Gastroenteritis Infecciosa", count: 98, snomed: "34014006", icd11: "1A00" },
-        { name: "Golpe de Calor", count: 75, snomed: "418428005", icd11: "NF21" },
-        { name: "Insolación Térmica", count: 42, snomed: "371111005", icd11: "NF21.1" },
-        { name: "Erupción Cutánea Estival", count: 31, snomed: "402271008", icd11: "EK90" },
-        { name: "Picaduras de Insectos", count: 28, snomed: "418293004", icd11: "NE12" }
-      ],
-      Otoño: [
-        { name: "Rinitis Alérgica", count: 145, snomed: "405731005", icd11: "CA08" },
-        { name: "Bronquitis Aguda", count: 112, snomed: "10509002", icd11: "CA40" },
-        { name: "Asma Bronquial Exacerbada", count: 89, snomed: "195967001", icd11: "CA23" },
-        { name: "Faringitis Aguda", count: 67, snomed: "14120008", icd11: "CA01" },
-        { name: "Resfriado Común", count: 54, snomed: "82272006", icd11: "1D01" }
-      ],
-      Invierno: [
-        { name: "Influenza Estacional A/B", count: 432, snomed: "442696008", icd11: "1D00" },
-        { name: "Neumonía Bacteriana", count: 187, snomed: "233604007", icd11: "CA42" },
-        { name: "Sincitial Respiratorio (VSR)", count: 156, snomed: "40956001", icd11: "1D03" },
-        { name: "Laringotraqueitis Aguda", count: 92, snomed: "45582006", icd11: "CA02" },
-        { name: "Hipotermia Accidental", count: 15, snomed: "386689009", icd11: "NE00" }
-      ],
-      Primavera: [
-        { name: "Polinosis / Rino-Conjuntivitis", count: 198, snomed: "232353008", icd11: "CA08.1" },
-        { name: "Dermatitis Atópica", count: 87, snomed: "24079001", icd11: "EK10" },
-        { name: "Conjuntivitis Alérgica", count: 64, snomed: "47346002", icd11: "9A04" },
-        { name: "Varicela Infantil", count: 32, snomed: "38907003", icd11: "1E90" },
-        { name: "Crisis Asmáticas Estacionales", count: 29, snomed: "195967001", icd11: "CA23" }
-      ]
-    };
-
-    const fallbackRedFlags = [
-      { name: "Fiebre persistente > 39°C", count: 85 },
-      { name: "Dificultad Respiratoria Aguda", count: 72 },
-      { name: "Deshidratación Severa en Lactantes", count: 48 },
-      { name: "Saturación de Oxígeno < 93%", count: 39 },
-      { name: "Rigidez de Nuca / Meningismo", count: 12 },
-      { name: "Confusión / Alteración del Sensorio", count: 8 }
-    ];
-
-    const fallbackAnomalies = [
-      {
-        symptom: "Influenza Estacional A/B",
-        snomed: "442696008",
-        last_week_count: 142,
-        historical_weekly_avg: 45,
-        percent_increase: 215.5,
-        is_outbreak_warning: true
-      },
-      {
-        symptom: "Sincitial Respiratorio (VSR)",
-        snomed: "40956001",
-        last_week_count: 78,
-        historical_weekly_avg: 28,
-        percent_increase: 178.6,
-        is_outbreak_warning: true
-      },
-      {
-        symptom: "Gastroenteritis Infecciosa",
-        snomed: "34014006",
-        last_week_count: 95,
-        historical_weekly_avg: 75,
-        percent_increase: 26.7,
-        is_outbreak_warning: false
-      },
-      {
-        symptom: "Polinosis / Rino-Conjuntivitis",
-        snomed: "232353008",
-        last_week_count: 110,
-        historical_weekly_avg: 92,
-        percent_increase: 19.6,
-        is_outbreak_warning: false
-      }
-    ];
-
-    return json({
-      success: true,
-      data: {
-        success: true,
-        seasonal_symptoms: fallbackSeasonalSymptoms,
-        red_flags_ranking: fallbackRedFlags,
-        early_warning_alerts: fallbackAnomalies.filter(a => a.is_outbreak_warning || a.percent_increase > 15),
-        historical_anomalies: fallbackAnomalies,
-        is_fallback: true,
-        details: errorMsg
-      }
-    });
+    const errorName = err instanceof Error ? err.name : "UnknownError";
+    logger.error("[admin/clinical-intelligence] Clinical data query failed", { errorName });
+    return json({ success: false, error: "clinical_intelligence_unavailable" }, 503);
   }
 };
