@@ -28,6 +28,20 @@ describe('medical certificate PDF', () => {
     expect(text).not.toContain('https://autamedica.com/verify/');
   });
 
+  it('omits confidential diagnosis in both draft preview and signing source', () => {
+    const privateCase = {
+      ...caseFile,
+      diagnosis: 'CONFIDENTIAL-DIAGNOSIS-NEVER-IN-PDF',
+      hideDiagnosis: true,
+    };
+    for (const mode of ['draft', 'signing-source'] as const) {
+      const pdf = generateMedicalCertificatePdf(privateCase, mode);
+      const documentText = Buffer.from(pdf).toString('latin1');
+      expect(documentText).not.toContain('CONFIDENTIAL-DIAGNOSIS-NEVER-IN-PDF');
+      expect(documentText).not.toContain('DIAGNOSTICO');
+    }
+  });
+
   it('generates source bytes to be signed without claiming they are signed', () => {
     const pdf = generateMedicalCertificatePdf(caseFile, 'signing-source');
     const text = Buffer.from(pdf).toString('latin1');
