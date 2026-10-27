@@ -14,6 +14,18 @@ BEGIN
     RAISE EXCEPTION 'create_call: expected clinical and backend callers cannot EXECUTE';
   END IF;
 
+  IF pg_catalog.has_function_privilege(
+    'anon', 'public.can_start_call(uuid,uuid,uuid)', 'EXECUTE'
+  ) OR NOT pg_catalog.has_function_privilege(
+    'authenticated', 'public.can_start_call(uuid,uuid,uuid)', 'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'can_start_call: helper must be authenticated-only';
+  END IF;
+
+  IF public.can_start_call(NULL::uuid, NULL::uuid, NULL::uuid) IS DISTINCT FROM false THEN
+    RAISE EXCEPTION 'can_start_call: invalid participants were accepted';
+  END IF;
+
   SELECT pg_catalog.pg_get_functiondef(v_fn) INTO v_definition;
 
   IF v_definition NOT LIKE '%v_auth_user%'
