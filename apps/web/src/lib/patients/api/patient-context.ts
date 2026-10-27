@@ -65,7 +65,6 @@ export async function resolvePatientContext(
     // 1. PREFERRED: Use middleware-validated session from locals
     let userId: string | null = null
     let userRole = extractRole(locals?.session?.user?.app_metadata as Record<string, unknown> | undefined)
-      ?? extractRole(locals?.session?.user?.user_metadata)
 
     if (locals?.session?.user?.id) {
       userId = locals.session.user.id
@@ -80,7 +79,6 @@ export async function resolvePatientContext(
         userId = session?.user?.id ?? null
         if (!userRole && session?.user) {
           userRole = extractRole(session.user.app_metadata as Record<string, unknown>)
-            ?? extractRole(session.user.user_metadata as Record<string, unknown>)
         }
       } catch {
         logger.warn('[resolvePatientContext] getSession() threw', authDebug)
@@ -90,8 +88,8 @@ export async function resolvePatientContext(
         try {
           const { data: { user }, error } = await supabase.auth.getUser()
           userId = user?.id ?? null
-          if (!userRole && user?.user_metadata) {
-            userRole = extractRole(user.user_metadata as Record<string, unknown>)
+          if (!userRole && user?.app_metadata) {
+            userRole = extractRole(user.app_metadata as Record<string, unknown>)
           }
           if (error) {
             logger.warn('[resolvePatientContext] getUser() failed', {
@@ -115,8 +113,8 @@ export async function resolvePatientContext(
           const { data: userRes, error: tokenUserError } = await adminClient.auth.getUser(token)
           if (!tokenUserError && userRes.user) {
             userId = userRes.user.id
-            if (!userRole && userRes.user.user_metadata) {
-              userRole = extractRole(userRes.user.user_metadata as Record<string, unknown>)
+            if (!userRole && userRes.user.app_metadata) {
+              userRole = extractRole(userRes.user.app_metadata as Record<string, unknown>)
             }
           }
         } catch (error) {
@@ -133,6 +131,16 @@ export async function resolvePatientContext(
       return null
     }
 
+    // Role on public.profiles is protected by role-authority guards.
+    // Never derive clinical access from self-editable user_metadata.
+    const admin = createAstroAdminClient(locals?.runtime?.env)
+    if (!userRole) {
+      const { data: profile, error: profileError } = await admin
+        .from('profiles').select('role').eq('user_id', userId).maybeSingle()
+      if (profileError) return null
+      userRole = profile?.role ?? undefined
+    }
+
     if (!userRole || !PATIENT_ALLOWED_ROLES.has(userRole)) {
       logger.info('[resolvePatientContext] User role does not grant patient access', {
         userId,
@@ -142,8 +150,6 @@ export async function resolvePatientContext(
     }
 
     // 4. Resolve Patient ID
-    const admin = createAstroAdminClient(locals?.runtime?.env)
-
     let { data: patient, error: patientError } = await admin
       .from('patients')
       .select('id')
