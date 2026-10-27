@@ -48,3 +48,106 @@ BEGIN
   RAISE NOTICE 'create_call: permission and authorization smoke checks passed';
 END;
 $audit$;
+
+-- Behavioral regression test. Disposable CI database ONLY; all fixtures roll back.
+BEGIN;
+DO $guest_calls$
+DECLARE
+  v_user uuid := gen_random_uuid();
+  v_doctor uuid := gen_random_uuid();
+  v_other_doctor uuid := gen_random_uuid();
+  v_patient uuid := gen_random_uuid();
+  v_guest uuid := gen_random_uuid();
+  v_registered uuid := gen_random_uuid();
+  v_other uuid := gen_random_uuid();
+  v_deleted uuid := gen_random_uuid();
+  v_cancelled uuid := gen_random_uuid();
+  v_inperson uuid := gen_random_uuid();
+  v_appointment uuid;
+  v_call record;
+  v_before bigint;
+BEGIN
+  -- Isolate fixture setup from reminder/email triggers and unrelated FK graphs.
+  -- Restore normal trigger/FK enforcement before exercising either RPC.
+  PERFORM set_config('session_replication_role', 'replica', true);
+  INSERT INTO public.doctors(id,user_id,license_number,specialty,active)
+  VALUES (v_doctor,v_user,'TEST-' || v_doctor,'General',true),
+         (v_other_doctor,gen_random_uuid(),'TEST-' || v_other_doctor,'General',true);
+  INSERT INTO public.patients(id,active) VALUES(v_patient,true);
+  INSERT INTO public.appointments(id,doctor_id,patient_id,start_time,type,status,deleted_at)
+  VALUES
+    (v_guest,v_doctor,NULL,now() + interval '1 day','telemedicine','scheduled',NULL),
+    (v_registered,v_doctor,v_patient,now() + interval '2 days','telemedicine','confirmed',NULL),
+    (v_other,v_other_doctor,NULL,now() + interval '3 days','telemedicine','scheduled',NULL),
+    (v_deleted,v_doctor,NULL,now() + interval '4 days','telemedicine','scheduled',now()),
+    (v_cancelled,v_doctor,NULL,now() + interval '5 days','telemedicine','cancelled',NULL),
+    (v_inperson,v_doctor,NULL,now() + interval '6 days','consultation','scheduled',NULL);
+  PERFORM set_config('session_replication_role', 'origin', true);
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_user,'role','authenticated')::text,true);
+
+  IF public.can_start_call(v_doctor,NULL,v_guest) IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'Authorized guest appointment rejected';
+  END IF;
+  SELECT * INTO v_call FROM public.create_call(v_doctor,NULL,v_guest);
+  IF v_call.id IS NULL OR v_call.patient_id IS NOT NULL OR v_call.appointment_id <> v_guest
+     OR v_call.doctor_id <> v_doctor THEN
+    RAISE EXCEPTION 'Guest call returned incorrect participants';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.call_events WHERE call_id=v_call.id AND type='call_created') THEN
+    RAISE EXCEPTION 'Guest call event not recorded';
+  END IF;
+
+  IF public.can_start_call(v_doctor,v_patient,v_registered) IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'Registered appointment regressed';
+  END IF;
+  PERFORM * FROM public.create_call(v_doctor,v_patient,v_registered);
+  SELECT count(*) INTO v_before FROM public.calls;
+
+  FOREACH v_appointment IN ARRAY ARRAY[v_other,v_deleted,v_cancelled,v_inperson,v_registered] LOOP
+    IF public.can_start_call(v_doctor,NULL,v_appointment) IS DISTINCT FROM false THEN
+      RAISE EXCEPTION 'Unauthorized guest appointment accepted by helper';
+    END IF;
+    BEGIN
+      PERFORM * FROM public.create_call(v_doctor,NULL,v_appointment);
+      RAISE EXCEPTION 'Unauthorized guest appointment accepted by RPC';
+    EXCEPTION WHEN insufficient_privilege THEN NULL;
+    END;
+  END LOOP;
+
+  IF public.can_start_call(v_doctor,NULL,NULL) IS DISTINCT FROM false THEN
+    RAISE EXCEPTION 'Guest without appointment accepted by helper';
+  END IF;
+  BEGIN
+    PERFORM * FROM public.create_call(v_doctor,NULL,NULL);
+    RAISE EXCEPTION 'Guest without appointment accepted by RPC';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  END;
+  BEGIN
+    PERFORM * FROM public.create_call(v_doctor,v_patient,v_guest);
+    RAISE EXCEPTION 'Patient substituted on guest appointment';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',gen_random_uuid(),'role','authenticated')::text,true);
+  IF public.can_start_call(v_doctor,NULL,v_guest) IS DISTINCT FROM false THEN
+    RAISE EXCEPTION 'Other user passed helper';
+  END IF;
+  BEGIN
+    PERFORM * FROM public.create_call(v_doctor,NULL,v_guest);
+    RAISE EXCEPTION 'Other user impersonated doctor';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+
+  PERFORM set_config('request.jwt.claims','{"role":"service_role"}',true);
+  BEGIN
+    PERFORM * FROM public.create_call(v_doctor,NULL,v_other);
+    RAISE EXCEPTION 'Backend bypassed appointment ownership';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  IF (SELECT count(*) FROM public.calls) <> v_before THEN
+    RAISE EXCEPTION 'Rejected calls left persisted rows';
+  END IF;
+  RAISE NOTICE 'Guest and registered call authorization regression tests passed';
+END;
+$guest_calls$;
+ROLLBACK;
