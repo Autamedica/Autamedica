@@ -1,41 +1,42 @@
-# SISA REFEPS - Validacion de prescriptores
+# SISA / REFEPS — validación de profesionales
 
-## Estado
+**Estado revisado: 27-10-2026.** La implementación de SISA/REFEPS **ya funciona según confirmación del responsable de AutaMedica**. La versión anterior de este documento describía el servicio completo como pendiente y había quedado desactualizada.
 
-- La emision de recetas en AutaMedica queda cerrada si el perfil del medico no tiene
-  `profiles.sss_validation_status` en `valid` o `exempt`.
-- El flujo actual de perfil valida automaticamente contra el dataset SSS disponible y
-  deja revision manual cuando no puede confirmar la matricula.
-- La integracion nominal con REFEPS queda pendiente de las credenciales y permisos
-  SISA solicitados para WS020.
+## Implementación disponible
 
-## Contrato SISA a integrar
+- `apps/web/src/pages/api/admin/doctors/license-verify-live.ts` efectúa la consulta administrativa por backend, con controles de acceso, auditoría y persistencia opcional.
+- `packages/prescriptions/src/infrastructure/adapters/RefepsApiValidator.ts` implementa acceso al **Bus de Interoperabilidad del Ministerio de Salud**, autenticación OAuth por client assertion y consulta FHIR `Practitioner` para validación del profesional.
+- `packages/prescriptions/src/infrastructure/adapters/LocalRefepsValidator.ts` permite contraste con datos internos cuando el servicio externo no está disponible. **Esta verificación local NO acredita por sí sola una consulta oficial SISA/REFEPS.**
+- La ruta registra el estado en `profiles.sss_validation_status`, la fecha de control `profiles.sss_last_checked_at` y, cuando el servicio retorna un identificador, `doctors.refeps_id`.
+- La emisión de recetas requiere estado profesional `valid` o excepción autorizada `exempt`.
 
-El servicio oficial REFEPS para consulta nominal de profesionales es WS020.
+## Evidencia no nominativa de producción (consulta read-only de 27-10-2026)
 
-- REST: `https://sisa.msal.gov.ar/sisa/services/rest/profesional/obtener`
-- SOAP: `https://sisa.msal.gov.ar/sisa/services/profesionalService`
-- Criterios de consulta: codigo profesional, apellido, nombre o numero de documento.
-- Resultado: profesional, codigo REFEPS y lista de matriculas con profesion,
-  jurisdiccion, estado y especialidades.
+- 14 perfiles profesionales con `doctors.refeps_id` informado.
+- 26 perfiles con estado `sss_validation_status = valid`; 9 de ellos poseen fecha registrada de comprobación.
+- Última comprobación histórica registrada en esos perfiles: 08-10-2026 (UTC).
 
-WS020 no se debe modelar como una consulta directa por matricula sola: la consulta
-nominal devuelve las matriculas que luego se comparan con el perfil profesional.
+Estas cifras muestran registros operativos e históricos. **No constituyen una prueba directa de conectividad en vivo con SISA el 27-10-2026** ni confirman que los 26 perfiles se validaron por fuente nacional; también existen vías internas de validación. Para acreditar una emisión concreta, registrar fuente `national_refeps_api`, fecha, matrícula y estado activo en el flujo clínico.
 
-## Flujo objetivo
+## Diferencia entre Bus/FHIR y WS020
 
-1. Consultar WS020 por DNI o codigo profesional con credenciales SISA.
-2. Normalizar las matriculas devueltas.
-3. Confirmar que exista una matricula del medico con estado habilitante y
-   jurisdiccion/tipo esperados.
-4. Guardar en AutaMedica el estado de validacion y evidencia auditable de la
-   consulta, sin exponer credenciales ni payloads con PII fuera del backend.
-5. Permitir emision solo con estado `valid` o excepcion administrativa `exempt`.
+La implementación actual utiliza el Bus/FHIR de SISA. El servicio **WS020** (consulta nominal REST/SOAP) descrito en la documentación anterior representa **otra interfaz posible**, y la documentación existente no acredita que esa modalidad específica esté integrada. Esto **no implica** que la integración SISA que ya opera por Bus/FHIR esté pendiente.
 
-## Pendiente cuando llegue acceso
+Antes de declarar equivalencia normativa entre canales, confirmar los requisitos que efectivamente exige la autoridad y conservar la evidencia de consulta para la habilitación de cada médico.
 
-1. Definir secretos runtime para usuario/clave y base URL QA/produccion.
-2. Crear adapter REFEPS que consulte WS020 por DNI/codigo y parse XML.
-3. Registrar evidencia de validacion: fuente, fecha, criterio de consulta,
-   matricula evaluada, resultado normalizado y error/quota si aplica.
-4. Reemplazar el fallback de revision manual del perfil por la consulta WS020.
+## Seguridad operativa
+
+- Las credenciales del Bus se leen exclusivamente del runtime de servidor. No publicarlas en el repositorio, archivos de cliente, logs, propuestas ni PDF.
+- La ruta administrativa debe distinguir validación `national_refeps_api`, validación `local_database_fallback` y datos de prueba.
+- En `RefepsApiValidator.ts` existe un resultado de prueba `offline_mock` con `isValid: true` si se instancia **sin credenciales y sin fallback**. **No utilizar esa ruta como comprobante de habilitación profesional**; verificar que los flujos productivos rechacen siempre esa fuente.
+- Registrar fuentes y errores sanitizados para poder demostrar a una institución cómo se comprobó la habilitación profesional.
+
+## Criterio de entrega hospitalaria
+
+Para el Hospital Regional Río Gallegos, documentar y probar que cada médico firmante posee matrícula habilitante en la jurisdicción aplicable y que su verificación es atribuible a SISA/REFEPS. La operación general de SISA no sustituye esa comprobación individual ni la firma digital oficialmente válida.
+
+## Referencias
+
+- Código de la API administrativa: `apps/web/src/pages/api/admin/doctors/license-verify-live.ts`
+- Adaptador SISA/FHIR: `packages/prescriptions/src/infrastructure/adapters/RefepsApiValidator.ts`
+- Validador local: `packages/prescriptions/src/infrastructure/adapters/LocalRefepsValidator.ts`
