@@ -153,46 +153,32 @@ Deno.serve(async (req) => {
           status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
-    } else {
-      const { data: patient, error: patientError } = await supabaseAdmin
-        .from('patients')
-        .select('user_id, active')
-        .eq('id', resolvedPatientId)
-        .maybeSingle()
+    }
 
-      if (patientError) {
-        console.error('Failed to resolve patient:', patientError)
-        return new Response(JSON.stringify({ error: 'Patient lookup failed' }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-      if (!patient || !patient.user_id || patient.active !== true) {
-        return new Response(JSON.stringify({ error: 'Patient not found' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+    // Verify authorization as the real doctor, not with service_role.
+    // Database helper supports pharmacy guests without an auth.users account.
+    const supabaseActor = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } },
+    )
+    const { data: canStartCall, error: accessError } = await supabaseActor
+      .rpc('can_start_call', {
+        p_doctor_id: doctorRecord.id,
+        p_patient_id: resolvedPatientId,
+        p_appointment_id: appointmentId || null,
+      })
 
-      // Use the doctor's verified JWT, not the service-role client, for
-      // the existing doctor-patient authorization rule.
-      const supabaseActor = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-        { global: { headers: { Authorization: authHeader } } },
-      )
-      const { data: hasPatientAccess, error: accessError } = await supabaseActor
-        .rpc('doctor_has_patient_access', { patient_user_id: patient.user_id })
-
-      if (accessError) {
-        console.error('Doctor-patient access check failed:', accessError)
-        return new Response(JSON.stringify({ error: 'Patient access verification failed' }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-      if (hasPatientAccess !== true) {
-        return new Response(JSON.stringify({ error: 'Patient access denied' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+    if (accessError) {
+      console.error('Doctor-patient access check failed:', accessError)
+      return new Response(JSON.stringify({ error: 'Patient access verification failed' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (canStartCall !== true) {
+      return new Response(JSON.stringify({ error: 'Patient access denied' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     console.info('Creating/reusing call for:', {
