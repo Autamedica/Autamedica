@@ -123,7 +123,7 @@ export class FirmarRemoteClient {
     if (!location) throw new Error('firmar_authorization_url_missing');
     const redirect = new URL(location, this.origin);
     if (redirect.protocol !== 'https:' || redirect.origin !== this.origin ||
-        !redirect.pathname.startsWith('/firmador/') || redirect.username || redirect.password) {
+        !(redirect.pathname.startsWith('/firmador/') || redirect.pathname.startsWith('/api/signatures/')) || redirect.username || redirect.password) {
       throw new Error('firmar_authorization_url_untrusted');
     }
     return {
