@@ -185,7 +185,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             put("doctor_id", doctor.id)
             put("patient_id", request.patientId)
             put("cuir", cuir)
-            put("status", "signed")
+            put("status", "draft")
             put("certificate_type", request.certificateType.code)
             put("days_of_rest", request.daysOfRest)
             put("start_date", request.startDate)
@@ -207,7 +207,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         MedicalCertificate(
             id = certId,
             cuir = cuir,
-            status = "signed",
+            status = "draft",
             certificateType = request.certificateType,
             daysOfRest = request.daysOfRest,
             startDate = request.startDate,
@@ -372,7 +372,7 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
     private data class CertificateRowDto(
         val id: String,
         val cuir: String,
-        val status: String = "signed",
+        val status: String = "draft",
         @SerialName("certificate_type") val certificateType: String = "reposo_laboral",
         @SerialName("days_of_rest") val daysOfRest: Int = 0,
         @SerialName("start_date") val startDate: String,

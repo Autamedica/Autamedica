@@ -11,7 +11,6 @@ import {
   Copy,
   AlertCircle,
   Loader2,
-  ExternalLink,
   Search,
   User,
 } from "lucide-react";
@@ -100,6 +99,7 @@ export function CertificateCreateModal({
   const [daysOfRest, setDaysOfRest] = useState(2);
   const [startDate, setStartDate] = useState(getTodayString());
   const [diagnosis, setDiagnosis] = useState("");
+  const [treatment, setTreatment] = useState("");
   const [hideDiagnosis, setHideDiagnosis] = useState(false);
   const [observations, setObservations] = useState("");
 
@@ -153,12 +153,12 @@ export function CertificateCreateModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPatientId) {
-      setErrorMsg("Debe seleccionar un paciente para emitir el atestado.");
+      setErrorMsg("Debe seleccionar un paciente para guardar el borrador.");
       return;
     }
 
-    if (daysOfRest > 0 && !diagnosis.trim() && !hideDiagnosis) {
-      setErrorMsg("Debe ingresar un diagnóstico clínico o activar el secreto médico.");
+    if (daysOfRest > 0 && !diagnosis.trim()) {
+      setErrorMsg("Debe ingresar el diagnóstico clínico para un certificado de reposo.");
       return;
     }
 
@@ -174,6 +174,7 @@ export function CertificateCreateModal({
         start_date: startDate,
         end_date: calculatedEndDate,
         diagnosis: diagnosis.trim() || null,
+        treatment: treatment.trim() || null,
         hide_diagnosis: hideDiagnosis,
         observations: observations.trim() || null,
         country_code: "AR",
@@ -222,10 +223,10 @@ export function CertificateCreateModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-white tracking-tight">
-                Emitir Atestado Médico Digital
+                Preparar certificado médico (borrador)
               </h2>
               <p className="text-xs text-slate-400">
-                Ley 27.553 · Registro oficial con CUIR y verificación pública
+                Referencia interna de AutaMedica · Sin firma digital
               </p>
             </div>
           </div>
@@ -247,16 +248,16 @@ export function CertificateCreateModal({
                 <CheckCircle2 className="h-8 w-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">¡Atestado Emitido con Éxito!</h3>
+                <h3 className="text-xl font-bold text-white">Borrador guardado</h3>
                 <p className="text-sm text-slate-400 mt-1 max-w-md">
-                  El atestado médico ha sido firmado y registrado en la base de datos nacional con validez legal inmediata.
+                  Este documento aún no está firmado ni registrado como certificado oficial. No debe presentarse como justificativo válido.
                 </p>
               </div>
 
               {/* CUIR Box */}
               <div className="w-full rounded-xl border border-teal-500/30 bg-teal-950/30 p-4 text-left">
                 <div className="text-xs font-semibold uppercase tracking-wider text-teal-400">
-                  Código Único de Identificación de Recetas / Atestados (CUIR)
+                  Referencia interna del borrador
                 </div>
                 <div className="mt-1 flex items-center justify-between">
                   <span className="font-mono text-base font-bold text-white tracking-wide">
@@ -273,19 +274,9 @@ export function CertificateCreateModal({
                 </div>
               </div>
 
-              {/* Verification link info */}
-              <div className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-800/60 border border-slate-700/60 text-xs text-slate-300">
-                <span>Enlace de verificación pública institucional:</span>
-                <a
-                  href={`/verify/${successCert.cuir}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-teal-400 hover:text-teal-300 underline font-medium"
-                >
-                  Verificar Online
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
+              <p className="text-xs text-amber-300">
+                Pendiente de firma y validación. La referencia interna no es un CUIR oficial.
+              </p>
 
               <div className="flex gap-3 w-full pt-4">
                 <button
@@ -471,7 +462,7 @@ export function CertificateCreateModal({
                   placeholder="Ej: Cuadro infeccioso respiratorio agudo con indicación de reposo..."
                   value={diagnosis}
                   onChange={(e) => setDiagnosis(e.target.value)}
-                  disabled={hideDiagnosis}
+                  
                   className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-teal-500 focus:outline-none disabled:opacity-50"
                 />
 
@@ -501,7 +492,7 @@ export function CertificateCreateModal({
                   <div>
                     <div className="text-xs font-bold text-white">Preservar Secreto Médico</div>
                     <div className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
-                      Oculta el diagnóstico en el documento final y en la consulta pública (Ley 26.529). El empleador o institución solo verá los días de reposo indicados.
+                      El diagnóstico no se publica en el QR. El PDF clínico privado podrá contener datos sensibles; su entrega requiere autorización.
                     </div>
                   </div>
                 </div>
@@ -510,6 +501,20 @@ export function CertificateCreateModal({
                   checked={hideDiagnosis}
                   onChange={(e) => setHideDiagnosis(e.target.checked)}
                   className="mt-1 h-5 w-5 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
+                />
+              </div>
+
+              {/* Treatment indicated for rest certificates */}
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wider text-slate-400 mb-1.5">
+                  Tratamiento Indicado
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Conducta terapéutica indicada por el profesional..."
+                  value={treatment}
+                  onChange={(e) => setTreatment(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-teal-500 focus:outline-none"
                 />
               </div>
 
@@ -535,7 +540,7 @@ export function CertificateCreateModal({
           <div className="flex items-center justify-between border-t border-slate-800 bg-slate-900/90 px-6 py-4">
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
               <Shield className="h-4 w-4 text-teal-400" />
-              <span>Firma digital con matrícula profesional</span>
+              <span>Documento privado sin firma digital</span>
             </div>
             <div className="flex items-center gap-3">
               <button

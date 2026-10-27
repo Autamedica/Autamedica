@@ -51,7 +51,7 @@
 
     <!-- 4. Certificados Médicos / Atestados (DoctorCertificates & CreateCertificate) -->
     <string name="cert_screen_title">Atestados Médicos Emitidos</string>
-    <string name="cert_header_counts">%1$d válidos · %2$d emitidos</string>
+    <string name="cert_header_counts">%1$d registrados · %2$d documentos</string>
     <string name="cert_action_new_certificate">Nuevo Atestado</string>
     <string name="cert_search_placeholder">Buscar por paciente, DNI, CUIR o diagnóstico...</string>
     <string name="cert_filter_all">Todos (%1$d)</string>
@@ -72,7 +72,8 @@
     <string name="cert_detail_download_pdf">Descargar PDF</string>
     <string name="cert_card_default_patient_name">Paciente Asignado</string>
     <string name="cert_card_dni_label">DNI: %1$s</string>
-    <string name="cert_status_valid">Válido</string>
+    <string name="cert_status_draft">Borrador sin firma</string>
+    <string name="cert_status_valid">Registrado</string>
     <string name="cert_status_cancelled">Cancelado</string>
     <string name="cert_days_of_rest_count">%1$d días de reposo</string>
     <string name="cert_days_of_rest_one">1 día de reposo</string>
@@ -80,13 +81,13 @@
     <string name="cert_diagnosis_reserved">🔒 Diagnóstico reservado (Secreto médico)</string>
 
     <!-- 5. Emisión de Certificado (CreateCertificateScreen) -->
-    <string name="cert_create_title">Emitir Atestado Médico</string>
-    <string name="cert_create_legal_basis">Decreto 63/2024 · Ley 27.553</string>
+    <string name="cert_create_title">Preparar certificado médico (borrador)</string>
+    <string name="cert_create_legal_basis">Referencia interna de AutaMedica · Pendiente de firma</string>
     <string name="cert_create_submitting">Firmando y Sellando Digitalmente...</string>
-    <string name="cert_create_submit_button">Firmar y Emitir Certificado Oficial</string>
+    <string name="cert_create_submit_button">Guardar borrador sin firma</string>
     <string name="cert_reg_active_title">Habilitación Profesional Activa</string>
     <string name="cert_reg_pending_title">Verificación Pendiente</string>
-    <string name="cert_reg_license_active">Matrícula: %1$s · Firma digital habilitada</string>
+    <string name="cert_reg_license_active">Matrícula: %1$s · Identidad registrada</string>
     <string name="cert_reg_license_required">Requiere matricula activa en SISA para firma con validez oficial.</string>
     <string name="cert_reg_registered">Registrada</string>
     <string name="cert_patient_recipient_title">Destinatario del Atestado</string>
@@ -115,10 +116,10 @@
     <string name="cert_privacy_hide_diagnosis_subtitle">Garantía de Secreto Médico y confidencialidad ante empleadores (Ley 27.553 / CFM)</string>
     <string name="cert_obs_section_title">Indicaciones y Observaciones Clínicas (Opcional)</string>
     <string name="cert_obs_placeholder">Ej: Reposo domiciliario con hidratación continua. Presentar en RRHH.</string>
-    <string name="cert_success_dialog_title">¡Atestado Emitido con Éxito!</string>
-    <string name="cert_success_dialog_body">El certificado médico digital ha sido firmado con validez institucional.</string>
-    <string name="cert_success_cuir_header">CÓDIGO ÚNICO (CUIR):</string>
-    <string name="cert_success_dialog_footer">Válido ante empleadores, escuelas o instituciones públicas mediante verificación online.</string>
+    <string name="cert_success_dialog_title">Borrador guardado</string>
+    <string name="cert_success_dialog_body">El documento está pendiente de firma y no tiene validez como certificado oficial.</string>
+    <string name="cert_success_cuir_header">REFERENCIA INTERNA:</string>
+    <string name="cert_success_dialog_footer">No presentar este borrador ante empleadores ni instituciones.</string>
     <string name="cert_success_back_to_certificates">Volver a Mis Atestados</string>
 
     <!-- 6. Diagnósticos Comunes Sugeridos -->
@@ -138,7 +139,8 @@
     <string name="cert_error_select_patient">Seleccione un paciente de la lista</string>
     <string name="cert_error_enter_diagnosis">Ingrese un diagnóstico o motivo clínico de la certificación</string>
     <string name="cert_error_not_eligible">No posee habilitación profesional activa para emitir certificados oficiales</string>
-    <string name="cert_success_issued_cuir">Atestado médico emitido con éxito. CUIR: %1$s</string>
+    <string name="cert_success_issued_cuir">Borrador guardado. Referencia: %1$s</string>
     <string name="cert_error_issue_failed">Error al emitir el certificado: %1$s</string>
     <string name="cert_error_connection">Fallo de conexión</string>
+    <string name="signature_remote_pending_notice">La matrícula profesional puede verificarse aquí, pero todavía no es posible firmar certificados mediante FirmAR. La firma dibujada no equivale a firma digital. El certificado continuará como borrador hasta completar la firma oficial.</string>
 </resources>

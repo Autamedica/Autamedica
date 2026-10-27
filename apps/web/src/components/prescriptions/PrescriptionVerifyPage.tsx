@@ -6,6 +6,7 @@ import { logger } from '@autamedica/shared';
 
 interface VerifyResult {
   valid: boolean;
+  reason?: string;
   documentType?: 'prescription' | 'certificate';
   prescription: {
     cuir: string;
@@ -109,9 +110,9 @@ export function PrescriptionVerifyPage({ cuir }: { cuir: string }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-slate-900 mb-2">Documento no encontrado</h1>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">{result?.reason === "certificate_not_verified" ? "Certificado no verificado" : "Documento no encontrado"}</h1>
           <p className="text-sm text-slate-500 mb-1">CUIR: <code className="bg-slate-100 px-2 py-0.5 rounded text-xs">{cuir}</code></p>
-          <p className="text-sm text-slate-500">Este identificador no corresponde a ninguna receta ni certificado registrado en AutaMedica.</p>
+          <p className="text-sm text-slate-500">{result?.reason === "certificate_not_verified" ? "Este documento está pendiente de firma verificable o no puede presentarse como certificado válido." : "Este identificador no corresponde a ninguna receta ni certificado registrado en AutaMedica."}</p>
           <a href="/" className="mt-6 inline-block text-sm text-sky-600 hover:text-sky-700 font-medium">Ir al inicio</a>
         </div>
       </div>

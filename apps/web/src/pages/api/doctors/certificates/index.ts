@@ -23,6 +23,7 @@ const MedicalCertificateCreateSchema = z.object({
   diagnosis: z.string().optional().nullable(),
   hide_diagnosis: z.boolean().default(false),
   observations: z.string().optional().nullable(),
+  treatment: z.string().trim().max(2000).optional().nullable(),
   country_code: z.string().default("AR"),
 });
 
@@ -73,26 +74,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     const query = admin
       .from("medical_certificates")
-      .select(`
-        id,
-        cuir,
-        status,
-        certificate_type,
-        days_of_rest,
-        start_date,
-        end_date,
-        diagnosis,
-        hide_diagnosis,
-        observations,
-        doctor_id,
-        patient_id,
-        appointment_id,
-        signed_pdf_url,
-        qr_code_content,
-        country_code,
-        created_at,
-        updated_at
-      `)
+      .select('*')
       .eq("doctor_id", context.doctorId);
 
     if (patientId) {
@@ -169,7 +151,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const hasAccess = await doctorHasPatientAccess(admin, context.doctorId, result.data.patient_id);
     if (!hasAccess) return forbidden("forbidden_patient_access");
 
-    // Generate official CUIR and QR code content
+    // Generate an internal draft reference; this is not a national ReNaPDiS registration.
     const timestampHex = Date.now().toString(16).toUpperCase();
     const randomHex = crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
     const cuir = `AR-CERT-${timestampHex}-${randomHex}`;
@@ -182,7 +164,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         patient_id: result.data.patient_id,
         appointment_id: result.data.appointment_id ?? null,
         cuir,
-        status: "signed",
+        status: "draft",
         certificate_type: result.data.certificate_type,
         days_of_rest: result.data.days_of_rest,
         start_date: result.data.start_date,
@@ -190,6 +172,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         diagnosis: result.data.diagnosis ?? null,
         hide_diagnosis: result.data.hide_diagnosis,
         observations: result.data.observations ?? null,
+        treatment: result.data.treatment ?? null,
         qr_code_content: qrContent,
         country_code: result.data.country_code,
       })
@@ -198,7 +181,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (error) throw error;
 
-    logger.info("[api/doctors/certificates] certificate issued successfully", {
+    logger.info("[api/doctors/certificates] unsigned certificate draft saved", {
       certificateId: created.id,
       cuir: created.cuir,
       doctorId: context.doctorId,
