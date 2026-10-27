@@ -10,7 +10,7 @@ ALTER TABLE public.medical_certificates
 -- Existing legacy signed records may not have signature evidence.
 -- NOT VALID enforces the gate for NEW inserts/updates without breaking migration
 -- on historical documents; do not VALIDATE until old rows have been reviewed.
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
@@ -32,7 +32,7 @@ BEGIN
       ) NOT VALID;
   END IF;
 END;
-$;
+$$;
 
 -- The Android client has historically inserted rows directly via RLS.
 -- It must never be allowed to insert a pre-signed document.
