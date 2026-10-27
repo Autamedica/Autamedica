@@ -241,8 +241,8 @@ jobs:
       - name: Asset integrity
         run: |
           status=$(curl -so /dev/null -w '%{http_code}' "https://www.autamedica.com/nonexistent-$(date +%s).js")
-          if [[ "$status" == "200" ]]; then
-            echo "::error::Missing .js returned 200 — MIME type errors in production"
+          if [[ "$status" != "404" ]]; then
+            echo "::error::Missing .js must return 404; got $status"
             exit 1
           fi
 
@@ -258,7 +258,8 @@ jobs:
             https://www.autamedica.com \
             https://paciente.autamedica.com \
             https://doctor.autamedica.com \
-            https://empresa.autamedica.com
+            https://empresa.autamedica.com \
+            https://autamedica-admin.pages.dev
           do
             status=$(curl -so /dev/null -w '%{http_code}' -L "$url")
             echo "$url: $status"
