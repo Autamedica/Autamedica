@@ -40,8 +40,9 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       const { data, error } = await admin.storage.from('medical-documents')
         .download(`certificates/signed/${id}.pdf`);
       if (error || !data) return notFound('signed_pdf_missing');
-      pdf = new Uint8Array(await data.arrayBuffer());
-      const digest = await crypto.subtle.digest('SHA-256', pdf);
+      const signedBytes = await data.arrayBuffer();
+      pdf = new Uint8Array(signedBytes);
+      const digest = await crypto.subtle.digest('SHA-256', signedBytes);
       const actualHash = Array.from(new Uint8Array(digest))
         .map(byte => byte.toString(16).padStart(2, '0')).join('');
       const expectedHash = (cert as typeof cert & { signature_hash?: string | null }).signature_hash;
