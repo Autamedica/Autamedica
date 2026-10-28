@@ -4,6 +4,7 @@ import { writeFile } from 'node:fs/promises';
 
 const DOCTOR_EMAIL = process.env.DOCTOR_DEMO_EMAIL ?? '';
 const DOCTOR_PASSWORD = process.env.DOCTOR_DEMO_PASSWORD ?? '';
+const E2E_PATIENT_NAME = process.env.E2E_PATIENT_NAME?.trim() ?? '';
 const APP_BASE_URL = process.env.BASE_URL ?? 'https://www.autamedica.com'
 const DOCTOR_PORTAL_URL = process.env.DOCTORS_URL ?? 'https://doctor.autamedica.com'
 const PATIENT_PORTAL_URL = process.env.PATIENTS_URL ?? 'https://paciente.autamedica.com'
@@ -30,6 +31,7 @@ test.describe('Doctor Portal – Login + Video Call', () => {
   test('doctor can authenticate, validate profile and complete a patient video call', async ({ browser }, testInfo) => {
     test.skip(!SUPABASE_ANON_KEY, 'Supabase anon key required to validate doctor identity.');
     test.skip(!DOCTOR_EMAIL || !DOCTOR_PASSWORD, 'DOCTOR_DEMO_EMAIL and DOCTOR_DEMO_PASSWORD env vars required.');
+    test.skip(!E2E_PATIENT_NAME, 'Dedicated E2E_PATIENT_NAME required: never call an arbitrary production patient.');
 
     test.setTimeout(180_000);
 
@@ -107,7 +109,7 @@ test.describe('Doctor Portal – Login + Video Call', () => {
       const session = (parsedToken as any)?.currentSession ?? (parsedToken as any)?.session ?? null;
       const user = session?.user ?? null;
       const accessToken = session?.access_token ?? null;
-      const roleFromMetadata = user?.app_metadata?.role ?? user?.user_metadata?.role ?? null;
+      const roleFromMetadata = user?.app_metadata?.role ?? null;
 
       let rpcRole: string | null = null;
       let profileRole: string | null = null;
@@ -183,12 +185,16 @@ test.describe('Doctor Portal – Login + Video Call', () => {
       await expect(doctorPage.locator('body')).toContainText(new RegExp(doctorSpecialty.split(' ')[0], 'i'));
     }
 
-    const callButton = doctorPage.locator('button', { hasText: /Llamar a/i }).first();
+    // Only the designated synthetic test patient may receive an E2E video call.
+    // Never fall back to the first patient displayed in a doctor's clinical list.
+    const matchingCallButtons = doctorPage.locator('button', { hasText: /Llamar a/i }).filter({ hasText: E2E_PATIENT_NAME });
+    await expect(matchingCallButtons).toHaveCount(1, { timeout: 60_000 });
+    const callButton = matchingCallButtons.first();
+    const patientButtonText = (await callButton.textContent()) ?? '';
+    const patientName = patientButtonText.replace(/Llamar a/i, '').trim();
+    expect(patientName.toLocaleLowerCase()).toBe(E2E_PATIENT_NAME.toLocaleLowerCase());
     await callButton.scrollIntoViewIfNeeded();
     await expect(callButton).toBeVisible({ timeout: 60_000 });
-
-    const patientButtonText = (await callButton.textContent()) ?? '';
-    const patientName = patientButtonText.replace(/Llamar a/i, '').trim() || 'Paciente';
 
     await callButton.click();
 
