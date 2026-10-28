@@ -190,7 +190,7 @@ RESET ROLE;
 
 -- Exercise scoped SECURITY DEFINER RPCs against real relationships while a different user probes them.
 UPDATE public.profiles
-SET role = 'platform_admin'
+SET role = 'admin'
 WHERE user_id = current_setting('test.rls.doctor_a_user')::uuid;
 
 INSERT INTO public.patient_care_team (patient_id, doctor_id, role, active)
