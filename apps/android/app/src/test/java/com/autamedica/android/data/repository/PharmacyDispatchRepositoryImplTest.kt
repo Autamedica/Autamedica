@@ -106,24 +106,25 @@ class PharmacyDispatchRepositoryImplTest {
     }
 
     @Test
-    fun `sendDoctorHeartbeat calls doctor_heartbeat RPC successfully`() = runTest {
-        val doctorId = "doc-uuid-456"
+    fun `doctor heartbeat without an authenticated Supabase session never uses anon credentials`() = runTest {
+        val result = repository.sendDoctorHeartbeat("doc-uuid-456")
+        assertThat(result.isFailure).isTrue()
+        assertThat(mockWebServer.requestCount).isEqualTo(0)
+    }
 
+    @Test
+    fun `forbidden consultation finish never falls back to direct clinical updates`() = runTest {
         mockWebServer.enqueue(
             MockResponse()
-                .setResponseCode(200)
+                .setResponseCode(403)
                 .setHeader("Content-Type", "application/json")
-                .setBody("{}")
+                .setBody("""{"code":"42501","message":"doctor_not_authorized"}""")
         )
-
-        val result = repository.sendDoctorHeartbeat(doctorId)
-
-        assertThat(result.isSuccess).isTrue()
-        val recordedRequest = mockWebServer.takeRequest()
-        assertThat(recordedRequest.path).contains("rpc/doctor_heartbeat")
-        val requestBody = recordedRequest.body.readUtf8()
-        assertThat(requestBody).contains("p_doctor_id")
-        assertThat(requestBody).contains(doctorId)
+        val result = repository.finishPharmacyRequest("doc-uuid-1", "request-uuid-2")
+        assertThat(result.isFailure).isTrue()
+        assertThat(mockWebServer.requestCount).isEqualTo(1)
+        val request = mockWebServer.takeRequest()
+        assertThat(request.path).contains("rpc/finish_pharmacy_consultation")
     }
 
     @Test
