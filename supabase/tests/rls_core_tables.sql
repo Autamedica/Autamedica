@@ -60,7 +60,7 @@ BEGIN
   );
 
   UPDATE public.doctors
-  SET license_number = 'LIC-RLS-A-' || fixture_suffix, specialty = 'Cardiology', active = false
+  SET license_number = 'LIC-RLS-A-' || fixture_suffix, specialty = 'Cardiology', active = true
   WHERE user_id = u_doctor_a;
   SELECT COALESCE((SELECT id FROM public.doctors WHERE user_id = u_doctor_a), doctor_a_id)
   INTO doctor_a_id;
@@ -70,7 +70,7 @@ BEGIN
   SELECT COALESCE((SELECT id FROM public.doctors WHERE user_id = u_doctor_b), doctor_b_id)
   INTO doctor_b_id;
   INSERT INTO public.doctors (id, user_id, license_number, specialty, active)
-  SELECT doctor_a_id, u_doctor_a, 'LIC-RLS-A-' || fixture_suffix, 'Cardiology', false
+  SELECT doctor_a_id, u_doctor_a, 'LIC-RLS-A-' || fixture_suffix, 'Cardiology', true
   WHERE NOT EXISTS (SELECT 1 FROM public.doctors WHERE user_id = u_doctor_a);
   INSERT INTO public.doctors (id, user_id, license_number, specialty, active)
   SELECT doctor_b_id, u_doctor_b, 'LIC-RLS-B-' || fixture_suffix, 'Neurology', false
