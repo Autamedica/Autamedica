@@ -20,6 +20,7 @@ import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.PharmacyDispatchRepository
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
@@ -149,6 +150,11 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
     }
 
     override suspend fun sendDoctorHeartbeat(doctorId: String): Result<Unit> = runCatching {
+        // A cached doctor profile is not proof of an authenticated Supabase session.
+        // Never send a clinical heartbeat with the anonymous API credential.
+        check(!supabaseClient.auth.currentSessionOrNull()?.accessToken.isNullOrBlank()) {
+            "Authenticated doctor session required for heartbeat"
+        }
         val params = buildJsonObject {
             put("p_doctor_id", doctorId)
         }
@@ -213,23 +219,9 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             put("p_doctor_id", doctorId)
             if (requestId.isNotBlank()) put("p_request_id", requestId)
         }
-        val rpcSuccess = runCatching {
-            supabaseClient.postgrest.rpc("finish_pharmacy_consultation", rpcParams)
-        }.isSuccess
-
-        if (!rpcSuccess) {
-            supabaseClient.postgrest
-                .from("pharmacy_dispatch_requests")
-                .update(mapOf("status" to "completed", "call_ended_at" to java.time.OffsetDateTime.now().toString())) {
-                    filter { eq("id", requestId) }
-                }
-
-            supabaseClient.postgrest
-                .from("doctor_duty_status")
-                .update(mapOf("current_active_request_id" to null, "updated_at" to java.time.OffsetDateTime.now().toString())) {
-                    filter { eq("doctor_id", doctorId) }
-                }
-        }
+        // The server RPC is the authorization boundary. Never fall back to
+        // direct clinical writes when it rejects a request.
+        supabaseClient.postgrest.rpc("finish_pharmacy_consultation", rpcParams)
         Unit
     }.onFailure {
         SecureLog.error("[PharmacyDispatch] Failed finishing request", it)
