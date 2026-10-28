@@ -18,6 +18,7 @@ DECLARE
   record_a_id uuid := '70000000-0000-0000-0000-000000000001';
   record_b_id uuid := '70000000-0000-0000-0000-000000000002';
   company_id uuid := '80000000-0000-0000-0000-000000000001';
+  fixture_suffix text := replace(gen_random_uuid()::text, '-', '');
 BEGIN
   DELETE FROM public.medical_records WHERE id IN (record_a_id, record_b_id);
   DELETE FROM public.appointments WHERE id IN (appt_a_id, appt_b_id);
@@ -28,18 +29,18 @@ BEGIN
   DELETE FROM auth.users WHERE id IN (u_patient_a, u_patient_b, u_doctor_a, u_doctor_b, u_company);
 
   INSERT INTO auth.users (id, email) VALUES
-    (u_patient_a, 'rls_patient_a@test.com'),
-    (u_patient_b, 'rls_patient_b@test.com'),
-    (u_doctor_a, 'rls_doctor_a@test.com'),
-    (u_doctor_b, 'rls_doctor_b@test.com'),
-    (u_company, 'rls_company@test.com');
+    (u_patient_a, 'rls_patient_a_' || fixture_suffix || '@test.com'),
+    (u_patient_b, 'rls_patient_b_' || fixture_suffix || '@test.com'),
+    (u_doctor_a, 'rls_doctor_a_' || fixture_suffix || '@test.com'),
+    (u_doctor_b, 'rls_doctor_b_' || fixture_suffix || '@test.com'),
+    (u_company, 'rls_company_' || fixture_suffix || '@test.com');
 
   INSERT INTO public.profiles (user_id, email, role, external_id) VALUES
-    (u_patient_a, 'rls_patient_a@test.com', 'patient', 'rls-pa'),
-    (u_patient_b, 'rls_patient_b@test.com', 'patient', 'rls-pb'),
-    (u_doctor_a, 'rls_doctor_a@test.com', 'doctor', 'rls-da'),
-    (u_doctor_b, 'rls_doctor_b@test.com', 'doctor', 'rls-db'),
-    (u_company, 'rls_company@test.com', 'company', 'rls-co');
+    (u_patient_a, 'rls_patient_a_' || fixture_suffix || '@test.com', 'patient', 'rls-pa-' || fixture_suffix),
+    (u_patient_b, 'rls_patient_b_' || fixture_suffix || '@test.com', 'patient', 'rls-pb-' || fixture_suffix),
+    (u_doctor_a, 'rls_doctor_a_' || fixture_suffix || '@test.com', 'doctor', 'rls-da-' || fixture_suffix),
+    (u_doctor_b, 'rls_doctor_b_' || fixture_suffix || '@test.com', 'doctor', 'rls-db-' || fixture_suffix),
+    (u_company, 'rls_company_' || fixture_suffix || '@test.com', 'company', 'rls-co-' || fixture_suffix);
 
   INSERT INTO public.patients (id, user_id) VALUES
     (patient_a_id, u_patient_a),
