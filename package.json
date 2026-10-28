@@ -16,7 +16,7 @@
     "test:signaling-e2e": "PATCHRIGHT_HEADLESS=0 patchright test -c tests/e2e/patchright.signaling.config.ts",
     "test:signaling-e2e:ci": "CI=1 PATCHRIGHT_HEADLESS=1 patchright test -c tests/e2e/patchright.signaling.config.ts",
     "test:signaling-e2e:headless": "PATCHRIGHT_HEADLESS=1 patchright test -c tests/e2e/patchright.signaling.config.ts",
-    "test:rls": "psql \"$SUPABASE_DB_URL\" -f supabase/tests/rls_smoke.sql && psql \"$SUPABASE_DB_URL\" -f supabase/tests/rls_core_tables.sql",
+    "test:rls": "psql \"postgresql://postgres:postgres@127.0.0.1:54322/postgres\" -v ON_ERROR_STOP=1 -f supabase/tests/rls_core_tables.sql",
     "test:auth": "vitest run --config vitest.browser.config.ts",
     "test:auth:watch": "vitest --config vitest.browser.config.ts",
     "test:auth:ui": "vitest --config vitest.browser.config.ts --ui",
