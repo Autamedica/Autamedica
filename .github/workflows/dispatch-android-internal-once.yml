@@ -13,7 +13,8 @@ permissions:
 jobs:
   dispatch:
     # Explicit release commit; normal pushes and workflow file edits are inert.
-    if: startsWith(github.event.head_commit.message, 'chore(release): trigger Android 1.2.16 internal upload')
+    if: >-
+      startsWith(github.event.head_commit.message, 'chore(release): trigger Android 1.2.16 internal upload')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
