@@ -1,0 +1,43 @@
+name: One-time Android 1.2.18 Internal Play Dispatch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/dispatch-android-internal-once.yml'
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch:
+    if: >-
+      startsWith(github.event.head_commit.message, 'chore(release): trigger Android 1.2.18 internal upload')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout intended version
+        uses: actions/checkout@v4
+      - name: Validate Play release 1.2.18 (28)
+        run: |
+          grep -Eq 'versionCode[[:space:]]*=[[:space:]]*28' apps/android/app/build.gradle.kts
+          grep -Eq 'versionName[[:space:]]*=[[:space:]]*"1[.]2[.]18"' apps/android/app/build.gradle.kts
+      - name: Validate Play Store service account and Android signing key
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [[ -z "$GOOGLE_PLAY_SERVICE_ACCOUNT" || -z "$KEYSTORE_BASE64" ]]; then
+            echo '::error::Google Play credentials or signing key missing.'
+            exit 1
+          fi
+      - name: Dispatch existing Play Store release with internal track
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/actions/workflows/android-release.yml/dispatches" \
+            -f ref=main \
+            -f 'inputs[track]=internal' \
+            -f 'inputs[upload_to_play_store]=true'
+          echo 'Manual release dispatched: verify actual Play upload job result.'
