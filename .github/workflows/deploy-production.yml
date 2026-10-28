@@ -224,6 +224,8 @@ jobs:
     name: Smoke Tests
     runs-on: ubuntu-latest
     needs: [build-and-deploy]
+    # Run smoke even when the optional DB job was skipped upstream.
+    if: always() && needs.build-and-deploy.result == 'success'
     timeout-minutes: 5
     steps:
       - name: CDN propagation
@@ -314,3 +316,7 @@ jobs:
           echo "| Build & Deploy | ${{ needs.build-and-deploy.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Smoke | ${{ needs.smoke-tests.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Rollback | ${{ needs.auto-rollback.result }} |" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.validate.result }}" != "success" || "${{ needs.build-and-deploy.result }}" != "success" || "${{ needs.smoke-tests.result }}" != "success" ]]; then
+            echo "::error::Production deployment verification failed (pre-flight, build or smoke)."
+            exit 1
+          fi
