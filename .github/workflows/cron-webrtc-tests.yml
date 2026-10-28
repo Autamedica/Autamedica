@@ -46,9 +46,10 @@ jobs:
         env:
           DOCTOR_DEMO_EMAIL: ${{ secrets.DOCTOR_DEMO_EMAIL }}
           DOCTOR_DEMO_PASSWORD: ${{ secrets.DOCTOR_DEMO_PASSWORD }}
+          E2E_PATIENT_NAME: ${{ secrets.E2E_PATIENT_NAME }}
         run: |
-          if [[ -z "$DOCTOR_DEMO_EMAIL" || -z "$DOCTOR_DEMO_PASSWORD" ]]; then
-            echo "::error::Required E2E test account secrets are missing"
+          if [[ -z "$DOCTOR_DEMO_EMAIL" || -z "$DOCTOR_DEMO_PASSWORD" || -z "$E2E_PATIENT_NAME" ]]; then
+            echo "::error::Dedicated doctor test login or synthetic patient name is missing"
             exit 1
           fi
 
@@ -71,6 +72,7 @@ jobs:
           # Test credentials (fallback to demo credentials if secrets are not defined)
           DOCTOR_DEMO_EMAIL: ${{ secrets.DOCTOR_DEMO_EMAIL }}
           DOCTOR_DEMO_PASSWORD: ${{ secrets.DOCTOR_DEMO_PASSWORD }}
+          E2E_PATIENT_NAME: ${{ secrets.E2E_PATIENT_NAME }}
           
           # Protocol compatibility
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
