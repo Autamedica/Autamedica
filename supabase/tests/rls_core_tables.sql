@@ -188,4 +188,145 @@ END;
 $company_owner$;
 RESET ROLE;
 
+-- Exercise scoped SECURITY DEFINER RPCs against real relationships while a different user probes them.
+UPDATE public.profiles
+SET role = 'platform_admin'
+WHERE user_id = current_setting('test.rls.doctor_a_user')::uuid;
+
+INSERT INTO public.patient_care_team (patient_id, doctor_id, role, active)
+VALUES (
+  current_setting('test.rls.patient_b_id')::uuid,
+  current_setting('test.rls.doctor_b_id')::uuid,
+  'primary',
+  true
+);
+
+INSERT INTO public.medical_record_authorizations (
+  record_id, authorized_user_id, authorized_by_user_id, reason, valid_until
+)
+VALUES (
+  current_setting('test.rls.record_b_id')::uuid,
+  current_setting('test.rls.patient_b_user')::uuid,
+  current_setting('test.rls.patient_a_user')::uuid,
+  'RLS authorization guard smoke test',
+  now() + interval '1 hour'
+);
+
+INSERT INTO public.doctor_heartbeats (doctor_id, created_at)
+VALUES (current_setting('test.rls.doctor_b_id')::uuid, now() - interval '5 minutes');
+
+-- A different patient cannot probe admin status, authorization, or relationships.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.patient_a_user'), 'role', 'authenticated')::text, true);
+DO $unrelated_patient$
+DECLARE denied boolean := false;
+BEGIN
+  IF public.is_platform_or_org_admin(current_setting('test.rls.doctor_a_user')::uuid) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: caller can probe another user admin status';
+  END IF;
+  IF public.has_active_authorization(
+    current_setting('test.rls.record_b_id')::uuid,
+    current_setting('test.rls.patient_b_user')::uuid
+  ) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: caller can probe another user medical authorization';
+  END IF;
+  IF public.is_in_care_team(
+    current_setting('test.rls.doctor_b_id')::uuid,
+    current_setting('test.rls.patient_b_id')::uuid
+  ) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: caller can probe another care team relationship';
+  END IF;
+  IF public.doctor_can_chat_with_patient(
+    current_setting('test.rls.doctor_b_id')::uuid,
+    current_setting('test.rls.patient_b_id')::uuid
+  ) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: caller can probe another chat relationship';
+  END IF;
+
+  BEGIN
+    PERFORM public.get_doctor_online_minutes(
+      current_setting('test.rls.doctor_b_id')::uuid,
+      now() - interval '1 hour',
+      now()
+    );
+  EXCEPTION WHEN insufficient_privilege THEN
+    denied := true;
+  END;
+  IF NOT denied THEN
+    RAISE EXCEPTION 'SECURITY FAIL: caller can read another doctor activity';
+  END IF;
+END;
+$unrelated_patient$;
+RESET ROLE;
+
+-- Participants retain access to their own relationship and authorization checks.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.patient_b_user'), 'role', 'authenticated')::text, true);
+DO $patient_participant$
+BEGIN
+  IF NOT public.has_active_authorization(current_setting('test.rls.record_b_id')::uuid) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: authorized patient cannot validate own authorization';
+  END IF;
+  IF NOT public.is_in_care_team(
+    current_setting('test.rls.doctor_b_id')::uuid,
+    current_setting('test.rls.patient_b_id')::uuid
+  ) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: patient cannot validate own care team relationship';
+  END IF;
+  IF NOT public.doctor_can_chat_with_patient(
+    current_setting('test.rls.doctor_b_id')::uuid,
+    current_setting('test.rls.patient_b_id')::uuid
+  ) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: patient cannot validate own chat relationship';
+  END IF;
+END;
+$patient_participant$;
+RESET ROLE;
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.doctor_b_user'), 'role', 'authenticated')::text, true);
+DO $doctor_participant$
+BEGIN
+  IF public.get_doctor_online_minutes(
+    current_setting('test.rls.doctor_b_id')::uuid,
+    now() - interval '1 hour',
+    now()
+  ) <> 5 THEN
+    RAISE EXCEPTION 'SECURITY FAIL: doctor cannot read own online activity';
+  END IF;
+END;
+$doctor_participant$;
+RESET ROLE;
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.doctor_a_user'), 'role', 'authenticated')::text, true);
+DO $admin_participant$
+BEGIN
+  IF NOT public.is_platform_or_org_admin() THEN
+    RAISE EXCEPTION 'SECURITY FAIL: admin cannot validate own role';
+  END IF;
+  IF NOT public.is_in_care_team(
+    current_setting('test.rls.doctor_b_id')::uuid,
+    current_setting('test.rls.patient_b_id')::uuid
+  ) THEN
+    RAISE EXCEPTION 'SECURITY FAIL: admin cannot inspect care team relationship';
+  END IF;
+END;
+$admin_participant$;
+RESET ROLE;
+
+DO $privileges$
+BEGIN
+  IF pg_catalog.has_function_privilege('anon', 'public.auto_delete_expired_recordings()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'SECURITY FAIL: anon can execute legacy recording cleanup';
+  END IF;
+  IF pg_catalog.has_function_privilege('authenticated', 'public.auto_delete_expired_recordings()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'SECURITY FAIL: authenticated can execute legacy recording cleanup';
+  END IF;
+  IF NOT pg_catalog.has_function_privilege('service_role', 'public.auto_delete_expired_recordings()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'SECURITY FAIL: service role lost scheduler access';
+  END IF;
+END;
+$privileges$;
+
 ROLLBACK;
