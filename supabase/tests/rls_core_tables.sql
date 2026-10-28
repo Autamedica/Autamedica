@@ -35,19 +35,29 @@ BEGIN
     (u_doctor_b, 'rls_doctor_b_' || fixture_suffix || '@test.com'),
     (u_company, 'rls_company_' || fixture_suffix || '@test.com');
 
-  -- auth.users insertion fires the profile bootstrap trigger; replace those rows with controlled fixtures.
-  DELETE FROM public.profiles WHERE user_id IN (u_patient_a, u_patient_b, u_doctor_a, u_doctor_b, u_company);
-
-  INSERT INTO public.profiles (user_id, email, role, external_id) VALUES
+  -- Reuse the profile rows created by the auth bootstrap trigger.
+  UPDATE public.profiles AS profile
+  SET email = fixture.email, role = fixture.role, external_id = fixture.external_id
+  FROM (VALUES
     (u_patient_a, 'rls_patient_a_' || fixture_suffix || '@test.com', 'patient', 'rls-pa-' || fixture_suffix),
     (u_patient_b, 'rls_patient_b_' || fixture_suffix || '@test.com', 'patient', 'rls-pb-' || fixture_suffix),
     (u_doctor_a, 'rls_doctor_a_' || fixture_suffix || '@test.com', 'doctor', 'rls-da-' || fixture_suffix),
     (u_doctor_b, 'rls_doctor_b_' || fixture_suffix || '@test.com', 'doctor', 'rls-db-' || fixture_suffix),
-    (u_company, 'rls_company_' || fixture_suffix || '@test.com', 'company', 'rls-co-' || fixture_suffix);
+    (u_company, 'rls_company_' || fixture_suffix || '@test.com', 'company', 'rls-co-' || fixture_suffix)
+  ) AS fixture(user_id, email, role, external_id)
+  WHERE profile.user_id = fixture.user_id;
 
-  INSERT INTO public.patients (id, user_id) VALUES
-    (patient_a_id, u_patient_a),
-    (patient_b_id, u_patient_b);
+  -- The auth bootstrap may create patient rows for new users; assign stable fixture IDs to patient users.
+  UPDATE public.patients SET id = patient_a_id WHERE user_id = u_patient_a;
+  UPDATE public.patients SET id = patient_b_id WHERE user_id = u_patient_b;
+  INSERT INTO public.patients (id, user_id)
+  SELECT patient_a_id, u_patient_a WHERE NOT EXISTS (
+    SELECT 1 FROM public.patients WHERE user_id = u_patient_a
+  );
+  INSERT INTO public.patients (id, user_id)
+  SELECT patient_b_id, u_patient_b WHERE NOT EXISTS (
+    SELECT 1 FROM public.patients WHERE user_id = u_patient_b
+  );
 
   INSERT INTO public.doctors (id, user_id, license_number, specialty, active) VALUES
     (doctor_a_id, u_doctor_a, 'LIC-RLS-A', 'Cardiology', false),
