@@ -35,6 +35,9 @@ BEGIN
     (u_doctor_b, 'rls_doctor_b_' || fixture_suffix || '@test.com'),
     (u_company, 'rls_company_' || fixture_suffix || '@test.com');
 
+  -- auth.users insertion fires the profile bootstrap trigger; replace those rows with controlled fixtures.
+  DELETE FROM public.profiles WHERE user_id IN (u_patient_a, u_patient_b, u_doctor_a, u_doctor_b, u_company);
+
   INSERT INTO public.profiles (user_id, email, role, external_id) VALUES
     (u_patient_a, 'rls_patient_a_' || fixture_suffix || '@test.com', 'patient', 'rls-pa-' || fixture_suffix),
     (u_patient_b, 'rls_patient_b_' || fixture_suffix || '@test.com', 'patient', 'rls-pb-' || fixture_suffix),
