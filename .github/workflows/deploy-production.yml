@@ -224,6 +224,8 @@ jobs:
     name: Smoke Tests
     runs-on: ubuntu-latest
     needs: [build-and-deploy]
+    # Run smoke even when the optional DB job was skipped upstream.
+    if: always() && needs.build-and-deploy.result == 'success'
     timeout-minutes: 5
     steps:
       - name: CDN propagation
