@@ -4,20 +4,20 @@ BEGIN;
 
 DO $setup$
 DECLARE
-  u_patient_a uuid := '10000000-0000-0000-0000-000000000001';
-  u_patient_b uuid := '10000000-0000-0000-0000-000000000002';
-  u_doctor_a uuid := '20000000-0000-0000-0000-000000000001';
-  u_doctor_b uuid := '20000000-0000-0000-0000-000000000002';
-  u_company uuid := '30000000-0000-0000-0000-000000000001';
-  patient_a_id uuid := '40000000-0000-0000-0000-000000000001';
-  patient_b_id uuid := '40000000-0000-0000-0000-000000000002';
-  doctor_a_id uuid := '50000000-0000-0000-0000-000000000001';
-  doctor_b_id uuid := '50000000-0000-0000-0000-000000000002';
-  appt_a_id uuid := '60000000-0000-0000-0000-000000000001';
-  appt_b_id uuid := '60000000-0000-0000-0000-000000000002';
-  record_a_id uuid := '70000000-0000-0000-0000-000000000001';
-  record_b_id uuid := '70000000-0000-0000-0000-000000000002';
-  company_id uuid := '80000000-0000-0000-0000-000000000001';
+  u_patient_a uuid := gen_random_uuid();
+  u_patient_b uuid := gen_random_uuid();
+  u_doctor_a uuid := gen_random_uuid();
+  u_doctor_b uuid := gen_random_uuid();
+  u_company uuid := gen_random_uuid();
+  patient_a_id uuid := gen_random_uuid();
+  patient_b_id uuid := gen_random_uuid();
+  doctor_a_id uuid := gen_random_uuid();
+  doctor_b_id uuid := gen_random_uuid();
+  appt_a_id uuid := gen_random_uuid();
+  appt_b_id uuid := gen_random_uuid();
+  record_a_id uuid := gen_random_uuid();
+  record_b_id uuid := gen_random_uuid();
+  company_id uuid := gen_random_uuid();
   fixture_suffix text := replace(gen_random_uuid()::text, '-', '');
 BEGIN
   DELETE FROM public.medical_records WHERE id IN (record_a_id, record_b_id);
@@ -63,43 +63,56 @@ BEGIN
 
   INSERT INTO public.companies (id, name, owner_profile_id, active) VALUES
     (company_id, 'RLS Test Company', u_company, false);
+  PERFORM set_config('test.rls.patient_a_user', u_patient_a::text, true);
+  PERFORM set_config('test.rls.patient_b_user', u_patient_b::text, true);
+  PERFORM set_config('test.rls.doctor_a_user', u_doctor_a::text, true);
+  PERFORM set_config('test.rls.doctor_b_user', u_doctor_b::text, true);
+  PERFORM set_config('test.rls.company_user', u_company::text, true);
+  PERFORM set_config('test.rls.patient_a_id', patient_a_id::text, true);
+  PERFORM set_config('test.rls.patient_b_id', patient_b_id::text, true);
+  PERFORM set_config('test.rls.doctor_a_id', doctor_a_id::text, true);
+  PERFORM set_config('test.rls.doctor_b_id', doctor_b_id::text, true);
+  PERFORM set_config('test.rls.appt_a_id', appt_a_id::text, true);
+  PERFORM set_config('test.rls.appt_b_id', appt_b_id::text, true);
+  PERFORM set_config('test.rls.record_a_id', record_a_id::text, true);
+  PERFORM set_config('test.rls.record_b_id', record_b_id::text, true);
+  PERFORM set_config('test.rls.company_id', company_id::text, true);
 END;
 $setup$;
 
 -- Patient A: own rows visible; another patient's clinical data hidden.
 SET LOCAL ROLE authenticated;
-SELECT set_config('request.jwt.claims',
-  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.patient_a_user'), 'role', 'authenticated')::text, true);
 DO $patient_a$
 DECLARE visible_count integer;
         affected_count integer;
 BEGIN
   SELECT count(*) INTO visible_count FROM public.patients
-    WHERE id='40000000-0000-0000-0000-000000000001';
+    WHERE id=current_setting('test.rls.patient_a_id')::uuid;
   IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: patient cannot read own patient row'; END IF;
 
   SELECT count(*) INTO visible_count FROM public.patients
-    WHERE id='40000000-0000-0000-0000-000000000002';
+    WHERE id=current_setting('test.rls.patient_b_id')::uuid;
   IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: patient can read another patient'; END IF;
 
   SELECT count(*) INTO visible_count FROM public.appointments
-    WHERE id='60000000-0000-0000-0000-000000000001';
+    WHERE id=current_setting('test.rls.appt_a_id')::uuid;
   IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: patient cannot read own appointment'; END IF;
 
   SELECT count(*) INTO visible_count FROM public.appointments
-    WHERE id='60000000-0000-0000-0000-000000000002';
+    WHERE id=current_setting('test.rls.appt_b_id')::uuid;
   IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: patient can read another patient appointment'; END IF;
 
   SELECT count(*) INTO visible_count FROM public.medical_records
-    WHERE id='70000000-0000-0000-0000-000000000001';
+    WHERE id=current_setting('test.rls.record_a_id')::uuid;
   IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: patient cannot read own medical record'; END IF;
 
   SELECT count(*) INTO visible_count FROM public.medical_records
-    WHERE id='70000000-0000-0000-0000-000000000002';
+    WHERE id=current_setting('test.rls.record_b_id')::uuid;
   IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: patient can read another patient medical record'; END IF;
 
   UPDATE public.doctors SET specialty = specialty
-    WHERE id='50000000-0000-0000-0000-000000000001';
+    WHERE id=current_setting('test.rls.doctor_a_id')::uuid;
   GET DIAGNOSTICS affected_count = ROW_COUNT;
   IF affected_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: patient updated doctor row'; END IF;
 END;
@@ -108,33 +121,32 @@ RESET ROLE;
 
 -- Doctor A: own rows and own appointment record visible; another doctor's data hidden.
 SET LOCAL ROLE authenticated;
-SELECT set_config('request.jwt.claims',
-  '{"sub":"20000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.doctor_a_user'), 'role', 'authenticated')::text, true);
 DO $doctor_a$
 DECLARE visible_count integer;
 BEGIN
   SELECT count(*) INTO visible_count FROM public.doctors
-    WHERE id='50000000-0000-0000-0000-000000000001';
+    WHERE id=current_setting('test.rls.doctor_a_id')::uuid;
   IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: doctor cannot read own row'; END IF;
 
   SELECT count(*) INTO visible_count FROM public.doctors
-    WHERE id='50000000-0000-0000-0000-000000000002';
+    WHERE id=current_setting('test.rls.doctor_b_id')::uuid;
   IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: doctor can read another inactive doctor'; END IF;
 
   SELECT count(*) INTO visible_count FROM public.appointments
-    WHERE id='60000000-0000-0000-0000-000000000001';
+    WHERE id=current_setting('test.rls.appt_a_id')::uuid;
   IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: doctor cannot read assigned appointment'; END IF;
 
   SELECT count(*) INTO visible_count FROM public.appointments
-    WHERE id='60000000-0000-0000-0000-000000000002';
+    WHERE id=current_setting('test.rls.appt_b_id')::uuid;
   IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: doctor can read another doctor appointment'; END IF;
 
   SELECT count(*) INTO visible_count FROM public.medical_records
-    WHERE id='70000000-0000-0000-0000-000000000001';
+    WHERE id=current_setting('test.rls.record_a_id')::uuid;
   IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: doctor cannot read own medical record'; END IF;
 
   SELECT count(*) INTO visible_count FROM public.medical_records
-    WHERE id='70000000-0000-0000-0000-000000000002';
+    WHERE id=current_setting('test.rls.record_b_id')::uuid;
   IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: doctor can read another doctor's medical record'; END IF;
 END;
 $doctor_a$;
@@ -142,13 +154,12 @@ RESET ROLE;
 
 -- Company owner: only the owned inactive company row is visible.
 SET LOCAL ROLE authenticated;
-SELECT set_config('request.jwt.claims',
-  '{"sub":"30000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+SELECT set_config('request.jwt.claims', jsonb_build_object('sub', current_setting('test.rls.company_user'), 'role', 'authenticated')::text, true);
 DO $company_owner$
 DECLARE visible_count integer;
 BEGIN
   SELECT count(*) INTO visible_count FROM public.companies
-    WHERE id='80000000-0000-0000-0000-000000000001';
+    WHERE id=current_setting('test.rls.company_id')::uuid;
   IF visible_count <> 1 THEN RAISE EXCEPTION 'RLS FAIL: company owner cannot read owned company'; END IF;
 END;
 $company_owner$;
