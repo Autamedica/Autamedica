@@ -212,6 +212,12 @@ VALUES (
   now() + interval '1 hour'
 );
 
+-- The production heartbeat table is not versioned in the migration history; create a minimal test-only shape.
+CREATE TABLE IF NOT EXISTS public.doctor_heartbeats (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  doctor_id uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 INSERT INTO public.doctor_heartbeats (doctor_id, created_at)
 VALUES (current_setting('test.rls.doctor_b_id')::uuid, now() - interval '5 minutes');
 
