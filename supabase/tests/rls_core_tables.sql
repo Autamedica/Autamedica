@@ -170,7 +170,7 @@ BEGIN
 
   SELECT count(*) INTO visible_count FROM public.medical_records
     WHERE id=current_setting('test.rls.record_b_id')::uuid;
-  IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: doctor can read another doctor's medical record'; END IF;
+  IF visible_count <> 0 THEN RAISE EXCEPTION 'RLS FAIL: doctor can read another doctor medical record'; END IF;
 END;
 $doctor_a$;
 RESET ROLE;
