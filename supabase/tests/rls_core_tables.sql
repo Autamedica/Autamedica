@@ -59,9 +59,18 @@ BEGIN
     SELECT 1 FROM public.patients WHERE user_id = u_patient_b
   );
 
-  INSERT INTO public.doctors (id, user_id, license_number, specialty, active) VALUES
-    (doctor_a_id, u_doctor_a, 'LIC-RLS-A', 'Cardiology', false),
-    (doctor_b_id, u_doctor_b, 'LIC-RLS-B', 'Neurology', false);
+  UPDATE public.doctors
+  SET id = doctor_a_id, license_number = 'LIC-RLS-A-' || fixture_suffix, specialty = 'Cardiology', active = false
+  WHERE user_id = u_doctor_a;
+  UPDATE public.doctors
+  SET id = doctor_b_id, license_number = 'LIC-RLS-B-' || fixture_suffix, specialty = 'Neurology', active = false
+  WHERE user_id = u_doctor_b;
+  INSERT INTO public.doctors (id, user_id, license_number, specialty, active)
+  SELECT doctor_a_id, u_doctor_a, 'LIC-RLS-A-' || fixture_suffix, 'Cardiology', false
+  WHERE NOT EXISTS (SELECT 1 FROM public.doctors WHERE user_id = u_doctor_a);
+  INSERT INTO public.doctors (id, user_id, license_number, specialty, active)
+  SELECT doctor_b_id, u_doctor_b, 'LIC-RLS-B-' || fixture_suffix, 'Neurology', false
+  WHERE NOT EXISTS (SELECT 1 FROM public.doctors WHERE user_id = u_doctor_b);
 
   INSERT INTO public.appointments (id, patient_id, doctor_id, start_time, status) VALUES
     (appt_a_id, patient_a_id, doctor_a_id, now() + interval '1 day', 'scheduled'),
