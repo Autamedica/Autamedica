@@ -3,6 +3,7 @@
  * This endpoint must never invent CRM, CPF, age, or a successful prescription.
  */
 import type { APIRoute } from 'astro';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { badRequest, forbidden, internalError, jsonOk, serviceUnavailable } from '@/lib/api-helpers';
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
@@ -146,16 +147,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const memed = new MemedService(context.env);
     const { token } = await memed.getOrCreateDoctorToken(context.doctorData);
+    // New table is introduced by the migration in this PR; generic SupabaseClient
+    // keeps this route buildable before generated DB declarations are refreshed.
+    const memedDb = context.admin as unknown as SupabaseClient;
     if (!token) return serviceUnavailable('memed_doctor_token_missing');
 
     if (event === 'prescricaoExcluida') {
       // A deleted prescription may no longer be found in the Memed API.
       // Only mutate an already synchronized prescription belonging to this doctor/patient.
-      const { data: existing, error: lookupError } = await context.admin
+      const { data: existing, error: lookupError } = await memedDb
         .from('memed_prescriptions').select('id')
         .eq('memed_id', memedId).eq('doctor_id', context.doctor.id).eq('patient_id', patientId).maybeSingle();
       if (lookupError || !existing) return badRequest('memed_prescription_not_found');
-      const { error } = await context.admin.from('memed_prescriptions')
+      const { error } = await memedDb.from('memed_prescriptions')
         .update({ status: 'deleted', updated_at: new Date().toISOString() }).eq('id', existing.id);
       if (error) return internalError('memed_delete_sync_failed');
       return jsonOk({ synchronized: true, status: 'deleted' });
