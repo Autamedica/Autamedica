@@ -17,7 +17,7 @@ export interface MemedDoctorData {
   email?: string;
   telefone?: string;
   sexo?: 'M' | 'F';
-  dataNascimento?: string; // dd/mm/YYYY
+  dataNascimento?: string; // dd/mm/YYYY (mandatory when creating a Memed account)
 }
 
 export interface MemedTokenResponse {
@@ -66,7 +66,11 @@ export class MemedService {
    */
   async getOrCreateDoctorToken(doctor: MemedDoctorData): Promise<MemedTokenResponse> {
     this.ensureCredentials();
-    const identifier = doctor.cpf || doctor.externalId || `${doctor.crm}${doctor.uf}`;
+    const cpf = doctor.cpf.replace(/\D/g, '');
+    if (!/^\d{11}$/.test(cpf) || cpf === '00000000000') throw new Error('memed_doctor_cpf_required');
+    if (!/^[A-Z]{2}$/.test(doctor.uf)) throw new Error('memed_doctor_uf_required');
+    if (!/^\d+$/.test(doctor.crm.replace(/\D/g, ''))) throw new Error('memed_doctor_crm_required');
+    const identifier = doctor.externalId || cpf;
 
     // 1. Intentar consultar si el usuario ya existe en Memed
     try {
@@ -97,7 +101,10 @@ export class MemedService {
       logger.warn('[MemedService] Error consultando usuario existente, intentando registro', { err });
     }
 
-    // 2. Si no existe, crearlo
+    // 2. New registration must not invent regulatory identity attributes.
+    if (!doctor.dataNascimento || !/^\d{2}\/\d{2}\/\d{4}$/.test(doctor.dataNascimento)) {
+      throw new Error('memed_doctor_birth_date_required');
+    }
     const postUrl = this.buildUrl('/sinapse-prescricao/usuarios');
     const payload = {
       data: {
@@ -114,8 +121,8 @@ export class MemedService {
           },
           email: doctor.email,
           telefone: doctor.telefone ? doctor.telefone.replace(/\D/g, '') : undefined,
-          sexo: doctor.sexo || 'M',
-          data_nascimento: doctor.dataNascimento || '01/01/1980',
+          ...(doctor.sexo ? { sexo: doctor.sexo } : {}),
+          data_nascimento: doctor.dataNascimento,
         },
       },
     };
@@ -153,6 +160,29 @@ export class MemedService {
 
   getScriptUrl(): string {
     return this.config.scriptUrl;
+  }
+
+  getApiUrl(): string {
+    return this.config.apiUrl;
+  }
+
+  /** Retrieve the Memed prescription over an authenticated server-to-server connection. */
+  async getPrescription(doctorToken: string, id: string): Promise<unknown> {
+    this.ensureCredentials();
+    if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id)) throw new Error('memed_invalid_prescription_id');
+    const url = `${this.config.apiUrl}/prescricoes/${encodeURIComponent(id)}?structuredDocuments=true`;
+    const response = await fetch(url, { headers: { Accept: 'application/vnd.api+json', Authorization: `Bearer ${doctorToken}` } });
+    if (!response.ok) throw new Error(`memed_prescription_lookup_failed:${response.status}`);
+    return response.json();
+  }
+
+  async getDigitalPrescriptionLink(doctorToken: string, id: string): Promise<unknown> {
+    this.ensureCredentials();
+    if (!/^[a-zA-Z0-9_-]{1,100}$/.test(id)) throw new Error('memed_invalid_prescription_id');
+    const url = `${this.config.apiUrl}/prescricoes/${encodeURIComponent(id)}/get-digital-prescription-link?token=${encodeURIComponent(doctorToken)}`;
+    const response = await fetch(url, { headers: { Accept: 'application/vnd.api+json' } });
+    if (!response.ok) throw new Error(`memed_prescription_link_failed:${response.status}`);
+    return response.json();
   }
 }
 
