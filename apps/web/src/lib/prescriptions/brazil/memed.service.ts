@@ -98,10 +98,10 @@ export class MemedService {
     }
 
     // Registration requires the real date of birth. Never invent medical identity fields.
-    if (!doctor.dataNascimento || !/^\\d{2}\\/\\d{2}\\/\\d{4}$/.test(doctor.dataNascimento)) {
+    if (!doctor.dataNascimento || !/^\d{2}\/\d{2}\/\d{4}$/.test(doctor.dataNascimento)) {
       throw new Error('memed_doctor_birth_date_required');
     }
-    if (!/^\\d{11}$/.test(doctor.cpf.replace(/\\D/g, ''))) {
+    if (!/^\d{11}$/.test(doctor.cpf.replace(/\D/g, ''))) {
       throw new Error('memed_doctor_cpf_required');
     }
 
