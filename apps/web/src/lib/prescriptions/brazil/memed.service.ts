@@ -166,11 +166,16 @@ export class MemedService {
   async getIssuedPrescription(id: string, doctorToken: string): Promise<Record<string, unknown>> {
     if (!/^[a-zA-Z0-9-]{1,80}$/.test(id)) throw new Error('memed_invalid_prescription_id');
     if (!doctorToken) throw new Error('memed_missing_doctor_token');
-    const url = this.buildUrl(
-      `/prescricoes/${encodeURIComponent(id)}?structuredDocuments=true&token=${encodeURIComponent(doctorToken)}`,
-    );
+    // Memed's structured-prescription endpoint requires the doctor's Bearer token.
+    // Never append the doctor token or partner keys to a loggable URL.
+    const apiBase = this.config.apiUrl.replace(/\/$/, '');
+    const url = `${apiBase}/prescricoes/${encodeURIComponent(id)}?structuredDocuments=true`;
     const response = await fetch(url, {
-      headers: { Accept: 'application/vnd.api+json', 'Content-Type': 'application/json' },
+      headers: {
+        Accept: 'application/vnd.api+json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${doctorToken}`,
+      },
     });
     if (!response.ok) {
       throw new Error(`memed_prescription_verification_failed:${response.status}`);
