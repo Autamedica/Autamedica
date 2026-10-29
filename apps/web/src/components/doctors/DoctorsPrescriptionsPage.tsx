@@ -1001,10 +1001,10 @@ export function DoctorsPrescriptionsPage() {
       {/* ── Memed Widget ── */}
       {showMemedWidget && (
         <MemedPrescriptionWidget
-          doctorCrm="123456" // Emulated or fetched from context
-          doctorUf="SP"
-          patientName={selectedPatientId ? "Paciente Selecionado" : "Paciente Novo"}
-          patientCpf="000.000.000-00"
+          doctorCrm=""
+          doctorUf=""
+          patientName=""
+          patientCpf=""
           onPrescriptionSaved={(memedId) => {
             console.log("Prescrição Memed salva com ID:", memedId);
             setShowMemedWidget(false);
