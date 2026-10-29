@@ -23,7 +23,7 @@ let existing: unknown;
 function context(prescriptionId = 'rx-test', enabled = 'true'): Parameters<typeof POST>[0] {
   return { request: new Request('https://www.autamedica.com/api/doctors/prescriptions/memed-event', {
     method: 'POST', body: JSON.stringify({ action: 'issued', patientId, prescriptionId }),
-  }), locals: { runtime: { env: { MEMED_RX_ENABLED: enabled, MEMED_PILOT_DOCTOR_ID: 'doctor' } } } } as Parameters<typeof POST>[0];
+  }), locals: { runtime: { env: { MEMED_RX_ENABLED: enabled, MEMED_PILOT_DOCTOR_ID: 'doctor' } } } } as unknown as Parameters<typeof POST>[0];
 }
 beforeEach(() => {
   vi.clearAllMocks(); existing = null;

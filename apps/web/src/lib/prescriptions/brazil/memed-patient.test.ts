@@ -11,8 +11,9 @@ function database(overrides: Record<string, unknown> = {}): SupabaseClient {
     appointments: null, patients: identity,
     profiles: { first_name: 'Synthetic', last_name: 'Patient' }, ...overrides };
   return { from: vi.fn((table: string) => {
-    const chain = { select: vi.fn(), eq: vi.fn(), limit: vi.fn(),
+    const chain = { select: vi.fn(), eq: vi.fn(), is: vi.fn(), or: vi.fn(), limit: vi.fn(),
       maybeSingle: vi.fn(async () => ({ data: rows[table], error: null })) };
+    chain.is.mockReturnValue(chain); chain.or.mockReturnValue(chain);
     chain.select.mockReturnValue(chain); chain.eq.mockReturnValue(chain); chain.limit.mockReturnValue(chain);
     return chain;
   }) } as unknown as SupabaseClient;

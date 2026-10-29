@@ -22,7 +22,7 @@ function context(body: unknown = {}, enabled = 'true', origin?: string): Paramet
   return { request: new Request('https://www.autamedica.com/api/doctors/prescriptions/memed-token', {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...(origin ? { Origin: origin } : {}) },
     body: JSON.stringify(body),
-  }), locals: { runtime: { env: { MEMED_RX_ENABLED: enabled, MEMED_PILOT_DOCTOR_ID: 'doctor' } } } } as Parameters<typeof POST>[0];
+  }), locals: { runtime: { env: { MEMED_RX_ENABLED: enabled, MEMED_PILOT_DOCTOR_ID: 'doctor' } } } } as unknown as Parameters<typeof POST>[0];
 }
 
 beforeEach(() => {

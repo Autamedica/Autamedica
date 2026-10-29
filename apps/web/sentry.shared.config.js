@@ -46,6 +46,17 @@ function redactMemedText(value) {
     .replace(/((?:api-key|secret-key|token)=)[^&\s]+/gi, '$1[Redacted]');
 }
 
+function redactTelemetry(value) {
+  if (typeof value === 'string') return redactMemedText(value);
+  if (Array.isArray(value)) return value.map((item) => redactTelemetry(item));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key,
+      ['cpf', 'api-key', 'secret-key', 'token', 'data_nascimento'].includes(key.toLowerCase())
+        ? (typeof item === 'number' ? 0 : '[Redacted]') : redactTelemetry(item)]));
+  }
+  return value;
+}
+
 function truncate(value, max = 240) {
   return value.length > max ? `${value.slice(0, max)}...[truncated]` : value;
 }
@@ -98,8 +109,8 @@ function sanitizeValue(value, depth = 0) {
 
 export function sanitizeSentryEvent(event) {
   if (typeof event.request?.url === 'string') event.request.url = redactMemedText(event.request.url);
-  if (Array.isArray(event.spans)) event.spans = event.spans.map((span) => sanitizeValue(span));
-  if (event.exception) event.exception = sanitizeValue(event.exception);
+  if (Array.isArray(event.spans)) event.spans = event.spans.map((span) => redactTelemetry(span));
+  if (event.exception) event.exception = redactTelemetry(event.exception);
   if (event.request) {
     delete event.request.data;
 
@@ -147,7 +158,7 @@ export function getBaseSentryConfig(runtime) {
     tracesSampleRate: nodeEnv === 'development' ? 1.0 : 0.1,
     beforeBreadcrumb(breadcrumb) { return sanitizeValue(breadcrumb); },
     beforeSendTransaction(event) { return sanitizeSentryEvent(event); },
-    beforeSendLog(log) { return sanitizeValue(log); },
+    beforeSendLog(log) { return redactTelemetry(log); },
     beforeSend(event) {
       return sanitizeSentryEvent(event);
     },

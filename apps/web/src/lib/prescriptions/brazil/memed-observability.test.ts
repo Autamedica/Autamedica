@@ -11,6 +11,12 @@ describe('Memed telemetry protection', () => {
     expect(serialized).not.toContain('synthetic-secret'); expect(serialized).not.toContain('52998224725');
     expect(serialized).toContain('redacted');
   });
+  it('preserves exception frames and useful log messages', () => {
+    const event = sanitizeSentryEvent({ exception: { values: [{ type: 'Error', value: 'Network failure', stacktrace: { frames: [{ filename: 'app.js', lineno: 10 }] } }] } });
+    expect(event.exception.values[0].stacktrace.frames).toEqual([{ filename: 'app.js', lineno: 10 }]);
+    const log = getBaseSentryConfig('server').beforeSendLog({ message: 'Provider timeout', attributes: {} });
+    expect(log.message).toBe('Provider timeout');
+  });
   it('disables default PII and sanitizes transaction/log channels', () => {
     const config = getBaseSentryConfig('server');
     expect(config.sendDefaultPii).toBe(false);

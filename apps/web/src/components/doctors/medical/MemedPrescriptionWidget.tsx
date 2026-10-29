@@ -1,128 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
+import { ensureMemedScript, getMemedHub, setMemedCallbacks } from '@/lib/prescriptions/brazil/memed-sdk';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 interface MemedPrescriptionWidgetProps {
   patientId: string;
-  patientName: string;
-  patientCpf: string;
-  patientBirthDate: string; // YYYY-MM-DD
-  patientGender: string;
   onPrescriptionSaved: (memedId: string) => Promise<void>;
   onPrescriptionDeleted: (memedId: string) => Promise<void>;
   onClose: () => void;
 }
 
-interface MemedHub {
-  command: { send: (module: string, command: string, data?: Record<string, unknown>) => Promise<unknown> };
-  module: { show: (module: string) => Promise<unknown>; hide?: (module: string) => Promise<unknown> };
-  event: { add: (name: string, callback: (payload: Record<string, unknown>) => void) => void };
-}
-interface MemedCore {
-  event: { add: (name: string, callback: (module: { name?: string }) => void) => void };
-}
-
-const SCRIPT_ID = 'memed-prescricao-script';
-const MODULE_NAME = 'plataforma.prescricao';
-
-// Memed mandates a singleton script/listeners in SPA sessions.
-let scriptPromise: Promise<void> | null = null;
-let scriptToken: string | null = null;
-let moduleInitialized = false;
-let eventListenersRegistered = false;
-let activeOnIssued: ((id: string) => void) | null = null;
-let activeOnDeleted: ((id: string) => void) | null = null;
-
-function getHub(): MemedHub | undefined {
-  return (window as unknown as { MdHub?: MemedHub }).MdHub;
-}
-function getCore(): MemedCore | undefined {
-  return (window as unknown as { MdSinapsePrescricao?: MemedCore }).MdSinapsePrescricao;
-}
-
-function ensureScript(token: string, scriptUrl: string): Promise<void> {
-  if (scriptToken && scriptToken !== token) {
-    return Promise.reject(new Error('Sessão de outro médico detectada. Recarregue a página antes de prescrever.'));
-  }
-  if (moduleInitialized && getHub()) return Promise.resolve();
-  if (scriptPromise) return scriptPromise;
-
-  // Only load a documented Memed script over HTTPS.
-  const url = new URL(scriptUrl);
-  if (!['https://partners.memed.com.br/integration.js',
-    'https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js'].includes(url.href)) {
-    return Promise.reject(new Error('URL do módulo Memed não autorizada.'));
-  }
-
-  scriptToken = token;
-  scriptPromise = new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script');
-    script.id = SCRIPT_ID;
-    script.type = 'text/javascript';
-    script.src = url.href;
-    script.setAttribute('data-token', token);
-    script.referrerPolicy = 'no-referrer';
-    const timer = window.setTimeout(() => {
-      reject(new Error('A Memed não iniciou no prazo esperado. Recarregue a página para tentar novamente.'));
-    }, 15000);
-
-    script.onload = () => {
-      const core = getCore();
-      if (!core?.event) {
-        window.clearTimeout(timer);
-        reject(new Error('Módulo Memed não disponibilizou a API de eventos.'));
-        return;
-      }
-      core.event.add('core:moduleInit', (module) => {
-        if (module.name !== MODULE_NAME) return;
-        const hub = getHub();
-        if (!hub?.event || !hub.command || !hub.module) {
-          reject(new Error('MdHub indisponível.'));
-          return;
-        }
-        if (!eventListenersRegistered) {
-          hub.event.add('prescricaoImpressa', (data) => {
-            const prescription = (data.prescricao ?? data) as Record<string, unknown>;
-            const id = prescription.prescriptionUuid ?? prescription.id ?? data.id;
-            if (id !== undefined && id !== null && activeOnIssued) {
-              activeOnIssued(String(id));
-            }
-          });
-          hub.event.add('prescricaoExcluida', (data) => {
-            const prescription = (data.prescricao ?? data) as Record<string, unknown>;
-            const id = prescription.prescriptionUuid ?? prescription.id ?? data.id;
-            if (id !== undefined && id !== null && activeOnDeleted) {
-              activeOnDeleted(String(id));
-            }
-          });
-          eventListenersRegistered = true;
-        }
-        window.clearTimeout(timer);
-        moduleInitialized = true;
-        resolve();
-      });
-    };
-    script.onerror = () => {
-      window.clearTimeout(timer);
-      scriptPromise = null;
-      scriptToken = null;
-      script.remove();
-      reject(new Error('Falha ao carregar o módulo Memed.'));
-    };
-    document.head.appendChild(script);
-  });
-  return scriptPromise;
-}
-
 export function MemedPrescriptionWidget({
   patientId,
-  patientName,
-  patientCpf,
-  patientBirthDate,
-  patientGender,
   onPrescriptionSaved,
   onPrescriptionDeleted,
   onClose,
 }: MemedPrescriptionWidgetProps) {
+  const [patientLabel, setPatientLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [issuedId, setIssuedId] = useState<string | null>(null);
@@ -137,7 +30,7 @@ export function MemedPrescriptionWidget({
 
   useEffect(() => {
     let cancelled = false;
-    activeOnIssued = (id) => {
+    const onIssued = (id: string) => {
       if (cancelled) return;
       void onSavedRef.current(id).then(() => {
         if (!cancelled) setIssuedId(id);
@@ -145,19 +38,16 @@ export function MemedPrescriptionWidget({
         if (!cancelled) setErrorMessage('A Memed informou a emissão, mas o prontuário não confirmou a verificação. Verifique antes de compartilhar.');
       });
     };
-    activeOnDeleted = (id) => {
+    const onDeleted = (id: string) => {
       if (!cancelled) {
         void onDeletedRef.current(id).catch(() => {
           if (!cancelled) setErrorMessage('Não foi possível sincronizar a exclusão da receita.');
         });
       }
     };
+    const clearCallbacks = setMemedCallbacks(onIssued, onDeleted);
     async function openMemed() {
       try {
-        const cpf = patientCpf.replace(/\D/g, '');
-        if (!patientId || !patientName.trim() || !/^\d{11}$/.test(cpf)) {
-          throw new Error('Selecione um paciente com nome completo e CPF válido.');
-        }
         const tokenRequest: RequestInit = {
           method: 'POST', credentials: 'include', cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
@@ -181,13 +71,14 @@ export function MemedPrescriptionWidget({
             : 'Não foi possível autorizar o médico e o paciente para a Memed. Confira os dados do cadastro.');
         }
         if (cancelled) return;
-        await ensureScript(json.data.token, json.data.scriptUrl);
+        setPatientLabel(json.data.patient.nome);
+        await ensureMemedScript(json.data.token, json.data.scriptUrl, json.data.doctor.userId);
         if (cancelled) return;
-        const hub = getHub();
+        const hub = getMemedHub();
         if (!hub) throw new Error('MdHub indisponível para prescrição.');
-        await hub.command.send(MODULE_NAME, 'setPaciente', json.data.patient);
+        await hub.command.send('plataforma.prescricao', 'setPaciente', json.data.patient);
         if (cancelled) return;
-        await hub.module.show(MODULE_NAME);
+        await hub.module.show('plataforma.prescricao');
         if (!cancelled) setLoading(false);
       } catch (error) {
         if (!cancelled) {
@@ -199,20 +90,12 @@ export function MemedPrescriptionWidget({
     void openMemed();
     return () => {
       cancelled = true;
-      activeOnIssued = null;
-      activeOnDeleted = null;
-      const hub = getHub();
-      void hub?.module.hide?.(MODULE_NAME).catch(() => undefined);
-      // Memed requires logout to clear its storage on shared clinical devices.
-      void hub?.command.send('plataforma.sdk', 'logout').catch(() => undefined);
-      if (hub) {
-        moduleInitialized = false;
-        scriptPromise = Promise.reject(new Error('Sessão Memed encerrada. Recarregue a página para abrir novamente.'));
-        void scriptPromise.catch(() => undefined);
-      }
+      clearCallbacks();
+      const hub = getMemedHub();
+      void hub?.module.hide?.('plataforma.prescricao').catch(() => undefined);
       // Leave the script in place to prevent duplicate initialization.
     };
-  }, [patientId, patientName, patientCpf, patientBirthDate, patientGender, doctorIdentitySubmitted]);
+  }, [patientId, doctorIdentitySubmitted]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -220,7 +103,7 @@ export function MemedPrescriptionWidget({
         <div className="flex items-center justify-between border-b p-4">
           <div>
             <h2 className="font-semibold text-slate-900">Prescrição digital Brasil — Memed</h2>
-            <p className="text-xs text-slate-600">Paciente: {patientName}</p>
+            <p className="text-xs text-slate-600">Paciente: {patientLabel ?? 'Confirmando cadastro…'}</p>
           </div>
           <button onClick={onClose} className="rounded-lg px-3 py-1 text-slate-700" aria-label="Fechar Memed">Fechar</button>
         </div>

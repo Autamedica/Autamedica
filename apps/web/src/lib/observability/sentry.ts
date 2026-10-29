@@ -80,6 +80,17 @@ function redactMemedText(value: string): string {
     .replace(/((?:api-key|secret-key|token)=)[^&\s]+/gi, '$1[Redacted]');
 }
 
+function redactTelemetry(value: unknown): unknown {
+  if (typeof value === 'string') return redactMemedText(value);
+  if (Array.isArray(value)) return value.map((item) => redactTelemetry(item));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key,
+      ['cpf', 'api-key', 'secret-key', 'token', 'data_nascimento'].includes(key.toLowerCase())
+        ? (typeof item === 'number' ? 0 : '[Redacted]') : redactTelemetry(item)]));
+  }
+  return value;
+}
+
 function truncate(value: string, max = 240): string {
   if (value.length <= max) {
     return value
@@ -140,9 +151,9 @@ function sanitizeEvent<T>(event: T): T {
 
   if (typeof mutableEvent.request?.url === 'string') mutableEvent.request.url = redactMemedText(mutableEvent.request.url);
   if (Array.isArray(mutableEvent.spans)) {
-    mutableEvent.spans = mutableEvent.spans.map((span: Record<string, unknown>) => sanitizeValue(span));
+    mutableEvent.spans = mutableEvent.spans.map((span: Record<string, unknown>) => redactTelemetry(span));
   }
-  if (mutableEvent.exception) mutableEvent.exception = sanitizeValue(mutableEvent.exception);
+  if (mutableEvent.exception) mutableEvent.exception = redactTelemetry(mutableEvent.exception);
   if (mutableEvent.request) {
     delete mutableEvent.request.data
 

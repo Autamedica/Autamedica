@@ -196,7 +196,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const { data: winner, error: winnerError } = await admin.from('prescriptions')
         .select('id, status, doctor_id, patient_id').eq('vendor_name', 'memed')
         .eq('vendor_id', payload.vendor_id).maybeSingle();
-      if (winnerError || !winner || winner.doctor_id !== doctor.id || winner.patient_id !== patientId) {
+      if (winnerError || winner?.doctor_id !== doctor.id || winner.patient_id !== patientId) {
         return forbidden('memed_prescription_ownership_conflict');
       }
       return jsonOk({ status: winner.status, prescriptionId, duplicate: true });
