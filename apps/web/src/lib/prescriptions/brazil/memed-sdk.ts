@@ -156,6 +156,7 @@ export function openMemedPatient(patient: MemedPatient, isCurrent: () => boolean
     await hub.command.send(MODULE_NAME, 'setPaciente', { ...patient });
     if (!current()) return;
     await hub.module.show(MODULE_NAME);
+    if (!current()) await hub.module.hide?.(MODULE_NAME);
   });
   opening = task.catch(() => undefined);
   return task;

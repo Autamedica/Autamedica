@@ -82,4 +82,17 @@ describe('Memed SDK lifecycle', () => {
     expect(command).not.toHaveBeenCalled();
   });
 
+  it('hides a late-opening module when the widget closes during show', async () => {
+    const sdk = await ready(); const hub = sdk.getMemedHub();
+    if (!hub) throw new Error('mock SDK missing');
+    let resolveShow: () => void = () => undefined;
+    let current = true;
+    vi.spyOn(hub.module, 'show').mockImplementation(() => new Promise<void>((resolve) => { resolveShow = resolve; }));
+    const opening = sdk.openMemedPatient({ idExterno: 'synthetic-patient', nome: 'Synthetic Patient',
+      cpf: '52998224725', data_nascimento: '01/01/2000', sexo: 'Feminino' }, () => current);
+    await vi.waitFor(() => expect(hub.module.show).toHaveBeenCalled());
+    current = false; resolveShow(); await opening;
+    expect(hub.module.hide).toHaveBeenCalledWith('plataforma.prescricao');
+  });
+
 });
