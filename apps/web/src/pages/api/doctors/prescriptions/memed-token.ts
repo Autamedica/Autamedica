@@ -18,25 +18,6 @@ const isValidIsoDate = (value: string): boolean => {
     && date.toISOString().slice(0, 10) === value
     && date.getUTCFullYear() >= 1900
     && date.getTime() < Date.now();
-}
-
-export const GET: APIRoute = (context) => handleMemedToken(context);
-
-export const POST: APIRoute = async (context) => {
-  // DOB is supplied by the authenticated physician only for first-time Memed registration.
-  // It is not stored in logs, query strings, client storage or AutaMedica tables.
-  let body: unknown;
-  try {
-    body = await context.request.json();
-  } catch {
-    return badRequest('invalid_json');
-  }
-  const birthDate = body && typeof body === 'object' && 'birthDate' in body
-    ? (body as { birthDate?: unknown }).birthDate : undefined;
-  if (typeof birthDate !== 'string' || !isValidIsoDate(birthDate)) {
-    return badRequest('memed_doctor_birth_date_invalid');
-  }
-  return handleMemedToken(context, birthDate);
 };
 
 async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string): Promise<Response> {
@@ -134,4 +115,23 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     logger.error('[memed-token] token acquisition failed', err instanceof Error ? err.message : 'unknown');
     return internalError('memed_token_unavailable');
   }
+}
+
+export const GET: APIRoute = (context) => handleMemedToken(context);
+
+export const POST: APIRoute = async (context) => {
+  // DOB is supplied by the authenticated physician only for first-time Memed registration.
+  // It is not stored in logs, query strings, client storage or AutaMedica tables.
+  let body: unknown;
+  try {
+    body = await context.request.json();
+  } catch {
+    return badRequest('invalid_json');
+  }
+  const birthDate = body && typeof body === 'object' && 'birthDate' in body
+    ? (body as { birthDate?: unknown }).birthDate : undefined;
+  if (typeof birthDate !== 'string' || !isValidIsoDate(birthDate)) {
+    return badRequest('memed_doctor_birth_date_invalid');
+  }
+  return handleMemedToken(context, birthDate);
 };
