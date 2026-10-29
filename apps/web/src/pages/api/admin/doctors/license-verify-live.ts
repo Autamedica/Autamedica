@@ -149,7 +149,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const persist = body.persist !== false;
-    const source = verification.source ?? (tokenSecret && domainUrl ? 'national_refeps_api' : 'local_database_fallback');
+    const source = verification.source ?? 'unverified';
+
+    // Local doctor records and offline mock data cannot establish professional
+    // accreditation. Never persist a medical license decision from those sources.
+    if (source !== 'national_refeps_api') {
+      logger.warn('[license-verify-live] Official REFEPS check unavailable; leaving license unchanged', {
+        doctorId: doctor.id,
+        source,
+      });
+      return badRequest(
+        'La consulta oficial SISA/REFEPS no está disponible. No se modificó la validación; realizá una revisión documental.',
+      );
+    }
+
     const registeredSpecialty = firstText(verification.specialty);
     const practitionerId = firstText(verification.practitionerId);
     const validatedLicense = firstText(
