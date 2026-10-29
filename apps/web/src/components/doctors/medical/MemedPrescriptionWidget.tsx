@@ -7,7 +7,8 @@ interface MemedPrescriptionWidgetProps {
   patientCpf: string;
   patientBirthDate: string; // YYYY-MM-DD
   patientGender: string;
-  onPrescriptionSaved: (memedId: string) => void;
+  onPrescriptionSaved: (memedId: string) => Promise<void>;
+  onPrescriptionDeleted: (memedId: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -29,6 +30,7 @@ let scriptToken: string | null = null;
 let moduleInitialized = false;
 let eventListenersRegistered = false;
 let activeOnIssued: ((id: string) => void) | null = null;
+let activeOnDeleted: ((id: string) => void) | null = null;
 
 function getHub(): MemedHub | undefined {
   return (window as unknown as { MdHub?: MemedHub }).MdHub;
@@ -80,7 +82,13 @@ function ensureScript(token: string, scriptUrl: string): Promise<void> {
               activeOnIssued(String(id));
             }
           });
-          // A future backend synchronization must also use prescricaoExcluida.
+          hub.event.add('prescricaoExcluida', (data) => {
+            const prescription = (data.prescricao ?? data) as Record<string, unknown>;
+            const id = prescription.id ?? prescription.prescriptionUuid ?? data.id;
+            if (id !== undefined && id !== null && activeOnDeleted) {
+              activeOnDeleted(String(id));
+            }
+          });
           eventListenersRegistered = true;
         }
         moduleInitialized = true;
@@ -118,20 +126,33 @@ export function MemedPrescriptionWidget({
   patientBirthDate,
   patientGender,
   onPrescriptionSaved,
+  onPrescriptionDeleted,
   onClose,
 }: MemedPrescriptionWidgetProps) {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [issuedId, setIssuedId] = useState<string | null>(null);
   const onSavedRef = useRef(onPrescriptionSaved);
+  const onDeletedRef = useRef(onPrescriptionDeleted);
   onSavedRef.current = onPrescriptionSaved;
+  onDeletedRef.current = onPrescriptionDeleted;
 
   useEffect(() => {
     let cancelled = false;
     activeOnIssued = (id) => {
       if (cancelled) return;
-      setIssuedId(id);
-      onSavedRef.current(id);
+      void onSavedRef.current(id).then(() => {
+        if (!cancelled) setIssuedId(id);
+      }).catch(() => {
+        if (!cancelled) setErrorMessage('A Memed informou a emissão, mas o prontuário não confirmou a verificação. Verifique antes de compartilhar.');
+      });
+    };
+    activeOnDeleted = (id) => {
+      if (!cancelled) {
+        void onDeletedRef.current(id).catch(() => {
+          if (!cancelled) setErrorMessage('Não foi possível sincronizar a exclusão da receita.');
+        });
+      }
     };
     async function openMemed() {
       try {
@@ -172,6 +193,7 @@ export function MemedPrescriptionWidget({
     return () => {
       cancelled = true;
       activeOnIssued = null;
+      activeOnDeleted = null;
       void getHub()?.module.hide?.(MODULE_NAME);
       // Leave the script in place to prevent duplicate initialization.
     };
@@ -190,7 +212,7 @@ export function MemedPrescriptionWidget({
         {loading && <div className="flex items-center gap-2 p-5 text-slate-700"><Loader2 className="h-5 w-5 animate-spin" />Carregando Memed...</div>}
         {errorMessage && <div role="alert" className="flex items-start gap-2 p-5 text-red-700"><AlertCircle className="h-5 w-5 shrink-0" />{errorMessage}</div>}
         {issuedId && <div role="status" className="p-3 text-sm text-amber-800">
-          Prescrição identificada na Memed (ID {issuedId}). Confirme a assinatura, a entrega ao paciente e o registro no prontuário antes de concluir o atendimento.
+          Prescrição confirmada na API Memed e registrada como pendente (ID {issuedId}). Confirme a assinatura e a entrega ao paciente antes de concluir o atendimento.
         </div>}
         <div id="memed-prescricao-container" className="min-h-[400px] flex-1 overflow-auto" />
       </div>
