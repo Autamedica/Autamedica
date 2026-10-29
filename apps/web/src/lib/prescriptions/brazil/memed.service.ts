@@ -29,6 +29,18 @@ export interface MemedTokenResponse {
   };
 }
 
+function assertMemedDoctorMatch(attrs: Record<string, unknown>, doctor: MemedDoctorData): void {
+  // A lookup by CPF can return another account's access token. Never accept
+  // that token until Memed's identity matches the authenticated CFM doctor.
+  const digits = (value: unknown): string => String(value ?? '').replace(/\D/g, '');
+  const cpf = digits(attrs.cpf);
+  const crm = digits(attrs.crm);
+  const uf = String(attrs.uf ?? '').trim().toUpperCase();
+  if (cpf !== digits(doctor.cpf) || crm !== digits(doctor.crm) || uf !== doctor.uf.toUpperCase()) {
+    throw new Error('memed_provider_doctor_identity_mismatch');
+  }
+}
+
 export class MemedService {
   private config: MemedConfig;
 
@@ -82,19 +94,34 @@ export class MemedService {
       if (getRes.ok) {
         const json = await getRes.json();
         const attrs = json.data?.attributes;
-        if (attrs?.token) {
-          return {
-            token: attrs.token,
-            doctor: {
-              nome: `${attrs.nome || ''} ${attrs.sobrenome || ''}`.trim(),
-              crm: attrs.crm || doctor.crm,
-              uf: attrs.uf || doctor.uf,
-            },
-          };
-        }
+        if (!attrs?.token) throw new Error('memed_token_missing_in_response');
+        assertMemedDoctorMatch(attrs, doctor);
+        return {
+          token: attrs.token,
+          doctor: {
+            nome: `${attrs.nome || ''} ${attrs.sobrenome || ''}`.trim(),
+            crm: attrs.crm || doctor.crm,
+            uf: attrs.uf || doctor.uf,
+          },
+        };
+      }
+      if (getRes.status !== 404) {
+        throw new Error(`memed_doctor_lookup_failed:${getRes.status}`);
       }
     } catch (err) {
-      logger.warn('[MemedService] Error consultando usuario existente, intentando registro', { err });
+      // Never register a new doctor after authentication or upstream/network errors.
+      logger.warn('[MemedService] Doctor lookup failed; registration blocked', {
+        message: err instanceof Error ? err.message : 'unknown',
+      });
+      throw err;
+    }
+
+    // Registration requires the real date of birth. Never invent medical identity fields.
+    if (!doctor.dataNascimento || !/^\d{2}\/\d{2}\/\d{4}$/.test(doctor.dataNascimento)) {
+      throw new Error('memed_doctor_birth_date_required');
+    }
+    if (!/^\d{11}$/.test(doctor.cpf.replace(/\D/g, ''))) {
+      throw new Error('memed_doctor_cpf_required');
     }
 
     // 2. Si no existe, crearlo
@@ -114,8 +141,8 @@ export class MemedService {
           },
           email: doctor.email,
           telefone: doctor.telefone ? doctor.telefone.replace(/\D/g, '') : undefined,
-          sexo: doctor.sexo || 'M',
-          data_nascimento: doctor.dataNascimento || '01/01/1980',
+          ...(doctor.sexo ? { sexo: doctor.sexo } : {}),
+          data_nascimento: doctor.dataNascimento,
         },
       },
     };
@@ -130,9 +157,9 @@ export class MemedService {
     });
 
     if (!postRes.ok) {
-      const errorText = await postRes.text();
-      logger.error('[MemedService] Error registrando médico en Memed', { status: postRes.status, body: errorText });
-      throw new Error(`memed_registration_failed: ${postRes.status} ${errorText}`);
+      // Do not log or return upstream response bodies: they may contain medical PII.
+      logger.error('[MemedService] Doctor registration failed', { status: postRes.status });
+      throw new Error(`memed_registration_failed:${postRes.status}`);
     }
 
     const postJson = await postRes.json();
@@ -140,6 +167,7 @@ export class MemedService {
     if (!createdAttrs?.token) {
       throw new Error('memed_token_missing_in_response');
     }
+    assertMemedDoctorMatch(createdAttrs, doctor);
 
     return {
       token: createdAttrs.token,
@@ -149,6 +177,30 @@ export class MemedService {
         uf: createdAttrs.uf || doctor.uf,
       },
     };
+  }
+
+  /**
+   * Server-side verification of an issued prescription. The event from the browser
+   * is never sufficient evidence of a valid prescription.
+   */
+  async getIssuedPrescription(id: string, doctorToken: string): Promise<Record<string, unknown>> {
+    if (!/^[a-zA-Z0-9-]{1,80}$/.test(id)) throw new Error('memed_invalid_prescription_id');
+    if (!doctorToken) throw new Error('memed_missing_doctor_token');
+    // Memed's structured-prescription endpoint requires the doctor's Bearer token.
+    // Never append the doctor token or partner keys to a loggable URL.
+    const apiBase = this.config.apiUrl.replace(/\/$/, '');
+    const url = `${apiBase}/prescricoes/${encodeURIComponent(id)}?structuredDocuments=true`;
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/vnd.api+json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${doctorToken}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`memed_prescription_verification_failed:${response.status}`);
+    }
+    return await response.json() as Record<string, unknown>;
   }
 
   getScriptUrl(): string {
