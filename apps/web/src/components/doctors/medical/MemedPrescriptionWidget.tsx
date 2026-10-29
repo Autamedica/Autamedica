@@ -132,6 +132,10 @@ export function MemedPrescriptionWidget({
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [issuedId, setIssuedId] = useState<string | null>(null);
+  const [identityRequired, setIdentityRequired] = useState(false);
+  const [doctorCpfInput, setDoctorCpfInput] = useState('');
+  const [doctorBirthInput, setDoctorBirthInput] = useState('');
+  const [doctorIdentitySubmitted, setDoctorIdentitySubmitted] = useState<{ cpf: string; birthDate: string } | null>(null);
   const onSavedRef = useRef(onPrescriptionSaved);
   const onDeletedRef = useRef(onPrescriptionDeleted);
   onSavedRef.current = onPrescriptionSaved;
@@ -162,8 +166,26 @@ export function MemedPrescriptionWidget({
         }
         const sex = patientSex(patientGender);
         const dob = formatDate(patientBirthDate);
-        const response = await fetch('/api/doctors/prescriptions/memed-token', { credentials: 'include' });
+        const tokenRequest: RequestInit = doctorIdentitySubmitted
+          ? {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(doctorIdentitySubmitted),
+            }
+          : { credentials: 'include' };
+        const response = await fetch('/api/doctors/prescriptions/memed-token', tokenRequest);
         const json = await response.json();
+        if (response.status === 400 && [
+          'memed_doctor_identity_incomplete',
+          'memed_doctor_birth_date_required',
+        ].includes(json.error?.message)) {
+          if (!cancelled) {
+            setIdentityRequired(true);
+            setLoading(false);
+          }
+          return;
+        }
         if (!response.ok || json.success !== true || !json.data?.token || !json.data?.scriptUrl) {
           throw new Error(json.error?.message ?? 'Médico sem credenciais Memed válidas.');
         }
@@ -197,7 +219,7 @@ export function MemedPrescriptionWidget({
       void getHub()?.module.hide?.(MODULE_NAME);
       // Leave the script in place to prevent duplicate initialization.
     };
-  }, [patientId, patientName, patientCpf, patientBirthDate, patientGender]);
+  }, [patientId, patientName, patientCpf, patientBirthDate, patientGender, doctorIdentitySubmitted]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -209,6 +231,34 @@ export function MemedPrescriptionWidget({
           </div>
           <button onClick={onClose} className="rounded-lg px-3 py-1 text-slate-700" aria-label="Fechar Memed">Fechar</button>
         </div>
+        {identityRequired && !loading && (
+          <form className="space-y-3 border-b p-5" onSubmit={(event) => {
+            event.preventDefault();
+            if (!doctorCpfInput || !doctorBirthInput) return;
+            setIdentityRequired(false);
+            setErrorMessage(null);
+            setLoading(true);
+            setDoctorIdentitySubmitted({ cpf: doctorCpfInput, birthDate: doctorBirthInput });
+          }}>
+            <p className="text-sm text-slate-800">Para vincular sua identidade ao Memed, informe seu CPF e data de nascimento reais. A matrícula CRM deve estar previamente validada.</p>
+            <label className="block text-sm text-slate-700">
+              CPF do médico (11 dígitos)
+              <input type="text" inputMode="numeric" autoComplete="off" pattern="[0-9]{11}"
+                required value={doctorCpfInput} onChange={(event) => setDoctorCpfInput(event.target.value.replace(/\\D/g, '').slice(0, 11))}
+                className="mt-1 block w-full rounded border p-2" />
+            </label>
+            <label className="block text-sm text-slate-700">
+              Data de nascimento do médico
+              <input type="date" autoComplete="off" required max={new Date().toISOString().slice(0, 10)}
+                value={doctorBirthInput} onChange={(event) => setDoctorBirthInput(event.target.value)}
+                className="mt-1 block w-full rounded border p-2" />
+            </label>
+            <p className="text-xs text-slate-600">A data de nascimento será transmitida à Memed apenas para o cadastro, sem armazenamento na AutaMedica.</p>
+            <button type="submit" className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white">
+              Validar cadastro Memed
+            </button>
+          </form>
+        )}
         {loading && <div className="flex items-center gap-2 p-5 text-slate-700"><Loader2 className="h-5 w-5 animate-spin" />Carregando Memed...</div>}
         {errorMessage && <div role="alert" className="flex items-start gap-2 p-5 text-red-700"><AlertCircle className="h-5 w-5 shrink-0" />{errorMessage}</div>}
         {issuedId && <div role="status" className="p-3 text-sm text-amber-800">
