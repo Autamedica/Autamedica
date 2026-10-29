@@ -97,6 +97,14 @@ export class MemedService {
       logger.warn('[MemedService] Error consultando usuario existente, intentando registro', { err });
     }
 
+    // Registration requires the real date of birth. Never invent medical identity fields.
+    if (!doctor.dataNascimento || !/^\\d{2}\\/\\d{2}\\/\\d{4}$/.test(doctor.dataNascimento)) {
+      throw new Error('memed_doctor_birth_date_required');
+    }
+    if (!/^\\d{11}$/.test(doctor.cpf.replace(/\\D/g, ''))) {
+      throw new Error('memed_doctor_cpf_required');
+    }
+
     // 2. Si no existe, crearlo
     const postUrl = this.buildUrl('/sinapse-prescricao/usuarios');
     const payload = {
@@ -114,8 +122,8 @@ export class MemedService {
           },
           email: doctor.email,
           telefone: doctor.telefone ? doctor.telefone.replace(/\D/g, '') : undefined,
-          sexo: doctor.sexo || 'M',
-          data_nascimento: doctor.dataNascimento || '01/01/1980',
+          ...(doctor.sexo ? { sexo: doctor.sexo } : {}),
+          data_nascimento: doctor.dataNascimento,
         },
       },
     };
