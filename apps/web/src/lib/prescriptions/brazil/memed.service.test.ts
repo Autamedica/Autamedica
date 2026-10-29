@@ -94,4 +94,31 @@ describe('MemedService', () => {
     expect(fetchMock.mock.calls[0][0]).toContain('api-key=mock-key');
     expect(fetchMock.mock.calls[0][0]).toContain('secret-key=mock-secret');
   });
+  it('does not invent a date of birth when registering a new medical prescriber', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 404 });
+    vi.stubGlobal('fetch', fetchMock);
+    const service = new MemedService({
+      MEMED_API_KEY: 'test-api-key',
+      MEMED_SECRET_KEY: 'test-secret-key',
+    });
+    await expect(service.getOrCreateDoctorToken({
+      externalId: 'doctor-123',
+      nome: 'Camila',
+      sobrenome: 'Silva',
+      cpf: '12345678909',
+      crm: '123456',
+      uf: 'RS',
+    })).rejects.toThrow('memed_doctor_birth_date_required');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects prescription IDs with path traversal characters', async () => {
+    const service = new MemedService({
+      MEMED_API_KEY: 'test-api-key',
+      MEMED_SECRET_KEY: 'test-secret-key',
+    });
+    await expect(service.getIssuedPrescription('../../other', 'doctor-token'))
+      .rejects.toThrow('memed_invalid_prescription_id');
+  });
+
 });
