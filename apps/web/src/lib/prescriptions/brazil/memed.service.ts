@@ -72,33 +72,32 @@ export class MemedService {
     if (!/^\d+$/.test(doctor.crm.replace(/\D/g, ''))) throw new Error('memed_doctor_crm_required');
     const identifier = doctor.externalId || cpf;
 
-    // 1. Intentar consultar si el usuario ya existe en Memed
-    try {
-      const getUrl = this.buildUrl(`/sinapse-prescricao/usuarios/${encodeURIComponent(identifier)}`);
-      const getRes = await fetch(getUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/vnd.api+json',
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (getRes.ok) {
-        const json = await getRes.json();
-        const attrs = json.data?.attributes;
-        if (attrs?.token) {
-          return {
-            token: attrs.token,
-            doctor: {
-              nome: `${attrs.nome || ''} ${attrs.sobrenome || ''}`.trim(),
-              crm: attrs.crm || doctor.crm,
-              uf: attrs.uf || doctor.uf,
-            },
-          };
-        }
+    // 1. Consult the existing account. Only a genuine HTTP 404 permits a new registration.
+    const getUrl = this.buildUrl(`/sinapse-prescricao/usuarios/${encodeURIComponent(identifier)}`);
+    const getRes = await fetch(getUrl, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/vnd.api+json',
+        'Content-Type': 'application/json',
+      },
+    });
+    if (getRes.ok) {
+      const json = await getRes.json();
+      const attrs = json.data?.attributes;
+      if (typeof attrs?.token !== 'string' || !attrs.token.trim()) {
+        throw new Error('memed_existing_token_missing');
       }
-    } catch (err) {
-      logger.warn('[MemedService] Error consultando usuario existente, intentando registro', { err });
+      return {
+        token: attrs.token,
+        doctor: {
+          nome: `${attrs.nome || ''} ${attrs.sobrenome || ''}`.trim(),
+          crm: attrs.crm || doctor.crm,
+          uf: attrs.uf || doctor.uf,
+        },
+      };
+    }
+    if (getRes.status !== 404) {
+      throw new Error(`memed_doctor_lookup_failed:${getRes.status}`);
     }
 
     // 2. New registration must not invent regulatory identity attributes.
