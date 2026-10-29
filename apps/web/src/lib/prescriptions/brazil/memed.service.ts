@@ -29,6 +29,18 @@ export interface MemedTokenResponse {
   };
 }
 
+function assertMemedDoctorMatch(attrs: Record<string, unknown>, doctor: MemedDoctorData): void {
+  // A lookup by CPF can return another account's access token. Never accept
+  // that token until Memed's identity matches the authenticated CFM doctor.
+  const digits = (value: unknown): string => String(value ?? '').replace(/\D/g, '');
+  const cpf = digits(attrs.cpf);
+  const crm = digits(attrs.crm);
+  const uf = String(attrs.uf ?? '').trim().toUpperCase();
+  if (cpf !== digits(doctor.cpf) || crm !== digits(doctor.crm) || uf !== doctor.uf.toUpperCase()) {
+    throw new Error('memed_provider_doctor_identity_mismatch');
+  }
+}
+
 export class MemedService {
   private config: MemedConfig;
 
@@ -83,6 +95,7 @@ export class MemedService {
         const json = await getRes.json();
         const attrs = json.data?.attributes;
         if (!attrs?.token) throw new Error('memed_token_missing_in_response');
+        assertMemedDoctorMatch(attrs, doctor);
         return {
           token: attrs.token,
           doctor: {
@@ -154,6 +167,7 @@ export class MemedService {
     if (!createdAttrs?.token) {
       throw new Error('memed_token_missing_in_response');
     }
+    assertMemedDoctorMatch(createdAttrs, doctor);
 
     return {
       token: createdAttrs.token,
