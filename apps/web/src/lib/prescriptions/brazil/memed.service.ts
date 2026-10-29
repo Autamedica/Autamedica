@@ -159,6 +159,25 @@ export class MemedService {
     };
   }
 
+  /**
+   * Server-side verification of an issued prescription. The event from the browser
+   * is never sufficient evidence of a valid prescription.
+   */
+  async getIssuedPrescription(id: string, doctorToken: string): Promise<Record<string, unknown>> {
+    if (!/^[a-zA-Z0-9-]{1,80}$/.test(id)) throw new Error('memed_invalid_prescription_id');
+    if (!doctorToken) throw new Error('memed_missing_doctor_token');
+    const url = this.buildUrl(
+      `/prescricoes/${encodeURIComponent(id)}?structuredDocuments=true&token=${encodeURIComponent(doctorToken)}`,
+    );
+    const response = await fetch(url, {
+      headers: { Accept: 'application/vnd.api+json', 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`memed_prescription_verification_failed:${response.status}`);
+    }
+    return await response.json() as Record<string, unknown>;
+  }
+
   getScriptUrl(): string {
     return this.config.scriptUrl;
   }
