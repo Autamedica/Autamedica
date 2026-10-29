@@ -158,6 +158,7 @@ export class RefepsApiValidator implements IRefepsValidator {
           matriculaNumber: matricula,
           matriculaType: type,
           registrationStatus: 'not_found',
+          source: 'national_refeps_api',
         };
       }
 
@@ -169,6 +170,7 @@ export class RefepsApiValidator implements IRefepsValidator {
           matriculaNumber: matricula,
           matriculaType: type,
           registrationStatus: 'not_found',
+          source: 'national_refeps_api',
         };
       }
 
