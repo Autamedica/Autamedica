@@ -34,11 +34,15 @@ export async function resolveMemedPatient(
   if (typeof patientId !== 'string' || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(patientId)) {
     throw new Error('memed_patient_required');
   }
+  const now = new Date();
+  const recent = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const [team, visit] = await Promise.all([
     admin.from('patient_care_team').select('id').eq('doctor_id', doctorId)
       .eq('patient_id', patientId).eq('active', true).limit(1).maybeSingle(),
     admin.from('appointments').select('id').eq('doctor_id', doctorId)
-      .eq('patient_id', patientId).eq('status', 'completed').limit(1).maybeSingle(),
+      .eq('patient_id', patientId).is('deleted_at', null)
+      .or(`status.eq.completed,and(status.eq.in_progress,start_time.lte.${now.toISOString()},start_time.gte.${recent})`)
+      .limit(1).maybeSingle(),
   ]);
   if (team.error || visit.error) throw new Error('memed_patient_authorization_unavailable');
   if (!team.data && !visit.data) throw new Error('doctor_patient_access_required');

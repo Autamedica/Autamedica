@@ -39,7 +39,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       .maybeSingle();
 
     if (doctorError) {
-      logger.error('[memed-token] doctor lookup failed', doctorError);
+      logger.error('[memed-token] doctor lookup failed');
       return internalError();
     }
     // Pilot is restricted to an explicitly configured prescriber.
@@ -62,7 +62,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       .eq('cfm_validation_status', 'valid')
       .limit(20);
     if (licenseError) {
-      logger.error('[memed-token] verified license lookup failed', licenseError);
+      logger.error('[memed-token] verified license lookup failed');
       return internalError();
     }
     const verifiedLicense = licenseRows?.some((item) =>
@@ -78,7 +78,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       .maybeSingle();
 
     if (profileError) {
-      logger.error('[memed-token] profile lookup failed', profileError);
+      logger.error('[memed-token] profile lookup failed');
       return internalError();
     }
 
@@ -127,7 +127,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
         .update({ cpf })
         .eq('id', doctor.id);
       if (cpfError) {
-        logger.error('[memed-token] verified CPF could not be stored', cpfError);
+        logger.error('[memed-token] verified CPF could not be stored');
         return internalError('memed_doctor_cpf_persistence_failed');
       }
     }
@@ -136,7 +136,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       patient,
       token: tokenData.token,
       scriptUrl: memed.getScriptUrl(),
-      doctor: { id: doctor.id, crm, uf, nome: `${nome} ${sobrenome}` },
+      doctor: { id: doctor.id, userId: auth.user.id, crm, uf, nome: `${nome} ${sobrenome}` },
     });
     response.headers.set('Cache-Control', 'no-store, private');
     response.headers.set('Pragma', 'no-cache');
