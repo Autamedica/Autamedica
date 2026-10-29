@@ -1,161 +1,208 @@
 import { useEffect, useState } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
 
+const MODULE = 'plataforma.prescricao';
+const SCRIPT_ID = 'memed-prescricao-script';
+
+interface MemedPatient {
+  idExterno: string;
+  nome: string;
+  sexo: 'Masculino' | 'Feminino';
+  cpf: string;
+  data_nascimento: string;
+  telefone: string;
+  email: string;
+}
+interface MemedBootResponse {
+  success: boolean;
+  data?: { token: string; scriptUrl: string; patient: MemedPatient };
+  error?: { message?: string };
+}
 interface MemedPrescriptionWidgetProps {
-  doctorCrm: string;
-  doctorUf: string;
-  patientName: string;
-  patientCpf: string;
+  patientId: string;
   onPrescriptionSaved: (memedId: string) => void;
   onClose: () => void;
 }
 
+type MemedEvent = 'prescricaoImpressa' | 'prescricaoExcluida';
+type EventHandler = (event: MemedEvent, data: unknown) => Promise<void>;
+type EventBus = { add: (event: string, handler: (data: unknown) => void) => void };
+interface MemedGlobal {
+  MdSinapsePrescricao?: { event: EventBus };
+  MdHub?: {
+    event: EventBus;
+    command: { send: (module: string, name: string, value: object) => Promise<unknown> };
+    module: { show: (module: string) => Promise<unknown>; hide?: (module: string) => Promise<unknown> };
+  };
+}
+let listenersRegistered = false;
+let activeHandler: EventHandler | null = null;
+
+function getSdk(): MemedGlobal {
+  return window as unknown as MemedGlobal;
+}
+
+function getMemedId(value: unknown): string {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+  const item = value as Record<string, unknown>;
+  const id = item.id ?? item.prescriptionId;
+  return typeof id === 'string' || typeof id === 'number' ? String(id) : '';
+}
+
+function registerListeners() {
+  const sdk = getSdk();
+  if (listenersRegistered || !sdk.MdHub?.event) return;
+  sdk.MdHub.event.add('prescricaoImpressa', (data) => {
+    void activeHandler?.('prescricaoImpressa', data);
+  });
+  sdk.MdHub.event.add('prescricaoExcluida', (data) => {
+    void activeHandler?.('prescricaoExcluida', data);
+  });
+  listenersRegistered = true;
+}
+
 export function MemedPrescriptionWidget({
-  doctorCrm: _doctorCrm,
-  doctorUf: _doctorUf,
-  patientName,
-  patientCpf,
+  patientId,
   onPrescriptionSaved,
   onClose,
 }: MemedPrescriptionWidgetProps) {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [issuedMessage, setIssuedMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    let scriptEl: HTMLScriptElement | null = null;
-    let isCancelled = false;
+    let cancelled = false;
+    activeHandler = async (event, rawData) => {
+      const memedId = getMemedId(rawData);
+      if (!memedId) {
+        if (!cancelled) setErrorMessage('Memed não informou o identificador da receita. Verifique o histórico antes de repetir a emissão.');
+        return;
+      }
+      try {
+        const response = await fetch('/api/doctors/prescriptions/memed-token', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event, memedId, patientId }),
+        });
+        const body = await response.json();
+        if (!response.ok || body.success !== true || body.data?.synchronized !== true) {
+          throw new Error(body.error?.message || 'Falha ao sincronizar a receita com AutaMedica.');
+        }
+        if (!cancelled) {
+          onPrescriptionSaved(memedId);
+          if (event === 'prescricaoImpressa') {
+            setIssuedMessage('Emissão confirmada na Memed. A entrega e a validação da assinatura ainda precisam ser confirmadas.');
+          } else {
+            setIssuedMessage('Exclusão sincronizada com AutaMedica.');
+          }
+        }
+      } catch (error) {
+        if (!cancelled) setErrorMessage(
+          error instanceof Error ? error.message : 'Falha de sincronização da receita.',
+        );
+      }
+    };
 
-    async function initMemed() {
+    async function openMemed(patient: MemedPatient) {
+      const hub = getSdk().MdHub;
+      if (!hub) throw new Error('Módulo de prescrição Memed indisponível.');
+      registerListeners();
+      await hub.command.send(MODULE, 'setPaciente', patient);
+      if (cancelled) return;
+      await hub.module.show(MODULE);
+      if (!cancelled) setLoading(false);
+    }
+
+    async function initialize() {
       try {
         setLoading(true);
         setErrorMessage(null);
-
-        // 1. Obtener el token del médico desde nuestro backend
-        const tokenRes = await fetch('/api/doctors/prescriptions/memed-token');
-        if (!tokenRes.ok) {
-          throw new Error('Falha ao obter credenciais do médico na Memed.');
+        const response = await fetch(
+          `/api/doctors/prescriptions/memed-token?patientId=${encodeURIComponent(patientId)}`,
+          { credentials: 'include' },
+        );
+        const body = await response.json() as MemedBootResponse;
+        if (!response.ok || !body.success || !body.data?.token || !body.data.patient) {
+          throw new Error(body.error?.message || 'Médico, paciente ou credenciais Memed incompletos.');
         }
-
-        const tokenData = await tokenRes.json();
-        const dataToken = tokenData.token;
-        const scriptUrl = tokenData.scriptUrl || 'https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js';
-
-        if (isCancelled) return;
-
-        // 2. Inyectar script con el data-token oficial
-        scriptEl = document.createElement('script');
-        scriptEl.type = 'text/javascript';
-        scriptEl.src = scriptUrl;
-        scriptEl.setAttribute('data-token', dataToken);
-        scriptEl.setAttribute('data-color', '#0f172a');
-
-        scriptEl.onload = () => {
-          if (isCancelled) return;
-          setLoading(false);
-
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const Memed: any = (window as any).MdSinapsePrescricao;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const MdHub: any = (window as any).MdHub;
-
-          if (Memed) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            Memed.event.add('core:moduleInit', async function moduleInitHandler(module: any) {
-              if (module.name === 'plataforma.prescricao') {
-                if (MdHub?.command) {
-                  await MdHub.command.send('plataforma.prescricao', 'setPaciente', {
-                    nome: patientName,
-                    cpf: patientCpf ? patientCpf.replace(/\D/g, '') : undefined,
-                  });
-                  await MdHub.module.show('plataforma.prescricao');
-                } else if (Memed.setPaciente) {
-                  Memed.setPaciente({
-                    nome: patientName,
-                    cpf: patientCpf,
-                  });
-                  if (Memed.show) Memed.show();
-                }
+        const { token, scriptUrl, patient } = body.data;
+        if (cancelled) return;
+        const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
+        if (existing) {
+          if (existing.getAttribute('data-token') !== token) {
+            throw new Error('Token do médico atualizado. Recarregue o portal antes de emitir outra receita.');
+          }
+          await openMemed(patient);
+          return;
+        }
+        const script = document.createElement('script');
+        script.id = SCRIPT_ID;
+        script.type = 'text/javascript';
+        script.src = scriptUrl;
+        script.setAttribute('data-token', token);
+        script.onerror = () => {
+          if (!cancelled) setErrorMessage('Falha ao carregar o módulo Memed.');
+          if (!cancelled) setLoading(false);
+        };
+        script.onload = () => {
+          const sdk = getSdk();
+          if (!sdk.MdSinapsePrescricao?.event) {
+            if (!cancelled) {
+              setErrorMessage('O módulo Memed não foi inicializado.');
+              setLoading(false);
+            }
+            return;
+          }
+          sdk.MdSinapsePrescricao.event.add('core:moduleInit', (module) => {
+            const m = module as { name?: string } | null;
+            if (m?.name !== MODULE || cancelled) return;
+            void openMemed(patient).catch((error) => {
+              if (!cancelled) {
+                setErrorMessage(error instanceof Error ? error.message : 'Erro ao abrir Memed.');
+                setLoading(false);
               }
             });
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            Memed.event.add('prescricaoSalva', function (prescricao: any) {
-              const id = prescricao?.id || prescricao?.prescriptionId || String(prescricao);
-              onPrescriptionSaved(id);
-            });
-          }
+          });
         };
-
-        scriptEl.onerror = () => {
-          if (!isCancelled) {
-            setLoading(false);
-            setErrorMessage('Não foi possível carregar a plataforma Memed.');
-          }
-        };
-
-        document.body.appendChild(scriptEl);
-      } catch (err) {
-        if (!isCancelled) {
+        document.head.appendChild(script);
+      } catch (error) {
+        if (!cancelled) {
+          setErrorMessage(error instanceof Error ? error.message : 'Erro ao inicializar Memed.');
           setLoading(false);
-          setErrorMessage(err instanceof Error ? err.message : 'Erro ao inicializar Memed');
         }
       }
     }
 
-    initMemed();
-
+    void initialize();
     return () => {
-      isCancelled = true;
-      if (scriptEl && document.body.contains(scriptEl)) {
-        document.body.removeChild(scriptEl);
-      }
-      // Ocultar contenedor si quedó en el DOM
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const MdHub: any = (window as any).MdHub;
-      if (MdHub?.module?.hide) {
-        MdHub.module.hide('plataforma.prescricao');
-      }
+      cancelled = true;
+      activeHandler = null;
+      // Keep SDK loaded exactly once; closing the modal only hides the module.
+      const hide = getSdk().MdHub?.module.hide;
+      if (hide) void hide(MODULE).catch(() => undefined);
     };
-  }, [patientName, patientCpf, onPrescriptionSaved]);
+  }, [patientId, onPrescriptionSaved]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-4xl h-[90vh] bg-white rounded-xl overflow-hidden relative shadow-2xl flex flex-col">
         <div className="flex justify-between items-center p-4 border-b border-neutral-200">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Prescrição Digital Brasil (Memed / ICP-Brasil)</h2>
-            <p className="text-xs text-slate-500">Paciente: {patientName} {patientCpf ? `• CPF: ${patientCpf}` : ''}</p>
+            <h2 className="text-lg font-bold text-slate-900">Prescrição Brasil — Memed</h2>
+            <p className="text-xs text-slate-500">O médico deve revisar e assinar a receita na Memed.</p>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
-          >
-            ✕
-          </button>
+          <button onClick={onClose} aria-label="Fechar" className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">✕</button>
         </div>
-
+        {errorMessage && <div role="alert" className="m-4 flex gap-2 rounded-lg bg-red-50 p-3 text-red-800"><AlertCircle className="h-5 w-5 shrink-0" />{errorMessage}</div>}
+        {issuedMessage && <div role="status" className="m-4 rounded-lg bg-blue-50 p-3 text-blue-900">{issuedMessage}</div>}
         <div className="flex-1 relative bg-slate-50 overflow-auto">
-          {loading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 bg-white/80 z-10">
-              <Loader2 className="w-8 h-8 animate-spin mb-4 text-slate-700" />
-              <p className="text-sm font-medium">Conectando com o módulo oficial da Memed...</p>
-              <p className="text-xs text-slate-400 mt-1">Homologação de prescrição e assinatura ICP-Brasil</p>
+          {loading && !errorMessage && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80">
+              <Loader2 className="h-8 w-8 animate-spin text-slate-700" />
+              <p className="mt-2 text-sm">Conectando ao módulo Memed...</p>
             </div>
           )}
-
-          {errorMessage && (
-            <div className="p-8 text-center flex flex-col items-center justify-center h-full">
-              <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
-              <p className="text-sm font-semibold text-slate-800">{errorMessage}</p>
-              <button
-                onClick={onClose}
-                className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm"
-              >
-                Fechar
-              </button>
-            </div>
-          )}
-
           <div id="memed-prescricao-container" className="w-full h-full min-h-[500px]" />
         </div>
       </div>
