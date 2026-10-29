@@ -34,6 +34,11 @@ const isValidIsoDate = (value: string): boolean => {
 async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string): Promise<Response> {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
   if (!isAuthed(auth)) return auth;
+  // Clinical Memed issuance remains disabled until signature and patient
+  // delivery are validated in a controlled end-to-end production encounter.
+  if (locals.runtime?.env?.MEMED_RX_ENABLED !== 'true') {
+    return forbidden('memed_issuance_not_enabled');
+  }
 
   try {
     const admin = createAstroAdminClient(locals?.runtime?.env);
@@ -46,6 +51,11 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     if (doctorError) {
       logger.error('[memed-token] doctor lookup failed', doctorError);
       return internalError();
+    }
+    // Pilot is restricted to an explicitly configured prescriber.
+    const pilotDoctorId = locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID;
+    if (typeof pilotDoctorId !== 'string' || pilotDoctorId !== doctor?.id) {
+      return forbidden('memed_pilot_prescriber_only');
     }
     if (!doctor?.active || doctor.license_type !== 'CRM') {
       return forbidden('active_brazilian_doctor_required');
