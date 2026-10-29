@@ -48,7 +48,7 @@ function ensureScript(token: string, scriptUrl: string): Promise<void> {
 
   // Only load a documented Memed script over HTTPS.
   const url = new URL(scriptUrl);
-  if (url.protocol !== 'https:' || !/(^|\\.)memed\\.com\\.br$/.test(url.hostname)) {
+  if (url.protocol !== 'https:' || !/(^|\.)memed\.com\.br$/.test(url.hostname)) {
     return Promise.reject(new Error('URL do módulo Memed não autorizada.'));
   }
 
@@ -107,7 +107,7 @@ function ensureScript(token: string, scriptUrl: string): Promise<void> {
 }
 
 function formatDate(date: string): string {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) throw new Error('Data de nascimento do paciente inválida.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Data de nascimento do paciente inválida.');
   const [year, month, day] = date.split('-');
   return `${day}/${month}/${year}`;
 }
@@ -156,8 +156,8 @@ export function MemedPrescriptionWidget({
     };
     async function openMemed() {
       try {
-        const cpf = patientCpf.replace(/\\D/g, '');
-        if (!patientId || !patientName.trim() || !/^\\d{11}$/.test(cpf)) {
+        const cpf = patientCpf.replace(/\D/g, '');
+        if (!patientId || !patientName.trim() || !/^\d{11}$/.test(cpf)) {
           throw new Error('Selecione um paciente com nome completo e CPF válido.');
         }
         const sex = patientSex(patientGender);
