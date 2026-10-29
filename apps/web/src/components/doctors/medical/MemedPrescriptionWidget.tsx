@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 interface MemedPrescriptionWidgetProps {
@@ -123,13 +123,15 @@ export function MemedPrescriptionWidget({
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [issuedId, setIssuedId] = useState<string | null>(null);
+  const onSavedRef = useRef(onPrescriptionSaved);
+  onSavedRef.current = onPrescriptionSaved;
 
   useEffect(() => {
     let cancelled = false;
     activeOnIssued = (id) => {
       if (cancelled) return;
       setIssuedId(id);
-      onPrescriptionSaved(id);
+      onSavedRef.current(id);
     };
     async function openMemed() {
       try {
@@ -173,7 +175,7 @@ export function MemedPrescriptionWidget({
       void getHub()?.module.hide?.(MODULE_NAME);
       // Leave the script in place to prevent duplicate initialization.
     };
-  }, [patientId, patientName, patientCpf, patientBirthDate, patientGender, onPrescriptionSaved]);
+  }, [patientId, patientName, patientCpf, patientBirthDate, patientGender]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
