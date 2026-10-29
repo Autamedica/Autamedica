@@ -9,7 +9,7 @@ const cpfDigits = (value: string | null | undefined) => (value ?? '').replace(/\
 const crmDigits = (value: string | null | undefined) => (value ?? '').replace(/\D/g, '');
 const validCpf = (value: string): boolean => {
   const cpf = cpfDigits(value);
-  if (!validCpf(cpf)) return false;
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
   for (let len = 9; len <= 10; len++) {
     let sum = 0;
     for (let i = 0; i < len; i++) sum += Number(cpf[i]) * (len + 1 - i);
@@ -93,7 +93,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     const cpf = existingCpf || cpfDigits(providedCpf);
 
     // Never register a medical professional using fabricated CPF, CRM or UF.
-    if (!nome || !sobrenome || !crm || !VALID_UF.test(uf) || !/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) {
+    if (!nome || !sobrenome || !crm || !VALID_UF.test(uf) || !validCpf(cpf)) {
       return badRequest('memed_doctor_identity_incomplete');
     }
 
