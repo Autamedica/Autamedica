@@ -1,4 +1,13 @@
 -- Memed callbacks are verified server-side; browser clients must not forge them.
+CREATE TABLE IF NOT EXISTS public.memed_doctor_identities (
+  doctor_id uuid PRIMARY KEY REFERENCES public.doctors(id),
+  cpf text NOT NULL CHECK (cpf ~ '^[0-9]{11}$'),
+  verified_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.memed_doctor_identities ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.memed_doctor_identities FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.memed_doctor_identities TO service_role;
+
 CREATE UNIQUE INDEX IF NOT EXISTS prescriptions_memed_vendor_id_unique
   ON public.prescriptions (vendor_id)
   WHERE vendor_name = 'memed';

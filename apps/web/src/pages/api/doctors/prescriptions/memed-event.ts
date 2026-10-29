@@ -8,6 +8,7 @@ import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase';
 import { resolveMemedPatient, validCpf } from '@/lib/prescriptions/brazil/memed-patient';
 import { MemedService } from '@/lib/prescriptions/brazil/memed.service';
+import { getMemedDoctorCpf } from '@/lib/prescriptions/brazil/memed-identity.repository';
 import { logger } from '@autamedica/shared';
 
 type JSONObject = Record<string, unknown>;
@@ -87,7 +88,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('user_id', auth.user.id)
       .maybeSingle();
     if (profileError) throw profileError;
-    const cpf = (doctor.cpf || profile?.cpf || '').replace(/\D/g, '');
+    const privateCpf = await getMemedDoctorCpf(admin, doctor.id);
+    const cpf = (privateCpf || doctor.cpf || profile?.cpf || '').replace(/\D/g, '');
     const crm = (doctor.license_number || '').replace(/\D/g, '');
     const uf = doctor.uf_brazil || '';
     if (!validCpf(cpf) || !crm || !/^[A-Z]{2}$/.test(uf)
