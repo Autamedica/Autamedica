@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
           # CLI starts a local Docker-backed Postgres and applies repo migrations.
           # The runner is destroyed at the end; do not connect to remote staging.
-          supabase db start
+          env -u SUPABASE_INTERNAL_IMAGE_REGISTRY supabase db start
           supabase migration list --local
       - name: Verify security contracts on reconstructed clinical schema
         env:
