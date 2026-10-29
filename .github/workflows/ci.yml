@@ -103,7 +103,7 @@ jobs:
         run: |
           printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
       - name: Start isolated local Supabase
-        run: supabase start
+        run: env -u SUPABASE_INTERNAL_IMAGE_REGISTRY supabase start
       - name: Replay every migration from scratch
         run: supabase db reset --local
       - name: Run RLS checks against the local database
