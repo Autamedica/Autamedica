@@ -23,6 +23,9 @@ function providerPrescription(response: JSONObject): JSONObject {
 export const POST: APIRoute = async ({ request, locals }) => {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
   if (!isAuthed(auth)) return auth;
+  if (locals.runtime?.env?.MEMED_RX_ENABLED !== 'true') {
+    return forbidden('memed_issuance_not_enabled');
+  }
 
   let input: JSONObject;
   try {
@@ -50,6 +53,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('user_id', auth.user.id)
       .maybeSingle();
     if (doctorError) throw doctorError;
+    const pilotDoctorId = locals.runtime?.env?.MEMED_PILOT_DOCTOR_ID;
+    if (typeof pilotDoctorId !== 'string' || pilotDoctorId !== doctor?.id) {
+      return forbidden('memed_pilot_prescriber_only');
+    }
     if (!doctor?.active || doctor.license_type !== 'CRM') return forbidden('brazil_prescriber_required');
     // Require a valid CFM verification matching this doctor's actual CRM and UF.
     const { data: activeLicenses, error: activeLicensesError } = await admin
