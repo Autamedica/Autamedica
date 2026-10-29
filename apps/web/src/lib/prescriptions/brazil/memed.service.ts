@@ -82,19 +82,25 @@ export class MemedService {
       if (getRes.ok) {
         const json = await getRes.json();
         const attrs = json.data?.attributes;
-        if (attrs?.token) {
-          return {
-            token: attrs.token,
-            doctor: {
-              nome: `${attrs.nome || ''} ${attrs.sobrenome || ''}`.trim(),
-              crm: attrs.crm || doctor.crm,
-              uf: attrs.uf || doctor.uf,
-            },
-          };
-        }
+        if (!attrs?.token) throw new Error('memed_token_missing_in_response');
+        return {
+          token: attrs.token,
+          doctor: {
+            nome: `${attrs.nome || ''} ${attrs.sobrenome || ''}`.trim(),
+            crm: attrs.crm || doctor.crm,
+            uf: attrs.uf || doctor.uf,
+          },
+        };
+      }
+      if (getRes.status !== 404) {
+        throw new Error(`memed_doctor_lookup_failed:${getRes.status}`);
       }
     } catch (err) {
-      logger.warn('[MemedService] Error consultando usuario existente, intentando registro', { err });
+      // Never register a new doctor after authentication or upstream/network errors.
+      logger.warn('[MemedService] Doctor lookup failed; registration blocked', {
+        message: err instanceof Error ? err.message : 'unknown',
+      });
+      throw err;
     }
 
     // Registration requires the real date of birth. Never invent medical identity fields.
@@ -138,9 +144,9 @@ export class MemedService {
     });
 
     if (!postRes.ok) {
-      const errorText = await postRes.text();
-      logger.error('[MemedService] Error registrando médico en Memed', { status: postRes.status, body: errorText });
-      throw new Error(`memed_registration_failed: ${postRes.status} ${errorText}`);
+      // Do not log or return upstream response bodies: they may contain medical PII.
+      logger.error('[MemedService] Doctor registration failed', { status: postRes.status });
+      throw new Error(`memed_registration_failed:${postRes.status}`);
     }
 
     const postJson = await postRes.json();
