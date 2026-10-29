@@ -46,7 +46,10 @@ async function getContext(request: Request, locals: App.Locals, patientId: strin
   if (!isAuthed(auth)) return { response: auth };
   if (!VALID_UUID.test(patientId)) return { response: badRequest('patient_id_required') };
   const admin = createAstroAdminClient(locals.runtime?.env);
-  const { data: doctor } = await admin
+  // The new birth-date column is created in this PR's migration; the
+  // generated Database type will include it after migration/type refresh.
+  const newSchemaAdmin = admin as unknown as SupabaseClient;
+  const { data: doctor } = await newSchemaAdmin
     .from('doctors')
     .select('id, active, license_type, license_number, uf_brazil, cpf, specialty, user_id, memed_birth_date')
     .eq('user_id', auth.user.id).maybeSingle();
