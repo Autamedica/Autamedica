@@ -1022,9 +1022,25 @@ export function DoctorsPrescriptionsPage() {
           patientCpf={memedPatientCpf}
           patientBirthDate={memedPatientBirthDate}
           patientGender={memedPatientGender}
-          onPrescriptionSaved={() => {
-            // Memed emitted the document, but no local record/delivery is claimed here.
-            // Keep the module open for verification and sharing by the prescriber.
+          onPrescriptionSaved={async (prescriptionId) => {
+            const response = await fetch('/api/doctors/prescriptions/memed-event', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'issued', patientId: selectedPatientId, prescriptionId }),
+            });
+            if (!response.ok) throw new Error('Falha ao registrar receita Memed.');
+            refresh();
+          }}
+          onPrescriptionDeleted={async (prescriptionId) => {
+            const response = await fetch('/api/doctors/prescriptions/memed-event', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'deleted', patientId: selectedPatientId, prescriptionId }),
+            });
+            if (!response.ok) throw new Error('Falha ao sincronizar exclusão Memed.');
+            refresh();
           }}
           onClose={() => setShowMemedWidget(false)}
         />
