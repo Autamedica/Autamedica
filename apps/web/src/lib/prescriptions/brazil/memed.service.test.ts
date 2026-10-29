@@ -94,4 +94,31 @@ describe('MemedService', () => {
     expect(fetchMock.mock.calls[0][0]).toContain('api-key=mock-key');
     expect(fetchMock.mock.calls[0][0]).toContain('secret-key=mock-secret');
   });
+
+  it('refuses to invent the date of birth when Memed needs to register a new doctor', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 404 });
+    vi.stubGlobal('fetch', fetchMock);
+    const service = new MemedService({
+      MEMED_API_KEY: 'test-key', MEMED_SECRET_KEY: 'test-secret',
+    });
+    await expect(service.getOrCreateDoctorToken({
+      externalId: 'a-real-doctor-id', nome: 'Ana', sobrenome: 'Silva',
+      cpf: '12345678900', crm: '123456', uf: 'RS',
+    })).rejects.toThrow('memed_doctor_birth_date_required');
+    // One GET is permitted; a fake POST must never be sent.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects placeholder doctor identity before calling Memed', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const service = new MemedService({
+      MEMED_API_KEY: 'test-key', MEMED_SECRET_KEY: 'test-secret',
+    });
+    await expect(service.getOrCreateDoctorToken({
+      externalId: 'doctor', nome: 'Ana', sobrenome: 'Silva',
+      cpf: '00000000000', crm: '123456', uf: 'RS',
+    })).rejects.toThrow('memed_doctor_cpf_required');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
