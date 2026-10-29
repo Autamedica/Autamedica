@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 const MODULE = 'plataforma.prescricao';
@@ -69,6 +69,8 @@ export function MemedPrescriptionWidget({
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [issuedMessage, setIssuedMessage] = useState<string | null>(null);
+  const savedCallbackRef = useRef(onPrescriptionSaved);
+  savedCallbackRef.current = onPrescriptionSaved;
 
   useEffect(() => {
     let cancelled = false;
@@ -90,7 +92,7 @@ export function MemedPrescriptionWidget({
           throw new Error(body.error?.message || 'Falha ao sincronizar a receita com AutaMedica.');
         }
         if (!cancelled) {
-          onPrescriptionSaved(memedId);
+          savedCallbackRef.current(memedId);
           if (event === 'prescricaoImpressa') {
             setIssuedMessage('Emissão confirmada na Memed. A entrega e a validação da assinatura ainda precisam ser confirmadas.');
           } else {
@@ -142,6 +144,7 @@ export function MemedPrescriptionWidget({
         script.src = scriptUrl;
         script.setAttribute('data-token', token);
         script.onerror = () => {
+          script.remove();
           if (!cancelled) setErrorMessage('Falha ao carregar o módulo Memed.');
           if (!cancelled) setLoading(false);
         };
@@ -179,10 +182,10 @@ export function MemedPrescriptionWidget({
       cancelled = true;
       activeHandler = null;
       // Keep SDK loaded exactly once; closing the modal only hides the module.
-      const hide = getSdk().MdHub?.module.hide;
-      if (hide) void hide(MODULE).catch(() => undefined);
+      const module = getSdk().MdHub?.module;
+      if (module?.hide) void module.hide(MODULE).catch(() => undefined);
     };
-  }, [patientId, onPrescriptionSaved]);
+  }, [patientId]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
