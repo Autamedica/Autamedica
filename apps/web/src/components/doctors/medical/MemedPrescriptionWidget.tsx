@@ -27,6 +27,9 @@ export function MemedPrescriptionWidget({
 
     async function initMemed() {
       try {
+        if (!patientName.trim() || !/^\\d{11}$/.test(patientCpf.replace(/\\D/g, ''))) {
+          throw new Error('Selecione um paciente com nome e CPF válido antes de prescrever.');
+        }
         setLoading(true);
         setErrorMessage(null);
 
@@ -37,7 +40,8 @@ export function MemedPrescriptionWidget({
         }
 
         const tokenData = await tokenRes.json();
-        const dataToken = tokenData.token;
+        const dataToken = tokenData?.data?.token ?? tokenData?.token;
+        if (!dataToken) throw new Error('Token Memed ausente na resposta do servidor.');
         const scriptUrl = tokenData.scriptUrl || 'https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js';
 
         if (isCancelled) return;
