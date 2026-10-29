@@ -6,7 +6,7 @@ import type { APIRoute } from 'astro';
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers';
 import { createAstroAdminClient } from '@/lib/supabase';
-import { doctorHasPatientAccess } from '@/lib/doctors/lib/resolve-room';
+import { resolveMemedPatient, validCpf } from '@/lib/prescriptions/brazil/memed-patient';
 import { MemedService } from '@/lib/prescriptions/brazil/memed.service';
 import { logger } from '@autamedica/shared';
 
@@ -27,9 +27,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return forbidden('memed_issuance_not_enabled');
   }
 
+  const origin = request.headers.get('origin');
+  if (origin && origin !== new URL(request.url).origin) return forbidden('cross_origin_request');
+
   let input: JSONObject;
   try {
-    input = asObject(await request.json());
+    const text = await request.text();
+    if (text.length > 4096) return badRequest('request_too_large');
+    input = asObject(JSON.parse(text));
   } catch {
     return badRequest('invalid_json');
   }
@@ -74,9 +79,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
     if (!cfmVerified) return forbidden('verified_brazilian_license_required');
 
-    if (!await doctorHasPatientAccess(admin, doctor.id, patientId)) {
-      return forbidden('doctor_patient_access_required');
-    }
+    const authorizedPatient = await resolveMemedPatient(admin, doctor.id, patientId);
 
     const { data: profile, error: profileError } = await admin
       .from('profiles')
@@ -87,7 +90,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const cpf = (doctor.cpf || profile?.cpf || '').replace(/\D/g, '');
     const crm = (doctor.license_number || '').replace(/\D/g, '');
     const uf = doctor.uf_brazil || '';
-    if (!/^\d{11}$/.test(cpf) || !crm || !/^[A-Z]{2}$/.test(uf)
+    if (!validCpf(cpf) || !crm || !/^[A-Z]{2}$/.test(uf)
         || !profile?.first_name?.trim() || !profile?.last_name?.trim()) {
       return badRequest('memed_doctor_identity_incomplete');
     }
@@ -109,12 +112,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
 
     const { data: existing, error: existingError } = await admin.from('prescriptions')
-      .select('id')
+      .select('id, status')
       .eq('doctor_id', doctor.id)
       .eq('patient_id', patientId)
       .eq('country_code', 'BR')
       .eq('vendor_name', 'memed')
-      .eq('vendor_id', prescriptionId)
+      .or(`vendor_id.eq.${prescriptionId},clinical_data->>memed_prescription_id.eq.${prescriptionId}`)
       .maybeSingle();
     if (existingError) throw existingError;
 
@@ -145,15 +148,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ].filter((value) => typeof value === 'string' || typeof value === 'number').map(String);
     if (!verifiedIdentifiers.includes(prescriptionId)) return forbidden('memed_prescription_id_mismatch');
 
+    const prescriber = asObject(rx.medicos);
+    if (String(prescriber.cpf ?? '').replace(/\D/g, '') !== cpf
+        || String(prescriber.crm ?? '').replace(/\D/g, '') !== crm
+        || prescriber.uf !== uf) return forbidden('memed_prescriber_mismatch');
+
     const patient = asObject(rx.paciente);
     const externalId = patient.external_id ?? patient.externalId;
     // An exact patient linkage is mandatory to avoid cross-patient disclosure.
-    if (externalId !== `autamedica-${patientId}`) {
+    if (externalId !== authorizedPatient.idExterno
+        || String(patient.cpf ?? '').replace(/\D/g, '') !== authorizedPatient.cpf) {
       return forbidden('memed_patient_mismatch');
     }
 
+    if (existing) return jsonOk({ status: existing.status, prescriptionId, duplicate: true });
+
     const rawItems = Array.isArray(rx.medicamentos) ? rx.medicamentos : [];
-    const items = rawItems.slice(0, 20).map((item) => {
+    const items = rawItems.map((item) => {
       const med = asObject(item);
       return {
         generic_name: typeof med.descricao === 'string' ? med.descricao : '',
@@ -172,20 +183,32 @@ export const POST: APIRoute = async ({ request, locals }) => {
       status: 'draft',
       country_code: 'BR',
       vendor_name: 'memed',
-      vendor_id: prescriptionId,
-      clinical_data: { source: 'memed', memed_prescription_id: prescriptionId, items, signature_verified: false, delivery_verified: false },
+      vendor_id: String(rx.id ?? prescriptionId),
+      clinical_data: { source: 'memed', memed_prescription_id: prescriptionId, items,
+        emission_status: 'provider_verified', provider_verified_at: new Date().toISOString(),
+        signature_status: rx.signed === 1 || rx.signed === true ? 'provider_reported_signed' : 'pending',
+        signature_verified: false, delivery_status: 'pending', delivery_verified: false },
       updated_at: new Date().toISOString(),
     };
-    if (existing) {
-      const { error } = await admin.from('prescriptions').update(payload).eq('id', existing.id);
-      if (error) throw error;
-    } else {
-      const { error } = await admin.from('prescriptions').insert(payload);
-      if (error) throw error;
+    const { error: insertError } = await admin.from('prescriptions').insert(payload);
+    if (insertError?.code === '23505') {
+      // Concurrent callbacks can race; the unique provider index arbitrates.
+      const { data: winner, error: winnerError } = await admin.from('prescriptions')
+        .select('id, status, doctor_id, patient_id').eq('vendor_name', 'memed')
+        .eq('vendor_id', payload.vendor_id).maybeSingle();
+      if (winnerError || !winner || winner.doctor_id !== doctor.id || winner.patient_id !== patientId) {
+        return forbidden('memed_prescription_ownership_conflict');
+      }
+      return jsonOk({ status: winner.status, prescriptionId, duplicate: true });
     }
+    if (insertError) throw insertError;
     return jsonOk({ status: 'recorded_pending_signature_and_delivery', prescriptionId });
   } catch (error) {
-    logger.error('[memed-event] verification/persistence failed', error instanceof Error ? error.message : 'unknown');
+    if (error instanceof Error && error.message === 'doctor_patient_access_required') return forbidden(error.message);
+    if (error instanceof Error && ['memed_patient_required', 'memed_patient_consent_required',
+      'memed_patient_identity_incomplete'].includes(error.message)) return badRequest(error.message);
+    logger.error('[memed-event] verification/persistence failed');
     return internalError('memed_event_verification_failed');
   }
 };
+

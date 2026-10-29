@@ -13,7 +13,7 @@ interface MemedPrescriptionWidgetProps {
 }
 
 interface MemedHub {
-  command: { send: (module: string, command: string, data: Record<string, unknown>) => Promise<unknown> };
+  command: { send: (module: string, command: string, data?: Record<string, unknown>) => Promise<unknown> };
   module: { show: (module: string) => Promise<unknown>; hide?: (module: string) => Promise<unknown> };
   event: { add: (name: string, callback: (payload: Record<string, unknown>) => void) => void };
 }
@@ -48,7 +48,8 @@ function ensureScript(token: string, scriptUrl: string): Promise<void> {
 
   // Only load a documented Memed script over HTTPS.
   const url = new URL(scriptUrl);
-  if (url.protocol !== 'https:' || !/(^|\.)memed\.com\.br$/.test(url.hostname)) {
+  if (!['https://partners.memed.com.br/integration.js',
+    'https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js'].includes(url.href)) {
     return Promise.reject(new Error('URL do módulo Memed não autorizada.'));
   }
 
@@ -59,11 +60,15 @@ function ensureScript(token: string, scriptUrl: string): Promise<void> {
     script.type = 'text/javascript';
     script.src = url.href;
     script.setAttribute('data-token', token);
+    script.referrerPolicy = 'no-referrer';
+    const timer = window.setTimeout(() => {
+      reject(new Error('A Memed não iniciou no prazo esperado. Recarregue a página para tentar novamente.'));
+    }, 15000);
 
     script.onload = () => {
       const core = getCore();
       if (!core?.event) {
-        scriptPromise = null;
+        window.clearTimeout(timer);
         reject(new Error('Módulo Memed não disponibilizou a API de eventos.'));
         return;
       }
@@ -77,25 +82,27 @@ function ensureScript(token: string, scriptUrl: string): Promise<void> {
         if (!eventListenersRegistered) {
           hub.event.add('prescricaoImpressa', (data) => {
             const prescription = (data.prescricao ?? data) as Record<string, unknown>;
-            const id = prescription.id ?? prescription.prescriptionUuid ?? data.id;
+            const id = prescription.prescriptionUuid ?? prescription.id ?? data.id;
             if (id !== undefined && id !== null && activeOnIssued) {
               activeOnIssued(String(id));
             }
           });
           hub.event.add('prescricaoExcluida', (data) => {
             const prescription = (data.prescricao ?? data) as Record<string, unknown>;
-            const id = prescription.id ?? prescription.prescriptionUuid ?? data.id;
+            const id = prescription.prescriptionUuid ?? prescription.id ?? data.id;
             if (id !== undefined && id !== null && activeOnDeleted) {
               activeOnDeleted(String(id));
             }
           });
           eventListenersRegistered = true;
         }
+        window.clearTimeout(timer);
         moduleInitialized = true;
         resolve();
       });
     };
     script.onerror = () => {
+      window.clearTimeout(timer);
       scriptPromise = null;
       scriptToken = null;
       script.remove();
@@ -104,19 +111,6 @@ function ensureScript(token: string, scriptUrl: string): Promise<void> {
     document.head.appendChild(script);
   });
   return scriptPromise;
-}
-
-function formatDate(date: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Data de nascimento do paciente inválida.');
-  const [year, month, day] = date.split('-');
-  return `${day}/${month}/${year}`;
-}
-
-function patientSex(value: string): string {
-  const gender = value.toLowerCase();
-  if (['male', 'masculino', 'm'].includes(gender)) return 'Masculino';
-  if (['female', 'feminino', 'f'].includes(gender)) return 'Feminino';
-  throw new Error('Sexo do paciente deve ser confirmado antes da prescrição.');
 }
 
 export function MemedPrescriptionWidget({
@@ -164,16 +158,11 @@ export function MemedPrescriptionWidget({
         if (!patientId || !patientName.trim() || !/^\d{11}$/.test(cpf)) {
           throw new Error('Selecione um paciente com nome completo e CPF válido.');
         }
-        const sex = patientSex(patientGender);
-        const dob = formatDate(patientBirthDate);
-        const tokenRequest: RequestInit = doctorIdentitySubmitted
-          ? {
-              method: 'POST',
-              credentials: 'include',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(doctorIdentitySubmitted),
-            }
-          : { credentials: 'include' };
+        const tokenRequest: RequestInit = {
+          method: 'POST', credentials: 'include', cache: 'no-store',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patientId, ...doctorIdentitySubmitted }),
+        };
         const response = await fetch('/api/doctors/prescriptions/memed-token', tokenRequest);
         const json = await response.json();
         if (response.status === 400 && [
@@ -186,21 +175,17 @@ export function MemedPrescriptionWidget({
           }
           return;
         }
-        if (!response.ok || json.success !== true || !json.data?.token || !json.data?.scriptUrl) {
-          throw new Error(json.error?.message ?? 'Médico sem credenciais Memed válidas.');
+        if (!response.ok || json.success !== true || !json.data?.token || !json.data?.scriptUrl || !json.data?.patient) {
+          throw new Error(json.error?.message === 'memed_issuance_not_enabled'
+            ? 'A emissão de receitas está desativada enquanto concluímos a validação da integração.'
+            : 'Não foi possível autorizar o médico e o paciente para a Memed. Confira os dados do cadastro.');
         }
         if (cancelled) return;
         await ensureScript(json.data.token, json.data.scriptUrl);
         if (cancelled) return;
         const hub = getHub();
         if (!hub) throw new Error('MdHub indisponível para prescrição.');
-        await hub.command.send(MODULE_NAME, 'setPaciente', {
-          idExterno: `autamedica-${patientId}`,
-          nome: patientName,
-          cpf,
-          sexo: sex,
-          data_nascimento: dob,
-        });
+        await hub.command.send(MODULE_NAME, 'setPaciente', json.data.patient);
         if (cancelled) return;
         await hub.module.show(MODULE_NAME);
         if (!cancelled) setLoading(false);
@@ -216,7 +201,15 @@ export function MemedPrescriptionWidget({
       cancelled = true;
       activeOnIssued = null;
       activeOnDeleted = null;
-      void getHub()?.module.hide?.(MODULE_NAME);
+      const hub = getHub();
+      void hub?.module.hide?.(MODULE_NAME).catch(() => undefined);
+      // Memed requires logout to clear its storage on shared clinical devices.
+      void hub?.command.send('plataforma.sdk', 'logout').catch(() => undefined);
+      if (hub) {
+        moduleInitialized = false;
+        scriptPromise = Promise.reject(new Error('Sessão Memed encerrada. Recarregue a página para abrir novamente.'));
+        void scriptPromise.catch(() => undefined);
+      }
       // Leave the script in place to prevent duplicate initialization.
     };
   }, [patientId, patientName, patientCpf, patientBirthDate, patientGender, doctorIdentitySubmitted]);
@@ -269,3 +262,4 @@ export function MemedPrescriptionWidget({
     </div>
   );
 }
+

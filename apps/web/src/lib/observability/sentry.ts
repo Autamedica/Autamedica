@@ -16,6 +16,11 @@ interface CaptureMeta {
 
 const BLOCKED_FIELD_NAMES = new Set([
   'authorization',
+  'cpf',
+  'token',
+  'api-key',
+  'secret-key',
+  'data_nascimento',
   'set-cookie',
   'cookie',
   'cookies',
@@ -70,6 +75,11 @@ function getSentryDsn(runtimeEnv?: RuntimeEnvRecord): string | undefined {
   )
 }
 
+function redactMemedText(value: string): string {
+  return value.replace(/https?:\/\/(?:[a-z0-9-]+\.)*memed\.com\.br[^\s"'<>]*/gi, '[Memed URL redacted]')
+    .replace(/((?:api-key|secret-key|token)=)[^&\s]+/gi, '$1[Redacted]');
+}
+
 function truncate(value: string, max = 240): string {
   if (value.length <= max) {
     return value
@@ -86,13 +96,13 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
   if (value instanceof Error) {
     return {
       name: value.name,
-      message: truncate(value.message),
-      stack: value.stack ? truncate(value.stack, 1000) : undefined,
+      message: truncate(redactMemedText(value.message)),
+      stack: value.stack ? truncate(redactMemedText(value.stack), 1000) : undefined,
     }
   }
 
   if (typeof value === 'string') {
-    return truncate(value)
+    return truncate(redactMemedText(value))
   }
 
   if (
@@ -128,6 +138,11 @@ function sanitizeEvent<T>(event: T): T {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Sentry event structure requires dynamic property access for sanitization
   const mutableEvent = event as Record<string, any>
 
+  if (typeof mutableEvent.request?.url === 'string') mutableEvent.request.url = redactMemedText(mutableEvent.request.url);
+  if (Array.isArray(mutableEvent.spans)) {
+    mutableEvent.spans = mutableEvent.spans.map((span: Record<string, unknown>) => sanitizeValue(span));
+  }
+  if (mutableEvent.exception) mutableEvent.exception = sanitizeValue(mutableEvent.exception);
   if (mutableEvent.request) {
     delete mutableEvent.request.data
 
@@ -325,3 +340,4 @@ export function captureSentryException(error: unknown, meta: CaptureMeta): strin
 }
 
 export { sanitizeEvent }
+

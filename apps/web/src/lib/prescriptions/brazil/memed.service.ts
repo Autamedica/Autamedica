@@ -34,6 +34,9 @@ function assertMemedDoctorMatch(attrs: Record<string, unknown>, doctor: MemedDoc
   // that token until Memed's identity matches the authenticated CFM doctor.
   const digits = (value: unknown): string => String(value ?? '').replace(/\D/g, '');
   const cpf = digits(attrs.cpf);
+  if (attrs.external_id !== undefined && attrs.external_id !== doctor.externalId) {
+    throw new Error('memed_provider_doctor_identity_mismatch');
+  }
   const crm = digits(attrs.crm);
   const uf = String(attrs.uf ?? '').trim().toUpperCase();
   if (cpf !== digits(doctor.cpf) || crm !== digits(doctor.crm) || uf !== doctor.uf.toUpperCase()) {
@@ -45,12 +48,15 @@ export class MemedService {
   private config: MemedConfig;
 
   constructor(env?: Record<string, string | undefined>) {
-    // eslint-disable-next-line no-restricted-properties
-    const _processEnv = typeof process !== 'undefined' ? process.env : {};
-    const apiKey = env?.MEMED_API_KEY ?? _processEnv?.MEMED_API_KEY ?? '';
-    const secretKey = env?.MEMED_SECRET_KEY ?? _processEnv?.MEMED_SECRET_KEY ?? '';
-    const apiUrl = (env?.MEMED_API_URL ?? _processEnv?.MEMED_API_URL) || 'https://integrations.api.memed.com.br/v1';
-    const scriptUrl = (env?.MEMED_SCRIPT_URL ?? _processEnv?.MEMED_SCRIPT_URL) || 'https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js';
+    const apiKey = env?.MEMED_API_KEY ?? '';
+    const secretKey = env?.MEMED_SECRET_KEY ?? '';
+    const apiUrl = env?.MEMED_API_URL || 'https://api.memed.com.br/v1';
+    const scriptUrl = env?.MEMED_SCRIPT_URL || 'https://partners.memed.com.br/integration.js';
+    const allowedPair = (apiUrl === 'https://api.memed.com.br/v1'
+      && scriptUrl === 'https://partners.memed.com.br/integration.js')
+      || (apiUrl === 'https://integrations.api.memed.com.br/v1'
+      && scriptUrl === 'https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js');
+    if (!allowedPair) throw new Error('memed_environment_configuration_invalid');
 
     this.config = {
       apiKey,
@@ -73,6 +79,16 @@ export class MemedService {
     return `${this.config.apiUrl}${cleanPath}${separator}api-key=${encodeURIComponent(this.config.apiKey)}&secret-key=${encodeURIComponent(this.config.secretKey)}`;
   }
 
+  private async request(url: string, options: RequestInit): Promise<Response> {
+    try {
+      return await fetch(url, { ...options, redirect: 'error', cache: 'no-store',
+        referrerPolicy: 'no-referrer', signal: AbortSignal.timeout(8000) });
+    } catch {
+      // Native fetch errors can include credential-bearing URLs. Never rethrow them.
+      throw new Error('memed_provider_transport_failed');
+    }
+  }
+
   /**
    * Obtiene o registra el médico en Memed para retornar su data-token
    */
@@ -83,7 +99,7 @@ export class MemedService {
     // 1. Intentar consultar si el usuario ya existe en Memed
     try {
       const getUrl = this.buildUrl(`/sinapse-prescricao/usuarios/${encodeURIComponent(identifier)}`);
-      const getRes = await fetch(getUrl, {
+      const getRes = await this.request(getUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/vnd.api+json',
@@ -147,7 +163,7 @@ export class MemedService {
       },
     };
 
-    const postRes = await fetch(postUrl, {
+    const postRes = await this.request(postUrl, {
       method: 'POST',
       headers: {
         'Accept': 'application/vnd.api+json',
@@ -190,7 +206,7 @@ export class MemedService {
     // Never append the doctor token or partner keys to a loggable URL.
     const apiBase = this.config.apiUrl.replace(/\/$/, '');
     const url = `${apiBase}/prescricoes/${encodeURIComponent(id)}?structuredDocuments=true`;
-    const response = await fetch(url, {
+    const response = await this.request(url, {
       headers: {
         Accept: 'application/vnd.api+json',
         'Content-Type': 'application/json',
@@ -209,3 +225,4 @@ export class MemedService {
 }
 
 export const memedService = new MemedService();
+
