@@ -61,11 +61,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .eq('cfm_validation_status', 'valid')
       .limit(20);
     if (activeLicensesError) throw activeLicensesError;
-    const verified = activeLicenses?.some((lic) =>
+    const cfmVerified = activeLicenses?.some((lic) =>
       String(lic.license_number ?? '').replace(/\D/g, '') === String(doctor.license_number ?? '').replace(/\D/g, '')
       && lic.uf_brazil?.toUpperCase() === doctor.uf_brazil?.toUpperCase()
     );
-    if (!verified) return forbidden('verified_brazilian_license_required');
+    if (!cfmVerified) return forbidden('verified_brazilian_license_required');
 
     if (!await doctorHasPatientAccess(admin, doctor.id, patientId)) {
       return forbidden('doctor_patient_access_required');
