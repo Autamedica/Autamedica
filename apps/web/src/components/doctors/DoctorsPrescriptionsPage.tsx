@@ -339,14 +339,14 @@ export function DoctorsPrescriptionsPage() {
   // Memed must receive the actual selected patient, never placeholders.
   // CPF exists on the database row even if the shared PatientWithProfile type is older.
   const selectedBrazilPatient = selectedPatient as (PatientWithProfile & { cpf?: string | null }) | undefined;
-  const memedPatientCpf = selectedBrazilPatient?.cpf?.replace(/\\D/g, '') ?? '';
+  const memedPatientCpf = selectedBrazilPatient?.cpf?.replace(/\D/g, '') ?? '';
   const memedPatientName = [selectedPatient?.profile?.first_name, selectedPatient?.profile?.last_name]
     .filter(Boolean).join(' ').trim();
   const memedPatientBirthDate = selectedPatient?.birth_date?.slice(0, 10) ?? '';
   const memedPatientGender = selectedPatient?.gender ?? '';
   const isMemedPatientReady = Boolean(
-    selectedPatientId && memedPatientName && /^\\d{11}$/.test(memedPatientCpf)
-    && /^\\d{4}-\\d{2}-\\d{2}$/.test(memedPatientBirthDate)
+    selectedPatientId && memedPatientName && /^\d{11}$/.test(memedPatientCpf)
+    && /^\d{4}-\d{2}-\d{2}$/.test(memedPatientBirthDate)
     && /^(male|female|masculino|feminino|m|f)$/i.test(memedPatientGender),
   );
 
