@@ -244,7 +244,7 @@ export function MemedPrescriptionWidget({
             <label className="block text-sm text-slate-700">
               CPF do médico (11 dígitos)
               <input type="text" inputMode="numeric" autoComplete="off" pattern="[0-9]{11}"
-                required value={doctorCpfInput} onChange={(event) => setDoctorCpfInput(event.target.value.replace(/\\D/g, '').slice(0, 11))}
+                required value={doctorCpfInput} onChange={(event) => setDoctorCpfInput(event.target.value.replace(/\D/g, '').slice(0, 11))}
                 className="mt-1 block w-full rounded border p-2" />
             </label>
             <label className="block text-sm text-slate-700">
