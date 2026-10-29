@@ -113,8 +113,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const verified = await memed.getIssuedPrescription(prescriptionId, authorizedDoctor.token);
     const rx = providerPrescription(verified);
-    const providerId = String(rx.id ?? asObject(verified.data).id ?? '');
-    if (providerId !== prescriptionId) return forbidden('memed_prescription_id_mismatch');
+    // Memed event exposes prescriptionUuid; the provider API can also expose a resource id.
+    const verifiedIdentifiers = [
+      rx.prescriptionUuid,
+      rx.id,
+      asObject(verified.data).id,
+      asObject(verified.data).prescriptionUuid,
+    ].filter((value) => typeof value === 'string' || typeof value === 'number').map(String);
+    if (!verifiedIdentifiers.includes(prescriptionId)) return forbidden('memed_prescription_id_mismatch');
 
     const patient = asObject(rx.paciente);
     const externalId = patient.external_id ?? patient.externalId;
