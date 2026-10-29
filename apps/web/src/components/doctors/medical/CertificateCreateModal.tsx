@@ -36,6 +36,7 @@ export interface CreatedCertificate {
   diagnosis?: string | null;
   hide_diagnosis: boolean;
   observations?: string | null;
+  treatment?: string | null;
   qr_code_content?: string;
   created_at: string;
 }
@@ -107,6 +108,51 @@ export function CertificateCreateModal({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successCert, setSuccessCert] = useState<CreatedCertificate | null>(null);
   const [copiedCuir, setCopiedCuir] = useState(false);
+  const [review, setReview] = useState<{
+    snapshotHash: string; confirmation: string; certificate: CreatedCertificate; patientName: string;
+  } | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
+  const [reviewRevision, setReviewRevision] = useState(0);
+
+  useEffect(() => {
+    if (!successCert || successCert.status !== 'draft') return;
+    let active = true;
+    void fetch(`/api/doctors/certificates/${successCert.id}/issue`, { cache: 'no-store' })
+      .then(async response => {
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error?.message || 'No se pudo revisar el certificado');
+        if (active && result.data.status === 'signed') {
+          setSuccessCert(result.data.certificate);
+          onCreated?.(result.data.certificate);
+        }
+        if (active && result.data.status === 'draft') {
+          setReview(result.data);
+          setConfirmed(false);
+        }
+      }).catch(error => { if (active) setErrorMsg(error.message); });
+    return () => { active = false; };
+  }, [successCert, reviewRevision, onCreated]);
+
+  const handleIssue = async () => {
+    if (!successCert || !review || !confirmed || submitting) return;
+    setSubmitting(true);
+    setErrorMsg(null);
+    try {
+      const response = await fetch(`/api/doctors/certificates/${successCert.id}/issue`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmed: true, snapshotHash: review.snapshotHash }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error?.message || 'No se pudo emitir el certificado');
+      setSuccessCert(result.data);
+      onCreated?.(result.data);
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'No se pudo emitir el certificado');
+      setConfirmed(false);
+      setReview(null);
+      setReviewRevision(value => value + 1);
+    } finally { setSubmitting(false); }
+  };
 
   // Focus trap and esc listener
   useEffect(() => {
@@ -223,10 +269,10 @@ export function CertificateCreateModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-white tracking-tight">
-                Preparar certificado médico (borrador)
+                Certificado médico de Argentina
               </h2>
               <p className="text-xs text-slate-400">
-                Referencia interna de AutaMedica · Sin firma digital
+                Firma electrónica con firma y sello del profesional
               </p>
             </div>
           </div>
@@ -248,16 +294,16 @@ export function CertificateCreateModal({
                 <CheckCircle2 className="h-8 w-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">Borrador guardado</h3>
+                <h3 className="text-xl font-bold text-white">{successCert.status === "signed" ? "Certificado emitido" : "Revisar certificado"}</h3>
                 <p className="text-sm text-slate-400 mt-1 max-w-md">
-                  Este documento aún no está firmado ni registrado como certificado oficial. No debe presentarse como justificativo válido.
+                  {successCert.status === "signed" ? "Emitido con su firma electrónica y sello. El paciente puede consultar el documento en la aplicación." : "Revise los datos y confirme personalmente la aplicación de su firma y sello."}
                 </p>
               </div>
 
               {/* CUIR Box */}
               <div className="w-full rounded-xl border border-teal-500/30 bg-teal-950/30 p-4 text-left">
                 <div className="text-xs font-semibold uppercase tracking-wider text-teal-400">
-                  Referencia interna del borrador
+                  Referencia de AutaMedica
                 </div>
                 <div className="mt-1 flex items-center justify-between">
                   <span className="font-mono text-base font-bold text-white tracking-wide">
@@ -274,9 +320,36 @@ export function CertificateCreateModal({
                 </div>
               </div>
 
-              <p className="text-xs text-amber-300">
-                Pendiente de firma y validación. La referencia interna no es un CUIR oficial.
-              </p>
+              {errorMsg && <p role="alert" className="text-sm text-rose-300">{errorMsg}</p>}
+              {successCert.status === 'draft' && (
+                <button type="button" disabled={submitting} className="underline text-sm"
+                  onClick={() => { setConfirmed(false); setReview(null); setReviewRevision(value => value + 1); }}>
+                  Actualizar revisión
+                </button>
+              )}
+              {review && successCert.status === 'draft' && (
+                <div className="w-full space-y-4 text-left text-sm">
+                  <p><strong>Paciente:</strong> {review.patientName}</p>
+                  <p><strong>Período:</strong> {review.certificate.start_date} — {review.certificate.end_date || 'Sin reposo'} ({review.certificate.days_of_rest} días)</p>
+                  <p><strong>Diagnóstico:</strong> {review.certificate.diagnosis || 'Sin diagnóstico'}</p>
+                  <p><strong>Incluir diagnóstico en PDF:</strong> {review.certificate.hide_diagnosis ? 'No' : 'Sí'}</p>
+                  <p><strong>Tratamiento:</strong> {review.certificate.treatment || 'Sin tratamiento registrado'}</p>
+                  <p><strong>Observaciones:</strong> {review.certificate.observations || 'Sin observaciones'}</p>
+                  <a href={`/api/doctors/certificates/${successCert.id}/pdf`} target="_blank" rel="noopener noreferrer" className="underline">Revisar PDF del borrador</a>
+                  <label className="flex items-start gap-3">
+                    <input type="checkbox" checked={confirmed} disabled={submitting} onChange={event => setConfirmed(event.target.checked)} className="mt-1" />
+                    <span>{review.confirmation}</span>
+                  </label>
+                  <button type="button" onClick={() => void handleIssue()} disabled={!confirmed || submitting}
+                    className="w-full rounded-xl bg-teal-600 p-3 font-semibold disabled:opacity-50">
+                    {submitting ? 'Emitiendo…' : 'Confirmar firma electrónica y emitir'}
+                  </button>
+                </div>
+              )}
+              {successCert.status === 'signed' && (
+                <a href={`/api/doctors/certificates/${successCert.id}/pdf`} target="_blank" rel="noopener noreferrer" className="underline">Descargar certificado PDF</a>
+              )}
+              <p className="text-xs text-slate-400">Firma electrónica. La referencia es interna de AutaMedica.</p>
 
               <div className="flex gap-3 w-full pt-4">
                 <button
@@ -540,7 +613,7 @@ export function CertificateCreateModal({
           <div className="flex items-center justify-between border-t border-slate-800 bg-slate-900/90 px-6 py-4">
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
               <Shield className="h-4 w-4 text-teal-400" />
-              <span>Documento privado sin firma digital</span>
+              <span>Primero revisar; luego confirmar la firma</span>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -563,7 +636,7 @@ export function CertificateCreateModal({
                     Emitiendo...
                   </>
                 ) : (
-                  "Emitir Atestado"
+                  "Guardar y revisar"
                 )}
               </button>
             </div>
@@ -573,3 +646,4 @@ export function CertificateCreateModal({
     </div>
   );
 }
+

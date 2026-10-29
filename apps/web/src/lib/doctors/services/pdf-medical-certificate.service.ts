@@ -22,6 +22,11 @@ export interface MedicalCertificatePdfInput {
   startDate: string;
   endDate?: string | null;
   createdAt: string;
+  electronicSignature?: {
+    signature: Uint8Array;
+    stamp: Uint8Array;
+    confirmedAt: string;
+  };
 }
 
 const TYPES: Record<string, string> = {
@@ -66,8 +71,11 @@ function drawQr(doc: jsPDF, url: string): void {
  */
 export function generateMedicalCertificatePdf(
   input: MedicalCertificatePdfInput,
-  mode: 'draft' | 'signing-source' = 'draft',
+  mode: 'draft' | 'signing-source' | 'electronic' = 'draft',
 ): Uint8Array {
+  if (mode === 'electronic' && !input.electronicSignature) {
+    throw new Error('certificate_electronic_confirmation_required');
+  }
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const left = 18, right = 192, width = right - left;
   let y = 20;
@@ -87,7 +95,7 @@ export function generateMedicalCertificatePdf(
   doc.text(`Referencia interna: ${clean(input.reference)}`, left, y);
   y += 7;
   doc.text(`Fecha de registro: ${date(input.createdAt)}`, left, y);
-  if (mode === 'signing-source') {
+  if (mode !== 'draft') {
     drawQr(doc, `https://autamedica.com/verify/${encodeURIComponent(input.reference)}`);
   }
 
@@ -128,22 +136,45 @@ export function generateMedicalCertificatePdf(
   field('Reposo indicado', `${input.daysOfRest} día(s). Desde ${date(input.startDate)}${input.endDate ? ' hasta ' + date(input.endDate) : ''}`);
   if (input.observations) field('Observaciones', input.observations);
 
+  if (mode === 'electronic' && input.electronicSignature) {
+    ensureSpace(62);
+    const evidence = input.electronicSignature;
+    const drawAsset = (bytes: Uint8Array, x: number) => {
+      const image = doc.getImageProperties(bytes);
+      const scale = Math.min(68 / image.width, 30 / image.height);
+      doc.addImage(bytes, image.fileType, x, y, image.width * scale, image.height * scale);
+    };
+    drawAsset(evidence.signature, left);
+    drawAsset(evidence.stamp, 110);
+    y += 36;
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(9);
+    doc.text(clean(input.doctorName), left, y);
+    y += 6;
+    doc.text(`Firma electrónica confirmada: ${clean(evidence.confirmedAt)}`, left, y);
+  }
+
   for (let pageNumber = 1; pageNumber <= doc.getNumberOfPages(); pageNumber++) {
     doc.setPage(pageNumber);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(71, 85, 105);
-    doc.text('La validez requiere una firma auténtica y verificable.', left, 267);
+    doc.text(mode === 'electronic'
+      ? 'Firma electrónica con imágenes de firma y sello autorizadas por el profesional.'
+      : 'La validez requiere una firma auténtica y verificable.', left, 267);
     if (mode === 'draft') {
       doc.setTextColor(185, 28, 28);
       doc.setFontSize(25);
       doc.setFont('helvetica', 'bold');
       doc.text('BORRADOR - SIN FIRMA', 105, 282, { align: 'center' });
-    } else {
+    } else if (mode === 'signing-source') {
       doc.setFontSize(8);
       doc.setTextColor(71, 85, 105);
       doc.text('Original pendiente de firma por el proveedor autorizado.', left, 278);
+    } else {
+      doc.text('La verificación QR acredita el registro de emisión en AutaMedica. No es firma digital certificada.', left, 278);
     }
   }
   return new Uint8Array(doc.output('arraybuffer'));
 }
+

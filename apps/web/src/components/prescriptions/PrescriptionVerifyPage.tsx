@@ -28,6 +28,8 @@ interface VerifyResult {
     status: string;
     countryCode?: string;
     certificateType: string;
+    signatureLabel?: string;
+    signatureMethod?: string;
     daysOfRest: number;
     startDate: string;
     endDate: string | null;
@@ -122,7 +124,9 @@ export function PrescriptionVerifyPage({ cuir }: { cuir: string }) {
   // Render Certificate
   if (result.certificate) {
     const cert = result.certificate;
-    const statusDisplay = STATUS_LABELS[cert.status] ?? STATUS_LABELS.signed;
+    const statusDisplay = cert.signatureMethod === 'electronic_verified'
+      ? { label: 'Emitido con firma electrónica', color: 'bg-blue-100 text-blue-700' }
+      : STATUS_LABELS[cert.status] ?? STATUS_LABELS.signed;
     const certTitle = CERT_TYPE_LABELS[cert.certificateType] ?? 'Certificado Médico';
 
     return (
@@ -227,7 +231,7 @@ export function PrescriptionVerifyPage({ cuir }: { cuir: string }) {
           {/* Footer */}
           <div className="px-8 py-4 bg-slate-50 border-t border-slate-100">
             <p className="text-[10px] text-slate-400 text-center">
-              {getLegalFooter(cert.countryCode)}
+              {cert.signatureLabel || 'Registro de emisión verificado en AutaMedica'}
             </p>
           </div>
         </div>
@@ -333,3 +337,4 @@ export function PrescriptionVerifyPage({ cuir }: { cuir: string }) {
     </div>
   );
 }
+
