@@ -1,4 +1,5 @@
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
+import type { MemedPatient } from './memed-patient';
 
 interface MemedHub {
   command: { send: (module: string, command: string, data?: Record<string, unknown>) => Promise<unknown> };
@@ -22,6 +23,7 @@ let moduleInitialized = false;
 let eventListenersRegistered = false;
 let activeOnIssued: ((id: string) => void) | null = null;
 let activeOnDeleted: ((id: string) => void) | null = null;
+let opening: Promise<void> = Promise.resolve();
 
 export function getMemedHub(): MemedHub | undefined {
   return (window as unknown as { MdHub?: MemedHub }).MdHub;
@@ -136,4 +138,25 @@ export function setMemedCallbacks(onIssued: (id: string) => void, onDeleted: (id
     if (activeOnIssued === onIssued) activeOnIssued = null;
     if (activeOnDeleted === onDeleted) activeOnDeleted = null;
   };
+}
+
+export function openMemedPatient(patient: MemedPatient, isCurrent: () => boolean): Promise<void> {
+  const task = opening.then(async () => {
+    const current = () => !sessionInvalidated && isCurrent();
+    if (!current()) return;
+    const hub = getMemedHub();
+    if (!hub) throw new Error('Módulo Memed indisponível.');
+    // Official Memed controls: identity is fixed by the backend and signing is mandatory.
+    await hub.command.send(MODULE_NAME, 'setFeatureToggle', {
+      deletePatient: false, removePatient: false, editPatient: false,
+      editIdentification: false, dropdownSync: false, historyPrescription: false,
+      conclusionModalEdit: false, forceSign: true, allowShareModal: false,
+    });
+    if (!current()) return;
+    await hub.command.send(MODULE_NAME, 'setPaciente', { ...patient });
+    if (!current()) return;
+    await hub.module.show(MODULE_NAME);
+  });
+  opening = task.catch(() => undefined);
+  return task;
 }

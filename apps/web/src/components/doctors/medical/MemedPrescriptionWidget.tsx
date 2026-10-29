@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ensureMemedScript, getMemedHub, setMemedCallbacks } from '@/lib/prescriptions/brazil/memed-sdk';
+import { ensureMemedScript, getMemedHub, openMemedPatient, setMemedCallbacks } from '@/lib/prescriptions/brazil/memed-sdk';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 interface MemedPrescriptionWidgetProps {
@@ -30,6 +30,10 @@ export function MemedPrescriptionWidget({
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setPatientLabel(null);
+    setIssuedId(null);
+    setErrorMessage(null);
     const onIssued = (id: string) => {
       if (cancelled) return;
       void onSavedRef.current(id).then(() => {
@@ -74,11 +78,7 @@ export function MemedPrescriptionWidget({
         setPatientLabel(json.data.patient.nome);
         await ensureMemedScript(json.data.token, json.data.scriptUrl, json.data.doctor.userId);
         if (cancelled) return;
-        const hub = getMemedHub();
-        if (!hub) throw new Error('MdHub indisponível para prescrição.');
-        await hub.command.send('plataforma.prescricao', 'setPaciente', json.data.patient);
-        if (cancelled) return;
-        await hub.module.show('plataforma.prescricao');
+        await openMemedPatient(json.data.patient, () => !cancelled);
         if (!cancelled) setLoading(false);
       } catch (error) {
         if (!cancelled) {

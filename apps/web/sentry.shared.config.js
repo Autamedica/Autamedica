@@ -157,6 +157,7 @@ export function getBaseSentryConfig(runtime) {
     enableLogs: true,
     tracesSampleRate: nodeEnv === 'development' ? 1.0 : 0.1,
     beforeBreadcrumb(breadcrumb) { return sanitizeValue(breadcrumb); },
+    beforeSendSpan(span) { return redactTelemetry(span); },
     beforeSendTransaction(event) { return sanitizeSentryEvent(event); },
     beforeSendLog(log) { return redactTelemetry(log); },
     beforeSend(event) {

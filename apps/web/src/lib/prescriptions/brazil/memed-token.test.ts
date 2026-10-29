@@ -13,6 +13,10 @@ vi.mock('@/lib/prescriptions/brazil/memed.service', () => ({ MemedService: class
 } }));
 vi.mock('@autamedica/shared', () => ({ logger: { error: vi.fn() } }));
 
+vi.mock('@/lib/prescriptions/brazil/memed-identity.repository', () => ({
+  getMemedDoctorCpf: vi.fn(async () => null), storeMemedDoctorCpf: vi.fn(async () => undefined),
+}));
+
 import { POST } from '@/pages/api/doctors/prescriptions/memed-token';
 
 const doctor = { id: 'doctor', active: true, license_type: 'CRM', license_number: '9236',

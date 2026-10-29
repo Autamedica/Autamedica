@@ -4,6 +4,7 @@ import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { MemedService } from '@/lib/prescriptions/brazil/memed.service';
 import { resolveMemedPatient, validCpf } from '@/lib/prescriptions/brazil/memed-patient';
+import { getMemedDoctorCpf, storeMemedDoctorCpf } from '@/lib/prescriptions/brazil/memed-identity.repository';
 import { logger } from '@autamedica/shared';
 
 const cpfDigits = (value: string | null | undefined) => (value ?? '').replace(/\D/g, '');
@@ -86,7 +87,8 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     const sobrenome = profile?.last_name?.trim() ?? '';
     const crm = crmDigits(doctor.license_number);
     const uf = (doctor.uf_brazil ?? '').toUpperCase();
-    const existingCpf = cpfDigits(doctor.cpf || profile?.cpf);
+    const storedCpf = await getMemedDoctorCpf(admin, doctor.id);
+    const existingCpf = cpfDigits(storedCpf || doctor.cpf || profile?.cpf);
     if (existingCpf && providedCpf && existingCpf !== cpfDigits(providedCpf)) {
       return forbidden('memed_doctor_cpf_mismatch');
     }
@@ -120,17 +122,8 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       } : {}),
     });
 
-    // Persist only an actual physician's CPF after Memed confirms the identity.
-    // No DOB is retained by AutaMedica.
-    if (!existingCpf && providedCpf) {
-      const { error: cpfError } = await admin.from('doctors')
-        .update({ cpf })
-        .eq('id', doctor.id);
-      if (cpfError) {
-        logger.error('[memed-token] verified CPF could not be stored');
-        return internalError('memed_doctor_cpf_persistence_failed');
-      }
-    }
+    // Store the confirmed CPF only in the private backend table. No DOB is retained.
+    if (!storedCpf) await storeMemedDoctorCpf(admin, doctor.id, cpf);
 
     const response = jsonOk({
       patient,

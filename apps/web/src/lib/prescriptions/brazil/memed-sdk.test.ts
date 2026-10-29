@@ -7,7 +7,7 @@ vi.mock('@/lib/supabase-browser', () => ({ getBrowserSupabaseClient: () => ({ au
 let initialized: (module: { name: string }) => void;
 let events: Record<string, (payload: Record<string, unknown>) => void>;
 let authChanged: (event: string, session: { user: { id: string } } | null) => void;
-const command = vi.fn(async () => undefined);
+const command = vi.fn(async (_module: string, _command: string, _data?: Record<string, unknown>) => undefined);
 
 beforeEach(() => {
   vi.resetModules(); vi.restoreAllMocks(); vi.clearAllMocks();
@@ -64,4 +64,22 @@ describe('Memed SDK lifecycle', () => {
       .rejects.toThrow('não autorizada');
     expect(document.querySelector('script')).toBeNull();
   });
+  it('locks backend patient identity and requires signing before opening', async () => {
+    const sdk = await ready();
+    await sdk.openMemedPatient({ idExterno: 'synthetic-patient', nome: 'Synthetic Patient',
+      cpf: '52998224725', data_nascimento: '01/01/2000', sexo: 'Feminino' }, () => true);
+    expect(command.mock.calls[0]).toEqual(['plataforma.prescricao', 'setFeatureToggle', {
+      deletePatient: false, removePatient: false, editPatient: false,
+      editIdentification: false, dropdownSync: false, historyPrescription: false,
+      conclusionModalEdit: false, forceSign: true, allowShareModal: false,
+    }]);
+    expect(command.mock.calls[1][1]).toBe('setPaciente');
+  });
+  it('never opens a stale patient after a selection change', async () => {
+    const sdk = await ready();
+    await sdk.openMemedPatient({ idExterno: 'synthetic-patient', nome: 'Synthetic Patient',
+      cpf: '52998224725', data_nascimento: '01/01/2000', sexo: 'Feminino' }, () => false);
+    expect(command).not.toHaveBeenCalled();
+  });
+
 });
