@@ -1,5 +1,10 @@
 const BLOCKED_FIELD_NAMES = new Set([
   'authorization',
+  'cpf',
+  'token',
+  'api-key',
+  'secret-key',
+  'data_nascimento',
   'set-cookie',
   'cookie',
   'cookies',
@@ -36,6 +41,11 @@ function isPlainObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function redactMemedText(value) {
+  return value.replace(/https?:\/\/(?:[a-z0-9-]+\.)*memed\.com\.br[^\s"'<>]*/gi, '[Memed URL redacted]')
+    .replace(/((?:api-key|secret-key|token)=)[^&\s]+/gi, '$1[Redacted]');
+}
+
 function truncate(value, max = 240) {
   return value.length > max ? `${value.slice(0, max)}...[truncated]` : value;
 }
@@ -48,8 +58,8 @@ function sanitizeValue(value, depth = 0) {
   if (value instanceof Error) {
     return {
       name: value.name,
-      message: truncate(value.message),
-      stack: value.stack ? truncate(value.stack, 1000) : undefined,
+      message: truncate(redactMemedText(value.message)),
+      stack: value.stack ? truncate(redactMemedText(value.stack), 1000) : undefined,
     };
   }
 
@@ -63,7 +73,7 @@ function sanitizeValue(value, depth = 0) {
   }
 
   if (typeof value === 'string') {
-    return truncate(value);
+    return truncate(redactMemedText(value));
   }
 
   if (Array.isArray(value)) {
@@ -87,6 +97,9 @@ function sanitizeValue(value, depth = 0) {
 }
 
 export function sanitizeSentryEvent(event) {
+  if (typeof event.request?.url === 'string') event.request.url = redactMemedText(event.request.url);
+  if (Array.isArray(event.spans)) event.spans = event.spans.map((span) => sanitizeValue(span));
+  if (event.exception) event.exception = sanitizeValue(event.exception);
   if (event.request) {
     delete event.request.data;
 
@@ -129,11 +142,15 @@ export function getBaseSentryConfig(runtime) {
   return {
     dsn: sentryDsn,
     environment: `${runtime}-${nodeEnv}`,
-    sendDefaultPii: true,
+    sendDefaultPii: false,
     enableLogs: true,
     tracesSampleRate: nodeEnv === 'development' ? 1.0 : 0.1,
+    beforeBreadcrumb(breadcrumb) { return sanitizeValue(breadcrumb); },
+    beforeSendTransaction(event) { return sanitizeSentryEvent(event); },
+    beforeSendLog(log) { return sanitizeValue(log); },
     beforeSend(event) {
       return sanitizeSentryEvent(event);
     },
   };
 }
+

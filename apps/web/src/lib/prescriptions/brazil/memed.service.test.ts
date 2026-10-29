@@ -158,4 +158,35 @@ describe('MemedService', () => {
       .rejects.toThrow('memed_invalid_prescription_id');
   });
 
+  it.each([401, 403, 404, 500])('reports prescription provider status %s without exposing a body', async (status) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status }));
+    const service = new MemedService({ MEMED_API_KEY: 'test-key', MEMED_SECRET_KEY: 'test-secret' });
+    await expect(service.getIssuedPrescription('rx-test', 'synthetic-token'))
+      .rejects.toThrow(`memed_prescription_verification_failed:${status}`);
+  });
+
+  it('sanitizes network errors and prevents redirects', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('secret-key=synthetic-secret'));
+    vi.stubGlobal('fetch', fetchMock);
+    const service = new MemedService({ MEMED_API_KEY: 'test-key', MEMED_SECRET_KEY: 'test-secret' });
+    await expect(service.getIssuedPrescription('rx-test', 'synthetic-token'))
+      .rejects.toThrow('memed_provider_transport_failed');
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ redirect: 'error', cache: 'no-store' });
+    expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it.each(['cpf', 'uf', 'external_id'])('rejects provider identity mismatch for %s', async (field) => {
+    const attrs = { token: 'synthetic-token', cpf: '12345678900', crm: '123456', uf: 'SP', [field]: 'different' };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { attributes: attrs } }) }));
+    const service = new MemedService({ MEMED_API_KEY: 'test-key', MEMED_SECRET_KEY: 'test-secret' });
+    await expect(service.getOrCreateDoctorToken({ externalId: 'doctor', nome: 'Synthetic', sobrenome: 'Doctor',
+      cpf: '12345678900', crm: '123456', uf: 'SP' })).rejects.toThrow('memed_provider_doctor_identity_mismatch');
+  });
+
+  it('rejects arbitrary hosts before credentials can be sent', () => {
+    expect(() => new MemedService({ MEMED_API_URL: 'https://other.example/v1' }))
+      .toThrow('memed_environment_configuration_invalid');
+  });
+
 });
+

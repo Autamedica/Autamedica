@@ -23,13 +23,12 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return serviceUnavailable('memed_production_configuration_incomplete');
   }
 
-  // Memed's documented drug-ingredient lookup accepts partner keys in query
+  // Memed's documented read-only key validation accepts partner keys in query
   // parameters. Only a fixed host and read-only path are allowed.
-  const url = new URL('https://api.memed.com.br/v1/drugs/ingredients');
+  const url = new URL('https://api.memed.com.br/v1/sinapse-prescricao/check-key');
   url.searchParams.set('api-key', apiKey);
   url.searchParams.set('secret-key', secretKey);
-  url.searchParams.set('terms', 'dipirona');
-  url.searchParams.set('limit', '1');
+
 
   try {
     const response = await fetch(url.toString(), {
@@ -38,10 +37,19 @@ export const GET: APIRoute = async ({ request, locals }) => {
       redirect: 'error',
       signal: AbortSignal.timeout(8000),
     });
+    const result = await response.json() as { success?: Array<{ code?: unknown }> };
+    const accepted = response.ok && Array.isArray(result.success)
+      && result.success.some((entry) => entry.code === 'chave-valida');
     // Do not return any provider response body or secret to the caller.
-    return jsonOk({ provider: 'memed', environment: 'production',
-      credentialsAccepted: response.ok, providerStatus: response.status });
+    const health = jsonOk({ provider: 'memed', environment: 'production',
+      credentialsAccepted: accepted, providerStatus: response.status,
+      issuanceEnabled: env?.MEMED_RX_ENABLED === 'true',
+      pilotConfigured: typeof env?.MEMED_PILOT_DOCTOR_ID === 'string',
+      scriptConfigured: env?.MEMED_SCRIPT_URL === 'https://partners.memed.com.br/integration.js' });
+    health.headers.set('Cache-Control', 'no-store, private');
+    return health;
   } catch {
     return serviceUnavailable('memed_provider_unreachable');
   }
 };
+

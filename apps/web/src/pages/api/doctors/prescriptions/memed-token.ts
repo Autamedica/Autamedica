@@ -3,21 +3,11 @@ import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers'
 import { DOCTOR_ROLES, isAuthed, withAuthRole } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { MemedService } from '@/lib/prescriptions/brazil/memed.service';
+import { resolveMemedPatient, validCpf } from '@/lib/prescriptions/brazil/memed-patient';
 import { logger } from '@autamedica/shared';
 
 const cpfDigits = (value: string | null | undefined) => (value ?? '').replace(/\D/g, '');
 const crmDigits = (value: string | null | undefined) => (value ?? '').replace(/\D/g, '');
-const validCpf = (value: string): boolean => {
-  const cpf = cpfDigits(value);
-  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
-  for (let len = 9; len <= 10; len++) {
-    let sum = 0;
-    for (let i = 0; i < len; i++) sum += Number(cpf[i]) * (len + 1 - i);
-    const mod = (sum * 10) % 11;
-    if ((mod === 10 ? 0 : mod) !== Number(cpf[len])) return false;
-  }
-  return true;
-};
 const VALID_UF = /^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/;
 
 type ApiContext = Parameters<APIRoute>[0];
@@ -31,7 +21,7 @@ const isValidIsoDate = (value: string): boolean => {
     && date.getTime() < Date.now();
 };
 
-async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string): Promise<Response> {
+async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string, patientId?: unknown): Promise<Response> {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
   if (!isAuthed(auth)) return auth;
   // Clinical Memed issuance remains disabled until signature and patient
@@ -107,6 +97,8 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       return badRequest('memed_doctor_identity_incomplete');
     }
 
+    const patient = await resolveMemedPatient(admin, doctor.id, patientId);
+
     const envMap: Record<string, string | undefined> = {};
     if (locals.runtime?.env) {
       for (const [key, value] of Object.entries(locals.runtime.env)) {
@@ -140,28 +132,41 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       }
     }
 
-    return jsonOk({
+    const response = jsonOk({
+      patient,
       token: tokenData.token,
       scriptUrl: memed.getScriptUrl(),
       doctor: { id: doctor.id, crm, uf, nome: `${nome} ${sobrenome}` },
     });
+    response.headers.set('Cache-Control', 'no-store, private');
+    response.headers.set('Pragma', 'no-cache');
+    return response;
   } catch (err) {
     if (err instanceof Error && err.message === 'memed_doctor_birth_date_required') {
       return badRequest('memed_doctor_birth_date_required');
     }
-    logger.error('[memed-token] token acquisition failed', err instanceof Error ? err.message : 'unknown');
+    if (err instanceof Error && err.message === 'doctor_patient_access_required') return forbidden(err.message);
+    if (err instanceof Error && ['memed_patient_required', 'memed_patient_consent_required',
+      'memed_patient_identity_incomplete'].includes(err.message)) return badRequest(err.message);
+    logger.error('[memed-token] token acquisition failed');
     return internalError('memed_token_unavailable');
   }
 }
 
-export const GET: APIRoute = (context) => handleMemedToken(context);
+export const GET: APIRoute = (context) => handleMemedToken(context, undefined, undefined, new URL(context.request.url).searchParams.get('patientId'));
 
 export const POST: APIRoute = async (context) => {
+  const auth = await withAuthRole(context.request, DOCTOR_ROLES, context.locals);
+  if (!isAuthed(auth)) return auth;
+  const origin = context.request.headers.get('origin');
+  if (origin && origin !== new URL(context.request.url).origin) return forbidden('cross_origin_request');
   // DOB is supplied by the authenticated physician only for first-time Memed registration.
   // It is not stored in logs, query strings, client storage or AutaMedica tables.
   let body: unknown;
   try {
-    body = await context.request.json();
+    const text = await context.request.text();
+    if (text.length > 4096) return badRequest('request_too_large');
+    body = JSON.parse(text);
   } catch {
     return badRequest('invalid_json');
   }
@@ -175,5 +180,6 @@ export const POST: APIRoute = async (context) => {
   if (birthDate !== undefined && (typeof birthDate !== 'string' || !isValidIsoDate(birthDate))) {
     return badRequest('memed_doctor_birth_date_invalid');
   }
-  return handleMemedToken(context, birthDate as string | undefined, providedCpf as string | undefined);
+  return handleMemedToken(context, birthDate as string | undefined, providedCpf as string | undefined, body && typeof body === 'object' && 'patientId' in body ? body.patientId : undefined);
 };
+
