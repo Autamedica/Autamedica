@@ -7,6 +7,17 @@ import { logger } from '@autamedica/shared';
 
 const cpfDigits = (value: string | null | undefined) => (value ?? '').replace(/\D/g, '');
 const crmDigits = (value: string | null | undefined) => (value ?? '').replace(/\D/g, '');
+const validCpf = (value: string): boolean => {
+  const cpf = cpfDigits(value);
+  if (!validCpf(cpf)) return false;
+  for (let len = 9; len <= 10; len++) {
+    let sum = 0;
+    for (let i = 0; i < len; i++) sum += Number(cpf[i]) * (len + 1 - i);
+    const mod = (sum * 10) % 11;
+    if ((mod === 10 ? 0 : mod) !== Number(cpf[len])) return false;
+  }
+  return true;
+};
 const VALID_UF = /^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$/;
 
 type ApiContext = Parameters<APIRoute>[0];
@@ -20,7 +31,7 @@ const isValidIsoDate = (value: string): boolean => {
     && date.getTime() < Date.now();
 };
 
-async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string): Promise<Response> {
+async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: string, providedCpf?: string): Promise<Response> {
   const auth = await withAuthRole(request, DOCTOR_ROLES, locals);
   if (!isAuthed(auth)) return auth;
 
@@ -75,7 +86,11 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     const sobrenome = profile?.last_name?.trim() ?? '';
     const crm = crmDigits(doctor.license_number);
     const uf = (doctor.uf_brazil ?? '').toUpperCase();
-    const cpf = cpfDigits(doctor.cpf || profile?.cpf);
+    const existingCpf = cpfDigits(doctor.cpf || profile?.cpf);
+    if (existingCpf && providedCpf && existingCpf !== cpfDigits(providedCpf)) {
+      return forbidden('memed_doctor_cpf_mismatch');
+    }
+    const cpf = existingCpf || cpfDigits(providedCpf);
 
     // Never register a medical professional using fabricated CPF, CRM or UF.
     if (!nome || !sobrenome || !crm || !VALID_UF.test(uf) || !/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) {
@@ -103,6 +118,18 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
       } : {}),
     });
 
+    // Persist only an actual physician's CPF after Memed confirms the identity.
+    // No DOB is retained by AutaMedica.
+    if (!existingCpf && providedCpf) {
+      const { error: cpfError } = await admin.from('doctors')
+        .update({ cpf })
+        .eq('id', doctor.id);
+      if (cpfError) {
+        logger.error('[memed-token] verified CPF could not be stored', cpfError);
+        return internalError('memed_doctor_cpf_persistence_failed');
+      }
+    }
+
     return jsonOk({
       token: tokenData.token,
       scriptUrl: memed.getScriptUrl(),
@@ -128,10 +155,15 @@ export const POST: APIRoute = async (context) => {
   } catch {
     return badRequest('invalid_json');
   }
+  const providedCpf = body && typeof body === 'object' && 'cpf' in body
+    ? (body as { cpf?: unknown }).cpf : undefined;
+  if (providedCpf !== undefined && (typeof providedCpf !== 'string' || !validCpf(providedCpf))) {
+    return badRequest('memed_doctor_cpf_invalid');
+  }
   const birthDate = body && typeof body === 'object' && 'birthDate' in body
     ? (body as { birthDate?: unknown }).birthDate : undefined;
-  if (typeof birthDate !== 'string' || !isValidIsoDate(birthDate)) {
+  if (birthDate !== undefined && (typeof birthDate !== 'string' || !isValidIsoDate(birthDate))) {
     return badRequest('memed_doctor_birth_date_invalid');
   }
-  return handleMemedToken(context, birthDate);
+  return handleMemedToken(context, birthDate as string | undefined, providedCpf as string | undefined);
 };
