@@ -336,6 +336,20 @@ export function DoctorsPrescriptionsPage() {
     [patients, selectedPatientId]
   );
 
+  // Memed must receive the actual selected patient, never placeholders.
+  // CPF exists on the database row even if the shared PatientWithProfile type is older.
+  const selectedBrazilPatient = selectedPatient as (PatientWithProfile & { cpf?: string | null }) | undefined;
+  const memedPatientCpf = selectedBrazilPatient?.cpf?.replace(/\\D/g, '') ?? '';
+  const memedPatientName = [selectedPatient?.profile?.first_name, selectedPatient?.profile?.last_name]
+    .filter(Boolean).join(' ').trim();
+  const memedPatientBirthDate = selectedPatient?.birth_date?.slice(0, 10) ?? '';
+  const memedPatientGender = selectedPatient?.gender ?? '';
+  const isMemedPatientReady = Boolean(
+    selectedPatientId && memedPatientName && /^\\d{11}$/.test(memedPatientCpf)
+    && /^\\d{4}-\\d{2}-\\d{2}$/.test(memedPatientBirthDate)
+    && /^(male|female|masculino|feminino|m|f)$/i.test(memedPatientGender),
+  );
+
   // ─── Derived data ────────────────────────────────────────────────────────
 
   const stats = useMemo(() => {
@@ -440,10 +454,12 @@ export function DoctorsPrescriptionsPage() {
           <div className="flex gap-2">
             <button
               onClick={() => { setEditingPrescription(null); setShowMemedWidget(true); }}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.97]"
+              disabled={!isMemedPatientReady}
+              title={isMemedPatientReady ? "Abrir Memed" : "Selecione um paciente com nome, CPF, data de nascimento e sexo registrados"}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
-              Receta BR (ICP)
+              Receita BR (Memed)
             </button>
             <button
               onClick={() => { setEditingPrescription(null); setShowCreateModal(true); }}
@@ -999,16 +1015,16 @@ export function DoctorsPrescriptionsPage() {
       </AnimatePresence>
 
       {/* ── Memed Widget ── */}
-      {showMemedWidget && (
+      {showMemedWidget && selectedPatientId && isMemedPatientReady && (
         <MemedPrescriptionWidget
-          doctorCrm="123456" // Emulated or fetched from context
-          doctorUf="SP"
-          patientName={selectedPatientId ? "Paciente Selecionado" : "Paciente Novo"}
-          patientCpf="000.000.000-00"
-          onPrescriptionSaved={(memedId) => {
-            console.log("Prescrição Memed salva com ID:", memedId);
-            setShowMemedWidget(false);
-            refresh();
+          patientId={selectedPatientId}
+          patientName={memedPatientName}
+          patientCpf={memedPatientCpf}
+          patientBirthDate={memedPatientBirthDate}
+          patientGender={memedPatientGender}
+          onPrescriptionSaved={() => {
+            // Memed emitted the document, but no local record/delivery is claimed here.
+            // Keep the module open for verification and sharing by the prescriber.
           }}
           onClose={() => setShowMemedWidget(false)}
         />
