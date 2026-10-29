@@ -51,6 +51,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .maybeSingle();
     if (doctorError) throw doctorError;
     if (!doctor?.active || doctor.license_type !== 'CRM') return forbidden('brazil_prescriber_required');
+    // Require a valid CFM verification matching this doctor's actual CRM and UF.
+    const { data: activeLicenses, error: activeLicensesError } = await admin
+      .from('doctor_licenses')
+      .select('license_number, uf_brazil')
+      .eq('doctor_id', doctor.id)
+      .eq('license_type', 'CRM')
+      .eq('status', 'active')
+      .eq('cfm_validation_status', 'valid')
+      .limit(20);
+    if (activeLicensesError) throw activeLicensesError;
+    const verified = activeLicenses?.some((lic) =>
+      String(lic.license_number ?? '').replace(/\D/g, '') === String(doctor.license_number ?? '').replace(/\D/g, '')
+      && lic.uf_brazil?.toUpperCase() === doctor.uf_brazil?.toUpperCase()
+    );
+    if (!verified) return forbidden('verified_brazilian_license_required');
+
     if (!await doctorHasPatientAccess(admin, doctor.id, patientId)) {
       return forbidden('doctor_patient_access_required');
     }
