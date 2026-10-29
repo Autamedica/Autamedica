@@ -439,7 +439,9 @@ export function DoctorsPrescriptionsPage() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => { setEditingPrescription(null); setShowMemedWidget(true); }}
+              onClick={() => { if (selectedPatientId) { setEditingPrescription(null); setShowMemedWidget(true); } }}
+              disabled={!selectedPatientId}
+              title={selectedPatientId ? "Prescrição brasileira via Memed" : "Selecione um paciente antes de prescrever"}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.97]"
             >
               <Plus className="h-4 w-4" />
@@ -999,17 +1001,10 @@ export function DoctorsPrescriptionsPage() {
       </AnimatePresence>
 
       {/* ── Memed Widget ── */}
-      {showMemedWidget && (
+      {showMemedWidget && selectedPatientId && (
         <MemedPrescriptionWidget
-          doctorCrm="123456" // Emulated or fetched from context
-          doctorUf="SP"
-          patientName={selectedPatientId ? "Paciente Selecionado" : "Paciente Novo"}
-          patientCpf="000.000.000-00"
-          onPrescriptionSaved={(memedId) => {
-            console.log("Prescrição Memed salva com ID:", memedId);
-            setShowMemedWidget(false);
-            refresh();
-          }}
+          patientId={selectedPatientId}
+          onPrescriptionSaved={() => { refresh(); }}
           onClose={() => setShowMemedWidget(false)}
         />
       )}
