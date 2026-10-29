@@ -48,7 +48,7 @@ async function getContext(request: Request, locals: App.Locals, patientId: strin
   const admin = createAstroAdminClient(locals.runtime?.env);
   const { data: doctor } = await admin
     .from('doctors')
-    .select('id, active, license_type, license_number, uf_brazil, cpf, specialty, user_id')
+    .select('id, active, license_type, license_number, uf_brazil, cpf, specialty, user_id, memed_birth_date')
     .eq('user_id', auth.user.id).maybeSingle();
   if (!doctor?.id || doctor.active !== true || doctor.license_type !== 'CRM') {
     return { response: forbidden('active_br_doctor_required') };
@@ -101,6 +101,7 @@ async function getContext(request: Request, locals: App.Locals, patientId: strin
       externalId: doctor.id, nome: doctorProfile.first_name || '',
       sobrenome: doctorProfile.last_name || '', cpf: doctorCpf, crm, uf,
       email: doctorProfile.email, telefone: doctorProfile.phone || undefined,
+      dataNascimento: formatBirthDate((doctor as unknown as { memed_birth_date?: string | null }).memed_birth_date) || undefined,
     },
     patientData: {
       idExterno: `autamedica-${patient.id}`, nome: patientName,
