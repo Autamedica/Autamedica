@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   fresh-schema-replay:
@@ -30,6 +31,11 @@ jobs:
           test -z "${SUPABASE_ACCESS_TOKEN:-}"
           test -z "${SUPABASE_DB_URL:-}"
           supabase --version
+      - name: Authenticate GHCR for Supabase Docker images
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
       - name: Replay all versioned SQL against a throwaway local database
         run: |
           set -euo pipefail
