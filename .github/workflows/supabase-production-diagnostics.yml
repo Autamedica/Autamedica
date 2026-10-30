@@ -1,0 +1,99 @@
+name: Supabase production read-only diagnostics
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/supabase-production-diagnostics.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-production-diagnostics
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Read-only database diagnostics
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/supabase-cpu-diagnostics'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Inspect connection, active work and query costs
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        shell: python
+        run: |
+          import json
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
+
+          token = os.environ.get("SUPABASE_ACCESS_TOKEN", "")
+          project = os.environ.get("SUPABASE_PROJECT_ID", "")
+          if not token or not project:
+              sys.exit("Required Supabase deployment credentials are not configured.")
+          if project != "qxjjrpksmwwrmubhvjew":
+              sys.exit("Unexpected project; refusing to query another database.")
+
+          # No raw SQL, clinical data, query literals or credentials are emitted.
+          queries = [
+              ("connection_and_migration", """
+                  select pg_catalog.now() as checked_at,
+                    pg_catalog.pg_postmaster_start_time() as started_at,
+                    pg_catalog.to_regclass('public.medical_certificate_electronic_issuances')::text as issuance_table
+              """),
+              ("active_work", """
+                  select pid, usename, backend_type, state, wait_event_type,
+                    wait_event, pg_catalog.now()-query_start as duration,
+                    query_id,
+                    case
+                      when query like '%autovacuum:%' then 'autovacuum'
+                      when query like '%advance_expired_dispatch_offers%' then 'dispatch_expiry'
+                      when query like '%expire_stale_dispatch_requests%' then 'request_expiry'
+                      when query like '%pgbouncer.get_auth%' then 'pooler_authentication'
+                      when query like '%schema_migrations%' then 'migration_metadata'
+                      else 'other'
+                    end as category
+                  from pg_catalog.pg_stat_activity
+                  where state='active' and pid<>pg_catalog.pg_backend_pid()
+                  order by query_start limit 12
+              """),
+              ("statement_costs", """
+                  select queryid, calls, total_exec_time, mean_exec_time, rows,
+                    case
+                      when query like '%advance_expired_dispatch_offers%' then 'dispatch_expiry'
+                      when query like '%expire_stale_dispatch_requests%' then 'request_expiry'
+                      when query like '%pgbouncer.get_auth%' then 'pooler_authentication'
+                      when query like '%schema_migrations%' then 'migration_metadata'
+                      else 'other'
+                    end as category
+                  from extensions.pg_stat_statements
+                  order by total_exec_time desc limit 12
+              """),
+          ]
+
+          failures = 0
+          for name, query in queries:
+              print("DIAGNOSTIC " + name, flush=True)
+              request = urllib.request.Request(
+                  "https://api.supabase.com/v1/projects/" + project + "/database/query/read-only",
+                  data=json.dumps({"query": query}).encode(),
+                  headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
+                  method="POST",
+              )
+              try:
+                  with urllib.request.urlopen(request, timeout=65) as response:
+                      result = json.load(response)
+                  print(json.dumps(result, ensure_ascii=True), flush=True)
+              except urllib.error.HTTPError as error:
+                  failures += 1
+                  print("HTTP " + str(error.code) + ": " + error.read(4000).decode(errors="replace"), flush=True)
+              except (urllib.error.URLError, TimeoutError, ValueError) as error:
+                  failures += 1
+                  print(type(error).__name__ + ": " + str(error), flush=True)
+          if failures:
+              sys.exit("One or more read-only diagnostics failed.")
