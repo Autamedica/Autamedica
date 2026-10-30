@@ -115,7 +115,7 @@ export function CertificateCreateModal({
   const [reviewRevision, setReviewRevision] = useState(0);
 
   useEffect(() => {
-    if (!successCert || successCert.status !== 'draft') return;
+    if (successCert?.status !== 'draft') return;
     let active = true;
     void fetch(`/api/doctors/certificates/${successCert.id}/issue`, { cache: 'no-store' })
       .then(async response => {

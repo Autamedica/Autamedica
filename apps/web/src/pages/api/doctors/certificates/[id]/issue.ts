@@ -69,7 +69,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       }
       const { data: evidence, error } = await admin.from('medical_certificate_electronic_issuances')
         .select('snapshot_hash,pdf_hash').eq('certificate_id', params.id).maybeSingle();
-      if (error || !evidence || evidence.snapshot_hash !== body.snapshotHash ||
+      if (error || evidence?.snapshot_hash !== body.snapshotHash ||
           evidence.pdf_hash !== source.certificate.signature_hash) return conflict('certificate_already_issued');
       return jsonOk(source.certificate);
     }

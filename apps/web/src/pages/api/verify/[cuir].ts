@@ -87,7 +87,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
         const { data: issuance, error: issuanceError } = await (admin as unknown as import('@supabase/supabase-js').SupabaseClient)
           .from('medical_certificate_electronic_issuances').select('doctor_identity,pdf_hash')
           .eq('certificate_id', cert.id).maybeSingle();
-        if (issuanceError || !issuance || issuance.pdf_hash !== (cert as { signature_hash?: string }).signature_hash) {
+        if (issuanceError || issuance?.pdf_hash !== (cert as { signature_hash?: string }).signature_hash) {
           return jsonOk({ valid: false, reason: 'certificate_not_verified', certificate: null, prescription: null });
         }
         const identity = issuance.doctor_identity as { name: string; license: string; license_type: string };
