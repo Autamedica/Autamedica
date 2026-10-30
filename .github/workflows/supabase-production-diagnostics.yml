@@ -41,38 +41,38 @@ jobs:
 
           # No raw SQL, clinical data, query literals or credentials are emitted.
           queries = [
-              ("connection_and_migration", """
-                  select pg_catalog.now() as checked_at,
-                    pg_catalog.pg_postmaster_start_time() as started_at,
-                    pg_catalog.to_regclass('public.medical_certificate_electronic_issuances')::text as issuance_table
+              ("blocking_and_maintenance", """
+                  select a.pid,a.usename,a.backend_type,a.state,a.wait_event_type,a.wait_event,
+                    pg_catalog.now()-a.query_start as duration,
+                    pg_catalog.pg_blocking_pids(a.pid) as blocking_pids,
+                    left(pg_catalog.regexp_replace(a.query, $rx$'([^']|'')*'$rx$, $v$'?'$v$, 'g'),500) as sanitized_query,
+                    (select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+                      'relation',l.relation::regclass::text,'mode',l.mode,'granted',l.granted))
+                      from pg_catalog.pg_locks l where l.pid=a.pid and l.relation is not null) as relation_locks
+                  from pg_catalog.pg_stat_activity a
+                  where a.pid<>pg_catalog.pg_backend_pid()
+                    and (a.wait_event_type='Lock' or a.backend_type='autovacuum worker')
+                  order by a.query_start limit 12
               """),
-              ("active_work", """
-                  select pid, usename, backend_type, state, wait_event_type,
-                    wait_event, pg_catalog.now()-query_start as duration,
-                    query_id,
-                    case
-                      when query like '%autovacuum:%' then 'autovacuum'
-                      when query like '%advance_expired_dispatch_offers%' then 'dispatch_expiry'
-                      when query like '%expire_stale_dispatch_requests%' then 'request_expiry'
-                      when query like '%pgbouncer.get_auth%' then 'pooler_authentication'
-                      when query like '%schema_migrations%' then 'migration_metadata'
-                      else 'other'
-                    end as category
-                  from pg_catalog.pg_stat_activity
-                  where state='active' and pid<>pg_catalog.pg_backend_pid()
-                  order by query_start limit 12
+              ("vacuum_progress", """
+                  select pid,relid::regclass::text as relation,phase,
+                    heap_blks_total,heap_blks_scanned,heap_blks_vacuumed
+                  from pg_catalog.pg_stat_progress_vacuum
               """),
-              ("statement_costs", """
-                  select queryid, calls, total_exec_time, mean_exec_time, rows,
-                    case
-                      when query like '%advance_expired_dispatch_offers%' then 'dispatch_expiry'
-                      when query like '%expire_stale_dispatch_requests%' then 'request_expiry'
-                      when query like '%pgbouncer.get_auth%' then 'pooler_authentication'
-                      when query like '%schema_migrations%' then 'migration_metadata'
-                      else 'other'
-                    end as category
+              ("table_maintenance_estimates", """
+                  select schemaname,relname,n_live_tup,n_dead_tup,last_autovacuum,
+                    last_autoanalyze,autovacuum_count
+                  from pg_catalog.pg_stat_all_tables
+                  where schemaname in ('cron','public')
+                  order by n_dead_tup desc limit 12
+              """),
+              ("top_statement_shapes", """
+                  select queryid,calls,total_exec_time,mean_exec_time,
+                    left(pg_catalog.regexp_replace(query, $rx$'([^']|'')*'$rx$, $v$'?'$v$, 'g'),600) as sanitized_shape
                   from extensions.pg_stat_statements
-                  order by total_exec_time desc limit 12
+                  where queryid in (-6710255986563676955,2547027867440680558,-3517798004889726781,
+                    -9220160802380311162,-8856799461280935852,-7726440967385220442,1376911848066968962)
+                  order by total_exec_time desc limit 10
               """),
           ]
 
