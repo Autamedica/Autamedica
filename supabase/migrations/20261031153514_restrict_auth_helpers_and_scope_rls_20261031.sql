@@ -1,0 +1,86 @@
+-- Authentication helpers require a user session. Keep public directory reads separate.
+ALTER POLICY "appointments_delete_participants" ON "public"."appointments" TO authenticated;
+ALTER POLICY "appointments_insert_authorized" ON "public"."appointments" TO authenticated;
+ALTER POLICY "appointments_select_participants" ON "public"."appointments" TO authenticated;
+ALTER POLICY "appointments_update_participants" ON "public"."appointments" TO authenticated;
+ALTER POLICY "audit_logs_select_admin" ON "public"."audit_logs" TO authenticated;
+ALTER POLICY "companies_delete_admin" ON "public"."companies" TO authenticated;
+ALTER POLICY "companies_insert_admin" ON "public"."companies" TO authenticated;
+ALTER POLICY "companies_select_public" ON "public"."companies" TO authenticated;
+ALTER POLICY "companies_update_owner" ON "public"."companies" TO authenticated;
+ALTER POLICY "Doctors can insert chat messages" ON "public"."conversation_events" TO authenticated;
+ALTER POLICY "Doctors can view their own conversation events" ON "public"."conversation_events" TO authenticated;
+ALTER POLICY "Patients can insert chat messages" ON "public"."conversation_events" TO authenticated;
+ALTER POLICY "Patients can view their own conversation events" ON "public"."conversation_events" TO authenticated;
+ALTER POLICY "Doctors can insert assigned chat sessions" ON "public"."conversation_sessions" TO authenticated;
+ALTER POLICY "Doctors can view their own conversation sessions" ON "public"."conversation_sessions" TO authenticated;
+ALTER POLICY "Patients can insert their own conversation sessions" ON "public"."conversation_sessions" TO authenticated;
+ALTER POLICY "doctor_patient_delete_scoped" ON "public"."doctor_patient" TO authenticated;
+ALTER POLICY "doctor_patient_insert_scoped" ON "public"."doctor_patient" TO authenticated;
+ALTER POLICY "doctor_patient_select_scoped" ON "public"."doctor_patient" TO authenticated;
+ALTER POLICY "doctors_delete_admin" ON "public"."doctors" TO authenticated;
+ALTER POLICY "doctors_insert_own" ON "public"."doctors" TO authenticated;
+ALTER POLICY "doctors_select_public" ON "public"."doctors" TO authenticated;
+ALTER POLICY "doctors_update_own" ON "public"."doctors" TO authenticated;
+ALTER POLICY "medical_records_delete_admin" ON "public"."medical_records" TO authenticated;
+ALTER POLICY "medical_records_update_authorized" ON "public"."medical_records" TO authenticated;
+ALTER POLICY "patient_care_team_delete_scoped" ON "public"."patient_care_team" TO authenticated;
+ALTER POLICY "patient_care_team_select_scoped" ON "public"."patient_care_team" TO authenticated;
+ALTER POLICY "patients_delete_admin" ON "public"."patients" TO authenticated;
+ALTER POLICY "patients_insert_own" ON "public"."patients" TO authenticated;
+ALTER POLICY "patients_select_scoped" ON "public"."patients" TO authenticated;
+ALTER POLICY "patients_update_scoped" ON "public"."patients" TO authenticated;
+ALTER POLICY "profiles_delete_admin" ON "public"."profiles" TO authenticated;
+ALTER POLICY "profiles_select_self_or_admin" ON "public"."profiles" TO authenticated;
+
+DO $directories$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='doctors' AND policyname='anon_active_doctor_directory') THEN
+    CREATE POLICY anon_active_doctor_directory ON public.doctors FOR SELECT TO anon USING (active = true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='companies' AND policyname='anon_active_company_directory') THEN
+    CREATE POLICY anon_active_company_directory ON public.companies FOR SELECT TO anon USING (active = true);
+  END IF;
+END;
+$directories$;
+
+REVOKE EXECUTE ON FUNCTION public.can_access_p2p_chat_session(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_access_p2p_chat_session(uuid) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.current_doctor_profile_id() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_doctor_profile_id() TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.current_patient_can_access_community_group(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_patient_can_access_community_group(uuid) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.current_patient_owns_community_post(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_patient_owns_community_post(uuid) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.current_pharmacist_id() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_pharmacist_id() TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.current_pharmacist_pharmacy_ids() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.current_pharmacist_pharmacy_ids() TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.doctor_can_chat_with_patient(uuid,uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.doctor_can_chat_with_patient(uuid,uuid) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.doctor_has_patient_access(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.doctor_has_patient_access(uuid) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.get_assigned_chat_doctor(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_assigned_chat_doctor(uuid) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.get_my_doctor_id() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_my_doctor_id() TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.get_my_patient_id() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_my_patient_id() TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.get_user_role(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_user_role(uuid) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.has_active_authorization(uuid,uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.has_active_authorization(uuid,uuid) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.is_company_admin() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_company_admin() TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.is_doctor() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_doctor() TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.is_in_care_team(uuid,uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_in_care_team(uuid,uuid) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.is_patient() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_patient() TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.is_platform_or_org_admin(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_platform_or_org_admin(uuid) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.is_system_admin() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_system_admin() TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.user_belongs_to_company(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.user_belongs_to_company(uuid) TO authenticated, service_role;
