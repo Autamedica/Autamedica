@@ -15,8 +15,14 @@ BEGIN
  LOOP
   SELECT * INTO a FROM pg_index WHERE indexrelid=to_regclass(v.redundant_index);
   SELECT * INTO b FROM pg_index WHERE indexrelid=to_regclass(v.retained_index);
-  IF NOT FOUND OR a.indexrelid IS NULL OR b.indexrelid IS NULL THEN
-    RAISE EXCEPTION 'Index pair missing: % and %',v.redundant_index,v.retained_index;
+  -- Existing databases may contain a redundant index that was never created
+  -- by the canonical migration replay. Missing redundant index is already
+  -- the desired result, provided the required retained index exists.
+  IF b.indexrelid IS NULL THEN
+    RAISE EXCEPTION 'Required retained index missing: %',v.retained_index;
+  END IF;
+  IF a.indexrelid IS NULL THEN
+    CONTINUE;
   END IF;
   IF a.indrelid IS DISTINCT FROM b.indrelid
    OR a.indisunique IS DISTINCT FROM b.indisunique
@@ -35,5 +41,5 @@ BEGIN
 END;
 $dedupe$;
 
-DROP INDEX public.idx_doctors_active_duty_tiers;
-DROP INDEX public.idx_portal_notifications_user_dedupe;
+DROP INDEX IF EXISTS public.idx_doctors_active_duty_tiers;
+DROP INDEX IF EXISTS public.idx_portal_notifications_user_dedupe;
