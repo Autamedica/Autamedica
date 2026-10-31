@@ -1,0 +1,55 @@
+name: WAHA Image Entrypoint Diagnostic
+on:
+  push:
+    branches:
+      - ops/waha-oracle-setup-20261031
+    paths:
+      - .github/workflows/waha-image-exec-check.yml
+permissions:
+  contents: read
+  issues: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    environment: production
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: SSH and inspect image without WhatsApp session
+        id: inspect
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/key
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/key ~/.ssh/known_hosts
+          ssh -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=10 -i ~/.ssh/key "$OCI_USER@$OCI_HOST" 'sudo -n bash -s' <<'REMOTE' | tee image-check.txt
+          set -euo pipefail
+          IMAGE=docker.io/devlikeapro/waha:gows-2026.10.1
+          echo "openclaw=$(systemctl is-active openclaw-gateway.service || true)"
+          echo "image_entrypoint=$(podman image inspect -f '{{json .Config.Entrypoint}}' "$IMAGE" 2>/dev/null || true)"
+          echo "image_cmd=$(podman image inspect -f '{{json .Config.Cmd}}' "$IMAGE" 2>/dev/null || true)"
+          echo "image_osarch=$(podman image inspect -f '{{.Os}}/{{.Architecture}}' "$IMAGE" 2>/dev/null || true)"
+          echo "image_size_bytes=$(podman image inspect -f '{{.Size}}' "$IMAGE" 2>/dev/null || true)"
+          echo "shell_probe_begin"
+          timeout 25 podman --cgroup-manager=cgroupfs run --rm --network=none --pull=never \
+            --memory=256m --pids-limit=32 --entrypoint /bin/sh "$IMAGE" -c \
+            'printf "shell_ok=yes\\n"; for f in /usr/bin/tini /entrypoint.sh /usr/local/bin/node /usr/bin/node /bin/sh; do if [ -e "$f" ]; then ls -l "$f"; fi; done; command -v node || true' \
+            2>&1 | grep -E 'shell_ok|tini|entrypoint|node|Error:|error:|exec|OCI runtime|failed|permission' | cut -c1-240 || true
+          echo "shell_probe_end"
+          echo "openclaw_after=$(systemctl is-active openclaw-gateway.service || true)"
+          REMOTE
+      - name: Report
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          { echo "WAHA image exec diagnostic: ${{ steps.inspect.outcome }}"; cat image-check.txt 2>/dev/null || true; } > report.txt
+          gh api "repos/$GITHUB_REPOSITORY/issues/618/comments" -f body="$(cat report.txt)"
