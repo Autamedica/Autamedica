@@ -1,0 +1,61 @@
+name: OpenClaw Recovery Integrity Verification
+
+on:
+  push:
+    branches: [feat/openclaw-chatgpt-mcp-relay-20261031]
+    paths: ['.github/workflows/openclaw-recovery-integrity.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Set up pinned SSH identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_openclaw
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/oci_openclaw ~/.ssh/known_hosts
+      - name: Verify archive states and Gateway without modification
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=2 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo 'disk_available_mib:'
+          df -Pm / | awk 'NR==2 {print $4}'
+          echo 'gateway_service:'
+          systemctl is-active openclaw-gateway.service || true
+          echo 'gateway_ready_http:'
+          curl --silent --max-time 8 -o /dev/null -w '%{http_code}\n' http://127.0.0.1:18789/readyz || true
+          echo 'compression_running:'
+          if pgrep -x gzip >/dev/null; then echo yes; else echo no; fi
+          echo 'archived_syslog_state:'
+          for f in /var/log/messages-20260816 /var/log/messages-20260823 /var/log/messages-20260830 /var/log/messages-20260906; do
+            if sudo -n test -f "$f"; then
+              echo "$f original_exists=yes"
+            else
+              echo "$f original_exists=no"
+            fi
+            if sudo -n test -f "$f.gz"; then
+              printf '%s compressed_mib=' "$f"
+              sudo -n du -m "$f.gz" | awk '{print $1}'
+            else
+              echo "$f compressed_exists=no"
+            fi
+          done
+          echo 'active_syslog_mib:'
+          sudo -n du -m /var/log/messages 2>/dev/null | awk '{print $1}' || true
+          REMOTE
