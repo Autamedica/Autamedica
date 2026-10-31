@@ -1,11 +1,6 @@
 name: OpenClaw Gateway Diagnostics (read only)
 
 on:
-  push:
-    branches:
-      - feat/openclaw-chatgpt-mcp-relay-20261031
-    paths:
-      - .github/workflows/openclaw-gateway-diagnostics.yml
   workflow_dispatch:
 
 permissions:
