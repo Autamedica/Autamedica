@@ -1,0 +1,53 @@
+name: WAHA Oracle Live Process Check
+
+on:
+  push:
+    branches:
+      - ops/waha-oracle-setup-20261031
+    paths:
+      - .github/workflows/waha-oracle-live-check.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    environment: production
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Set SSH
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/key
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/key ~/.ssh/known_hosts
+      - name: Inspect processes and availability only
+        id: check
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=10 -o ConnectTimeout=15 -i ~/.ssh/key "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE' | tee status.txt
+          set -euo pipefail
+          echo "openclaw=$(systemctl is-active openclaw-gateway.service || true)"
+          echo "podman_processes=$(ps -C podman -o etime=,stat=,comm= | tr '\n' ';' | cut -c1-230)"
+          echo "port3000=$(ss -H -ltn '( sport = :3000 )' | wc -l)"
+          echo "waha_local_http=$(curl --connect-timeout 1 --max-time 2 -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/health || true)"
+          echo "free_disk_kib=$(df -Pk / | awk 'NR==2 {print $4}')"
+          echo "memory_available_kib=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
+          echo "pull_log_tail=$(sudo -n tail -n 4 /tmp/autamedica-waha-pull.log 2>/dev/null | tr '\n' ';' | cut -c1-300 || true)"
+          REMOTE
+      - name: Report
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          { echo "WAHA Oracle live process check: ${{ steps.check.outcome }}"; cat status.txt 2>/dev/null || true; } > report.txt
+          gh api "repos/$GITHUB_REPOSITORY/issues/618/comments" -f body="$(cat report.txt)"
