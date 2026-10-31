@@ -1,0 +1,51 @@
+name: WAHA Oracle Container Runtime Package Check
+on:
+  push:
+    branches:
+      - ops/waha-oracle-setup-20261031
+    paths:
+      - .github/workflows/waha-oracle-package-check.yml
+permissions:
+  contents: read
+  issues: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    environment: production
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Setup SSH and inspect packages only
+        id: inspect
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/key
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/key ~/.ssh/known_hosts
+          ssh -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=10 -i ~/.ssh/key "$OCI_USER@$OCI_HOST" 'sudo -n bash -s' <<'REMOTE' | tee package-status.txt
+          set -euo pipefail
+          echo "openclaw=$(systemctl is-active openclaw-gateway.service || true)"
+          echo "runc_repos:"
+          timeout 35 dnf -q --refresh list --available runc 2>&1 | tail -n 6 || true
+          echo "runc_install_simulation:"
+          timeout 35 dnf -q --assumeno --setopt=install_weak_deps=False install runc 2>&1 | tail -n 24 || true
+          echo "container_selinux_updates:"
+          timeout 35 dnf -q --refresh list --upgrades container-selinux 2>&1 | tail -n 6 || true
+          echo "selinux_bpf_denials_count=$(ausearch -m avc -ts recent 2>/dev/null | grep -c 'tclass=bpf' || true)"
+          echo "container_status=$(podman inspect -f '{{.State.Status}}' autamedica-waha 2>/dev/null || echo absent)"
+          REMOTE
+      - name: Record sanitized results
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          { echo "WAHA runtime package check: ${{ steps.inspect.outcome }}"; cat package-status.txt 2>/dev/null || true; } > report.txt
+          gh api "repos/$GITHUB_REPOSITORY/issues/618/comments" -f body="$(cat report.txt)"
