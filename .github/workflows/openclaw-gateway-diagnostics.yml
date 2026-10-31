@@ -80,3 +80,42 @@ jobs:
             echo "gateway_systemd=inactive_or_other_service_name"
           fi
           REMOTE
+
+      - name: Identify OpenClaw version and service account (no changes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          cli="$(command -v openclaw)"
+          printf 'openclaw_version='
+          "$cli" --version | head -n 1
+          printf 'node_version='
+          if command -v node >/dev/null 2>&1; then node --version; else echo 'unavailable'; fi
+          owner="$(systemctl show openclaw-gateway.service -p User --value || true)"
+          if [[ -z "$owner" ]]; then
+            echo 'service_user=system_default'
+          else
+            echo 'service_user=configured'
+          fi
+          if [[ -n "$owner" ]] && sudo -n -u "$owner" true >/dev/null 2>&1; then
+            echo 'service_user_probe=authorized'
+            if sudo -n -u "$owner" -H "$cli" gateway status >/dev/null 2>&1; then
+              echo 'service_user_gateway_status=reachable'
+            else
+              echo 'service_user_gateway_status=unreachable'
+            fi
+            if sudo -n -u "$owner" -H "$cli" mcp-relay --help >/dev/null 2>&1; then
+              echo 'service_user_relay_command=available'
+            else
+              echo 'service_user_relay_command=missing'
+            fi
+          else
+            echo 'service_user_probe=not_available'
+          fi
+          if "$cli" plugins list 2>/dev/null | grep -qi 'mcp-relay'; then
+            echo 'mcp_relay_plugin=in_plugin_list'
+          else
+            echo 'mcp_relay_plugin=not_listed'
+          fi
+          REMOTE
