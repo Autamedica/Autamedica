@@ -111,6 +111,15 @@ describe('administrative official license verification', () => {
     expect(state.updateProfile).not.toHaveBeenCalled();
     expect(state.updateDoctor).not.toHaveBeenCalled();
   });
+  it('shows a bounded institution label for an unrecognized issuer without changing state', async () => {
+    state.verify.mockRejectedValue(Object.assign(new Error('REFEPS_LICENSE_JURISDICTION_MISMATCH'), {
+      code: 'REFEPS_LICENSE_JURISDICTION_MISMATCH', issuerSummary: 'OTHER MINISTRY',
+    }));
+    const response = await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true });
+    const payload = await response.json();
+    expect(payload.error.message).toContain('Emisor informado: OTHER MINISTRY.');
+    expect(state.updateProfile).not.toHaveBeenCalled(); expect(state.updateDoctor).not.toHaveBeenCalled();
+  });
   it('does not persist an official result when only verifying', async () => {
     state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active', matriculaNumber: '123456' });
     const response = await call(); expect(response.status).toBe(200);

@@ -98,6 +98,62 @@ describe('official REFEPS verification', () => {
       isValid: false, registrationStatus: 'suspended',
     });
   });
+  it('recognizes the FHIR qualification issuer when identifier.assigner is absent', async () => {
+    const p = practitioner();
+    Object.assign(p.qualification[0], { issuer: { display: 'MINISTERIO DE SALUD DE LA NACION' } });
+    p.qualification[0].identifier[0].assigner.display = '';
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN', 'CABA')).resolves.toMatchObject({ isValid: true });
+  });
+  it.each([
+    'http://fhir.msal.gov.ar/entidadesCertificantesREFEPS/10002001110000',
+    'https://fhir.msal.gob.ar/entidadesCertificantesREFEPS/10002001110000/',
+  ])('recognizes the documented coded national issuer without its label (%s)', async (system) => {
+    const p = practitioner();
+    Object.assign(p.qualification[0].identifier[0], { system });
+    p.qualification[0].identifier[0].assigner.display = '';
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN', 'CABA')).resolves.toMatchObject({ isValid: true });
+  });
+  it('normalizes internal whitespace in the official national name', async () => {
+    const p = practitioner();
+    p.qualification[0].identifier[0].assigner.display = ' MINISTERIO  DE SALUD DE LA NACIÓN ';
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN', 'CABA')).resolves.toMatchObject({ isValid: true });
+  });
+  it.each([
+    ['http://untrusted.invalid/entidadesCertificantesREFEPS/10002001110000', '', undefined],
+    ['http://fhir.msal.gov.ar/entidadesCertificantesREFEPS/99999999999999', 'MINISTERIO DE SALUD DE LA NACION', undefined],
+    ['http://fhir.msal.gov.ar/entidadesCertificantesREFEPS/10002001110000', 'MINISTERIO DE SALUD DE CORDOBA', undefined],
+    ['', 'MINISTERIO DE SALUD', undefined],
+    ['', 'UNKNOWN', 'MINISTERIO DE SALUD DE LA NACION'],
+    ['', 'MINISTERIO DE SALUD DE LA NACION', 'MINISTERIO DE SALUD DE CORDOBA'],
+  ])('preserves jurisdiction safety with unrelated or conflicting issuer evidence (%s, %s, %s)', async (system, display, qualifier) => {
+    const p = practitioner();
+    Object.assign(p.qualification[0].identifier[0], { system });
+    p.qualification[0].identifier[0].assigner.display = display ?? '';
+    Object.assign(p.qualification[0], { issuer: { display: qualifier } });
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN', 'CABA')).rejects.toMatchObject({
+      code: 'REFEPS_LICENSE_JURISDICTION_MISMATCH',
+    });
+  });
+  it('does not use the national entity code to confirm a provincial license', async () => {
+    const p = practitioner();
+    Object.assign(p.qualification[0].identifier[0], { system: 'http://fhir.msal.gov.ar/entidadesCertificantesREFEPS/10002001110000' });
+    p.qualification[0].identifier[0].assigner.display = 'MINISTERIO DE SALUD DE CORDOBA';
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MP', 'Córdoba')).rejects.toMatchObject({
+      code: 'REFEPS_LICENSE_JURISDICTION_MISMATCH',
+    });
+  });
+  it('includes bounded institution-only diagnostics when the issuer is unrecognized', async () => {
+    const p = practitioner(); p.qualification[0].identifier[0].assigner.display = 'OTHER MINISTRY';
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN')).rejects.toMatchObject({
+      code: 'REFEPS_LICENSE_JURISDICTION_MISMATCH', issuerSummary: 'OTHER MINISTRY',
+    });
+  });
   it('does not call the registry with missing credentials or approve from a fallback', async () => {
     const fallback = { validateMatricula: vi.fn().mockResolvedValue({ isValid: true }) };
     const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
