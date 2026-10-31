@@ -44,3 +44,27 @@ Official references:
 - https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt
 
 The GitHub Actions diagnostics workflow on this branch has been changed to **manual dispatch only**; no automatic production SSH operations remain.
+
+## 2026-10-31 recovery follow-up — verified Oracle disk and logs
+
+**Production findings** (GitHub Actions [fast inspection](https://github.com/ecucondorSA/Autamedica/actions/runs/41231926696), [read-only progress check](https://github.com/ecucondorSA/Autamedica/actions/runs/41232828657), [rotation audit](https://github.com/ecucondorSA/Autamedica/actions/runs/41232922025)):
+
+- Root filesystem was completely full (30 GiB, effectively zero free). /var/log used about 15.6 GiB.
+- Historical rotated `/var/log/messages-*` files from August/September were 0.8–5.8 GiB each, uncompressed.
+- An approved recovery workflow removed only root's disposable npm cache and began lossless gzip compression of four historical log files. At the 2026-10-31 19:09 UTC read-only probe, **5,618 MiB were free**; the OpenClaw Gateway remained active and `/readyz` returned HTTP 200. **This probe is not proof that the recovery workflow has finished or that all gzip checks passed.**
+- The live `/var/log/messages` is still approximately 3,766 MiB and was **not** compressed or truncated.
+- `logrotate.timer` is active; `/etc/logrotate.d/rsyslog` controls `/var/log/messages`. From the last 10,000 syslog entries, `warp-desktop-svc` contributed 4,734 and `turnserver` 3,777 entries. These counts do not characterize the entire historical log.
+- All **new diagnostic and recovery workflows on this PR have manual-only triggers**; they are not intended for automatic deployment.
+
+### Prevent disk exhaustion from recurring
+
+1. First ensure the recovery job finishes successfully, with gzip integrity checks and `/readyz=200`, before planning further production work.
+2. Do not delete, truncate, or blindly suppress the live `/var/log/messages`; investigate WARP and TURN log severity and excessive restart/error loops. No raw log content or secrets should be printed into public/shared CI.
+3. With a separate backup of the current `/etc/logrotate.d/rsyslog`, adjust syslog retention for this host by explicitly enabling `compress`, a documented `rotate` retention count, and an appropriate `daily` + `maxsize` policy. Preserve the existing postrotate rsyslog reload behavior. Coordinate retention with operational and compliance needs.
+4. Verify the proposed configuration first with `sudo logrotate -d /etc/logrotate.conf`, and confirm the scheduled logrotate invocation frequency. A size limit cannot rotate more frequently than the timer runs.
+5. Add alerts for root disk utilization and inode capacity, with headroom for Gateway state snapshots and Node/OpenClaw updates.
+6. **Upgrade gate:** before any OpenClaw bridge update, require a verified recovery archive of `/opt/openclaw`, `/opt/nodejs`, the Gateway systemd unit and relevant configuration; do not upload agent sessions or secret state to GitHub. Manual or external backup work must use an authorized mechanism.
+7. The automated stop/backup workflow creation attempt was blocked by tool security controls. Do not try to bypass that denial through alternate tool routes. The release upgrade and MCP activation remain unperformed.
+
+Logrotate reference: https://man7.org/linux/man-pages/man8/logrotate.8.html
+OpenClaw migration: https://docs.openclaw.ai/install/updating
