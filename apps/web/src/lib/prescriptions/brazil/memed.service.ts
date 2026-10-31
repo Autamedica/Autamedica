@@ -89,6 +89,27 @@ export class MemedService {
     }
   }
 
+
+  private async doctorAttributes(response: Response): Promise<Record<string, unknown> & { token: string }> {
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      // JSON parser errors may contain fragments of a sensitive provider response.
+      throw new Error('memed_provider_response_invalid');
+    }
+    const object = (value: unknown): Record<string, unknown> | null =>
+      value !== null && typeof value === 'object' && !Array.isArray(value)
+        ? value as Record<string, unknown> : null;
+    const data = object(object(body)?.data);
+    const attrs = object(data?.attributes);
+    if (!attrs) throw new Error('memed_provider_response_invalid');
+    if (typeof attrs.token !== 'string' || !attrs.token.trim()) {
+      throw new Error('memed_token_missing_in_response');
+    }
+    return { ...attrs, token: attrs.token };
+  }
+
   /**
    * Obtiene o registra el médico en Memed para retornar su data-token
    */
@@ -108,16 +129,14 @@ export class MemedService {
       });
 
       if (getRes.ok) {
-        const json = await getRes.json();
-        const attrs = json.data?.attributes;
-        if (!attrs?.token) throw new Error('memed_token_missing_in_response');
+        const attrs = await this.doctorAttributes(getRes);
         assertMemedDoctorMatch(attrs, doctor);
         return {
           token: attrs.token,
           doctor: {
-            nome: `${attrs.nome || ''} ${attrs.sobrenome || ''}`.trim(),
-            crm: attrs.crm || doctor.crm,
-            uf: attrs.uf || doctor.uf,
+            nome: `${typeof attrs.nome === 'string' ? attrs.nome : ''} ${typeof attrs.sobrenome === 'string' ? attrs.sobrenome : ''}`.trim(),
+            crm: doctor.crm,
+            uf: doctor.uf,
           },
         };
       }
@@ -178,19 +197,15 @@ export class MemedService {
       throw new Error(`memed_registration_failed:${postRes.status}`);
     }
 
-    const postJson = await postRes.json();
-    const createdAttrs = postJson.data?.attributes;
-    if (!createdAttrs?.token) {
-      throw new Error('memed_token_missing_in_response');
-    }
+    const createdAttrs = await this.doctorAttributes(postRes);
     assertMemedDoctorMatch(createdAttrs, doctor);
 
     return {
       token: createdAttrs.token,
       doctor: {
-        nome: `${createdAttrs.nome || ''} ${createdAttrs.sobrenome || ''}`.trim(),
-        crm: createdAttrs.crm || doctor.crm,
-        uf: createdAttrs.uf || doctor.uf,
+        nome: `${typeof createdAttrs.nome === 'string' ? createdAttrs.nome : ''} ${typeof createdAttrs.sobrenome === 'string' ? createdAttrs.sobrenome : ''}`.trim(),
+        crm: doctor.crm,
+        uf: doctor.uf,
       },
     };
   }
