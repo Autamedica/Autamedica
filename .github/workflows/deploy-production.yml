@@ -254,6 +254,20 @@ jobs:
           echo "Supabase: $status"
           [[ "$status" == "200" || "$status" == "401" ]]
 
+      - name: License verification transport
+        run: |
+          for origin in https://www.autamedica.com https://autamedica-admin-5r9.pages.dev; do
+            status=$(curl --silent --show-error --max-time 30 -o /dev/null -w '%{http_code}' \\
+              -X POST -H 'Content-Type: application/json' \\
+              --data '{"doctorId":"00000000-0000-0000-0000-000000000000","persist":false}' \\
+              "$origin/api/admin/doctors/license-verify-live")
+            echo "$origin license verification: $status"
+            if [[ "$status" != "401" ]]; then
+              echo "::error::Unauthenticated license verification must return 401, got $status"
+              exit 1
+            fi
+          done
+
       - name: Role surfaces
         run: |
           for url in \
