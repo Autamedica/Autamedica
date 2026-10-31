@@ -1,0 +1,82 @@
+name: OpenClaw Gateway Diagnostics (read only)
+
+on:
+  push:
+    branches:
+      - feat/openclaw-chatgpt-mcp-relay-20261031
+    paths:
+      - .github/workflows/openclaw-gateway-diagnostics.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openclaw-gateway-diagnostics
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: production
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Validate existing Oracle SSH settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in OCI_HOST OCI_USER OCI_SSH_KEY OCI_HOST_KEY; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required Oracle SSH setting: $name"
+              exit 1
+            fi
+          done
+          echo "Oracle SSH settings are present."
+
+      - name: Configure SSH with pinned host key
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_openclaw
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/oci_openclaw ~/.ssh/known_hosts
+
+      - name: Probe Gateway and MCP Relay (no changes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo "gateway_host_ssh=reachable"
+          if command -v openclaw >/dev/null 2>&1; then
+            echo "openclaw_cli=present"
+            if openclaw gateway status >/dev/null 2>&1; then
+              echo "gateway_status=reachable"
+            else
+              echo "gateway_status=not_reachable_as_ssh_user"
+            fi
+            if openclaw mcp-relay --help >/dev/null 2>&1; then
+              echo "mcp_relay_cli=available"
+            else
+              echo "mcp_relay_cli=missing_or_unavailable"
+            fi
+            if openclaw mcp-relay status >/dev/null 2>&1; then
+              echo "mcp_relay_status=success"
+            else
+              echo "mcp_relay_status=unavailable_or_disconnected"
+            fi
+          else
+            echo "openclaw_cli=not_in_ssh_path"
+          fi
+          if systemctl is-active --quiet openclaw-gateway.service; then
+            echo "gateway_systemd=active"
+          else
+            echo "gateway_systemd=inactive_or_other_service_name"
+          fi
+          REMOTE
