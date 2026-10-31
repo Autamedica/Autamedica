@@ -118,6 +118,16 @@ jobs:
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/auth_helper_permissions.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/clinical_rls_initplans.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/native_session_cleanup.sql
+      - name: Export and verify a disposable database backup
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          export BACKUP_DIR="$(mktemp -d)"
+          trap 'rm -rf -- "$BACKUP_DIR"' EXIT
+          bash scripts/db/create-supabase-logical-backup.sh
+          backups=("$BACKUP_DIR"/*)
+          test "${#backups[@]}" -eq 1
+          bash scripts/db/verify-supabase-logical-backup.sh "${backups[0]}"
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup
