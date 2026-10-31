@@ -1,9 +1,6 @@
 name: OpenClaw Migration Preflight (read only)
 
 on:
-  push:
-    branches: [feat/openclaw-chatgpt-mcp-relay-20261031]
-    paths: ['.github/workflows/openclaw-migration-preflight.yml']
   workflow_dispatch:
 
 permissions:
