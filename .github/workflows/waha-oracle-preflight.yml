@@ -60,6 +60,23 @@ jobs:
           if command -v podman >/dev/null; then echo "podman_installed=yes"; if sudo -n podman info >/dev/null 2>&1; then echo "podman_access=yes"; else echo "podman_access=no"; fi; else echo "podman_installed=no"; fi
           if command -v dnf >/dev/null; then echo "dnf_installed=yes"; else echo "dnf_installed=no"; fi
           echo "disk_available_kib=$(df -Pk / | awk 'NR==2 {print $4}')"
+          echo "resolver_symlink=$(readlink /etc/resolv.conf || echo regular_file)"
+          if [[ -r /etc/resolv.conf ]]; then
+            echo "resolver_nameservers=$(awk '$1=="nameserver" {printf "%s ",$2}' /etc/resolv.conf)"
+            echo "resolver_search=$(awk '$1=="search" {for(i=2;i<=NF;i++) printf "%s ",$i}' /etc/resolv.conf)"
+          fi
+          for service in systemd-resolved NetworkManager dnsmasq; do
+            echo "service_${service}=$(systemctl is-active "$service" 2>/dev/null || true)"
+          done
+          if command -v nmcli >/dev/null; then
+            echo "nmcli_dns=$(nmcli -g IP4.DNS device show 2>/dev/null | paste -sd, - | cut -c1-220 || true)"
+          fi
+          if command -v resolvectl >/dev/null; then
+            echo "resolved_dns=$(resolvectl dns 2>/dev/null | head -n 8 | tr '\n' ';' | cut -c1-300 || true)"
+          fi
+          echo "resolve_docker_registry=$(timeout 8 getent ahostsv4 registry-1.docker.io 2>/dev/null | head -n1 | awk '{print $1}' || true)"
+          echo "dns_port_53_listener=$(ss -H -lunt '( sport = :53 )' 2>/dev/null | head -n2 | tr '\n' ';' || true)"
+
           if command -v docker >/dev/null; then
             echo "docker_installed=yes"
             if sudo -n docker info >/dev/null 2>&1; then echo "docker_access=yes"; else echo "docker_access=no"; fi
