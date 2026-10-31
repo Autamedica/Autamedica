@@ -1,0 +1,83 @@
+name: OpenClaw Migration Preflight (read only)
+
+on:
+  push:
+    branches: [feat/openclaw-chatgpt-mcp-relay-20261031]
+    paths: ['.github/workflows/openclaw-migration-preflight.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      OCI_HOST: \${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: \${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: \${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: \${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Validate credential presence and pinned host identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          for n in OCI_HOST OCI_USER OCI_SSH_KEY OCI_HOST_KEY; do
+            [[ -n "\${!n:-}" ]] || { echo "::error::Missing $n"; exit 1; }
+          done
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_openclaw
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/oci_openclaw ~/.ssh/known_hosts
+
+      - name: Verify owner, disk, packages and backup prerequisites (read only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          owner="$(systemctl show openclaw-gateway.service -p User --value)"
+          if [[ -z "$owner" ]]; then
+            echo 'BLOCKER: service has no explicit User'; exit 1
+          fi
+          home="$(getent passwd "$owner" | cut -d: -f6)"
+          [[ -n "$home" && -d "$home" ]] || { echo 'BLOCKER: invalid service home'; exit 1; }
+          state="$home/.openclaw"
+          [[ -d "$state" ]] || { echo 'BLOCKER: default OpenClaw state missing; locate alternate profile'; exit 1; }
+          printf 'service_user_configured=yes\n'
+          printf 'service_home=%s\n' "$home"
+          printf 'state_location=%s\n' "$state"
+          printf 'state_total_mb='
+          sudo -n du -sm "$state" | awk '{print $1}'
+          printf 'state_sqlite_count='
+          sudo -n find "$state" -type f -name '*.sqlite' | wc -l
+          printf 'state_wal_count='
+          sudo -n find "$state" -type f -name '*-wal' | wc -l
+          printf 'state_backup_existing='
+          if sudo -n test -d "$home/Backups/openclaw"; then echo yes; else echo no; fi
+          echo 'storage_megabytes:'
+          df -Pm "$state" /usr/local /tmp | awk 'NR==1{print;next}!seen[$1]++{print}'
+          echo 'tools:'
+          for app in tar gzip sha256sum rsync sqlite3 npm node; do
+            if command -v "$app" >/dev/null 2>&1; then printf '%s=present\n' "$app"; else printf '%s=missing\n' "$app"; fi
+          done
+          printf 'cli_path='
+          command -v openclaw
+          printf 'cli_realpath='
+          readlink -f "$(command -v openclaw)"
+          printf 'npm_root='
+          npm root -g
+          printf 'service_active='
+          systemctl is-active openclaw-gateway.service || true
+          pid="$(systemctl show openclaw-gateway.service -p MainPID --value)"
+          if [[ "$pid" =~ ^[0-9]+$ && "$pid" -gt 0 ]]; then
+            printf 'service_runtime='
+            readlink -f "/proc/$pid/exe" || true
+          fi
+          printf 'service_owner_sudo_works='
+          if sudo -n -u "$owner" -H true; then echo yes; else echo no; fi
+          printf 'service_manager_sudo_works='
+          if sudo -n systemctl show openclaw-gateway.service -p ActiveState --value >/dev/null; then echo yes; else echo no; fi
+          REMOTE
