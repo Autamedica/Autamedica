@@ -15,17 +15,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
-      OCI_HOST: \${{ secrets.OCI_OPENCLAW_HOST }}
-      OCI_USER: \${{ secrets.OCI_OPENCLAW_USER }}
-      OCI_SSH_KEY: \${{ secrets.OCI_OPENCLAW_SSH_KEY }}
-      OCI_HOST_KEY: \${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
     steps:
       - name: Validate credential presence and pinned host identity
         shell: bash
         run: |
           set -euo pipefail
           for n in OCI_HOST OCI_USER OCI_SSH_KEY OCI_HOST_KEY; do
-            [[ -n "\${!n:-}" ]] || { echo "::error::Missing $n"; exit 1; }
+            [[ -n "${!n:-}" ]] || { echo "::error::Missing $n"; exit 1; }
           done
           install -d -m 700 ~/.ssh
           printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_openclaw
