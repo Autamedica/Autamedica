@@ -103,7 +103,9 @@ async function forwardOfficialVerification(request: Request, body: RequestBody):
     });
   } catch {
     return jsonFail('SERVICE_UNAVAILABLE',
-      'No se pudo completar la consulta oficial de REFEPS. Intentá nuevamente. No se modificó la validación.',
+      body.persist === false
+        ? 'No se pudo completar la consulta oficial de REFEPS. Intentá nuevamente.'
+        : 'No se pudo confirmar si la validación se guardó. Actualizá la ficha antes de reintentar.',
       503, { reason: controller.signal.aborted ? 'REFEPS_PROXY_TIMEOUT' : 'REFEPS_PROXY_FAILED' });
   } finally {
     clearTimeout(timeout);
