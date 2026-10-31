@@ -49,7 +49,7 @@ jobs:
           set -euo pipefail
           ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'sudo -n bash -s' <<'REMOTE' | tee install-status.txt
           set -euo pipefail
-          IMAGE="docker.io/devlikeapro/waha:gows"
+          IMAGE="docker.io/devlikeapro/waha:gows-2026.10.1"
           NAME="autamedica-waha"
           ENVFILE="/etc/autamedica/waha.env"
           if [[ "$(uname -m)" != x86_64 ]]; then
@@ -115,21 +115,22 @@ jobs:
             echo "rollback=new_container_removed"
             exit 1
           fi
-          if [[ "$(systemctl is-active openclaw-gateway.service || true)" != active ]]; then
+          if [[ "$(systemctl is-active openclaw-gateway.service || true)" != active ]] || ! curl --connect-timeout 2 --max-time 4 -fsS http://127.0.0.1:18791/health >/dev/null; then
             echo "openclaw_after_install=unhealthy"
             if [[ "$created" == true ]]; then podman rm -f "$NAME" >/dev/null 2>&1 || true; fi
             exit 1
           fi
+          echo "memory_available_after_kib=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
           echo "installation=success"
           echo "waha_health=ready"
           echo "openclaw_after_install=active"
           echo "waha_binding=127.0.0.1:3000"
-          echo "waha_image=devlikeapro/waha:gows"
+          echo "waha_image=devlikeapro/waha:gows-2026.10.1"
           echo "waha_credentials=root_only"
           echo "waha_session=not_paired"
           REMOTE
       - name: Set WAHA API credentials and endpoint as Cloudflare Worker secrets
-        if: steps.deploy.outcome == 'success'
+        if: false # Keep backend credentials isolated until the Cloudflare Tunnel is protected and verified.
         id: sync
         shell: bash
         run: |
