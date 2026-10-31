@@ -68,3 +68,25 @@ The GitHub Actions diagnostics workflow on this branch has been changed to **man
 
 Logrotate reference: https://man7.org/linux/man-pages/man8/logrotate.8.html
 OpenClaw migration: https://docs.openclaw.ai/install/updating
+
+## Oracle final pre-upgrade gate — 2026-10-31
+
+New evidence from [verified disk recovery](https://github.com/ecucondorSA/Autamedica/actions/runs/41232117384) and [read-only backup availability audit](https://github.com/ecucondorSA/Autamedica/actions/runs/41233454671):
+
+- Disk recovery finished **successfully**, with `gzip -t` accepted on each of the four historical `messages-*.gz` files; root filesystem is 63% used, ~11 GiB free; Gateway `active`, `/readyz` HTTP 200.
+- Backup inventory found **no recovery archive** in the inspected paths (`/opt/openclaw-recovery`, `/opt/backups/openclaw`, `/var/backups/openclaw`, `/root/Backups/openclaw`, `/opt/openclaw/Backups/openclaw`). A limited backup-name scan under `/opt/openclaw` and `/opt/autamedica` found none. This does **not** establish whether OCI already has a cloud-side boot-volume backup.
+- OCI CLI is **not installed** on the VM. An Oracle cloud agent directory exists but is not sufficient to prove credentials or snapshot permissions. No Oracle cloud Console session is connected to this assistant. The root filesystem is XFS on LVM; no safe automatic volume snapshot strategy has been established.
+- The current OpenClaw version is **2026.5.7** on Node.js 22.22.3 and npm 11.14.1; legacy Doctor migration must go through **2026.9.5**, using supported Node 24/26 and correct flags for old npm, following the official migration documentation. Do not begin while restore coverage is missing.
+- The previous attempt to create an automated offline backup + service-stop GitHub workflow was blocked by tool security controls. No alternate route was attempted to bypass that denial.
+- `openclaw-backup-availability.yml` is **manual-dispatch only**.
+
+### Recommended operator action to unblock the upgrade
+
+Use the authenticated **Oracle Cloud Console** in the instance's compartment, navigate **Storage → Block Storage → Boot Volumes**, select this instance's boot volume, then **Backups → Create Boot Volume Backup**. Choose a **full** backup and retain it until the new Gateway passes validation. Wait until backup state is **Available**. Confirm you can see the backup and have a tested restore path to a separate volume/instance before performing a potentially destructive migration. A snapshot from a running VM is **crash-consistent**, not necessarily application-consistent; a verified offline application backup is preferable for SQLite/channel state.
+
+Official documentation:
+- https://docs.oracle.com/en-us/iaas/Content/Block/Tasks/create-bv-boot-volume-backup.htm
+- https://docs.oracle.com/en-us/iaas/Content/Block/Concepts/bootvolumebackups.htm
+- https://docs.openclaw.ai/install/updating
+
+Do not store access tokens, QR pairing codes, auth profiles, or recovery archives in GitHub or CI logs.
