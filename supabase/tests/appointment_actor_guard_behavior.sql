@@ -23,7 +23,13 @@ BEGIN
     'ci-doctor-'||v_doctor_user||'@example.invalid',now(),now());
   INSERT INTO public.profiles(user_id) VALUES(v_patient_user),(v_doctor_user)
     ON CONFLICT(user_id) DO NOTHING;
-  INSERT INTO public.patients(id,user_id,active) VALUES(v_patient,v_patient_user,true);
+  -- The auth.users signup trigger may have already provisioned a patient.
+  -- Reuse that row instead of violating unique(patient.user_id).
+  SELECT id INTO v_patient FROM public.patients WHERE user_id=v_patient_user LIMIT 1;
+  IF v_patient IS NULL THEN
+    v_patient := gen_random_uuid();
+    INSERT INTO public.patients(id,user_id,active) VALUES(v_patient,v_patient_user,true);
+  END IF;
   INSERT INTO public.doctors(id,user_id,license_number,specialty,active)
   VALUES(v_doctor,v_doctor_user,'CI-ACTOR-'||v_doctor,'General',true);
   INSERT INTO public.appointments(id,patient_id,doctor_id,start_time,end_time,type,status)
