@@ -1,6 +1,6 @@
 # SISA / REFEPS — validación de profesionales
 
-**Estado revisado: 27-10-2026.** La implementación de SISA/REFEPS **ya funciona según confirmación del responsable de AutaMedica**. La versión anterior de este documento describía el servicio completo como pendiente y había quedado desactualizada.
+**Estado del código revisado: 31-10-2026.** El flujo administrativo resuelve el identificador REFEPS a partir de la matrícula y los datos existentes de la ficha, y luego consulta el Bus/FHIR autenticado. La habilitación exige una respuesta oficial explícita.
 
 ## Implementación disponible
 
@@ -9,6 +9,27 @@
 - `packages/prescriptions/src/infrastructure/adapters/LocalRefepsValidator.ts` permite contraste con datos internos cuando el servicio externo no está disponible. **Esta verificación local NO acredita por sí sola una consulta oficial SISA/REFEPS.**
 - La ruta registra el estado en `profiles.sss_validation_status`, la fecha de control `profiles.sss_last_checked_at` y, cuando el servicio retorna un identificador, `doctors.refeps_id`.
 - La emisión de recetas requiere estado profesional `valid` o excepción autorizada `exempt`.
+
+## Verificación administrativa por matrícula
+
+El operador ingresa la matrícula y pulsa «Solo Verificar» o «Verificar y Autoguardar». No debe obtener ni cargar previamente el código federal REFEPS.
+
+1. El formulario envía el número y jurisdicción que están escritos, incluidos cambios aún sin guardar.
+2. El backend autorizado lee el nombre y apellido existentes de la ficha.
+3. `RefepsPublicDirectory.ts` solicita el formulario público oficial y envía su consulta por matrícula con los campos anónimos `form_build_id` y `form_id`.
+4. Extrae mediante `JSON.parse` los datos de `Drupal.settings.refepsProfesionales.allItems`; nunca ejecuta JavaScript recibido. Contrasta profesión médica, número, jurisdicción y nombre, y exige un identificador federal único.
+5. El adaptador consulta ese identificador en el Bus/FHIR autenticado y exige coincidencia de identidad, matrícula, emisor, código médico y habilitación explícita.
+6. «Solo Verificar» carga el resultado en la ficha sin escribir en la base. «Verificar y Autoguardar» guarda el identificador descubierto y la matrícula normalizada junto con el resultado oficial. El rol de acceso no se modifica.
+
+Se admiten prefijos MN/MP y matrículas provinciales compuestas, por ejemplo `31796/6`; el sufijo no se convierte en otro número. Si los datos son ambiguos o el nombre no coincide, se solicita revisar esos campos de la ficha, sin seleccionar automáticamente al primer profesional.
+
+Durante la consulta se bloquean selección, edición, cierre, guardado y baja para impedir que una respuesta tardía sobrescriba otra ficha. El descubrimiento público tiene un plazo total de 15 segundos; el proxy dispone de 50 segundos para descubrimiento y consulta autenticada.
+
+La estructura del formulario público es una dependencia externa. Una indisponibilidad o cambio de formato produce un error sin aprobar desde datos locales. La evidencia de habilitación procede del Bus/FHIR, no del descubrimiento.
+
+Fuente pública y contrato observado:
+- https://www.argentina.gob.ar/salud/buscador-nacional-de-profesionales-de-la-salud
+- https://www.argentina.gob.ar/profiles/argentinagobar/modules/argentinagobar/argentinagobar_formularios/js/REFEPS/loadDetail.js
 
 ## Evidencia no nominativa de producción (consulta read-only de 27-10-2026)
 
@@ -28,7 +49,8 @@ Antes de declarar equivalencia normativa entre canales, confirmar los requisitos
 
 - Las credenciales del Bus se leen exclusivamente del runtime de servidor. No publicarlas en el repositorio, archivos de cliente, logs, propuestas ni PDF.
 - La ruta administrativa debe distinguir validación `national_refeps_api`, validación `local_database_fallback` y datos de prueba.
-- En `RefepsApiValidator.ts` existe un resultado de prueba `offline_mock` con `isValid: true` si se instancia **sin credenciales y sin fallback**. **No utilizar esa ruta como comprobante de habilitación profesional**; verificar que los flujos productivos rechacen siempre esa fuente.
+- `RefepsApiValidator.ts` rechaza credenciales ausentes y no aprueba mediante `offline_mock` ni fallback local. La matrícula sin identificador dispara descubrimiento oficial, no una aprobación sin consulta.
+- Los códigos se interpretan dentro de su namespace: los catálogos históricos usan código médico `1`; el sistema actual `http://fhir.msal.gob.ar/CodeSystem/profesionesREFEPSCS` observado usa `35`. No transferir códigos numéricos entre catálogos.
 - Registrar fuentes y errores sanitizados para poder demostrar a una institución cómo se comprobó la habilitación profesional.
 
 ## Criterio de entrega hospitalaria
@@ -40,3 +62,4 @@ Para el Hospital Regional Río Gallegos, documentar y probar que cada médico fi
 - Código de la API administrativa: `apps/web/src/pages/api/admin/doctors/license-verify-live.ts`
 - Adaptador SISA/FHIR: `packages/prescriptions/src/infrastructure/adapters/RefepsApiValidator.ts`
 - Validador local: `packages/prescriptions/src/infrastructure/adapters/LocalRefepsValidator.ts`
+

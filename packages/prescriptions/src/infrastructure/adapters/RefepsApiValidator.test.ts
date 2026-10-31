@@ -24,6 +24,22 @@ function mockResponses(token: unknown = { access_token: 'test-token' }, resource
   vi.stubGlobal('fetch', fetcher);
   return fetcher;
 }
+const directoryForm = '<form id="consulta-profesionales-form"><input type="hidden" name="form_build_id" value="form-test0123456789012345"><input type="hidden" name="form_id" value="argobar_consulta_refeps_profesionales"></form>';
+function directoryProfessional(id = federalId, name = 'Profesional', province = 'CABA', profession = 'Médico') {
+  return {codigo:id,nombre:name,apellido:'de Prueba',profesiones:[{profesionReferencia:profession,
+    matriculas:[{matricula:'123456',provinciaMatricula:province}]}]};
+}
+function mockDirectory(items: unknown = [directoryProfessional()], initial = directoryForm, resource = practitioner()) {
+  const html = `<script>Drupal.settings.refepsProfesionales.allItems = ${JSON.stringify(items)};</script>`;
+  const fetcher = vi.fn().mockResolvedValueOnce(new Response(initial)).mockResolvedValueOnce(new Response(html))
+    .mockResolvedValueOnce(Response.json({access_token:'test-token'}))
+    .mockResolvedValueOnce(Response.json({resourceType:'Bundle',entry:[{resource}]}));
+  vi.stubGlobal('fetch',fetcher); return fetcher;
+}
+function discover(refepsId?: string, expectedName = 'Profesional de Prueba') {
+  return new RefepsApiValidator({domainUrl:'https://test.invalid',domainTokenSecret:'test-only',refepsId,
+    discoverByMatricula:true,expectedName});
+}
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('official REFEPS verification', () => {
@@ -224,17 +240,116 @@ describe('official REFEPS verification', () => {
     mockResponses(undefined,p);
     await expect(create().validateMatricula('123456','MN','CABA')).resolves.toMatchObject({isValid:false,registrationStatus:'suspended'});
   });
+  it.each([undefined,'','not-a-federal-id','541000000099'])('resolves a registration without a manually populated or current registry identity (%s)', async (storedId) => {
+    const fetcher = mockDirectory();
+    await expect(discover(storedId).validateMatricula('M.N. 123.456','MN','CABA')).resolves.toMatchObject({
+      isValid:true,matriculaNumber:'123456',practitionerId:federalId,source:'national_refeps_api',
+    });
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(fetcher.mock.calls[0][0]).toBe('https://www.argentina.gob.ar/salud/buscador-nacional-de-profesionales-de-la-salud');
+    const body = new URLSearchParams(fetcher.mock.calls[1][1].body);
+    expect(body.get('searchBy')).toBe('matricula'); expect(body.get('matricula')).toBe('123456');
+    expect(body.get('form_id')).toBe('argobar_consulta_refeps_profesionales');
+    expect(new URL(fetcher.mock.calls[3][0]).searchParams.get('identifier')).toBe(`https://sisa.msal.gov.ar/REFEPS|${federalId}`);
+    expect(fetcher.mock.calls[0][1].redirect).toBe('error');
+    expect(fetcher.mock.calls[0][1].headers.Authorization).toBeUndefined();
+  });
+  it('discovers missing identities for existing callers without the discovery flag',async()=>{
+    mockDirectory();
+    await expect(create('').validateMatricula('123456','MN','CABA')).resolves.toMatchObject({isValid:true,practitionerId:federalId});
+  });
+  it('normalizes an MN prefix even with a cached federal identity', async () => {
+    mockResponses();
+    await expect(create().validateMatricula('MN-123456','MN','CABA')).resolves.toMatchObject({isValid:true,matriculaNumber:'123456'});
+  });
+  it('does not discard substantive alphabetic characters from a registration',async()=>{
+    const fetcher=vi.fn(); vi.stubGlobal('fetch',fetcher);
+    await expect(discover().validateMatricula('ABC123456','MN','CABA')).rejects.toMatchObject({code:'REFEPS_LICENSE_FORMAT'});
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+  it('filters professions and jurisdiction before resolving a public identity',async()=>{
+    mockDirectory([directoryProfessional('541000000002','Profesional','Buenos Aires'),directoryProfessional('541000000003','Profesional','CABA','Enfermero'),directoryProfessional()]);
+    await expect(discover().validateMatricula('123456','MN','CABA')).resolves.toMatchObject({isValid:true});
+  });
+  it('matches accented/reordered profile names using existing profile data',async()=>{
+    mockDirectory();
+    await expect(discover(undefined,'Prueba de Profésional').validateMatricula('123456','MN','CABA')).resolves.toMatchObject({isValid:true});
+  });
+  it('does not bind a registration to a different profile name',async()=>{
+    const fetcher=mockDirectory();
+    await expect(discover(undefined,'Otra Persona').validateMatricula('123456','MN','CABA')).rejects.toMatchObject({code:'REFEPS_DISCOVERY_IDENTITY_MISMATCH'});
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it('does not select the first ambiguous physician when identity cannot distinguish them',async()=>{
+    const fetcher=mockDirectory([directoryProfessional(),directoryProfessional('541000000002')]);
+    await expect(discover().validateMatricula('123456','MN','CABA')).rejects.toMatchObject({code:'REFEPS_DISCOVERY_AMBIGUOUS'});
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it('uses the profile name to distinguish different people sharing a registration number',async()=>{
+    mockDirectory([directoryProfessional('541000000002','Otra'),directoryProfessional()]);
+    await expect(discover().validateMatricula('123456','MN','CABA')).resolves.toMatchObject({isValid:true});
+  });
+  it('deduplicates identical federal identities',async()=>{
+    mockDirectory([directoryProfessional(),directoryProfessional()]);
+    await expect(discover().validateMatricula('123456','MN','CABA')).resolves.toMatchObject({isValid:true});
+  });
+  it.each([{items:[]},{items:[directoryProfessional(federalId,'Profesional','Córdoba')]}])('preserves state when no matching registration is returned (%j)',async({items})=>{
+    const fetcher=mockDirectory(items);
+    await expect(discover().validateMatricula('123456','MN','CABA')).rejects.toMatchObject({code:'REFEPS_DISCOVERY_NOT_FOUND'});
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it.each([{},[{codigo:'not-an-id'}]])('does not interpret malformed public data as a valid or absent license (%j)',async(items)=>{
+    mockDirectory(items);
+    await expect(discover().validateMatricula('123456','MN','CABA')).rejects.toMatchObject({code:'REFEPS_DISCOVERY_INVALID_RESPONSE'});
+  });
+  it('rejects changed or unavailable forms without sending auth credentials',async()=>{
+    const fetcher=mockDirectory(undefined,'<html>Unavailable</html>');
+    await expect(discover().validateMatricula('123456','MN','CABA')).rejects.toMatchObject({code:'REFEPS_DISCOVERY_INVALID_RESPONSE'});
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it('never executes returned scripts while extracting the public directory data',async()=>{
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValueOnce(new Response(directoryForm))
+      .mockResolvedValueOnce(new Response('<script>Drupal.settings.refepsProfesionales.allItems = [evil()];</script>')));
+    await expect(discover().validateMatricula('123456','MN','CABA')).rejects.toMatchObject({code:'REFEPS_DISCOVERY_INVALID_RESPONSE'});
+  });
+  it('does not approve from public directory data when the authenticated lookup fails',async()=>{
+    const fetcher=mockDirectory(); fetcher.mockReset();
+    fetcher.mockResolvedValueOnce(new Response(directoryForm))
+      .mockResolvedValueOnce(new Response(`<script>Drupal.settings.refepsProfesionales.allItems = ${JSON.stringify([directoryProfessional()])};</script>`))
+      .mockResolvedValueOnce(new Response('do-not-expose',{status:403}));
+    await expect(discover().validateMatricula('123456','MN','CABA')).rejects.toMatchObject({code:'REFEPS_AUTH_FAILED'});
+  });
+  it('discovers and verifies a compound provincial registration without losing its suffix',async()=>{
+    const item=directoryProfessional(federalId,'Profesional','Córdoba'); item.profesiones[0].matriculas[0].matricula='31796/6';
+    const resource=practitioner(); resource.qualification[0].identifier[0]={value:'31796/6',assigner:{display:'MINISTERIO DE SALUD DE CORDOBA'}};
+    const fetcher=mockDirectory([item],directoryForm,resource);
+    await expect(discover().validateMatricula('M.P. 31796/6','MP','Córdoba')).resolves.toMatchObject({isValid:true,matriculaNumber:'31796/6'});
+    expect(new URLSearchParams(fetcher.mock.calls[1][1].body).get('matricula')).toBe('31796/6');
+  });
+  it('does not confuse a provincial suffix with a different flat registration',async()=>{
+    const resource=practitioner(); resource.qualification[0].identifier[0]={value:'317966',assigner:{display:'MINISTERIO DE SALUD DE CORDOBA'}};
+    mockResponses(undefined,resource);
+    await expect(create().validateMatricula('31796/6','MP','Córdoba')).rejects.toMatchObject({code:'REFEPS_LICENSE_NUMBER_MISMATCH'});
+  });
+  it('does not match a flattened provincial registration during discovery',async()=>{
+    const item=directoryProfessional(federalId,'Profesional','Córdoba'); item.profesiones[0].matriculas[0].matricula='317966';
+    mockDirectory([item]);
+    await expect(discover().validateMatricula('31796/6','MP','Córdoba')).rejects.toMatchObject({code:'REFEPS_DISCOVERY_NOT_FOUND'});
+  });
+  it('bounds the combined public form lookup time',async()=>{
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch',vi.fn((_url,init:RequestInit)=>new Promise((_resolve,reject)=>{
+      init.signal?.addEventListener('abort',()=>reject(new DOMException('aborted','AbortError')));
+    })));
+    const check=expect(discover().validateMatricula('123456','MN','CABA')).rejects.toMatchObject({code:'REFEPS_TIMEOUT'});
+    await vi.advanceTimersByTimeAsync(15000); await check;
+  });
   it('does not call the registry with missing credentials or approve from a fallback', async () => {
     const fallback = { validateMatricula: vi.fn().mockResolvedValue({ isValid: true }) };
     const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
     await expect(new RefepsApiValidator({ fallbackValidator: fallback }).validateMatricula('123456', 'MN'))
       .rejects.toMatchObject({ code: 'REFEPS_CREDENTIALS_MISSING' });
     expect(fallback.validateMatricula).not.toHaveBeenCalled();
-    expect(fetcher).not.toHaveBeenCalled();
-  });
-  it.each(['', 'mock-not-a-registry-id'])('requires a registry identity before querying (%s)', async (id) => {
-    const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
-    await expect(create(id).validateMatricula('123456', 'MN')).rejects.toMatchObject({ code: 'REFEPS_ID_REQUIRED' });
     expect(fetcher).not.toHaveBeenCalled();
   });
   it('does not send Bearer undefined when authentication omits its token', async () => {

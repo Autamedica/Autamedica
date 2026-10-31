@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto';
 import type { IRefepsValidator, RefepsValidationResult } from '../../domain/refeps.ports';
+import { discoverRefepsId, normalizeRefepsLicense, refepsLicenseKey } from './RefepsPublicDirectory';
 
 const REFEPS_SYSTEM = 'https://sisa.msal.gov.ar/REFEPS';
 const TIMEOUT_MS = 10_000;
@@ -23,6 +24,8 @@ type Config = {
   domainUrl?: string;
   fallbackValidator?: IRefepsValidator;
   refepsId?: string;
+  discoverByMatricula?: boolean;
+  expectedName?: string;
 };
 type Identifier = { system?: string; value?: string; assigner?: { display?: string } };
 type ProfessionCoding = { system?: string; code?: string; display?: string };
@@ -151,9 +154,12 @@ export class RefepsApiValidator implements IRefepsValidator {
   async validateMatricula(matricula: string, type: 'MN' | 'MP', province?: string): Promise<RefepsValidationResult> {
     const { domainTokenSecret, domainUrl } = this.config;
     if (!domainTokenSecret || !domainUrl) fail('REFEPS_CREDENTIALS_MISSING');
-    const refepsId = this.config.refepsId?.trim();
+    matricula = normalizeRefepsLicense(matricula, type);
+    let refepsId = this.config.refepsId?.trim();
     // A registration number is not a federal REFEPS identifier. Never substitute it.
-    if (!refepsId || !/^\d{1,12}$/.test(refepsId)) fail('REFEPS_ID_REQUIRED');
+    if (this.config.discoverByMatricula || !refepsId || !/^\d{1,12}$/.test(refepsId)) {
+      refepsId = await discoverRefepsId(matricula, type, province, this.config.expectedName);
+    }
     const federalId = /^\d{12}$/.test(refepsId);
     const token = await this.getAuthToken();
     const path = federalId
@@ -184,11 +190,10 @@ export class RefepsApiValidator implements IRefepsValidator {
     if (!practitioner) fail('REFEPS_IDENTITY_MISMATCH');
     const registryId = practitioner.identifier?.find((i) => isRefepsSystem(i.system))?.value;
     if (!registryId || !/^\d{12}$/.test(registryId)) fail('REFEPS_INVALID_RESPONSE');
-    const cleanLicense = (value: string): string => value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     const qualifications = practitioner.qualification ?? [];
     if (!qualifications.length) fail('REFEPS_QUALIFICATIONS_MISSING');
     const matchesNumber = (i: Identifier): boolean => !!i.value
-      && cleanLicense(i.value) === cleanLicense(matricula);
+      && refepsLicenseKey(i.value, type) === matricula;
     const numbered = qualifications.filter((q) => q.identifier?.some(matchesNumber));
     if (!numbered.length) fail('REFEPS_LICENSE_NUMBER_MISMATCH');
     const jurisdictionMatches = numbered.filter((q) => q.identifier?.some((i) => {
