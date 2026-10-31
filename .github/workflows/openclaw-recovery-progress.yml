@@ -1,9 +1,6 @@
 name: OpenClaw Recovery Progress Probe
 
 on:
-  push:
-    branches: [feat/openclaw-chatgpt-mcp-relay-20261031]
-    paths: ['.github/workflows/openclaw-recovery-progress.yml']
   workflow_dispatch:
 
 permissions:
