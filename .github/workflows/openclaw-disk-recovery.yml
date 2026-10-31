@@ -1,9 +1,6 @@
 name: OpenClaw Disk Recovery (archived logs only)
 
 on:
-  push:
-    branches: [feat/openclaw-chatgpt-mcp-relay-20261031]
-    paths: ['.github/workflows/openclaw-disk-recovery.yml']
   workflow_dispatch:
 
 permissions:
