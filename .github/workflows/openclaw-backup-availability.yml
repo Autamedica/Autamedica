@@ -1,9 +1,6 @@
 name: OpenClaw Backup Availability Audit
 
 on:
-  push:
-    branches: [feat/openclaw-chatgpt-mcp-relay-20261031]
-    paths: ['.github/workflows/openclaw-backup-availability.yml']
   workflow_dispatch:
 
 permissions:
