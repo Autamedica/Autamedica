@@ -1,0 +1,56 @@
+name: OpenClaw Log Rotation Audit
+
+on:
+  push:
+    branches: [feat/openclaw-chatgpt-mcp-relay-20261031]
+    paths: ['.github/workflows/openclaw-logrotate-audit.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Authenticate SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_openclaw
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/oci_openclaw ~/.ssh/known_hosts
+      - name: Audit log rotation and message volume without publishing log content
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/oci_openclaw -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=12 "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo "logrotate_binary:"
+          if command -v logrotate >/dev/null 2>&1; then command -v logrotate; else echo missing; fi
+          echo 'logrotate_syslog_policy:'
+          for p in /etc/logrotate.d/syslog /etc/logrotate.d/rsyslog /etc/logrotate.d/messages; do
+            if sudo -n test -f "$p"; then
+              echo "policy_file=$p"
+              sudo -n grep -E '^(/var/log/|\s*(rotate|compress|delaycompress|nocompress|weekly|daily|monthly|maxsize|size|notifempty|missingok|dateext|postrotate|endscript|create|su)\b)' "$p" | head -50 || true
+            fi
+          done
+          echo 'logrotate_timer_state:'
+          systemctl is-active logrotate.timer || true
+          echo 'logrotate_last_run:'
+          systemctl show logrotate.service -p ExecMainExitTimestamp --value || true
+          echo 'log_top_program_tags_last_10000_entries:'
+          sudo -n tail -n 10000 /var/log/messages 2>/dev/null | awk 'NF>=5 {tag=$5; sub(/\[[0-9]+\]/,"",tag); if (length(tag)<65) count[tag]++} END {for(tag in count) print count[tag],tag}' | sort -nr | head -12
+          echo 'current_log_bytes:'
+          sudo -n stat -c '%s' /var/log/messages
+          echo 'gateway_http:'
+          curl --silent --max-time 5 -o /dev/null -w '%{http_code}\n' http://127.0.0.1:18789/readyz || true
+          REMOTE
