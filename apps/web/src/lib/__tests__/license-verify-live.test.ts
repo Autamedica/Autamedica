@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
-  tokenSecret: 'test-only', domainUrl: 'https://test.invalid',
+  tokenSecret: 'test-only', domainUrl: 'https://test.invalid', role: 'admin', sessionUser: true, authHeader: 'Bearer test-user',
   createAdmin: vi.fn(), verify: vi.fn(), updateProfile: vi.fn(), updateDoctor: vi.fn(),
 }));
 vi.mock('@autamedica/shared', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
@@ -17,20 +17,21 @@ import { POST } from '../../pages/api/admin/doctors/license-verify-live';
 async function call(host = 'www.autamedica.com', body: unknown = { doctorId: 'test-doctor', persist: false }) {
   const request = new Request(`https://${host}/api/admin/doctors/license-verify-live`, {
     method: 'POST', body: JSON.stringify(body),
-    headers: { 'Content-Type': 'application/json', authorization: 'Bearer test-user', cookie: 'test-session=value' },
+    headers: { 'Content-Type': 'application/json', authorization: state.authHeader, cookie: 'test-session=value', 'x-attacker-header': 'do-not-forward' },
   });
-  return POST({ request, locals: { runtime: { env: {} }, session: { user: { id: 'test-admin' } } } } as unknown as Parameters<typeof POST>[0]);
+  return POST({ request, locals: { runtime: { env: {} }, session: state.sessionUser ? { user: { id: 'test-admin' } } : null } } as unknown as Parameters<typeof POST>[0]);
 }
 beforeEach(() => {
   vi.restoreAllMocks(); vi.unstubAllGlobals();
   state.tokenSecret = 'test-only'; state.domainUrl = 'https://test.invalid';
+  state.role = 'admin'; state.sessionUser = true; state.authHeader = 'Bearer test-user';
   state.verify.mockReset(); state.updateProfile.mockReset(); state.updateDoctor.mockReset();
   state.createAdmin.mockReset();
   state.updateProfile.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
   state.updateDoctor.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
   const query = (data: unknown) => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data, error: null }) }) }) });
-  state.createAdmin.mockReturnValue({ from: (name: string) => {
-    if (name === 'profiles') return { ...query({ role: 'admin' }), update: state.updateProfile };
+  state.createAdmin.mockReturnValue({ auth: { getUser: async () => ({ data: { user: { id: 'test-user' } }, error: null }) }, from: (name: string) => {
+    if (name === 'profiles') return { ...query({ role: state.role }), update: state.updateProfile };
     if (name === 'doctors') return {
       ...query({ id: 'test-doctor', user_id: 'test-user', license_number: '123456',
         enrollment_jurisdiction: 'CABA', enrollment_entity: 'Ministerio de Salud', refeps_id: '541000000001' }),
@@ -51,12 +52,32 @@ describe('administrative official license verification', () => {
     expect(fetcher.mock.calls[0][0]).toBe('https://www.autamedica.com/api/admin/doctors/license-verify-live');
     expect(fetcher.mock.calls[0][1].redirect).toBe('manual');
     expect(fetcher.mock.calls[0][1].headers.get('authorization')).toBe('Bearer test-user');
+    expect(fetcher.mock.calls[0][1].headers.get('cookie')).toBe('test-session=value');
+    expect([...fetcher.mock.calls[0][1].headers.keys()].sort()).toEqual(['authorization', 'content-type', 'cookie']);
     expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({ doctorId: 'test-doctor', persist: false });
   });
   it.each(['www.autamedica.com', 'untrusted.invalid'])('does not loop or proxy unknown hosts (%s)', async (host) => {
     state.tokenSecret = ''; const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
     const response = await call(host);
     expect(response.status).toBe(503); expect(fetcher).not.toHaveBeenCalled();
+  });
+  it('does not claim a timed-out persisted proxy operation was rolled back', async () => {
+    state.tokenSecret = '';
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('network lost')));
+    const response = await call('autamedica-admin-5r9.pages.dev', { doctorId: 'test-doctor', persist: true });
+    const payload = await response.json();
+    expect(response.status).toBe(503);
+    expect(payload.error.message).toContain('No se pudo confirmar si la validación se guardó');
+  });
+  it('rejects unauthenticated canonical requests before querying the registry', async () => {
+    state.sessionUser = false; state.authHeader = '';
+    expect((await call()).status).toBe(401);
+    expect(state.verify).not.toHaveBeenCalled(); expect(state.updateProfile).not.toHaveBeenCalled();
+  });
+  it('rejects authenticated non-admin callers before querying the registry', async () => {
+    state.role = 'patient';
+    expect((await call()).status).toBe(401);
+    expect(state.verify).not.toHaveBeenCalled(); expect(state.updateProfile).not.toHaveBeenCalled();
   });
   it('does not follow redirects from the canonical destination', async () => {
     state.tokenSecret = '';
