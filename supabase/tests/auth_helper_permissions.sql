@@ -9,7 +9,7 @@ GRANT SELECT ON helper_probe_expected TO anon, authenticated;
 DO $contracts$
 DECLARE signature text; target regprocedure;
 BEGIN
-  FOREACH signature IN ARRAY ARRAY['public.can_access_p2p_chat_session(uuid)','public.current_doctor_profile_id()','public.current_patient_can_access_community_group(uuid)','public.current_patient_owns_community_post(uuid)','public.current_pharmacist_id()','public.current_pharmacist_pharmacy_ids()','public.doctor_can_chat_with_patient(uuid,uuid)','public.doctor_has_patient_access(uuid)','public.get_assigned_chat_doctor(uuid)','public.get_my_doctor_id()','public.get_my_patient_id()','public.get_user_role(uuid)','public.has_active_authorization(uuid,uuid)','public.is_company_admin()','public.is_doctor()','public.is_in_care_team(uuid,uuid)','public.is_patient()','public.is_platform_or_org_admin(uuid)','public.is_system_admin()','public.user_belongs_to_company(uuid)'] LOOP
+  FOREACH signature IN ARRAY ARRAY['public.can_access_p2p_chat_session(uuid)','public.current_doctor_profile_id()','public.current_patient_can_access_community_group(uuid)','public.current_patient_owns_community_post(uuid)','public.current_pharmacist_id()','public.current_pharmacist_pharmacy_ids()','public.doctor_can_chat_with_patient(uuid,uuid)','public.doctor_has_patient_access(uuid)','public.get_assigned_chat_doctor(uuid)','public.get_my_doctor_id()','public.get_my_patient_id()','public.get_user_role(uuid)','public.has_active_authorization(uuid,uuid)','public.is_company_admin()','public.is_doctor()','public.is_in_care_team(uuid,uuid)','public.is_patient()','public.is_platform_or_org_admin(uuid)','public.is_system_admin()','public.user_belongs_to_company(uuid)','public.search_medications_br(text,integer)'] LOOP
     target:=to_regprocedure(signature);
     IF target IS NULL OR has_function_privilege('anon',target,'EXECUTE')
       OR NOT has_function_privilege('authenticated',target,'EXECUTE')
@@ -23,7 +23,7 @@ BEGIN
         AND (0=ANY(p.polroles) OR 'anon'::regrole::oid=ANY(p.polroles))
     ) THEN RAISE EXCEPTION 'Anonymous policy still depends on %',signature; END IF;
   END LOOP;
-  FOREACH signature IN ARRAY ARRAY['public.get_active_on_duty_doctors()','public.get_content_mode()','public.get_doctor_busy_slots(uuid,date,date)','public.get_duty_doctors_summary()','public.get_pharmacy_tiers_status()','public.search_medications_br(text,integer)'] LOOP
+  FOREACH signature IN ARRAY ARRAY['public.get_active_on_duty_doctors()','public.get_content_mode()','public.get_doctor_busy_slots(uuid,date,date)','public.get_duty_doctors_summary()','public.get_pharmacy_tiers_status()'] LOOP
     target:=to_regprocedure(signature);
     -- These legacy RPCs have no CREATE definition in versioned migrations.
     -- They remain checked in hosted databases; all versioned APIs are mandatory.
@@ -47,6 +47,11 @@ BEGIN
   BEGIN
     PERFORM public.is_doctor();
     RAISE EXCEPTION 'Anonymous caller executed a private helper';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    PERFORM 1 FROM public.search_medications_br('',1);
+    RAISE EXCEPTION 'Anonymous caller executed authenticated medication search';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
   IF (SELECT count(*) FROM public.doctors) <> (SELECT doctors FROM pg_temp.helper_probe_expected)
@@ -73,6 +78,7 @@ SET LOCAL ROLE authenticated;
 DO $authenticated$
 DECLARE relation_name text; n bigint;
 BEGIN
+  PERFORM 1 FROM public.search_medications_br('',1);
   IF public.is_doctor() OR public.is_patient() OR public.is_system_admin()
     OR public.get_my_doctor_id() IS NOT NULL OR public.get_my_patient_id() IS NOT NULL THEN
     RAISE EXCEPTION 'Nonexistent subject acquired a protected identity';
