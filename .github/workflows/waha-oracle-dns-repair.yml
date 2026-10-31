@@ -1,0 +1,100 @@
+name: WAHA Oracle DNS Repair
+
+on:
+  push:
+    branches:
+      - ops/waha-oracle-setup-20261031
+    paths:
+      - .github/workflows/waha-oracle-dns-repair.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: waha-oracle-dns-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    name: Restore OCI DNS with rollback
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 8
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Configure pinned SSH host key
+        shell: bash
+        run: |
+          set -euo pipefail
+          for v in OCI_HOST OCI_USER OCI_SSH_KEY OCI_HOST_KEY; do
+            test -n "${!v:-}" || { echo "Required secret unavailable: $v"; exit 1; }
+          done
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_openclaw
+          chmod 600 ~/.ssh/oci_openclaw
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Correct absent nameserver and verify registry resolution
+        id: repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=12 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'sudo -n bash -s' <<'REMOTE' | tee dns-status.txt
+          set -euo pipefail
+          DNS=169.254.169.254
+          BACKUP=/etc/resolv.conf.autamedica-pre-waha.bak
+          if [[ "$(systemctl is-active openclaw-gateway.service || true)" != active ]]; then
+            echo "repair=blocked_openclaw_unhealthy"
+            exit 1
+          fi
+          if [[ ! -f /etc/resolv.conf || -L /etc/resolv.conf ]]; then
+            echo "repair=blocked_unexpected_resolver_file"
+            exit 1
+          fi
+          if timeout 12 getent ahostsv4 registry-1.docker.io >/dev/null 2>&1; then
+            echo "repair=not_needed"
+          else
+            if grep -Eq '^[[:space:]]*nameserver[[:space:]]+[^[:space:]]+' /etc/resolv.conf; then
+              echo "repair=blocked_existing_nameserver_requires_manual_diagnosis"
+              exit 1
+            fi
+            if [[ -e "$BACKUP" ]]; then
+              echo "repair=blocked_existing_backup"
+              exit 1
+            fi
+            cp -p /etc/resolv.conf "$BACKUP"
+            printf '\nnameserver %s\n' "$DNS" >> /etc/resolv.conf
+            if ! timeout 12 getent ahostsv4 registry-1.docker.io >/dev/null 2>&1; then
+              cp -p "$BACKUP" /etc/resolv.conf
+              echo "repair=failed_dns_lookup_rolled_back"
+              exit 1
+            fi
+            echo "repair=nameserver_restored"
+          fi
+          if [[ "$(systemctl is-active openclaw-gateway.service || true)" != active ]]; then
+            if [[ -f "$BACKUP" ]]; then cp -p "$BACKUP" /etc/resolv.conf; fi
+            echo "repair=rolled_back_openclaw_unhealthy"
+            exit 1
+          fi
+          echo "registry_resolution=ok"
+          echo "openclaw_gateway=active"
+          echo "resolver_target=$DNS"
+          REMOTE
+      - name: Publish sanitized result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "Oracle DNS repair outcome: ${{ steps.repair.outcome }}"
+            if [[ -f dns-status.txt ]]; then cat dns-status.txt; else echo "Remote SSH repair did not finish."; fi
+          } > dns-report.txt
+          gh api "repos/$GITHUB_REPOSITORY/issues/618/comments" -f body="$(cat dns-report.txt)"
