@@ -6,6 +6,7 @@ ALTER TABLE public.doctors DISABLE TRIGGER USER;
 ALTER TABLE public.patients DISABLE TRIGGER USER;
 ALTER TABLE public.appointments DISABLE TRIGGER USER;
 ALTER TABLE public.appointments ENABLE TRIGGER trg_appointment_actor_guard;
+ALTER TABLE public.appointments ENABLE TRIGGER trg_appointment_metadata_immutable;
 
 DO $setup$
 DECLARE
@@ -72,6 +73,31 @@ BEGIN
     RAISE EXCEPTION 'Patient was allowed to detach patient identity';
   EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
 
+  -- Existing appointment provenance cannot be forged via direct Data API UPDATE.
+  BEGIN
+    UPDATE public.appointments SET created_by=v_doctor_uid WHERE id=v_patient_appt;
+    RAISE EXCEPTION 'Patient forged doctor-created payment exemption';
+  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+  BEGIN
+    UPDATE public.appointments SET deleted_at=now() WHERE id=v_patient_appt;
+    RAISE EXCEPTION 'Patient erased appointment audit trail';
+  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+  BEGIN
+    UPDATE public.appointments SET referral_sent=true WHERE id=v_patient_appt;
+    RAISE EXCEPTION 'Patient forged referral delivery';
+  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+
+  -- New appointment provenance must also be protected at INSERT time.
+  BEGIN
+    INSERT INTO public.appointments
+      (patient_id,doctor_id,start_time,end_time,type,status,created_by)
+    SELECT a.patient_id,a.doctor_id,
+           now()+interval '10 days',now()+interval '10 days 30 minutes',
+           'telemedicine','scheduled',v_doctor_uid
+    FROM public.appointments a WHERE a.id=v_patient_appt;
+    RAISE EXCEPTION 'Patient inserted appointment impersonating doctor';
+  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+
   UPDATE public.appointments SET notes='ci harmless patient note'
   WHERE id=v_patient_appt;
   IF NOT FOUND THEN RAISE EXCEPTION 'Legitimate patient note edit blocked'; END IF;
@@ -97,6 +123,7 @@ END $checks$;
 
 RESET ROLE;
 ALTER TABLE public.appointments DISABLE TRIGGER trg_appointment_actor_guard;
+ALTER TABLE public.appointments DISABLE TRIGGER trg_appointment_metadata_immutable;
 ALTER TABLE public.appointments ENABLE TRIGGER USER;
 ALTER TABLE public.patients ENABLE TRIGGER USER;
 ALTER TABLE public.doctors ENABLE TRIGGER USER;
