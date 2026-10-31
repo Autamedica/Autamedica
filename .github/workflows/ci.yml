@@ -112,6 +112,7 @@ jobs:
         run: |
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_core_tables.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/memed_provider_integrity_smoke.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/internal_trigger_permissions.sql
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup
