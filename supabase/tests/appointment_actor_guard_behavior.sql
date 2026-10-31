@@ -47,7 +47,7 @@ BEGIN
   BEGIN
     UPDATE public.appointments SET notes='unauthorized anonymous actor'
     WHERE id=v_patient_appt;
-    RAISE EXCEPTION 'Missing subject was allowed to update appointment';
+    IF FOUND THEN RAISE EXCEPTION 'Missing subject was allowed to update appointment'; END IF;
   EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
 
   PERFORM set_config('request.jwt.claims',
