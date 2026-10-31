@@ -82,7 +82,12 @@ jobs:
           chmod 600 "$ENVFILE"
           if ! podman container exists "$NAME"; then
             echo "image_pull=started"
-            podman pull "$IMAGE" >/dev/null
+            if ! podman pull "$IMAGE" > /tmp/autamedica-waha-pull.log 2>&1; then
+              echo "image_pull=failed"
+              tail -n 12 /tmp/autamedica-waha-pull.log | sed -E 's#(https?://)[^ @]+:[^ @]+@#\\1[redacted]@#g'
+              exit 1
+            fi
+            echo "image_pull=success"
             podman run -d --name "$NAME" --restart=always \
               --memory=384m --memory-swap=768m --cpus=0.75 \
               -p 127.0.0.1:3000:3000 \
