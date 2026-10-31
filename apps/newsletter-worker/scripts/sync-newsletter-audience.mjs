@@ -7,6 +7,7 @@ const ENV_FILE = new URL(".dev.vars", ROOT);
 const args = new Set(process.argv.slice(2));
 const apply = args.has("--apply");
 const syncBrevoSuppressions = args.has("--brevo");
+// Never alter contacts outside the configured newsletter segment.
 
 function normalizeEmail(value) {
   return String(value ?? "")
@@ -14,10 +15,15 @@ function normalizeEmail(value) {
     .toLowerCase();
 }
 
+function isAnonymized(value) {
+  return value.startsWith("deleted+") || value.endsWith("@invalid.autamedica");
+}
+
 function validEmail(value) {
   return (
     /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value) &&
-    !value.includes("..")
+    !value.includes("..") &&
+    !isAnonymized(value)
   );
 }
 
@@ -37,6 +43,7 @@ async function loadEnv() {
     "SUPABASE_URL",
     "SUPABASE_SERVICE_ROLE_KEY",
     "RESEND_API_KEY",
+    "RESEND_AUDIENCE_ID",
   ]) {
     if (!env[key])
       throw new Error(`${key} no configurada en ${ENV_FILE.pathname}`);
@@ -97,97 +104,75 @@ async function loadProfiles(env) {
     .filter((profile) => validEmail(profile.email));
 }
 
-async function loadResendContacts(env) {
+async function loadResendContacts(env, segmentOnly = true) {
   const rows = [];
-  let afterId = undefined;
-  const audienceId = env.RESEND_AUDIENCE_ID;
-
+  let afterId;
+  const segmentId = env.RESEND_AUDIENCE_ID;
   for (;;) {
-    const url = new URL("https://api.resend.com/contacts");
+    // /contacts is GLOBAL on current Resend; audience_id on this URL
+    // does not restrict results to a broadcast segment.
+    const url = new URL(segmentOnly
+      ? `https://api.resend.com/segments/${encodeURIComponent(segmentId)}/contacts`
+      : "https://api.resend.com/contacts");
     url.searchParams.set("limit", "100");
-    if (audienceId) url.searchParams.set("audience_id", audienceId);
     if (afterId) url.searchParams.set("after", afterId);
-
     const data = await requestJson(url.toString(), {
       headers: {
         authorization: `Bearer ${env.RESEND_API_KEY}`,
         accept: "application/json",
       },
     });
-
-    if (Array.isArray(data?.data)) {
-      rows.push(...data.data);
-      if (!data.has_more || data.data.length === 0) break;
-      afterId = data.data[data.data.length - 1].id;
-    } else {
-      break;
+    if (!Array.isArray(data?.data)) {
+      throw new Error("Respuesta de contactos Resend no válida");
     }
+    rows.push(...data.data);
+    if (!data.has_more || data.data.length === 0) break;
+    afterId = data.data[data.data.length - 1].id;
   }
-
-  return rows
-    .map((contact) => ({ ...contact, email: normalizeEmail(contact.email) }))
-    .filter((contact) => validEmail(contact.email));
+  return rows.map(c => ({ ...c, email: normalizeEmail(c.email) }))
+    .filter(c => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email));
 }
 
-function buildPlan(profiles, resendContacts) {
-  const profileByEmail = new Map(
-    profiles.map((profile) => [profile.email, profile]),
-  );
-  const contactByEmail = new Map(
-    resendContacts.map((contact) => [contact.email, contact]),
-  );
-  const dbActive = new Set(
-    profiles
-      .filter((profile) => profile.newsletter_subscribed === true)
-      .map((profile) => profile.email),
-  );
+function buildPlan(profiles, segmentContacts, globalContacts) {
+  const profileByEmail = new Map(profiles.map(p => [p.email, p]));
+  const segmentByEmail = new Map(segmentContacts.map(c => [c.email, c]));
+  const globalByEmail = new Map(globalContacts.map(c => [c.email, c]));
+  const dbActive = new Set(profiles
+    .filter(p => p.newsletter_subscribed === true && validEmail(p.email))
+    .map(p => p.email));
 
-  const markDbUnsubscribed = [];
-  const markDbNullFalse = [];
-  const markResendUnsubscribed = [];
-  const createResendContacts = [];
-
-  for (const profile of profiles) {
-    if (profile.newsletter_subscribed === null) {
-      markDbNullFalse.push(profile);
+  const markDbUnsubscribedByEmail = new Map();
+  const markDbNullFalse = profiles.filter(p => p.newsletter_subscribed === null);
+  // A globally unsubscribed contact must remain unsubscribed. Never revive them.
+  for (const email of dbActive) {
+    const contact = globalByEmail.get(email) || segmentByEmail.get(email);
+    if (contact?.unsubscribed === true) {
+      markDbUnsubscribedByEmail.set(email, { profile: profileByEmail.get(email), reason: "resend_unsubscribed" });
+      dbActive.delete(email);
     }
   }
-
-  for (const contact of resendContacts) {
-    const profile = profileByEmail.get(contact.email);
-    if (
-      contact.unsubscribed === true &&
-      profile?.newsletter_subscribed === true
-    ) {
-      markDbUnsubscribed.push({ profile, reason: "resend_unsubscribed" });
-      dbActive.delete(contact.email);
-    }
-  }
-
-  for (const contact of resendContacts) {
-    const profile = profileByEmail.get(contact.email);
-    if (
-      contact.unsubscribed !== true &&
-      profile?.newsletter_subscribed !== true
-    ) {
-      markResendUnsubscribed.push({
+  const removeFromSegment = [];
+  for (const contact of segmentContacts) {
+    if (!dbActive.has(contact.email)) {
+      removeFromSegment.push({
         contact,
-        reason: profile ? "db_not_subscribed" : "not_in_db",
+        reason: profileByEmail.has(contact.email) ? "db_not_subscribed" : "not_in_db",
       });
     }
   }
-
+  const addToSegment = [];
+  const createResendContacts = [];
   for (const email of dbActive) {
-    if (!contactByEmail.has(email)) {
-      createResendContacts.push(profileByEmail.get(email));
-    }
+    const inSegment = segmentByEmail.get(email);
+    if (inSegment) continue;
+    const profile = profileByEmail.get(email);
+    const global = globalByEmail.get(email);
+    if (global) addToSegment.push({ profile, contact: global });
+    else createResendContacts.push(profile);
   }
-
   return {
-    markDbUnsubscribed,
-    markDbNullFalse,
-    markResendUnsubscribed,
-    createResendContacts,
+    markDbUnsubscribed: [...markDbUnsubscribedByEmail.values()],
+    markDbNullFalse, removeFromSegment, addToSegment, createResendContacts,
   };
 }
 
@@ -222,34 +207,28 @@ async function patchGrowthLeadUnsubscribed(env, email) {
   );
 }
 
-async function patchResendUnsubscribed(env, contact) {
-  await requestJson(
-    `https://api.resend.com/contacts/${encodeURIComponent(contact.id)}`,
-    {
-      method: "PATCH",
-      headers: {
-        authorization: `Bearer ${env.RESEND_API_KEY}`,
-        "content-type": "application/json",
-        accept: "application/json",
-      },
-      body: JSON.stringify({ unsubscribed: true }),
-    },
-  );
+function resendHeaders(env) {
+  return { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json", accept: "application/json" };
 }
-
+async function removeContactFromSegment(env, contact) {
+  await requestJson(`https://api.resend.com/contacts/${encodeURIComponent(contact.id)}/segments/${encodeURIComponent(env.RESEND_AUDIENCE_ID)}`, {
+    method: "DELETE", headers: resendHeaders(env),
+  });
+}
+async function addContactToSegment(env, contact) {
+  await requestJson(`https://api.resend.com/contacts/${encodeURIComponent(contact.id)}/segments/${encodeURIComponent(env.RESEND_AUDIENCE_ID)}`, {
+    method: "POST", headers: resendHeaders(env),
+  });
+}
 async function createResendContact(env, profile) {
   await requestJson("https://api.resend.com/contacts", {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "content-type": "application/json",
-      accept: "application/json",
-    },
+    method: "POST", headers: resendHeaders(env),
     body: JSON.stringify({
       email: profile.email,
-      firstName: profile.first_name ?? undefined,
-      lastName: profile.last_name ?? undefined,
+      first_name: profile.first_name ?? undefined,
+      last_name: profile.last_name ?? undefined,
       unsubscribed: false,
+      segments: [{ id: env.RESEND_AUDIENCE_ID }],
     }),
   });
 }
@@ -304,46 +283,37 @@ async function brevoSuppress(env, profile) {
 
 async function applyPlan(env, plan) {
   const applied = {
-    db_unsubscribed: 0,
-    db_null_false: 0,
-    resend_unsubscribed: 0,
-    resend_created: 0,
-    growth_leads_unsubscribed: 0,
-    brevo_suppressed: 0,
+    db_unsubscribed: 0, db_null_false: 0,
+    segment_removed: 0, segment_added: 0, resend_created: 0,
+    growth_leads_unsubscribed: 0, brevo_suppressed: 0,
   };
-
   for (const item of plan.markDbUnsubscribed) {
     await patchSupabaseUnsubscribed(env, item.profile.email);
     await patchGrowthLeadUnsubscribed(env, item.profile.email);
-    applied.db_unsubscribed += 1;
-    applied.growth_leads_unsubscribed += 1;
+    applied.db_unsubscribed++;
+    applied.growth_leads_unsubscribed++;
+    if (syncBrevoSuppressions) {
+      await brevoSuppress(env, item.profile);
+      applied.brevo_suppressed++;
+    }
   }
   for (const profile of plan.markDbNullFalse) {
     await patchSupabaseUnsubscribed(env, profile.email);
-    applied.db_null_false += 1;
+    applied.db_null_false++;
   }
-  for (const item of plan.markResendUnsubscribed) {
-    await patchResendUnsubscribed(env, item.contact);
-    await patchGrowthLeadUnsubscribed(env, item.contact.email);
-    applied.resend_unsubscribed += 1;
-    applied.growth_leads_unsubscribed += 1;
-    if (syncBrevoSuppressions) {
-      await brevoSuppress(env, item.contact);
-      applied.brevo_suppressed += 1;
-    }
+  for (const item of plan.removeFromSegment) {
+    await removeContactFromSegment(env, item.contact);
+    applied.segment_removed++;
+  }
+  for (const item of plan.addToSegment) {
+    await addContactToSegment(env, item.contact);
+    applied.segment_added++;
   }
   for (const profile of plan.createResendContacts) {
-    try {
-      await createResendContact(env, profile);
-      applied.resend_created += 1;
-    } catch (error) {
-      console.error(
-        `Error creating Resend contact for ${profile.email}:`,
-        error.message,
-      );
-    }
+    // Fail closed on API errors, and never suppress a previous global opt-out.
+    await createResendContact(env, profile);
+    applied.resend_created++;
   }
-
   return applied;
 }
 
@@ -352,59 +322,52 @@ function sample(list, pick) {
 }
 
 const env = await loadEnv();
-const [profiles, resendContacts] = await Promise.all([
-  loadProfiles(env),
-  loadResendContacts(env),
+const [profiles, segmentContacts, globalContacts] = await Promise.all([
+  loadProfiles(env), loadResendContacts(env, true), loadResendContacts(env, false),
 ]);
-const plan = buildPlan(profiles, resendContacts);
+const plan = buildPlan(profiles, segmentContacts, globalContacts);
 
 const report = {
   mode: apply ? "apply" : "dry-run",
   brevo_suppressions: syncBrevoSuppressions ? "enabled" : "disabled",
   counts: {
     supabase_profiles_with_email: profiles.length,
-    supabase_newsletter_true: profiles.filter(
-      (profile) => profile.newsletter_subscribed === true,
-    ).length,
-    supabase_newsletter_false: profiles.filter(
-      (profile) => profile.newsletter_subscribed === false,
-    ).length,
-    supabase_newsletter_null: profiles.filter(
-      (profile) => profile.newsletter_subscribed === null,
-    ).length,
-    resend_contacts: resendContacts.length,
-    resend_active: resendContacts.filter(
-      (contact) => contact.unsubscribed !== true,
-    ).length,
-    resend_unsubscribed: resendContacts.filter(
-      (contact) => contact.unsubscribed === true,
-    ).length,
+    supabase_newsletter_true: profiles.filter(p => p.newsletter_subscribed === true).length,
+    resend_segment_contacts: segmentContacts.length,
+    resend_segment_active: segmentContacts.filter(c => c.unsubscribed !== true).length,
+    resend_global_contacts: globalContacts.length,
   },
   plan: {
     db_from_resend_unsubscribes: plan.markDbUnsubscribed.length,
     db_null_to_false: plan.markDbNullFalse.length,
-    resend_to_unsubscribe: plan.markResendUnsubscribed.length,
+    segment_to_remove: plan.removeFromSegment.length,
+    segment_to_add: plan.addToSegment.length,
     resend_to_create: plan.createResendContacts.length,
   },
   samples: {
-    db_from_resend_unsubscribes: sample(
-      plan.markDbUnsubscribed,
-      (item) => item.profile.email,
-    ),
-    db_null_to_false: sample(plan.markDbNullFalse, (profile) => profile.email),
-    resend_to_unsubscribe: sample(
-      plan.markResendUnsubscribed,
-      (item) => item.contact.email,
-    ),
-    resend_to_create: sample(
-      plan.createResendContacts,
-      (profile) => profile.email,
-    ),
+    db_from_resend_unsubscribes: sample(plan.markDbUnsubscribed, x => x.profile.email),
+    segment_to_remove: sample(plan.removeFromSegment, x => x.contact.email),
+    segment_to_add: sample(plan.addToSegment, x => x.profile.email),
+    resend_to_create: sample(plan.createResendContacts, x => x.email),
   },
 };
 
 if (apply) {
   report.applied = await applyPlan(env, plan);
+  const [verifiedProfiles, verifiedSegment, verifiedGlobal] = await Promise.all([
+    loadProfiles(env), loadResendContacts(env, true), loadResendContacts(env, false),
+  ]);
+  const remainder = buildPlan(verifiedProfiles, verifiedSegment, verifiedGlobal);
+  report.verification = {
+    remaining_db_unsubscribes: remainder.markDbUnsubscribed.length,
+    remaining_segment_removals: remainder.removeFromSegment.length,
+    remaining_segment_additions: remainder.addToSegment.length,
+    remaining_contacts_to_create: remainder.createResendContacts.length,
+  };
+  if (Object.values(report.verification).some(x => x !== 0)) {
+    console.error("Sincronización incompleta; envío debe continuar bloqueado", JSON.stringify(report.verification));
+    process.exitCode = 1;
+  }
 }
 
 console.log(JSON.stringify(report, null, 2));
