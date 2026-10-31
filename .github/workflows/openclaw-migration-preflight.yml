@@ -90,3 +90,44 @@ jobs:
           printf 'service_manager_sudo_works='
           if sudo -n systemctl show openclaw-gateway.service -p ActiveState --value >/dev/null; then echo yes; else echo no; fi
           REMOTE
+
+      - name: Map active process to correct OpenClaw state (read only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo 'service_user:'
+          systemctl show openclaw-gateway.service -p User --value
+          echo 'working_directory:'
+          systemctl show openclaw-gateway.service -p WorkingDirectory --value
+          pid="$(systemctl show openclaw-gateway.service -p MainPID --value)"
+          if [[ "$pid" =~ ^[0-9]+$ && "$pid" -gt 0 ]]; then
+            printf 'main_pid_runtime='
+            sudo -n readlink -f "/proc/$pid/exe" || true
+            printf 'main_pid_cwd='
+            sudo -n readlink -f "/proc/$pid/cwd" || true
+            echo 'select_process_environment_paths:'
+            sudo -n cat "/proc/$pid/environ" | tr '\0' '\n' | grep -E '^(HOME|OPENCLAW_STATE_DIR|OPENCLAW_CONFIG_PATH|XDG_CONFIG_HOME)=' || true
+          fi
+          echo 'candidate_config_metadata:'
+          while IFS= read -r p; do
+            [[ -f "$p" ]] || continue
+            sudo -n stat -c '%n owner=%U bytes=%s modified=%y' "$p"
+            state="$(dirname "$p")"
+            printf 'state_size_mib='
+            sudo -n du -sm "$state" | cut -f1
+            printf 'state_db_count='
+            sudo -n find "$state" -maxdepth 5 -name '*.sqlite' -type f | wc -l
+          done < <(sudo -n find /home /opt /root -maxdepth 5 -type f -name openclaw.json 2>/dev/null | sort -u)
+          echo 'disk_free_mib:'
+          df -Pm /opt /home /tmp | awk 'NR==1{print;next}!seen[$1]++{print}'
+          echo 'tools_available:'
+          for cmd in tar gzip sha256sum rsync sqlite3 npm node; do
+            if command -v "$cmd" >/dev/null 2>&1; then echo "$cmd=yes"; else echo "$cmd=no"; fi
+          done
+          echo 'npm_root:'
+          npm root -g
+          echo 'cli_binary:'
+          readlink -f "$(command -v openclaw)"
+          REMOTE
