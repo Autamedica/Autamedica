@@ -9,6 +9,8 @@ const MEDICAL_PROFESSION_SYSTEMS = new Set([
   'http://fhir.msal.gov.ar/ValueSet/Profesiones_REFEPS',
   'http://fhir.msal.gob.ar/ValueSet/Profesiones_REFEPS',
   'http://fhir.msal.gov.ar/Profesiones',
+  'http://fhir.msal.gob.ar/Profesiones',
+  'http://fhir.msal.gov.ar/core/CodeSystem/ProfesionesREFEPS',
   'http://fhir.msal.gob.ar/core/CodeSystem/ProfesionesREFEPS',
 ]);
 
@@ -35,9 +37,9 @@ type Practitioner = {
   qualification?: Qualification[];
 };
 
-function fail(code: string, upstreamStatus?: number, issuerSummary?: string): never {
+function fail(code: string, upstreamStatus?: number, issuerSummary?: string, professionSummary?: string): never {
   // Never include upstream bodies: authentication responses can contain secrets.
-  throw Object.assign(new Error(code), { code, upstreamStatus, issuerSummary });
+  throw Object.assign(new Error(code), { code, upstreamStatus, issuerSummary, professionSummary });
 }
 
 function normalized(value: string): string {
@@ -190,7 +192,27 @@ export class RefepsApiValidator implements IRefepsValidator {
     }
     const license = jurisdictionMatches.find((q) => q.code?.coding?.some((c) => c.code === '1'
       && !!c.system && MEDICAL_PROFESSION_SYSTEMS.has(c.system.replace(/^https:/, 'http:').replace(/\/$/, ''))));
-    if (!license) fail('REFEPS_MEDICAL_PROFESSION_UNCONFIRMED');
+    if (!license) {
+      // Only terminology metadata; never echo full resources or query strings.
+      const codings = jurisdictionMatches.flatMap((q) => q.code?.coding ?? []).slice(0, 4);
+      const summaries = codings.map((coding) => {
+        const code = typeof coding.code === 'string' && /^[A-Za-z0-9._-]{1,30}$/.test(coding.code)
+          ? coding.code : 'ausente o no interpretable';
+        let system = 'ausente o no reconocido';
+        if (typeof coding.system === 'string') {
+          try {
+            const uri = new URL(coding.system);
+            if (['http:', 'https:'].includes(uri.protocol) && ['fhir.msal.gov.ar', 'fhir.msal.gob.ar'].includes(uri.hostname)
+              && !uri.username && !uri.password && /^[A-Za-z0-9/_-]{1,140}$/.test(uri.pathname)) {
+              system = `${uri.protocol}//${uri.hostname}${uri.pathname}`;
+            }
+          } catch { /* Invalid terminology URI: keep the bounded diagnostic. */ }
+        }
+        return `código ${code}, sistema ${system}`;
+      });
+      fail('REFEPS_MEDICAL_PROFESSION_UNCONFIRMED', undefined, undefined,
+        summaries.join('; ') || 'Sin codificación de profesión en la matrícula coincidente');
+    }
     const enabled = license.extension?.find((e) => e.url?.endsWith('/MatriculaHabilitada'))?.valueBoolean;
     if (typeof practitioner.active !== 'boolean' || typeof enabled !== 'boolean') fail('REFEPS_LICENSE_STATUS_UNKNOWN');
     const isValid = practitioner.active && enabled;

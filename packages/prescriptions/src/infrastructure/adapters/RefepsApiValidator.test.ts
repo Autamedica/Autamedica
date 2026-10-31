@@ -42,6 +42,8 @@ describe('official REFEPS verification', () => {
     'http://fhir.msal.gov.ar/ValueSet/Profesiones_REFEPS',
     'http://fhir.msal.gob.ar/ValueSet/Profesiones_REFEPS',
     'http://fhir.msal.gov.ar/Profesiones',
+    'http://fhir.msal.gob.ar/Profesiones',
+    'http://fhir.msal.gov.ar/core/CodeSystem/ProfesionesREFEPS',
     'http://fhir.msal.gob.ar/core/CodeSystem/ProfesionesREFEPS',
     'https://fhir.msal.gob.ar/core/CodeSystem/ProfesionesREFEPS/',
   ])('recognizes medical code 1 in the documented namespace %s', async (system) => {
@@ -152,6 +154,31 @@ describe('official REFEPS verification', () => {
     mockResponses(undefined, p);
     await expect(create().validateMatricula('123456', 'MN')).rejects.toMatchObject({
       code: 'REFEPS_LICENSE_JURISDICTION_MISMATCH', issuerSummary: 'OTHER MINISTRY',
+    });
+  });
+  it('reports the profession coding without returning query strings from its URI', async () => {
+    const p = practitioner();
+    Object.assign(p.qualification[0].code.coding[0], {
+      system: 'https://fhir.msal.gob.ar/Profesiones?secret=do-not-disclose', code: '2',
+    });
+    mockResponses(undefined, p);
+    const error = await create().validateMatricula('123456', 'MN').catch((caught: unknown) => caught);
+    expect(error).toMatchObject({code: 'REFEPS_MEDICAL_PROFESSION_UNCONFIRMED',
+      professionSummary: 'código 2, sistema https://fhir.msal.gob.ar/Profesiones'});
+    expect(JSON.stringify(error)).not.toContain('do-not-disclose');
+  });
+  it.each(['https://untrusted.invalid/Profesiones', 'not-a-uri', 'https://secret@fhir.msal.gob.ar/Profesiones'])('does not echo unsafe terminology URIs (%s)', async (system) => {
+    const p = practitioner(); Object.assign(p.qualification[0].code.coding[0], {system,code:'2'});
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN')).rejects.toMatchObject({
+      code: 'REFEPS_MEDICAL_PROFESSION_UNCONFIRMED',
+      professionSummary: 'código 2, sistema ausente o no reconocido',
+    });
+  });
+  it('reports missing profession coding explicitly', async () => {
+    const p = practitioner(); p.qualification[0].code.coding = []; mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN')).rejects.toMatchObject({
+      professionSummary: 'Sin codificación de profesión en la matrícula coincidente',
     });
   });
   it('does not call the registry with missing credentials or approve from a fallback', async () => {
