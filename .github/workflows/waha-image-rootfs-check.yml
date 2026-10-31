@@ -49,6 +49,12 @@ jobs:
               echo "missing=$path"
             fi
           done
+          echo "lib_root_dir=$(ls -ld "$mnt/lib" 2>/dev/null | cut -c1-160 || true)"
+          echo "lib64_root_dir=$(ls -ld "$mnt/lib64" 2>/dev/null | cut -c1-160 || true)"
+          echo "ld_file_symlink=$(ls -l "$mnt/lib64/ld-linux-x86-64.so.2" 2>/dev/null | cut -c1-170 || true)"
+          echo "ld_symlink_target=$(readlink "$mnt/lib64/ld-linux-x86-64.so.2" 2>/dev/null || echo not_symlink)"
+          echo "ld_in_lib=$(test -e "$mnt/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2" && echo exists || echo absent)"
+          echo "ld_in_usr_lib=$(test -e "$mnt/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2" && echo exists || echo absent)"
           echo "image_shell_links=$(readlink "$mnt/bin/sh" 2>/dev/null || echo regular)"
           echo "dash_binary=$(test -f "$mnt/bin/dash" && echo exists || echo missing)"
           echo "ld_linux_loader=$(test -e "$mnt/lib64/ld-linux-x86-64.so.2" && echo exists || echo missing)"
