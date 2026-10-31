@@ -1,0 +1,70 @@
+name: OpenClaw Backup Availability Audit
+
+on:
+  push:
+    branches: [feat/openclaw-chatgpt-mcp-relay-20261031]
+    paths: ['.github/workflows/openclaw-backup-availability.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Prepare pinned SSH identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_openclaw
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/oci_openclaw ~/.ssh/known_hosts
+      - name: Inventory existing recovery options without changing VM
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=12 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo 'gateway_state:'
+          systemctl is-active openclaw-gateway.service || true
+          curl -sS --max-time 5 -o /dev/null -w 'http=%{http_code}\n' http://127.0.0.1:18789/readyz || true
+          echo 'disk_free_mib:'
+          df -Pm / | awk 'NR==2 {print $4}'
+          echo 'oci_cli_binary:'
+          if command -v oci >/dev/null 2>&1; then echo present; else echo absent; fi
+          echo 'instance_principal_metadata_service:'
+          if [[ -d /etc/oracle-cloud-agent ]]; then echo agent_directory_present; else echo agent_directory_absent; fi
+          echo 'snapshot_tools:'
+          for program in lsblk lvm zfs btrfs; do
+            if command -v "$program" >/dev/null 2>&1; then echo "$program=present"; else echo "$program=absent"; fi
+          done
+          echo 'mounted_filesystems:'
+          findmnt -rno SOURCE,TARGET,FSTYPE | head -30
+          echo 'backup_locations_non_sensitive_metadata:'
+          for p in /opt/openclaw-recovery /opt/backups/openclaw /var/backups/openclaw /root/Backups/openclaw /opt/openclaw/Backups/openclaw; do
+            if sudo -n test -d "$p"; then
+              printf '%s=directory\n' "$p"
+              sudo -n find "$p" -maxdepth 2 -type f \( -name '*.tgz' -o -name '*.tar.gz' -o -name '*.sha256' \) -printf 'archive_type=%f bytes=%s\n' | head -15
+            else
+              printf '%s=absent\n' "$p"
+            fi
+          done
+          echo 'app_snapshot_candidates_count:'
+          sudo -n find /opt/openclaw /opt/autamedica -maxdepth 3 -type f \( -name '*backup*.tar.gz' -o -name '*snapshot*.tgz' \) 2>/dev/null | wc -l
+          echo 'node_runtimes:'
+          for p in /opt/nodejs/bin/node /usr/local/bin/node /usr/bin/node; do
+            if sudo -n test -x "$p"; then
+              printf '%s=' "$p"
+              "$p" --version || true
+            fi
+          done
+          REMOTE
