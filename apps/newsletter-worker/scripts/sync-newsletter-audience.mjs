@@ -145,8 +145,9 @@ function buildPlan(profiles, segmentContacts, globalContacts) {
   const markDbNullFalse = profiles.filter(p => p.newsletter_subscribed === null);
   // A globally unsubscribed contact must remain unsubscribed. Never revive them.
   for (const email of dbActive) {
-    const contact = globalByEmail.get(email) || segmentByEmail.get(email);
-    if (contact?.unsubscribed === true) {
+    const globallyUnsubscribed = globalByEmail.get(email)?.unsubscribed === true;
+    const segmentUnsubscribed = segmentByEmail.get(email)?.unsubscribed === true;
+    if (globallyUnsubscribed || segmentUnsubscribed) {
       markDbUnsubscribedByEmail.set(email, { profile: profileByEmail.get(email), reason: "resend_unsubscribed" });
       dbActive.delete(email);
     }
