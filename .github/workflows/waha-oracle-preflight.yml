@@ -64,6 +64,8 @@ jobs:
           echo "waha_image_present=$(sudo -n podman image exists docker.io/devlikeapro/waha:gows-2026.10.1 && echo yes || echo no)"
           echo "podman_process_count=$(pgrep -c -x podman || true)"
           echo "pull_log_bytes=$(sudo -n stat -c %s /tmp/autamedica-waha-pull.log 2>/dev/null || echo 0)"
+          echo "podman_pull_process=$(ps -C podman -o etime=,stat=,args= 2>/dev/null | grep -E 'pull|NAME' | head -n1 | cut -c1-170 || true)"
+          echo "pull_log_tail=$(sudo -n tail -n 2 /tmp/autamedica-waha-pull.log 2>/dev/null | tr '\\n' ';' | cut -c1-280 || true)"
           echo "podman_storage_kib=$(sudo -n du -sk /var/lib/containers/storage 2>/dev/null | awk '{print $1}' || true)"
 
           echo "resolver_symlink=$(readlink /etc/resolv.conf || echo regular_file)"
