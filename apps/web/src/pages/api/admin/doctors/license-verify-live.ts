@@ -85,6 +85,8 @@ async function forwardOfficialVerification(request: Request, body: RequestBody):
   }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30_000);
+  let upstreamStatus: number | undefined;
+  let upstreamContentType: string | null = null;
   try {
     // Fixed first-party destination; its backend authenticates and authorizes the caller.
     // No service credential or caller-selected destination is forwarded.
@@ -92,6 +94,8 @@ async function forwardOfficialVerification(request: Request, body: RequestBody):
       method: 'POST', headers, body: JSON.stringify(body), redirect: 'manual',
       signal: controller.signal,
     });
+    upstreamStatus = response.status;
+    upstreamContentType = response.headers.get('Content-Type');
     const payload: unknown = await response.json();
     if (!payload || typeof payload !== 'object' || !('success' in payload)
       || typeof payload.success !== 'boolean' || (response.status >= 300 && response.status < 400)) {
@@ -102,6 +106,9 @@ async function forwardOfficialVerification(request: Request, body: RequestBody):
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     });
   } catch {
+    logger.warn('[license-verify-live] Canonical proxy incomplete', {
+      upstreamStatus, upstreamContentType, timedOut: controller.signal.aborted,
+    });
     return jsonFail('SERVICE_UNAVAILABLE',
       body.persist === false
         ? 'No se pudo completar la consulta oficial de REFEPS. Intentá nuevamente.'
