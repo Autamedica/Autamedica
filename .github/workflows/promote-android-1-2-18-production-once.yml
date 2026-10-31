@@ -1,0 +1,115 @@
+name: One-time Google Play production promotion v1.2.18
+
+on:
+  push:
+    branches:
+      - release/android-1-2-18-production-20261031
+    paths:
+      - .github/workflows/promote-android-1-2-18-production-once.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: google-play-production-promotion-v28
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Verify and promote existing internal code 28
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Authenticate and promote only verified code 28
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          test -n "${GOOGLE_PLAY_SERVICE_ACCOUNT:-}" || { echo 'BLOCKED: Google Play service account secret unavailable'; exit 1; }
+          python3 -m pip install --quiet google-auth requests
+          python3 - <<'PY'
+          import json, os, sys
+          from google.auth.transport.requests import AuthorizedSession
+          from google.oauth2 import service_account
+
+          PACKAGE = "com.autamedica.android"
+          TARGET = "28"
+          SCOPE = "https://www.googleapis.com/auth/androidpublisher"
+          credentials = service_account.Credentials.from_service_account_info(
+              json.loads(os.environ["GOOGLE_PLAY_SERVICE_ACCOUNT"]), scopes=[SCOPE]
+          )
+          session = AuthorizedSession(credentials)
+          base = f"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{PACKAGE}"
+          edit_response = session.post(f"{base}/edits", json={})
+          edit_response.raise_for_status()
+          edit_id = edit_response.json()["id"]
+          edit_base = f"{base}/edits/{edit_id}"
+          committed = False
+
+          def read_track(track):
+              response = session.get(f"{edit_base}/tracks/{track}", timeout=30)
+              if response.status_code == 404:
+                  return []
+              response.raise_for_status()
+              return response.json().get("releases", [])
+
+          try:
+              internal = read_track("internal")
+              production = read_track("production")
+              internal_codes = [str(c) for r in internal for c in r.get("versionCodes", [])]
+              prod_codes = [int(c) for r in production for c in r.get("versionCodes", [])]
+              print(f"Internal versionCodes: {internal_codes}")
+              print(f"Production versionCodes: {prod_codes}")
+
+              if prod_codes and max(prod_codes) >= int(TARGET):
+                  print("NO-OP: Production already has code 28 or a newer code; will not roll back.")
+                  sys.exit(0)
+
+              candidates = [r for r in internal if TARGET in [str(c) for c in r.get("versionCodes", [])]]
+              if len(candidates) != 1 or candidates[0].get("status") != "completed":
+                  raise RuntimeError("BLOCKED: Target code 28 must exist in completed internal release")
+              src = candidates[0]
+              release = {
+                  "name": src.get("name") or "AutaMedica 1.2.18",
+                  "versionCodes": [TARGET],
+                  "status": "completed",
+              }
+              if src.get("releaseNotes"):
+                  release["releaseNotes"] = src["releaseNotes"]
+              print(f"Promoting previously uploaded, signed code {TARGET} from internal to production 100%")
+              response = session.put(
+                  f"{edit_base}/tracks/production",
+                  json={"track": "production", "releases": [release]},
+                  timeout=30,
+              )
+              response.raise_for_status()
+              commit = session.post(f"{edit_base}:commit", json={}, timeout=30)
+              commit.raise_for_status()
+              committed = True
+              print("Google Play edit COMMITTED; Google Play review/managed publishing may still apply.")
+          finally:
+              if not committed:
+                  session.delete(f"{base}/edits/{edit_id}", timeout=15)
+
+          # Read the committed track again; never infer public availability from API commit alone.
+          check = session.post(f"{base}/edits", json={}, timeout=30)
+          check.raise_for_status()
+          check_id = check.json()["id"]
+          try:
+              response = session.get(f"{base}/edits/{check_id}/tracks/production", timeout=30)
+              response.raise_for_status()
+              releases = response.json().get("releases", [])
+              found = [
+                  r for r in releases
+                  if TARGET in [str(code) for code in r.get("versionCodes", [])]
+                  and r.get("status") == "completed"
+              ]
+              print("FINAL: Production versionCodes: " + str([
+                  c for r in releases for c in r.get("versionCodes", [])
+              ]))
+              if not found:
+                  raise RuntimeError("Production code 28 not confirmed after committing")
+              print("SUCCESS: Google Play production track contains completed code 28.")
+          finally:
+              session.delete(f"{base}/edits/{check_id}", timeout=15)
+          PY
