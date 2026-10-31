@@ -1,5 +1,5 @@
 -- Read-only regression against existing application data; temporary state always rolls back.
-BEGIN;
+BEGIN ISOLATION LEVEL REPEATABLE READ;
 CREATE TEMP TABLE helper_probe_expected AS
 SELECT (SELECT count(*) FROM public.doctors WHERE active=true) doctors,
        (SELECT count(*) FROM public.companies WHERE active=true) companies,
