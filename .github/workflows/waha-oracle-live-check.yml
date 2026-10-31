@@ -36,6 +36,8 @@ jobs:
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=10 -o ConnectTimeout=15 -i ~/.ssh/key "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE' | tee status.txt
           set -euo pipefail
           echo "openclaw=$(systemctl is-active openclaw-gateway.service || true)"
+          echo "debug_probe_log_tail:"
+          sudo -n tail -n 20 /tmp/autamedica-waha-debug-probe.log 2>/dev/null | grep -v -E "environment|_TOKEN=|_KEY=|password|secret" | sed -E 's/([A-Za-z0-9_-]{28,})/[redacted-long-value]/g' | cut -c1-250 || true
           echo "check_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           echo "pull_process_elapsed=$(ps -C podman -o etimes= | head -n 1 | xargs || true)"
           echo "podman_processes=$(ps -C podman -o etime=,stat=,comm= | tr '\n' ';' | cut -c1-230)"
