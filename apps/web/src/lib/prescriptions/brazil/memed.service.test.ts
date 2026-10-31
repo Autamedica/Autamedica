@@ -9,6 +9,7 @@ vi.mock('@autamedica/shared', () => ({
 }));
 
 import { MemedService } from './memed.service';
+import { logger } from '@autamedica/shared';
 
 describe('MemedService', () => {
   const originalEnv = process.env;
@@ -186,6 +187,60 @@ describe('MemedService', () => {
   it('rejects arbitrary hosts before credentials can be sent', () => {
     expect(() => new MemedService({ MEMED_API_URL: 'https://other.example/v1' }))
       .toThrow('memed_environment_configuration_invalid');
+  });
+
+
+  const syntheticDoctor = {
+    externalId: 'doc-test', nome: 'Synthetic', sobrenome: 'Doctor',
+    cpf: '12345678900', crm: '123456', uf: 'SP', dataNascimento: '01/01/1980',
+  };
+  const credentials = { MEMED_API_KEY: 'test-key', MEMED_SECRET_KEY: 'test-secret' };
+
+  it.each(['lookup', 'registration'])('sanitizes invalid JSON during %s without logging provider fragments', async (stage) => {
+    const invalidResponse = { ok: true, json: async () => {
+      throw new SyntaxError('provider-private-fragment in malformed response');
+    } };
+    const fetchMock = vi.fn();
+    if (stage === 'registration') fetchMock.mockResolvedValueOnce({ ok: false, status: 404 });
+    fetchMock.mockResolvedValueOnce(invalidResponse);
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(new MemedService(credentials).getOrCreateDoctorToken(syntheticDoctor))
+      .rejects.toThrow('memed_provider_response_invalid');
+    expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain('provider-private-fragment');
+    expect(fetchMock).toHaveBeenCalledTimes(stage === 'registration' ? 2 : 1);
+  });
+
+  it.each([null, [], {}, { data: [] }, { data: { attributes: [] } }])(
+    'rejects invalid provider envelope %j without registering a doctor', async (body) => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => body });
+      vi.stubGlobal('fetch', fetchMock);
+      await expect(new MemedService(credentials).getOrCreateDoctorToken(syntheticDoctor))
+        .rejects.toThrow('memed_provider_response_invalid');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([null, '', '   ', 123, true, {}, []])('rejects invalid doctor token %j', async (token) => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({
+      data: { attributes: { ...syntheticDoctor, token } },
+    }) });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(new MemedService(credentials).getOrCreateDoctorToken(syntheticDoctor))
+      .rejects.toThrow('memed_token_missing_in_response');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('validates the registered doctor response using the same identity checks', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({
+        data: { attributes: { cpf: syntheticDoctor.cpf, crm: syntheticDoctor.crm,
+          uf: syntheticDoctor.uf, token: 'synthetic-token', nome: 'Synthetic', sobrenome: 'Doctor' } },
+      }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await new MemedService(credentials).getOrCreateDoctorToken(syntheticDoctor);
+    expect(result).toEqual({ token: 'synthetic-token',
+      doctor: { nome: 'Synthetic Doctor', crm: syntheticDoctor.crm, uf: syntheticDoctor.uf } });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
 });
