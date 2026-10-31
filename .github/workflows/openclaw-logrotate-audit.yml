@@ -1,9 +1,6 @@
 name: OpenClaw Log Rotation Audit
 
 on:
-  push:
-    branches: [feat/openclaw-chatgpt-mcp-relay-20261031]
-    paths: ['.github/workflows/openclaw-logrotate-audit.yml']
   workflow_dispatch:
 
 permissions:
