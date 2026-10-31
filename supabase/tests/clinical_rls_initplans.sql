@@ -27,7 +27,7 @@ BEGIN
       RAISE EXCEPTION 'Clinical user policy is not scoped to authenticated: %',p.polname;
     END IF;
     IF p.polname='service_role_full_access_clinical_states'
-      AND (p.polroles <> ARRAY['service_role'::regrole::oid] OR p.qual<>'true' OR p.check_expr<>'true') THEN
+      AND (p.polroles <> ARRAY['service_role'::regrole::oid] OR p.qual IS DISTINCT FROM 'true' OR p.check_expr IS DISTINCT FROM 'true') THEN
       RAISE EXCEPTION 'Clinical service policy contract changed';
     END IF;
   END LOOP;
