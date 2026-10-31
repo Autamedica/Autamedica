@@ -82,14 +82,16 @@ BEGIN
   VALUES (v_doctor,v_user,'TEST-' || v_doctor,'General',true),
          (v_other_doctor,NULL,'TEST-' || v_other_doctor,'General',true);
   INSERT INTO public.patients(id,active) VALUES(v_patient,true);
-  INSERT INTO public.appointments(id,doctor_id,patient_id,start_time,type,status,deleted_at)
+  -- Triggers are disabled in this isolated authorization fixture; explicitly
+  -- supply a finite valid end_time so the atomic booking constraint remains active.
+  INSERT INTO public.appointments(id,doctor_id,patient_id,start_time,end_time,type,status,deleted_at)
   VALUES
-    (v_guest,v_doctor,NULL,now() + interval '1 day','telemedicine','scheduled',NULL),
-    (v_registered,v_doctor,v_patient,now() + interval '2 days','telemedicine','confirmed',NULL),
-    (v_other,v_other_doctor,NULL,now() + interval '3 days','telemedicine','scheduled',NULL),
-    (v_deleted,v_doctor,NULL,now() + interval '4 days','telemedicine','scheduled',now()),
-    (v_cancelled,v_doctor,NULL,now() + interval '5 days','telemedicine','cancelled',NULL),
-    (v_inperson,v_doctor,NULL,now() + interval '6 days','consultation','scheduled',NULL);
+    (v_guest,v_doctor,NULL,now() + interval '1 day',now() + interval '1 day 30 minutes','telemedicine','scheduled',NULL),
+    (v_registered,v_doctor,v_patient,now() + interval '2 days',now() + interval '2 days 30 minutes','telemedicine','confirmed',NULL),
+    (v_other,v_other_doctor,NULL,now() + interval '3 days',now() + interval '3 days 30 minutes','telemedicine','scheduled',NULL),
+    (v_deleted,v_doctor,NULL,now() + interval '4 days',now() + interval '4 days 30 minutes','telemedicine','scheduled',now()),
+    (v_cancelled,v_doctor,NULL,now() + interval '5 days',now() + interval '5 days 30 minutes','telemedicine','cancelled',NULL),
+    (v_inperson,v_doctor,NULL,now() + interval '6 days',now() + interval '6 days 30 minutes','consultation','scheduled',NULL);
   PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_user,'role','authenticated')::text,true);
 
   IF public.can_start_call(v_doctor,NULL,v_guest) IS DISTINCT FROM true THEN
