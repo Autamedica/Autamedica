@@ -137,6 +137,7 @@ export class RefepsApiValidator implements IRefepsValidator {
       && (federalId ? p.identifier?.some((i) => isRefepsSystem(i.system) && i.value === refepsId) : p.id === refepsId));
     if (matches.length !== 1) fail('REFEPS_IDENTITY_MISMATCH');
     const practitioner = matches[0];
+    if (!practitioner) fail('REFEPS_IDENTITY_MISMATCH');
     const registryId = practitioner.identifier?.find((i) => isRefepsSystem(i.system))?.value;
     if (!registryId || !/^\d{12}$/.test(registryId)) fail('REFEPS_INVALID_RESPONSE');
     const cleanLicense = (value: string): string => value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
