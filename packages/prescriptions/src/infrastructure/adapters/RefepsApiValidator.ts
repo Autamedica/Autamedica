@@ -5,7 +5,7 @@ const REFEPS_SYSTEM = 'https://sisa.msal.gov.ar/REFEPS';
 const TIMEOUT_MS = 10_000;
 // Published REFEPS example and terminology contracts use these distinct URIs.
 // Match the namespace as well as code 1; unrelated systems can reuse that code.
-const MEDICAL_PROFESSION_SYSTEMS = new Set([
+const LEGACY_MEDICAL_PROFESSION_SYSTEMS = new Set([
   'http://fhir.msal.gov.ar/ValueSet/Profesiones_REFEPS',
   'http://fhir.msal.gob.ar/ValueSet/Profesiones_REFEPS',
   'http://fhir.msal.gov.ar/Profesiones',
@@ -13,6 +13,9 @@ const MEDICAL_PROFESSION_SYSTEMS = new Set([
   'http://fhir.msal.gov.ar/core/CodeSystem/ProfesionesREFEPS',
   'http://fhir.msal.gob.ar/core/CodeSystem/ProfesionesREFEPS',
 ]);
+// Current Bus response, cross-checked against the same official public REFEPS record:
+// this catalogue uses 35 for medicine, unlike the legacy catalogue's code 1.
+const CURRENT_MEDICAL_PROFESSION_SYSTEM = 'http://fhir.msal.gob.ar/CodeSystem/profesionesREFEPSCS';
 
 type Config = {
   baseUrl?: string;
@@ -22,9 +25,10 @@ type Config = {
   refepsId?: string;
 };
 type Identifier = { system?: string; value?: string; assigner?: { display?: string } };
+type ProfessionCoding = { system?: string; code?: string; display?: string };
 type Qualification = {
   issuer?: { display?: string };
-  code?: { text?: string; coding?: Array<{ system?: string; code?: string; display?: string }> };
+  code?: { text?: string; coding?: ProfessionCoding[] };
   identifier?: Identifier[];
   extension?: Array<{ url?: string; valueBoolean?: boolean }>;
 };
@@ -44,6 +48,16 @@ function fail(code: string, upstreamStatus?: number, issuerSummary?: string, pro
 
 function normalized(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function isMedicalProfession(coding: ProfessionCoding): boolean {
+  const system = coding.system?.replace(/^https:/, 'http:').replace(/\/$/, '');
+  if (!system) return false;
+  const medicalCode = system === CURRENT_MEDICAL_PROFESSION_SYSTEM ? '35'
+    : LEGACY_MEDICAL_PROFESSION_SYSTEMS.has(system) ? '1' : undefined;
+  if (!medicalCode || coding.code !== medicalCode) return false;
+  // A recognized code cannot override an explicitly contradictory profession label.
+  return !coding.display?.trim() || ['medico', 'medica', 'medico/a'].includes(normalized(coding.display));
 }
 
 function matchesIssuer(identifier: Identifier, qualification: Qualification, type: 'MN' | 'MP', province?: string): boolean {
@@ -190,8 +204,7 @@ export class RefepsApiValidator implements IRefepsValidator {
       fail('REFEPS_LICENSE_JURISDICTION_MISMATCH', undefined,
         [...new Set(labels)].slice(0, 2).join(' / ') || 'Sin nombre de organismo emisor');
     }
-    const license = jurisdictionMatches.find((q) => q.code?.coding?.some((c) => c.code === '1'
-      && !!c.system && MEDICAL_PROFESSION_SYSTEMS.has(c.system.replace(/^https:/, 'http:').replace(/\/$/, ''))));
+    const license = jurisdictionMatches.find((q) => q.code?.coding?.some(isMedicalProfession));
     if (!license) {
       // Only terminology metadata; never echo full resources or query strings.
       const codings = jurisdictionMatches.flatMap((q) => q.code?.coding ?? []).slice(0, 4);
