@@ -7,8 +7,8 @@ import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { resolveBusTokenSecret, resolveBusDomainUrl } from '@/lib/runtime-env';
-import { RefepsApiValidator, LocalRefepsValidator } from '@autamedica/prescriptions';
-import { badRequest, internalError, jsonOk, unauthorized } from '@/lib/api-helpers';
+import { RefepsApiValidator } from '@autamedica/prescriptions';
+import { badRequest, internalError, jsonOk, jsonFail, unauthorized } from '@/lib/api-helpers';
 
 type RequestBody = {
   doctorId?: string;
@@ -71,27 +71,80 @@ function firstText(...values: Array<unknown>): string | null {
   return null;
 }
 
-export const POST: APIRoute = async ({ request, locals }) => {
-  const admin = createAstroAdminClient(locals.runtime?.env);
-  const auth = await assertAdmin(request, admin, locals);
-  if (!auth.ok || !auth.userId) return unauthorized('admin role required');
+const CANONICAL_VERIFICATION_URL = 'https://www.autamedica.com/api/admin/doctors/license-verify-live';
+const PROXY_HOSTS = new Set([
+  'autamedica.com', 'autamedica-admin.pages.dev', 'autamedica-admin-5r9.pages.dev',
+  'doctor.autamedica.com', 'autamedica-doctors-az6.pages.dev',
+]);
 
+async function forwardOfficialVerification(request: Request, body: RequestBody): Promise<Response> {
+  const headers = new Headers({ 'Content-Type': 'application/json' });
+  for (const name of ['authorization', 'cookie']) {
+    const value = request.headers.get(name);
+    if (value) headers.set(name, value);
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  try {
+    // Fixed first-party destination; its backend authenticates and authorizes the caller.
+    // No service credential or caller-selected destination is forwarded.
+    const response = await fetch(CANONICAL_VERIFICATION_URL, {
+      method: 'POST', headers, body: JSON.stringify(body), redirect: 'manual',
+      signal: controller.signal,
+    });
+    const payload: unknown = await response.json();
+    if (!payload || typeof payload !== 'object' || !('success' in payload)
+      || typeof payload.success !== 'boolean' || (response.status >= 300 && response.status < 400)) {
+      throw new Error('REFEPS_PROXY_INVALID_RESPONSE');
+    }
+    return new Response(JSON.stringify(payload), {
+      status: response.status,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    });
+  } catch {
+    return jsonFail('SERVICE_UNAVAILABLE',
+      'No se pudo completar la consulta oficial de REFEPS. Intentá nuevamente. No se modificó la validación.',
+      503, { reason: controller.signal.aborted ? 'REFEPS_PROXY_TIMEOUT' : 'REFEPS_PROXY_FAILED' });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export const POST: APIRoute = async ({ request, locals }) => {
   let body: RequestBody;
   try {
-    body = await request.json();
+    const parsed: unknown = await request.json();
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return badRequest('invalid JSON object');
+    const input = parsed as RequestBody;
+    if (input.persist !== undefined && typeof input.persist !== 'boolean') return badRequest('persist must be boolean');
+    body = {
+      doctorId: isNonEmptyString(input.doctorId) ? input.doctorId.trim() : undefined,
+      userId: isNonEmptyString(input.userId) ? input.userId.trim() : undefined,
+      persist: input.persist,
+    };
   } catch {
     return badRequest('invalid JSON');
   }
+  if (!body.doctorId && !body.userId) return badRequest('doctorId or userId required');
 
-  if (!isNonEmptyString(body.doctorId) && !isNonEmptyString(body.userId)) {
-    return badRequest('doctorId or userId required');
+  const tokenSecret = resolveBusTokenSecret(locals.runtime?.env);
+  const domainUrl = resolveBusDomainUrl(locals.runtime?.env);
+  if (!tokenSecret || !domainUrl) {
+    if (PROXY_HOSTS.has(new URL(request.url).hostname)) return forwardOfficialVerification(request, body);
+    return jsonFail('SERVICE_UNAVAILABLE',
+      'La conexión con REFEPS no está configurada en este portal. No se modificó la validación.',
+      503, { reason: 'REFEPS_CREDENTIALS_MISSING' });
   }
+
+  const admin = createAstroAdminClient(locals.runtime?.env);
+  const auth = await assertAdmin(request, admin, locals);
+  if (!auth.ok || !auth.userId) return unauthorized('admin role required');
 
   try {
     // 1. Fetch the target doctor's details from the database
     const doctorQuery = admin
       .from('doctors')
-      .select('id, user_id, license_number, enrollment_jurisdiction, enrollment_entity, specialty');
+      .select('id, user_id, license_number, enrollment_jurisdiction, enrollment_entity, specialty, refeps_id');
 
     const targetUserId = body.userId?.trim();
     const targetDoctorId = body.doctorId?.trim();
@@ -115,9 +168,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const province = doctor.enrollment_jurisdiction ?? undefined;
 
     // 2. Resolve credentials for the Bus de Interoperabilidad
-    const tokenSecret = resolveBusTokenSecret(locals.runtime?.env);
-    const domainUrl = resolveBusDomainUrl(locals.runtime?.env);
-
     logger.info('[license-verify-live] Running verification', {
       doctorId: doctor.id,
       matricula,
@@ -127,13 +177,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       persist: body.persist !== false,
     });
 
-    // 3. Initialize validators (with local DB check as a fallback)
-    const localValidator = new LocalRefepsValidator(admin);
+    // 3. Query the official registry with its own identifier, never a local approval.
     const validator = new RefepsApiValidator({
       baseUrl: 'https://bus.msal.gob.ar',
       domainTokenSecret: tokenSecret,
       domainUrl: domainUrl,
-      fallbackValidator: localValidator,
+      refepsId: doctor.refeps_id ?? undefined,
     });
 
     // 4. Perform the query
@@ -158,9 +207,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         doctorId: doctor.id,
         source,
       });
-      return badRequest(
-        'La consulta oficial SISA/REFEPS no está disponible. No se modificó la validación; realizá una revisión documental.',
-      );
+      return jsonFail('SERVICE_UNAVAILABLE',
+        'No se obtuvo una respuesta oficial de REFEPS. La validación anterior se conserva.', 503,
+        { reason: 'REFEPS_UNVERIFIED_SOURCE' });
     }
 
     const registeredSpecialty = firstText(verification.specialty);
@@ -259,7 +308,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
       qualifications: verification.qualifications ?? [],
     });
   } catch (err) {
+    const reason = err instanceof Error && 'code' in err && typeof err.code === 'string'
+      ? err.code : '';
+    const messages: Record<string, string> = {
+      REFEPS_CREDENTIALS_MISSING: 'La conexión con REFEPS no está configurada en este portal.',
+      REFEPS_ID_REQUIRED: 'Falta un identificador REFEPS válido del profesional; la matrícula por sí sola no permite esta consulta.',
+      REFEPS_AUTH_FAILED: 'REFEPS no autorizó la conexión de AutaMedica. Es necesario revisar sus credenciales y permisos.',
+      REFEPS_AUTH_TOKEN_MISSING: 'La autenticación de REFEPS no devolvió una autorización válida.',
+      REFEPS_LOOKUP_FAILED: 'El registro oficial no pudo completar la consulta del profesional.',
+      REFEPS_TIMEOUT: 'La consulta a REFEPS superó el tiempo de espera. Intentá nuevamente.',
+      REFEPS_NETWORK_ERROR: 'No se pudo establecer conexión con REFEPS. Intentá nuevamente.',
+      REFEPS_INVALID_RESPONSE: 'REFEPS devolvió una respuesta que no permite comprobar la matrícula.',
+      REFEPS_IDENTITY_MISMATCH: 'La respuesta de REFEPS no coincide de forma inequívoca con el identificador del profesional.',
+      REFEPS_LICENSE_MISMATCH: 'No se pudo confirmar la matrícula médica y su jurisdicción en la respuesta de REFEPS.',
+      REFEPS_LICENSE_STATUS_UNKNOWN: 'REFEPS no informó de forma explícita la habilitación de esta matrícula.',
+    };
+    if (Object.hasOwn(messages, reason)) {
+      logger.warn('[license-verify-live] Official verification incomplete', { reason });
+      const inputError = reason === 'REFEPS_ID_REQUIRED';
+      return jsonFail(inputError ? 'VALIDATION' : 'SERVICE_UNAVAILABLE',
+        `${messages[reason]} No se modificó la validación.`, inputError ? 422 : 503,
+        { reason });
+    }
     logger.error('[license-verify-live] Critical failure', err);
-    return internalError(err instanceof Error ? err.message : 'live license verification failed');
+    return internalError('No se pudo completar la verificación de la matrícula.');
   }
 };
+
