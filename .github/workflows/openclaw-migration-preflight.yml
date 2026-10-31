@@ -131,3 +131,33 @@ jobs:
           echo 'cli_binary:'
           readlink -f "$(command -v openclaw)"
           REMOTE
+
+      - name: Find disk pressure sources and confirm actual state symlinks (read only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo 'storage_pressure:'
+          df -h / && df -i /
+          echo 'major_directories_mib:'
+          sudo -n du -x -m --max-depth=1 /opt /var /home /root 2>/dev/null | sort -rn | head -30 || true
+          echo 'known_safe_cache_sizes_mib:'
+          for p in /var/cache /var/log/journal /root/.npm/_cacache /opt/nodejs/.npm/_cacache /home/ubuntu/.npm/_cacache /tmp; do
+            if sudo -n test -d "$p"; then sudo -n du -sm "$p" 2>/dev/null; fi
+          done
+          echo 'system_journal:'
+          sudo -n journalctl --disk-usage 2>/dev/null || true
+          echo 'active_config_symlinks:'
+          for p in /opt/openclaw/openclaw.json /opt/openclaw/.openclaw/openclaw.json; do
+            if sudo -n test -e "$p"; then
+              printf '%s realpath=' "$p"
+              sudo -n readlink -f "$p"
+              sudo -n stat -Lc 'size_bytes=%s owner=%U' "$p"
+            else
+              printf '%s not_present\n' "$p"
+            fi
+          done
+          echo 'openclaw_state_directory:'
+          sudo -n du -sm /opt/openclaw /opt/openclaw/.openclaw 2>/dev/null || true
+          REMOTE
