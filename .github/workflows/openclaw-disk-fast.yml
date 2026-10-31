@@ -1,9 +1,6 @@
 name: OpenClaw Disk Fast Inspect
 
 on:
-  push:
-    branches: [feat/openclaw-chatgpt-mcp-relay-20261031]
-    paths: ['.github/workflows/openclaw-disk-fast.yml']
   workflow_dispatch:
 
 permissions:
