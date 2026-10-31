@@ -119,3 +119,47 @@ jobs:
             echo 'mcp_relay_plugin=not_listed'
           fi
           REMOTE
+
+      - name: Check safe-upgrade prerequisites and Gateway HTTP readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          cli="$(command -v openclaw)"
+          printf 'npm_version='
+          if command -v npm >/dev/null 2>&1; then npm --version; else echo 'not_available'; fi
+          printf 'openclaw_command_location='
+          case "$cli" in
+            /usr/local/*) echo 'usr_local' ;;
+            /usr/*) echo 'usr' ;;
+            /home/*) echo 'home_user' ;;
+            *) echo 'other' ;;
+          esac
+          if "$cli" update --dry-run --json >/dev/null 2>&1; then
+            echo 'update_dry_run=success'
+          elif "$cli" update --dry-run >/dev/null 2>&1; then
+            echo 'update_dry_run=success_text'
+          else
+            echo 'update_dry_run=unsupported_or_error'
+          fi
+          if "$cli" backup --help >/dev/null 2>&1; then
+            echo 'backup_cli=available'
+          else
+            echo 'backup_cli=missing'
+          fi
+          if command -v curl >/dev/null 2>&1; then
+            ready="$(curl -sS --connect-timeout 2 --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:18789/readyz 2>/dev/null || true)"
+            case "$ready" in
+              200) echo 'gateway_readyz=200' ;;
+              401|403) echo 'gateway_readyz=auth_required' ;;
+              000) echo 'gateway_readyz=connection_failed' ;;
+              *) echo 'gateway_readyz=other_http_status' ;;
+            esac
+          fi
+          if command -v node24 >/dev/null 2>&1; then
+            echo 'node24_command=present'
+          else
+            echo 'node24_command=not_in_path'
+          fi
+          REMOTE
