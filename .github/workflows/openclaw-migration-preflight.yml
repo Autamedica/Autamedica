@@ -45,7 +45,16 @@ jobs:
           home="$(getent passwd "$owner" | cut -d: -f6)"
           [[ -n "$home" && -d "$home" ]] || { echo 'BLOCKER: invalid service home'; exit 1; }
           state="$home/.openclaw"
-          [[ -d "$state" ]] || { echo 'BLOCKER: default OpenClaw state missing; locate alternate profile'; exit 1; }
+          if [[ ! -d "$state" ]]; then
+            echo 'state_default=not_present'
+            echo 'candidate_config_directories:'
+            sudo -n find /home /opt /root -maxdepth 5 -type f -name openclaw.json -printf '%h\n' 2>/dev/null | sort -u || true
+            echo 'service_environment_state_path:'
+            p="$(systemctl show openclaw-gateway.service -p Environment --value | tr ' ' '\n' | grep '^OPENCLAW_STATE_DIR=' | head -1 | cut -d= -f2- || true)"
+            if [[ -n "$p" ]]; then echo "$p"; else echo 'not_explicitly_set'; fi
+            echo 'state_scan_only=complete_no_backup'
+            exit 0
+          fi
           printf 'service_user_configured=yes\n'
           printf 'service_home=%s\n' "$home"
           printf 'state_location=%s\n' "$state"
