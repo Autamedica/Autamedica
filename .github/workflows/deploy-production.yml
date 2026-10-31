@@ -145,6 +145,13 @@ jobs:
           if [[ "$missing" -ne 0 ]]; then
             exit 1
           fi
+      - name: Configure Memed credentials for the doctor portal
+        env:
+          MEMED_API_KEY: ${{ secrets.MEMED_API_KEY }}
+          MEMED_SECRET_KEY: ${{ secrets.MEMED_SECRET_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/ops/sync-memed-secrets.mjs
       - name: Build workspace packages
         run: pnpm build:packages:core
 
