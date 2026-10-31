@@ -36,6 +36,8 @@ jobs:
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=10 -o ConnectTimeout=15 -i ~/.ssh/key "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE' | tee status.txt
           set -euo pipefail
           echo "openclaw=$(systemctl is-active openclaw-gateway.service || true)"
+          echo "check_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "pull_process_elapsed=$(ps -C podman -o etimes= | head -n 1 | xargs || true)"
           echo "podman_processes=$(ps -C podman -o etime=,stat=,comm= | tr '\n' ';' | cut -c1-230)"
           echo "port3000=$(ss -H -ltn '( sport = :3000 )' | wc -l)"
           echo "waha_local_http=$(curl --connect-timeout 1 --max-time 2 -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/health || true)"
