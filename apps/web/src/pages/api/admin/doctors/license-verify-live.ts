@@ -78,7 +78,11 @@ const PROXY_HOSTS = new Set([
 ]);
 
 async function forwardOfficialVerification(request: Request, body: RequestBody): Promise<Response> {
-  const headers = new Headers({ 'Content-Type': 'application/json' });
+  // The canonical middleware rejects empty User-Agent values before authentication.
+  const headers = new Headers({
+    'Content-Type': 'application/json',
+    'User-Agent': 'AutaMedica-REFEPS-Proxy/1.0',
+  });
   for (const name of ['authorization', 'cookie']) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
