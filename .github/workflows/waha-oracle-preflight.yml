@@ -60,6 +60,12 @@ jobs:
           if command -v podman >/dev/null; then echo "podman_installed=yes"; if sudo -n podman info >/dev/null 2>&1; then echo "podman_access=yes"; else echo "podman_access=no"; fi; else echo "podman_installed=no"; fi
           if command -v dnf >/dev/null; then echo "dnf_installed=yes"; else echo "dnf_installed=no"; fi
           echo "disk_available_kib=$(df -Pk / | awk 'NR==2 {print $4}')"
+          echo "waha_container_status=$(sudo -n podman inspect --format '{{.State.Status}}' autamedica-waha 2>/dev/null || echo absent)"
+          echo "waha_image_present=$(sudo -n podman image exists docker.io/devlikeapro/waha:gows-2026.10.1 && echo yes || echo no)"
+          echo "podman_process_count=$(pgrep -c -x podman || true)"
+          echo "pull_log_bytes=$(sudo -n stat -c %s /tmp/autamedica-waha-pull.log 2>/dev/null || echo 0)"
+          echo "podman_storage_kib=$(sudo -n du -sk /var/lib/containers/storage 2>/dev/null | awk '{print $1}' || true)"
+
           echo "resolver_symlink=$(readlink /etc/resolv.conf || echo regular_file)"
           if [[ -r /etc/resolv.conf ]]; then
             echo "resolver_nameservers=$(awk '$1=="nameserver" {printf "%s ",$2}' /etc/resolv.conf)"
