@@ -25,6 +25,10 @@ BEGIN
   END LOOP;
   FOREACH signature IN ARRAY ARRAY['public.get_active_on_duty_doctors()','public.get_content_mode()','public.get_doctor_busy_slots(uuid,date,date)','public.get_duty_doctors_summary()','public.get_pharmacy_tiers_status()','public.search_medications_br(text,integer)'] LOOP
     target:=to_regprocedure(signature);
+    -- This legacy Growth RPC exists only in hosted databases and is outside this migration.
+    IF target IS NULL AND signature = 'public.get_content_mode()' THEN
+      CONTINUE;
+    END IF;
     IF target IS NULL OR NOT has_function_privilege('anon',target,'EXECUTE') THEN
       RAISE EXCEPTION 'Intentional public function unavailable: %',signature;
     END IF;
