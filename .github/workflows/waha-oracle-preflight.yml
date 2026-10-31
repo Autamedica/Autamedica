@@ -1,0 +1,91 @@
+name: WAHA Oracle Preflight
+
+on:
+  push:
+    branches:
+      - ops/waha-oracle-setup-20261031
+    paths:
+      - .github/workflows/waha-oracle-preflight.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: waha-oracle-preflight
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    name: Inspect Oracle without modifying host
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: production
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Configure SSH securely
+        shell: bash
+        run: |
+          set -euo pipefail
+          for var in OCI_HOST OCI_USER OCI_SSH_KEY OCI_HOST_KEY; do
+            if [[ -z "${!var:-}" ]]; then
+              echo "Missing required GitHub secret: $var"
+              exit 1
+            fi
+          done
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_openclaw
+          chmod 600 ~/.ssh/oci_openclaw
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Inspect architecture, resources, Docker and ports
+        id: inspect
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE' | tee preflight.txt
+          set -euo pipefail
+          echo "arch=$(uname -m)"
+          echo "os=$( . /etc/os-release; echo "$ID-$VERSION_ID")"
+          echo "memory_available_kib=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
+          echo "disk_available_kib=$(df -Pk / | awk 'NR==2 {print $4}')"
+          if command -v docker >/dev/null; then
+            echo "docker_installed=yes"
+            if sudo -n docker info >/dev/null 2>&1; then echo "docker_access=yes"; else echo "docker_access=no"; fi
+          else echo "docker_installed=no"; fi
+          if sudo -n true 2>/dev/null; then echo "sudo_noninteractive=yes"; else echo "sudo_noninteractive=no"; fi
+          if command -v ss >/dev/null; then
+            for port in 3000 3001; do
+              if ss -H -ltn "( sport = :$port )" | grep -q .; then echo "port_${port}=busy"; else echo "port_${port}=free"; fi
+            done
+          fi
+          if command -v systemctl >/dev/null; then
+            echo "openclaw_gateway_status=$(systemctl is-active openclaw-gateway.service || true)"
+          fi
+          REMOTE
+          {
+            echo "### WAHA Oracle preflight"
+            echo
+            echo '~~~'
+            cat preflight.txt
+            echo '~~~'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Record sanitized preflight to issue 618
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="${{ steps.inspect.outcome }}"
+          if [[ -f preflight.txt ]]; then
+            body="$(printf 'WAHA Oracle SSH preflight (%s)\n\n%s\n' "$status" "$(cat preflight.txt)")"
+          else
+            body="WAHA Oracle SSH preflight did not complete. Outcome: $status. Check GitHub Actions job logs."
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/issues/618/comments" -f body="$body"
