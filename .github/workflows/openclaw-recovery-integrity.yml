@@ -1,9 +1,6 @@
 name: OpenClaw Recovery Integrity Verification
 
 on:
-  push:
-    branches: [feat/openclaw-chatgpt-mcp-relay-20261031]
-    paths: ['.github/workflows/openclaw-recovery-integrity.yml']
   workflow_dispatch:
 
 permissions:
