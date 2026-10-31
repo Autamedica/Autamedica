@@ -53,7 +53,8 @@ describe('administrative official license verification', () => {
     expect(fetcher.mock.calls[0][1].redirect).toBe('manual');
     expect(fetcher.mock.calls[0][1].headers.get('authorization')).toBe('Bearer test-user');
     expect(fetcher.mock.calls[0][1].headers.get('cookie')).toBe('test-session=value');
-    expect([...fetcher.mock.calls[0][1].headers.keys()].sort()).toEqual(['authorization', 'content-type', 'cookie']);
+    expect(fetcher.mock.calls[0][1].headers.get('user-agent')).toBe('AutaMedica-REFEPS-Proxy/1.0');
+    expect([...fetcher.mock.calls[0][1].headers.keys()].sort()).toEqual(['authorization', 'content-type', 'cookie', 'user-agent']);
     expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({ doctorId: 'test-doctor', persist: false });
   });
   it.each(['www.autamedica.com', 'untrusted.invalid'])('does not loop or proxy unknown hosts (%s)', async (host) => {
