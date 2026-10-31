@@ -1,0 +1,61 @@
+name: WAHA OCI Runtime Diagnostics
+on:
+  push:
+    branches:
+      - ops/waha-oracle-setup-20261031
+    paths:
+      - .github/workflows/waha-oracle-runtime-diagnostic.yml
+permissions:
+  contents: read
+  issues: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    environment: production
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/key
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/key ~/.ssh/known_hosts
+      - name: Read runtime and container state
+        id: inspect
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=10 -i ~/.ssh/key "$OCI_USER@$OCI_HOST" 'sudo -n bash -s' <<'REMOTE' | tee runtime-status.txt
+          set -euo pipefail
+          echo "kernel=$(uname -r)"
+          echo "openclaw=$(systemctl is-active openclaw-gateway.service || true)"
+          echo "selinux=$(getenforce 2>/dev/null || echo unavailable)"
+          echo "podman_version=$(podman --version)"
+          echo "crun_version=$(crun --version 2>/dev/null | head -n1 || echo unavailable)"
+          if command -v runc >/dev/null 2>&1; then echo "runc_available=yes"; echo "runc_version=$(runc --version | head -n1)"; else echo "runc_available=no"; fi
+          for pkg in crun runc container-selinux podman systemd; do echo "rpm_${pkg}=$(rpm -q "$pkg" 2>/dev/null || echo absent)"; done
+          echo "cgroup_mode=$(podman info --format '{{.Host.CgroupVersion}}' 2>/dev/null || echo unavailable)"
+          echo "cgroup_manager=$(podman info --format '{{.Host.CgroupManager}}' 2>/dev/null || echo unavailable)"
+          echo "waha_image=$(podman image exists docker.io/devlikeapro/waha:gows-2026.10.1 && echo present || echo absent)"
+          echo "container_status=$(podman inspect -f '{{.State.Status}}' autamedica-waha 2>/dev/null || echo absent)"
+          echo "container_runtime=$(podman inspect -f '{{.OCIRuntime}}' autamedica-waha 2>/dev/null || echo unavailable)"
+          echo "memory_available_kib=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
+          echo "disk_available_kib=$(df -Pk / | awk 'NR==2 {print $4}')"
+          echo "port3000=$(ss -H -ltn '( sport = :3000 )' 2>/dev/null | wc -l)"
+          REMOTE
+      - name: Report sanitized values
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          { echo "WAHA OCI runtime diagnostic: ${{ steps.inspect.outcome }}"; cat runtime-status.txt 2>/dev/null || true; } > report.txt
+          gh api "repos/$GITHUB_REPOSITORY/issues/618/comments" -f body="$(cat report.txt)"
