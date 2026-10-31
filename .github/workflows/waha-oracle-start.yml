@@ -76,6 +76,15 @@ jobs:
           done
           if [[ "$ready" != true ]]; then
             echo "waha_http=unhealthy"
+            echo "waha_http_last=$code"
+            echo "http_health=$(curl --connect-timeout 2 --max-time 4 -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/health || true)"
+            echo "http_sessions_no_auth=$(curl --connect-timeout 2 --max-time 4 -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/sessions || true)"
+            echo "container_state=$(podman inspect -f '{{.State.Status}}' "$NAME" 2>/dev/null || echo not_found)"
+            echo "container_exit_code=$(podman inspect -f '{{.State.ExitCode}}' "$NAME" 2>/dev/null || echo not_found)"
+            echo "container_oom_killed=$(podman inspect -f '{{.State.OOMKilled}}' "$NAME" 2>/dev/null || echo not_found)"
+            echo "container_restart_count=$(podman inspect -f '{{.RestartCount}}' "$NAME" 2>/dev/null || echo not_found)"
+            echo "waha_stderr_diagnostic:"
+            podman logs --tail 60 "$NAME" 2>&1 | grep -Ei 'error|exception|fail|fatal|memory|EADDR|timeout|permission|listen|killed|Cannot|cache|migration|sqlite|database' | tail -n 12 | cut -c1-250 | sed -E 's/([A-Za-z0-9_-]{28,})/[redacted-long-value]/g' || true
             if [[ "$created" == true ]]; then podman rm -f "$NAME" >/dev/null 2>&1 || true; fi
             echo "rollback=new_container_removed"
             exit 1
