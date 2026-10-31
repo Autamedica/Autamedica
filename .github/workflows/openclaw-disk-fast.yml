@@ -55,3 +55,24 @@ jobs:
             fi
           done
           REMOTE
+
+      - name: Identify oversize log files and safe cache details (read only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo 'logs_over_200mib:'
+          sudo -n find /var/log -xdev -type f -size +200M -printf '%s %p\n' 2>/dev/null | sort -nr | head -18 || true
+          echo 'logs_top_level_mib:'
+          sudo -n du -sm /var/log/* 2>/dev/null | sort -nr | head -16 || true
+          echo 'npm_cache_identity:'
+          if sudo -n test -d /root/.npm/_cacache && ! sudo -n test -L /root/.npm/_cacache; then
+            echo 'root_npm_cache=regular_directory'
+            sudo -n stat -c 'owner=%U bytes=%s' /root/.npm/_cacache
+          else
+            echo 'root_npm_cache=missing_or_symlink'
+          fi
+          echo 'active_npm_process_count:'
+          pgrep -xc npm || true
+          REMOTE
