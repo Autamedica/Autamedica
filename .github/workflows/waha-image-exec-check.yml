@@ -37,10 +37,15 @@ jobs:
           echo "image_osarch=$(podman image inspect -f '{{.Os}}/{{.Architecture}}' "$IMAGE" 2>/dev/null || true)"
           echo "image_size_bytes=$(podman image inspect -f '{{.Size}}' "$IMAGE" 2>/dev/null || true)"
           echo "shell_probe_begin"
+          set +e
           timeout 25 podman --cgroup-manager=cgroupfs run --rm --network=none --pull=never \
-            --memory=256m --pids-limit=32 --entrypoint /bin/sh "$IMAGE" -c \
-            'printf "shell_ok=yes\\n"; for f in /usr/bin/tini /entrypoint.sh /usr/local/bin/node /usr/bin/node /bin/sh; do if [ -e "$f" ]; then ls -l "$f"; fi; done; command -v node || true' \
-            2>&1 | grep -E 'shell_ok|tini|entrypoint|node|Error:|error:|exec|OCI runtime|failed|permission' | cut -c1-240 || true
+            --memory=256m --pids-limit=32 --entrypoint=/bin/sh "$IMAGE" -c \
+            'echo shell_ok=yes; command -v node; ls -l /usr/bin/tini /entrypoint.sh /bin/sh' \
+            > /tmp/autamedica-waha-image-probe.log 2>&1
+          code=$?
+          set -e
+          echo "shell_probe_exit=$code"
+          sed -E 's/([A-Za-z0-9_-]{28,})/[redacted-value]/g' /tmp/autamedica-waha-image-probe.log | head -n 12 | cut -c1-260
           echo "shell_probe_end"
           echo "openclaw_after=$(systemctl is-active openclaw-gateway.service || true)"
           REMOTE
