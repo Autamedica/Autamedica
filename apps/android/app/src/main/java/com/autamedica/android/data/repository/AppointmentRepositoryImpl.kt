@@ -229,8 +229,7 @@ class AppointmentRepositoryImpl @Inject constructor(
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
             ?: throw IllegalStateException("No user ID found")
 
-        val newStart = runCatching { OffsetDateTime.parse(newStartTime) }.getOrNull()
-            ?: throw IllegalArgumentException("start_time is invalid")
+        val (newStart, newEnd) = AppointmentScheduleGuard.parseRescheduleWindow(newStartTime, newEndTime)
         if (newStart.isBefore(OffsetDateTime.now())) {
             throw IllegalStateException("No se puede reprogramar una cita en el pasado")
         }
@@ -250,17 +249,11 @@ class AppointmentRepositoryImpl @Inject constructor(
             supabaseClient.postgrest
                 .rpc("get_doctor_busy_slots", params)
                 .decodeList<DoctorBusySlotDto>()
-        }.getOrDefault(emptyList())
+        }.getOrElse { throw IllegalStateException("No se pudo confirmar la disponibilidad del médico", it) }
 
-        val hasConflict = busy.any { busySlot ->
-            val busyStart = runCatching { OffsetDateTime.parse(busySlot.startTime) }.getOrNull()
-                ?: return@any false
-            val busyEnd = runCatching { OffsetDateTime.parse(busySlot.endTime) }.getOrNull()
-                ?: return@any false
-            val newEnd = runCatching { OffsetDateTime.parse(newEndTime) }.getOrNull()
-                ?: return@any false
-            newStart.isBefore(busyEnd) && newEnd.isAfter(busyStart)
-        }
+        val hasConflict = AppointmentScheduleGuard.hasConflict(
+            newStart, newEnd, busy.map { it.startTime to it.endTime },
+        )
         if (hasConflict) {
             throw IllegalStateException("El profesional tiene una cita conflictiva en el horario solicitado")
         }
@@ -291,20 +284,14 @@ class AppointmentRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getAvailableDoctors(specialty: String?): Result<List<DoctorBookingInfo>> = runCatching {
-        val doctors = try {
-            supabaseClient.postgrest
-                .from("doctors")
-                .select(Columns.ALL) {
-                    filter { eq("active", true) }
-                }
-                .decodeList<DoctorBookingRowDto>()
-        } catch (e: Exception) {
-            SecureLog.warn("[Appointments] Failed fetching active doctors with filter: ${e.message}")
-            supabaseClient.postgrest
-                .from("doctors")
-                .select(Columns.ALL)
-                .decodeList<DoctorBookingRowDto>()
-        }
+        // Do not fall back to unfiltered/inactive doctors if the active-only
+        // query fails: this must surface as Result.failure.
+        val doctors = supabaseClient.postgrest
+            .from("doctors")
+            .select(Columns.ALL) {
+                filter { eq("active", true) }
+            }
+            .decodeList<DoctorBookingRowDto>()
 
         if (doctors.isEmpty()) {
             return@runCatching emptyList()
@@ -602,7 +589,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                 .firstOrNull()
         } catch (e: Exception) {
             SecureLog.warn("[Appointments] Failed fetching doctor availability overrides: ${e.message}")
-            null
+            throw IllegalStateException("No se pudo confirmar la disponibilidad excepcional del profesional", e)
         }
 
         // If override explicitly marks day as not available (holiday, vacation, leave), return empty
@@ -638,7 +625,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                     .decodeList<DoctorAvailabilityRowDto>()
             } catch (e: Exception) {
                 SecureLog.warn("[Appointments] Failed fetching doctor availability: ${e.message}")
-                emptyList()
+                throw IllegalStateException("No se pudo consultar la agenda semanal del profesional", e)
             }
 
             // Exclude fake 24/7 preset (7 days, 00:00 to 23:59)
@@ -665,17 +652,13 @@ class AppointmentRepositoryImpl @Inject constructor(
                 .decodeList<DoctorBusySlotDto>()
         } catch (e: Exception) {
             SecureLog.warn("[Appointments] Failed calling get_doctor_busy_slots: ${e.message}")
-            emptyList()
+            throw IllegalStateException("No se pudieron verificar los turnos ocupados del profesional", e)
         }
 
         val argZone = ZoneId.of("America/Argentina/Buenos_Aires")
-        val bookedTimeWindows = busyRanges.mapNotNull { busy ->
-            runCatching {
-                val start = OffsetDateTime.parse(busy.startTime).atZoneSameInstant(argZone).toLocalTime()
-                val end = OffsetDateTime.parse(busy.endTime).atZoneSameInstant(argZone).toLocalTime()
-                start to end
-            }.getOrNull()
-        }
+        val bookedTimeWindows = AppointmentScheduleGuard.bookedLocalTimes(
+            busyRanges.map { it.startTime to it.endTime }, argZone,
+        )
 
         val generatedSlots = mutableListOf<String>()
 
