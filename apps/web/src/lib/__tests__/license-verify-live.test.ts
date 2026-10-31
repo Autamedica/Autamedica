@@ -120,6 +120,15 @@ describe('administrative official license verification', () => {
     expect(payload.error.message).toContain('Emisor informado: OTHER MINISTRY.');
     expect(state.updateProfile).not.toHaveBeenCalled(); expect(state.updateDoctor).not.toHaveBeenCalled();
   });
+  it('shows profession terminology diagnostics only to the authorized verification flow', async () => {
+    state.verify.mockRejectedValue(Object.assign(new Error('REFEPS_MEDICAL_PROFESSION_UNCONFIRMED'), {
+      code: 'REFEPS_MEDICAL_PROFESSION_UNCONFIRMED', professionSummary: 'código 2, sistema https://fhir.msal.gob.ar/Profesiones',
+    }));
+    const response = await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true });
+    const payload = await response.json();
+    expect(payload.error.message).toContain('Profesión informada: código 2, sistema https://fhir.msal.gob.ar/Profesiones.');
+    expect(state.updateProfile).not.toHaveBeenCalled(); expect(state.updateDoctor).not.toHaveBeenCalled();
+  });
   it('does not persist an official result when only verifying', async () => {
     state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active', matriculaNumber: '123456' });
     const response = await call(); expect(response.status).toBe(200);

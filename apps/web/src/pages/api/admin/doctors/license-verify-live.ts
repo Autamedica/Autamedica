@@ -346,8 +346,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const issuerSummary = reason === 'REFEPS_LICENSE_JURISDICTION_MISMATCH'
         && err instanceof Error && 'issuerSummary' in err && typeof err.issuerSummary === 'string'
         ? err.issuerSummary.replace(/[^\p{L}\p{N} .,'()/-]/gu, ' ').slice(0, 220).trim() : '';
+      const professionSummary = reason === 'REFEPS_MEDICAL_PROFESSION_UNCONFIRMED'
+        && err instanceof Error && 'professionSummary' in err && typeof err.professionSummary === 'string'
+        ? err.professionSummary.replace(/[^\p{L}\p{N} .,:;_/-]/gu, ' ').slice(0, 900).trim() : '';
       return jsonFail(inputError ? 'VALIDATION' : 'SERVICE_UNAVAILABLE',
-        `${messages[reason]}${issuerSummary ? ` Emisor informado: ${issuerSummary}.` : ''} No se modificó la validación.`, inputError ? 422 : 503,
+        `${messages[reason]}${issuerSummary ? ` Emisor informado: ${issuerSummary}.` : ''}${professionSummary ? ` Profesión informada: ${professionSummary}.` : ''} No se modificó la validación.`, inputError ? 422 : 503,
         { reason });
     }
     logger.error('[license-verify-live] Critical failure', err);
