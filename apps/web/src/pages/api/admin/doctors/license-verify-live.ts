@@ -343,8 +343,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (Object.hasOwn(messages, reason)) {
       logger.warn('[license-verify-live] Official verification incomplete', { reason });
       const inputError = reason === 'REFEPS_ID_REQUIRED';
+      const issuerSummary = reason === 'REFEPS_LICENSE_JURISDICTION_MISMATCH'
+        && err instanceof Error && 'issuerSummary' in err && typeof err.issuerSummary === 'string'
+        ? err.issuerSummary.replace(/[^\p{L}\p{N} .,'()/-]/gu, ' ').slice(0, 220).trim() : '';
       return jsonFail(inputError ? 'VALIDATION' : 'SERVICE_UNAVAILABLE',
-        `${messages[reason]} No se modificó la validación.`, inputError ? 422 : 503,
+        `${messages[reason]}${issuerSummary ? ` Emisor informado: ${issuerSummary}.` : ''} No se modificó la validación.`, inputError ? 422 : 503,
         { reason });
     }
     logger.error('[license-verify-live] Critical failure', err);

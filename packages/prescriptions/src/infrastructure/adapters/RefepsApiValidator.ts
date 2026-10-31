@@ -21,6 +21,7 @@ type Config = {
 };
 type Identifier = { system?: string; value?: string; assigner?: { display?: string } };
 type Qualification = {
+  issuer?: { display?: string };
   code?: { text?: string; coding?: Array<{ system?: string; code?: string; display?: string }> };
   identifier?: Identifier[];
   extension?: Array<{ url?: string; valueBoolean?: boolean }>;
@@ -34,13 +35,32 @@ type Practitioner = {
   qualification?: Qualification[];
 };
 
-function fail(code: string, upstreamStatus?: number): never {
+function fail(code: string, upstreamStatus?: number, issuerSummary?: string): never {
   // Never include upstream bodies: authentication responses can contain secrets.
-  throw Object.assign(new Error(code), { code, upstreamStatus });
+  throw Object.assign(new Error(code), { code, upstreamStatus, issuerSummary });
 }
 
 function normalized(value: string): string {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function matchesIssuer(identifier: Identifier, qualification: Qualification, type: 'MN' | 'MP', province?: string): boolean {
+  // The REFEPS example associates this exact namespace with the national ministry.
+  const system = identifier.system?.replace(/^https:/, 'http:').replace(/\/$/, '') ?? '';
+  const entityCode = /^http:\/\/fhir\.msal\.(?:gov|gob)\.ar\/entidadesCertificantesREFEPS\/(\d+)$/.exec(system)?.[1];
+  const nationalEntity = entityCode === '10002001110000';
+  if (nationalEntity && type !== 'MN') return false;
+  if (entityCode && !nationalEntity && type === 'MN') return false;
+  const displays = [identifier.assigner?.display, qualification.issuer?.display]
+    .filter((value): value is string => typeof value === 'string' && !!value.trim()).map(normalized);
+  const jurisdiction = normalized(province ?? '');
+  const expected = type === 'MN' ? ['ministerio de salud de la nacion'] : jurisdiction ? [
+    `ministerio de salud de la provincia de ${jurisdiction}`,
+    `ministerio de salud de ${jurisdiction}`,
+  ] : [];
+  // A coded issuer can supply missing/generic text, but cannot override contradictions.
+  if (nationalEntity) return displays.every((display) => expected.includes(display) || display === 'ministerio de salud');
+  return displays.length > 0 && displays.every((display) => expected.includes(display));
 }
 
 function isRefepsSystem(value?: string): boolean {
@@ -157,16 +177,17 @@ export class RefepsApiValidator implements IRefepsValidator {
     if (!numbered.length) fail('REFEPS_LICENSE_NUMBER_MISMATCH');
     const jurisdictionMatches = numbered.filter((q) => q.identifier?.some((i) => {
       if (!matchesNumber(i)) return false;
-      const issuer = normalized(i.assigner?.display ?? '');
-      if (type === 'MN') return issuer === 'ministerio de salud de la nacion';
-      const jurisdiction = normalized(province ?? '');
-      // Exact recognized issuers only: CABA also contains the words Buenos Aires.
-      return !!jurisdiction && [
-        `ministerio de salud de la provincia de ${jurisdiction}`,
-        `ministerio de salud de ${jurisdiction}`,
-      ].includes(issuer);
+      return matchesIssuer(i, q, type, province);
     }));
-    if (!jurisdictionMatches.length) fail('REFEPS_LICENSE_JURISDICTION_MISMATCH');
+    if (!jurisdictionMatches.length) {
+      // Institution labels only: omit names, documents, license numbers and raw URIs.
+      const labels = numbered.flatMap((q) => [q.issuer?.display,
+        ...q.identifier?.filter(matchesNumber).map((i) => i.assigner?.display) ?? []])
+        .filter((value): value is string => typeof value === 'string' && !!value.trim())
+        .map((value) => value.replace(/[^\p{L}\p{N} .,'()/-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 100));
+      fail('REFEPS_LICENSE_JURISDICTION_MISMATCH', undefined,
+        [...new Set(labels)].slice(0, 2).join(' / ') || 'Sin nombre de organismo emisor');
+    }
     const license = jurisdictionMatches.find((q) => q.code?.coding?.some((c) => c.code === '1'
       && !!c.system && MEDICAL_PROFESSION_SYSTEMS.has(c.system.replace(/^https:/, 'http:').replace(/\/$/, ''))));
     if (!license) fail('REFEPS_MEDICAL_PROFESSION_UNCONFIRMED');
