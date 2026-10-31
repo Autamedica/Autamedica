@@ -1,0 +1,86 @@
+name: Oracle OpenClaw Incident Recovery
+on:
+  push:
+    branches: [ops/waha-oracle-setup-20261031]
+    paths: [.github/workflows/oracle-openclaw-recovery.yml]
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: oracle-openclaw-incident-recovery
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    environment: production
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Set known-host SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci-key
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/oci-key ~/.ssh/known_hosts
+      - name: Restore independent OpenClaw and tunnel services
+        id: restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            echo "ssh_connect_attempt=$attempt"
+            if timeout 40 ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o ConnectTimeout=9 -o ServerAliveInterval=6 -o ServerAliveCountMax=2 -i ~/.ssh/oci-key "$OCI_USER@$OCI_HOST" 'sudo -n bash -s' <<'REMOTE' | tee recovery-status.txt
+          set -euo pipefail
+          echo "host_responding=yes"
+          echo "uptime=$(uptime -p)"
+          echo "mem_available_kib=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
+          echo "swap_free_kib=$(awk '/SwapFree:/ {print $2}' /proc/meminfo)"
+          if podman container exists autamedica-waha; then
+            podman rm -f autamedica-waha >/dev/null 2>&1 || true
+            echo "waha_container=removed"
+          else
+            echo "waha_container=absent"
+          fi
+          echo "openclaw_before=$(systemctl is-active openclaw-gateway.service 2>/dev/null || true)"
+          if [[ "$(systemctl is-active openclaw-gateway.service 2>/dev/null || true)" != active ]]; then
+            timeout 20 systemctl start openclaw-gateway.service || true
+          fi
+          echo "openclaw_after=$(systemctl is-active openclaw-gateway.service 2>/dev/null || true)"
+          echo "cloudflared_process_count=$(pgrep -c cloudflared || true)"
+          if systemctl list-unit-files cloudflared.service --no-legend 2>/dev/null | grep -q cloudflared.service; then
+            if [[ "$(systemctl is-active cloudflared.service 2>/dev/null || true)" != active ]]; then
+              timeout 20 systemctl start cloudflared.service || true
+            fi
+            echo "cloudflared_service_after=$(systemctl is-active cloudflared.service 2>/dev/null || true)"
+          fi
+          echo "local_openclaw_relay_http=$(curl -s --connect-timeout 2 --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:18791/health || true)"
+          echo "cloudflared_process_count_after=$(pgrep -c cloudflared || true)"
+          echo "host_recovery_finished=yes"
+          REMOTE
+            then
+              echo "ssh_result=success"
+              exit 0
+            fi
+            echo "ssh_attempt_failed=$attempt"
+            sleep 7
+          done
+          echo "ssh_result=unreachable"
+          exit 1
+      - name: Publish recovery diagnostic
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "Oracle OpenClaw recovery outcome: ${{ steps.restore.outcome }}"
+            test -f recovery-status.txt && cat recovery-status.txt || true
+          } > report.txt
+          gh api "repos/$GITHUB_REPOSITORY/issues/618/comments" -f body="$(cat report.txt)" >/dev/null
