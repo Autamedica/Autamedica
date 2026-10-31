@@ -1,0 +1,89 @@
+name: OpenClaw Disk Recovery (archived logs only)
+
+on:
+  push:
+    branches: [feat/openclaw-chatgpt-mcp-relay-20261031]
+    paths: ['.github/workflows/openclaw-disk-recovery.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openclaw-oracle-disk-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Set up existing pinned SSH connection
+        shell: bash
+        run: |
+          set -euo pipefail
+          for n in OCI_HOST OCI_USER OCI_SSH_KEY OCI_HOST_KEY; do
+            [[ -n "${!n:-}" ]] || { echo "::error::Missing $n"; exit 1; }
+          done
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_openclaw
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/oci_openclaw ~/.ssh/known_hosts
+      - name: Free unused npm cache and losslessly compress old system logs
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo 'disk_before:'
+          df -Pm / | tail -1
+          test "$(systemctl is-active openclaw-gateway.service)" = "active" || { echo 'BLOCKER: Gateway not active'; exit 1; }
+          cache=/root/.npm/_cacache
+          if sudo -n test -d "$cache"; then
+            if sudo -n test -L "$cache"; then echo 'BLOCKER: cache symlink'; exit 1; fi
+            owner="$(sudo -n stat -c %U "$cache")"
+            [[ "$owner" == root ]] || { echo 'BLOCKER: cache not root-owned'; exit 1; }
+            if pgrep -x npm >/dev/null; then echo 'BLOCKER: npm is running'; exit 1; fi
+            echo 'Removing disposable root npm tarball/content cache (not node_modules).'
+            sudo -n find "$cache" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+          fi
+          echo 'disk_after_cache:'
+          df -Pm / | tail -1
+          free_mb="$(df -Pm / | awk 'NR==2 {print $4}')"
+          (( free_mb >= 150 )) || { echo 'BLOCKER: insufficient space even after cache cleanup'; exit 1; }
+          for f in /var/log/messages-20260816 /var/log/messages-20260823 /var/log/messages-20260830 /var/log/messages-20260906; do
+            if sudo -n test -f "$f.gz" && ! sudo -n test -e "$f"; then
+              echo "already_compressed=$f"
+              sudo -n gzip -t "$f.gz"
+              continue
+            fi
+            sudo -n test -f "$f" || { echo "BLOCKER: expected archive missing: $f"; exit 1; }
+            if sudo -n test -L "$f"; then echo "BLOCKER: archive symlink: $f"; exit 1; fi
+            now="$(date +%s)"
+            modified="$(sudo -n stat -c %Y "$f")"
+            (( now - modified >= 7*86400 )) || { echo "BLOCKER: archive has recent edits: $f"; exit 1; }
+            if command -v fuser >/dev/null && sudo -n fuser -s "$f"; then
+              echo "BLOCKER: archived log file still in use: $f"
+              exit 1
+            fi
+            free_mb="$(df -Pm / | awk 'NR==2 {print $4}')"
+            (( free_mb >= 150 )) || { echo "BLOCKER: too little scratch space: $f"; exit 1; }
+            echo "lossless_compress_begin=$f"
+            sudo -n nice -n 15 gzip -1 -n "$f"
+            sudo -n gzip -t "$f.gz"
+            echo "lossless_compress_verified=$f.gz"
+            df -Pm / | tail -1
+          done
+          echo 'gateway_after_recovery:'
+          systemctl is-active openclaw-gateway.service
+          echo 'gateway_readyz_http:'
+          curl -s --connect-timeout 3 --max-time 8 -o /dev/null -w '%{http_code}\n' http://127.0.0.1:18789/readyz
+          echo 'disk_final:'
+          df -h /
+          REMOTE
