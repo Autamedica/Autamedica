@@ -12,7 +12,30 @@ SECURITY INVOKER
 SET search_path = ''
 AS $metadata$
 BEGIN
-  IF current_user = 'authenticated' AND (
+  IF current_user <> 'authenticated' THEN
+    RETURN NEW;
+  END IF;
+
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'appointment_user_identity_required'
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF TG_OP = 'INSERT' THEN
+    -- A direct client must never impersonate a doctor-created appointment at
+    -- INSERT time. Missing created_by is permitted but never payment-exempt.
+    IF (NEW.created_by IS NOT NULL AND NEW.created_by IS DISTINCT FROM auth.uid())
+      OR NEW.deleted_at IS NOT NULL OR NEW.referral_sent IS TRUE
+    THEN
+      RAISE EXCEPTION 'appointment_provenance_insert_not_allowed'
+        USING ERRCODE = '42501';
+    END IF;
+    -- Audit creation time is always sourced from PostgreSQL for client writes.
+    NEW.created_at := now();
+    RETURN NEW;
+  END IF;
+
+  IF (
     NEW.created_by IS DISTINCT FROM OLD.created_by
     OR NEW.created_at IS DISTINCT FROM OLD.created_at
     OR NEW.deleted_at IS DISTINCT FROM OLD.deleted_at
@@ -27,7 +50,7 @@ $metadata$;
 
 DROP TRIGGER IF EXISTS trg_appointment_metadata_immutable ON public.appointments;
 CREATE TRIGGER trg_appointment_metadata_immutable
-  BEFORE UPDATE ON public.appointments
+  BEFORE INSERT OR UPDATE ON public.appointments
   FOR EACH ROW
   EXECUTE FUNCTION public.enforce_appointment_metadata_immutable();
 
