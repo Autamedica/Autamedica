@@ -1,0 +1,97 @@
+name: WAHA Oracle Start Preloaded Image
+
+on:
+  push:
+    branches:
+      - ops/waha-oracle-setup-20261031
+    paths:
+      - .github/workflows/waha-oracle-start.yml
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: waha-oracle-runtime
+  cancel-in-progress: false
+
+jobs:
+  start:
+    name: Start preloaded WAHA without new pull
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 9
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/key
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/key ~/.ssh/known_hosts
+      - name: Start isolated GOWS container with rollback
+        id: start
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=15 -o ConnectTimeout=15 -i ~/.ssh/key "$OCI_USER@$OCI_HOST" 'sudo -n bash -s' <<'REMOTE' | tee start-status.txt
+          set -euo pipefail
+          NAME=autamedica-waha
+          IMAGE=docker.io/devlikeapro/waha:gows-2026.10.1
+          ENVFILE=/etc/autamedica/waha.env
+          if [[ "$(systemctl is-active openclaw-gateway.service || true)" != active ]] || ! curl --max-time 5 -fsS http://127.0.0.1:18791/health >/dev/null; then echo "start=blocked_openclaw_unhealthy"; exit 1; fi
+          if ! podman image exists "$IMAGE"; then echo "start=blocked_image_not_fully_loaded"; exit 1; fi
+          if [[ ! -s "$ENVFILE" ]] || [[ "$(stat -c %a "$ENVFILE")" != 600 ]]; then echo "start=blocked_missing_credentials"; exit 1; fi
+          created=false
+          if ! podman container exists "$NAME"; then
+            podman run -d --name "$NAME" --restart=always --memory=384m --memory-swap=768m --cpus=0.75 --pids-limit=256 \
+              --dns=169.254.169.254 -p 127.0.0.1:3000:3000 --env-file "$ENVFILE" \
+              -v /var/lib/autamedica/waha/sessions:/app/.sessions:Z "$IMAGE" >/dev/null
+            created=true
+          elif [[ "$(podman inspect -f '{{.State.Running}}' "$NAME")" != true ]]; then
+            podman start "$NAME" >/dev/null
+          fi
+          key="$(sed -n 's/^WAHA_API_KEY=//p' "$ENVFILE" | head -n1)"
+          ready=false
+          for i in $(seq 1 28); do
+            code="$(curl --connect-timeout 2 --max-time 3 -s -o /dev/null -w '%{http_code}' -H "X-Api-Key: $key" http://127.0.0.1:3000/api/sessions/ || true)"
+            if [[ "$code" == 200 ]]; then ready=true; break; fi
+            sleep 3
+          done
+          if [[ "$ready" != true ]]; then
+            echo "waha_http=unhealthy"
+            if [[ "$created" == true ]]; then podman rm -f "$NAME" >/dev/null 2>&1 || true; fi
+            echo "rollback=new_container_removed"
+            exit 1
+          fi
+          available="$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
+          if [[ "$available" -lt 100000 ]] || [[ "$(systemctl is-active openclaw-gateway.service || true)" != active ]] || ! curl --connect-timeout 2 --max-time 5 -fsS http://127.0.0.1:18791/health >/dev/null; then
+            echo "runtime_check=resources_or_openclaw_unhealthy"
+            if [[ "$created" == true ]]; then podman rm -f "$NAME" >/dev/null 2>&1 || true; fi
+            echo "rollback=new_container_removed"
+            exit 1
+          fi
+          if systemctl list-unit-files --no-legend podman-restart.service 2>/dev/null | grep -q podman-restart.service; then
+            systemctl enable --now podman-restart.service >/dev/null 2>&1 || true
+          fi
+          echo "start=success"
+          echo "waha_http=200"
+          echo "waha_binding=127.0.0.1:3000"
+          echo "openclaw=healthy"
+          echo "memory_available_kib=$available"
+          echo "session=not_paired"
+          REMOTE
+      - name: Record installation result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          { echo "WAHA start-preloaded outcome: ${{ steps.start.outcome }}"; cat start-status.txt 2>/dev/null || true; } > report.txt
+          gh api "repos/$GITHUB_REPOSITORY/issues/618/comments" -f body="$(cat report.txt)"
