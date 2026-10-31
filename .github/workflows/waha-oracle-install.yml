@@ -1,0 +1,163 @@
+name: WAHA Oracle Installation
+
+on:
+  push:
+    branches:
+      - ops/waha-oracle-setup-20261031
+    paths:
+      - .github/workflows/waha-oracle-install.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: waha-oracle-install
+  cancel-in-progress: false
+
+jobs:
+  install:
+    name: Install WAHA GOWS on Oracle with Podman
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          for var in OCI_HOST OCI_USER OCI_SSH_KEY OCI_HOST_KEY; do
+            [[ -n "${!var:-}" ]] || { echo "Missing required secret: $var"; exit 1; }
+          done
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_openclaw
+          chmod 600 ~/.ssh/oci_openclaw
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Deploy isolated Podman container and verify OpenClaw
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" 'sudo -n bash -s' <<'REMOTE' | tee install-status.txt
+          set -euo pipefail
+          IMAGE="docker.io/devlikeapro/waha:gows"
+          NAME="autamedica-waha"
+          ENVFILE="/etc/autamedica/waha.env"
+          if [[ "$(uname -m)" != x86_64 ]]; then
+            echo "installation=blocked_unsupported_arch"
+            exit 1
+          fi
+          if [[ "$(systemctl is-active openclaw-gateway.service || true)" != active ]]; then
+            echo "installation=blocked_openclaw_unhealthy"
+            exit 1
+          fi
+          if ! command -v podman >/dev/null; then
+            echo "installation=blocked_podman_unavailable"
+            exit 1
+          fi
+          if [[ "$(awk '/SwapFree:/ {print $2}' /proc/meminfo)" -lt 524288 ]]; then
+            echo "installation=blocked_insufficient_swap"
+            exit 1
+          fi
+          install -d -o root -g root -m 700 /etc/autamedica /var/lib/autamedica/waha /var/lib/autamedica/waha/sessions
+          if [[ ! -s "$ENVFILE" ]]; then
+            umask 077
+            {
+              printf 'WHATSAPP_DEFAULT_ENGINE=GOWS\n'
+              printf 'WAHA_API_KEY=%s\n' "$(openssl rand -hex 32)"
+              printf 'WAHA_DASHBOARD_ENABLED=true\n'
+              printf 'WAHA_DASHBOARD_USERNAME=autamedica\n'
+              printf 'WAHA_DASHBOARD_PASSWORD=%s\n' "$(openssl rand -hex 24)"
+            } > "$ENVFILE"
+          fi
+          chmod 600 "$ENVFILE"
+          if ! podman container exists "$NAME"; then
+            echo "image_pull=started"
+            podman pull "$IMAGE" >/dev/null
+            podman run -d --name "$NAME" --restart=always \
+              --memory=384m --memory-swap=768m --cpus=0.75 \
+              -p 127.0.0.1:3000:3000 \
+              --env-file "$ENVFILE" \
+              -v /var/lib/autamedica/waha/sessions:/app/.sessions:Z \
+              "$IMAGE" >/dev/null
+            created=true
+          else
+            created=false
+            [[ "$(podman inspect -f '{{.State.Running}}' "$NAME")" == true ]] || podman start "$NAME" >/dev/null
+          fi
+          if systemctl list-unit-files --no-legend podman-restart.service 2>/dev/null | grep -q podman-restart.service; then
+            systemctl enable --now podman-restart.service >/dev/null 2>&1 || true
+          fi
+          status=unreachable
+          api_key="$(sed -n 's/^WAHA_API_KEY=//p' "$ENVFILE" | head -n1)"
+          for i in $(seq 1 25); do
+            httpcode="$(curl --connect-timeout 3 --max-time 5 -s -o /dev/null -w '%{http_code}' -H "X-Api-Key: $api_key" http://127.0.0.1:3000/api/sessions/ || true)"
+            if [[ "$httpcode" == 200 ]]; then status=ready; break; fi
+            sleep 3
+          done
+          if [[ "$status" != ready ]]; then
+            echo "waha_health=failed"
+            if [[ "$created" == true ]]; then podman rm -f "$NAME" >/dev/null 2>&1 || true; fi
+            echo "rollback=new_container_removed"
+            exit 1
+          fi
+          if [[ "$(systemctl is-active openclaw-gateway.service || true)" != active ]]; then
+            echo "openclaw_after_install=unhealthy"
+            if [[ "$created" == true ]]; then podman rm -f "$NAME" >/dev/null 2>&1 || true; fi
+            exit 1
+          fi
+          echo "installation=success"
+          echo "waha_health=ready"
+          echo "openclaw_after_install=active"
+          echo "waha_binding=127.0.0.1:3000"
+          echo "waha_image=devlikeapro/waha:gows"
+          echo "waha_credentials=root_only"
+          echo "waha_session=not_paired"
+          REMOTE
+      - name: Set WAHA API credentials and endpoint as Cloudflare Worker secrets
+        if: steps.deploy.outcome == 'success'
+        id: sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${CF_TOKEN:-}" ]]; then
+            echo "cloudflare_secret_sync=not_configured" | tee cloudflare-status.txt
+            exit 0
+          fi
+          account="${CF_ACCOUNT:-5b448192fe4b369642b68ad8f53a7603}"
+          base="https://api.cloudflare.com/client/v4/accounts/$account/workers/scripts/autamedica-whatsapp-mcp/secrets"
+          key="$(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -i ~/.ssh/oci_openclaw "$OCI_USER@$OCI_HOST" "sudo -n sed -n 's/^WAHA_API_KEY=//p' /etc/autamedica/waha.env")"
+          [[ "${#key}" -ge 50 ]] || { echo "cloudflare_secret_sync=missing_host_key" | tee cloudflare-status.txt; exit 1; }
+          for name in WAHA_API_KEY WAHA_URL; do
+            if [[ "$name" == "WAHA_API_KEY" ]]; then value="$key"; else value="https://waha.autamedica.com"; fi
+            payload="$(jq -n --arg name "$name" --arg text "$value" '{name:$name,text:$text,type:"secret_text"}')"
+            result="$(curl --connect-timeout 10 --max-time 25 -fsS -X PUT "$base" -H "Authorization: Bearer $CF_TOKEN" -H 'content-type: application/json' --data "$payload")" || { echo "cloudflare_secret_sync=api_error" | tee cloudflare-status.txt; exit 1; }
+            [[ "$(jq -r '.success' <<< "$result")" == true ]] || { echo "cloudflare_secret_sync=api_rejected" | tee cloudflare-status.txt; exit 1; }
+          done
+          unset key value payload result
+          echo "cloudflare_secret_sync=success" | tee cloudflare-status.txt
+      - name: Post deployment status to operations issue
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "WAHA Oracle installation outcome: ${{ steps.deploy.outcome }}."
+            echo
+            if [[ -f install-status.txt ]]; then cat install-status.txt; else echo "Deployment did not reach remote install step."; fi
+            if [[ -f cloudflare-status.txt ]]; then cat cloudflare-status.txt; fi
+            echo
+            echo "Do not consider WhatsApp connected until device pairing succeeds."
+          } > report.txt
+          gh api "repos/$GITHUB_REPOSITORY/issues/618/comments" -f body="$(cat report.txt)"
