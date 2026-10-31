@@ -62,5 +62,6 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/appointments_atomic_no_overlap_behavior.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/appointment_actor_guard_behavior.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/appointment_actor_guard_contract.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/audit_log_immutable_provenance.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/memed_provider_integrity_smoke.sql
 
