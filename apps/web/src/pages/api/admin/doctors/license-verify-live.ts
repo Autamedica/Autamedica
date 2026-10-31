@@ -334,6 +334,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       REFEPS_INVALID_RESPONSE: 'REFEPS devolvió una respuesta que no permite comprobar la matrícula.',
       REFEPS_IDENTITY_MISMATCH: 'La respuesta de REFEPS no coincide de forma inequívoca con el identificador del profesional.',
       REFEPS_LICENSE_MISMATCH: 'No se pudo confirmar la matrícula médica y su jurisdicción en la respuesta de REFEPS.',
+      REFEPS_QUALIFICATIONS_MISSING: 'REFEPS encontró al profesional, pero no devolvió sus matrículas y profesiones.',
+      REFEPS_LICENSE_NUMBER_MISMATCH: 'REFEPS encontró al profesional, pero no devolvió el número de matrícula registrado en esta ficha.',
+      REFEPS_LICENSE_JURISDICTION_MISMATCH: 'La matrícula figura en REFEPS, pero su organismo emisor no coincide con la jurisdicción registrada o no pudo reconocerse.',
+      REFEPS_MEDICAL_PROFESSION_UNCONFIRMED: 'La matrícula y su emisor coinciden, pero REFEPS no confirmó la profesión médica con un código reconocido.',
       REFEPS_LICENSE_STATUS_UNKNOWN: 'REFEPS no informó de forma explícita la habilitación de esta matrícula.',
     };
     if (Object.hasOwn(messages, reason)) {

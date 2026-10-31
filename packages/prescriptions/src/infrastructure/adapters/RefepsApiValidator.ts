@@ -3,6 +3,14 @@ import type { IRefepsValidator, RefepsValidationResult } from '../../domain/refe
 
 const REFEPS_SYSTEM = 'https://sisa.msal.gov.ar/REFEPS';
 const TIMEOUT_MS = 10_000;
+// Published REFEPS example and terminology contracts use these distinct URIs.
+// Match the namespace as well as code 1; unrelated systems can reuse that code.
+const MEDICAL_PROFESSION_SYSTEMS = new Set([
+  'http://fhir.msal.gov.ar/ValueSet/Profesiones_REFEPS',
+  'http://fhir.msal.gob.ar/ValueSet/Profesiones_REFEPS',
+  'http://fhir.msal.gov.ar/Profesiones',
+  'http://fhir.msal.gob.ar/core/CodeSystem/ProfesionesREFEPS',
+]);
 
 type Config = {
   baseUrl?: string;
@@ -142,8 +150,13 @@ export class RefepsApiValidator implements IRefepsValidator {
     if (!registryId || !/^\d{12}$/.test(registryId)) fail('REFEPS_INVALID_RESPONSE');
     const cleanLicense = (value: string): string => value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     const qualifications = practitioner.qualification ?? [];
-    const license = qualifications.find((q) => q.identifier?.some((i) => {
-      if (!i.value || cleanLicense(i.value) !== cleanLicense(matricula)) return false;
+    if (!qualifications.length) fail('REFEPS_QUALIFICATIONS_MISSING');
+    const matchesNumber = (i: Identifier): boolean => !!i.value
+      && cleanLicense(i.value) === cleanLicense(matricula);
+    const numbered = qualifications.filter((q) => q.identifier?.some(matchesNumber));
+    if (!numbered.length) fail('REFEPS_LICENSE_NUMBER_MISMATCH');
+    const jurisdictionMatches = numbered.filter((q) => q.identifier?.some((i) => {
+      if (!matchesNumber(i)) return false;
       const issuer = normalized(i.assigner?.display ?? '');
       if (type === 'MN') return issuer === 'ministerio de salud de la nacion';
       const jurisdiction = normalized(province ?? '');
@@ -152,8 +165,11 @@ export class RefepsApiValidator implements IRefepsValidator {
         `ministerio de salud de la provincia de ${jurisdiction}`,
         `ministerio de salud de ${jurisdiction}`,
       ].includes(issuer);
-    }) && q.code?.coding?.some((c) => c.system?.includes('/Profesiones_REFEPS') && c.code === '1'));
-    if (!license) fail('REFEPS_LICENSE_MISMATCH');
+    }));
+    if (!jurisdictionMatches.length) fail('REFEPS_LICENSE_JURISDICTION_MISMATCH');
+    const license = jurisdictionMatches.find((q) => q.code?.coding?.some((c) => c.code === '1'
+      && !!c.system && MEDICAL_PROFESSION_SYSTEMS.has(c.system.replace(/^https:/, 'http:').replace(/\/$/, ''))));
+    if (!license) fail('REFEPS_MEDICAL_PROFESSION_UNCONFIRMED');
     const enabled = license.extension?.find((e) => e.url?.endsWith('/MatriculaHabilitada'))?.valueBoolean;
     if (typeof practitioner.active !== 'boolean' || typeof enabled !== 'boolean') fail('REFEPS_LICENSE_STATUS_UNKNOWN');
     const isValid = practitioner.active && enabled;

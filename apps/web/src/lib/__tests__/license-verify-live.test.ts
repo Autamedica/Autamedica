@@ -95,6 +95,22 @@ describe('administrative official license verification', () => {
     expect(response.status).toBe(422); expect(payload.error.details.reason).toBe('REFEPS_ID_REQUIRED');
     expect(state.updateProfile).not.toHaveBeenCalled(); expect(state.updateDoctor).not.toHaveBeenCalled();
   });
+  it.each([
+    ['REFEPS_QUALIFICATIONS_MISSING', 'no devolvió sus matrículas y profesiones'],
+    ['REFEPS_LICENSE_NUMBER_MISMATCH', 'no devolvió el número de matrícula'],
+    ['REFEPS_LICENSE_JURISDICTION_MISMATCH', 'su organismo emisor no coincide'],
+    ['REFEPS_MEDICAL_PROFESSION_UNCONFIRMED', 'no confirmó la profesión médica'],
+  ])('reports %s distinctly and preserves state even with autoguardar', async (reason, message) => {
+    state.verify.mockRejectedValue(Object.assign(new Error(reason), { code: reason }));
+    const response = await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true });
+    const payload = await response.json();
+    expect(response.status).toBe(503);
+    expect(payload.error.details.reason).toBe(reason);
+    expect(payload.error.message).toContain(message);
+    expect(payload.error.message).toContain('No se modificó la validación');
+    expect(state.updateProfile).not.toHaveBeenCalled();
+    expect(state.updateDoctor).not.toHaveBeenCalled();
+  });
   it('does not persist an official result when only verifying', async () => {
     state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active', matriculaNumber: '123456' });
     const response = await call(); expect(response.status).toBe(200);
