@@ -1,68 +1,51 @@
--- Restrict direct API execution of internal trigger entrypoints.
--- Existing trigger bindings and SECURITY DEFINER bodies remain unchanged.
-REVOKE EXECUTE ON FUNCTION public.assert_p2p_chat_event() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.assert_p2p_chat_event() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.assign_dispatch_patient_id() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.assign_dispatch_patient_id() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.audit_profile_changes() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.audit_profile_changes() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.auto_create_ranking_metrics() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.auto_create_ranking_metrics() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.check_appointment_conflict() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.check_appointment_conflict() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.enqueue_appointment_reminder() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.enqueue_appointment_reminder() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.enqueue_certificate_notification() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.enqueue_certificate_notification() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.enqueue_community_comment_notifications() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.enqueue_community_comment_notifications() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.enqueue_community_topic_notifications() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.enqueue_community_topic_notifications() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.enqueue_prescription_notification() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.enqueue_prescription_notification() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.ensure_doctor_patient_relationship() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.ensure_doctor_patient_relationship() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.ensure_numeric_id() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.ensure_numeric_id() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.ensure_role_specific_record() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.ensure_role_specific_record() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.fn_audit_sensitive_change() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.fn_audit_sensitive_change() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.handle_chat_notification() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.handle_chat_notification() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.handle_new_user() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.handle_sync_user_avatar() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.handle_sync_user_avatar() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.handle_user_deleted() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.handle_user_deleted() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.log_appointment_change() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.log_appointment_change() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.log_authorization_changes() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.log_authorization_changes() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.log_medical_change() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.log_medical_change() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.log_medical_record_access() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.log_medical_record_access() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.log_recording_access() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.log_recording_access() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.notify_on_duty_doctors_on_dispatch() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.notify_on_duty_doctors_on_dispatch() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.process_anamnesis_extraction_silver_layer() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.process_anamnesis_extraction_silver_layer() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.rls_auto_enable() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.sync_call_to_appointment() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.sync_call_to_appointment() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.trg_schedule_appointment_reminders() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.trg_schedule_appointment_reminders() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.trigger_match_dispatch_doctors() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.trigger_match_dispatch_doctors() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.trigger_recalculate_on_appointment() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.trigger_recalculate_on_appointment() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.trigger_recalculate_on_doctor_community_comment() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.trigger_recalculate_on_doctor_community_comment() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.trigger_recalculate_on_doctor_community_reaction() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.trigger_recalculate_on_doctor_community_reaction() TO service_role;
-REVOKE EXECUTE ON FUNCTION public.trigger_recalculate_on_review() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.trigger_recalculate_on_review() TO service_role;
+-- Restrict direct API execution of existing internal trigger entrypoints.
+-- Hosted Supabase can include platform-managed trigger functions absent locally.
+DO $permissions$
+DECLARE
+  signature text;
+  target regprocedure;
+BEGIN
+  FOREACH signature IN ARRAY ARRAY[
+    'public.assert_p2p_chat_event()',
+    'public.assign_dispatch_patient_id()',
+    'public.audit_profile_changes()',
+    'public.auto_create_ranking_metrics()',
+    'public.check_appointment_conflict()',
+    'public.enqueue_appointment_reminder()',
+    'public.enqueue_certificate_notification()',
+    'public.enqueue_community_comment_notifications()',
+    'public.enqueue_community_topic_notifications()',
+    'public.enqueue_prescription_notification()',
+    'public.ensure_doctor_patient_relationship()',
+    'public.ensure_numeric_id()',
+    'public.ensure_role_specific_record()',
+    'public.fn_audit_sensitive_change()',
+    'public.handle_chat_notification()',
+    'public.handle_new_user()',
+    'public.handle_sync_user_avatar()',
+    'public.handle_user_deleted()',
+    'public.log_appointment_change()',
+    'public.log_authorization_changes()',
+    'public.log_medical_change()',
+    'public.log_medical_record_access()',
+    'public.log_recording_access()',
+    'public.notify_on_duty_doctors_on_dispatch()',
+    'public.process_anamnesis_extraction_silver_layer()',
+    'public.rls_auto_enable()',
+    'public.sync_call_to_appointment()',
+    'public.trg_schedule_appointment_reminders()',
+    'public.trigger_match_dispatch_doctors()',
+    'public.trigger_recalculate_on_appointment()',
+    'public.trigger_recalculate_on_doctor_community_comment()',
+    'public.trigger_recalculate_on_doctor_community_reaction()',
+    'public.trigger_recalculate_on_review()'
+  ]
+  LOOP
+    target := to_regprocedure(signature);
+    IF target IS NOT NULL THEN
+      EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated', target);
+      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', target);
+    END IF;
+  END LOOP;
+END;
+$permissions$;
