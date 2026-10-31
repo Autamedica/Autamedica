@@ -181,6 +181,49 @@ describe('official REFEPS verification', () => {
       professionSummary: 'Sin codificación de profesión en la matrícula coincidente',
     });
   });
+  // Regression from the actual integration: current catalogue 35 is medicine.
+  // Synthetic identity/registration; no real professional identifiers are stored here.
+  it.each([
+    'http://fhir.msal.gob.ar/CodeSystem/profesionesREFEPSCS',
+    'https://fhir.msal.gob.ar/CodeSystem/profesionesREFEPSCS/',
+  ])('completes official verification for current medical coding 35 (%s)', async (system) => {
+    const p = practitioner();
+    Object.assign(p.qualification[0].code.coding[0], {system,code:'35',display:'Médico'});
+    Object.assign(p.qualification[0].identifier[0], {system:'http://fhir.msal.gov.ar/entidadesCertificantesREFEPS/10002001110000'});
+    p.qualification[0].identifier[0].assigner.display = 'Ministerio de Salud';
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN', 'CABA')).resolves.toMatchObject({
+      isValid:true,matriculaNumber:'123456',matriculaType:'MN',province:'CABA',
+      practitionerId:federalId,registrationStatus:'active',source:'national_refeps_api',
+    });
+  });
+  it.each([
+    ['http://fhir.msal.gob.ar/core/CodeSystem/ProfesionesREFEPS','35','Médico'],
+    ['http://fhir.msal.gob.ar/CodeSystem/profesionesREFEPSCS','1','Médico'],
+    ['http://fhir.msal.gob.ar/CodeSystem/profesionesREFEPSCS','36','Médico'],
+    ['http://untrusted.invalid/CodeSystem/profesionesREFEPSCS','35','Médico'],
+    ['http://fhir.msal.gob.ar/CodeSystem/profesionesREFEPSCS','35','Ingeniero químico'],
+  ])('does not transfer codes between catalogues or accept contradictory labels (%s, %s, %s)', async (system, code, display) => {
+    const p = practitioner(); Object.assign(p.qualification[0].code.coding[0],{system,code,display});
+    mockResponses(undefined,p);
+    await expect(create().validateMatricula('123456','MN','CABA')).rejects.toMatchObject({
+      code:'REFEPS_MEDICAL_PROFESSION_UNCONFIRMED',
+    });
+  });
+  it('still rejects a wrong registration with the current medical code', async () => {
+    const p = practitioner(); Object.assign(p.qualification[0].code.coding[0],{
+      system:'http://fhir.msal.gob.ar/CodeSystem/profesionesREFEPSCS',code:'35',
+    });
+    mockResponses(undefined,p);
+    await expect(create().validateMatricula('999999','MN','CABA')).rejects.toMatchObject({code:'REFEPS_LICENSE_NUMBER_MISMATCH'});
+  });
+  it('still requires an enabled registration with the current medical code', async () => {
+    const p = practitioner(false); Object.assign(p.qualification[0].code.coding[0],{
+      system:'http://fhir.msal.gob.ar/CodeSystem/profesionesREFEPSCS',code:'35',
+    });
+    mockResponses(undefined,p);
+    await expect(create().validateMatricula('123456','MN','CABA')).resolves.toMatchObject({isValid:false,registrationStatus:'suspended'});
+  });
   it('does not call the registry with missing credentials or approve from a fallback', async () => {
     const fallback = { validateMatricula: vi.fn().mockResolvedValue({ isValid: true }) };
     const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
