@@ -50,6 +50,14 @@ jobs:
             fi
           done
           echo "image_shell_links=$(readlink "$mnt/bin/sh" 2>/dev/null || echo regular)"
+          echo "dash_binary=$(test -f "$mnt/bin/dash" && echo exists || echo missing)"
+          echo "ld_linux_loader=$(test -e "$mnt/lib64/ld-linux-x86-64.so.2" && echo exists || echo missing)"
+          echo "libc_amd64=$(find "$mnt/lib" "$mnt/lib64" "$mnt/usr/lib" -maxdepth 3 -name 'libc.so.6' 2>/dev/null | head -n1 | sed "s#^$mnt##" || true)"
+          echo "bin_dash_file=$(file -b "$mnt/bin/dash" 2>/dev/null | cut -c1-200 || true)"
+          echo "bin_dash_interpreter=$(readelf -l "$mnt/bin/dash" 2>/dev/null | grep interpreter | head -n1 | cut -c1-200 || true)"
+          echo "overlay_mount_opts=$(findmnt -no OPTIONS -T /var/lib/containers/storage 2>/dev/null | cut -c1-180 || true)"
+          echo "fapolicyd_state=$(systemctl is-active fapolicyd 2>/dev/null || true)"
+
           podman unmount "$testname" >/dev/null
           echo "inspect_rootfs_done"
           echo "openclaw_after=$(systemctl is-active openclaw-gateway.service || true)"
