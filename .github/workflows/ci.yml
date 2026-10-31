@@ -63,6 +63,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+      - name: Check backup publication and integrity safeguards
+        run: python3 scripts/db/test_logical_backup.py
       - run: pnpm lint
       - run: pnpm hardcode:check
       - name: Detect hardcoded secrets
