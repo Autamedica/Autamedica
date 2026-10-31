@@ -1,0 +1,74 @@
+name: WAHA Oracle Executable Isolation Diagnostics
+on:
+  push:
+    branches: [ops/waha-oracle-setup-20261031]
+    paths:
+      - .github/workflows/waha-executable-probe.yml
+permissions:
+  contents: read
+  issues: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    environment: production
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Setup SSH credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/waha-key
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/waha-key ~/.ssh/known_hosts
+      - name: Test three executables without starting WAHA
+        id: probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 -o ServerAliveInterval=10 -i ~/.ssh/waha-key "$OCI_USER@$OCI_HOST" 'sudo -n bash -s' <<'REMOTE' | tee probe-status.txt
+          set -euo pipefail
+          img='docker.io/devlikeapro/waha:gows-2026.10.1'
+          echo "openclaw_before=$(systemctl is-active openclaw-gateway.service || true)"
+          echo "image_user=$(podman image inspect -f '{{.Config.User}}' "$img" 2>/dev/null || true)"
+          echo "image_workdir=$(podman image inspect -f '{{.Config.WorkingDir}}' "$img" 2>/dev/null || true)"
+          echo "mountpoint=/var/lib/containers/storage"
+          for item in sh gows node tini; do
+            case "$item" in
+              sh) path=/bin/sh; arg='echo WAHA_PROBE_SHELL_OK';;
+              gows) path=/app/gows; arg='--help';;
+              node) path=/usr/local/bin/node; arg='--version';;
+              tini) path=/usr/bin/tini; arg='--version';;
+            esac
+            set +e
+            if [[ "$item" == sh ]]; then
+              output="$(timeout 14 podman --cgroup-manager=cgroupfs run --rm --pull=never --network=none --memory=192m --memory-swap=384m --pids-limit=48 --entrypoint="$path" "$img" -c "$arg" 2>&1)"
+            else
+              output="$(timeout 14 podman --cgroup-manager=cgroupfs run --rm --pull=never --network=none --memory=192m --memory-swap=384m --pids-limit=48 --entrypoint="$path" "$img" "$arg" 2>&1)"
+            fi
+            status=$?
+            set -e
+            echo "probe_${item}_exit=$status"
+            safe="$(printf '%s' "$output" | head -n 4 | sed -E 's/([A-Za-z0-9_-]{32,})/[redacted]/g' | cut -c 1-180 | tr '\n' ';')"
+            echo "probe_${item}_message=$safe"
+          done
+          echo "openclaw_after=$(systemctl is-active openclaw-gateway.service || true)"
+          echo "mem_avail_kb=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
+          REMOTE
+      - name: Report sanitized diagnostic
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "WAHA executable probe outcome: ${{ steps.probe.outcome }}"
+            test -f probe-status.txt && cat probe-status.txt || true
+          } > results.txt
+          gh api "repos/$GITHUB_REPOSITORY/issues/618/comments" -f body="$(cat results.txt)" >/dev/null
