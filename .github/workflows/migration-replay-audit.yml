@@ -60,5 +60,7 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/create_call_acl_smoke.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/appointments_atomic_no_overlap.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/appointments_atomic_no_overlap_behavior.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/appointment_actor_guard_behavior.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/tests/appointment_actor_guard_contract.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/tests/memed_provider_integrity_smoke.sql
 
