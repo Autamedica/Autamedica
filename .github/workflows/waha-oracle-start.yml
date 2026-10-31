@@ -49,13 +49,23 @@ jobs:
           if ! podman image exists "$IMAGE"; then echo "start=blocked_image_not_fully_loaded"; exit 1; fi
           if [[ ! -s "$ENVFILE" ]] || [[ "$(stat -c %a "$ENVFILE")" != 600 ]]; then echo "start=blocked_missing_credentials"; exit 1; fi
           created=false
+          if podman container exists "$NAME"; then
+            if [[ "$(podman inspect -f '{{.State.Running}}' "$NAME")" == true ]]; then
+              echo "container_already_running=yes"
+            else
+              echo "cleaning_up_failed_waha_container=yes"
+              podman rm -f "$NAME" >/dev/null
+            fi
+          fi
           if ! podman container exists "$NAME"; then
-            podman run -d --name "$NAME" --restart=always --memory=384m --memory-swap=768m --cpus=0.75 --pids-limit=256 \
+            if ! podman --cgroup-manager=cgroupfs run -d --name "$NAME" --restart=always --memory=384m --memory-swap=768m --cpus=0.75 --pids-limit=256 \
               --dns=169.254.169.254 -p 127.0.0.1:3000:3000 --env-file "$ENVFILE" \
-              -v /var/lib/autamedica/waha/sessions:/app/.sessions:Z "$IMAGE" >/dev/null
+              -v /var/lib/autamedica/waha/sessions:/app/.sessions:Z "$IMAGE" >/dev/null; then
+              echo "container_start=failed_cgroupfs"
+              podman rm -f "$NAME" >/dev/null 2>&1 || true
+              exit 1
+            fi
             created=true
-          elif [[ "$(podman inspect -f '{{.State.Running}}' "$NAME")" != true ]]; then
-            podman start "$NAME" >/dev/null
           fi
           key="$(sed -n 's/^WAHA_API_KEY=//p' "$ENVFILE" | head -n1)"
           ready=false
@@ -80,7 +90,7 @@ jobs:
           if systemctl list-unit-files --no-legend podman-restart.service 2>/dev/null | grep -q podman-restart.service; then
             systemctl enable --now podman-restart.service >/dev/null 2>&1 || true
           fi
-          echo "start=success"
+          echo "runtime_cgroup_manager=cgroupfs"\n          echo "start=success"
           echo "waha_http=200"
           echo "waha_binding=127.0.0.1:3000"
           echo "openclaw=healthy"
