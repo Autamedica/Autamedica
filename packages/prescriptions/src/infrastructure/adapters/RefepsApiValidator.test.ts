@@ -36,6 +36,68 @@ describe('official REFEPS verification', () => {
     expect(query.searchParams.get('identifier')).toBe(`https://sisa.msal.gov.ar/REFEPS|${federalId}`);
     expect(query.searchParams.get('identifier')).not.toContain('|123456');
   });
+  // Contracts: simplifier.net/guide/PractitionerREFEPS/Valuesets3 and
+  // guias.hl7.org.ar/site/CodeSystem-ProfesionesREFEPS.html.
+  it.each([
+    'http://fhir.msal.gov.ar/ValueSet/Profesiones_REFEPS',
+    'http://fhir.msal.gob.ar/ValueSet/Profesiones_REFEPS',
+    'http://fhir.msal.gov.ar/Profesiones',
+    'http://fhir.msal.gob.ar/core/CodeSystem/ProfesionesREFEPS',
+    'https://fhir.msal.gob.ar/core/CodeSystem/ProfesionesREFEPS/',
+  ])('recognizes medical code 1 in the documented namespace %s', async (system) => {
+    const p = practitioner(); p.qualification[0].code.coding[0].system = system;
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN', 'CABA')).resolves.toMatchObject({
+      isValid: true, source: 'national_refeps_api', registrationStatus: 'active',
+    });
+  });
+  it.each([
+    ['http://untrusted.invalid/Profesiones_REFEPS', '1'],
+    ['http://fhir.msal.gob.ar/core/CodeSystem/ProfesionesREFEPS.evil', '1'],
+    ['http://fhir.msal.gob.ar/core/CodeSystem/ProfesionesREFEPS', '2'],
+    ['', '1'],
+  ])('does not infer medicine from display or an unrelated code namespace (%s, %s)', async (system, code) => {
+    const p = practitioner(); Object.assign(p.qualification[0].code.coding[0], { system, code });
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN', 'CABA')).rejects.toMatchObject({
+      code: 'REFEPS_MEDICAL_PROFESSION_UNCONFIRMED',
+    });
+  });
+  it('distinguishes missing qualification data from a license-number mismatch', async () => {
+    const p = practitioner(); p.qualification = []; mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN')).rejects.toMatchObject({
+      code: 'REFEPS_QUALIFICATIONS_MISSING',
+    });
+  });
+  it('does not combine the requested number with an issuer on another identifier', async () => {
+    const p = practitioner();
+    p.qualification[0].identifier = [
+      { value: '123456', assigner: { display: 'UNKNOWN' } },
+      { value: '999999', assigner: { display: 'MINISTERIO DE SALUD DE LA NACION' } },
+    ];
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN')).rejects.toMatchObject({
+      code: 'REFEPS_LICENSE_JURISDICTION_MISMATCH',
+    });
+  });
+  it('does not take the medical profession from a different qualification', async () => {
+    const p = practitioner();
+    p.qualification.push(structuredClone(p.qualification[0]));
+    p.qualification[0].code.coding[0].code = '2';
+    p.qualification[1].identifier[0].value = '999999';
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN')).rejects.toMatchObject({
+      code: 'REFEPS_MEDICAL_PROFESSION_UNCONFIRMED',
+    });
+  });
+  it('retains explicit habilitation checks for the core medical CodeSystem', async () => {
+    const p = practitioner(false);
+    p.qualification[0].code.coding[0].system = 'http://fhir.msal.gob.ar/core/CodeSystem/ProfesionesREFEPS';
+    mockResponses(undefined, p);
+    await expect(create().validateMatricula('123456', 'MN')).resolves.toMatchObject({
+      isValid: false, registrationStatus: 'suspended',
+    });
+  });
   it('does not call the registry with missing credentials or approve from a fallback', async () => {
     const fallback = { validateMatricula: vi.fn().mockResolvedValue({ isValid: true }) };
     const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
@@ -86,17 +148,17 @@ describe('official REFEPS verification', () => {
   });
   it('requires the requested license number', async () => {
     mockResponses();
-    await expect(create().validateMatricula('999999', 'MN')).rejects.toMatchObject({ code: 'REFEPS_LICENSE_MISMATCH' });
+    await expect(create().validateMatricula('999999', 'MN')).rejects.toMatchObject({ code: 'REFEPS_LICENSE_NUMBER_MISMATCH' });
   });
   it('does not approve the same license in a different jurisdiction', async () => {
     mockResponses();
-    await expect(create().validateMatricula('123456', 'MP', 'Córdoba')).rejects.toMatchObject({ code: 'REFEPS_LICENSE_MISMATCH' });
+    await expect(create().validateMatricula('123456', 'MP', 'Córdoba')).rejects.toMatchObject({ code: 'REFEPS_LICENSE_JURISDICTION_MISMATCH' });
   });
   it('never matches CABA issuer as Buenos Aires province', async () => {
     const p = practitioner();
     p.qualification[0].identifier[0].assigner.display = 'MINISTERIO DE SALUD DE LA CIUDAD AUTONOMA DE BUENOS AIRES';
     mockResponses(undefined, p);
-    await expect(create().validateMatricula('123456', 'MP', 'Buenos Aires')).rejects.toMatchObject({ code: 'REFEPS_LICENSE_MISMATCH' });
+    await expect(create().validateMatricula('123456', 'MP', 'Buenos Aires')).rejects.toMatchObject({ code: 'REFEPS_LICENSE_JURISDICTION_MISMATCH' });
   });
   it('requires explicitly enabled medical qualification', async () => {
     mockResponses(undefined, practitioner(false));
