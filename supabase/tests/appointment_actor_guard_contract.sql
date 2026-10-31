@@ -37,7 +37,7 @@ BEGIN
     SELECT 1 FROM pg_trigger
     WHERE tgrelid='public.appointments'::regclass
       AND tgname='trg_appointment_metadata_immutable'
-      AND (tgtype & 4) <> 0 AND (tgtype & 8) <> 0
+      AND (tgtype & 4) <> 0 AND (tgtype & 16) <> 0
       AND tgenabled <> 'D'
   ) THEN RAISE EXCEPTION 'Appointment metadata INSERT/UPDATE trigger missing'; END IF;
 END $provenance$;
