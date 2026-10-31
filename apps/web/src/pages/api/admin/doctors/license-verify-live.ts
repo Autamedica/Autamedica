@@ -14,6 +14,8 @@ type RequestBody = {
   doctorId?: string;
   userId?: string;
   persist?: boolean;
+  matricula?: string;
+  jurisdiction?: string;
 };
 
 // Validates that the caller has administrative privileges
@@ -88,7 +90,7 @@ async function forwardOfficialVerification(request: Request, body: RequestBody):
     if (value) headers.set(name, value);
   }
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+  const timeout = setTimeout(() => controller.abort(), 50_000);
   let upstreamStatus: number | undefined;
   let upstreamContentType: string | null = null;
   try {
@@ -130,10 +132,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return badRequest('invalid JSON object');
     const input = parsed as RequestBody;
     if (input.persist !== undefined && typeof input.persist !== 'boolean') return badRequest('persist must be boolean');
+    if (input.matricula !== undefined && (!isNonEmptyString(input.matricula) || input.matricula.length > 128)) return badRequest('invalid matricula');
+    if (input.jurisdiction !== undefined && (typeof input.jurisdiction !== 'string' || input.jurisdiction.length > 100)) return badRequest('invalid jurisdiction');
     body = {
       doctorId: isNonEmptyString(input.doctorId) ? input.doctorId.trim() : undefined,
       userId: isNonEmptyString(input.userId) ? input.userId.trim() : undefined,
       persist: input.persist,
+      matricula: input.matricula?.trim(),
+      jurisdiction: input.jurisdiction?.trim() || undefined,
     };
   } catch {
     return badRequest('invalid JSON');
@@ -169,16 +175,27 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (doctorError) throw doctorError;
     if (!doctor) return badRequest('doctor not found');
 
-    const matricula = doctor.license_number;
+    const matricula = body.matricula ?? doctor.license_number;
     if (!isNonEmptyString(matricula)) {
       return badRequest('doctor does not have a license number registered');
     }
 
+    const { data: doctorProfile, error: profileError } = await admin.from('profiles')
+      .select('first_name, last_name').eq('user_id', doctor.user_id).maybeSingle();
+    if (profileError) throw profileError;
+    if (!isNonEmptyString(doctorProfile?.first_name) || !isNonEmptyString(doctorProfile?.last_name)) {
+      return jsonFail('VALIDATION', 'Completá el nombre y apellido del médico para contrastar la matrícula con REFEPS. No se modificó la validación.', 422,
+        { reason: 'REFEPS_PROFILE_NAME_REQUIRED' });
+    }
+
     // Determine matrícula type (MN vs MP)
     // If the enrollment entity or jurisdiction suggests a provincial registration, it is MP, otherwise MN
-    const isProvincial = isNonEmptyString(doctor.enrollment_jurisdiction) && doctor.enrollment_jurisdiction !== 'CABA';
+    const requestedProvince = body.jurisdiction ?? doctor.enrollment_jurisdiction ?? undefined;
+    const provinceKey = requestedProvince?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const province = provinceKey && ['caba', 'capital federal', 'ciudad autonoma de buenos aires'].includes(provinceKey)
+      ? 'CABA' : requestedProvince;
+    const isProvincial = isNonEmptyString(province) && province !== 'CABA';
     const type: 'MN' | 'MP' = isProvincial ? 'MP' : 'MN';
-    const province = doctor.enrollment_jurisdiction ?? undefined;
 
     // 2. Resolve credentials for the Bus de Interoperabilidad
     logger.info('[license-verify-live] Running verification', {
@@ -196,6 +213,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       domainTokenSecret: tokenSecret,
       domainUrl: domainUrl,
       refepsId: doctor.refeps_id ?? undefined,
+      discoverByMatricula: true,
+      expectedName: `${doctorProfile.first_name} ${doctorProfile.last_name}`,
     });
 
     // 4. Perform the query
@@ -255,6 +274,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
           .from('doctors')
           .update({
             refeps_id: practitionerId,
+            ...(validatedLicense ? { license_number: validatedLicense } : {}),
+            ...(province ? { enrollment_jurisdiction: province } : {}),
           })
           .eq('id', doctor.id);
 
@@ -266,7 +287,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .upsert(
           {
             doctor_id: doctor.id,
-            license_number: matricula,
+            license_number: validatedLicense ?? matricula,
             license_type: type,
             province: province ?? null,
             status: verification.registrationStatus === 'suspended' ? 'suspended' : finalStatus === 'valid' ? 'active' : 'inactive',
@@ -308,8 +329,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return jsonOk({
       doctorId: doctor.id,
       userId: doctor.user_id,
-      matricula,
+      matricula: validatedLicense ?? matricula,
       type,
+      province,
       fullName: verification.fullName || doctor.specialty || '',
       isValid: verification.isValid,
       status: finalStatus,
@@ -339,10 +361,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
       REFEPS_LICENSE_JURISDICTION_MISMATCH: 'La matrícula figura en REFEPS, pero su organismo emisor no coincide con la jurisdicción registrada o no pudo reconocerse.',
       REFEPS_MEDICAL_PROFESSION_UNCONFIRMED: 'La matrícula y su emisor coinciden, pero REFEPS no confirmó la profesión médica con un código reconocido.',
       REFEPS_LICENSE_STATUS_UNKNOWN: 'REFEPS no informó de forma explícita la habilitación de esta matrícula.',
+      REFEPS_LICENSE_FORMAT: 'Ingresá una matrícula con formato válido, con o sin prefijo MN o MP.',
+      REFEPS_DISCOVERY_UNAVAILABLE: 'El buscador oficial de REFEPS no pudo completar la búsqueda por matrícula. Intentá nuevamente.',
+      REFEPS_DISCOVERY_INVALID_RESPONSE: 'El buscador oficial de REFEPS devolvió un formato que no permite identificar al profesional.',
+      REFEPS_DISCOVERY_NOT_FOUND: 'No se encontró una matrícula médica con ese número y jurisdicción en el buscador oficial.',
+      REFEPS_DISCOVERY_IDENTITY_MISMATCH: 'La matrícula encontrada en REFEPS no coincide con el nombre y apellido de esta ficha.',
+      REFEPS_DISCOVERY_AMBIGUOUS: 'La matrícula coincide con más de un profesional. Revisá el nombre y la jurisdicción de esta ficha.',
     };
     if (Object.hasOwn(messages, reason)) {
       logger.warn('[license-verify-live] Official verification incomplete', { reason });
-      const inputError = reason === 'REFEPS_ID_REQUIRED';
+      const inputError = ['REFEPS_ID_REQUIRED', 'REFEPS_LICENSE_FORMAT', 'REFEPS_DISCOVERY_NOT_FOUND',
+        'REFEPS_DISCOVERY_IDENTITY_MISMATCH', 'REFEPS_DISCOVERY_AMBIGUOUS'].includes(reason);
       const issuerSummary = reason === 'REFEPS_LICENSE_JURISDICTION_MISMATCH'
         && err instanceof Error && 'issuerSummary' in err && typeof err.issuerSummary === 'string'
         ? err.issuerSummary.replace(/[^\p{L}\p{N} .,'()/-]/gu, ' ').slice(0, 220).trim() : '';

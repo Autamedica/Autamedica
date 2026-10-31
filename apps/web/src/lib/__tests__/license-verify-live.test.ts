@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
   tokenSecret: 'test-only', domainUrl: 'https://test.invalid', role: 'admin', sessionUser: true, authHeader: 'Bearer test-user',
+  firstName: 'Nombre', lastName: 'Prueba', validatorConfig: vi.fn(),
   createAdmin: vi.fn(), verify: vi.fn(), updateProfile: vi.fn(), updateDoctor: vi.fn(),
 }));
 vi.mock('@autamedica/shared', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
@@ -10,7 +11,7 @@ vi.mock('@/lib/runtime-env', () => ({
   resolveBusTokenSecret: () => state.tokenSecret, resolveBusDomainUrl: () => state.domainUrl,
 }));
 vi.mock('@autamedica/prescriptions', () => ({
-  RefepsApiValidator: class { validateMatricula = state.verify; },
+  RefepsApiValidator: class { constructor(config: unknown) { state.validatorConfig(config); } validateMatricula = state.verify; },
 }));
 import { POST } from '../../pages/api/admin/doctors/license-verify-live';
 
@@ -24,6 +25,7 @@ async function call(host = 'www.autamedica.com', body: unknown = { doctorId: 'te
 beforeEach(() => {
   vi.restoreAllMocks(); vi.unstubAllGlobals();
   state.tokenSecret = 'test-only'; state.domainUrl = 'https://test.invalid';
+  state.firstName = 'Nombre'; state.lastName = 'Prueba'; state.validatorConfig.mockReset();
   state.role = 'admin'; state.sessionUser = true; state.authHeader = 'Bearer test-user';
   state.verify.mockReset(); state.updateProfile.mockReset(); state.updateDoctor.mockReset();
   state.createAdmin.mockReset();
@@ -31,7 +33,7 @@ beforeEach(() => {
   state.updateDoctor.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
   const query = (data: unknown) => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data, error: null }) }) }) });
   state.createAdmin.mockReturnValue({ auth: { getUser: async () => ({ data: { user: { id: 'test-user' } }, error: null }) }, from: (name: string) => {
-    if (name === 'profiles') return { ...query({ role: state.role }), update: state.updateProfile };
+    if (name === 'profiles') return { ...query({ role: state.role, first_name: state.firstName, last_name: state.lastName }), update: state.updateProfile };
     if (name === 'doctors') return {
       ...query({ id: 'test-doctor', user_id: 'test-user', license_number: '123456',
         enrollment_jurisdiction: 'CABA', enrollment_entity: 'Ministerio de Salud', refeps_id: '541000000001' }),
@@ -129,6 +131,46 @@ describe('administrative official license verification', () => {
     expect(payload.error.message).toContain('Profesión informada: código 2, sistema https://fhir.msal.gob.ar/Profesiones.');
     expect(state.updateProfile).not.toHaveBeenCalled(); expect(state.updateDoctor).not.toHaveBeenCalled();
   });
+  it('requests license discovery and matches the existing profile name without requiring an ID from the user', async () => {
+    state.verify.mockResolvedValue({isValid:true,source:'national_refeps_api',registrationStatus:'active',practitionerId:'541000000001'});
+    expect((await call()).status).toBe(200);
+    expect(state.validatorConfig).toHaveBeenCalledWith(expect.objectContaining({discoverByMatricula:true,expectedName:'Nombre Prueba'}));
+  });
+  it('requires the existing profile name before matching an official registration', async () => {
+    state.firstName = '';
+    const response = await call();
+    expect(response.status).toBe(422);
+    expect(state.verify).not.toHaveBeenCalled();
+    expect(state.updateProfile).not.toHaveBeenCalled(); expect(state.updateDoctor).not.toHaveBeenCalled();
+  });
+  it.each(['REFEPS_LICENSE_FORMAT','REFEPS_DISCOVERY_NOT_FOUND','REFEPS_DISCOVERY_IDENTITY_MISMATCH','REFEPS_DISCOVERY_AMBIGUOUS'])('preserves the profile when discovery cannot establish a unique match (%s)',async (code)=>{
+    state.verify.mockRejectedValue(Object.assign(new Error(code),{code}));
+    const response = await call('www.autamedica.com',{doctorId:'test-doctor',persist:true});
+    expect(response.status).toBe(422);
+    expect(state.updateProfile).not.toHaveBeenCalled(); expect(state.updateDoctor).not.toHaveBeenCalled();
+  });
+  it('verifies an unsaved registration from the form without writing during solo verificar',async()=>{
+    state.verify.mockResolvedValue({isValid:true,source:'national_refeps_api',registrationStatus:'active',matriculaNumber:'999999',practitionerId:'541000000001'});
+    const response=await call('www.autamedica.com',{doctorId:'test-doctor',persist:false,matricula:'MN999999',jurisdiction:'CABA'});
+    expect(state.verify).toHaveBeenCalledWith('MN999999','MN','CABA');
+    const payload=await response.json(); expect(payload.data.matricula).toBe('999999');
+    expect(state.updateProfile).not.toHaveBeenCalled(); expect(state.updateDoctor).not.toHaveBeenCalled();
+  });
+  it('forwards draft registration fields through the canonical proxy',async()=>{
+    state.tokenSecret='';
+    const fetcher=vi.fn().mockResolvedValue(Response.json({success:false,error:{code:'UNAUTHENTICATED'}},{status:401}));vi.stubGlobal('fetch',fetcher);
+    await call('autamedica-admin-5r9.pages.dev',{doctorId:'test-doctor',persist:false,matricula:'MP31796/6',jurisdiction:'Córdoba'});
+    expect(JSON.parse(fetcher.mock.calls[0][1].body)).toMatchObject({matricula:'MP31796/6',jurisdiction:'Córdoba',persist:false});
+  });
+  it.each([{matricula:123},{matricula:''},{jurisdiction:42}])('rejects malformed draft fields before verification (%j)',async (draft)=>{
+    expect((await call('www.autamedica.com',{doctorId:'test-doctor',...draft})).status).toBe(400);
+    expect(state.verify).not.toHaveBeenCalled();
+  });
+  it.each(['caba','Capital Federal','Ciudad Autónoma de Buenos Aires'])('recognizes national registration jurisdiction %s',async(jurisdiction)=>{
+    state.verify.mockResolvedValue({isValid:true,source:'national_refeps_api',registrationStatus:'active',matriculaNumber:'123456'});
+    expect((await call('www.autamedica.com',{doctorId:'test-doctor',matricula:'123456',jurisdiction,persist:false})).status).toBe(200);
+    expect(state.verify).toHaveBeenCalledWith('123456','MN','CABA');
+  });
   it('does not persist an official result when only verifying', async () => {
     state.verify.mockResolvedValue({ isValid: true, source: 'national_refeps_api', registrationStatus: 'active', matriculaNumber: '123456' });
     const response = await call(); expect(response.status).toBe(200);
@@ -144,6 +186,6 @@ describe('administrative official license verification', () => {
       matriculaNumber: '123456', practitionerId: '541000000001' });
     expect((await call('www.autamedica.com', { doctorId: 'test-doctor', persist: true })).status).toBe(200);
     expect(state.updateProfile).toHaveBeenCalledWith(expect.objectContaining({ sss_validation_status: 'valid' }));
-    expect(state.updateDoctor).toHaveBeenCalledWith({ refeps_id: '541000000001' });
+    expect(state.updateDoctor).toHaveBeenCalledWith({ refeps_id: '541000000001', license_number: '123456', enrollment_jurisdiction: 'CABA' });
   });
 });

@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import { createLicenseVerificationLock } from '@/lib/admin/license-verification-lock';
 import { ApiError, fetchApi } from '@/lib/api-client';
 
 type Profile = {
@@ -48,6 +49,7 @@ type DeleteDoctorResponse = {
 };
 
 export function DoctorAdminDashboard() {
+  const licenseVerificationLock = useRef(createLicenseVerificationLock());
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +174,7 @@ export function DoctorAdminDashboard() {
 
   // Open Edit Side-Over
   function handleEditClick(doctor: Doctor) {
+    if (licenseVerificationLock.current.isRunning() || isSaving) return;
     setSelectedDoctor(doctor);
     const p = doctor.profile || {} as Profile;
     setEditForm({
@@ -189,13 +192,14 @@ export function DoctorAdminDashboard() {
 
   // Handle Edit Input Change
   function handleEditChange(key: string, value: string | number | boolean | null) {
+    if (licenseVerificationLock.current.isRunning()) return;
     setEditForm((prev) => ({ ...prev, [key]: value }));
   }
 
   // Submit Edit Doctor
   async function handleEditSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedDoctor) return;
+    if (!selectedDoctor || licenseVerificationLock.current.isRunning()) return;
 
     setIsSaving(true);
     setError(null);
@@ -225,7 +229,7 @@ export function DoctorAdminDashboard() {
 
   // Perform live verification against national SISA/REFEPS registry
   async function handleVerifyLiveLicense(persist: boolean = true) {
-    if (!selectedDoctor) return;
+    if (!selectedDoctor || isSaving || !licenseVerificationLock.current.start()) return;
 
     setIsVerifyingSisa(true);
     setError(null);
@@ -241,10 +245,15 @@ export function DoctorAdminDashboard() {
         status: 'valid' | 'rejected' | 'pending_review';
         checkedAt: string;
         source: string;
+        practitionerId?: string;
+        registeredSpecialty?: string | null;
+        province?: string;
       }>('/api/admin/doctors/license-verify-live', {
         method: 'POST',
         body: {
           doctorId: selectedDoctor.id,
+          matricula: editForm.license_number ?? selectedDoctor.license_number,
+          jurisdiction: editForm.enrollment_jurisdiction ?? selectedDoctor.enrollment_jurisdiction ?? undefined,
           persist,
         },
       });
@@ -264,7 +273,10 @@ export function DoctorAdminDashboard() {
         ...prev,
         sssValidationStatus: data.status,
         matriculaNacional: data.matricula,
-        especialidadRegistrada: data.fullName,
+        license_number: data.matricula,
+        refeps_id: data.practitionerId ?? prev.refeps_id,
+        enrollment_jurisdiction: data.province ?? prev.enrollment_jurisdiction,
+        especialidadRegistrada: data.registeredSpecialty ?? prev.especialidadRegistrada,
       }));
 
       if (persist) {
@@ -274,12 +286,15 @@ export function DoctorAdminDashboard() {
             d.id === selectedDoctor.id
               ? {
                   ...d,
+                  license_number: data.matricula,
+                  refeps_id: data.practitionerId ?? d.refeps_id,
+                  enrollment_jurisdiction: data.province ?? d.enrollment_jurisdiction,
                   profile: {
                     ...d.profile,
                     sss_validation_status: data.status,
                     sss_last_checked_at: data.checkedAt,
                     matricula_nacional: data.matricula,
-                    especialidad_registrada: data.fullName,
+                    especialidad_registrada: data.registeredSpecialty ?? d.profile?.especialidad_registrada,
                   },
                 }
               : d
@@ -291,12 +306,15 @@ export function DoctorAdminDashboard() {
           prev
             ? {
                 ...prev,
+                license_number: data.matricula,
+                refeps_id: data.practitionerId ?? prev.refeps_id,
+                enrollment_jurisdiction: data.province ?? prev.enrollment_jurisdiction,
                 profile: {
                   ...prev.profile,
                   sss_validation_status: data.status,
                   sss_last_checked_at: data.checkedAt,
                   matricula_nacional: data.matricula,
-                  especialidad_registrada: data.fullName,
+                  especialidad_registrada: data.registeredSpecialty ?? prev.profile?.especialidad_registrada,
                 },
               }
             : null
@@ -305,13 +323,14 @@ export function DoctorAdminDashboard() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fallo en la verificación live contra SISA.');
     } finally {
+      licenseVerificationLock.current.finish();
       setIsVerifyingSisa(false);
     }
   }
 
   // Handle Soft / Hard Delete
   async function handleDeleteDoctor(mode: 'soft' | 'hard') {
-    if (!selectedDoctor) return;
+    if (!selectedDoctor || licenseVerificationLock.current.isRunning()) return;
 
     const confirmMsg =
       mode === 'hard'
@@ -675,7 +694,10 @@ export function DoctorAdminDashboard() {
             <div className="border-b border-slate-200 px-5 py-4 flex items-center justify-between bg-slate-50/50">
               <h3 className="font-semibold text-slate-800">Control Médico / Ficha</h3>
               <button
-                onClick={() => setSelectedDoctor(null)}
+                disabled={isVerifyingSisa || isSaving}
+                onClick={() => {
+                  if (!licenseVerificationLock.current.isRunning()) setSelectedDoctor(null);
+                }}
                 className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -728,7 +750,7 @@ export function DoctorAdminDashboard() {
 
               <form onSubmit={handleEditSubmit} className="space-y-5 text-slate-700">
                 {/* 🧑 Info Personal */}
-                <fieldset className="space-y-3">
+                <fieldset disabled={isVerifyingSisa} className="space-y-3">
                   <legend className="text-xs font-bold uppercase tracking-wider text-slate-500">Información Personal</legend>
                   
                   <div>
@@ -780,7 +802,7 @@ export function DoctorAdminDashboard() {
                 </fieldset>
 
                 {/* 🩺 Especialidad & Experiencia */}
-                <fieldset className="space-y-3 pt-2 border-t border-slate-100">
+                <fieldset disabled={isVerifyingSisa} className="space-y-3 pt-2 border-t border-slate-100">
                   <legend className="text-xs font-bold uppercase tracking-wider text-slate-500">Especialidad & Clínica</legend>
                   
                   <div>
@@ -841,7 +863,7 @@ export function DoctorAdminDashboard() {
                 </fieldset>
 
                 {/* 🛡️ SISA / REFEPS Validation (Crucial para Receta Electrónica) */}
-                <fieldset className="space-y-3 pt-2 border-t border-slate-100">
+                <fieldset disabled={isVerifyingSisa} className="space-y-3 pt-2 border-t border-slate-100">
                   <legend className="text-xs font-bold uppercase tracking-wider text-slate-500">Validación SISA / REFEPS</legend>
                   
                   <div>
@@ -904,7 +926,7 @@ export function DoctorAdminDashboard() {
                 </fieldset>
 
                 {/* 💼 Matrícula & Domicilio */}
-                <fieldset className="space-y-3 pt-2 border-t border-slate-100">
+                <fieldset disabled={isVerifyingSisa} className="space-y-3 pt-2 border-t border-slate-100">
                   <legend className="text-xs font-bold uppercase tracking-wider text-slate-500">Matrícula Provincial & Domicilio</legend>
                   
                   <div>
@@ -955,7 +977,7 @@ export function DoctorAdminDashboard() {
                 </fieldset>
 
                 {/* 💳 Datos de Cobros */}
-                <fieldset className="space-y-3 pt-2 border-t border-slate-100">
+                <fieldset disabled={isVerifyingSisa} className="space-y-3 pt-2 border-t border-slate-100">
                   <legend className="text-xs font-bold uppercase tracking-wider text-slate-500">Datos Financieros (Payouts)</legend>
                   
                   <div>
@@ -983,7 +1005,7 @@ export function DoctorAdminDashboard() {
                 </fieldset>
 
                 {/* ⚙️ Estado de Cuenta */}
-                <fieldset className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <fieldset disabled={isVerifyingSisa} className="pt-2 border-t border-slate-100 flex items-center justify-between">
                   <div>
                     <span className="block text-sm font-semibold text-slate-800">Cuenta Médica Activa</span>
                     <span className="text-xs text-slate-500">Determina si puede operar en la plataforma.</span>
@@ -1003,7 +1025,7 @@ export function DoctorAdminDashboard() {
                 {/* Submit button */}
                 <button
                   type="submit"
-                  disabled={isSaving}
+                  disabled={isSaving || isVerifyingSisa}
                   className="w-full h-10 inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-50"
                 >
                   {isSaving ? 'Guardando cambios...' : 'Guardar Ficha Médica'}
@@ -1017,7 +1039,7 @@ export function DoctorAdminDashboard() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    disabled={isSaving || !selectedDoctor.active}
+                    disabled={isSaving || isVerifyingSisa || !selectedDoctor.active}
                     onClick={() => void handleDeleteDoctor('soft')}
                     className="h-9 inline-flex items-center justify-center rounded-lg border border-red-300 bg-white px-3 text-xs font-semibold text-red-700 shadow-sm transition hover:bg-red-50 disabled:opacity-50"
                   >
@@ -1026,7 +1048,7 @@ export function DoctorAdminDashboard() {
 
                   <button
                     type="button"
-                    disabled={isSaving}
+                    disabled={isSaving || isVerifyingSisa}
                     onClick={() => void handleDeleteDoctor('hard')}
                     className="h-9 inline-flex items-center justify-center rounded-lg bg-red-600 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
                   >
@@ -1295,3 +1317,4 @@ export function DoctorAdminDashboard() {
     </div>
   );
 }
+
