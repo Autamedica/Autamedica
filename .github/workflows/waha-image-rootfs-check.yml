@@ -1,0 +1,65 @@
+name: WAHA Oracle Rootfs Integrity Check
+on:
+  push:
+    branches:
+      - ops/waha-oracle-setup-20261031
+    paths:
+      - .github/workflows/waha-image-rootfs-check.yml
+permissions:
+  contents: read
+  issues: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    environment: production
+    env:
+      OCI_HOST: ${{ secrets.OCI_OPENCLAW_HOST }}
+      OCI_USER: ${{ secrets.OCI_OPENCLAW_USER }}
+      OCI_SSH_KEY: ${{ secrets.OCI_OPENCLAW_SSH_KEY }}
+      OCI_HOST_KEY: ${{ secrets.OCI_OPENCLAW_HOST_KEY }}
+    steps:
+      - name: Read-only inspect image filesystem
+        id: inspect
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/key
+          printf '%s\n' "$OCI_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/key ~/.ssh/known_hosts
+          ssh -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 -o ServerAliveInterval=10 -i ~/.ssh/key "$OCI_USER@$OCI_HOST" 'sudo -n bash -s' <<'REMOTE' | tee rootfs.txt
+          set -euo pipefail
+          image=docker.io/devlikeapro/waha:gows-2026.10.1
+          echo "openclaw=$(systemctl is-active openclaw-gateway.service || true)"
+          echo "image_id=$(podman image inspect "$image" -f '{{.Id}}' | cut -c1-30)"
+          echo "runtime_default=$(podman info --format '{{.Host.OCIRuntime.Name}}' 2>/dev/null || echo unknown)"
+          echo "local_image_list:"
+          podman images --format '{{.Repository}}:{{.Tag}} | {{.Size}}' | head -n 10
+          echo "inspect_rootfs_start"
+          testname="waha-fs-check-$(date +%s)"
+          podman create --name "$testname" --entrypoint /bin/sh "$image" -c ':' >/dev/null
+          trap 'podman rm -f "$testname" >/dev/null 2>&1 || true' EXIT
+          mnt="$(podman mount "$testname")"
+          for path in /bin/sh /usr/bin/tini /entrypoint.sh /usr/bin/node /usr/local/bin/node /app/dist /app/gows; do
+            if [[ -e "$mnt$path" ]]; then
+              echo "exists=$path"
+              if [[ -f "$mnt$path" ]]; then echo "bytes_${path}=$(stat -c %s "$mnt$path")"; fi
+            else
+              echo "missing=$path"
+            fi
+          done
+          echo "image_shell_links=$(readlink "$mnt/bin/sh" 2>/dev/null || echo regular)"
+          podman unmount "$testname" >/dev/null
+          echo "inspect_rootfs_done"
+          echo "openclaw_after=$(systemctl is-active openclaw-gateway.service || true)"
+          REMOTE
+      - name: Report
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          { echo "WAHA image rootfs inspection: ${{ steps.inspect.outcome }}"; cat rootfs.txt 2>/dev/null || true; } > report.txt
+          gh api "repos/$GITHUB_REPOSITORY/issues/618/comments" -f body="$(cat report.txt)"
