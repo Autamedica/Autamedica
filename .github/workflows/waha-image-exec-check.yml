@@ -45,6 +45,17 @@ jobs:
           code=$?
           set -e
           echo "shell_probe_exit=$code"
+          echo "debug_probe_begin"
+          set +e
+          timeout 30 podman --log-level=debug --cgroup-manager=cgroupfs run --rm --network=none --pull=never \
+            --memory=256m --pids-limit=32 --entrypoint=/bin/sh "$IMAGE" -c 'echo shell_debug_ok=yes' \
+            > /tmp/autamedica-waha-debug-probe.log 2>&1
+          code2=$?
+          set -e
+          echo "shell_debug_exit=$code2"
+          grep -Ei 'level=(error|warning)|OCI runtime|execution|Error:|fail|exit|runtime|permission|signal' /tmp/autamedica-waha-debug-probe.log \
+            | tail -n 12 | cut -c1-240 | sed -E 's/([A-Za-z0-9_-]{28,})/[redacted-long-value]/g' || true
+          echo "debug_probe_end"
           sed -E 's/([A-Za-z0-9_-]{28,})/[redacted-value]/g' /tmp/autamedica-waha-image-probe.log | head -n 12 | cut -c1-260
           echo "shell_probe_end"
           echo "openclaw_after=$(systemctl is-active openclaw-gateway.service || true)"
