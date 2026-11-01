@@ -321,7 +321,7 @@ BEGIN
     'doctor_id',  v_doctor_id
   );
 END;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.claim_dispatch_offer(p_offer_id uuid)
  RETURNS jsonb
@@ -486,7 +486,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
   RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.get_active_on_duty_doctors()
  RETURNS jsonb
@@ -542,7 +542,7 @@ BEGIN
 
     RETURN COALESCE(v_result, '[]'::jsonb);
 END;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.get_duty_doctors_summary()
  RETURNS jsonb
@@ -579,7 +579,7 @@ BEGIN
 
     RETURN COALESCE(v_result, '{}'::jsonb);
 END;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.get_doctor_busy_slots(p_doctor_id uuid, p_start_date date, p_end_date date)
  RETURNS TABLE(start_time timestamp with time zone, end_time timestamp with time zone)
@@ -596,7 +596,7 @@ AS $function$
       AND a.start_time >= (p_start_date::timestamp at time zone 'UTC')
       AND a.start_time < ((p_end_date + 1)::timestamp at time zone 'UTC')
       AND a.status NOT IN ('cancelled', 'no_show', 'rejected');
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.assign_dispatch_patient_id()
  RETURNS trigger
@@ -642,7 +642,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.get_pharmacy_tiers_status()
  RETURNS jsonb
@@ -690,7 +690,7 @@ BEGIN
 
   RETURN coalesce(v_result, '{}'::jsonb);
 END;
-$function$
+$function$;
 
 -- A credential cannot be silently moved between clinical markets after registration.
 CREATE OR REPLACE FUNCTION app_private.guard_doctor_credential_country()
@@ -820,4 +820,4 @@ BEGIN
 
     RETURN NEW;
 END;
-$function$
+$function$;
