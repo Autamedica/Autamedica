@@ -7569,6 +7569,7 @@ export type Database = {
       }
       doctors: {
         Row: {
+          care_country: string | null
           accepted_insurance: Json | null
           active: boolean | null
           active_duty_tiers: string[]
@@ -7613,6 +7614,7 @@ export type Database = {
           years_experience: number | null
         }
         Insert: {
+          care_country?: never
           accepted_insurance?: Json | null
           active?: boolean | null
           active_duty_tiers?: string[]
@@ -7657,6 +7659,7 @@ export type Database = {
           years_experience?: number | null
         }
         Update: {
+          care_country?: never
           accepted_insurance?: Json | null
           active?: boolean | null
           active_duty_tiers?: string[]
@@ -9942,6 +9945,7 @@ export type Database = {
       }
       patients: {
         Row: {
+          care_country: string | null
           active: boolean | null
           address: string | null
           allergies: Json | null
@@ -9972,6 +9976,7 @@ export type Database = {
           weight_kg: number | null
         }
         Insert: {
+          care_country?: string | null
           active?: boolean | null
           address?: string | null
           allergies?: Json | null
@@ -10002,6 +10007,7 @@ export type Database = {
           weight_kg?: number | null
         }
         Update: {
+          care_country?: string | null
           active?: boolean | null
           address?: string | null
           allergies?: Json | null
@@ -10309,6 +10315,7 @@ export type Database = {
       }
       pharmacy_consultation_requests: {
         Row: {
+          care_country: string | null
           assigned_at: string | null
           call_id: string | null
           completed_at: string | null
@@ -10332,6 +10339,7 @@ export type Database = {
           transfer_status: string | null
         }
         Insert: {
+          care_country?: string | null
           assigned_at?: string | null
           call_id?: string | null
           completed_at?: string | null
@@ -10355,6 +10363,7 @@ export type Database = {
           transfer_status?: string | null
         }
         Update: {
+          care_country?: string | null
           assigned_at?: string | null
           call_id?: string | null
           completed_at?: string | null
@@ -10417,6 +10426,7 @@ export type Database = {
       }
       pharmacy_dispatch_requests: {
         Row: {
+          care_country: string | null
           assigned_doctor_id: string | null
           call_ended_at: string | null
           call_id: string | null
@@ -10444,6 +10454,7 @@ export type Database = {
           tier_requested: Database["public"]["Enums"]["dispatch_tier_category"]
         }
         Insert: {
+          care_country?: string | null
           assigned_doctor_id?: string | null
           call_ended_at?: string | null
           call_id?: string | null
@@ -10471,6 +10482,7 @@ export type Database = {
           tier_requested?: Database["public"]["Enums"]["dispatch_tier_category"]
         }
         Update: {
+          care_country?: string | null
           assigned_doctor_id?: string | null
           call_ended_at?: string | null
           call_id?: string | null

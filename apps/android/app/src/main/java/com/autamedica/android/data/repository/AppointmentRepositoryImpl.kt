@@ -283,13 +283,38 @@ class AppointmentRepositoryImpl @Inject constructor(
         SecureLog.error("[Appointments] Failed clearing cached appointments", it)
     }
 
+    override suspend fun getCareCountry(): Result<String?> = runCatching {
+        val userId = requireNotNull(securePreferences.getString(SecurePreferences.KEY_USER_ID))
+        supabaseClient.postgrest.from("patients")
+            .select(Columns.list("care_country")) { filter { eq("user_id", userId) } }
+            .decodeList<PatientCareCountryDto>().firstOrNull()?.careCountry
+    }
+
+    override suspend fun selectCareCountry(country: String): Result<Unit> = runCatching {
+        require(country == "AR" || country == "BR") { "País de atención inválido" }
+        val userId = requireNotNull(securePreferences.getString(SecurePreferences.KEY_USER_ID))
+        val current = getCareCountry().getOrThrow()
+        check(current == null || current == country) { "El país de atención ya fue seleccionado" }
+        if (current == null) {
+            supabaseClient.postgrest.from("patients")
+                .update(mapOf("care_country" to country)) {
+                    filter { eq("user_id", userId) }
+                }
+            check(getCareCountry().getOrThrow() == country) { "No se pudo guardar el país de atención" }
+        }
+    }
+
     override suspend fun getAvailableDoctors(specialty: String?): Result<List<DoctorBookingInfo>> = runCatching {
+        val country = getCareCountry().getOrThrow()
+        check(country == "AR" || country == "BR") {
+            "Seleccioná tu país de atención en Agenda / Selecione seu país de atendimento em Agenda"
+        }
         // Do not fall back to unfiltered/inactive doctors if the active-only
         // query fails: this must surface as Result.failure.
         val doctors = supabaseClient.postgrest
             .from("doctors")
             .select(Columns.ALL) {
-                filter { eq("active", true) }
+                filter { eq("active", true); eq("care_country", country) }
             }
             .decodeList<DoctorBookingRowDto>()
 
@@ -1016,3 +1041,6 @@ private data class DoctorBusySlotDto(
     @SerialName("start_time") val startTime: String,
     @SerialName("end_time") val endTime: String,
 )
+
+@Serializable
+private data class PatientCareCountryDto(@SerialName("care_country") val careCountry: String? = null)

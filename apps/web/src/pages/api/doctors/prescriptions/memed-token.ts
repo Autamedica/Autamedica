@@ -135,6 +135,7 @@ async function handleMemedToken({ request, locals }: ApiContext, birthDateIso?: 
     response.headers.set('Pragma', 'no-cache');
     return response;
   } catch (err) {
+    if (err instanceof Error && err.message === 'memed_patient_country_required') return forbidden(err.message);
     if (err instanceof Error && err.message === 'memed_doctor_birth_date_required') {
       return badRequest('memed_doctor_birth_date_required');
     }
