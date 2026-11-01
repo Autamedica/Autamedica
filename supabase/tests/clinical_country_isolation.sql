@@ -68,7 +68,10 @@ CREATE FUNCTION pg_temp.country_definer_attempt(p_patient uuid) RETURNS void
 LANGUAGE sql SECURITY DEFINER SET search_path='' AS $$
  UPDATE public.patients SET care_country='AR' WHERE id=p_patient;
 $$;
-GRANT USAGE ON SCHEMA pg_temp TO authenticated;
+DO $$ BEGIN
+  EXECUTE format('GRANT USAGE ON SCHEMA %I TO authenticated',
+    (SELECT nspname FROM pg_namespace WHERE oid=pg_my_temp_schema()));
+END $$;
 GRANT EXECUTE ON FUNCTION pg_temp.country_definer_attempt(uuid) TO authenticated;
 SET LOCAL ROLE authenticated;
 DO $patient_checks$
@@ -122,7 +125,9 @@ BEGIN
   BEGIN
     PERFORM pg_temp.country_definer_attempt((SELECT id FROM country_fixture WHERE kind='patient_unknown'));
     RAISE EXCEPTION 'SECURITY DEFINER bypassed country selection ownership';
-  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  EXCEPTION WHEN insufficient_privilege THEN
+    IF SQLERRM <> 'care_country_selection_owner_required' THEN RAISE; END IF;
+  END;
   SELECT uid INTO v_uid FROM country_fixture WHERE kind='patient_ar';
   PERFORM set_config('request.jwt.claims',jsonb_build_object('role','authenticated','sub',v_uid)::text,true);
   BEGIN
