@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { fetchApi } from '@/lib/api-client';
 import { ManualReceiptsIntake } from '@/components/admin/ManualReceiptsIntake';
+import { AttendanceQualityCard } from '@/components/admin/AttendanceQualityCard';
 
 type CurrencySummary = {
   grossApproved: number;
@@ -260,6 +261,7 @@ export function FinanceAdminDashboard() {
         Saldos separados por ARS y BRL. Los registros aprobados y las liquidaciones no prueban cobro efectivo ni conciliación con el proveedor o banco; no incluir ventas PIX manuales sin comprobante.
       </p>
 
+      <AttendanceQualityCard />
       <ManualReceiptsIntake />
 
       {/* Tabs Menu */}
