@@ -21,6 +21,7 @@ COMMENT ON FUNCTION public.mark_overdue_appointments_no_show()
 -- Restore previous restricted invocation surface (service-role workers only).
 REVOKE EXECUTE ON FUNCTION public.mark_overdue_appointments_no_show()
  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.mark_overdue_appointments_no_show() TO service_role;
 
 -- Aggregate-only review query (for trusted administrators). No patient identifiers.
 -- This reports POTENTIAL overdue bookings without silently rewriting their status.
