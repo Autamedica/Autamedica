@@ -27,14 +27,23 @@ const GA4_ID = /^G-[A-Z0-9]+$/.test(candidate) ? candidate : '';
       catch { return false; }
     }
 
+    function safeQuery() {
+      // URL parameters can contain names, clinical IDs, tokens or patient data.
+      // Keep marketing UTMs only when their entire values are non-identifying slugs.
+      const allowed = new Set(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']);
+      return Array.from(new URLSearchParams(location.search)).every(
+        ([key, value]) => allowed.has(key) && /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(value)
+      );
+    }
+
     function isMarketing() {
-      return MARKETING.test(location.pathname) &&
+      return safeQuery() && MARKETING.test(location.pathname) &&
         (location.hostname === 'autamedica.com' || location.hostname === 'www.autamedica.com');
     }
 
     function isAllowed() {
       return isMarketing() ||
-        (REGISTER.test(location.pathname) &&
+        (safeQuery() && REGISTER.test(location.pathname) &&
           (location.hostname === 'autamedica.com' || location.hostname === 'www.autamedica.com'));
     }
 
@@ -50,6 +59,9 @@ const GA4_ID = /^G-[A-Z0-9]+$/.test(candidate) ? candidate : '';
       if (GA4_ID) {
         window.gtag('config', GA4_ID, {
           send_page_view: false,
+          page_location: location.origin + location.pathname,
+          page_referrer: '',
+          page_title: 'AutaMedica',
           allow_google_signals: false,
           allow_ad_personalization_signals: false,
         });
