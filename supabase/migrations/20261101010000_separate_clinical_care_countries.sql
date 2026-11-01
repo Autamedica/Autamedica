@@ -39,7 +39,8 @@ BEGIN
   END IF;
   IF NEW.care_country IS NOT NULL AND (TG_OP='INSERT' OR OLD.care_country IS NULL)
      AND auth.uid() IS DISTINCT FROM NEW.user_id
-     AND current_user NOT IN ('postgres','supabase_admin','service_role')
+     AND NOT (current_user IN ('postgres','supabase_admin') AND auth.uid() IS NULL
+       AND COALESCE(auth.jwt()->>'role','') NOT IN ('authenticated','anon'))
      AND COALESCE(auth.jwt()->>'role','') <> 'service_role'
      AND NOT public.is_system_admin() THEN
     RAISE EXCEPTION 'care_country_selection_owner_required' USING ERRCODE='42501';

@@ -62,6 +62,14 @@ INSERT INTO public.doctor_duty_status(doctor_id,is_on_duty,last_heartbeat_at,dut
 UPDATE public.profiles SET matricula_nacional='CI-AR-SECONDARY'
  WHERE user_id=(SELECT uid FROM country_fixture WHERE kind='doctor_br');
 
+-- Simulate a scoped legacy RPC: SECURITY DEFINER must not turn the caller into
+-- a trusted provisioner merely because the function executes as postgres.
+CREATE FUNCTION pg_temp.country_definer_attempt(p_patient uuid) RETURNS void
+LANGUAGE sql SECURITY DEFINER SET search_path='' AS $$
+ UPDATE public.patients SET care_country='AR' WHERE id=p_patient;
+$$;
+GRANT USAGE ON SCHEMA pg_temp TO authenticated;
+GRANT EXECUTE ON FUNCTION pg_temp.country_definer_attempt(uuid) TO authenticated;
 SET LOCAL ROLE authenticated;
 DO $patient_checks$
 DECLARE market text; v_uid uuid; v_country text; v_id uuid;
@@ -110,6 +118,10 @@ BEGIN
     UPDATE public.patients SET care_country='AR' WHERE user_id=(SELECT uid FROM country_fixture WHERE kind='patient_unknown');
     -- RLS may filter the row before the owner guard runs; either outcome is safe.
     IF FOUND THEN RAISE EXCEPTION 'Doctor chose another patient country'; END IF;
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pg_temp.country_definer_attempt((SELECT id FROM country_fixture WHERE kind='patient_unknown'));
+    RAISE EXCEPTION 'SECURITY DEFINER bypassed country selection ownership';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   SELECT uid INTO v_uid FROM country_fixture WHERE kind='patient_ar';
   PERFORM set_config('request.jwt.claims',jsonb_build_object('role','authenticated','sub',v_uid)::text,true);
