@@ -12,7 +12,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const admin = createAstroAdminClient(locals.runtime?.env);
     const { data, error } = await admin.rpc('get_overdue_appointments_review_summary' as never);
     if (error) throw error;
-    const row = Array.isArray(data) ? data[0] : data;
+    const payload: unknown = data;
+    const row = (Array.isArray(payload) ? payload[0] : payload) as Record<string, unknown> | null | undefined;
     const response = jsonOk({
       overdueUnverified: Number(row?.overdue_total ?? 0),
       overdueWithApprovedPayment: Number(row?.overdue_with_approved_payment ?? 0),
