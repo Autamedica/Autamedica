@@ -49,15 +49,21 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   try {
     // Never sum distinct currencies or call an unverified approved record settled revenue.
-    const { data: payments, error: paymentsErr } = await admin
+    const { data: payments, error: paymentsErr, count: paymentCount } = await admin
       .from('appointment_payments')
-      .select('gross_amount, status, currency, provider_payment_id');
-    if (paymentsErr) throw paymentsErr;
+      .select('gross_amount, status, currency, provider_payment_id', { count: 'exact' })
+      .limit(1000);
+    if (paymentsErr || paymentCount === null || paymentCount > 1000) {
+      throw paymentsErr ?? new Error('Payment totals require server-side aggregation');
+    }
 
-    const { data: earnings, error: earningsErr } = await admin
+    const { data: earnings, error: earningsErr, count: earningsCount } = await admin
       .from('doctor_earnings')
-      .select('platform_fee_amount, processor_fee_amount, net_amount, status, currency');
-    if (earningsErr) throw earningsErr;
+      .select('platform_fee_amount, processor_fee_amount, net_amount, status, currency', { count: 'exact' })
+      .limit(1000);
+    if (earningsErr || earningsCount === null || earningsCount > 1000) {
+      throw earningsErr ?? new Error('Earnings totals require server-side aggregation');
+    }
 
     const blank = () => ({
       grossApproved: 0, grossRefunded: 0, grossPending: 0,
