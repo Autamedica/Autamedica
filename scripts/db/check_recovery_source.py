@@ -9,6 +9,15 @@ PROJECT = "qxjjrpksmwwrmubhvjew"
 SESSION_HOST = "aws-1-sa-east-1.pooler.supabase.com"
 
 
+def client_tls_verified(output):
+    if re.search(r"^SSL connection \(protocol: TLSv[0-9.]+,", output, re.MULTILINE):
+        return True
+    # psql 18 prints conninfo as a table; -At makes it label|value pairs.
+    fields = dict(line.split("|", 1) for line in output.splitlines() if "|" in line)
+    return fields.get("SSL Connection") == "true" and re.fullmatch(
+        r"TLSv[0-9.]+", fields.get("SSL Protocol", "")) is not None
+
+
 def connection_options(url, password):
     parsed = urlsplit(url)
     host = parsed.hostname or ""
@@ -69,7 +78,7 @@ ROLLBACK;
         raise RuntimeError("unexpected_response")
     # A pooler's backend connection is distinct from the client TLS connection.
     # Never print the raw connection report, which contains connection metadata.
-    report["tls"] = re.search(r"^SSL connection \(protocol: TLSv[0-9.]+,", result.stdout, re.MULTILINE) is not None
+    report["tls"] = client_tls_verified(result.stdout)
     if not all(report.get(key) is True for key in ("read_only", "tls", "snapshot_supported")):
         failed = [key for key in ("read_only", "tls", "snapshot_supported") if report.get(key) is not True]
         raise RuntimeError("source_guards_not_confirmed:" + ",".join(failed))
