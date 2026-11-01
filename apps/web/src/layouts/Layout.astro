@@ -68,6 +68,10 @@ const activeTabDoctor =
   Astro.url.pathname.includes('/call') ? 'telemedicina' :
   Astro.url.pathname.includes('/community') ? 'comunidad' :
   Astro.url.pathname.includes('/perfil') ? 'perfil' : 'agenda';
+if (isPatientHost || isDoctorHost || Astro.locals.session) {
+  Astro.response.headers.set('Cache-Control', 'private, no-store');
+  Astro.response.headers.append('Vary', 'Cookie, Authorization');
+}
 const careContext = isPatientHost && Astro.locals.session
   ? await resolvePatientContext(Astro.request, Astro.locals) : null;
 const needsCareCountry = Boolean(careContext && !careContext.careCountry);

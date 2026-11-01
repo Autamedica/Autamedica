@@ -1,6 +1,6 @@
 import type { ApiErrorCode } from '@autamedica/types'
 
-const JSON_HEADERS = { 'Content-Type': 'application/json' } as const
+const JSON_HEADERS = { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store', Vary: 'Cookie, Authorization' } as const
 
 /**
  * Create a successful JSON response.
@@ -57,3 +57,4 @@ export const serviceUnavailable = (msg: string) =>
 
 export const internalError = (msg = 'internal_error', details?: unknown) =>
   jsonFail('INTERNAL', msg, 500, details)
+

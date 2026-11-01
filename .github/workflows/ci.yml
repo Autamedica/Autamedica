@@ -65,6 +65,8 @@ jobs:
           pnpm-version: ${{ env.PNPM_VERSION }}
       - name: Test Memed deployment configuration safeguards
         run: node --test scripts/ops/sync-memed-secrets.test.mjs
+      - name: Verify service worker never caches clinical data
+        run: node --test scripts/security/service-worker-privacy.test.mjs
       - name: Check backup publication and integrity safeguards
         run: python3 scripts/db/test_logical_backup.py
       - run: pnpm lint
