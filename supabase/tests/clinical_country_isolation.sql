@@ -182,19 +182,23 @@ BEGIN
   END LOOP;
 END $service_checks$;
 -- With only AR doctors live, a BR request must expire without an AR offer or push.
-UPDATE public.doctor_duty_status SET last_heartbeat_at=now()-interval '1 day'
+UPDATE public.doctor_duty_status SET is_on_duty=false,last_heartbeat_at=now()-interval '1 day'
  WHERE doctor_id IN (SELECT id FROM public.doctors WHERE care_country='BR');
 DO $no_candidate$
-DECLARE v_request uuid; v_patient record;
+DECLARE v_request uuid; v_patient record; v_result jsonb;
 BEGIN
   SELECT * INTO v_patient FROM country_fixture WHERE kind='patient_br';
   INSERT INTO public.pharmacy_dispatch_requests(patient_dni,patient_phone,patient_name,
     tier_requested,status,requested_by_user_id,care_country,cloudflare_room_id)
   VALUES('CI-'||v_patient.id,'0000000000','Synthetic CI patient','general','searching',v_patient.uid,'BR','ci-country-room-'||v_patient.id)
   RETURNING id INTO v_request;
+  -- Gen2 may invoke matching explicitly rather than through the legacy trigger.
+  SELECT public.match_dispatch_doctors(v_request) INTO v_result;
   IF NOT EXISTS(SELECT 1 FROM public.pharmacy_dispatch_requests WHERE id=v_request AND status='expired')
      OR EXISTS(SELECT 1 FROM public.dispatch_offers WHERE dispatch_request_id=v_request) THEN
-    RAISE EXCEPTION 'BR dispatch crossed into AR or no-candidate terminal state failed';
+    RAISE EXCEPTION 'BR dispatch country/terminal-state failure: result %, status %, offers %',
+      v_result,(SELECT status FROM public.pharmacy_dispatch_requests WHERE id=v_request),
+      (SELECT count(*) FROM public.dispatch_offers WHERE dispatch_request_id=v_request);
   END IF;
 END $no_candidate$;
 RESET ROLE;
