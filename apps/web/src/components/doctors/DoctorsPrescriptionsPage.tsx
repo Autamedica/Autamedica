@@ -244,6 +244,21 @@ export function DoctorsPrescriptionsPage() {
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [search, setSearch] = useState("");
   const [docMode, setDocMode] = useState<"prescriptions" | "certificates">("prescriptions");
+  const [certificateCountry, setCertificateCountry] = useState<"AR" | "BR" | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/doctors/certificates?context=country", {
+      credentials: "include", signal: controller.signal,
+    }).then(async response => {
+      if (!response.ok) throw new Error("certificate_country_lookup_failed");
+      const body: { data?: { countryCode?: string } } = await response.json();
+      if (!controller.signal.aborted) {
+        setCertificateCountry(body.data?.countryCode === "BR" ? "BR"
+          : body.data?.countryCode === "AR" ? "AR" : null);
+      }
+    }).catch(() => { if (!controller.signal.aborted) setCertificateCountry(null); });
+    return () => controller.abort();
+  }, []);
   const [certificates, setCertificates] = useState<CertificateItem[]>([]);
   const [certLoading, setCertLoading] = useState(false);
   const [certError, setCertError] = useState<string | null>(null);
@@ -976,9 +991,10 @@ export function DoctorsPrescriptionsPage() {
       )}
 
       {/* ── CertificateCreateModal ── */}
-      {showCertificateModal && (
+      {showCertificateModal && certificateCountry && (
         <CertificateCreateModal
           patientId={selectedPatientId ?? undefined}
+          countryCode={certificateCountry}
           patientName={selectedPatient ? getPatientDisplayName(selectedPatient) : undefined}
           patientDni={selectedPatient?.dni ?? undefined}
           onClose={() => setShowCertificateModal(false)}
@@ -988,6 +1004,13 @@ export function DoctorsPrescriptionsPage() {
             void fetchCertificates();
           }}
         />
+      )}
+
+      {showCertificateModal && !certificateCountry && (
+        <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900">
+          Não foi possível determinar a jurisdição do médico. Verifique o CRM/UF ou a matrícula antes de criar o atestado.
+          <button type="button" onClick={() => setShowCertificateModal(false)} className="ml-3 underline">Fechar</button>
+        </div>
       )}
 
       {/* ── Detail panel ── */}
