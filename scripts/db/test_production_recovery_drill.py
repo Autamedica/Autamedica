@@ -62,6 +62,19 @@ class RecoveryDrillGuards(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, r'^Restore failed \(exit 1\) SQLSTATE=23505$'):
             drill.run(['unused'], stage='Restore')
 
+    def test_foreign_keys_respect_null_semantics(self):
+        key = {'schema': 'public', 'table': 'child', 'parent_schema': 'auth',
+               'parent_table': 'users', 'columns': ['a', 'b'], 'referenced': ['id', 'id2'], 'match': 's'}
+        simple = drill.foreign_key_sql([key])
+        self.assertIn('c."a" IS NOT NULL AND c."b" IS NOT NULL', simple)
+        self.assertIn('NOT EXISTS (SELECT 1 FROM "auth"."users"', simple)
+        full = drill.foreign_key_sql([dict(key, match='f')])
+        self.assertIn('OR ((c."a" IS NOT NULL OR c."b" IS NOT NULL) AND NOT', full)
+        with self.assertRaises(RuntimeError):
+            drill.foreign_key_sql([dict(key, match='p')])
+        with self.assertRaises(RuntimeError):
+            drill.foreign_key_sql([dict(key, referenced=[])])
+
     @patch.object(drill, 'run')
     def test_restore_can_only_address_fixed_local_container(self, process):
         process.return_value = ''

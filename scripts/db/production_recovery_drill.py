@@ -22,10 +22,13 @@ SCOPES = ("public", "app_private", "growth_os", "auth", "storage")
 
 
 def run(args, *, stage, cwd=None, env=None, input_text=None, output=None, timeout=600):
-    result = subprocess.run(args, cwd=cwd, env=env, input=input_text,
-                            stdout=output if output else subprocess.PIPE,
-                            stderr=subprocess.PIPE, text=True, timeout=timeout,
-                            check=False)
+    try:
+        result = subprocess.run(args, cwd=cwd, env=env, input=input_text,
+                                stdout=output if output else subprocess.PIPE,
+                                stderr=subprocess.PIPE, text=True, timeout=timeout,
+                                check=False)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(stage + " timed out; private output withheld") from None
     if result.returncode:
         # Do not expose pg_dump/psql output: errors can include a clinical row.
         codes = re.findall(r"ERROR:\s+([0-9A-Z]{5})\b", result.stderr)
@@ -103,12 +106,17 @@ SELECT json_build_object(
    WHERE n.nspname IN (%s) AND p.prokind IN ('f','p') AND NOT EXISTS (
      SELECT 1 FROM pg_depend d WHERE d.classid='pg_proc'::regclass
        AND d.objid=p.oid AND d.deptype='e')) q),
+ 'constraints',(SELECT md5(coalesce(jsonb_agg(x ORDER BY x::text)::text,'')) FROM (
+   SELECT jsonb_build_array(n.nspname,r.relname,c.conname,c.convalidated,
+     pg_get_constraintdef(c.oid,true)) x FROM pg_constraint c
+   JOIN pg_class r ON r.oid=c.conrelid JOIN pg_namespace n ON n.oid=r.relnamespace
+   WHERE n.nspname IN (%s)) q),
  'triggers',(SELECT md5(coalesce(jsonb_agg(x ORDER BY x::text)::text,'')) FROM (
    SELECT jsonb_build_array(n.nspname,c.relname,t.tgname,t.tgenabled,pg_get_triggerdef(t.oid)) x
    FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid
    JOIN pg_namespace n ON n.oid=c.relnamespace
    WHERE n.nspname IN (%s) AND NOT t.tgisinternal) q));
-""" % (scopes, scopes, scopes, scopes, scopes, scopes)
+""" % (scopes, scopes, scopes, scopes, scopes, scopes, scopes)
 
 
 def table_manifest_sql(tables):
@@ -126,6 +134,39 @@ def table_manifest_sql(tables):
     if not parts:
         raise RuntimeError("No source tables selected")
     return "SELECT coalesce(jsonb_agg(x ORDER BY x->>0),'[]'::jsonb) FROM (" + " UNION ALL ".join(parts) + ") all_tables;"
+
+
+def foreign_key_sql(keys):
+    checks = []
+    for key in keys:
+        child = ident(key["schema"]) + "." + ident(key["table"])
+        parent = ident(key["parent_schema"]) + "." + ident(key["parent_table"])
+        columns, referenced = key["columns"], key["referenced"]
+        if not columns or len(columns) != len(referenced) or key["match"] not in ("s", "f"):
+            raise RuntimeError("Unsupported foreign key shape")
+        nonnull = " AND ".join("c." + ident(c) + " IS NOT NULL" for c in columns)
+        equal = " AND ".join("p." + ident(p) + "=c." + ident(c) for c, p in zip(columns, referenced))
+        invalid = "(" + nonnull + ") AND NOT EXISTS (SELECT 1 FROM " + parent + " p WHERE " + equal + ")"
+        if key["match"] == "f":
+            any_nonnull = " OR ".join("c." + ident(c) + " IS NOT NULL" for c in columns)
+            invalid = "(" + invalid + ") OR ((" + any_nonnull + ") AND NOT (" + nonnull + "))"
+        checks.append("SELECT count(*) AS n FROM " + child + " c WHERE " + invalid)
+    return "SELECT coalesce(sum(n),0) FROM (" + " UNION ALL ".join(checks) + ") violations;" if checks else "SELECT 0;"
+
+
+def foreign_key_catalog_sql():
+    scopes = ",".join(literal(s) for s in SCOPES)
+    return """SELECT coalesce(json_agg(x),'[]'::json) FROM (
+      SELECT n.nspname AS schema,r.relname AS table,pn.nspname AS parent_schema,
+        p.relname AS parent_table,c.confmatchtype AS match,
+        (SELECT json_agg(a.attname ORDER BY k.ord) FROM unnest(c.conkey) WITH ORDINALITY k(num,ord)
+          JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=k.num) AS columns,
+        (SELECT json_agg(a.attname ORDER BY k.ord) FROM unnest(c.confkey) WITH ORDINALITY k(num,ord)
+          JOIN pg_attribute a ON a.attrelid=c.confrelid AND a.attnum=k.num) AS referenced
+      FROM pg_constraint c JOIN pg_class r ON r.oid=c.conrelid
+      JOIN pg_namespace n ON n.oid=r.relnamespace JOIN pg_class p ON p.oid=c.confrelid
+      JOIN pg_namespace pn ON pn.oid=p.relnamespace
+      WHERE c.contype='f' AND n.nspname IN (%s)) x;""" % scopes
 
 
 class Snapshot:
@@ -212,6 +253,7 @@ def main():
         try:
             print("Starting an empty disposable Supabase stack.", flush=True)
             run(["supabase", "start"], stage="Start disposable stack", cwd=work, env=clean_env, timeout=900)
+            print("Empty stack ready; inspecting the fixed destination.", flush=True)
             inspect = json.loads(run(["docker", "inspect", CONTAINER], stage="Inspect target"))[0]
             if inspect["Name"] != "/" + CONTAINER:
                 raise RuntimeError("Destination identity mismatch")
@@ -219,6 +261,7 @@ def main():
             with (root / "source-private.log").open("w") as source_log:
                 snapshot = Snapshot(source_env, source_log)
                 try:
+                    print("Opening read-only source snapshot.", flush=True)
                     snapshot_id = snapshot.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY; SELECT pg_export_snapshot();")
                     scopes = ",".join(literal(s) for s in SCOPES)
                     tables = json.loads(snapshot.query("SELECT json_agg(x ORDER BY x.schema,x.name) FROM ("
@@ -227,11 +270,17 @@ def main():
                         "JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped "
                         "WHERE c.relkind IN ('r','p') AND n.nspname IN (" + scopes + ") "
                         "GROUP BY n.nspname,c.relname) x;"))
+                    print("Source catalog captured; verifying source fingerprints and constraints.", flush=True)
                     manifest_query = table_manifest_sql(tables)
                     expected_data = json.loads(snapshot.query(manifest_query))
                     expected_metadata = json.loads(snapshot.query(metadata_sql()))
+                    foreign_keys = json.loads(snapshot.query(foreign_key_catalog_sql()))
+                    foreign_key_query = foreign_key_sql(foreign_keys)
+                    if int(snapshot.query(foreign_key_query)) != 0:
+                        raise RuntimeError("Source contains foreign key violations; recovery cannot be accredited")
                     extensions = json.loads(snapshot.query("SELECT json_agg(json_build_array(e.extname,n.nspname)) FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace;"))
                     for name, flags in (("roles", ["--role-only"]), ("schema", []), ("data", ["--data-only", "--use-copy"])):
+                        print("Exporting " + name + ".", flush=True)
                         script = run(["supabase", "db", "dump", "--db-url", url, "--dry-run", *flags],
                                      stage="Build " + name + " export", cwd=work, env=clean_env)
                         if name != "roles":
@@ -282,6 +331,8 @@ def main():
             local_psql(files=("roles.sql", "schema.sql", "data.sql"))
             actual_data = json.loads(local_psql("SET timezone='UTC'; SET search_path=''; " + manifest_query).strip())
             actual_metadata = json.loads(local_psql("SET search_path=''; " + metadata_sql()).strip())
+            if int(local_psql(foreign_key_query).strip()) != 0:
+                raise RuntimeError("Restored foreign key validation failed")
             if actual_data != expected_data:
                 raise RuntimeError("Restored data fingerprints differ; no recovery pass issued")
             if actual_metadata != expected_metadata:
@@ -291,6 +342,7 @@ def main():
             report = {"database_restore_verified": True, "verified_tables": len(tables),
                               "rows_verified": sum(row[1] for row in actual_data),
                               "data_fingerprints_match": True, "security_metadata_match": True,
+                              "foreign_keys_verified": len(foreign_keys),
                               "source_read_only": True, "destination_offline": True,
                               "snapshot_consistent": True, "export_seconds": dump_seconds,
                               "restore_and_validation_seconds": round(time.monotonic() - restore_started, 2),
@@ -310,6 +362,6 @@ if __name__ == "__main__":
     try:
         main()
     except (RuntimeError, ValueError, KeyError, OSError, subprocess.TimeoutExpired) as error:
-        message = str(error) if isinstance(error, RuntimeError) else "Recovery drill stopped; private diagnostics withheld"
+        message = str(error) if isinstance(error, RuntimeError) else "Recovery drill stopped (" + type(error).__name__ + "); private diagnostics withheld"
         print("::error::" + message, flush=True)
         raise SystemExit(1) from None
