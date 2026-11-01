@@ -83,11 +83,11 @@ BEGIN
     (appt_a_id, patient_a_id, doctor_a_id, now() + interval '1 day', 'scheduled'),
     (appt_b_id, patient_b_id, doctor_b_id, now() + interval '2 days', 'scheduled');
 
-  UPDATE public.doctors SET active=false WHERE id=doctor_b_id;
-
   INSERT INTO public.medical_records (id, patient_id, doctor_id, appointment_id, type, title, content) VALUES
     (record_a_id, patient_a_id, doctor_a_id, appt_a_id, 'consultation', 'RLS Record A', '{"notes":"test a"}'::jsonb),
     (record_b_id, patient_b_id, doctor_b_id, appt_b_id, 'consultation', 'RLS Record B', '{"notes":"test b"}'::jsonb);
+
+  UPDATE public.doctors SET active=false WHERE id=doctor_b_id;
 
   INSERT INTO public.companies (id, name, owner_profile_id, active) VALUES
     (company_id, 'RLS Test Company', u_company, false);
@@ -341,3 +341,4 @@ END;
 $privileges$;
 
 ROLLBACK;
+

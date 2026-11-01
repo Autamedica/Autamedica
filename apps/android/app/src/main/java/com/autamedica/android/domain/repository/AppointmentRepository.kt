@@ -58,3 +58,4 @@ data class AppointmentPaymentExecution(
     val status: String,
     val checkoutUrl: String? = null,
 )
+

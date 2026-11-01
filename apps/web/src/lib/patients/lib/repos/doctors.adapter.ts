@@ -207,3 +207,4 @@ export function createDoctorsAdapter(supabase: Db): IDoctorsRepository {
     },
   }
 }
+

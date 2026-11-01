@@ -25,7 +25,7 @@ UPDATE public.patients p SET care_country=CASE f.kind WHEN 'patient_ar' THEN 'AR
 UPDATE country_fixture f SET id=p.id FROM public.patients p WHERE p.user_id=f.uid AND f.kind LIKE 'patient%';
 INSERT INTO public.doctors(id,user_id,license_type,license_number,uf_brazil,specialty,active)
  SELECT id,uid,CASE kind WHEN 'doctor_br' THEN 'CRM' ELSE 'MN' END,
- '123456',CASE kind WHEN 'doctor_br' THEN 'RS' ELSE NULL END,'CI country isolation',true
+ 'CI-'||id::text,CASE kind WHEN 'doctor_br' THEN 'RS' ELSE NULL END,'CI country isolation',true
  FROM country_fixture WHERE kind LIKE 'doctor%'
  ON CONFLICT(user_id) DO UPDATE SET license_type=excluded.license_type,
  license_number=excluded.license_number,uf_brazil=excluded.uf_brazil,active=true;
@@ -44,15 +44,22 @@ BEGIN
     SELECT uid INTO v_uid FROM country_fixture WHERE kind='patient_'||market;
     v_country := CASE market WHEN 'ar' THEN 'AR' WHEN 'br' THEN 'BR' END;
     PERFORM set_config('request.jwt.claims',jsonb_build_object('role','authenticated','sub',v_uid)::text,true);
-    IF EXISTS(SELECT 1 FROM public.doctors WHERE care_country IS DISTINCT FROM v_country) THEN
+    IF EXISTS(SELECT 1 FROM public.doctors) THEN
       RAISE EXCEPTION 'Directory leak for %',market;
     END IF;
     IF market='unknown' AND EXISTS(SELECT 1 FROM public.doctors) THEN
       RAISE EXCEPTION 'Unknown country directory did not fail closed';
     END IF;
     IF market <> 'unknown' AND NOT EXISTS(
-      SELECT 1 FROM public.doctors d JOIN country_fixture f ON d.id=f.id WHERE f.kind='doctor_'||market
+      SELECT 1 FROM jsonb_array_elements(public.get_patient_doctor_directory()) d
+      JOIN country_fixture f ON f.id::text=d->>'id' WHERE f.kind='doctor_'||market
     ) THEN RAISE EXCEPTION 'Matching doctor hidden for %',market; END IF;
+    IF EXISTS(SELECT 1 FROM jsonb_array_elements(public.get_patient_doctor_directory()) d
+      WHERE d->>'care_country' IS DISTINCT FROM v_country
+         OR (v_country='BR' AND d#>>'{profile,matricula_nacional}' IS NOT NULL)
+         OR (v_country='AR' AND d->>'uf_brazil' IS NOT NULL)) THEN
+      RAISE EXCEPTION 'Curated directory exposes mixed credentials';
+    END IF;
     IF EXISTS(SELECT 1 FROM public.doctor_licenses l
       WHERE (market='ar' AND l.license_type='CRM')
          OR (market='br' AND l.license_type IN ('MN','MP'))
@@ -66,6 +73,14 @@ BEGIN
       RAISE EXCEPTION 'Duty RPC country leak';
     END IF;
   END LOOP;
+  -- A treating doctor cannot choose an unknown patient's country on their behalf.
+  SELECT uid INTO v_uid FROM country_fixture WHERE kind='doctor_ar';
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('role','authenticated','sub',v_uid)::text,true);
+  BEGIN
+    UPDATE public.patients SET care_country='AR' WHERE user_id=(SELECT uid FROM country_fixture WHERE kind='patient_unknown');
+    -- RLS may filter the row before the owner guard runs; either outcome is safe.
+    IF FOUND THEN RAISE EXCEPTION 'Doctor chose another patient country'; END IF;
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   SELECT uid INTO v_uid FROM country_fixture WHERE kind='patient_ar';
   PERFORM set_config('request.jwt.claims',jsonb_build_object('role','authenticated','sub',v_uid)::text,true);
   BEGIN
@@ -93,6 +108,27 @@ BEGIN
           RAISE EXCEPTION 'Cross-country service appointment accepted: % -> %',p.kind,d.kind;
         EXCEPTION WHEN insufficient_privilege THEN NULL; END;
         BEGIN
+          INSERT INTO public.doctor_patient(patient_id,doctor_id) VALUES(p.id,d.id);
+          RAISE EXCEPTION 'Cross-country legacy care relationship accepted';
+        EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+        BEGIN
+          INSERT INTO public.patient_care_team(patient_id,doctor_id,active) VALUES(p.id,d.id,true);
+          RAISE EXCEPTION 'Cross-country care team accepted';
+        EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+        BEGIN
+          INSERT INTO public.prescriptions(patient_id,doctor_id,country_code) VALUES(p.id,d.id,'AR');
+          RAISE EXCEPTION 'Cross-country prescription accepted';
+        EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+        BEGIN
+          INSERT INTO public.medical_certificates(patient_id,doctor_id,country_code) VALUES(p.id,d.id,'AR');
+          RAISE EXCEPTION 'Cross-country certificate accepted';
+        EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+        BEGIN
+          INSERT INTO public.medical_records(patient_id,doctor_id,type,title,content)
+          VALUES(p.id,d.id,'consultation','CI country rejection','{}');
+          RAISE EXCEPTION 'Cross-country medical record accepted';
+        EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+        BEGIN
           INSERT INTO public.calls(patient_id,doctor_id,room_id,status)
           VALUES(p.id,d.id,'ci-country-'||gen_random_uuid(),'requested');
           RAISE EXCEPTION 'Cross-country service call accepted';
@@ -106,7 +142,7 @@ RESET ROLE;
 DO $contracts$
 DECLARE v_table text;
 BEGIN
-  FOREACH v_table IN ARRAY ARRAY['appointments','calls','patient_care_team','prescriptions','medical_certificates'] LOOP
+  FOREACH v_table IN ARRAY ARRAY['appointments','calls','patient_care_team','doctor_patient','appointment_waitlist','care_episodes','medical_orders','prescriptions','medical_certificates'] LOOP
     IF NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid=('public.'||v_table)::regclass
       AND tgname='trg_country_pair' AND tgenabled='O') THEN
       RAISE EXCEPTION 'Missing country guard: %',v_table;
@@ -126,3 +162,4 @@ DO $$ BEGIN
 END $$;
 RESET ROLE;
 ROLLBACK;
+

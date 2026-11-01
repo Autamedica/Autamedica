@@ -37,19 +37,29 @@ BEGIN
      AND NEW.care_country IS DISTINCT FROM OLD.care_country THEN
     RAISE EXCEPTION 'care_country_already_selected' USING ERRCODE='42501';
   END IF;
+  IF NEW.care_country IS NOT NULL AND (TG_OP='INSERT' OR OLD.care_country IS NULL)
+     AND auth.uid() IS DISTINCT FROM NEW.user_id
+     AND current_user NOT IN ('postgres','supabase_admin','service_role')
+     AND COALESCE(auth.jwt()->>'role','') <> 'service_role'
+     AND NOT public.is_system_admin() THEN
+    RAISE EXCEPTION 'care_country_selection_owner_required' USING ERRCODE='42501';
+  END IF;
   RETURN NEW;
 END;
 $$;
 REVOKE ALL ON FUNCTION app_private.guard_patient_care_country() FROM PUBLIC, anon, authenticated, service_role;
 DROP TRIGGER IF EXISTS trg_patient_care_country ON public.patients;
-CREATE TRIGGER trg_patient_care_country BEFORE UPDATE OF care_country ON public.patients
+CREATE TRIGGER trg_patient_care_country BEFORE INSERT OR UPDATE OF care_country ON public.patients
 FOR EACH ROW EXECUTE FUNCTION app_private.guard_patient_care_country();
 
 CREATE OR REPLACE FUNCTION app_private.viewer_care_country()
 RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
 AS $$
-  SELECT p.care_country FROM public.patients p
-  WHERE p.user_id=auth.uid() AND p.active IS TRUE LIMIT 1;
+  SELECT CASE WHEN pr.role='doctor' THEN d.care_country ELSE p.care_country END
+  FROM public.profiles pr
+  LEFT JOIN public.patients p ON p.user_id=pr.user_id AND p.active IS TRUE
+  LEFT JOIN public.doctors d ON d.user_id=pr.user_id AND d.active IS TRUE
+  WHERE pr.user_id=auth.uid() AND pr.active IS TRUE LIMIT 1;
 $$;
 CREATE OR REPLACE FUNCTION app_private.can_view_country_doctor(p_doctor_id uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
@@ -146,7 +156,7 @@ BEGIN
         THEN RETURN NEW; END IF;
       ELSIF TG_TABLE_NAME='calls' THEN
         IF v_new->>'status' IS NOT DISTINCT FROM v_old->>'status'
-           OR v_new->>'status' IN ('ended','completed','cancelled','failed','rejected','missed','expired')
+           OR v_new->>'status' IN ('ended','declined','canceled')
         THEN RETURN NEW; END IF;
       ELSIF TG_TABLE_NAME='patient_care_team' THEN
         IF NOT (NEW.active IS TRUE AND OLD.active IS DISTINCT FROM true) THEN RETURN NEW; END IF;
@@ -167,7 +177,7 @@ REVOKE ALL ON FUNCTION app_private.guard_clinical_care_country() FROM PUBLIC,ano
 DO $triggers$
 DECLARE v_table text;
 BEGIN
-  FOREACH v_table IN ARRAY ARRAY['appointments','calls','patient_care_team','prescriptions','medical_certificates'] LOOP
+  FOREACH v_table IN ARRAY ARRAY['appointments','calls','patient_care_team','doctor_patient','appointment_waitlist','care_episodes','medical_orders','prescriptions','medical_certificates'] LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS trg_country_pair ON public.%I',v_table);
     EXECUTE format('CREATE TRIGGER trg_country_pair BEFORE INSERT OR UPDATE ON public.%I FOR EACH ROW EXECUTE FUNCTION app_private.guard_clinical_care_country()',v_table);
   END LOOP;
@@ -189,7 +199,9 @@ BEGIN
   ELSIF TG_TABLE_NAME='pharmacy_dispatch_requests' THEN
     IF TG_OP='UPDATE' AND NEW.patient_id IS NOT DISTINCT FROM OLD.patient_id
        AND NEW.assigned_doctor_id IS NOT DISTINCT FROM OLD.assigned_doctor_id
-       AND NEW.care_country IS NOT DISTINCT FROM OLD.care_country THEN RETURN NEW; END IF;
+       AND NEW.care_country IS NOT DISTINCT FROM OLD.care_country
+       AND (NEW.status IS NOT DISTINCT FROM OLD.status OR NEW.status IN ('completed','cancelled','expired'))
+    THEN RETURN NEW; END IF;
     SELECT care_country INTO v_country FROM public.patients WHERE id=NEW.patient_id AND active IS TRUE;
     IF v_country IS DISTINCT FROM NEW.care_country THEN
       RAISE EXCEPTION 'care_country_dispatch_mismatch' USING ERRCODE='42501';
@@ -198,7 +210,9 @@ BEGIN
   ELSE
     -- Legacy requests have no patient FK: reject unknown country and mixed assignments.
     IF TG_OP='UPDATE' AND NEW.doctor_id IS NOT DISTINCT FROM OLD.doctor_id
-      AND NEW.care_country IS NOT DISTINCT FROM OLD.care_country THEN RETURN NEW; END IF;
+      AND NEW.care_country IS NOT DISTINCT FROM OLD.care_country
+      AND (NEW.status IS NOT DISTINCT FROM OLD.status OR NEW.status IN ('completed','cancelled','expired'))
+    THEN RETURN NEW; END IF;
     v_country := NEW.care_country; v_doctor := NEW.doctor_id;
   END IF;
   IF v_country IS NULL THEN
@@ -285,7 +299,7 @@ BEGIN
   IF v_doctor_id IS NULL THEN
     -- No hay más médicos disponibles
     UPDATE public.pharmacy_dispatch_requests
-    SET status = 'no_doctors_available', updated_at = NOW()
+    SET status = 'expired', updated_at = NOW()
     WHERE id = p_dispatch_id;
     RETURN jsonb_build_object('success', false, 'code', 'NO_DOCTORS_AVAILABLE');
   END IF;
@@ -537,7 +551,7 @@ BEGIN
     LEFT JOIN public.profiles p ON p.user_id = d.user_id
     LEFT JOIN public.pharmacy_dispatch_requests pdr ON pdr.id = dds.current_active_request_id
     WHERE dds.is_on_duty = true
-      AND app_private.can_view_country_doctor(d.id)
+      AND d.active IS TRUE AND d.care_country=app_private.viewer_care_country()
       AND dds.last_heartbeat_at > (NOW() - INTERVAL '90 seconds');
 
     RETURN COALESCE(v_result, '[]'::jsonb);
@@ -557,7 +571,7 @@ BEGIN
         SELECT unnest(active_tiers) AS tier, current_active_request_id
         FROM public.doctor_duty_status dds
         WHERE is_on_duty = true
-          AND app_private.can_view_country_doctor(dds.doctor_id)
+          AND EXISTS (SELECT 1 FROM public.doctors d WHERE d.id=dds.doctor_id AND d.active IS TRUE AND d.care_country=app_private.viewer_care_country())
           AND last_heartbeat_at > (NOW() - INTERVAL '90 seconds')
     ),
     grouped_counts AS (
@@ -821,3 +835,102 @@ BEGIN
     RETURN NEW;
 END;
 $function$;
+
+
+-- Raw records contain country-specific credentials and private banking/contact fields.
+-- Patients consume a curated directory; RLS cannot redact columns inside a visible row.
+CREATE OR REPLACE FUNCTION app_private.can_read_country_doctor_raw(p_doctor_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $$
+ SELECT auth.uid() IS NOT NULL AND (public.is_system_admin() OR EXISTS (
+   SELECT 1 FROM public.doctors d WHERE d.id=p_doctor_id AND d.user_id=auth.uid()));
+$$;
+REVOKE ALL ON FUNCTION app_private.can_read_country_doctor_raw(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION app_private.can_read_country_doctor_raw(uuid) TO authenticated,service_role;
+DROP POLICY IF EXISTS country_doctor_directory ON public.doctors;
+CREATE POLICY country_doctor_directory ON public.doctors AS RESTRICTIVE FOR SELECT TO authenticated
+ USING (app_private.can_read_country_doctor_raw(id));
+CREATE OR REPLACE FUNCTION app_private.can_view_country_profile(p_user_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $$
+ SELECT p_user_id=auth.uid() OR public.is_system_admin() OR NOT EXISTS (
+   SELECT 1 FROM public.doctors d WHERE d.user_id=p_user_id);
+$$;
+DROP POLICY IF EXISTS country_doctor_license ON public.doctor_licenses;
+CREATE POLICY country_doctor_license ON public.doctor_licenses AS RESTRICTIVE FOR SELECT TO authenticated
+ USING (app_private.can_read_country_doctor_raw(doctor_id));
+
+CREATE OR REPLACE FUNCTION app_private.patient_doctor_directory()
+RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $$
+ SELECT COALESCE(jsonb_agg(jsonb_build_object(
+   'id',d.id,'user_id',d.user_id,'specialty',d.specialty,'subspecialty',d.subspecialty,
+   'license_number',d.license_number,'license_type',d.license_type,'care_country',d.care_country,
+   'uf_brazil',CASE WHEN d.care_country='BR' THEN d.uf_brazil END,
+   'enrollment_jurisdiction',CASE WHEN d.care_country='AR' THEN d.enrollment_jurisdiction END,
+   'consultation_fee',d.consultation_fee,'years_experience',d.years_experience,
+   'bio',d.bio,'languages',d.languages,'active',d.active,'created_at',d.created_at,'updated_at',d.updated_at,
+   'first_name',p.first_name,'last_name',p.last_name,'avatar_url',p.avatar_url,
+   'sss_validation_status',CASE WHEN d.care_country='AR' THEN p.sss_validation_status END,
+   'profile',jsonb_build_object('user_id',d.user_id,'first_name',p.first_name,'last_name',p.last_name,
+     'avatar_url',p.avatar_url,'role','doctor',
+     'sss_validation_status',CASE WHEN d.care_country='AR' THEN p.sss_validation_status END,
+     'matricula_nacional',CASE WHEN d.care_country='AR' AND d.license_type='MN' THEN d.license_number END)
+ ) ORDER BY d.created_at DESC),'[]'::jsonb)
+ FROM public.doctors d JOIN public.profiles p ON p.user_id=d.user_id
+ WHERE auth.uid() IS NOT NULL AND d.active IS TRUE
+   AND d.care_country=app_private.viewer_care_country();
+$$;
+REVOKE ALL ON FUNCTION app_private.patient_doctor_directory() FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION app_private.patient_doctor_directory() TO authenticated,service_role;
+CREATE OR REPLACE FUNCTION public.get_patient_doctor_directory()
+RETURNS jsonb LANGUAGE sql STABLE SECURITY INVOKER SET search_path = ''
+AS $$ SELECT app_private.patient_doctor_directory(); $$;
+REVOKE ALL ON FUNCTION public.get_patient_doctor_directory() FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.get_patient_doctor_directory() TO authenticated,service_role;
+
+CREATE OR REPLACE FUNCTION app_private.guard_optional_physician_care_country()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $$
+BEGIN
+  -- Patient-only records and AI conversations do not assign a physician.
+  IF NEW.doctor_id IS NOT NULL THEN
+    PERFORM app_private.assert_care_country_pair(NEW.patient_id,NEW.doctor_id);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION app_private.guard_optional_physician_care_country() FROM PUBLIC,anon,authenticated,service_role;
+DROP TRIGGER IF EXISTS trg_country_optional_physician ON public.medical_records;
+CREATE TRIGGER trg_country_optional_physician BEFORE INSERT OR UPDATE ON public.medical_records
+FOR EACH ROW EXECUTE FUNCTION app_private.guard_optional_physician_care_country();
+DROP TRIGGER IF EXISTS trg_country_optional_physician ON public.conversation_sessions;
+CREATE TRIGGER trg_country_optional_physician BEFORE INSERT OR UPDATE ON public.conversation_sessions
+FOR EACH ROW EXECUTE FUNCTION app_private.guard_optional_physician_care_country();
+
+CREATE OR REPLACE FUNCTION app_private.guard_telemedicine_care_country()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $$
+DECLARE v_patient uuid; v_doctor uuid;
+BEGIN
+  IF TG_OP='UPDATE' AND NEW.patient_id IS NOT DISTINCT FROM OLD.patient_id
+     AND NEW.doctor_id IS NOT DISTINCT FROM OLD.doctor_id
+     AND NEW.patient_profile_id IS NOT DISTINCT FROM OLD.patient_profile_id
+     AND NEW.doctor_profile_id IS NOT DISTINCT FROM OLD.doctor_profile_id
+     AND (NEW.status IS NOT DISTINCT FROM OLD.status OR NEW.status::text IN ('ended','completed','cancelled','canceled','failed')) THEN
+    RETURN NEW;
+  END IF;
+  SELECT id INTO v_patient FROM public.patients WHERE user_id=NEW.patient_id;
+  SELECT id INTO v_doctor FROM public.doctors WHERE user_id=NEW.doctor_id;
+  IF (NEW.patient_profile_id IS NOT NULL AND NEW.patient_profile_id IS DISTINCT FROM v_patient)
+     OR (NEW.doctor_profile_id IS NOT NULL AND NEW.doctor_profile_id IS DISTINCT FROM v_doctor) THEN
+    RAISE EXCEPTION 'care_country_session_identity_mismatch' USING ERRCODE='42501';
+  END IF;
+  PERFORM app_private.assert_care_country_pair(v_patient,v_doctor);
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION app_private.guard_telemedicine_care_country() FROM PUBLIC,anon,authenticated,service_role;
+DROP TRIGGER IF EXISTS trg_country_telemedicine ON public.telemedicine_sessions;
+CREATE TRIGGER trg_country_telemedicine BEFORE INSERT OR UPDATE ON public.telemedicine_sessions
+FOR EACH ROW EXECUTE FUNCTION app_private.guard_telemedicine_care_country();

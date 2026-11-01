@@ -28,3 +28,4 @@ describe('country-specific medical credential labels', () => {
     expect(buildDoctorLicensePills({ ...doctor, license_type: null, doctor_licenses: [] }, 'AR')).toEqual([])
   })
 })
+

@@ -177,3 +177,4 @@ export const POST: APIRoute = async (context) => {
   return handleMemedToken(context, birthDate as string | undefined, providedCpf as string | undefined, body && typeof body === 'object' && 'patientId' in body ? body.patientId : undefined);
 };
 
+

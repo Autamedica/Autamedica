@@ -226,3 +226,4 @@ async function checkDoctorHasRealAvailability(db: Db, doctorId: string): Promise
 
   return !allFake
 }
+

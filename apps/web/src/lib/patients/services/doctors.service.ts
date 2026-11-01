@@ -15,3 +15,4 @@ export const doctorsService = {
     return doctorsRepo.listActive(country)
   },
 }
+

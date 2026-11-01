@@ -50,3 +50,4 @@ export const POST: APIRoute = async ({ request, locals }) => {
   response.headers.set('Cache-Control', 'private, no-store')
   return response
 }
+

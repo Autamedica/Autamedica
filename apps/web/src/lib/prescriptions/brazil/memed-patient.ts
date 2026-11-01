@@ -66,3 +66,4 @@ export async function resolveMemedPatient(
     data_nascimento: birthDate.split('-').reverse().join('/'),
     sexo: /^(male|masculino|m)$/.test(gender) ? 'Masculino' : 'Feminino' };
 }
+

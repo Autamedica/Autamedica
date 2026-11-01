@@ -312,31 +312,19 @@ class AppointmentRepositoryImpl @Inject constructor(
         // Do not fall back to unfiltered/inactive doctors if the active-only
         // query fails: this must surface as Result.failure.
         val doctors = supabaseClient.postgrest
-            .from("doctors")
-            .select(Columns.ALL) {
-                filter { eq("active", true); eq("care_country", country) }
-            }
+            .rpc("get_patient_doctor_directory")
             .decodeList<DoctorBookingRowDto>()
-
-        if (doctors.isEmpty()) {
-            return@runCatching emptyList()
+        check(doctors.all { it.careCountry == country }) { "País de atención inconsistente" }
+        if (doctors.isEmpty()) return@runCatching emptyList()
+        val profilesMap = doctors.associate { doctor ->
+            doctor.userId to DoctorProfileBookingDto(
+                userId = doctor.userId,
+                firstName = doctor.firstName,
+                lastName = doctor.lastName,
+                avatarUrl = doctor.avatarUrl,
+                sssValidationStatus = doctor.sssValidationStatus,
+            )
         }
-
-        val userIds = doctors.map { it.userId }.filter { it.isNotBlank() }
-        val profilesMap = if (userIds.isNotEmpty()) {
-            try {
-                supabaseClient.postgrest
-                    .from("profiles")
-                    .select(Columns.list("user_id", "first_name", "last_name", "avatar_url", "sss_validation_status")) {
-                        filter { isIn("user_id", userIds) }
-                    }
-                    .decodeList<DoctorProfileBookingDto>()
-                    .associateBy { it.userId }
-            } catch (e: Exception) {
-                SecureLog.warn("[Appointments] Failed fetching doctor profiles: ${e.message}")
-                emptyMap()
-            }
-        } else emptyMap()
 
         val doctorIds = doctors.map { it.id }
         val specialtiesMap = if (doctorIds.isNotEmpty()) {
@@ -972,6 +960,11 @@ private data class AppointmentPaymentIdStatusDto(
 
 @Serializable
 private data class DoctorBookingRowDto(
+    @SerialName("care_country") val careCountry: String? = null,
+    @SerialName("first_name") val firstName: String? = null,
+    @SerialName("last_name") val lastName: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("sss_validation_status") val sssValidationStatus: String? = null,
     val id: String,
     @SerialName("user_id") val userId: String,
     @SerialName("license_number") val licenseNumber: String? = null,
@@ -1044,3 +1037,4 @@ private data class DoctorBusySlotDto(
 
 @Serializable
 private data class PatientCareCountryDto(@SerialName("care_country") val careCountry: String? = null)
+

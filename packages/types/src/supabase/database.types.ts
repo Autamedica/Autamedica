@@ -1273,6 +1273,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_patient_doctor_directory: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       email: { Args: never; Returns: string }
       jwt: { Args: never; Returns: Json }
       role: { Args: never; Returns: string }

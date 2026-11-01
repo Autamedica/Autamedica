@@ -21,3 +21,4 @@ export async function assertCountryPair(
   }
   return patient.data.care_country
 }
+

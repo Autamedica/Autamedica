@@ -19,3 +19,4 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return internalError()
   }
 }
+

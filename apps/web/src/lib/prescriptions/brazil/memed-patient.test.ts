@@ -57,3 +57,4 @@ describe('Memed patient authorization', () => {
     await expect(resolveMemedPatient(database(), 'doctor', '../../other')).rejects.toThrow('memed_patient_required');
   });
 });
+

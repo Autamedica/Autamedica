@@ -31,3 +31,4 @@ describe('patient doctor directory country authority', () => {
     expect(mocks.list).not.toHaveBeenCalled()
   })
 })
+
