@@ -38,6 +38,8 @@ describe('read-only PSP reconciliation evidence', () => {
   it('marks unresolved PSP status separately and never upgrades database state', () => {
     expect(classifyPspEvidence(local, { ...provider, status: 'pending' })).toBe('psp_pending')
     expect(classifyPspEvidence(local, { ...provider, status: 'refunded' })).toBe('psp_mismatch')
+    expect(classifyPspEvidence(local, { ...provider, status_detail: 'partially_refunded' })).toBe('psp_mismatch')
+    expect(classifyPspEvidence(local, { ...provider, transaction_amount_refunded: 100 })).toBe('psp_mismatch')
     expect(classifyPspEvidence({ ...local, status: 'refunded' }, { ...provider, status: 'refunded' })).toBe('psp_consistent')
   })
 })
