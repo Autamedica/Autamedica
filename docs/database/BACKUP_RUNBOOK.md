@@ -1,8 +1,8 @@
 # Backup and isolated recovery runbook
 
-## Evidence status — 2026-10-31
+## Evidence status — 2026-11-01
 
-Production recovery is **not yet accredited**. Export integrity checks and synthetic orchestration tests do not constitute a production backup restore or an RPO/RTO measurement. The historical 2026-04-02 report of unavailable managed backups/PITR must be rechecked in the dashboard before selecting a recovery strategy.
+Full platform recovery is **not yet accredited**. The production database-only drill below has been implemented; [execution evidence](https://github.com/ecucondorSA/Autamedica/actions/runs/41351449150) must show a completed successful report before its tested database scope is accepted. Export integrity checks and synthetic orchestration tests alone do not establish recovery. The historical 2026-04-02 report of unavailable managed backups/PITR still requires an authenticated dashboard recheck before selecting a retention strategy. Database drill timings do not constitute a full platform RPO/RTO measurement.
 
 ## Export and retain
 
@@ -19,6 +19,16 @@ The exporter creates a private staging directory, requires all three non-empty e
 Completed directories contain `roles.sql.gz`, `schema.sql.gz`, `data.sql.gz` and `SHA256SUMS`. The directory is mode 700 and files are mode 600. Checksums detect corruption; they do not establish authenticity against an attacker able to replace both payload and manifest. Do not commit or upload database exports as public CI artifacts.
 
 **Consistency limitation:** these are three separate CLI exports, without one shared snapshot. For a clinically usable recovery point, coordinate a maintenance window that pauses application writes, scheduled writers and schema changes for the entire export, or use a supported snapshot/PITR strategy. Record the method and times. Do not call a normal live export a proven consistent recovery point.
+
+## Automated database-only drill
+
+Run the **Production database recovery drill** workflow manually from `main`. Existing encrypted `SUPABASE_DB_URL` and `SUPABASE_DB_PASSWORD` secrets must reference the fixed production session endpoint. PR runs execute guard tests without production credentials.
+
+The script exports roles without passwords and uses one read-only exported snapshot for schema, table fingerprints, metadata, foreign-key checks and data. It includes Auth/Storage schemas and migration rows in the logical restore. It restores into a fresh PostgreSQL 17 Supabase container after stopping local application services, disabling cron and disconnecting every container network. The restore helper cannot address a remote destination.
+
+Success requires matching full-row fingerprints/counts, table owners, RLS/policies, grants, user function definitions, triggers and constraint definitions, plus zero foreign-key violations in source and target. The report appears only after the temporary stack has been removed and private host files have been deleted. Any mismatch or cleanup failure fails the drill.
+
+No SQL dump or private diagnostic artifact is uploaded. The copy is deliberately destroyed; this workflow **does not implement backup retention or restore from an off-site retained copy**. It excludes Storage object bytes, Vault secrets and external platform configuration. Its restore/validation and total-drill timings are observations, not a complete platform RTO or an RPO commitment.
 
 ## Isolated restoration drill
 
@@ -54,3 +64,4 @@ Before releasing the isolated environment for testing:
 A database export does not contain Storage object bytes, deployed Edge Functions, JWT/API secrets, OAuth/SMTP configuration or DNS. These require separate backup/configuration and recovery tests. A database-only drill cannot certify full platform recovery.
 
 Official reference: [Supabase platform-to-self-hosted restore](https://supabase.com/docs/guides/self-hosting/restore-from-platform).
+
