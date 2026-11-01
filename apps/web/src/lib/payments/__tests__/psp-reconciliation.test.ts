@@ -41,5 +41,6 @@ describe('read-only PSP reconciliation evidence', () => {
     expect(classifyPspEvidence(local, { ...provider, status_detail: 'partially_refunded' })).toBe('psp_mismatch')
     expect(classifyPspEvidence(local, { ...provider, transaction_amount_refunded: 100 })).toBe('psp_mismatch')
     expect(classifyPspEvidence({ ...local, status: 'refunded' }, { ...provider, status: 'refunded' })).toBe('psp_consistent')
+    expect(classifyPspEvidence({ ...local, status: 'refunded' }, { ...provider, status: 'refunded', transaction_amount_refunded: 7900 })).toBe('psp_consistent')
   })
 })
