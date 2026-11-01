@@ -38,7 +38,9 @@ export function classifyPspEvidence(
   if (psp.metadata?.patient_id && psp.metadata.patient_id !== local.patient_id) return 'psp_mismatch'
   if (psp.metadata?.appointment_id && psp.metadata.appointment_id !== local.appointment_id) return 'psp_mismatch'
   // A partially refunded `approved` payment is not a consistent full-value sale.
-  if (psp.status_detail === 'partially_refunded' || Number(psp.transaction_amount_refunded ?? 0) > 0) return 'psp_mismatch'
+  const refundedMinor = majorUnitToCents(Number(psp.transaction_amount_refunded ?? 0))
+  if (psp.status_detail === 'partially_refunded' || (refundedMinor > 0 && refundedMinor < local.gross_amount)) return 'psp_mismatch'
+  if (refundedMinor >= local.gross_amount && local.status !== 'refunded') return 'psp_mismatch'
   const normalized = psp.status === 'canceled' ? 'cancelled' : psp.status
   if (normalized === 'pending' || normalized === 'in_process') return 'psp_pending'
   return local.status === normalized ? 'psp_consistent' : 'psp_mismatch'
