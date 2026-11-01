@@ -279,9 +279,8 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
   },
 
   /**
-   * Batch-cancel multiple calls in a single UPDATE + event INSERT.
-   * Eliminates the N+1 pattern in cancelSupersededPendingCalls.
-   * Row-level triggers (validation, appointment sync) still fire per row.
+   * Cancel superseded calls through the same authorized transition boundary.
+   * Audit events are appended by the database rather than by the browser.
    */
   async cancelCallsBatch(
     calls: Array<{ id: string; status: string }>,
@@ -289,32 +288,20 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
   ): Promise<void> {
     if (calls.length === 0) return
 
-    const ids = calls.map(c => c.id)
-
-    const { error: updateError } = await supabase
-      .from('calls')
-      .update({ status: 'canceled', reason } as never)
-      .in('id', ids)
-
-    if (updateError) {
-      logger.error('[callStartRepo] cancelCallsBatch update failed', updateError)
-      throw updateError
-    }
-
-    const events = calls.map(c => ({
-      call_id: c.id,
-      type: 'status_changed',
-      payload: { from: c.status, to: 'canceled', reason },
+    // The actor-checked RPC serializes transitions and appends one audit event.
+    await Promise.all(calls.map(async (call) => {
+      const { error } = await supabase.rpc('update_call_status', {
+        p_call_id: call.id,
+        p_status: 'canceled',
+        p_reason: reason,
+      })
+      if (error) {
+        logger.error('[callStartRepo] cancelCallsBatch failed', error)
+        throw error
+      }
     }))
-
-    const { error: eventError } = await supabase
-      .from('call_events')
-      .insert(events as never)
-
-    if (eventError) {
-      logger.error('[callStartRepo] cancelCallsBatch event logging failed', eventError)
-    }
   },
 }
 
 }
+

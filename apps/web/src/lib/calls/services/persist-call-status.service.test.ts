@@ -150,4 +150,29 @@ describe('persistCallStatusService — call.ended emit', () => {
     }
     expect(mockEmit).toHaveBeenCalledTimes(1)
   })
+
+  it('does not consume or emit twice when another participant wins the closing update', async () => {
+    mockFindById.mockResolvedValueOnce(BASE_CALL)
+      .mockResolvedValueOnce({ ...BASE_CALL, status: 'ended' })
+    mockUpdateCallStatus.mockResolvedValue(false)
+    const result = await persistCallStatusService.persist(fakeDb, fakeDb, {
+      callId: 'call-1', status: 'ended', viewer: VIEWER,
+    })
+    expect(result.kind).toBe('ok')
+    if (result.kind === 'ok') expect(result.data.changed).toBe(false)
+    expect(mockEmit).not.toHaveBeenCalled()
+  })
+
+  it('returns conflict if a concurrent transition produced a different state', async () => {
+    mockFindById.mockResolvedValueOnce({ ...BASE_CALL, status: 'accepted' })
+      .mockResolvedValueOnce({ ...BASE_CALL, status: 'canceled' })
+    mockUpdateCallStatus.mockResolvedValue(false)
+    const result = await persistCallStatusService.persist(fakeDb, fakeDb, {
+      callId: 'call-1', status: 'connecting', viewer: VIEWER,
+    })
+    expect(result.kind).toBe('conflict')
+    expect(mockEmit).not.toHaveBeenCalled()
+  })
+
 })
+
