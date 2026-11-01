@@ -52,8 +52,11 @@ def main():
         probe(options)
         print("Desired credential already works; no rotation performed.")
         return
-    except (RuntimeError, subprocess.TimeoutExpired):
-        pass
+    except RuntimeError as error:
+        if str(error) != "authentication":
+            raise RuntimeError("Source failed a non-authentication check; rotation stopped") from None
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("Source connection timed out; rotation stopped") from None
     management_request(token, "/database/password", password)
     print("Management API accepted the authorized production password update.")
     for attempt in range(6):

@@ -44,6 +44,35 @@ class RotationGuards(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, r"^Management API rejected request \(HTTP 403\)$"):
             rotation.management_request("test-token", "/database/password", "secret")
 
+    @patch.dict(rotation.os.environ, configuration(), clear=True)
+    @patch.object(rotation, "management_request")
+    @patch.object(rotation, "probe", return_value={})
+    def test_already_working_password_is_not_rotated(self, probe, request):
+        request.return_value = {"id": rotation.PROJECT, "status": "ACTIVE_HEALTHY"}
+        rotation.main()
+        self.assertEqual(request.call_count, 1)
+
+    @patch.dict(rotation.os.environ, configuration(), clear=True)
+    @patch.object(rotation, "management_request")
+    @patch.object(rotation, "probe", side_effect=RuntimeError("source_guards_not_confirmed"))
+    def test_non_auth_failure_cannot_trigger_rotation(self, probe, request):
+        request.return_value = {"id": rotation.PROJECT, "status": "ACTIVE_HEALTHY"}
+        with self.assertRaisesRegex(RuntimeError, "non-authentication"):
+            rotation.main()
+        self.assertEqual(request.call_count, 1)
+
+    @patch.dict(rotation.os.environ, configuration(), clear=True)
+    @patch.object(rotation.time, "sleep")
+    @patch.object(rotation, "management_request")
+    @patch.object(rotation, "probe")
+    def test_post_rotation_timeout_is_retried(self, probe, request, sleep):
+        request.return_value = {"id": rotation.PROJECT, "status": "ACTIVE_HEALTHY"}
+        probe.side_effect = [RuntimeError("authentication"), rotation.subprocess.TimeoutExpired("psql", 40), {}]
+        rotation.main()
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(probe.call_count, 3)
+        sleep.assert_called_once_with(10)
+
 
 if __name__ == "__main__":
     unittest.main()
