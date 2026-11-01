@@ -33,6 +33,15 @@ export interface MedicalCertificatePdfInput {
   };
 }
 
+const TYPES_BR: Record<string, string> = {
+  reposo_laboral: 'Afastamento laboral',
+  reposo_escolar: 'Afastamento escolar',
+  aptitud_fisica: 'Aptidão física',
+  constancia_atencion: 'Declaração de comparecimento',
+  tratamiento: 'Tratamento',
+  otro: 'Atestado médico',
+};
+
 const TYPES: Record<string, string> = {
   reposo_laboral: 'Reposo laboral',
   reposo_escolar: 'Reposo escolar',
@@ -92,7 +101,7 @@ export function generateMedicalCertificatePdf(
   doc.text('AUTAMEDICA', left, y);
   y += 9;
   doc.setFontSize(12);
-  doc.text((input.countryCode === 'BR' ? 'ATESTADO MÉDICO - ' : 'CERTIFICADO MÉDICO — ') + (TYPES[input.type] ?? 'General'), left, y);
+  doc.text((input.countryCode === 'BR' ? 'ATESTADO MÉDICO - ' : 'CERTIFICADO MÉDICO — ') + (input.countryCode === 'BR' ? TYPES_BR[input.type] ?? 'Geral' : TYPES[input.type] ?? 'General'), left, y);
   y += 8;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
@@ -132,8 +141,8 @@ export function generateMedicalCertificatePdf(
   };
 
   const isBrazil = input.countryCode === 'BR';
-  field(isBrazil ? 'Paciente' : 'Paciente', input.patientName);
-  field(isBrazil ? 'Documento' : 'Documento', input.patientDni ?? 'No registrado');
+  field('Paciente', input.patientName);
+  field('Documento', input.patientDni ?? (isBrazil ? 'Não informado' : 'No registrado'));
   field(isBrazil ? 'Médico' : 'Profesional', input.doctorName);
   field(isBrazil ? 'CRM / UF' : 'Matrícula / jurisdicción', `${input.doctorLicense} ${input.jurisdiction ?? ''}`);
   // Brazilian certificates must not disclose the narrative diagnosis by default.
