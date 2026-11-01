@@ -251,12 +251,36 @@ describe('official REFEPS verification', () => {
     expect(body.get('searchBy')).toBe('matricula'); expect(body.get('matricula')).toBe('123456');
     expect(body.get('form_id')).toBe('argobar_consulta_refeps_profesionales');
     expect(new URL(fetcher.mock.calls[3][0]).searchParams.get('identifier')).toBe(`https://sisa.msal.gov.ar/REFEPS|${federalId}`);
-    expect(fetcher.mock.calls[0][1].redirect).toBe('error');
+    expect(fetcher.mock.calls[0][1].redirect).toBe('manual');
+    expect(fetcher.mock.calls[1][1].redirect).toBe('manual');
     expect(fetcher.mock.calls[0][1].headers.Authorization).toBeUndefined();
   });
   it('discovers missing identities for existing callers without the discovery flag',async()=>{
     mockDirectory();
     await expect(create('').validateMatricula('123456','MN','CABA')).resolves.toMatchObject({isValid:true,practitionerId:federalId});
+  });
+  it('completes discovery with the Cloudflare Workers redirect contract',async()=>{
+    const upstream=mockDirectory();
+    const fetcher=vi.fn((url,init:RequestInit)=>{
+      if(init?.redirect === 'error') throw new TypeError('Invalid redirect value');
+      return upstream(url,init);
+    });
+    vi.stubGlobal('fetch',fetcher);
+    await expect(discover().validateMatricula('123456','MN','CABA')).resolves.toMatchObject({isValid:true});
+    expect(fetcher).toHaveBeenCalledTimes(4);
+  });
+  it.each(['GET','POST'])('rejects a directory %s redirect without following its location or authenticating',async(method)=>{
+    const fetcher=vi.fn();
+    if(method==='POST') fetcher.mockResolvedValueOnce(new Response(directoryForm));
+    fetcher.mockResolvedValueOnce(new Response(null,{status:302,headers:{Location:'https://untrusted.invalid/collect'}}));
+    vi.stubGlobal('fetch',fetcher);
+    await expect(discover().validateMatricula('123456','MN','CABA')).rejects.toMatchObject({code:'REFEPS_DISCOVERY_UNAVAILABLE'});
+    expect(fetcher).toHaveBeenCalledTimes(method==='POST'?2:1);
+    for(const [url,init] of fetcher.mock.calls){
+      expect(url).toBe('https://www.argentina.gob.ar/salud/buscador-nacional-de-profesionales-de-la-salud');
+      expect(init.redirect).toBe('manual');
+      expect(init.headers.Authorization).toBeUndefined();
+    }
   });
   it('normalizes an MN prefix even with a cached federal identity', async () => {
     mockResponses();

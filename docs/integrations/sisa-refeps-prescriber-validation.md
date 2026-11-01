@@ -25,6 +25,8 @@ Se admiten prefijos MN/MP y matrículas provinciales compuestas, por ejemplo `31
 
 Durante la consulta se bloquean selección, edición, cierre, guardado y baja para impedir que una respuesta tardía sobrescriba otra ficha. El descubrimiento público tiene un plazo total de 15 segundos; el proxy dispone de 50 segundos para descubrimiento y consulta autenticada.
 
+Las peticiones del directorio usan `redirect: 'manual'`: Workers rechaza el modo `error` antes de enviar la petición, aunque Node lo acepta. Se rechazan todas las respuestas no exitosas, incluidas las redirecciones, sin seguir `Location` ni reenviar credenciales. Una prueba local de Node no sustituye la comprobación del mismo módulo en el runtime de Cloudflare.
+
 La estructura del formulario público es una dependencia externa. Una indisponibilidad o cambio de formato produce un error sin aprobar desde datos locales. La evidencia de habilitación procede del Bus/FHIR, no del descubrimiento.
 
 Fuente pública y contrato observado:
