@@ -1,0 +1,63 @@
+name: Production database recovery drill
+
+on:
+  pull_request:
+    paths:
+      - scripts/db/**
+      - .github/workflows/production-recovery-drill.yml
+  push:
+    branches: [fix/production-recovery-drill]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-database-recovery-drill
+  cancel-in-progress: false
+
+jobs:
+  guards:
+    name: Test recovery isolation safeguards
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - run: python3 scripts/db/test_recovery_source.py
+      - run: python3 scripts/db/test_production_recovery_drill.py
+  restore:
+    name: Restore production export into offline disposable database
+    needs: guards
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/production-recovery-drill')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@b60b5899c73b63a2d2d651b1e90db8d4c9392f51
+        with:
+          version: 2.122.0
+      - name: Authenticate for pinned Supabase database image
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - name: Check CLI command support
+        run: |
+          supabase --help > /dev/null
+          supabase init --help > /dev/null
+          supabase start --help > /dev/null
+          supabase db dump --help > /dev/null
+          supabase stop --help > /dev/null
+      - name: Export read-only source, restore offline, verify and destroy copy
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          RECOVERY_DRILL_CONFIRMATION: RESTORE-qxjjrpksmwwrmubhvjew
+          PYTHONUNBUFFERED: '1'
+        run: python3 scripts/db/production_recovery_drill.py
