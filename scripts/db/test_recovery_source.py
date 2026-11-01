@@ -48,13 +48,26 @@ class SourceGuards(unittest.TestCase):
     @patch.object(source.subprocess, "run")
     def test_false_guard_is_rejected(self, run):
         run.return_value = SimpleNamespace(returncode=0, stderr="", stdout='{"read_only":false,"tls":true,"snapshot_supported":true}')
-        with self.assertRaisesRegex(RuntimeError, "^source_guards_not_confirmed$"):
+        with self.assertRaisesRegex(RuntimeError, "^source_guards_not_confirmed:"):
             source.probe({})
 
     @patch.object(source.subprocess, "run")
     def test_only_expected_report_fields_can_be_logged(self, run):
-        run.return_value = SimpleNamespace(returncode=0, stderr="", stdout='{"read_only":true,"tls":true,"snapshot_supported":true,"postgres_major":17,"patients":1,"doctors":1,"appointments":0,"private":"do not log"}')
+        run.return_value = SimpleNamespace(returncode=0, stderr="", stdout='SSL connection (protocol: TLSv1.3, cipher: TEST)\n{"read_only":true,"backend_tls":false,"snapshot_supported":true,"postgres_major":17,"patients":1,"doctors":1,"appointments":0,"private":"do not log"}')
         self.assertNotIn("private", source.probe({}))
+
+    @patch.object(source.subprocess, "run")
+    def test_pooler_backend_tls_is_not_client_tls(self, run):
+        run.return_value = SimpleNamespace(returncode=0, stderr="", stdout='SSL connection (protocol: TLSv1.3, cipher: TEST)\n{"read_only":true,"backend_tls":false,"snapshot_supported":true,"postgres_major":17,"patients":1,"doctors":1,"appointments":0}')
+        report = source.probe({})
+        self.assertTrue(report["tls"])
+        self.assertFalse(report["backend_tls"])
+
+    @patch.object(source.subprocess, "run")
+    def test_backend_tls_cannot_substitute_client_tls_evidence(self, run):
+        run.return_value = SimpleNamespace(returncode=0, stderr="", stdout='{"read_only":true,"backend_tls":true,"snapshot_supported":true}')
+        with self.assertRaisesRegex(RuntimeError, "^source_guards_not_confirmed:tls$"):
+            source.probe({})
 
 
 if __name__ == "__main__":

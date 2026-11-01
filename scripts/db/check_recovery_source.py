@@ -1,6 +1,7 @@
 """Check the production recovery source without emitting credentials or patient data."""
 import json
 import os
+import re
 import subprocess
 from urllib.parse import unquote, urlsplit
 
@@ -30,7 +31,7 @@ def connection_options(url, password):
     return {
         "PGHOST": host, "PGPORT": "5432", "PGUSER": user,
         "PGDATABASE": "postgres", "PGPASSWORD": secret,
-        "PGSSLMODE": "require", "PGCONNECT_TIMEOUT": "8",
+        "PGSSLMODE": "require", "PGGSSENCMODE": "disable", "PGCONNECT_TIMEOUT": "8",
         "PGOPTIONS": "-c default_transaction_read_only=on -c statement_timeout=10000",
     }
 
@@ -38,11 +39,12 @@ def connection_options(url, password):
 def probe(options):
     env = {key: value for key, value in os.environ.items() if not key.startswith("PG")}
     env.update(options)
+    env["LC_ALL"] = "C"
     sql = """
 BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
 SELECT json_build_object(
  'read_only',current_setting('transaction_read_only')='on',
- 'tls',coalesce((select ssl from pg_stat_ssl where pid=pg_backend_pid()),false),
+ 'backend_tls',coalesce((select ssl from pg_stat_ssl where pid=pg_backend_pid()),false),
  'snapshot_supported',pg_export_snapshot() IS NOT NULL,
  'postgres_major',current_setting('server_version_num')::int / 10000,
  'patients',(select count(*) from public.patients),
@@ -51,7 +53,7 @@ SELECT json_build_object(
 ROLLBACK;
 """
     result = subprocess.run(
-        ["psql", "-X", "--no-password", "-At", "-v", "ON_ERROR_STOP=1", "-c", sql],
+        ["psql", "-X", "--no-password", "-At", "-v", "ON_ERROR_STOP=1", "-c", "\\conninfo", "-c", sql],
         env=env, capture_output=True, text=True, timeout=40, check=False,
     )
     if result.returncode:
@@ -65,9 +67,13 @@ ROLLBACK;
     report = json.loads(rows[0])
     if not isinstance(report, dict):
         raise RuntimeError("unexpected_response")
+    # A pooler's backend connection is distinct from the client TLS connection.
+    # Never print the raw connection report, which contains connection metadata.
+    report["tls"] = re.search(r"^SSL connection \(protocol: TLSv[0-9.]+,", result.stdout, re.MULTILINE) is not None
     if not all(report.get(key) is True for key in ("read_only", "tls", "snapshot_supported")):
-        raise RuntimeError("source_guards_not_confirmed")
-    fields = ("read_only", "tls", "snapshot_supported", "postgres_major", "patients", "doctors", "appointments")
+        failed = [key for key in ("read_only", "tls", "snapshot_supported") if report.get(key) is not True]
+        raise RuntimeError("source_guards_not_confirmed:" + ",".join(failed))
+    fields = ("read_only", "tls", "backend_tls", "snapshot_supported", "postgres_major", "patients", "doctors", "appointments")
     if any(key not in report for key in fields):
         raise RuntimeError("incomplete_response")
     return {key: report[key] for key in fields}
