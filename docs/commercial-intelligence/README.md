@@ -13,6 +13,7 @@
 ## Hallazgos verificables
 - 1.804 pacientes; 52 pacientes distintos vinculados a cita; 171 citas (101 no_show, 42 cancelled, 24 payment_pending, 4 completed). *No calcular conversión como cohortes sin depurar simulaciones, importados y fechas*.
 - 28 filas de appointment_payments: 5 approved (ARS), 20 pending (ARS/BRL), 3 refunded (ARS). Solo 3 de 5 approved incluyen provider_payment_id; cuatro approved se asocian a no_show, una a completed.
+- La función de producción `public.mark_overdue_appointments_no_show()` marca como `no_show` las citas `scheduled` o `confirmed` tras el fin del turno + período de gracia (30 minutos por defecto; no existen filas en doctor_scheduling_config). La función **no consulta** el estado del pago ni verifica evidencia de prestación. El historial incluye 107 transiciones `no_show` desde `scheduled` o `confirmed`. Es un **riesgo concreto de clasificación**, no prueba de que las personas hayan asistido.
 - 3 de 4 citas completed carecen de fila en appointment_payments. No contabilizar como impago sin revisar crédito, contrato o procedimientos alternativos.
 - 153 dispatch requests de farmacia; 54 status completed. El recorrido de farmacia NO debe mezclarse con appointments: entidades y condiciones distintas.
 - CRM: 278 cuentas argentinas sector sanitario, 282 actividades internas import, 0 oportunidades y 0 cuentas con last_contacted_at. Actividad B2B brasileña fuera del CRM.
