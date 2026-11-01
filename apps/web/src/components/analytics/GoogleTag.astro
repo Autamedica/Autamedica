@@ -27,24 +27,48 @@ const GA4_ID = /^G-[A-Z0-9]+$/.test(candidate) ? candidate : '';
       catch { return false; }
     }
 
-    function safeQuery() {
-      // URL parameters can contain names, clinical IDs, tokens or patient data.
-      // Keep marketing UTMs only when their entire values are non-identifying slugs.
-      const allowed = new Set(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']);
-      return Array.from(new URLSearchParams(location.search)).every(
-        ([key, value]) => allowed.has(key) && /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(value)
-      );
-    }
+    const MARKETING_HOST = /^(?:www\\.)?autamedica\\.com$/i;
+    const SAFE_SOURCES = new Set([
+      'google', 'google_ads', 'instagram', 'instagram_ads', 'facebook', 'facebook_ads',
+      'whatsapp', 'linkedin', 'email', 'brevo', 'newsletter', 'referral', 'qr',
+      'farmacia', 'partner', 'direct', 'offline', 'autamedica',
+    ]);
+    const SAFE_MEDIA = new Set([
+      'organic', 'cpc', 'paid', 'paid_social', 'social', 'email', 'referral',
+      'whatsapp', 'qr', 'partner', 'offline', 'display', 'app',
+    ]);
 
     function isMarketing() {
-      return safeQuery() && MARKETING.test(location.pathname) &&
-        (location.hostname === 'autamedica.com' || location.hostname === 'www.autamedica.com');
+      // A public page remains measurable even if it contains an unknown query
+      // (e.g. gclid, email, appointmentId): NONE of those parameters are forwarded.
+      return MARKETING_HOST.test(location.hostname) && MARKETING.test(location.pathname);
     }
 
     function isAllowed() {
-      return isMarketing() ||
-        (safeQuery() && REGISTER.test(location.pathname) &&
-          (location.hostname === 'autamedica.com' || location.hostname === 'www.autamedica.com'));
+      return MARKETING_HOST.test(location.hostname) &&
+        (MARKETING.test(location.pathname) || REGISTER.test(location.pathname));
+    }
+
+    function safeMarketingLocation() {
+      const url = new URL(location.origin + location.pathname);
+      if (!isMarketing()) return url.href;
+      const params = new URLSearchParams(location.search);
+      const source = (params.get('utm_source') || '').toLowerCase();
+      const medium = (params.get('utm_medium') || '').toLowerCase();
+      // Do NOT forward campaign, term, content, gclid, ref or other arbitrary data.
+      if (SAFE_SOURCES.has(source)) url.searchParams.set('utm_source', source);
+      if (SAFE_MEDIA.has(medium)) url.searchParams.set('utm_medium', medium);
+      return url.href;
+    }
+
+    function safeReferrerOrigin() {
+      try {
+        const ref = new URL(document.referrer);
+        if (ref.protocol !== 'https:' && ref.protocol !== 'http:') return '';
+        const host = ref.hostname.toLowerCase();
+        const trusted = /^(?:www\\.)?(?:google\\.com|google\\.com\\.br|google\\.com\\.ar|bing\\.com|duckduckgo\\.com|instagram\\.com|facebook\\.com|linkedin\\.com|whatsapp\\.com|autamedica\\.com)$/.test(host);
+        return trusted ? ref.origin + '/' : '';
+      } catch { return ''; }
     }
 
     function initializeGtag() {
@@ -59,8 +83,8 @@ const GA4_ID = /^G-[A-Z0-9]+$/.test(candidate) ? candidate : '';
       if (GA4_ID) {
         window.gtag('config', GA4_ID, {
           send_page_view: false,
-          page_location: location.origin + location.pathname,
-          page_referrer: '',
+          page_location: safeMarketingLocation(),
+          page_referrer: safeReferrerOrigin(),
           page_title: 'AutaMedica',
           allow_google_signals: false,
           allow_ad_personalization_signals: false,
@@ -105,8 +129,8 @@ const GA4_ID = /^G-[A-Z0-9]+$/.test(candidate) ? candidate : '';
         // No query strings, referrer, email, diagnosis, clinical context or record IDs.
         window.gtag('event', 'page_view', {
           send_to: GA4_ID,
-          page_location: location.origin + location.pathname,
-          page_referrer: '',
+          page_location: safeMarketingLocation(),
+          page_referrer: safeReferrerOrigin(),
           page_title: 'AutaMedica',
         });
         lastPagePath = location.pathname;
@@ -115,13 +139,19 @@ const GA4_ID = /^G-[A-Z0-9]+$/.test(candidate) ? candidate : '';
 
     window.AutaAnalytics = {
       track(name) {
-        // Non-conversion event. Successful submission is not confirmed account creation.
-        if (name !== 'registration_requested' || !GA4_ID || !REGISTER.test(location.pathname)) return;
-        if (!consented() || !window[LOADED_KEY] || !isAllowed()) return;
-        window.gtag('event', 'registration_requested', {
-          send_to: GA4_ID, method: 'email',
-          page_location: location.origin + '/auth/register',
-        });
+        if (!GA4_ID || !consented() || !window[LOADED_KEY] || !isAllowed()) return;
+        if (name === 'registration_requested' && REGISTER.test(location.pathname)) {
+          // A request to register is not a confirmed account, nor a paying customer.
+          window.gtag('event', 'registration_requested', {
+            send_to: GA4_ID, method: 'email',
+            page_location: location.origin + '/auth/register',
+          });
+        } else if (name === 'app_download_clicked' && isMarketing()) {
+          // No patient ID, diagnosis, specialty, link URL or query data.
+          window.gtag('event', 'app_download_clicked', {
+            send_to: GA4_ID, page_location: safeMarketingLocation(),
+          });
+        }
       },
     };
 
@@ -129,6 +159,19 @@ const GA4_ID = /^G-[A-Z0-9]+$/.test(candidate) ? candidate : '';
     window[LOAD_KEY] = refresh;
     refresh();
     document.addEventListener(CONSENT_EVENT, refresh);
+    document.addEventListener('click', (event) => {
+      if (!isMarketing()) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest('a[href]');
+      if (!anchor) return;
+      try {
+        const href = new URL(anchor.href, location.origin);
+        const download = (href.origin === location.origin && /^\\/descargar\\/?$/.test(href.pathname)) ||
+          (href.hostname === 'play.google.com' && href.pathname.startsWith('/store/apps/'));
+        if (download) window.AutaAnalytics?.track('app_download_clicked');
+      } catch { /* Invalid link never causes tracking. */ }
+    });
     document.addEventListener('astro:before-swap', () => {
       // Disable tracking before the client-side router enters a new document.
       window.gtag?.('consent', 'update', {
