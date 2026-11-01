@@ -10,6 +10,11 @@ spec.loader.exec_module(source)
 
 
 class SourceGuards(unittest.TestCase):
+    def test_psql18_tls_table_requires_connection_and_protocol(self):
+        self.assertTrue(source.client_tls_verified("SSL Connection|true\nSSL Protocol|TLSv1.3\n"))
+        self.assertFalse(source.client_tls_verified("SSL Connection|false\nSSL Protocol|TLSv1.3\n"))
+        self.assertFalse(source.client_tls_verified("SSL Connection|true\n"))
+
     def test_direct_source_is_read_only_and_tls(self):
         options = source.connection_options(
             f"postgresql://postgres:p%40ss@db.{source.PROJECT}.supabase.co/postgres", "")
