@@ -158,6 +158,8 @@ jobs:
       - name: Build web
         run: pnpm --filter @autamedica/web build
         env:
+          # Public GA4 web stream ID; required at Astro compile time.
+          PUBLIC_GA4_MEASUREMENT_ID: G-YRN6QY3BTY
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
           PUBLIC_SIGNALING_URL: ${{ secrets.PUBLIC_SIGNALING_URL }}

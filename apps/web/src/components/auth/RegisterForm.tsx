@@ -86,6 +86,13 @@ export function RegisterForm({ locale = 'es' }: { locale?: Locale }) {
         return;
       }
 
+      // A submitted registration is not an activated/verified patient account.
+      // No email, role, user ID or other sensitive information is sent to GA4.
+      const marketingAnalytics = (window as Window & {
+        AutaAnalytics?: { track: (event: string) => void };
+      }).AutaAnalytics;
+      marketingAnalytics?.track('registration_requested');
+
       setMessage(t('auth.emailConfirmation'));
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Error al crear la cuenta';

@@ -14,10 +14,18 @@
         <a href="/privacidad" class="text-[var(--am-primary-600,#0284C7)] underline underline-offset-2 hover:text-[var(--am-primary-700,#0369A1)] ml-1">
           Política de Privacidad</a>.
       </p>
-      <div class="w-full shrink-0 sm:w-auto">
+      <div class="flex w-full shrink-0 gap-2 sm:w-auto">
+        <button
+          id="au-cookie-reject"
+          type="button"
+          class="min-h-11 flex-1 rounded-lg border border-[var(--au-border)] px-4 py-2.5 text-sm font-semibold text-[var(--au-text-primary)] transition-colors hover:bg-[var(--au-hover)] sm:flex-none"
+        >
+          Rechazar
+        </button>
         <button
           id="au-cookie-accept"
-          class="w-full rounded-lg bg-[var(--am-primary-600,#0284C7)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--am-primary-700,#0369A1)] active:scale-95 sm:w-auto"
+          type="button"
+          class="min-h-11 flex-1 rounded-lg bg-[var(--am-primary-600,#0284C7)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--am-primary-700,#0369A1)] sm:flex-none"
         >
           Aceptar
         </button>
@@ -28,24 +36,42 @@
 
 <script>
   const STORAGE_KEY = 'au-cookie-consent';
-  const CONSENT_EVENT = 'au:cookie-consent:accepted';
+  const CONSENT_EVENT = 'au:cookie-consent:changed';
 
-  function initCookieBanner() {
-    if (localStorage.getItem(STORAGE_KEY)) return;
+  const readPreference = () => {
+    try { return localStorage.getItem(STORAGE_KEY); }
+    catch { return null; }
+  };
 
+  const savePreference = (value: 'accepted' | 'rejected') => {
+    try { localStorage.setItem(STORAGE_KEY, value); }
+    catch { /* Storage may be blocked; GA4 remains denied by default. */ }
+    document.dispatchEvent(new CustomEvent(CONSENT_EVENT));
+    document.getElementById('au-cookie-banner')?.classList.add('hidden');
+  };
+
+  function initCookieBanner(force = false) {
     const banner = document.getElementById('au-cookie-banner');
     if (!banner) return;
-
+    if (!force && ['accepted', 'rejected'].includes(readPreference() || '')) {
+      banner.classList.add('hidden');
+      return;
+    }
     banner.classList.remove('hidden');
 
-    document.getElementById('au-cookie-accept')?.addEventListener('click', () => {
-      localStorage.setItem(STORAGE_KEY, 'accepted');
-      document.dispatchEvent(new CustomEvent(CONSENT_EVENT));
-      banner.classList.add('hidden');
-    });
+    const accept = document.getElementById('au-cookie-accept');
+    const reject = document.getElementById('au-cookie-reject');
+    if (accept && !accept.dataset.consentBound) {
+      accept.addEventListener('click', () => savePreference('accepted'));
+      accept.dataset.consentBound = 'true';
+    }
+    if (reject && !reject.dataset.consentBound) {
+      reject.addEventListener('click', () => savePreference('rejected'));
+      reject.dataset.consentBound = 'true';
+    }
   }
 
-  // Run on initial load and on Astro view transitions
   initCookieBanner();
-  document.addEventListener('astro:after-swap', initCookieBanner);
+  document.addEventListener('astro:after-swap', () => initCookieBanner());
+  document.addEventListener('au:cookie-consent:manage', () => initCookieBanner(true));
 </script>

@@ -12,69 +12,99 @@
     return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   };
 
-  const readJson = (key) => {
+  const safeGet = (key: string): string | null => {
+    try { return localStorage.getItem(key); } catch { return null; }
+  };
+  const safeSet = (key: string, value: string) => {
+    try { localStorage.setItem(key, value); } catch { /* private browser / blocked storage */ }
+  };
+  const safeUtm = (value: unknown): string | null =>
+    typeof value === 'string' && /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(value) ? value : null;
+
+  // Exclude identifiers, private paths and all URL parameters from attribution.
+  const safePage = (raw: string): string => {
     try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
+      const url = new URL(raw, window.location.origin);
+      if (url.origin !== window.location.origin) return '/external';
+      const allowed = /^\/(?:|descargar\/?|farmacia\/?|empresas\/?|precios\/?|contacto\/?|faq\/?|servicios\/?)$/;
+      return allowed.test(url.pathname) ? url.pathname : '/private';
+    } catch { return '/private'; }
+  };
+
+  const safeReferrer = (raw: string | null): string | null => {
+    if (!raw) return null;
+    try {
+      const url = new URL(raw);
+      return /^https?:$/.test(url.protocol) ? url.origin : null;
+    } catch { return null; }
+  };
+
+  const readJson = (key: string): Record<string, unknown> => {
+    try {
+      const raw = safeGet(key);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch { return {}; }
   };
 
   const ensureAnonymousId = () => {
-    const existing = localStorage.getItem(ANONYMOUS_ID_KEY);
+    const existing = safeGet(ANONYMOUS_ID_KEY);
     if (existing) return existing;
     const created = safeUuid();
-    localStorage.setItem(ANONYMOUS_ID_KEY, created);
+    safeSet(ANONYMOUS_ID_KEY, created);
     return created;
   };
 
   const ensureSessionId = () => {
-    const existing = sessionStorage.getItem(SESSION_ID_KEY);
+    let existing: string | null = null;
+    try { existing = sessionStorage.getItem(SESSION_ID_KEY); } catch { /* blocked */ }
     if (existing) return existing;
     const created = safeUuid();
-    sessionStorage.setItem(SESSION_ID_KEY, created);
+    try { sessionStorage.setItem(SESSION_ID_KEY, created); } catch { /* blocked */ }
     return created;
   };
 
   const captureAttribution = () => {
     const params = new URLSearchParams(window.location.search);
-    const current = {};
-    UTM_KEYS.forEach((key) => {
-      const value = params.get(key);
-      if (value) current[key] = value.slice(0, 160);
-    });
-
     const existing = readJson(ATTRIBUTION_KEY);
-    const hasCurrentUtm = Object.keys(current).length > 0;
+    const current: Record<string, string> = {};
+    const previous: Record<string, string> = {};
+    UTM_KEYS.forEach((key) => {
+      const next = safeUtm(params.get(key));
+      const prev = safeUtm(existing[key]);
+      if (next) current[key] = next;
+      else if (prev) previous[key] = prev;
+    });
     const now = new Date().toISOString();
-
-    const next = {
-      ...existing,
-      ...(hasCurrentUtm ? current : {}),
-      first_landing_page: existing.first_landing_page || window.location.href,
-      first_referrer: existing.first_referrer || document.referrer || null,
+    const firstPage = existing.first_landing_page
+      ? safePage(String(existing.first_landing_page))
+      : safePage(window.location.href);
+    const firstReferrer = existing.first_referrer
+      ? safeReferrer(String(existing.first_referrer))
+      : safeReferrer(document.referrer);
+    const next: Record<string, unknown> = {
+      ...previous, ...current,
+      first_landing_page: firstPage,
+      first_referrer: firstReferrer,
       first_captured_at: existing.first_captured_at || now,
-      last_landing_page: window.location.href,
-      last_referrer: document.referrer || null,
+      last_landing_page: safePage(window.location.href),
+      last_referrer: safeReferrer(document.referrer),
       last_captured_at: now,
-      ...(hasCurrentUtm
-         ? Object.fromEntries(Object.entries(current).map(([key, value]) => [`last_${key}`, value]))
-         : {}),
     };
-
-    localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(next));
+    UTM_KEYS.forEach((key) => {
+      const value = safeUtm(params.get(key)) || safeUtm(existing['last_' + key]);
+      if (value) next['last_' + key] = value;
+    });
+    safeSet(ATTRIBUTION_KEY, JSON.stringify(next));
     return next;
   };
-
-  const getAttribution = () => readJson(ATTRIBUTION_KEY);
 
   captureAttribution();
   ensureAnonymousId();
   ensureSessionId();
 
   window.AutaGrowth = {
-    getAttribution,
+    getAttribution: () => captureAttribution(),
     getAnonymousId: ensureAnonymousId,
     getSessionId: ensureSessionId,
   };
