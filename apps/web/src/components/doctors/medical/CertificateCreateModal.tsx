@@ -286,7 +286,7 @@ export function CertificateCreateModal({
                 {countryCode === "BR" ? "Atestado médico do Brasil" : "Certificado médico de Argentina"}
               </h2>
               <p className="text-xs text-slate-400">
-                Firma electrónica con firma y sello del profesional
+                {countryCode === 'BR' ? 'Rascunho para revisão e assinatura qualificada do médico' : 'Firma electrónica con firma y sello del profesional'}
               </p>
             </div>
           </div>
@@ -646,7 +646,7 @@ export function CertificateCreateModal({
           <div className="flex items-center justify-between border-t border-slate-800 bg-slate-900/90 px-6 py-4">
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
               <Shield className="h-4 w-4 text-teal-400" />
-              <span>Primero revisar; luego confirmar la firma</span>
+              <span>{countryCode === 'BR' ? 'Salvar rascunho; assinatura médica obrigatória' : 'Primero revisar; luego confirmar la firma'}</span>
             </div>
             <div className="flex items-center gap-3">
               <button
