@@ -189,8 +189,8 @@ DECLARE v_request uuid; v_patient record;
 BEGIN
   SELECT * INTO v_patient FROM country_fixture WHERE kind='patient_br';
   INSERT INTO public.pharmacy_dispatch_requests(patient_dni,patient_phone,patient_name,
-    tier_requested,status,requested_by_user_id,care_country)
-  VALUES('CI-'||v_patient.id,'0000000000','Synthetic CI patient','general','searching',v_patient.uid,'BR')
+    tier_requested,status,requested_by_user_id,care_country,cloudflare_room_id)
+  VALUES('CI-'||v_patient.id,'0000000000','Synthetic CI patient','general','searching',v_patient.uid,'BR','ci-country-room-'||v_patient.id)
   RETURNING id INTO v_request;
   IF NOT EXISTS(SELECT 1 FROM public.pharmacy_dispatch_requests WHERE id=v_request AND status='expired')
      OR EXISTS(SELECT 1 FROM public.dispatch_offers WHERE dispatch_request_id=v_request) THEN
