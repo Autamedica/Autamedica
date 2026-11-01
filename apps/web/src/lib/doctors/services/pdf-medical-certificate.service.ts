@@ -16,6 +16,10 @@ export interface MedicalCertificatePdfInput {
   jurisdiction?: string | null;
   diagnosis?: string | null;
   hideDiagnosis?: boolean;
+  countryCode?: 'AR' | 'BR';
+  cid10Code?: string | null;
+  cidPatientRequested?: boolean;
+  cidConsentRecordedAt?: string | null;
   treatment?: string | null;
   observations?: string | null;
   daysOfRest: number;
@@ -88,7 +92,7 @@ export function generateMedicalCertificatePdf(
   doc.text('AUTAMEDICA', left, y);
   y += 9;
   doc.setFontSize(12);
-  doc.text('CERTIFICADO MÉDICO — ' + (TYPES[input.type] ?? 'General'), left, y);
+  doc.text((input.countryCode === 'BR' ? 'ATESTADO MÉDICO - ' : 'CERTIFICADO MÉDICO — ') + (TYPES[input.type] ?? 'General'), left, y);
   y += 8;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
@@ -127,14 +131,27 @@ export function generateMedicalCertificatePdf(
     y += 9;
   };
 
-  field('Paciente', input.patientName);
-  field('Documento', input.patientDni ?? 'No registrado');
-  field('Profesional', input.doctorName);
-  field('Matrícula / jurisdicción', `${input.doctorLicense} ${input.jurisdiction ?? ''}`);
-  if (!input.hideDiagnosis) field('Diagnóstico', input.diagnosis ?? '');
-  if (input.treatment) field('Tratamiento indicado', input.treatment);
-  field('Reposo indicado', `${input.daysOfRest} día(s). Desde ${date(input.startDate)}${input.endDate ? ' hasta ' + date(input.endDate) : ''}`);
-  if (input.observations) field('Observaciones', input.observations);
+  const isBrazil = input.countryCode === 'BR';
+  field(isBrazil ? 'Paciente' : 'Paciente', input.patientName);
+  field(isBrazil ? 'Documento' : 'Documento', input.patientDni ?? 'No registrado');
+  field(isBrazil ? 'Médico' : 'Profesional', input.doctorName);
+  field(isBrazil ? 'CRM / UF' : 'Matrícula / jurisdicción', `${input.doctorLicense} ${input.jurisdiction ?? ''}`);
+  // Brazilian certificates must not disclose the narrative diagnosis by default.
+  // A patient-authorized CID is the sole diagnosis data added to the employer-facing PDF.
+  if (isBrazil) {
+    if (input.cid10Code && input.cidPatientRequested && input.cidConsentRecordedAt) {
+      field('CID-10 (a pedido do paciente)', input.cid10Code);
+      field('Concordância expressa', 'CID incluído por solicitação e concordância expressa do(a) paciente, registrada na ficha clínica.');
+    }
+  } else if (!input.hideDiagnosis) {
+    field('Diagnóstico', input.diagnosis ?? '');
+  }
+  if (input.treatment && !isBrazil) field('Tratamiento indicado', input.treatment);
+  field(isBrazil ? 'Afastamento indicado' : 'Reposo indicado',
+    isBrazil
+      ? `${input.daysOfRest} dia(s). De ${date(input.startDate)}${input.endDate ? ' até ' + date(input.endDate) : ''}`
+      : `${input.daysOfRest} día(s). Desde ${date(input.startDate)}${input.endDate ? ' hasta ' + date(input.endDate) : ''}`);
+  if (input.observations && !isBrazil) field('Observaciones', input.observations);
 
   if (mode === 'electronic' && input.electronicSignature) {
     ensureSpace(62);
