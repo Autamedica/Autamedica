@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: production-database-recovery-drill
+  group: production-database-recovery-drill-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'production' }}
   cancel-in-progress: false
 
 jobs:
