@@ -48,60 +48,57 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!auth.ok) return unauthorized('admin role required');
 
   try {
-    // 1. Calculate appointment payment statistics (gross amounts)
+    // Never sum distinct currencies or call an unverified approved record settled revenue.
     const { data: payments, error: paymentsErr } = await admin
       .from('appointment_payments')
-      .select('gross_amount, status');
-
+      .select('gross_amount, status, currency, provider_payment_id');
     if (paymentsErr) throw paymentsErr;
 
-    let grossApproved = 0;
-    let grossRefunded = 0;
-    let grossPending = 0;
-
-    for (const p of payments || []) {
-      if (p.status === 'approved') grossApproved += p.gross_amount;
-      else if (p.status === 'refunded') grossRefunded += p.gross_amount;
-      else if (p.status === 'pending') grossPending += p.gross_amount;
-    }
-
-    // 2. Calculate earnings split (platform fees vs net amounts)
     const { data: earnings, error: earningsErr } = await admin
       .from('doctor_earnings')
-      .select('gross_amount, platform_fee_amount, processor_fee_amount, net_amount, status');
-
+      .select('platform_fee_amount, processor_fee_amount, net_amount, status, currency');
     if (earningsErr) throw earningsErr;
 
-    let platformFees = 0;
-    let processorFees = 0;
-    let pendingPayouts = 0;
-    let paidPayouts = 0;
+    const blank = () => ({
+      grossApproved: 0, grossRefunded: 0, grossPending: 0,
+      approvedMissingProviderId: 0,
+      platformFees: 0, processorFees: 0, pendingPayouts: 0, paidPayouts: 0,
+    });
+    const byCurrency = { ARS: blank(), BRL: blank() };
+    const validCurrency = (currency: string): currency is 'ARS' | 'BRL' =>
+      currency === 'ARS' || currency === 'BRL';
 
+    for (const p of payments || []) {
+      if (!validCurrency(p.currency)) throw new Error('Unknown currency in payment summary');
+      const totals = byCurrency[p.currency];
+      if (p.status === 'approved') {
+        totals.grossApproved += p.gross_amount;
+        if (!p.provider_payment_id) totals.approvedMissingProviderId++;
+      } else if (p.status === 'refunded') totals.grossRefunded += p.gross_amount;
+      else if (p.status === 'pending') totals.grossPending += p.gross_amount;
+    }
     for (const e of earnings || []) {
+      if (!validCurrency(e.currency)) throw new Error('Unknown currency in earnings summary');
+      const totals = byCurrency[e.currency];
       if (e.status !== 'cancelled') {
-        platformFees += e.platform_fee_amount;
-        processorFees += e.processor_fee_amount;
+        totals.platformFees += e.platform_fee_amount;
+        totals.processorFees += e.processor_fee_amount;
       }
-      if (e.status === 'pending') {
-        pendingPayouts += e.net_amount;
-      } else if (e.status === 'paid') {
-        paidPayouts += e.net_amount;
-      }
+      if (e.status === 'pending') totals.pendingPayouts += e.net_amount;
+      else if (e.status === 'paid') totals.paidPayouts += e.net_amount;
     }
 
-    return jsonOk({
+    const response = jsonOk({
       success: true,
       summary: {
-        grossApproved,
-        grossRefunded,
-        grossPending,
-        platformFees,
-        processorFees,
-        pendingPayouts,
-        paidPayouts,
-        currency: 'ARS',
+        byCurrency,
+        reconciledRevenue: null,
+        // Payment approved != settlement; doctor earning paid != verified transfer.
+        verificationStatus: 'unreconciled',
       },
     });
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
   } catch (err) {
     logger.error('[api/admin/finance/summary] GET failed', err);
     return internalError('failed to load financial summary');
