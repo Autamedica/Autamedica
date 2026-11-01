@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { resolveMemedPatient, validBirthDate, validCpf } from './memed-patient';
 
 const patientId = '11111111-1111-4111-8111-111111111111';
-const identity = { user_id: 'synthetic-user', active: true, cpf: '52998224725',
+const identity = { care_country: 'BR', user_id: 'synthetic-user', active: true, cpf: '52998224725',
   birth_date: '2000-02-29', gender: 'female', lgpd_consent: true };
 
 function database(overrides: Record<string, unknown> = {}): SupabaseClient {
@@ -20,6 +20,10 @@ function database(overrides: Record<string, unknown> = {}): SupabaseClient {
 }
 
 describe('Memed patient authorization', () => {
+  it.each(['AR', null, undefined])('rejects a patient outside the BR care market: %s', async (care_country) => {
+    await expect(resolveMemedPatient(database({ patients: { ...identity, care_country } }), 'doctor', patientId))
+      .rejects.toThrow('memed_patient_country_required');
+  });
   it.each(['00000000000', '11111111111', '52998224724', '', '123'])('rejects invalid CPF %s', (cpf) => {
     expect(validCpf(cpf)).toBe(false);
   });
@@ -53,3 +57,4 @@ describe('Memed patient authorization', () => {
     await expect(resolveMemedPatient(database(), 'doctor', '../../other')).rejects.toThrow('memed_patient_required');
   });
 });
+

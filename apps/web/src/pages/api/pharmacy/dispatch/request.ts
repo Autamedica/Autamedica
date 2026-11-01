@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { badRequest, internalError, jsonOk, serviceUnavailable } from '@/lib/api-helpers'
+import { badRequest, forbidden, internalError, jsonOk, serviceUnavailable } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { generateCloudflareRoomId, type DispatchTierCategory } from '@/lib/pharmacy/pharmacy-on-demand.service'
 import { signGuestToken } from '@/lib/calls/lib/guest-token'
@@ -140,6 +140,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .single()
 
     if (error) {
+      if (error.code === '42501' && error.message.includes('care_country')) {
+        return forbidden('care_country_required_or_mismatched')
+      }
       logger.error('[api/pharmacy/dispatch/request] Error inserting request', { error })
       return internalError(error.message)
     }
@@ -171,3 +174,4 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return internalError(message)
   }
 }
+

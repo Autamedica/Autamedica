@@ -130,6 +130,28 @@ fun AppointmentsScreen(
     val accentColor = if (isDoctor) PortalDoctors else PortalPatients
     val title = if (isDoctor) stringResource(R.string.appointments_title_doctor) else stringResource(R.string.appointments_title_patient)
 
+    if (!isDoctor && uiState.needsCareCountry) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("País de atención / País de atendimento") },
+            text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Elegí dónde recibirás atención. Verás solo médicos con la matrícula de ese país. / Escolha onde receberá atendimento.")
+                Text("La selección quedará vinculada a tu cuenta. / A seleção ficará vinculada à sua conta.")
+                uiState.bookingErrorMessage?.let { Text(it, color = AuDanger) }
+            } },
+            confirmButton = {
+                TextButton(enabled = !uiState.isSavingCareCountry, onClick = { viewModel.selectCareCountry("BR") }) {
+                    Text("Brasil · CRM")
+                }
+            },
+            dismissButton = {
+                TextButton(enabled = !uiState.isSavingCareCountry, onClick = { viewModel.selectCareCountry("AR") }) {
+                    Text("Argentina · MN / MP")
+                }
+            },
+        )
+    }
+
     var appointmentToCancel by remember { mutableStateOf<Appointment?>(null) }
     var appointmentToReschedule by remember { mutableStateOf<Appointment?>(null) }
 
@@ -2170,3 +2192,4 @@ private fun parseDateTime(value: String): OffsetDateTime? {
 private fun parseLocalDate(value: String): LocalDate? {
     return parseDateTime(value)?.toLocalDate()
 }
+

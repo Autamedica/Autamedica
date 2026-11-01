@@ -10,6 +10,8 @@ import type {
 } from '@/lib/patients/types/appointment'
 import type { IAppointmentsRepository } from '@/lib/patients/ports/appointments.port'
 
+import { assertCountryPair } from '@/lib/patients/care-country'
+
 type Db = SupabaseClient<Database>
 
 export interface CreateAppointmentPayload {
@@ -79,6 +81,8 @@ export const appointmentsUseCase = {
     if (isPastAppointmentStart(scheduledDate.toISOString())) {
       throw Object.assign(new Error('No se puede programar una cita en el pasado'), { code: 'VALIDATION' })
     }
+
+    await assertCountryPair(deps.dbClient, patientId, doctor_id)
 
     const doctorExists = await deps.appointmentsRepo.doctorExists(doctor_id)
     if (!doctorExists) throw Object.assign(new Error('Doctor not found or inactive'), { code: 'DOCTOR_NOT_FOUND' })
@@ -222,3 +226,4 @@ async function checkDoctorHasRealAvailability(db: Db, doctorId: string): Promise
 
   return !allFake
 }
+

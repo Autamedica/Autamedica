@@ -16,6 +16,7 @@ import { logger } from '@autamedica/shared'
 export interface PatientContext {
   userId: string
   patientId: string
+  careCountry: 'AR' | 'BR' | null
 }
 
 /** Astro locals shape (set by middleware) */
@@ -141,7 +142,7 @@ export async function resolvePatientContext(
     // 4. Resolve Patient ID
     let { data: patient, error: patientError } = await admin
       .from('patients')
-      .select('id')
+      .select('id, care_country')
       .eq('user_id', userId)
       .maybeSingle()
 
@@ -152,7 +153,7 @@ export async function resolvePatientContext(
       const { data: insertedPatient, error: insertPatientError } = await admin
         .from('patients')
         .upsert({ user_id: userId, active: true }, { onConflict: 'user_id' })
-        .select('id')
+        .select('id, care_country')
         .maybeSingle()
 
       if (insertPatientError) {
@@ -169,9 +170,10 @@ export async function resolvePatientContext(
       return null
     }
 
-    return { userId, patientId }
+    return { userId, patientId, careCountry: patient?.care_country === 'AR' || patient?.care_country === 'BR' ? patient.care_country : null }
   } catch (error) {
     logger.error('[resolvePatientContext] Unhandled error', error)
     return null
   }
 }
+

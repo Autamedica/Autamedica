@@ -10,8 +10,9 @@ type Db = SupabaseClient<Database>
 export type { DoctorSummary }
 
 export const doctorsService = {
-  async listActiveDoctors(supabase: Db): Promise<DoctorSummary[]> {
+  async listActiveDoctors(supabase: Db, country: 'AR' | 'BR'): Promise<DoctorSummary[]> {
     const doctorsRepo = createDoctorsAdapter(supabase)
-    return doctorsRepo.listActive()
+    return doctorsRepo.listActive(country)
   },
 }
+

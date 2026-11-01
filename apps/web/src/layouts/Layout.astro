@@ -13,6 +13,8 @@ import { SentryInit } from '../components/SentryInit';
 import { getI18n } from '../i18n/index';
 import { resolvePublicClientEnv } from '../lib/runtime-env';
 import { SessionSync as PatientSessionSync } from '../components/patients/SessionSync';
+import { resolvePatientContext } from '../lib/patients/api/patient-context';
+import CareCountrySelection from '../components/patients/CareCountrySelection.astro';
 import PWAUpdatePrompt from '../components/PWAUpdatePrompt.astro';
 
 
@@ -66,6 +68,14 @@ const activeTabDoctor =
   Astro.url.pathname.includes('/call') ? 'telemedicina' :
   Astro.url.pathname.includes('/community') ? 'comunidad' :
   Astro.url.pathname.includes('/perfil') ? 'perfil' : 'agenda';
+if (isPatientHost || isDoctorHost || Astro.locals.session) {
+  Astro.response.headers.set('Cache-Control', 'private, no-store');
+  Astro.response.headers.append('Vary', 'Cookie, Authorization');
+}
+const careContext = isPatientHost && Astro.locals.session
+  ? await resolvePatientContext(Astro.request, Astro.locals) : null;
+const needsCareCountry = Boolean(careContext && !careContext.careCountry);
+
 ---
 
 <!doctype html>
@@ -168,7 +178,7 @@ const activeTabDoctor =
     <SentryInit client:load />
     <GrowthAttribution />
     <ScrollProgress />
-    <slot />
+    {needsCareCountry ? <CareCountrySelection /> : <slot />}
     <OfflineBanner />
     <PWAUpdatePrompt />
     <CookieBanner />
@@ -179,3 +189,4 @@ const activeTabDoctor =
     {isDoctorHost && <DoctorBottomNav activeTab={activeTabDoctor} />}
   </body>
 </html>
+

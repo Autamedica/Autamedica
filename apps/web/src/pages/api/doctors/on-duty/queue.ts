@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth'
-import { internalError, jsonOk } from '@/lib/api-helpers'
+import { internalError, jsonOk, forbidden } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 
 export const GET: APIRoute = async ({ request, locals }) => {
@@ -10,10 +10,17 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   try {
     const admin = createAstroAdminClient(locals.runtime?.env)
+    const { data: doctor, error: doctorError } = await admin.from('doctors')
+      .select('care_country, active').eq('user_id', auth.user.id).maybeSingle()
+    if (doctorError) return internalError()
+    if (!doctor?.active || (doctor.care_country !== 'AR' && doctor.care_country !== 'BR')) {
+      return forbidden('care_country_credential_required')
+    }
     const { data, error } = await admin
       .from('pharmacy_dispatch_requests')
       .select('id, pharmacy_id, patient_dni, patient_name, patient_phone, tier_requested, symptom_summary, status, created_at, cloudflare_room_id')
       .eq('status', 'searching')
+      .eq('care_country', doctor.care_country)
       .order('created_at', { ascending: true })
 
     if (error) {
@@ -48,3 +55,4 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return internalError('Error al obtener cola de solicitudes en farmacia')
   }
 }
+

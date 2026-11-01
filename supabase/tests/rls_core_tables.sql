@@ -76,6 +76,9 @@ BEGIN
   SELECT doctor_b_id, u_doctor_b, 'LIC-RLS-B-' || fixture_suffix, 'Neurology', false
   WHERE NOT EXISTS (SELECT 1 FROM public.doctors WHERE user_id = u_doctor_b);
 
+  UPDATE public.patients SET care_country='AR' WHERE id IN (patient_a_id,patient_b_id);
+  -- Seed the historical inactive-doctor appointment while the doctor is eligible.
+  UPDATE public.doctors SET active=true WHERE id=doctor_b_id;
   INSERT INTO public.appointments (id, patient_id, doctor_id, start_time, status) VALUES
     (appt_a_id, patient_a_id, doctor_a_id, now() + interval '1 day', 'scheduled'),
     (appt_b_id, patient_b_id, doctor_b_id, now() + interval '2 days', 'scheduled');
@@ -83,6 +86,8 @@ BEGIN
   INSERT INTO public.medical_records (id, patient_id, doctor_id, appointment_id, type, title, content) VALUES
     (record_a_id, patient_a_id, doctor_a_id, appt_a_id, 'consultation', 'RLS Record A', '{"notes":"test a"}'::jsonb),
     (record_b_id, patient_b_id, doctor_b_id, appt_b_id, 'consultation', 'RLS Record B', '{"notes":"test b"}'::jsonb);
+
+  UPDATE public.doctors SET active=false WHERE id=doctor_b_id;
 
   INSERT INTO public.companies (id, name, owner_profile_id, active) VALUES
     (company_id, 'RLS Test Company', u_company, false);
@@ -193,6 +198,7 @@ UPDATE public.profiles
 SET role = 'admin'
 WHERE user_id = current_setting('test.rls.doctor_a_user')::uuid;
 
+UPDATE public.doctors SET active=true WHERE id=current_setting('test.rls.doctor_b_id')::uuid;
 INSERT INTO public.patient_care_team (patient_id, doctor_id, role, active)
 VALUES (
   current_setting('test.rls.patient_b_id')::uuid,
@@ -200,6 +206,7 @@ VALUES (
   'primary',
   true
 );
+UPDATE public.doctors SET active=false WHERE id=current_setting('test.rls.doctor_b_id')::uuid;
 
 INSERT INTO public.medical_record_authorizations (
   record_id, authorized_user_id, authorized_by_user_id, reason, valid_until
@@ -336,3 +343,4 @@ END;
 $privileges$;
 
 ROLLBACK;
+

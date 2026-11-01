@@ -1,0 +1,32 @@
+---
+const pt = Astro.locals.locale === 'pt'
+---
+
+  <section class="country-gate" aria-labelledby="care-country-title">
+    <form method="post" action="/api/patients/care-country" class="country-form">
+      <h1 id="care-country-title">{pt ? 'Onde você receberá atendimento?' : '¿En qué país recibirás atención?'}</h1>
+      <p>{pt
+        ? 'Selecione seu país de atendimento para ver médicos com a matrícula correspondente. A seleção ficará vinculada à sua conta.'
+        : 'Seleccioná tu país de atención para ver médicos con la matrícula correspondiente. La selección quedará vinculada a tu cuenta.'}</p>
+      <fieldset>
+        <legend>{pt ? 'País de atendimento' : 'País de atención'}</legend>
+        <label><input type="radio" name="care_country" value="AR" required /> Argentina · MN / MP</label>
+        <label><input type="radio" name="care_country" value="BR" required /> Brasil · CRM</label>
+      </fieldset>
+      <input type="hidden" name="return_to" value={Astro.url.pathname + Astro.url.search} />
+      <button type="submit">Confirmar país</button>
+    </form>
+  </section>
+<style>
+  .country-gate { position:fixed; inset:0; z-index:10000; display:grid; place-items:center; overflow:auto; padding:1.5rem; background:#f8fafc; color:#0f172a; }
+  .country-form { width:100%; max-width:30rem; padding:2rem; border:1px solid #cbd5e1; border-radius:1rem; background:white; }
+  h1 { font-size:1.5rem; font-weight:700; margin-bottom:1rem; }
+  p { line-height:1.6; margin-bottom:1.5rem; }
+  fieldset { display:grid; gap:1rem; margin-bottom:1.5rem; }
+  legend { font-weight:600; margin-bottom:.75rem; }
+  label { display:flex; align-items:center; gap:.75rem; padding:1rem; border:1px solid #94a3b8; border-radius:.5rem; cursor:pointer; }
+  input { width:1.25rem; height:1.25rem; }
+  button { width:100%; padding:.8rem; background:#0f766e; color:white; border-radius:.5rem; font-weight:600; }
+  button:focus-visible, input:focus-visible { outline:3px solid #2563eb; outline-offset:3px; }
+</style>
+

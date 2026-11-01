@@ -283,35 +283,48 @@ class AppointmentRepositoryImpl @Inject constructor(
         SecureLog.error("[Appointments] Failed clearing cached appointments", it)
     }
 
+    override suspend fun getCareCountry(): Result<String?> = runCatching {
+        val userId = requireNotNull(securePreferences.getString(SecurePreferences.KEY_USER_ID))
+        supabaseClient.postgrest.from("patients")
+            .select(Columns.list("care_country")) { filter { eq("user_id", userId) } }
+            .decodeList<PatientCareCountryDto>().firstOrNull()?.careCountry
+    }
+
+    override suspend fun selectCareCountry(country: String): Result<Unit> = runCatching {
+        require(country == "AR" || country == "BR") { "País de atención inválido" }
+        val userId = requireNotNull(securePreferences.getString(SecurePreferences.KEY_USER_ID))
+        val current = getCareCountry().getOrThrow()
+        check(current == null || current == country) { "El país de atención ya fue seleccionado" }
+        if (current == null) {
+            supabaseClient.postgrest.from("patients")
+                .update(mapOf("care_country" to country)) {
+                    filter { eq("user_id", userId) }
+                }
+            check(getCareCountry().getOrThrow() == country) { "No se pudo guardar el país de atención" }
+        }
+    }
+
     override suspend fun getAvailableDoctors(specialty: String?): Result<List<DoctorBookingInfo>> = runCatching {
+        val country = getCareCountry().getOrThrow()
+        check(country == "AR" || country == "BR") {
+            "Seleccioná tu país de atención en Agenda / Selecione seu país de atendimento em Agenda"
+        }
         // Do not fall back to unfiltered/inactive doctors if the active-only
         // query fails: this must surface as Result.failure.
         val doctors = supabaseClient.postgrest
-            .from("doctors")
-            .select(Columns.ALL) {
-                filter { eq("active", true) }
-            }
+            .rpc("get_patient_doctor_directory")
             .decodeList<DoctorBookingRowDto>()
-
-        if (doctors.isEmpty()) {
-            return@runCatching emptyList()
+        check(doctors.all { it.careCountry == country }) { "País de atención inconsistente" }
+        if (doctors.isEmpty()) return@runCatching emptyList()
+        val profilesMap = doctors.associate { doctor ->
+            doctor.userId to DoctorProfileBookingDto(
+                userId = doctor.userId,
+                firstName = doctor.firstName,
+                lastName = doctor.lastName,
+                avatarUrl = doctor.avatarUrl,
+                sssValidationStatus = doctor.sssValidationStatus,
+            )
         }
-
-        val userIds = doctors.map { it.userId }.filter { it.isNotBlank() }
-        val profilesMap = if (userIds.isNotEmpty()) {
-            try {
-                supabaseClient.postgrest
-                    .from("profiles")
-                    .select(Columns.list("user_id", "first_name", "last_name", "avatar_url", "sss_validation_status")) {
-                        filter { isIn("user_id", userIds) }
-                    }
-                    .decodeList<DoctorProfileBookingDto>()
-                    .associateBy { it.userId }
-            } catch (e: Exception) {
-                SecureLog.warn("[Appointments] Failed fetching doctor profiles: ${e.message}")
-                emptyMap()
-            }
-        } else emptyMap()
 
         val doctorIds = doctors.map { it.id }
         val specialtiesMap = if (doctorIds.isNotEmpty()) {
@@ -396,13 +409,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                 ?: "Medicina General"
             val docSpecialty = if (rawSpecialty.equals("General", ignoreCase = true)) "Medicina General" else rawSpecialty
 
-            val rawLicense = doc.licenseNumber?.trim().orEmpty()
-            val formattedLicense = when {
-                rawLicense.isBlank() || rawLicense.startsWith("PENDING", ignoreCase = true) -> "MN Colegiado"
-                rawLicense.matches(Regex("^[0-9a-fA-F-]{8,}$")) -> "MN Colegiado"
-                rawLicense.matches(Regex("^\\d{4,8}$")) -> "MN $rawLicense"
-                else -> rawLicense
-            }
+            val formattedLicense = formatDoctorCredential(doc.careCountry, doc.licenseType, doc.licenseNumber, doc.ufBrazil)
 
             val rawFee = doc.consultationFee
             val normalizedFee = when {
@@ -947,6 +954,13 @@ private data class AppointmentPaymentIdStatusDto(
 
 @Serializable
 private data class DoctorBookingRowDto(
+    @SerialName("license_type") val licenseType: String? = null,
+    @SerialName("uf_brazil") val ufBrazil: String? = null,
+    @SerialName("care_country") val careCountry: String? = null,
+    @SerialName("first_name") val firstName: String? = null,
+    @SerialName("last_name") val lastName: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("sss_validation_status") val sssValidationStatus: String? = null,
     val id: String,
     @SerialName("user_id") val userId: String,
     @SerialName("license_number") val licenseNumber: String? = null,
@@ -1016,3 +1030,7 @@ private data class DoctorBusySlotDto(
     @SerialName("start_time") val startTime: String,
     @SerialName("end_time") val endTime: String,
 )
+
+@Serializable
+private data class PatientCareCountryDto(@SerialName("care_country") val careCountry: String? = null)
+

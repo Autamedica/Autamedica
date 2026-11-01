@@ -47,8 +47,9 @@ export async function resolveMemedPatient(
   if (team.error || visit.error) throw new Error('memed_patient_authorization_unavailable');
   if (!team.data && !visit.data) throw new Error('doctor_patient_access_required');
   const { data: patient, error } = await admin.from('patients')
-    .select('user_id, active, cpf, birth_date, gender, lgpd_consent').eq('id', patientId).maybeSingle();
+    .select('user_id, active, cpf, birth_date, gender, lgpd_consent, care_country').eq('id', patientId).maybeSingle();
   if (error) throw new Error('memed_patient_lookup_failed');
+  if (patient?.care_country !== 'BR') throw new Error('memed_patient_country_required');
   if (!patient?.active || patient.lgpd_consent !== true) throw new Error('memed_patient_consent_required');
   const { data: profile, error: profileError } = await admin.from('profiles')
     .select('first_name, last_name').eq('user_id', patient.user_id).maybeSingle();
@@ -65,3 +66,4 @@ export async function resolveMemedPatient(
     data_nascimento: birthDate.split('-').reverse().join('/'),
     sexo: /^(male|masculino|m)$/.test(gender) ? 'Masculino' : 'Feminino' };
 }
+

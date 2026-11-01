@@ -4,17 +4,24 @@ import {
   DoctorNotFoundError,
   queryDoctorSlots,
 } from '@/lib/doctors/queries/doctor-slots.query'
-import { jsonOk, badRequest, notFound, internalError, unauthorized } from '@/lib/api-helpers'
+import { jsonOk, badRequest, notFound, internalError, unauthorized, forbidden } from '@/lib/api-helpers'
+
+import { resolvePatientContext } from '@/lib/patients/api/patient-context'
+import { assertCountryPair } from '@/lib/patients/care-country'
+import { createAstroAdminClient } from '@/lib/supabase'
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 const MAX_RANGE_DAYS = 30
 
 export const GET: APIRoute = async ({ request, params, locals }) => {
   try {
-    if (!locals.session) return unauthorized()
+    const context = await resolvePatientContext(request, locals)
+    if (!context) return unauthorized()
 
     const doctorId = params.id
     if (!doctorId) return badRequest('Missing doctor id')
+
+    await assertCountryPair(createAstroAdminClient(locals.runtime?.env), context.patientId, doctorId)
 
     const url = new URL(request.url)
     const dateFrom = url.searchParams.get('from')
@@ -35,7 +42,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       return badRequest(`Date range must not exceed ${MAX_RANGE_DAYS} days`)
     }
 
-    const slots = await queryDoctorSlots(locals.supabase, doctorId, { dateFrom, dateTo })
+    const slots = await queryDoctorSlots(createAstroAdminClient(locals.runtime?.env), doctorId, { dateFrom, dateTo })
 
     return jsonOk({
       doctor_id: doctorId,
@@ -45,8 +52,10 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       total: slots.length,
     })
   } catch (err) {
+    if ((err as { code?: string }).code === 'CARE_COUNTRY') return forbidden('care_country_mismatch_or_unset')
     if (err instanceof DoctorNotFoundError) return notFound('Doctor not found')
     logger.error('[doctors/[id]/slots/GET] Unexpected error', err)
     return internalError()
   }
 }
+

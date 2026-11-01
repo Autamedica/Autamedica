@@ -65,6 +65,8 @@ jobs:
           pnpm-version: ${{ env.PNPM_VERSION }}
       - name: Test Memed deployment configuration safeguards
         run: node --test scripts/ops/sync-memed-secrets.test.mjs
+      - name: Verify service worker never caches clinical data
+        run: node --test scripts/security/service-worker-privacy.test.mjs
       - name: Check backup publication and integrity safeguards
         run: python3 scripts/db/test_logical_backup.py
       - run: pnpm lint
@@ -114,6 +116,7 @@ jobs:
         env:
           SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: |
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/clinical_country_isolation.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_core_tables.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/memed_provider_integrity_smoke.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/internal_trigger_permissions.sql
@@ -152,4 +155,5 @@ jobs:
           if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" || "${{ needs.database-tests.result }}" != "success" ]]; then
             exit 1
             fi
+
 

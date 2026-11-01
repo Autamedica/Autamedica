@@ -81,7 +81,7 @@ BEGIN
   INSERT INTO public.doctors(id,user_id,license_number,specialty,active)
   VALUES (v_doctor,v_user,'TEST-' || v_doctor,'General',true),
          (v_other_doctor,NULL,'TEST-' || v_other_doctor,'General',true);
-  INSERT INTO public.patients(id,active) VALUES(v_patient,true);
+  INSERT INTO public.patients(id,active,care_country) VALUES(v_patient,true,'AR');
   -- Triggers are disabled in this isolated authorization fixture; explicitly
   -- supply a finite valid end_time so the atomic booking constraint remains active.
   INSERT INTO public.appointments(id,doctor_id,patient_id,start_time,end_time,type,status,deleted_at)
@@ -97,14 +97,11 @@ BEGIN
   IF public.can_start_call(v_doctor,NULL,v_guest) IS DISTINCT FROM true THEN
     RAISE EXCEPTION 'Authorized guest appointment rejected';
   END IF;
-  SELECT * INTO v_call FROM public.create_call(v_doctor,NULL,v_guest);
-  IF v_call.id IS NULL OR v_call.patient_id IS NOT NULL OR v_call.appointment_id <> v_guest
-     OR v_call.doctor_id <> v_doctor THEN
-    RAISE EXCEPTION 'Guest call returned incorrect participants';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.call_events WHERE call_id=v_call.id AND type='call_created') THEN
-    RAISE EXCEPTION 'Guest call event not recorded';
-  END IF;
+  -- Ownership alone no longer authorizes a guest with no established care market.
+  BEGIN
+    PERFORM * FROM public.create_call(v_doctor,NULL,v_guest);
+    RAISE EXCEPTION 'Guest without a country was allowed to start clinical care';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
   IF public.can_start_call(v_doctor,v_patient,v_registered) IS DISTINCT FROM true THEN
     RAISE EXCEPTION 'Registered appointment regressed';
@@ -163,3 +160,4 @@ ALTER TABLE public.appointments ENABLE TRIGGER USER;
 ALTER TABLE public.doctors ENABLE TRIGGER USER;
 ALTER TABLE public.profiles ENABLE TRIGGER USER;
 ROLLBACK;
+
