@@ -69,6 +69,8 @@ jobs:
         run: node --test scripts/security/service-worker-privacy.test.mjs
       - name: Check backup publication and integrity safeguards
         run: python3 scripts/db/test_logical_backup.py
+      - name: Verify actor-scoped telemedicine status authorization
+        run: node --experimental-strip-types --test supabase/functions/update-call-status/handler.test.ts
       - run: pnpm lint
       - run: pnpm hardcode:check
       - name: Detect hardcoded secrets
@@ -155,5 +157,6 @@ jobs:
           if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" || "${{ needs.database-tests.result }}" != "success" ]]; then
             exit 1
             fi
+
 
 

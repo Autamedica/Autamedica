@@ -342,5 +342,96 @@ BEGIN
 END;
 $privileges$;
 
+
+-- CALL_INTEGRITY_BEGIN: synthetic calls inside the surrounding rollback transaction.
+DO $call_fixture$
+DECLARE call_id uuid := gen_random_uuid();
+BEGIN
+  INSERT INTO public.calls(id, room_id, doctor_id, patient_id, status, created_at, accepted_at)
+  VALUES (call_id, 'integrity-test-' || call_id::text,
+    current_setting('test.rls.doctor_a_id')::uuid,
+    current_setting('test.rls.patient_a_id')::uuid,
+    'connected', now() - interval '10 minutes', now() - interval '9 minutes');
+  PERFORM set_config('test.call_integrity.id', call_id::text, true);
+END;
+$call_fixture$;
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object(
+  'sub',current_setting('test.rls.patient_b_user'),'role','authenticated')::text,true);
+DO $call_outsider$
+DECLARE denied boolean := false; visible_count integer;
+BEGIN
+  SELECT count(*) INTO visible_count FROM public.calls WHERE id=current_setting('test.call_integrity.id')::uuid;
+  IF visible_count <> 0 THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: unrelated user can read call'; END IF;
+  BEGIN
+    PERFORM public.update_call_status(current_setting('test.call_integrity.id')::uuid,'ended','outsider');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: unrelated user can change call'; END IF;
+END;
+$call_outsider$;
+RESET ROLE;
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims', jsonb_build_object(
+  'sub',current_setting('test.rls.doctor_a_user'),'role','authenticated')::text,true);
+DO $call_participant$
+DECLARE v_call_id uuid := current_setting('test.call_integrity.id')::uuid;
+  first_end timestamptz; event_count integer; denied boolean;
+BEGIN
+  IF NOT public.update_call_status(v_call_id,'ended','participant_ended') THEN
+    RAISE EXCEPTION 'CALL INTEGRITY FAIL: participant cannot end own call';
+  END IF;
+  SELECT ended_at INTO first_end FROM public.calls WHERE id=v_call_id;
+  IF first_end IS NULL THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: closing timestamp missing'; END IF;
+  IF public.update_call_status(v_call_id,'ended','replayed') THEN
+    RAISE EXCEPTION 'CALL INTEGRITY FAIL: replay performed work';
+  END IF;
+  IF (SELECT ended_at FROM public.calls WHERE id=v_call_id) IS DISTINCT FROM first_end THEN
+    RAISE EXCEPTION 'CALL INTEGRITY FAIL: replay changed closing time';
+  END IF;
+  SELECT count(*) INTO event_count FROM public.call_events WHERE call_events.call_id=v_call_id AND type='status_changed';
+  IF event_count <> 1 THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: audit event count %',event_count; END IF;
+
+  denied := false;
+  BEGIN PERFORM public.update_call_status(v_call_id,'connected','reopen');
+  EXCEPTION WHEN invalid_parameter_value THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: terminal call reopened'; END IF;
+
+  denied := false;
+  BEGIN UPDATE public.calls SET ended_at=now()+interval '1 day' WHERE id=v_call_id;
+  EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: direct call mutation allowed'; END IF;
+
+  denied := false;
+  BEGIN DELETE FROM public.call_events WHERE call_events.call_id=v_call_id;
+  EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: participant can delete audit'; END IF;
+
+  denied := false;
+  BEGIN INSERT INTO public.call_events(call_id,type,payload) VALUES(v_call_id,'status_changed','{}');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'CALL INTEGRITY FAIL: participant can forge status audit'; END IF;
+
+  INSERT INTO public.call_events(call_id,type,payload) VALUES(v_call_id,'debug_log','{"source":"synthetic_integrity_test"}');
+END;
+$call_participant$;
+RESET ROLE;
+
+DO $call_privileges$
+BEGIN
+  IF has_function_privilege('anon','public.update_call_status(uuid,public.call_status,text)','EXECUTE')
+    OR has_table_privilege('authenticated','public.calls','INSERT')
+    OR has_table_privilege('authenticated','public.calls','UPDATE')
+    OR has_table_privilege('authenticated','public.calls','DELETE')
+    OR has_table_privilege('authenticated','public.call_events','UPDATE')
+    OR has_table_privilege('authenticated','public.call_events','DELETE') THEN
+    RAISE EXCEPTION 'CALL INTEGRITY FAIL: excessive client privileges remain';
+  END IF;
+END;
+$call_privileges$;
+-- CALL_INTEGRITY_END
+
 ROLLBACK;
 
