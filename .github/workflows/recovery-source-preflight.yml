@@ -2,7 +2,7 @@ name: Recovery source preflight
 
 on:
   push:
-    branches: [fix/recovery-source-preflight]
+    branches: [fix/recovery-source-client-tls]
   workflow_dispatch:
 
 permissions:
