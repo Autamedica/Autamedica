@@ -36,6 +36,32 @@ INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,uf_braz
 INSERT INTO public.doctor_licenses(doctor_id,license_type,license_number,status)
  SELECT id,'MN','765432','active' FROM country_fixture WHERE kind='doctor_br';
 
+-- Synthetic historical data only: verify country hardening preserves cleanup.
+ALTER TABLE public.doctor_patient DISABLE TRIGGER trg_country_pair;
+INSERT INTO public.doctor_patient(patient_id,doctor_id)
+ SELECT p.id,d.id FROM country_fixture p,country_fixture d
+ WHERE p.kind='patient_unknown' AND d.kind='doctor_ar';
+ALTER TABLE public.doctor_patient ENABLE TRIGGER trg_country_pair;
+ALTER TABLE public.conversation_sessions DISABLE TRIGGER trg_country_optional_physician;
+INSERT INTO public.conversation_sessions(patient_id,doctor_id,case_id,channel,workflow_type,status,started_at)
+ SELECT p.id,d.id,'ci-country-legacy-'||p.id,'chat','anamnesis','active',now()-interval '1 day'
+ FROM country_fixture p,country_fixture d WHERE p.kind='patient_unknown' AND d.kind='doctor_ar';
+ALTER TABLE public.conversation_sessions ENABLE TRIGGER trg_country_optional_physician;
+UPDATE public.conversation_sessions SET status='failed',ended_at=now()
+ WHERE case_id LIKE 'ci-country-legacy-%';
+DO $$ BEGIN
+  BEGIN
+    UPDATE public.conversation_sessions SET status='active',ended_at=null
+     WHERE case_id LIKE 'ci-country-legacy-%';
+    RAISE EXCEPTION 'Legacy unknown-country conversation resumed';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END $$;
+INSERT INTO public.doctor_duty_status(doctor_id,is_on_duty,last_heartbeat_at,duty_started_at)
+ SELECT id,true,now(),now() FROM country_fixture WHERE kind LIKE 'doctor%'
+ ON CONFLICT(doctor_id) DO UPDATE SET is_on_duty=true,last_heartbeat_at=now();
+UPDATE public.profiles SET matricula_nacional='CI-AR-SECONDARY'
+ WHERE user_id=(SELECT uid FROM country_fixture WHERE kind='doctor_br');
+
 SET LOCAL ROLE authenticated;
 DO $patient_checks$
 DECLARE market text; v_uid uuid; v_country text; v_id uuid;
@@ -68,6 +94,10 @@ BEGIN
       WHERE f.kind LIKE 'doctor%' AND (market='unknown' OR f.kind <> 'doctor_'||market)) THEN
       RAISE EXCEPTION 'Doctor profile leak for %',market;
     END IF;
+    IF market <> 'unknown' AND NOT EXISTS(SELECT 1 FROM jsonb_array_elements(public.get_active_on_duty_doctors()) x
+      JOIN country_fixture f ON f.id::text=x->>'id' WHERE f.kind='doctor_'||market) THEN
+      RAISE EXCEPTION 'Matching duty doctor hidden';
+    END IF;
     IF EXISTS(SELECT 1 FROM jsonb_array_elements(public.get_active_on_duty_doctors()) x
       JOIN country_fixture f ON f.id::text=x->>'id' WHERE f.kind <> 'doctor_'||market) THEN
       RAISE EXCEPTION 'Duty RPC country leak';
@@ -94,13 +124,27 @@ RESET ROLE;
 SET LOCAL ROLE service_role;
 SELECT set_config('request.jwt.claims','{"role":"service_role"}',true);
 DO $service_checks$
-DECLARE p record; d record; v_market text;
+DECLARE p record; d record; v_market text; v_doc uuid;
 BEGIN
   FOR p IN SELECT * FROM country_fixture WHERE kind LIKE 'patient%' LOOP
     FOR d IN SELECT * FROM country_fixture WHERE kind LIKE 'doctor%' LOOP
       IF p.kind='patient_ar' AND d.kind='doctor_ar' OR p.kind='patient_br' AND d.kind='doctor_br' THEN
         INSERT INTO public.appointments(patient_id,doctor_id,start_time,end_time,status,type)
         VALUES(p.id,d.id,now()+interval '20 days',now()+interval '20 days 30 minutes','scheduled','telemedicine');
+        IF NOT EXISTS(SELECT 1 FROM public.get_doctor_busy_slots(d.id,current_date+20,current_date+20)) THEN
+          RAISE EXCEPTION 'Trusted availability query lost booked slots';
+        END IF;
+        v_market := CASE p.kind WHEN 'patient_ar' THEN 'AR' ELSE 'BR' END;
+        INSERT INTO public.prescriptions(patient_id,doctor_id,country_code,clinical_data,vendor_name,status)
+        VALUES(p.id,d.id,v_market,'{}','internal','draft') RETURNING id INTO v_doc;
+        BEGIN
+          UPDATE public.prescriptions SET country_code=CASE v_market WHEN 'AR' THEN 'BR' ELSE 'AR' END WHERE id=v_doc;
+          RAISE EXCEPTION 'Existing prescription country forged';
+        EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+        INSERT INTO public.medical_certificates(patient_id,doctor_id,country_code,cuir,certificate_type,status)
+        VALUES(p.id,d.id,v_market,'CI-'||gen_random_uuid(),'constancia_atencion','draft');
+        INSERT INTO public.medical_orders(patient_id,doctor_id,study_type,practices,status)
+        VALUES(p.id,d.id,'laboratory','[]','draft');
       ELSE
         BEGIN
           INSERT INTO public.appointments(patient_id,doctor_id,start_time,end_time,status,type)
@@ -156,6 +200,17 @@ BEGIN
     RAISE EXCEPTION 'Credential classifier confused country/type/UF';
   END IF;
 END $contracts$;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims',jsonb_build_object('role','authenticated','sub',
+ (SELECT uid FROM country_fixture WHERE kind='patient_unknown'))::text,true);
+UPDATE public.patients SET care_country='BR' WHERE id=(SELECT id FROM country_fixture WHERE kind='patient_unknown');
+DO $$ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(public.get_patient_doctor_directory()) d
+    JOIN country_fixture f ON f.id::text=d->>'id' WHERE f.kind='doctor_br') THEN
+    RAISE EXCEPTION 'Own initial country selection did not unlock matching directory';
+  END IF;
+END $$;
+RESET ROLE;
 SET LOCAL ROLE anon;
 DO $$ BEGIN
   IF EXISTS(SELECT 1 FROM public.doctors) THEN RAISE EXCEPTION 'Anonymous directory country bypass'; END IF;

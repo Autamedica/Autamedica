@@ -606,7 +606,7 @@ AS $function$
         COALESCE(a.end_time, a.start_time + (COALESCE(a.duration_minutes, 30) || ' minutes')::interval) AS end_time
     FROM public.appointments a
     WHERE a.doctor_id = p_doctor_id
-      AND app_private.can_view_country_doctor(p_doctor_id)
+      AND (auth.role()='service_role' OR app_private.can_view_country_doctor(p_doctor_id))
       AND a.start_time >= (p_start_date::timestamp at time zone 'UTC')
       AND a.start_time < ((p_end_date + 1)::timestamp at time zone 'UTC')
       AND a.status NOT IN ('cancelled', 'no_show', 'rejected');
@@ -892,7 +892,19 @@ GRANT EXECUTE ON FUNCTION public.get_patient_doctor_directory() TO authenticated
 CREATE OR REPLACE FUNCTION app_private.guard_optional_physician_care_country()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 AS $$
+DECLARE v_new jsonb := to_jsonb(NEW); v_old jsonb;
 BEGIN
+  IF TG_OP='UPDATE' AND NEW.patient_id IS NOT DISTINCT FROM OLD.patient_id
+     AND NEW.doctor_id IS NOT DISTINCT FROM OLD.doctor_id THEN
+    v_old := to_jsonb(OLD);
+    IF TG_TABLE_NAME='conversation_sessions' THEN
+      IF v_new->>'status' IN ('closed','failed')
+         AND (v_new - ARRAY['status','updated_at','ended_at','completed_at','error_message'])
+           IS NOT DISTINCT FROM (v_old - ARRAY['status','updated_at','ended_at','completed_at','error_message']) THEN RETURN NEW; END IF;
+    ELSIF (v_new - ARRAY['updated_at','deleted_at','updated_by','deleted_by'])
+       IS NOT DISTINCT FROM (v_old - ARRAY['updated_at','deleted_at','updated_by','deleted_by']) THEN RETURN NEW;
+    END IF;
+  END IF;
   -- Patient-only records and AI conversations do not assign a physician.
   IF NEW.doctor_id IS NOT NULL THEN
     PERFORM app_private.assert_care_country_pair(NEW.patient_id,NEW.doctor_id);

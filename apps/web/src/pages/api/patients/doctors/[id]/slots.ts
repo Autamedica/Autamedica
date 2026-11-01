@@ -42,7 +42,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       return badRequest(`Date range must not exceed ${MAX_RANGE_DAYS} days`)
     }
 
-    const slots = await queryDoctorSlots(locals.supabase, doctorId, { dateFrom, dateTo })
+    const slots = await queryDoctorSlots(createAstroAdminClient(locals.runtime?.env), doctorId, { dateFrom, dateTo })
 
     return jsonOk({
       doctor_id: doctorId,

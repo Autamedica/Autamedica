@@ -409,13 +409,7 @@ class AppointmentRepositoryImpl @Inject constructor(
                 ?: "Medicina General"
             val docSpecialty = if (rawSpecialty.equals("General", ignoreCase = true)) "Medicina General" else rawSpecialty
 
-            val rawLicense = doc.licenseNumber?.trim().orEmpty()
-            val formattedLicense = when {
-                rawLicense.isBlank() || rawLicense.startsWith("PENDING", ignoreCase = true) -> "MN Colegiado"
-                rawLicense.matches(Regex("^[0-9a-fA-F-]{8,}$")) -> "MN Colegiado"
-                rawLicense.matches(Regex("^\\d{4,8}$")) -> "MN $rawLicense"
-                else -> rawLicense
-            }
+            val formattedLicense = formatDoctorCredential(doc.careCountry, doc.licenseType, doc.licenseNumber, doc.ufBrazil)
 
             val rawFee = doc.consultationFee
             val normalizedFee = when {
@@ -960,6 +954,8 @@ private data class AppointmentPaymentIdStatusDto(
 
 @Serializable
 private data class DoctorBookingRowDto(
+    @SerialName("license_type") val licenseType: String? = null,
+    @SerialName("uf_brazil") val ufBrazil: String? = null,
     @SerialName("care_country") val careCountry: String? = null,
     @SerialName("first_name") val firstName: String? = null,
     @SerialName("last_name") val lastName: String? = null,
