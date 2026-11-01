@@ -999,6 +999,7 @@ export function DoctorsPrescriptionsPage() {
           patientDni={selectedPatient?.dni ?? undefined}
           onClose={() => setShowCertificateModal(false)}
           onCreated={() => {
+            if (certificateCountry === 'BR') { void fetchCertificates(); return; }
             setShowCertificateModal(false);
             setDocMode("certificates");
             void fetchCertificates();
