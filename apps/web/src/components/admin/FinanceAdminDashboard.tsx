@@ -2,15 +2,20 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { fetchApi } from '@/lib/api-client';
 
-type SummaryData = {
+type CurrencySummary = {
   grossApproved: number;
   grossRefunded: number;
   grossPending: number;
+  approvedMissingProviderId: number;
   platformFees: number;
   processorFees: number;
   pendingPayouts: number;
   paidPayouts: number;
-  currency: string;
+};
+type SummaryData = {
+  byCurrency: Record<'ARS' | 'BRL', CurrencySummary>;
+  reconciledRevenue: null;
+  verificationStatus: 'unreconciled';
 };
 
 type Transaction = {
@@ -50,6 +55,7 @@ type Transaction = {
 export function FinanceAdminDashboard() {
   const [activeTab, setActiveTab] = useState<'reconcile' | 'payouts' | 'disputes'>('reconcile');
   const [summary, setSummary] = useState<SummaryData | null>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState<'ARS' | 'BRL'>('ARS');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -194,51 +200,54 @@ export function FinanceAdminDashboard() {
     }
   };
 
-  const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
+  const formatMoney = (amount: number, currency: string) => {
+    const target = currency === 'BRL' ? 'BRL' : 'ARS';
+    return new Intl.NumberFormat(target === 'BRL' ? 'pt-BR' : 'es-AR', {
       style: 'currency',
-      currency: 'ARS',
+      currency: target,
       minimumFractionDigits: 2,
     }).format(amount / 100);
   };
+  const currentSummary = summary?.byCurrency[selectedCurrency];
 
   // Group pending earnings by doctor for the Payout tab
   const pendingPayouts = transactions.filter(t => t.status === 'approved' && t.earning?.status === 'pending');
 
   return (
     <div className="space-y-8">
-      {/* Visual Metric KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <div className="bg-stone-900 text-stone-100 rounded-xl p-5 border border-stone-850 shadow-md">
-          <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Ingresos Brutos</p>
-          <p className="text-2xl font-bold mt-2">{summary ? formatMoney(summary.grossApproved) : '$0,00'}</p>
-          <div className="flex items-center gap-2 mt-2 text-xs text-emerald-400">
-            <span>● Aprobados en pasarela</span>
-          </div>
+      {/* Currencies are never summed or relabeled. */}
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm font-semibold text-slate-700">Moneda</span>
+        {(['ARS', 'BRL'] as const).map(currency => (
+          <button key={currency} type="button" onClick={() => setSelectedCurrency(currency)}
+            aria-pressed={selectedCurrency === currency}
+            className={`rounded-lg border px-4 py-2 text-sm font-semibold ${selectedCurrency === currency
+              ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-700'}`}>
+            {currency}
+          </button>
+        ))}
+        <span className="text-xs text-amber-800">Importes operativos, no conciliados con el proveedor bancario.</span>
+      </div>
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
+        <div className="rounded-xl border border-stone-800 bg-stone-900 p-5 text-stone-100">
+          <p className="text-xs font-semibold uppercase text-stone-300">Pagos aprobados en base</p>
+          <p className="mt-2 text-2xl font-bold">{currentSummary ? formatMoney(currentSummary.grossApproved, selectedCurrency) : '—'}</p>
+          <p className="mt-2 text-xs text-amber-200">Sin conciliación de liquidación. Faltan ID de proveedor: {currentSummary?.approvedMissingProviderId ?? '—'}</p>
         </div>
-
-        <div className="bg-white text-stone-900 rounded-xl p-5 border border-stone-200 shadow-sm">
-          <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Comisiones AutaMedica</p>
-          <p className="text-2xl font-bold mt-2">{summary ? formatMoney(summary.platformFees) : '$0,00'}</p>
-          <div className="flex items-center gap-2 mt-2 text-xs text-stone-500">
-            <span>Revenue neto de plataforma</span>
-          </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5 text-stone-900">
+          <p className="text-xs font-semibold uppercase text-stone-500">Comisiones registradas</p>
+          <p className="mt-2 text-2xl font-bold">{currentSummary ? formatMoney(currentSummary.platformFees, selectedCurrency) : '—'}</p>
+          <p className="mt-2 text-xs text-slate-500">No representan margen neto comprobado.</p>
         </div>
-
-        <div className="bg-amber-50 text-amber-950 rounded-xl p-5 border border-amber-250 shadow-sm">
-          <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Falta Liquidar (CBU)</p>
-          <p className="text-2xl font-bold mt-2">{summary ? formatMoney(summary.pendingPayouts) : '$0,00'}</p>
-          <div className="flex items-center gap-2 mt-2 text-xs text-amber-700">
-            <span>● Retiros manuales pendientes</span>
-          </div>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
+          <p className="text-xs font-semibold uppercase text-amber-800">Liquidaciones pendientes</p>
+          <p className="mt-2 text-2xl font-bold">{currentSummary ? formatMoney(currentSummary.pendingPayouts, selectedCurrency) : '—'}</p>
+          <p className="mt-2 text-xs text-amber-700">Registro administrativo.</p>
         </div>
-
-        <div className="bg-emerald-50 text-emerald-950 rounded-xl p-5 border border-emerald-250 shadow-sm">
-          <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Liquidado a Médicos</p>
-          <p className="text-2xl font-bold mt-2">{summary ? formatMoney(summary.paidPayouts) : '$0,00'}</p>
-          <div className="flex items-center gap-2 mt-2 text-xs text-emerald-700">
-            <span>Transferencias ya verificadas</span>
-          </div>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
+          <p className="text-xs font-semibold uppercase text-emerald-800">Liquidaciones marcadas pagadas</p>
+          <p className="mt-2 text-2xl font-bold">{currentSummary ? formatMoney(currentSummary.paidPayouts, selectedCurrency) : '—'}</p>
+          <p className="mt-2 text-xs text-emerald-700">Sin validación de transferencia bancaria.</p>
         </div>
       </div>
 
@@ -341,13 +350,13 @@ export function FinanceAdminDashboard() {
                         <p className="text-3xs text-stone-400">{t.doctor.email}</p>
                       </td>
                       <td className="px-5 py-3.5 text-right font-bold text-stone-900">
-                        {formatMoney(t.grossAmount)}
+                        {formatMoney(t.grossAmount, t.currency)}
                       </td>
                       <td className="px-5 py-3.5 text-right text-stone-500">
-                        {t.earning ? formatMoney(t.earning.platformFee) : '$0,00'}
+                        {t.earning ? formatMoney(t.earning.platformFee, t.currency) : '$0,00'}
                       </td>
                       <td className="px-5 py-3.5 text-right font-semibold text-amber-800">
-                        {t.earning ? formatMoney(t.earning.netAmount) : '$0,00'}
+                        {t.earning ? formatMoney(t.earning.netAmount, t.currency) : '$0,00'}
                       </td>
                       <td className="px-5 py-3.5 text-center">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-3xs font-semibold leading-5 ${getChargeStatusClassName(t)}`}>
@@ -456,7 +465,7 @@ export function FinanceAdminDashboard() {
                           )}
                         </td>
                         <td className="px-5 py-3.5 text-right font-bold text-stone-900">
-                          {t.earning ? formatMoney(t.earning.netAmount) : '$0,00'}
+                          {t.earning ? formatMoney(t.earning.netAmount, t.currency) : '$0,00'}
                         </td>
                         <td className="px-5 py-3.5 text-center">
                           <button
@@ -514,7 +523,7 @@ export function FinanceAdminDashboard() {
                         <p className="font-semibold text-stone-900">{t.doctor.name}</p>
                       </td>
                       <td className="px-5 py-3.5 text-right font-bold text-rose-700">
-                        {formatMoney(t.grossAmount)}
+                        {formatMoney(t.grossAmount, t.currency)}
                       </td>
                       <td className="px-5 py-3.5 text-stone-600">
                         {/* @ts-ignore */}
@@ -549,7 +558,7 @@ export function FinanceAdminDashboard() {
             <form onSubmit={handlePayoutSubmit} className="space-y-4 mt-4">
               <div className="bg-stone-50 p-3 rounded-lg border border-stone-200 text-xs space-y-1.5">
                 <p className="text-stone-500">Destinatario: <span className="font-bold text-stone-900">{selectedPayout.doctor.name}</span></p>
-                <p className="text-stone-500">Monto Neto: <span className="font-bold text-amber-800">{selectedPayout.earning ? formatMoney(selectedPayout.earning.netAmount) : '$0,00'}</span></p>
+                <p className="text-stone-500">Monto Neto: <span className="font-bold text-amber-800">{selectedPayout.earning ? formatMoney(selectedPayout.earning.netAmount, selectedPayout.currency) : '$0,00'}</span></p>
                 <p className="text-stone-500">CBU Destino: <span className="font-mono font-bold text-stone-900">{selectedPayout.doctor.cbu || selectedPayout.doctor.alias || 'N/A'}</span></p>
               </div>
 
@@ -603,7 +612,7 @@ export function FinanceAdminDashboard() {
 
             <form onSubmit={handleRefundSubmit} className="space-y-4 mt-4">
               <div className="bg-rose-50 p-3 rounded-lg border border-rose-200 text-xs space-y-1.5">
-                <p className="text-rose-950">Monto a devolver al Paciente: <span className="font-bold text-rose-800">{formatMoney(selectedRefund.grossAmount)}</span></p>
+                <p className="text-rose-950">Monto a devolver al Paciente: <span className="font-bold text-rose-800">{formatMoney(selectedRefund.grossAmount, selectedRefund.currency)}</span></p>
                 <p className="text-rose-950">Paciente: <span className="font-bold text-rose-900">{selectedRefund.patient.name}</span></p>
                 <p className="text-rose-950 font-semibold italic">Aviso: Esta acción cancelará inmediatamente de forma automática e irreversible el honorario pendiente de liquidar al médico.</p>
               </div>

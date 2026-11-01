@@ -1,0 +1,38 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { CommercialIntelligenceDashboard } from '@/components/admin/CommercialIntelligenceDashboard';
+import { resolveAdminRole } from '@/lib/admin/auth';
+
+export const prerender = false;
+const session = Astro.locals.session;
+if (!session) {
+  return Astro.redirect('/auth/login?returnTo=/admin/commercial-intelligence&portal=admin');
+}
+const role = await resolveAdminRole(session, Astro.locals.supabase);
+if (!role) {
+  return Astro.redirect('/admin/unauthorized');
+}
+---
+
+<Layout title="Inteligencia comercial | AutaMedica" description="Estado de conversiones, citas y conciliación de pagos, restringido a dirección.">
+  <div class="min-h-screen bg-slate-50">
+    <header class="border-b border-slate-200 bg-white">
+      <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">Dirección comercial</p>
+          <h1 class="text-2xl font-semibold text-slate-950">Inteligencia comercial</h1>
+          <p class="mt-1 text-sm text-slate-600">Solo indicadores agregados · sin diagnósticos, identificadores ni datos clínicos</p>
+        </div>
+        <nav aria-label="Administración" class="flex flex-wrap gap-2 text-sm">
+          <a href="/admin" class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700">Inicio</a>
+          <a href="/admin/growth" class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700">Growth</a>
+          <a href="/admin/finance" class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700">Finanzas</a>
+          <a href="/admin/crm" class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700">CRM</a>
+        </nav>
+      </div>
+    </header>
+    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <CommercialIntelligenceDashboard client:load />
+    </main>
+  </div>
+</Layout>
