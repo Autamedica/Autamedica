@@ -21,6 +21,7 @@ interface CertificateCreateModalProps {
   patientName?: string;
   patientDni?: string;
   appointmentId?: string;
+  countryCode?: "AR" | "BR";
   onClose: () => void;
   onCreated?: (certificate: CreatedCertificate) => void;
 }
@@ -34,6 +35,9 @@ export interface CreatedCertificate {
   start_date: string;
   end_date?: string | null;
   diagnosis?: string | null;
+  country_code?: string;
+  cid10_code?: string | null;
+  cid_requested_by_patient?: boolean;
   hide_diagnosis: boolean;
   observations?: string | null;
   treatment?: string | null;
@@ -89,6 +93,7 @@ export function CertificateCreateModal({
   patientName: initialPatientName,
   patientDni: initialPatientDni,
   appointmentId,
+  countryCode = "AR",
   onClose,
   onCreated,
 }: CertificateCreateModalProps) {
@@ -101,7 +106,9 @@ export function CertificateCreateModal({
   const [startDate, setStartDate] = useState(getTodayString());
   const [diagnosis, setDiagnosis] = useState("");
   const [treatment, setTreatment] = useState("");
-  const [hideDiagnosis, setHideDiagnosis] = useState(false);
+  const [hideDiagnosis, setHideDiagnosis] = useState(countryCode === "BR");
+  const [cid10Code, setCid10Code] = useState("");
+  const [cidPatientRequested, setCidPatientRequested] = useState(false);
   const [observations, setObservations] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
@@ -115,7 +122,7 @@ export function CertificateCreateModal({
   const [reviewRevision, setReviewRevision] = useState(0);
 
   useEffect(() => {
-    if (successCert?.status !== 'draft') return;
+    if (successCert?.status !== 'draft' || countryCode === 'BR') return;
     let active = true;
     void fetch(`/api/doctors/certificates/${successCert.id}/issue`, { cache: 'no-store' })
       .then(async response => {
@@ -131,7 +138,7 @@ export function CertificateCreateModal({
         }
       }).catch(error => { if (active) setErrorMsg(error.message); });
     return () => { active = false; };
-  }, [successCert, reviewRevision, onCreated]);
+  }, [successCert, reviewRevision, onCreated, countryCode]);
 
   const handleIssue = async () => {
     if (!successCert || !review || !confirmed || submitting) return;
@@ -208,6 +215,11 @@ export function CertificateCreateModal({
       return;
     }
 
+    if (countryCode === "BR" && cid10Code.trim() && !cidPatientRequested) {
+      setErrorMsg("O CID-10 só pode constar do atestado mediante solicitação e concordância expressa do paciente.");
+      return;
+    }
+
     setSubmitting(true);
     setErrorMsg(null);
 
@@ -221,9 +233,11 @@ export function CertificateCreateModal({
         end_date: calculatedEndDate,
         diagnosis: diagnosis.trim() || null,
         treatment: treatment.trim() || null,
-        hide_diagnosis: hideDiagnosis,
+        hide_diagnosis: countryCode === "BR" ? true : hideDiagnosis,
+        cid10_code: countryCode === "BR" ? cid10Code.trim().toUpperCase() || null : null,
+        cid_requested_by_patient: countryCode === "BR" && Boolean(cid10Code.trim()) && cidPatientRequested,
         observations: observations.trim() || null,
-        country_code: "AR",
+        country_code: countryCode,
       };
 
       const res = await fetch("/api/doctors/certificates", {
@@ -269,10 +283,10 @@ export function CertificateCreateModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-white tracking-tight">
-                Certificado médico de Argentina
+                {countryCode === "BR" ? "Atestado médico do Brasil" : "Certificado médico de Argentina"}
               </h2>
               <p className="text-xs text-slate-400">
-                Firma electrónica con firma y sello del profesional
+                {countryCode === 'BR' ? 'Rascunho para revisão e assinatura qualificada do médico' : 'Firma electrónica con firma y sello del profesional'}
               </p>
             </div>
           </div>
@@ -294,9 +308,9 @@ export function CertificateCreateModal({
                 <CheckCircle2 className="h-8 w-8" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">{successCert.status === "signed" ? "Certificado emitido" : "Revisar certificado"}</h3>
+                <h3 className="text-xl font-bold text-white">{successCert.status === "signed" ? "Certificado emitido" : countryCode === "BR" ? "Rascunho do atestado salvo" : "Revisar certificado"}</h3>
                 <p className="text-sm text-slate-400 mt-1 max-w-md">
-                  {successCert.status === "signed" ? "Emitido con su firma electrónica y sello. El paciente puede consultar el documento en la aplicación." : "Revise los datos y confirme personalmente la aplicación de su firma y sello."}
+                  {successCert.status === "signed" ? "Emitido con su firma electrónica y sello. El paciente puede consultar el documento en la aplicación." : countryCode === "BR" ? "O CID-10 solicitado foi registrado no rascunho. Este documento ainda NÃO está assinado e não é válido para apresentar ao empregador." : "Revise los datos y confirme personalmente la aplicación de su firma y sello."}
                 </p>
               </div>
 
@@ -321,13 +335,16 @@ export function CertificateCreateModal({
               </div>
 
               {errorMsg && <p role="alert" className="text-sm text-rose-300">{errorMsg}</p>}
-              {successCert.status === 'draft' && (
+              {successCert.status === 'draft' && countryCode === 'BR' && (
+                <a href={`/api/doctors/certificates/${successCert.id}/pdf`} target="_blank" rel="noopener noreferrer" className="underline">Visualizar rascunho com marca d'água</a>
+              )}
+              {successCert.status === 'draft' && countryCode !== 'BR' && (
                 <button type="button" disabled={submitting} className="underline text-sm"
                   onClick={() => { setConfirmed(false); setReview(null); setReviewRevision(value => value + 1); }}>
                   Actualizar revisión
                 </button>
               )}
-              {review && successCert.status === 'draft' && (
+              {review && successCert.status === 'draft' && countryCode !== 'BR' && (
                 <div className="w-full space-y-4 text-left text-sm">
                   <p><strong>Paciente:</strong> {review.patientName}</p>
                   <p><strong>Período:</strong> {review.certificate.start_date} — {review.certificate.end_date || 'Sin reposo'} ({review.certificate.days_of_rest} días)</p>
@@ -540,7 +557,7 @@ export function CertificateCreateModal({
                 />
 
                 {/* Frequent Diagnosis Chips */}
-                {!hideDiagnosis && (
+                {!hideDiagnosis && countryCode !== "BR" && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {FREQUENT_DIAGNOSES.map((diag) => (
                       <button
@@ -557,7 +574,7 @@ export function CertificateCreateModal({
               </div>
 
               {/* Medical Secret Switch */}
-              <div className="flex items-start justify-between rounded-xl border border-slate-800 bg-slate-950/40 p-3.5">
+              {countryCode !== "BR" && <div className="flex items-start justify-between rounded-xl border border-slate-800 bg-slate-950/40 p-3.5">
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 mt-0.5">
                     <EyeOff className="h-4 w-4" />
@@ -575,7 +592,23 @@ export function CertificateCreateModal({
                   onChange={(e) => setHideDiagnosis(e.target.checked)}
                   className="mt-1 h-5 w-5 rounded border-slate-700 bg-slate-800 text-teal-600 focus:ring-teal-500"
                 />
-              </div>
+              </div>}
+
+              {countryCode === "BR" && (
+                <div className="rounded-xl border border-teal-700/50 bg-teal-950/30 p-4 space-y-3">
+                  <label className="block text-xs font-semibold text-teal-200">CID-10 (opcional, a pedido do paciente)</label>
+                  <input type="text" value={cid10Code}
+                    onChange={(e) => { setCid10Code(e.target.value.toUpperCase()); setCidPatientRequested(false); }}
+                    placeholder="Ex.: J06.9" maxLength={8}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white" />
+                  <label className="flex items-start gap-2 text-xs text-slate-200">
+                    <input type="checkbox" checked={cidPatientRequested} disabled={!cid10Code.trim()}
+                      onChange={(e) => setCidPatientRequested(e.target.checked)} className="mt-1" />
+                    <span>Confirmo que o(a) paciente ou representante legal solicitou e concordou expressamente com a inclusão deste CID-10, após esclarecimento sobre privacidade, e que registrei essa manifestação na ficha clínica.</span>
+                  </label>
+                  <p className="text-[11px] text-slate-400">CFM 2.381/2024, art. 5º, §§ 3º e 4º. A exigência do empregador, isoladamente, não autoriza a divulgação. O médico determina o CID.</p>
+                </div>
+              )}
 
               {/* Treatment indicated for rest certificates */}
               <div>
@@ -613,7 +646,7 @@ export function CertificateCreateModal({
           <div className="flex items-center justify-between border-t border-slate-800 bg-slate-900/90 px-6 py-4">
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
               <Shield className="h-4 w-4 text-teal-400" />
-              <span>Primero revisar; luego confirmar la firma</span>
+              <span>{countryCode === 'BR' ? 'Salvar rascunho; assinatura médica obrigatória' : 'Primero revisar; luego confirmar la firma'}</span>
             </div>
             <div className="flex items-center gap-3">
               <button
