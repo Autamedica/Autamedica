@@ -1273,10 +1273,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_patient_doctor_directory: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
       email: { Args: never; Returns: string }
       jwt: { Args: never; Returns: Json }
       role: { Args: never; Returns: string }
@@ -12354,6 +12350,10 @@ export type Database = {
       }
     }
     Functions: {
+      get_patient_doctor_directory: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined

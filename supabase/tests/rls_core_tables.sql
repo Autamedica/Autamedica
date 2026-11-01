@@ -198,6 +198,7 @@ UPDATE public.profiles
 SET role = 'admin'
 WHERE user_id = current_setting('test.rls.doctor_a_user')::uuid;
 
+UPDATE public.doctors SET active=true WHERE id=current_setting('test.rls.doctor_b_id')::uuid;
 INSERT INTO public.patient_care_team (patient_id, doctor_id, role, active)
 VALUES (
   current_setting('test.rls.patient_b_id')::uuid,
@@ -205,6 +206,7 @@ VALUES (
   'primary',
   true
 );
+UPDATE public.doctors SET active=false WHERE id=current_setting('test.rls.doctor_b_id')::uuid;
 
 INSERT INTO public.medical_record_authorizations (
   record_id, authorized_user_id, authorized_by_user_id, reason, valid_until

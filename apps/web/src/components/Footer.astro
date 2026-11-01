@@ -171,6 +171,14 @@ const columns = [
     <div class="footer-bottom-bar flex flex-col md:flex-row justify-between items-center py-8 border-t border-[var(--au-border)] mt-16">
       <p class="text-[var(--au-text-primary)] text-sm">&copy; {currentYear} AutaMedica. {t('landing.footer.allRights')}</p>
 
+      <button
+        type="button"
+        id="au-cookie-preferences"
+        class="min-h-11 rounded-lg px-3 text-sm text-[var(--au-text-primary)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--au-accent)]"
+      >
+        Preferencias de cookies
+      </button>
+
       <div class="cert-badges flex gap-4 mt-6 md:mt-0">
         {['DNPDP EX-2026-36544262', 'HIPAA', 'TLS 1.3', 'AES-256'].map(cert => (
           <span class="px-4 py-1.5 rounded-full border border-[var(--au-hover-border)] text-[10px] tracking-[0.18em] text-[var(--au-text-primary)] uppercase bg-white backdrop-blur-sm">
@@ -181,6 +189,15 @@ const columns = [
     </div>
   </div>
 </footer>
+
+<script>
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (target instanceof Element && target.closest('#au-cookie-preferences')) {
+      document.dispatchEvent(new CustomEvent('au:cookie-consent:manage'));
+    }
+  });
+</script>
 
 <style>
   .footer-premium {

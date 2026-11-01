@@ -118,6 +118,12 @@
             </intent-filter>
         </service>
 
+        <!-- Compose screen views are logged with static categories in AppNavHost.
+             Disable default Activity names (MainActivity, HiddenActivity) to avoid double counting. -->
+        <meta-data
+            android:name="google_analytics_automatic_screen_reporting_enabled"
+            android:value="false" />
+
         <!-- FCM default notification channel -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"

@@ -101,7 +101,9 @@ export async function discoverRefepsId(license: string, type: 'MN' | 'MP', provi
   const timeout = setTimeout(() => controller.abort(), 15_000);
   const request = async (init?: RequestInit): Promise<string> => {
     const response = await fetch(DIRECTORY_URL, {
-      ...init, redirect: 'error', signal: controller.signal,
+      // Workers rejects redirect:'error' before sending the request. Manual mode
+      // is supported on both runtimes; response.ok below rejects every redirect.
+      ...init, redirect: 'manual', signal: controller.signal,
       headers: { Accept: 'text/html', 'User-Agent': 'AutaMedica-REFEPS-Lookup/1.0', ...init?.headers },
     });
     if (!response.ok) fail('REFEPS_DISCOVERY_UNAVAILABLE');

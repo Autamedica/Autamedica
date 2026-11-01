@@ -181,6 +181,22 @@ BEGIN
     END LOOP;
   END LOOP;
 END $service_checks$;
+-- With only AR doctors live, a BR request must expire without an AR offer or push.
+UPDATE public.doctor_duty_status SET last_heartbeat_at=now()-interval '1 day'
+ WHERE doctor_id IN (SELECT id FROM public.doctors WHERE care_country='BR');
+DO $no_candidate$
+DECLARE v_request uuid; v_patient record;
+BEGIN
+  SELECT * INTO v_patient FROM country_fixture WHERE kind='patient_br';
+  INSERT INTO public.pharmacy_dispatch_requests(patient_dni,patient_phone,patient_name,
+    tier_requested,status,requested_by_user_id,care_country)
+  VALUES('CI-'||v_patient.id,'0000000000','Synthetic CI patient','general','searching',v_patient.uid,'BR')
+  RETURNING id INTO v_request;
+  IF NOT EXISTS(SELECT 1 FROM public.pharmacy_dispatch_requests WHERE id=v_request AND status='expired')
+     OR EXISTS(SELECT 1 FROM public.dispatch_offers WHERE dispatch_request_id=v_request) THEN
+    RAISE EXCEPTION 'BR dispatch crossed into AR or no-candidate terminal state failed';
+  END IF;
+END $no_candidate$;
 RESET ROLE;
 -- Catalog checks ensure every clinical write path has the guard, including future APIs.
 DO $contracts$
