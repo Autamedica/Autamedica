@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { fetchApi } from '@/lib/api-client';
+import { ManualReceiptsIntake } from '@/components/admin/ManualReceiptsIntake';
 
 type CurrencySummary = {
   grossApproved: number;
@@ -258,6 +259,8 @@ export function FinanceAdminDashboard() {
       <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
         Saldos separados por ARS y BRL. Los registros aprobados y las liquidaciones no prueban cobro efectivo ni conciliación con el proveedor o banco; no incluir ventas PIX manuales sin comprobante.
       </p>
+
+      <ManualReceiptsIntake />
 
       {/* Tabs Menu */}
       <div className="border-b border-stone-200">
