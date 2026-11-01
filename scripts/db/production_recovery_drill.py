@@ -33,6 +33,9 @@ def run(args, *, stage, cwd=None, env=None, input_text=None, output=None, timeou
         # Do not expose pg_dump/psql output: errors can include a clinical row.
         codes = re.findall(r"ERROR:\s+([0-9A-Z]{5})\b", result.stderr)
         diagnostic = " SQLSTATE=" + ",".join(sorted(set(codes))) if codes else ""
+        locations = re.findall(r"psql:/recovery/((?:roles|schema|data)\.sql:[0-9]+):", result.stderr)
+        if locations:
+            diagnostic += " at " + ",".join(sorted(set(locations)))
         raise RuntimeError(stage + " failed (exit " + str(result.returncode) + ")" + diagnostic)
     return result.stdout or ""
 
@@ -196,7 +199,14 @@ class Snapshot:
         self.selector.close()
 
 
-def local_psql(sql=None, files=()):
+def extension_setup_sql(name, schema):
+    # PostgreSQL rejects even CREATE SCHEMA IF NOT EXISTS pg_catalog: reserved
+    # names are checked before existence. This namespace is already provided.
+    create_schema = "" if schema in ("pg_catalog", "public") else "CREATE SCHEMA IF NOT EXISTS " + ident(schema) + "; "
+    return create_schema + "CREATE EXTENSION IF NOT EXISTS " + ident(name) + " WITH SCHEMA " + ident(schema) + ";"
+
+
+def local_psql(sql=None, files=(), stage="Offline destination SQL"):
     if CONTAINER != "supabase_db_autamedica-recovery-drill":
         raise RuntimeError("Unexpected restore destination")
     args = ["docker", "exec", "-i", CONTAINER, "psql", "-X", "-qAt",
@@ -205,7 +215,7 @@ def local_psql(sql=None, files=()):
         args.append("--single-transaction")
         for file in files:
             args.extend(["-f", "/recovery/" + file])
-    return run(args, stage="Offline destination SQL", input_text=sql, timeout=600)
+    return run(args, stage=stage, input_text=sql, timeout=600)
 
 
 def require_offline(inspection):
@@ -322,13 +332,13 @@ def main():
                     raise RuntimeError("Backup integrity check failed")
             restore_started = time.monotonic()
             # This helper can only address the fixed local container, never the source.
-            local_psql("DROP SCHEMA public CASCADE; DROP SCHEMA auth CASCADE; DROP SCHEMA storage CASCADE; CREATE SCHEMA public AUTHORIZATION postgres; ALTER DATABASE postgres SET timezone='UTC';")
+            local_psql("DROP SCHEMA public CASCADE; DROP SCHEMA auth CASCADE; DROP SCHEMA storage CASCADE; CREATE SCHEMA public AUTHORIZATION postgres; ALTER DATABASE postgres SET timezone='UTC';", stage="Reset offline destination schemas")
             for name, schema in extensions:
-                local_psql("CREATE SCHEMA IF NOT EXISTS " + ident(schema) + "; CREATE EXTENSION IF NOT EXISTS " + ident(name) + " WITH SCHEMA " + ident(schema) + ";")
+                local_psql(extension_setup_sql(name, schema), stage="Prepare destination extension " + name)
             run(["docker", "exec", CONTAINER, "mkdir", "-m", "700", "/recovery"], stage="Prepare private target files")
             for name in ("roles", "schema", "data"):
                 run(["docker", "cp", str(root / (name + ".sql")), CONTAINER + ":/recovery/" + name + ".sql"], stage="Copy private backup")
-            local_psql(files=("roles.sql", "schema.sql", "data.sql"))
+            local_psql(files=("roles.sql", "schema.sql", "data.sql"), stage="Atomic database restoration")
             actual_data = json.loads(local_psql("SET timezone='UTC'; SET search_path=''; " + manifest_query).strip())
             actual_metadata = json.loads(local_psql("SET search_path=''; " + metadata_sql()).strip())
             if int(local_psql(foreign_key_query).strip()) != 0:

@@ -75,6 +75,13 @@ class RecoveryDrillGuards(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             drill.foreign_key_sql([dict(key, referenced=[])])
 
+    def test_builtin_extension_namespace_is_never_recreated(self):
+        for extension in ('pg_cron', 'plpgsql'):
+            sql = drill.extension_setup_sql(extension, 'pg_catalog')
+            self.assertNotIn('CREATE SCHEMA', sql)
+            self.assertIn('WITH SCHEMA "pg_catalog"', sql)
+        self.assertIn('CREATE SCHEMA IF NOT EXISTS "extensions"', drill.extension_setup_sql('pgcrypto', 'extensions'))
+
     @patch.object(drill, 'run')
     def test_restore_can_only_address_fixed_local_container(self, process):
         process.return_value = ''
