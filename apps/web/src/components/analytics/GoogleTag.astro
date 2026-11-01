@@ -27,7 +27,7 @@ const GA4_ID = /^G-[A-Z0-9]+$/.test(candidate) ? candidate : '';
       catch { return false; }
     }
 
-    const MARKETING_HOST = /^(?:www\\.)?autamedica\\.com$/i;
+    const MARKETING_HOST = /^(?:www\.)?autamedica\.com$/i;
     const SAFE_SOURCES = new Set([
       'google', 'google_ads', 'instagram', 'instagram_ads', 'facebook', 'facebook_ads',
       'whatsapp', 'linkedin', 'email', 'brevo', 'newsletter', 'referral', 'qr',
@@ -66,7 +66,7 @@ const GA4_ID = /^G-[A-Z0-9]+$/.test(candidate) ? candidate : '';
         const ref = new URL(document.referrer);
         if (ref.protocol !== 'https:' && ref.protocol !== 'http:') return '';
         const host = ref.hostname.toLowerCase();
-        const trusted = /^(?:www\\.)?(?:google\\.com|google\\.com\\.br|google\\.com\\.ar|bing\\.com|duckduckgo\\.com|instagram\\.com|facebook\\.com|linkedin\\.com|whatsapp\\.com|autamedica\\.com)$/.test(host);
+        const trusted = /^(?:www\.)?(?:google\.com|google\.com\.br|google\.com\.ar|bing\.com|duckduckgo\.com|instagram\.com|facebook\.com|linkedin\.com|whatsapp\.com|autamedica\.com)$/.test(host);
         return trusted ? ref.origin + '/' : '';
       } catch { return ''; }
     }
@@ -167,7 +167,7 @@ const GA4_ID = /^G-[A-Z0-9]+$/.test(candidate) ? candidate : '';
       if (!anchor) return;
       try {
         const href = new URL(anchor.href, location.origin);
-        const download = (href.origin === location.origin && /^\\/descargar\\/?$/.test(href.pathname)) ||
+        const download = (href.origin === location.origin && /^\/descargar\/?$/.test(href.pathname)) ||
           (href.hostname === 'play.google.com' && href.pathname.startsWith('/store/apps/'));
         if (download) window.AutaAnalytics?.track('app_download_clicked');
       } catch { /* Invalid link never causes tracking. */ }
