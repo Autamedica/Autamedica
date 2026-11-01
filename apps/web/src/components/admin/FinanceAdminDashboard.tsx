@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { fetchApi } from '@/lib/api-client';
 
-type SummaryData = {
+type CurrencySummary = {
   grossApproved: number;
   grossRefunded: number;
   grossPending: number;
@@ -10,7 +10,11 @@ type SummaryData = {
   processorFees: number;
   pendingPayouts: number;
   paidPayouts: number;
-  currency: string;
+};
+type SummaryData = {
+  byCurrency: Record<string, CurrencySummary>;
+  amountsReconciledWithProvider: false;
+  source: string;
 };
 
 type Transaction = {
@@ -194,12 +198,21 @@ export function FinanceAdminDashboard() {
     }
   };
 
-  const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
+  const formatMoney = (amount: number, currency: string = 'ARS') => {
+    return new Intl.NumberFormat(currency === 'BRL' ? 'pt-BR' : 'es-AR', {
       style: 'currency',
-      currency: 'ARS',
+      currency,
       minimumFractionDigits: 2,
     }).format(amount / 100);
+  };
+
+  const moneyByCurrency = (field: keyof CurrencySummary) => {
+    if (!summary) return 'Sin datos';
+    const rows = Object.entries(summary.byCurrency).sort(([a], [b]) => a.localeCompare(b));
+    if (!rows.length) return 'Sin registros';
+    return rows.map(([currency, values]) =>
+      <span key={currency} className="block">{formatMoney(values[field], currency)}</span>
+    );
   };
 
   // Group pending earnings by doctor for the Payout tab
@@ -211,23 +224,23 @@ export function FinanceAdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
         <div className="bg-stone-900 text-stone-100 rounded-xl p-5 border border-stone-850 shadow-md">
           <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Ingresos Brutos</p>
-          <p className="text-2xl font-bold mt-2">{summary ? formatMoney(summary.grossApproved) : '$0,00'}</p>
+          <p className="text-2xl font-bold mt-2">{moneyByCurrency('grossApproved')}</p>
           <div className="flex items-center gap-2 mt-2 text-xs text-emerald-400">
-            <span>● Aprobados en pasarela</span>
+            <span>Estados aprobados en base (sin conciliación bancaria)</span>
           </div>
         </div>
 
         <div className="bg-white text-stone-900 rounded-xl p-5 border border-stone-200 shadow-sm">
           <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Comisiones AutaMedica</p>
-          <p className="text-2xl font-bold mt-2">{summary ? formatMoney(summary.platformFees) : '$0,00'}</p>
+          <p className="text-2xl font-bold mt-2">{moneyByCurrency('platformFees')}</p>
           <div className="flex items-center gap-2 mt-2 text-xs text-stone-500">
-            <span>Revenue neto de plataforma</span>
+            <span>Comisiones registradas, no beneficio neto</span>
           </div>
         </div>
 
         <div className="bg-amber-50 text-amber-950 rounded-xl p-5 border border-amber-250 shadow-sm">
           <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Falta Liquidar (CBU)</p>
-          <p className="text-2xl font-bold mt-2">{summary ? formatMoney(summary.pendingPayouts) : '$0,00'}</p>
+          <p className="text-2xl font-bold mt-2">{moneyByCurrency('pendingPayouts')}</p>
           <div className="flex items-center gap-2 mt-2 text-xs text-amber-700">
             <span>● Retiros manuales pendientes</span>
           </div>
@@ -235,12 +248,16 @@ export function FinanceAdminDashboard() {
 
         <div className="bg-emerald-50 text-emerald-950 rounded-xl p-5 border border-emerald-250 shadow-sm">
           <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">Liquidado a Médicos</p>
-          <p className="text-2xl font-bold mt-2">{summary ? formatMoney(summary.paidPayouts) : '$0,00'}</p>
+          <p className="text-2xl font-bold mt-2">{moneyByCurrency('paidPayouts')}</p>
           <div className="flex items-center gap-2 mt-2 text-xs text-emerald-700">
             <span>Transferencias ya verificadas</span>
           </div>
         </div>
       </div>
+
+      <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
+        Saldos separados por ARS y BRL. Los registros aprobados y las liquidaciones no prueban cobro efectivo ni conciliación con el proveedor o banco; no incluir ventas PIX manuales sin comprobante.
+      </p>
 
       {/* Tabs Menu */}
       <div className="border-b border-stone-200">
@@ -341,13 +358,13 @@ export function FinanceAdminDashboard() {
                         <p className="text-3xs text-stone-400">{t.doctor.email}</p>
                       </td>
                       <td className="px-5 py-3.5 text-right font-bold text-stone-900">
-                        {formatMoney(t.grossAmount)}
+                        {formatMoney(t.grossAmount, t.currency)}
                       </td>
                       <td className="px-5 py-3.5 text-right text-stone-500">
-                        {t.earning ? formatMoney(t.earning.platformFee) : '$0,00'}
+                        {t.earning ? formatMoney(t.earning.platformFee, t.currency) : '—'}
                       </td>
                       <td className="px-5 py-3.5 text-right font-semibold text-amber-800">
-                        {t.earning ? formatMoney(t.earning.netAmount) : '$0,00'}
+                        {t.earning ? formatMoney(t.earning.netAmount, t.currency) : '—'}
                       </td>
                       <td className="px-5 py-3.5 text-center">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-3xs font-semibold leading-5 ${getChargeStatusClassName(t)}`}>
