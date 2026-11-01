@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { fetchApi } from '@/lib/api-client';
 import { ManualReceiptsIntake } from '@/components/admin/ManualReceiptsIntake';
+import { PspAuditCard } from '@/components/admin/PspAuditCard';
 import { AttendanceQualityCard } from '@/components/admin/AttendanceQualityCard';
 
 type CurrencySummary = {
@@ -262,6 +263,7 @@ export function FinanceAdminDashboard() {
       </p>
 
       <AttendanceQualityCard />
+      <PspAuditCard />
       <ManualReceiptsIntake />
 
       {/* Tabs Menu */}
