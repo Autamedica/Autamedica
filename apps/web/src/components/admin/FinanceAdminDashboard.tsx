@@ -478,7 +478,7 @@ export function FinanceAdminDashboard() {
                           )}
                         </td>
                         <td className="px-5 py-3.5 text-right font-bold text-stone-900">
-                          {t.earning ? formatMoney(t.earning.netAmount) : '$0,00'}
+                          {t.earning ? formatMoney(t.earning.netAmount, t.currency) : '$0,00'}
                         </td>
                         <td className="px-5 py-3.5 text-center">
                           <button
@@ -536,7 +536,7 @@ export function FinanceAdminDashboard() {
                         <p className="font-semibold text-stone-900">{t.doctor.name}</p>
                       </td>
                       <td className="px-5 py-3.5 text-right font-bold text-rose-700">
-                        {formatMoney(t.grossAmount)}
+                        {formatMoney(t.grossAmount, t.currency)}
                       </td>
                       <td className="px-5 py-3.5 text-stone-600">
                         {/* @ts-ignore */}
@@ -571,7 +571,7 @@ export function FinanceAdminDashboard() {
             <form onSubmit={handlePayoutSubmit} className="space-y-4 mt-4">
               <div className="bg-stone-50 p-3 rounded-lg border border-stone-200 text-xs space-y-1.5">
                 <p className="text-stone-500">Destinatario: <span className="font-bold text-stone-900">{selectedPayout.doctor.name}</span></p>
-                <p className="text-stone-500">Monto Neto: <span className="font-bold text-amber-800">{selectedPayout.earning ? formatMoney(selectedPayout.earning.netAmount) : '$0,00'}</span></p>
+                <p className="text-stone-500">Monto Neto: <span className="font-bold text-amber-800">{selectedPayout.earning ? formatMoney(selectedPayout.earning.netAmount, selectedPayout.currency) : '$0,00'}</span></p>
                 <p className="text-stone-500">CBU Destino: <span className="font-mono font-bold text-stone-900">{selectedPayout.doctor.cbu || selectedPayout.doctor.alias || 'N/A'}</span></p>
               </div>
 
@@ -625,7 +625,7 @@ export function FinanceAdminDashboard() {
 
             <form onSubmit={handleRefundSubmit} className="space-y-4 mt-4">
               <div className="bg-rose-50 p-3 rounded-lg border border-rose-200 text-xs space-y-1.5">
-                <p className="text-rose-950">Monto a devolver al Paciente: <span className="font-bold text-rose-800">{formatMoney(selectedRefund.grossAmount)}</span></p>
+                <p className="text-rose-950">Monto a devolver al Paciente: <span className="font-bold text-rose-800">{formatMoney(selectedRefund.grossAmount, selectedRefund.currency)}</span></p>
                 <p className="text-rose-950">Paciente: <span className="font-bold text-rose-900">{selectedRefund.patient.name}</span></p>
                 <p className="text-rose-950 font-semibold italic">Aviso: Esta acción cancelará inmediatamente de forma automática e irreversible el honorario pendiente de liquidar al médico.</p>
               </div>
