@@ -156,7 +156,7 @@ def foreign_key_sql(keys):
 
 def foreign_key_catalog_sql():
     scopes = ",".join(literal(s) for s in SCOPES)
-    return """SELECT coalesce(json_agg(x),'[]'::json) FROM (
+    return """SELECT coalesce(jsonb_agg(x),'[]'::jsonb) FROM (
       SELECT n.nspname AS schema,r.relname AS table,pn.nspname AS parent_schema,
         p.relname AS parent_table,c.confmatchtype AS match,
         (SELECT json_agg(a.attname ORDER BY k.ord) FROM unnest(c.conkey) WITH ORDINALITY k(num,ord)
@@ -264,7 +264,7 @@ def main():
                     print("Opening read-only source snapshot.", flush=True)
                     snapshot_id = snapshot.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY; SELECT pg_export_snapshot();")
                     scopes = ",".join(literal(s) for s in SCOPES)
-                    tables = json.loads(snapshot.query("SELECT json_agg(x ORDER BY x.schema,x.name) FROM ("
+                    tables = json.loads(snapshot.query("SELECT jsonb_agg(x ORDER BY x.schema,x.name) FROM ("
                         "SELECT n.nspname AS schema,c.relname AS name,array_agg(a.attname ORDER BY a.attnum) AS columns "
                         "FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "
                         "JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped "
@@ -278,7 +278,7 @@ def main():
                     foreign_key_query = foreign_key_sql(foreign_keys)
                     if int(snapshot.query(foreign_key_query)) != 0:
                         raise RuntimeError("Source contains foreign key violations; recovery cannot be accredited")
-                    extensions = json.loads(snapshot.query("SELECT json_agg(json_build_array(e.extname,n.nspname)) FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace;"))
+                    extensions = json.loads(snapshot.query("SELECT jsonb_agg(jsonb_build_array(e.extname,n.nspname)) FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace;"))
                     for name, flags in (("roles", ["--role-only"]), ("schema", []), ("data", ["--data-only", "--use-copy"])):
                         print("Exporting " + name + ".", flush=True)
                         script = run(["supabase", "db", "dump", "--db-url", url, "--dry-run", *flags],
