@@ -65,5 +65,39 @@ describe('medical certificate PDF', () => {
     expect(() => generateMedicalCertificatePdf(caseFile, 'electronic')).toThrow('confirmation_required');
   });
 
+  it('shows a patient-authorized CID in a Brazilian draft but hides clinical narrative', () => {
+    const pdf = generateMedicalCertificatePdf({
+      ...caseFile,
+      countryCode: 'BR',
+      reference: 'BR-CERT-TEST-001',
+      diagnosis: 'PRIVATE-CONFIDENTIAL-DIAGNOSIS',
+      treatment: 'PRIVATE-TREATMENT-DATA',
+      observations: 'PRIVATE-OBSERVATIONS-DATA',
+      hideDiagnosis: true,
+      cid10Code: 'J06.9',
+      cidPatientRequested: true,
+      cidConsentRecordedAt: '2026-11-01T12:00:00Z',
+    });
+    const text = Buffer.from(pdf).toString('latin1');
+    expect(text).toContain('J06.9');
+    expect(text).not.toContain('PRIVATE-CONFIDENTIAL-DIAGNOSIS');
+    expect(text).not.toContain('PRIVATE-TREATMENT-DATA');
+    expect(text).not.toContain('PRIVATE-OBSERVATIONS-DATA');
+  });
+
+  it('never includes a Brazilian CID without recorded patient consent', () => {
+    const pdf = generateMedicalCertificatePdf({
+      ...caseFile,
+      countryCode: 'BR',
+      diagnosis: 'PRIVATE-DIAGNOSIS',
+      cid10Code: 'J06.9',
+      cidPatientRequested: false,
+      cidConsentRecordedAt: null,
+    });
+    const text = Buffer.from(pdf).toString('latin1');
+    expect(text).not.toContain('J06.9');
+    expect(text).not.toContain('PRIVATE-DIAGNOSIS');
+  });
+
 });
 
