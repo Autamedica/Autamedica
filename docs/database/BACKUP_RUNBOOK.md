@@ -19,6 +19,13 @@ database-only drill remains unchanged. Retention mode requires the existing
 `RECOVERY_BACKUP_PUBLIC_KEY` (armored OpenPGP public key) and
 `RECOVERY_BACKUP_FINGERPRINT` (full uppercase 40-character primary fingerprint).
 Missing configuration fails before starting a production export. The runner must
+resolve Storage access before exporting: use the configured service-role secret
+when nonempty; otherwise read the existing legacy service-role key through the
+fixed production Management API using the existing `SUPABASE_ACCESS_TOKEN`.
+This read does not create/rotate credentials or write a secret back to GitHub.
+The response is kept in memory, checked for project/role/expiry and masked before
+any subsequent workflow output. Error bodies and tokens are never logged.
+The lookup is manual-retention-only and absent from PR jobs. The runner must
 never receive the private decryption key. Keep that key and its recovery procedure
 in an independently accessible approved secret store and prove decryption before
 relying on this retention mechanism. Do not paste private keys in chat or git.

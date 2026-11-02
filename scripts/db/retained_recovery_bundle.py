@@ -3,6 +3,7 @@
 Only the fixed production HTTPS endpoint is readable. No upload/delete API exists
 here. Names, SQL, ACL facts and fingerprints stay inside the encrypted archive.
 """
+import base64
 import hashlib
 import json
 import os
@@ -11,6 +12,7 @@ import re
 import subprocess
 import tarfile
 import tempfile
+import time
 from urllib.parse import quote
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
@@ -138,15 +140,57 @@ def import_recipient(home, public_key, fingerprint):
 
 
 def preflight():
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
     public = os.environ.get("RECOVERY_BACKUP_PUBLIC_KEY", "")
     fingerprint = os.environ.get("RECOVERY_BACKUP_FINGERPRINT", "")
-    if not key or not public or not fingerprint:
+    if not public or not fingerprint:
         raise RuntimeError("Retained backup configuration missing; no production export started")
     with tempfile.TemporaryDirectory(prefix="recovery-key-check-") as directory:
         import_recipient(directory, public, fingerprint)
         gpg(directory, "--trust-model", "always", "--recipient", fingerprint,
             "--output", str(Path(directory) / "probe.gpg"), "--encrypt", input_text="recovery preflight")
+    os.environ["SUPABASE_SERVICE_ROLE_KEY"] = resolve_storage_key()
+
+
+def resolve_storage_key():
+    """Read an existing project credential; never create, rotate or persist it."""
+    configured = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    if configured:
+        return configured
+    token = os.environ.get("SUPABASE_ACCESS_TOKEN", "")
+    if not token:
+        raise RuntimeError("Storage recovery credential unavailable; no production export started")
+    endpoint = "https://api.supabase.com/v1/projects/" + PROJECT + "/api-keys?reveal=true"
+    request = Request(endpoint, headers={"Authorization": "Bearer " + token,
+                                         "Accept": "application/json"})
+    try:
+        with build_opener(NoRedirect()).open(request, timeout=30) as response:
+            if response.status != 200 or response.geturl() != endpoint:
+                raise ValueError("Unexpected credential endpoint")
+            raw = response.read(1024 * 1024 + 1)
+            if len(raw) > 1024 * 1024:
+                raise ValueError("Unexpected credential response size")
+        records = json.loads(raw)
+        if not isinstance(records, list):
+            raise ValueError("Unexpected credential response")
+        candidates = [r.get("api_key") for r in records if isinstance(r, dict) and r.get("name") == "service_role"]
+        if len(candidates) != 1 or not isinstance(candidates[0], str):
+            raise ValueError("Unique legacy service credential required")
+        key = candidates[0]
+        if not re.fullmatch(r"[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+", key):
+            raise ValueError("Unexpected credential format")
+        payload = key.split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+        # TLS and the fixed endpoint establish provenance. Decoding only guards
+        # accidental cross-project/role selection; it is not JWT verification.
+        if claims.get("ref") != PROJECT or claims.get("role") != "service_role":
+            raise ValueError("Wrong project or credential role")
+        if not isinstance(claims.get("exp"), (int, float)) or claims["exp"] <= time.time():
+            raise ValueError("Expired credential")
+    except Exception:
+        raise RuntimeError("Storage credential lookup failed; private diagnostics withheld") from None
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        print("::add-mask::" + key, flush=True)
+    return key
 
 
 def verify_inventory(expected, current):
