@@ -78,7 +78,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
 
     const { data: pharmacist, error: pharmacistError } = await admin
       .from('pharmacists')
-      .select('id, pharmacy_id')
+      .select('id, pharmacy_id, care_country, role, license_number')
       .eq('user_id', user.id)
       .eq('active', true)
       .maybeSingle();
@@ -88,13 +88,16 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return internalError();
     }
 
-    if (!pharmacist?.id || !pharmacist.pharmacy_id) {
+    if (!pharmacist?.id || !pharmacist.pharmacy_id ||
+        !['AR','BR'].includes(pharmacist.care_country ?? '') ||
+        !['pharmacist','pharmacy_director'].includes(pharmacist.role ?? '') ||
+        !pharmacist.license_number?.trim()) {
       return forbidden('not_pharmacist');
     }
 
     const { data: order, error: orderError } = await admin
       .from('dispensation_orders')
-      .select('id, doctor_id, pharmacy_id, status')
+      .select('id, doctor_id, patient_id, prescription_id, pharmacy_id, care_country, status')
       .eq('id', orderId)
       .maybeSingle();
 
@@ -107,8 +110,33 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return notFound('order_not_found');
     }
 
-    if (order.pharmacy_id && order.pharmacy_id !== pharmacist.pharmacy_id) {
+    // Administrative DB clients bypass RLS: enforce assignment and jurisdiction here.
+    if (!order.pharmacy_id || order.pharmacy_id !== pharmacist.pharmacy_id ||
+        order.care_country !== pharmacist.care_country) {
       return forbidden('order_not_in_pharmacy');
+    }
+
+    const [pharmacyResult, prescriptionResult, doctorResult, patientResult] = await Promise.all([
+      admin.from('pharmacies').select('active, deleted_at, care_country')
+        .eq('id', pharmacist.pharmacy_id).maybeSingle(),
+      admin.from('prescriptions').select('country_code, doctor_id, patient_id')
+        .eq('id', order.prescription_id).maybeSingle(),
+      admin.from('doctors').select('care_country, active')
+        .eq('id', order.doctor_id).maybeSingle(),
+      admin.from('patients').select('care_country, active')
+        .eq('id', order.patient_id).maybeSingle(),
+    ]);
+    const pharmacy = pharmacyResult.data;
+    const rx = prescriptionResult.data;
+    const doctor = doctorResult.data;
+    const patient = patientResult.data;
+    if (pharmacyResult.error || prescriptionResult.error || doctorResult.error || patientResult.error ||
+        !pharmacy?.active || pharmacy.deleted_at || pharmacy.care_country !== order.care_country ||
+        !rx || rx.country_code !== order.care_country ||
+        rx.doctor_id !== order.doctor_id || rx.patient_id !== order.patient_id ||
+        !doctor?.active || doctor.care_country !== order.care_country ||
+        !patient?.active || patient.care_country !== order.care_country) {
+      return forbidden('prescription_or_pharmacy_country_mismatch');
     }
 
     if (!['under_review', 'blocked'].includes(order.status)) {
