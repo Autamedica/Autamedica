@@ -63,6 +63,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+      - name: Test newsletter audience reconciliation safeguards
+        run: node --test apps/newsletter-worker/scripts/sync-newsletter-audience.test.mjs
       - name: Test Memed deployment configuration safeguards
         run: node --test scripts/ops/sync-memed-secrets.test.mjs
       - name: Verify service worker never caches clinical data
@@ -157,6 +159,3 @@ jobs:
           if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" || "${{ needs.database-tests.result }}" != "success" ]]; then
             exit 1
             fi
-
-
-

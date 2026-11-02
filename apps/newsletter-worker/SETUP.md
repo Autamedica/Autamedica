@@ -128,7 +128,7 @@ Aplicar la sincronizacion:
 pnpm sync-audience:apply
 ```
 
-La sincronización respeta bajas globales y del segmento de Resend: si el contacto tiene `unsubscribed=true`, Supabase pasa a `newsletter_subscribed=false`. Nunca se re-suscribe automáticamente a quien se dio de baja. Los contactos ajenos a la newsletter se **quitan únicamente del segmento** (sin alterar su estado global ni otros segmentos). El modo sin `--apply` solamente muestra diferencias. Tras aplicar, el script vuelve a leer Supabase y Resend para verificar las diferencias residuales.
+La sincronización respeta bajas globales y del segmento de Resend: si el contacto tiene `unsubscribed=true`, Supabase pasa a `newsletter_subscribed=false`. Nunca se re-suscribe automáticamente a quien se dio de baja. Los contactos ajenos a la newsletter se **quitan únicamente del segmento** (sin alterar su estado global ni otros segmentos). El modo sin `--apply` solamente muestra recuentos de diferencias, sin correos personales. El script acepta las variables requeridas desde el entorno del proceso (con prioridad sobre `.dev.vars`), para ejecutarse con secretos inyectados sin copiarlos al repositorio. No ejecuta ningún endpoint de envío. Tras aplicar, el script vuelve a leer Supabase y Resend para verificar las diferencias residuales, incluidos los consentimientos nulos. Ante correos normalizados duplicados, estados de baja desconocidos o paginación incompleta, se detiene sin aplicar el plan. Las bajas de Supabase se actualizan por `user_id` y se verifica la fila devuelta; las llamadas a Resend se serializan y respetan `Retry-After` con reintentos acotados.
 
 Para propagar bajas tambien a Brevo:
 

@@ -1,6 +1,7 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 import { readFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 const ROOT = new URL("../", import.meta.url);
 const ENV_FILE = new URL(".dev.vars", ROOT);
@@ -28,7 +29,10 @@ function validEmail(value) {
 }
 
 async function loadEnv() {
-  const text = await readFile(ENV_FILE, "utf8");
+  const text = await readFile(ENV_FILE, "utf8").catch((error) => {
+    if (error.code === "ENOENT") return "";
+    throw error;
+  });
   const env = {};
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim();
@@ -39,6 +43,7 @@ async function loadEnv() {
       .trim()
       .replace(/^["']|["']$/g, "");
   }
+  Object.assign(env, Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== undefined)));
   for (const key of [
     "SUPABASE_URL",
     "SUPABASE_SERVICE_ROLE_KEY",
@@ -51,8 +56,35 @@ async function loadEnv() {
   return env;
 }
 
+// Serialize Resend calls across both pagination streams and writes.
+let resendQueue = Promise.resolve();
+let nextResendRequest = 0;
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 async function requestJson(url, options = {}) {
+  if (new URL(url).hostname !== "api.resend.com") return fetchJson(url, options);
+  const task = resendQueue.then(async () => {
+    await delay(Math.max(0, nextResendRequest - Date.now()));
+    nextResendRequest = Date.now() + 600;
+    for (let attempt = 0; ; attempt++) {
+      const response = await fetch(url, options);
+      if (response.status !== 429 || attempt === 3) return parseResponse(response, options);
+      const seconds = Number(response.headers.get("retry-after") ?? 1);
+      await response.text();
+      if (!Number.isFinite(seconds) || seconds < 0 || seconds > 30) {
+        throw new Error("Resend requiere reintentar más tarde; sincronización detenida");
+      }
+      await delay(Math.max(600, seconds * 1000));
+      nextResendRequest = Date.now() + 600;
+    }
+  });
+  resendQueue = task.catch(() => {});
+  return task;
+}
+async function fetchJson(url, options) {
   const res = await fetch(url, options);
+  return parseResponse(res, options);
+}
+async function parseResponse(res, options) {
   const text = await res.text();
   let body = null;
   if (text) {
@@ -63,10 +95,9 @@ async function requestJson(url, options = {}) {
     }
   }
   if (!res.ok) {
-    const detail =
-      typeof body?.raw === "string" ? body.raw : JSON.stringify(body);
+    // Provider errors and URLs can contain private email addresses.
     throw new Error(
-      `${options.method ?? "GET"} ${url} ${res.status}: ${detail}`,
+      `${options.method ?? "GET"} falló (HTTP ${res.status})`,
     );
   }
   return body;
@@ -85,19 +116,33 @@ function supabaseHeaders(env, schema = "public") {
 async function loadProfiles(env) {
   const rows = [];
   const pageSize = 1000;
-  const select = "user_id,email,first_name,last_name,newsletter_subscribed";
-  for (let from = 0; ; from += pageSize) {
-    const page = await requestJson(
-      `${env.SUPABASE_URL}/rest/v1/profiles?select=${select}&email=not.is.null&order=created_at.asc`,
+  let total;
+  const select = "user_id,email,first_name,last_name,newsletter_subscribed,active,deleted_at";
+  for (let from = 0; ; from = rows.length) {
+    const response = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/profiles?select=${select}&email=not.is.null&order=user_id.asc`,
       {
         headers: {
           ...supabaseHeaders(env),
+          prefer: "count=exact",
           range: `${from}-${from + pageSize - 1}`,
         },
       },
     );
+    const page = await parseResponse(response, {});
+    if (!Array.isArray(page)) throw new Error("Respuesta de perfiles no válida");
+    const range = response.headers.get("content-range");
+    const match = /^(?:(\d+)-(\d+)|\*)\/(\d+)$/.exec(range ?? "");
+    if (!match) throw new Error("Recuento completo de perfiles no verificable");
+    const expected = Number(match[3]);
+    if (total !== undefined && expected !== total) throw new Error("La población cambió durante la lectura; reintentar");
+    total = expected;
+    if (page.length > 0 && (Number(match[1]) !== from || Number(match[2]) !== from + page.length - 1)) {
+      throw new Error("Rango de perfiles incompleto");
+    }
     rows.push(...page);
-    if (page.length < pageSize) break;
+    if (rows.length === total) break;
+    if (page.length === 0 || rows.length > total) throw new Error("Lectura de perfiles incompleta");
   }
   return rows
     .map((profile) => ({ ...profile, email: normalizeEmail(profile.email) }))
@@ -122,23 +167,40 @@ async function loadResendContacts(env, segmentOnly = true) {
         accept: "application/json",
       },
     });
-    if (!Array.isArray(data?.data)) {
+    if (!Array.isArray(data?.data) || typeof data.has_more !== "boolean") {
       throw new Error("Respuesta de contactos Resend no válida");
     }
     rows.push(...data.data);
-    if (!data.has_more || data.data.length === 0) break;
-    afterId = data.data[data.data.length - 1].id;
+    if (!data.has_more) break;
+    const cursor = data.data.at(-1)?.id;
+    if (!cursor || cursor === afterId || rows.slice(0, -data.data.length).some(c => c.id === cursor)) {
+      throw new Error("Paginación Resend incompleta o repetida");
+    }
+    afterId = cursor;
   }
   return rows.map(c => ({ ...c, email: normalizeEmail(c.email) }))
     .filter(c => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email));
 }
 
 function buildPlan(profiles, segmentContacts, globalContacts) {
+  // Refuse ambiguous consent rather than choosing the last matching profile.
+  for (const rows of [profiles, segmentContacts, globalContacts]) {
+    const seen = new Set();
+    for (const row of rows) {
+      if (seen.has(row.email)) throw new Error("Correo normalizado duplicado; resolver identidad antes de sincronizar");
+      seen.add(row.email);
+    }
+  }
+  for (const contact of [...segmentContacts, ...globalContacts]) {
+    if (!contact.id || typeof contact.unsubscribed !== "boolean") {
+      throw new Error("Estado de suscripción Resend desconocido");
+    }
+  }
   const profileByEmail = new Map(profiles.map(p => [p.email, p]));
   const segmentByEmail = new Map(segmentContacts.map(c => [c.email, c]));
   const globalByEmail = new Map(globalContacts.map(c => [c.email, c]));
   const dbActive = new Set(profiles
-    .filter(p => p.newsletter_subscribed === true && validEmail(p.email))
+    .filter(p => p.newsletter_subscribed === true && p.active === true && p.deleted_at === null && validEmail(p.email))
     .map(p => p.email));
 
   const markDbUnsubscribedByEmail = new Map();
@@ -177,18 +239,22 @@ function buildPlan(profiles, segmentContacts, globalContacts) {
   };
 }
 
-async function patchSupabaseUnsubscribed(env, email) {
-  await requestJson(
-    `${env.SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}`,
+async function patchSupabaseUnsubscribed(env, profile) {
+  if (!profile.user_id) throw new Error("Perfil sin identificador estable");
+  const updated = await requestJson(
+    `${env.SUPABASE_URL}/rest/v1/profiles?user_id=eq.${encodeURIComponent(profile.user_id)}&select=user_id`,
     {
       method: "PATCH",
-      headers: { ...supabaseHeaders(env), prefer: "return=minimal" },
+      headers: { ...supabaseHeaders(env), prefer: "return=representation" },
       body: JSON.stringify({
         newsletter_subscribed: false,
         updated_at: new Date().toISOString(),
       }),
     },
   );
+  if (!Array.isArray(updated) || updated.length !== 1 || updated[0].user_id !== profile.user_id) {
+    throw new Error("La baja no actualizó exactamente el perfil esperado");
+  }
 }
 
 async function patchGrowthLeadUnsubscribed(env, email) {
@@ -269,8 +335,8 @@ async function brevoSuppress(env, profile) {
     return;
   }
   if (!existing.ok) {
-    const body = await existing.text();
-    throw new Error(`GET Brevo contact ${existing.status}: ${body}`);
+    await existing.text();
+    throw new Error(`GET Brevo contact falló (HTTP ${existing.status})`);
   }
   await requestJson(`https://api.brevo.com/v3/contacts/${encoded}`, {
     method: "PUT",
@@ -289,7 +355,7 @@ async function applyPlan(env, plan) {
     growth_leads_unsubscribed: 0, brevo_suppressed: 0,
   };
   for (const item of plan.markDbUnsubscribed) {
-    await patchSupabaseUnsubscribed(env, item.profile.email);
+    await patchSupabaseUnsubscribed(env, item.profile);
     await patchGrowthLeadUnsubscribed(env, item.profile.email);
     applied.db_unsubscribed++;
     applied.growth_leads_unsubscribed++;
@@ -299,7 +365,7 @@ async function applyPlan(env, plan) {
     }
   }
   for (const profile of plan.markDbNullFalse) {
-    await patchSupabaseUnsubscribed(env, profile.email);
+    await patchSupabaseUnsubscribed(env, profile);
     applied.db_null_false++;
   }
   for (const item of plan.removeFromSegment) {
@@ -318,10 +384,7 @@ async function applyPlan(env, plan) {
   return applied;
 }
 
-function sample(list, pick) {
-  return list.slice(0, 20).map(pick);
-}
-
+async function main() {
 const env = await loadEnv();
 const [profiles, segmentContacts, globalContacts] = await Promise.all([
   loadProfiles(env), loadResendContacts(env, true), loadResendContacts(env, false),
@@ -345,12 +408,6 @@ const report = {
     segment_to_add: plan.addToSegment.length,
     resend_to_create: plan.createResendContacts.length,
   },
-  samples: {
-    db_from_resend_unsubscribes: sample(plan.markDbUnsubscribed, x => x.profile.email),
-    segment_to_remove: sample(plan.removeFromSegment, x => x.contact.email),
-    segment_to_add: sample(plan.addToSegment, x => x.profile.email),
-    resend_to_create: sample(plan.createResendContacts, x => x.email),
-  },
 };
 
 if (apply) {
@@ -360,6 +417,7 @@ if (apply) {
   ]);
   const remainder = buildPlan(verifiedProfiles, verifiedSegment, verifiedGlobal);
   report.verification = {
+    remaining_db_null_false: remainder.markDbNullFalse.length,
     remaining_db_unsubscribes: remainder.markDbUnsubscribed.length,
     remaining_segment_removals: remainder.removeFromSegment.length,
     remaining_segment_additions: remainder.addToSegment.length,
@@ -372,3 +430,9 @@ if (apply) {
 }
 
 console.log(JSON.stringify(report, null, 2));
+}
+
+export { buildPlan, loadProfiles, loadResendContacts, patchSupabaseUnsubscribed, loadEnv };
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await main();
+}
