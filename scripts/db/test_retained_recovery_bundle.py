@@ -11,6 +11,8 @@ from unittest.mock import patch
 
 import retained_recovery_bundle as bundle
 import production_recovery_drill as drill
+import restore_retained_bundle as restore
+from test_restore_retained_bundle import fixture
 
 
 class Response(io.BytesIO):
@@ -132,27 +134,29 @@ class BundleTests(unittest.TestCase):
             listing = bundle.gpg(home, "--with-colons", "--fingerprint", "--list-keys")
             fingerprint = next(line.split(":")[9] for line in listing.splitlines() if line.startswith("fpr:"))
             public = bundle.gpg(home, "--armor", "--export", fingerprint)
+            key_file = root / "escrow.asc"
+            key_file.write_text(bundle.gpg(home, "--armor", "--export-secret-keys", fingerprint))
             private = root / "working"
             private.mkdir()
-            for name in bundle.SQL_PARTS:
-                (private / (name + ".sql")).write_text("SELECT 1;\n")
+            metadata, content = fixture()
             (private / "storage").mkdir()
-            object_name = "storage/" + "a" * 64 + ".bin"
-            (private / object_name).write_bytes(b"synthetic pdf")
+            for name, data in content.items():
+                (private / name).write_bytes(data)
             output = root / "output"
             with patch.dict(os.environ, {"RECOVERY_BACKUP_PUBLIC_KEY": public,
                                         "RECOVERY_BACKUP_FINGERPRINT": fingerprint}):
-                report = bundle.encrypt_bundle(private, {"table_acls": [{"synthetic": True}],
-                    "sql_checksums": {name: hashlib.sha256(b"SELECT 1;\n").hexdigest() for name in bundle.SQL_PARTS}},
-                    [{"file": object_name, "bytes": 13,
-                      "sha256": hashlib.sha256(b"synthetic pdf").hexdigest()}], output)
+                report = bundle.encrypt_bundle(private, metadata, metadata["storage_files"], output)
             self.assertFalse(report["retained_copy_restore_verified"])
             self.assertEqual(sorted(p.name for p in output.iterdir()), ["SHA256SUMS", "recovery.tar.gz.gpg"])
-            restored = root / "decrypted.tar.gz"
-            bundle.gpg(home, "--output", str(restored), "--decrypt", str(output / "recovery.tar.gz.gpg"))
+            replay = root / "replay"
+            replay.mkdir()
+            restored = restore.decrypt(output / "recovery.tar.gz.gpg",
+                (output / "SHA256SUMS").read_text().split()[0], key_file, replay)
+            recovered = restore.unpack_verified(restored, replay / "components")
+            self.assertEqual(recovered["project"], drill.PROJECT)
             with tarfile.open(restored) as archive:
                 manifest = json.load(archive.extractfile("recovery.json"))
-                self.assertEqual(manifest["table_acls"], [{"synthetic": True}])
+                self.assertEqual(manifest["table_acls"], metadata["table_acls"])
                 for name, digest in manifest["checksums"].items():
                     self.assertEqual(hashlib.sha256(archive.extractfile(name).read()).hexdigest(), digest)
             with self.assertRaisesRegex(RuntimeError, "fingerprint mismatch"):

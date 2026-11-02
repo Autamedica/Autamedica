@@ -31,9 +31,36 @@ jobs:
       - run: python3 scripts/db/test_recovery_source.py
       - run: python3 scripts/db/test_production_recovery_drill.py
       - run: python3 scripts/db/test_retained_recovery_bundle.py
+      - run: python3 scripts/db/test_restore_retained_bundle.py
+  retained-fixture:
+    name: Restore synthetic retained copy after destroying its source
+    needs: guards
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@b60b5899c73b63a2d2d651b1e90db8d4c9392f51
+        with:
+          version: 2.122.0
+      - name: Authenticate for pinned fixture database image
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - name: Verify required CLI commands
+        run: |
+          supabase init --help > /dev/null
+          supabase start --help > /dev/null
+          supabase stop --help > /dev/null
+      - name: Retain synthetic copy, destroy source, restore offline and verify cleanup
+        run: python3 scripts/db/test_retained_restore_database.py
   restore:
     name: Restore production export into offline disposable database
-    needs: guards
+    needs: [guards, retained-fixture]
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 40
