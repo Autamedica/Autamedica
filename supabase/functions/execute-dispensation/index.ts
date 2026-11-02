@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
+import { verifyPharmacyOrderAccess } from '../_shared/pharmacy-country.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? (() => { throw new Error('SUPABASE_URL is not set') })();
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? (() => { throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set') })();
@@ -45,7 +46,7 @@ Deno.serve(async (req) => {
     // Verify pharmacist
     const { data: pharmacist } = await supabaseAdmin
       .from('pharmacists')
-      .select('id, pharmacy_id')
+      .select('id, pharmacy_id, care_country')
       .eq('user_id', user.id)
       .eq('active', true)
       .single();
@@ -81,10 +82,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (order.pharmacy_id && order.pharmacy_id !== pharmacist.pharmacy_id) {
-      return new Response(JSON.stringify({ error: 'Order is assigned to a different pharmacy' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
+    const accessError = await verifyPharmacyOrderAccess(supabaseAdmin, order, pharmacist);
+    if (accessError) {
+      return new Response(JSON.stringify({ error: accessError }), {
+        status: 403, headers: { 'Content-Type': 'application/json' },
       });
     }
 
