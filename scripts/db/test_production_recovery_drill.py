@@ -77,10 +77,21 @@ class RecoveryDrillGuards(unittest.TestCase):
 
     def test_builtin_extension_namespace_is_never_recreated(self):
         for extension in ('pg_cron', 'plpgsql'):
-            sql = drill.extension_setup_sql(extension, 'pg_catalog')
+            sql = drill.extension_setup_sql(extension, 'pg_catalog', '1.0')
             self.assertNotIn('CREATE SCHEMA', sql)
             self.assertIn('WITH SCHEMA "pg_catalog"', sql)
-        self.assertIn('CREATE SCHEMA IF NOT EXISTS "extensions"', drill.extension_setup_sql('pgcrypto', 'extensions'))
+        self.assertIn('CREATE SCHEMA IF NOT EXISTS "extensions"', drill.extension_setup_sql('pgcrypto', 'extensions', '1.3'))
+
+    def test_extension_dependency_installation_pins_source_version(self):
+        sql = drill.extension_setup_sql('index_advisor', 'extensions', '0.2.0')
+        self.assertIn("VERSION '0.2.0' CASCADE;", sql)
+
+    @patch.object(drill, 'local_psql')
+    def test_extension_preflight_rejects_schema_or_version_drift(self, query):
+        query.return_value = '[["hypopg","extensions","1.4.1"]]'
+        drill.verify_extensions([['hypopg', 'extensions', '1.4.1']])
+        with self.assertRaises(RuntimeError):
+            drill.verify_extensions([['hypopg', 'extensions', '1.4.2']])
 
     @patch.object(drill, 'run')
     def test_restore_can_only_address_fixed_local_container(self, process):

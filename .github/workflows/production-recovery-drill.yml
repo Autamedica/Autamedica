@@ -6,6 +6,8 @@ on:
       - scripts/db/**
       - .github/workflows/production-recovery-drill.yml
   workflow_dispatch:
+  push:
+    branches: [fix/production-recovery-drill]
 
 permissions:
   contents: read
@@ -28,7 +30,7 @@ jobs:
   restore:
     name: Restore production export into offline disposable database
     needs: guards
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/production-recovery-drill')
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:

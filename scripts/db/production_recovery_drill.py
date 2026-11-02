@@ -199,11 +199,18 @@ class Snapshot:
         self.selector.close()
 
 
-def extension_setup_sql(name, schema):
+def extension_setup_sql(name, schema, version):
     # PostgreSQL rejects even CREATE SCHEMA IF NOT EXISTS pg_catalog: reserved
     # names are checked before existence. This namespace is already provided.
     create_schema = "" if schema in ("pg_catalog", "public") else "CREATE SCHEMA IF NOT EXISTS " + ident(schema) + "; "
-    return create_schema + "CREATE EXTENSION IF NOT EXISTS " + ident(name) + " WITH SCHEMA " + ident(schema) + ";"
+    return create_schema + "CREATE EXTENSION IF NOT EXISTS " + ident(name) + " WITH SCHEMA " + ident(schema) + " VERSION " + literal(version) + " CASCADE;"
+
+
+def verify_extensions(extensions):
+    names = ",".join(literal(extension[0]) for extension in extensions)
+    actual = json.loads(local_psql("SELECT jsonb_agg(jsonb_build_array(e.extname,n.nspname,e.extversion) ORDER BY e.extname) FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname IN (" + names + ");", stage="Verify destination extensions"))
+    if actual != extensions:
+        raise RuntimeError("Destination extension versions or schemas differ from source")
 
 
 def local_psql(sql=None, files=(), stage="Offline destination SQL"):
@@ -273,6 +280,13 @@ def main():
                 try:
                     print("Opening read-only source snapshot.", flush=True)
                     snapshot_id = snapshot.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY; SELECT pg_export_snapshot();")
+                    extensions = json.loads(snapshot.query("SELECT jsonb_agg(jsonb_build_array(e.extname,n.nspname,e.extversion) ORDER BY e.extname) FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace;"))
+                    # Only vendor extension SQL runs in this empty stack; no source
+                    # application SQL or clinical data is restored before isolation.
+                    print("Checking exact extension versions and dependencies on the empty target.", flush=True)
+                    for name, schema, version in extensions:
+                        local_psql(extension_setup_sql(name, schema, version), stage="Preflight destination extension " + name)
+                    verify_extensions(extensions)
                     scopes = ",".join(literal(s) for s in SCOPES)
                     tables = json.loads(snapshot.query("SELECT jsonb_agg(x ORDER BY x.schema,x.name) FROM ("
                         "SELECT n.nspname AS schema,c.relname AS name,array_agg(a.attname ORDER BY a.attnum) AS columns "
@@ -288,7 +302,6 @@ def main():
                     foreign_key_query = foreign_key_sql(foreign_keys)
                     if int(snapshot.query(foreign_key_query)) != 0:
                         raise RuntimeError("Source contains foreign key violations; recovery cannot be accredited")
-                    extensions = json.loads(snapshot.query("SELECT jsonb_agg(jsonb_build_array(e.extname,n.nspname)) FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace;"))
                     for name, flags in (("roles", ["--role-only"]), ("schema", []), ("data", ["--data-only", "--use-copy"])):
                         print("Exporting " + name + ".", flush=True)
                         script = run(["supabase", "db", "dump", "--db-url", url, "--dry-run", *flags],
@@ -333,8 +346,9 @@ def main():
             restore_started = time.monotonic()
             # This helper can only address the fixed local container, never the source.
             local_psql("DROP SCHEMA public CASCADE; DROP SCHEMA auth CASCADE; DROP SCHEMA storage CASCADE; CREATE SCHEMA public AUTHORIZATION postgres; ALTER DATABASE postgres SET timezone='UTC';", stage="Reset offline destination schemas")
-            for name, schema in extensions:
-                local_psql(extension_setup_sql(name, schema), stage="Prepare destination extension " + name)
+            for name, schema, version in extensions:
+                local_psql(extension_setup_sql(name, schema, version), stage="Prepare destination extension " + name)
+            verify_extensions(extensions)
             run(["docker", "exec", CONTAINER, "mkdir", "-m", "700", "/recovery"], stage="Prepare private target files")
             for name in ("roles", "schema", "data"):
                 run(["docker", "cp", str(root / (name + ".sql")), CONTAINER + ":/recovery/" + name + ".sql"], stage="Copy private backup")
