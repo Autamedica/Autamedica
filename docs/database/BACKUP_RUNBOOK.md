@@ -2,7 +2,7 @@
 
 ## Evidence status — 2026-11-01
 
-Full platform recovery is **not yet accredited**. The production database-only drill below has been implemented; [execution evidence](https://github.com/ecucondorSA/Autamedica/actions/runs/41376958887) must show a completed successful report before its tested database scope is accepted. Export integrity checks and synthetic orchestration tests alone do not establish recovery. The historical 2026-04-02 report of unavailable managed backups/PITR still requires an authenticated dashboard recheck before selecting a retention strategy. Database drill timings do not constitute a full platform RPO/RTO measurement.
+Full platform recovery is **not yet accredited**. The production database-only drill below has been implemented; [execution evidence](https://github.com/ecucondorSA/Autamedica/actions/runs/41377437434) must show a completed successful report before its tested database scope is accepted. Export integrity checks and synthetic orchestration tests alone do not establish recovery. The historical 2026-04-02 report of unavailable managed backups/PITR still requires an authenticated dashboard recheck before selecting a retention strategy. Database drill timings do not constitute a full platform RPO/RTO measurement.
 
 ## Export and retain
 
