@@ -137,6 +137,7 @@ DECLARE
   v_br_pharmacist uuid;
   v_rx uuid;
   v_order uuid;
+  v_event uuid:=gen_random_uuid();
   v_rejected boolean;
   v_actual_country text;
 BEGIN
@@ -147,6 +148,7 @@ BEGIN
     (v_br_pharmacist_user, 'ci-pharmacy-br-'||v_br_pharmacist_user||'@example.invalid');
   UPDATE public.profiles SET role='doctor',active=true WHERE user_id=v_ar_doctor_user;
   UPDATE public.profiles SET role='patient',active=true WHERE user_id=v_ar_patient_user;
+  UPDATE public.profiles SET role='pharmacist',active=true WHERE user_id IN(v_ar_pharmacist_user,v_br_pharmacist_user);
 
   INSERT INTO public.patients(user_id,active) VALUES (v_ar_patient_user,true)
     ON CONFLICT(user_id) DO NOTHING;
@@ -205,6 +207,7 @@ BEGIN
   END;
   IF NOT v_rejected THEN RAISE EXCEPTION 'BR pharmacy claimed AR order'; END IF;
 
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_ar_pharmacist_user,'role','authenticated')::text,true);
   UPDATE public.dispensation_orders SET pharmacy_id=v_ar_pharmacy,status='assigned' WHERE id=v_order;
 
   v_rejected:=false;
@@ -255,7 +258,137 @@ BEGIN
   EXCEPTION WHEN check_violation THEN v_rejected:=true;
   END;
   IF NOT v_rejected THEN RAISE EXCEPTION 'Unverified medical order approved automatically'; END IF;
+
+  -- INSERT may not pre-attest a recipe, even with a privileged connection.
+  v_rejected:=false;
+  BEGIN
+    INSERT INTO public.dispensation_orders(prescription_id,patient_id,doctor_id,medication,formulation,
+      quantity_units,duration_days,dispense_window_start,dispense_window_end,prescriber_verified)
+    VALUES(v_rx,v_ar_patient,v_ar_doctor,'Synthetic','tablet',1,30,current_date,current_date+30,true);
+  EXCEPTION WHEN insufficient_privilege THEN v_rejected:=true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'INSERT fabricated prescriber verification'; END IF;
+
+  -- Real authenticated pharmacist, not the database owner: valid same-country
+  -- operations must work even though raw physician/patient records remain hidden.
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_ar_pharmacist_user,'role','authenticated')::text,true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  UPDATE public.dispensation_orders SET status='under_review' WHERE id=v_order;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Authenticated pharmacist could not start same-country review'; END IF;
+  INSERT INTO public.dispensation_validations(order_id,pharmacist_id,validation_type,result)
+    SELECT v_order,v_ar_pharmacist,kind,'pass' FROM unnest(ARRAY[
+      'patient_identity','prescriber_identity','medication_match','formulation_match','quantity_check','validity_check']) kind;
+
+  v_rejected:=false;
+  BEGIN
+    INSERT INTO public.dispensation_validations(order_id,pharmacist_id,validation_type,result,override_reason,override_authorized_by)
+    VALUES(v_order,v_ar_pharmacist,'dose_check','overridden','Synthetic attempted override',v_ar_pharmacist);
+  EXCEPTION WHEN insufficient_privilege THEN v_rejected:=true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Nondirector pharmacist authorized own override'; END IF;
+
+  -- No direct event creation from a merely reviewed, unsigned order.
+  v_rejected:=false;
+  BEGIN
+    INSERT INTO public.dispensation_events(order_id,pharmacist_id,pharmacy_id,dispense_status,
+      dispensed_medication,dispensed_formulation,dispensed_quantity)
+    VALUES(v_order,v_ar_pharmacist,v_ar_pharmacy,'dispensed','Synthetic','tablet',1);
+  EXCEPTION WHEN check_violation THEN v_rejected:=true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Direct authenticated event bypassed clinical approval'; END IF;
+  EXECUTE 'RESET ROLE';
+
+  -- Clinical attestation is a real physician session. It is not signature proof.
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_ar_doctor_user,'role','authenticated')::text,true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  UPDATE public.dispensation_orders SET prescriber_verified=true,reconciliation_status='reconciled',
+    clinician_decision='approved',quantity_units=2 WHERE id=v_order;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Responsible physician could not attest clinical review'; END IF;
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_ar_pharmacist_user,'role','authenticated')::text,true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  v_rejected:=false;
+  BEGIN
+    UPDATE public.dispensation_orders SET status='approved_for_dispensation' WHERE id=v_order;
+  EXCEPTION WHEN check_violation THEN v_rejected:=true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Clinical flags were mistaken for verified signature evidence'; END IF;
+  EXECUTE 'RESET ROLE';
+
+  -- A synthetic verifier fixture is created only inside the isolated rolled-back
+  -- transaction by the DB owner. Application roles cannot populate this ledger.
+  UPDATE public.prescriptions SET status='signed',signed_pdf_url='synthetic://pharmacy-ci.pdf' WHERE id=v_rx;
+  INSERT INTO app_private.pharmacy_prescription_release_evidence(
+    prescription_id,doctor_id,patient_id,care_country,clinical_snapshot,signed_pdf_url,
+    document_sha256,certificate_sha256,verifier_reference,provider_authorization_reference,verified_at)
+  VALUES(v_rx,v_ar_doctor,v_ar_patient,'AR','{}'::jsonb,'synthetic://pharmacy-ci.pdf',
+    repeat('0',64),repeat('1',64),'isolated-ci-fixture-not-real-signature','isolated-ci-no-real-authority',now());
+
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  UPDATE public.dispensation_orders SET status='approved_for_dispensation' WHERE id=v_order;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Verified synthetic same-country order could not be approved'; END IF;
+  INSERT INTO public.dispensation_events(id,order_id,pharmacist_id,pharmacy_id,dispense_status,
+    dispensed_medication,dispensed_formulation,dispensed_quantity)
+  VALUES(v_event,v_order,v_ar_pharmacist,v_ar_pharmacy,'dispensed','Synthetic','tablet',1);
+  IF (SELECT status FROM public.dispensation_orders WHERE id=v_order)<>'partially_dispensed' THEN
+    RAISE EXCEPTION 'Delivery insert did not transactionally finalize partial order status';
+  END IF;
+
+  v_rejected:=false;
+  BEGIN
+    INSERT INTO public.dispensation_events(id,order_id,pharmacist_id,pharmacy_id,dispense_status,
+      dispensed_medication,dispensed_formulation,dispensed_quantity)
+    VALUES(v_event,v_order,v_ar_pharmacist,v_ar_pharmacy,'dispensed','Synthetic','tablet',1);
+  EXCEPTION WHEN unique_violation THEN v_rejected:=true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Same delivery UUID inserted twice'; END IF;
+  IF (SELECT count(*) FROM public.dispensation_events WHERE order_id=v_order)<>1 THEN
+    RAISE EXCEPTION 'Retry duplicated delivery records';
+  END IF;
+
+  v_rejected:=false;
+  BEGIN
+    INSERT INTO public.dispensation_events(order_id,pharmacist_id,pharmacy_id,dispense_status,
+      dispensed_medication,dispensed_formulation,dispensed_quantity)
+    VALUES(v_order,v_ar_pharmacist,v_ar_pharmacy,'dispensed','Synthetic','tablet',2);
+  EXCEPTION WHEN check_violation THEN v_rejected:=true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Direct event over-dispensed remaining quantity'; END IF;
+
+  INSERT INTO public.dispensation_events(order_id,pharmacist_id,pharmacy_id,dispense_status,
+    dispensed_medication,dispensed_formulation,dispensed_quantity)
+  VALUES(v_order,v_ar_pharmacist,v_ar_pharmacy,'dispensed','Synthetic','tablet',1);
+  IF (SELECT status FROM public.dispensation_orders WHERE id=v_order)<>'dispensed' THEN
+    RAISE EXCEPTION 'Delivery did not finalize order';
+  END IF;
+  IF (SELECT count(*) FROM public.pharmacy_audit_events WHERE order_id=v_order AND event_type='dispensation_executed')<>2 THEN
+    RAISE EXCEPTION 'Delivery lacks transactional audit';
+  END IF;
+  EXECUTE 'RESET ROLE';
+  IF (SELECT status FROM public.prescriptions WHERE id=v_rx)<>'dispensed_total' THEN
+    RAISE EXCEPTION 'Delivery did not finalize original prescription';
+  END IF;
+
+  v_rejected:=false;
+  BEGIN
+    UPDATE public.dispensation_events SET dispensed_quantity=10 WHERE id=v_event;
+  EXCEPTION WHEN insufficient_privilege THEN v_rejected:=true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Privileged client rewrote immutable delivery'; END IF;
+
+  -- Revoking the profile blocks membership even if pharmacist.active remains true.
+  UPDATE public.profiles SET active=false WHERE user_id=v_ar_pharmacist_user;
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  IF app_private.pharmacy_actor_authorized(v_ar_pharmacy,'AR') THEN
+    RAISE EXCEPTION 'Revoked profile retained pharmacy authorization';
+  END IF;
+  IF EXISTS(SELECT 1 FROM public.dispensation_orders WHERE id=v_order) THEN
+    RAISE EXCEPTION 'Revoked profile retained order visibility';
+  END IF;
+  EXECUTE 'RESET ROLE';
+
 END $behavior$;
 
 
 ROLLBACK;
+

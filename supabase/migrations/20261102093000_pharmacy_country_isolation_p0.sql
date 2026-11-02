@@ -23,6 +23,85 @@ COMMENT ON COLUMN public.pharmacies.care_country IS 'Required licensed jurisdict
 COMMENT ON COLUMN public.pharmacists.care_country IS 'Enforced server-side from the assigned pharmacy, never caller-controlled.';
 COMMENT ON COLUMN public.dispensation_orders.care_country IS 'Enforced server-side from prescription.country_code and clinical doctor/patient jurisdiction.';
 
+-- Empty by design until a separately authorized verifier is connected. This is
+-- an evidence ledger, not an assertion that a URL/hash/status verifies a signature.
+-- A verifier must independently check exact PDF bytes, certificate chain,
+-- revocation, signer identity and provider authorization before writing here.
+CREATE TABLE app_private.pharmacy_prescription_release_evidence (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  prescription_id uuid NOT NULL UNIQUE REFERENCES public.prescriptions(id),
+  doctor_id uuid NOT NULL REFERENCES public.doctors(id),
+  patient_id uuid NOT NULL REFERENCES public.patients(id),
+  care_country text NOT NULL CHECK (care_country IN ('AR','BR')),
+  clinical_snapshot jsonb NOT NULL,
+  signed_pdf_url text NOT NULL CHECK (NULLIF(btrim(signed_pdf_url),'') IS NOT NULL),
+  document_sha256 text NOT NULL CHECK (document_sha256 ~ '^[a-f0-9]{64}$'),
+  certificate_sha256 text NOT NULL CHECK (certificate_sha256 ~ '^[a-f0-9]{64}$'),
+  verifier_reference text NOT NULL CHECK (NULLIF(btrim(verifier_reference),'') IS NOT NULL),
+  provider_authorization_reference text NOT NULL CHECK (NULLIF(btrim(provider_authorization_reference),'') IS NOT NULL),
+  verified_at timestamptz NOT NULL CHECK (verified_at <= now()),
+  revoked_at timestamptz
+);
+ALTER TABLE app_private.pharmacy_prescription_release_evidence ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE app_private.pharmacy_prescription_release_evidence FROM PUBLIC,anon,authenticated,service_role;
+COMMENT ON TABLE app_private.pharmacy_prescription_release_evidence IS
+  'Verifier-only evidence boundary; no application writer granted. Empty means real dispensing disabled. External certification and verifier must be independently established before granting writes.';
+
+CREATE FUNCTION app_private.pharmacy_actor_authorized(p_pharmacy uuid,p_country text)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
+AS $$
+ SELECT auth.uid() IS NOT NULL AND EXISTS (
+   SELECT 1 FROM public.pharmacists ph
+   JOIN public.profiles pr ON pr.user_id=ph.user_id AND pr.active AND pr.role::text='pharmacist'
+   JOIN public.pharmacies f ON f.id=ph.pharmacy_id AND f.active AND f.deleted_at IS NULL
+   WHERE ph.user_id=auth.uid() AND ph.active AND ph.pharmacy_id=p_pharmacy
+     AND ph.care_country=p_country AND f.care_country=p_country
+     AND ph.role IN ('pharmacist','pharmacy_director')
+     AND NULLIF(btrim(ph.license_number),'') IS NOT NULL
+ );
+$$;
+REVOKE ALL ON FUNCTION app_private.pharmacy_actor_authorized(uuid,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION app_private.pharmacy_actor_authorized(uuid,text) TO authenticated;
+
+CREATE FUNCTION app_private.pharmacy_release_evidence_matches(p_prescription uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
+AS $$
+ SELECT EXISTS (
+   SELECT 1 FROM public.prescriptions rx
+   JOIN app_private.pharmacy_prescription_release_evidence e
+     ON e.prescription_id=rx.id AND e.revoked_at IS NULL
+     AND e.doctor_id=rx.doctor_id AND e.patient_id=rx.patient_id
+     AND e.care_country=rx.country_code AND e.clinical_snapshot=rx.clinical_data
+     AND e.signed_pdf_url=rx.signed_pdf_url
+   WHERE rx.id=p_prescription AND rx.status IN ('signed','sent','dispensed_partial','dispensed_total')
+ );
+$$;
+REVOKE ALL ON FUNCTION app_private.pharmacy_release_evidence_matches(uuid) FROM PUBLIC,anon,authenticated,service_role;
+
+CREATE FUNCTION app_private.pharmacy_required_validations_passed(p_order uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
+AS $$
+ WITH required AS (
+   SELECT unnest(ARRAY['patient_identity','prescriber_identity','medication_match',
+     'formulation_match','quantity_check','validity_check'] ||
+     CASE WHEN o.extraordinary_dose_flag THEN ARRAY['dose_check'] ELSE ARRAY[]::text[] END ||
+     CASE WHEN o.prescription_type='transition_bridge' THEN ARRAY['bridge_protocol'] ELSE ARRAY[]::text[] END ||
+     CASE WHEN rx.is_controlled_substance IS TRUE OR
+       lower(o.medication) ~ '(metilfenidato|methylphenidate|lisdexanfetamina|anfetamina|modafinilo|atomoxetina)'
+       THEN ARRAY['controlled_substance'] ELSE ARRAY[]::text[] END) AS kind
+   FROM public.dispensation_orders o JOIN public.prescriptions rx ON rx.id=o.prescription_id WHERE o.id=p_order
+ ), latest AS (
+   SELECT DISTINCT ON (v.validation_type) v.validation_type,v.result
+   FROM public.dispensation_validations v WHERE v.order_id=p_order
+   ORDER BY v.validation_type,v.created_at DESC,v.id DESC
+ )
+ SELECT EXISTS(SELECT 1 FROM required) AND NOT EXISTS (
+   SELECT 1 FROM required r LEFT JOIN latest l ON l.validation_type=r.kind
+   WHERE l.result IS NULL OR l.result NOT IN ('pass','overridden')
+ );
+$$;
+REVOKE ALL ON FUNCTION app_private.pharmacy_required_validations_passed(uuid) FROM PUBLIC,anon,authenticated,service_role;
+
 -- Never default to clinically verified or reconciled merely on order insertion.
 ALTER TABLE public.dispensation_orders
   ALTER COLUMN prescriber_verified SET DEFAULT false,
@@ -31,7 +110,7 @@ ALTER TABLE public.dispensation_orders
 
 CREATE OR REPLACE FUNCTION app_private.guard_pharmacy_country()
 RETURNS trigger
-LANGUAGE plpgsql
+LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = ''
 AS $$
 BEGIN
@@ -50,12 +129,16 @@ FOR EACH ROW EXECUTE FUNCTION app_private.guard_pharmacy_country();
 
 CREATE OR REPLACE FUNCTION app_private.guard_pharmacist_country()
 RETURNS trigger
-LANGUAGE plpgsql
+LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
   v_country text;
 BEGIN
+  IF TG_OP = 'UPDATE' AND (NEW.care_country IS DISTINCT FROM OLD.care_country
+       OR NEW.pharmacy_id IS DISTINCT FROM OLD.pharmacy_id) THEN
+    RAISE EXCEPTION 'pharmacist_assignment_requires_reenrollment' USING ERRCODE = '23514';
+  END IF;
   IF NEW.pharmacy_id IS NULL THEN
     RAISE EXCEPTION 'pharmacist_pharmacy_required' USING ERRCODE = '23514';
   END IF;
@@ -77,7 +160,7 @@ FOR EACH ROW EXECUTE FUNCTION app_private.guard_pharmacist_country();
 
 CREATE OR REPLACE FUNCTION app_private.guard_dispensation_country()
 RETURNS trigger
-LANGUAGE plpgsql
+LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
@@ -85,6 +168,7 @@ DECLARE
   v_doctor_country text;
   v_patient_country text;
   v_pharmacy_country text;
+  v_total bigint;
 BEGIN
   SELECT p.country_code, p.patient_id, p.doctor_id
     INTO v_rx FROM public.prescriptions p WHERE p.id = NEW.prescription_id;
@@ -97,6 +181,13 @@ BEGIN
        OR NEW.doctor_id IS DISTINCT FROM OLD.doctor_id
        OR NEW.patient_id IS DISTINCT FROM OLD.patient_id) THEN
     RAISE EXCEPTION 'dispensation_order_clinical_identity_immutable' USING ERRCODE = '23514';
+  END IF;
+
+  IF TG_OP='INSERT' AND (NEW.prescriber_verified IS DISTINCT FROM false
+       OR NEW.reconciliation_status IS DISTINCT FROM 'pending'
+       OR NEW.clinician_decision IS DISTINCT FROM 'under_review'
+       OR NEW.status NOT IN ('pending','blocked')) THEN
+    RAISE EXCEPTION 'dispensation_initial_clinical_attestation_forbidden' USING ERRCODE='42501';
   END IF;
 
   -- Clinical facts may be attested/reconciled only by the actual physician who
@@ -115,6 +206,10 @@ BEGIN
       OR NEW.dispense_window_end IS DISTINCT FROM OLD.dispense_window_end
       OR NEW.extraordinary_dose_flag IS DISTINCT FROM OLD.extraordinary_dose_flag
       OR NEW.clinical_semaphore IS DISTINCT FROM OLD.clinical_semaphore
+      OR NEW.prescription_type IS DISTINCT FROM OLD.prescription_type
+      OR NEW.requires_clarification IS DISTINCT FROM OLD.requires_clarification
+      OR NEW.prescriber_notes IS DISTINCT FROM OLD.prescriber_notes
+      OR NEW.semaphore_reasons IS DISTINCT FROM OLD.semaphore_reasons
     ) AND (
       auth.uid() IS NULL OR NOT EXISTS (
         SELECT 1 FROM public.doctors acting
@@ -152,12 +247,55 @@ BEGIN
     END IF;
   END IF;
 
+  IF TG_OP='UPDATE' AND OLD.pharmacy_id IS NOT NULL
+     AND NEW.pharmacy_id IS DISTINCT FROM OLD.pharmacy_id THEN
+    RAISE EXCEPTION 'dispensation_claim_immutable' USING ERRCODE='23514';
+  END IF;
+  IF TG_OP='UPDATE' AND (
+      NEW.status IS DISTINCT FROM OLD.status
+      OR NEW.pharmacy_id IS DISTINCT FROM OLD.pharmacy_id
+    ) AND NEW.status IN ('assigned','under_review','clarification_requested',
+                         'approved_for_dispensation','partially_dispensed','dispensed') THEN
+    IF NOT app_private.pharmacy_actor_authorized(NEW.pharmacy_id,NEW.care_country) THEN
+      RAISE EXCEPTION 'dispensation_actor_not_authorized' USING ERRCODE='42501';
+    END IF;
+  END IF;
+  IF TG_OP='UPDATE' AND NEW.status IS DISTINCT FROM OLD.status THEN
+    IF NOT (
+      (OLD.status='pending' AND NEW.status IN ('assigned','blocked','cancelled','expired')) OR
+      (OLD.status='assigned' AND NEW.status IN ('under_review','blocked','cancelled','expired')) OR
+      (OLD.status='under_review' AND NEW.status IN ('approved_for_dispensation','clarification_requested','blocked','cancelled','expired')) OR
+      (OLD.status='blocked' AND NEW.status IN ('clarification_requested','cancelled','expired')) OR
+      (OLD.status='clarification_requested' AND NEW.status IN ('clarification_provided','cancelled','expired')) OR
+      (OLD.status='clarification_provided' AND NEW.status IN ('under_review','approved_for_dispensation','blocked','cancelled','expired')) OR
+      (OLD.status IN ('approved_for_dispensation','partially_dispensed') AND NEW.status IN ('partially_dispensed','dispensed','blocked','cancelled','expired'))
+    ) THEN RAISE EXCEPTION 'dispensation_invalid_state_transition' USING ERRCODE='23514'; END IF;
+  END IF;
   IF NEW.status IN ('approved_for_dispensation','partially_dispensed','dispensed') THEN
     IF NEW.pharmacy_id IS NULL OR NEW.prescriber_verified IS DISTINCT FROM true
        OR NEW.reconciliation_status IS DISTINCT FROM 'reconciled'
        OR NEW.clinician_decision IS DISTINCT FROM 'approved' THEN
       RAISE EXCEPTION 'dispensation_clinical_verification_required' USING ERRCODE = '23514';
     END IF;
+    IF NOT app_private.pharmacy_release_evidence_matches(NEW.prescription_id) THEN
+      RAISE EXCEPTION 'dispensation_verified_signature_evidence_required' USING ERRCODE='23514';
+    END IF;
+    IF NEW.status='approved_for_dispensation' AND NOT app_private.pharmacy_required_validations_passed(NEW.id) THEN
+      RAISE EXCEPTION 'dispensation_required_validations_incomplete' USING ERRCODE='23514';
+    END IF;
+    SELECT COALESCE(sum(e.dispensed_quantity),0) INTO v_total
+      FROM public.dispensation_events e WHERE e.order_id=NEW.id;
+    IF (NEW.status='dispensed' AND v_total<>NEW.quantity_units)
+       OR (NEW.status='partially_dispensed' AND NOT(v_total>0 AND v_total<NEW.quantity_units)) THEN
+      RAISE EXCEPTION 'dispensation_state_requires_delivery_events' USING ERRCODE='23514';
+    END IF;
+  END IF;
+  IF TG_OP='UPDATE' AND EXISTS (SELECT 1 FROM public.dispensation_events e WHERE e.order_id=OLD.id)
+     AND (NEW.medication,NEW.formulation,NEW.quantity_units,NEW.dose_mg_per_day,NEW.duration_days,
+          NEW.prescription_type,NEW.dispense_window_start,NEW.dispense_window_end)
+       IS DISTINCT FROM (OLD.medication,OLD.formulation,OLD.quantity_units,OLD.dose_mg_per_day,OLD.duration_days,
+          OLD.prescription_type,OLD.dispense_window_start,OLD.dispense_window_end) THEN
+    RAISE EXCEPTION 'dispensation_delivered_clinical_snapshot_immutable' USING ERRCODE='23514';
   END IF;
   RETURN NEW;
 END $$;
@@ -168,7 +306,7 @@ FOR EACH ROW EXECUTE FUNCTION app_private.guard_dispensation_country();
 
 CREATE OR REPLACE FUNCTION app_private.guard_dispensation_pharmacist_event()
 RETURNS trigger
-LANGUAGE plpgsql
+LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
@@ -203,6 +341,20 @@ BEGIN
      OR v_order_country IS DISTINCT FROM v_pharmacist_country THEN
     RAISE EXCEPTION 'dispensation_event_pharmacy_country_mismatch' USING ERRCODE = '23514';
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.pharmacists ph
+     WHERE ph.id=NEW.pharmacist_id AND ph.user_id=auth.uid())
+     OR NOT app_private.pharmacy_actor_authorized(v_order_pharmacy,v_order_country) THEN
+    RAISE EXCEPTION 'dispensation_event_actor_not_authorized' USING ERRCODE='42501';
+  END IF;
+  IF TG_TABLE_NAME = 'dispensation_validations' THEN
+  IF NEW.result='overridden' AND NOT EXISTS (
+    SELECT 1 FROM public.pharmacists ph WHERE ph.id=NEW.pharmacist_id
+      AND ph.role='pharmacy_director' AND NEW.override_authorized_by=ph.id
+      AND NULLIF(btrim(NEW.override_reason),'') IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'dispensation_override_director_required' USING ERRCODE='42501';
+  END IF;
+  END IF;
   IF TG_TABLE_NAME = 'dispensation_events'
      AND (to_jsonb(NEW)->>'pharmacy_id')::uuid IS DISTINCT FROM v_order_pharmacy THEN
     RAISE EXCEPTION 'dispensation_event_pharmacy_identity_mismatch' USING ERRCODE = '23514';
@@ -222,13 +374,33 @@ FOR EACH ROW EXECUTE FUNCTION app_private.guard_dispensation_pharmacist_event();
 -- pharmacist at the matching, assigned pharmacy, even through service_role.
 CREATE OR REPLACE FUNCTION app_private.guard_dispensation_clarification_country()
 RETURNS trigger
-LANGUAGE plpgsql
+LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = ''
 AS $$
 BEGIN
-  IF TG_OP='UPDATE' AND NEW.order_id IS NOT DISTINCT FROM OLD.order_id
-     AND NEW.requested_by IS NOT DISTINCT FROM OLD.requested_by
-  THEN RETURN NEW; END IF;
+  IF TG_OP='UPDATE' THEN
+    IF (NEW.order_id,NEW.requested_by,NEW.question,NEW.question_category,NEW.requested_at,NEW.expires_at)
+       IS DISTINCT FROM (OLD.order_id,OLD.requested_by,OLD.question,OLD.question_category,OLD.requested_at,OLD.expires_at) THEN
+      RAISE EXCEPTION 'dispensation_clarification_request_immutable' USING ERRCODE='23514';
+    END IF;
+    IF NEW.status<>'responded' OR OLD.status<>'pending' OR OLD.expires_at<=now()
+       OR NEW.responded_by IS DISTINCT FROM auth.uid() OR auth.uid() IS NULL
+       OR NULLIF(btrim(NEW.response),'') IS NULL OR NEW.response_decision IS NULL
+       OR NOT EXISTS (
+         SELECT 1 FROM public.dispensation_orders o JOIN public.doctors d ON d.id=o.doctor_id
+         JOIN public.profiles pr ON pr.user_id=d.user_id AND pr.active AND pr.role::text='doctor'
+         WHERE o.id=NEW.order_id AND d.user_id=auth.uid() AND d.active AND d.care_country=o.care_country
+       ) THEN
+      RAISE EXCEPTION 'dispensation_clarification_prescriber_response_required' USING ERRCODE='42501';
+    END IF;
+    NEW.responded_at:=now();
+    RETURN NEW;
+  END IF;
+  IF NEW.requested_by IS DISTINCT FROM auth.uid() OR auth.uid() IS NULL
+     OR NEW.status<>'pending' OR NEW.response IS NOT NULL OR NEW.responded_by IS NOT NULL
+     OR NEW.response_decision IS NOT NULL OR NEW.modified_fields IS NOT NULL THEN
+    RAISE EXCEPTION 'dispensation_clarification_request_actor_required' USING ERRCODE='42501';
+  END IF;
   IF NOT EXISTS (
     SELECT 1
     FROM public.dispensation_orders o
@@ -255,7 +427,7 @@ BEGIN
 END $$;
 
 CREATE TRIGGER zz_dispensation_clarifications_country
-BEFORE INSERT OR UPDATE OF order_id,requested_by ON public.dispensation_clarifications
+BEFORE INSERT OR UPDATE ON public.dispensation_clarifications
 FOR EACH ROW EXECUTE FUNCTION app_private.guard_dispensation_clarification_country();
 
 -- Cross-country unassigned queue is not visible/claimable even through PostgREST.
@@ -319,7 +491,7 @@ CREATE INDEX IF NOT EXISTS idx_dispensation_orders_country_unassigned
 -- Once a structured dispensing order exists, do not reclassify its source Rx.
 CREATE OR REPLACE FUNCTION app_private.guard_prescription_country_with_order()
 RETURNS trigger
-LANGUAGE plpgsql
+LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = ''
 AS $$
 BEGIN
@@ -334,3 +506,111 @@ END $$;
 CREATE TRIGGER zz_prescription_dispensation_country_lock
 BEFORE UPDATE OF country_code, patient_id, doctor_id ON public.prescriptions
 FOR EACH ROW EXECUTE FUNCTION app_private.guard_prescription_country_with_order();
+
+
+-- Serialize every actual delivery against its parent order, including direct
+-- PostgREST INSERTs. Existing event UUID is the stable idempotency identifier.
+CREATE FUNCTION app_private.guard_pharmacy_delivery()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $$
+DECLARE v_order public.dispensation_orders%ROWTYPE; v_total bigint;
+BEGIN
+  IF TG_OP<>'INSERT' THEN
+    RAISE EXCEPTION 'dispensation_delivery_immutable' USING ERRCODE='42501';
+  END IF;
+  SELECT * INTO v_order FROM public.dispensation_orders WHERE id=NEW.order_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'dispensation_order_missing' USING ERRCODE='23514'; END IF;
+  IF NOT app_private.pharmacy_actor_authorized(v_order.pharmacy_id,v_order.care_country)
+     OR NOT EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.id=NEW.pharmacist_id AND ph.user_id=auth.uid())
+     OR NEW.pharmacy_id IS DISTINCT FROM v_order.pharmacy_id THEN
+    RAISE EXCEPTION 'dispensation_delivery_actor_required' USING ERRCODE='42501';
+  END IF;
+  IF v_order.status NOT IN ('approved_for_dispensation','partially_dispensed')
+     OR NOT v_order.prescriber_verified OR v_order.reconciliation_status IS DISTINCT FROM 'reconciled'
+     OR v_order.clinician_decision<>'approved' OR v_order.deleted_at IS NOT NULL
+     OR current_date<v_order.dispense_window_start OR current_date>v_order.dispense_window_end
+     OR NOT app_private.pharmacy_release_evidence_matches(v_order.prescription_id)
+     OR NOT app_private.pharmacy_required_validations_passed(v_order.id) THEN
+    RAISE EXCEPTION 'dispensation_delivery_not_clinically_eligible' USING ERRCODE='23514';
+  END IF;
+  IF NEW.dispense_status NOT IN ('dispensed','partially_dispensed','substituted') THEN
+    RAISE EXCEPTION 'dispensation_delivery_status_invalid' USING ERRCODE='23514';
+  END IF;
+  SELECT COALESCE(sum(e.dispensed_quantity),0) INTO v_total FROM public.dispensation_events e WHERE e.order_id=NEW.order_id;
+  IF NEW.dispensed_quantity<=0 OR v_total+NEW.dispensed_quantity>v_order.quantity_units THEN
+    RAISE EXCEPTION 'dispensation_quantity_exceeds_remaining' USING ERRCODE='23514';
+  END IF;
+  -- A caller-supplied approval boolean is never evidence of prescriber consent.
+  -- Different medication/formulation must use prescriber clarification/reissue.
+  IF NEW.substitution_type<>'none' OR NEW.substitution_approved_by_prescriber
+     OR NEW.dispensed_medication IS DISTINCT FROM v_order.medication
+     OR NEW.dispensed_formulation IS DISTINCT FROM v_order.formulation THEN
+    RAISE EXCEPTION 'dispensation_substitution_requires_reissued_order' USING ERRCODE='23514';
+  END IF;
+  IF v_order.prescription_type='transition_bridge' AND NEW.dispensed_quantity<>v_order.quantity_units THEN
+    RAISE EXCEPTION 'dispensation_bridge_quantity_mismatch' USING ERRCODE='23514';
+  END IF;
+  NEW.dispensed_at:=now();
+  RETURN NEW;
+END $$;
+CREATE TRIGGER zz_pharmacy_delivery_guard
+BEFORE INSERT OR UPDATE OR DELETE ON public.dispensation_events
+FOR EACH ROW EXECUTE FUNCTION app_private.guard_pharmacy_delivery();
+
+CREATE FUNCTION app_private.finalize_pharmacy_delivery()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $$
+DECLARE v_total bigint; v_target integer; v_rx uuid; v_status text;
+BEGIN
+  SELECT quantity_units,prescription_id INTO v_target,v_rx FROM public.dispensation_orders WHERE id=NEW.order_id;
+  SELECT sum(dispensed_quantity) INTO v_total FROM public.dispensation_events WHERE order_id=NEW.order_id;
+  v_status:=CASE WHEN v_total=v_target THEN 'dispensed' ELSE 'partially_dispensed' END;
+  UPDATE public.dispensation_orders SET status=v_status WHERE id=NEW.order_id;
+  UPDATE public.prescriptions SET status=CASE WHEN v_total=v_target THEN 'dispensed_total' ELSE 'dispensed_partial' END WHERE id=v_rx;
+  INSERT INTO public.pharmacy_audit_events(order_id,event_type,actor_id,actor_role,details)
+  VALUES(NEW.order_id,'dispensation_executed',auth.uid(),'pharmacist',jsonb_build_object(
+    'event_id',NEW.id,'dispensed_quantity',NEW.dispensed_quantity,'total_dispensed',v_total,'status',v_status));
+  RETURN NEW;
+END $$;
+CREATE TRIGGER zz_pharmacy_delivery_finalize AFTER INSERT ON public.dispensation_events
+FOR EACH ROW EXECUTE FUNCTION app_private.finalize_pharmacy_delivery();
+
+-- Pending clarification uniqueness serializes racing retries before notifications.
+CREATE UNIQUE INDEX pharmacy_one_pending_clarification ON public.dispensation_clarifications(order_id) WHERE status='pending';
+
+-- Real actor checks apply even when a privileged web/Edge caller bypasses RLS.
+ALTER POLICY dispensation_orders_select_pharmacist ON public.dispensation_orders
+USING (EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.user_id=auth.uid()
+  AND ph.care_country=dispensation_orders.care_country
+  AND app_private.pharmacy_actor_authorized(ph.pharmacy_id,ph.care_country)
+  AND (dispensation_orders.pharmacy_id=ph.pharmacy_id OR
+    (dispensation_orders.pharmacy_id IS NULL AND dispensation_orders.status='pending'))));
+ALTER POLICY dispensation_orders_update_pharmacist ON public.dispensation_orders
+USING (EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.user_id=auth.uid()
+  AND ph.care_country=dispensation_orders.care_country
+  AND app_private.pharmacy_actor_authorized(ph.pharmacy_id,ph.care_country)
+  AND (dispensation_orders.pharmacy_id=ph.pharmacy_id OR
+    (dispensation_orders.pharmacy_id IS NULL AND dispensation_orders.status='pending'))))
+WITH CHECK (app_private.pharmacy_actor_authorized(pharmacy_id,care_country));
+CREATE POLICY pharmacy_prescriber_update ON public.dispensation_orders FOR UPDATE TO authenticated
+USING (EXISTS(SELECT 1 FROM public.doctors d JOIN public.profiles pr ON pr.user_id=d.user_id
+  WHERE d.id=dispensation_orders.doctor_id AND d.user_id=auth.uid() AND d.active AND pr.active AND pr.role::text='doctor'))
+WITH CHECK (EXISTS(SELECT 1 FROM public.doctors d JOIN public.profiles pr ON pr.user_id=d.user_id
+  WHERE d.id=dispensation_orders.doctor_id AND d.user_id=auth.uid() AND d.active AND pr.active AND pr.role::text='doctor'));
+ALTER POLICY dispensation_clarifications_update_doctor ON public.dispensation_clarifications
+WITH CHECK (responded_by=auth.uid() AND EXISTS (
+  SELECT 1 FROM public.dispensation_orders o JOIN public.doctors d ON d.id=o.doctor_id
+  WHERE o.id=dispensation_clarifications.order_id AND d.user_id=auth.uid() AND d.active));
+
+DO $acl$
+DECLARE f record;
+BEGIN
+  FOR f IN SELECT p.oid::regprocedure AS signature FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='app_private' AND p.proname IN (
+      'guard_pharmacy_country','guard_pharmacist_country','guard_dispensation_country',
+      'guard_dispensation_pharmacist_event','guard_dispensation_clarification_country',
+      'guard_prescription_country_with_order','guard_pharmacy_delivery','finalize_pharmacy_delivery')
+  LOOP EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC,anon,authenticated,service_role',f.signature); END LOOP;
+END $acl$;
+
+CREATE UNIQUE INDEX pharmacy_one_order_per_prescription ON public.dispensation_orders(prescription_id);
