@@ -18,6 +18,9 @@ from check_recovery_source import PROJECT, SESSION_HOST, connection_options, pro
 
 LOCAL_PROJECT = "autamedica-recovery-drill"
 CONTAINER = "supabase_db_" + LOCAL_PROJECT
+# Verified from the production project's read-only management metadata. The
+# CLI's default PG17 image can contain a different set of extension packages.
+POSTGRES_IMAGE_VERSION = "17.6.1.084"
 SCOPES = ("public", "app_private", "growth_os", "auth", "storage")
 
 
@@ -206,6 +209,13 @@ def extension_setup_sql(name, schema, version):
     return create_schema + "CREATE EXTENSION IF NOT EXISTS " + ident(name) + " WITH SCHEMA " + ident(schema) + " VERSION " + literal(version) + " CASCADE;"
 
 
+def pin_postgres_image(work):
+    # Supported per-project image pin in the pinned CLI's resolveDbImage.
+    temporary_state = work / "supabase" / ".temp"
+    temporary_state.mkdir(parents=True, exist_ok=True)
+    (temporary_state / "postgres-version").write_text(POSTGRES_IMAGE_VERSION + "\n")
+
+
 def verify_extensions(extensions):
     names = ",".join(literal(extension[0]) for extension in extensions)
     actual = json.loads(local_psql("SELECT jsonb_agg(jsonb_build_array(e.extname,n.nspname,e.extversion) ORDER BY e.extname) FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname IN (" + names + ");", stage="Verify destination extensions"))
@@ -267,6 +277,7 @@ def main():
         if count != 1:
             raise RuntimeError("Unrecognized fresh Supabase configuration")
         config.write_text(text)
+        pin_postgres_image(work)
         try:
             print("Starting an empty disposable Supabase stack.", flush=True)
             run(["supabase", "start"], stage="Start disposable stack", cwd=work, env=clean_env, timeout=900)
@@ -274,6 +285,8 @@ def main():
             inspect = json.loads(run(["docker", "inspect", CONTAINER], stage="Inspect target"))[0]
             if inspect["Name"] != "/" + CONTAINER:
                 raise RuntimeError("Destination identity mismatch")
+            if not inspect["Config"]["Image"].endswith(":" + POSTGRES_IMAGE_VERSION):
+                raise RuntimeError("Destination ignored the verified PostgreSQL image pin")
             dump_started = time.monotonic()
             with (root / "source-private.log").open("w") as source_log:
                 snapshot = Snapshot(source_env, source_log)
