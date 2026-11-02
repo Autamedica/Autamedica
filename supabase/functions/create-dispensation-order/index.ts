@@ -79,11 +79,13 @@ Deno.serve(async (req) => {
       .eq('id', prescription.patient_id)
       .eq('active', true)
       .maybeSingle();
+    const country = prescription.country_code;
     const { data: license, error: licenseError } = await supabaseAdmin
       .from('doctor_licenses')
-      .select('id, license_type')
+      .select('id, license_type, license_number, uf_brazil')
       .eq('doctor_id', prescription.doctor_id)
       .eq('status', 'active')
+      .in('license_type', country === 'AR' ? ['MN', 'MP'] : country === 'BR' ? ['CRM'] : [])
       .limit(1)
       .maybeSingle();
 
@@ -92,10 +94,10 @@ Deno.serve(async (req) => {
         status: 403, headers: { 'Content-Type': 'application/json' },
       });
     }
-    const country = prescription.country_code;
     const licenseMatchesCountry = country === 'AR'
       ? ['MN', 'MP'].includes(license.license_type)
-      : country === 'BR' && license.license_type === 'CRM';
+      : country === 'BR' && license.license_type === 'CRM' &&
+        /^[A-Z]{2}$/.test(license.uf_brazil || '');
     if (!licenseMatchesCountry || doctor.care_country !== country || patient.care_country !== country) {
       return new Response(JSON.stringify({ error: 'Prescription, physician and patient jurisdiction must match' }), {
         status: 409, headers: { 'Content-Type': 'application/json' },
