@@ -1,12 +1,14 @@
 # Backup and isolated recovery runbook
 
-## Evidence status — 2026-11-01
+## Evidence status — 2026-11-02
 
-Full platform recovery is **not yet accredited**. The production database-only drill below has been implemented; [execution evidence](https://github.com/ecucondorSA/Autamedica/actions/runs/41378821791) must show a completed successful report before its tested database scope is accepted. Export integrity checks and synthetic orchestration tests alone do not establish recovery. The historical 2026-04-02 report of unavailable managed backups/PITR still requires an authenticated dashboard recheck before selecting a retention strategy. Database drill timings do not constitute a full platform RPO/RTO measurement.
+The [production database-only drill passed](https://github.com/ecucondorSA/Autamedica/actions/runs/41381103309): 226 tables and 106,411 rows matched, 317 foreign keys were verified, and data/security metadata plus exact table permission facts matched the source snapshot. Three destination permission objects required reconciliation to the source facts. The source was read-only, the restore destination was offline, and cleanup was verified. Restore plus validation took 8.85 seconds; the complete measured drill took 641.86 seconds, including export and disposable stack setup/cleanup.
+
+Full platform recovery is **not yet accredited**. This drill retained no backup and excludes Storage object bytes, Vault secrets and external platform configuration. The historical 2026-04-02 report of unavailable managed backups/PITR still requires an authenticated dashboard recheck before selecting a retention strategy. These timings do not establish a full platform RPO/RTO commitment.
 
 ## Export and retain
 
-**Current-source limitation:** the legacy three-file exporter below is an integrity/export tool, not an accredited recovery format for the current production database. Production has historical rows under a `NOT VALID` check constraint. Loading the entire schema before its data re-enforces that check against those historical rows. A retained recovery strategy must use native pre-data/data/post-data ordering (or a supported archive/PITR restore) and pass a retained-copy drill; never remove the guard or change clinical records to make a restore pass.
+**Current-source limitation:** the legacy three-file exporter below is an integrity/export tool, not an accredited recovery format for the current production database. Production has historical rows under a `NOT VALID` check constraint. Loading the entire schema before its data re-enforces that check against those historical rows. A retained recovery strategy must use native pre-data/data/post-data ordering (or a supported archive/PITR restore), retain the same-snapshot source permission facts needed for exact ACL replay, and pass a retained-copy drill; never remove the guard or change clinical records to make a restore pass.
 
 Prerequisites: Bash, Supabase CLI (validated CI version: 2.122.0), Docker, gzip and GNU coreutils. Obtain the production **direct or session-pooler** database connection through the approved secret store; do not use a transaction pooler. Keep credentials out of shell history, git and logs. Run with shell tracing disabled.
 
@@ -31,6 +33,10 @@ The script exports roles without passwords and uses one read-only exported snaps
 The destination image is pinned to the production build verified through management metadata (`17.6.1.084`). Before exporting application data, the empty destination must install every source extension at its exact version and schema, including required dependencies. A source build change requires reviewing this pin; never bypass the version checks or skip an extension to obtain a pass.
 
 The drill restores four private components in one transaction: roles, native `pre-data` schema, data, then native `post-data` schema. Both schema sections and data share the source snapshot. This preserves the exact validation state of historical `NOT VALID` constraints while keeping their protection for new writes. A disposable integer-only fixture first proves that behavior. Faithful restoration does not validate the clinical provenance or signatures of historical records.
+
+The tested format also includes table permission facts captured in that same snapshot and held privately in memory. After the native restore, a second offline transaction reconciles only objects whose owner or ACL differs, preserving source grantors and grant options and removing extra access. Exact facts and the original security metadata hash must both match afterwards. A second integer-only fixture verifies missing grants, grant options and removal of extra access. These facts are required recovery inputs, not merely validation hashes; the four SQL files alone are not the complete tested format.
+
+Fingerprint and security comparisons cover `public`, `app_private`, `growth_os`, `auth` and `storage`. Four historical certificates fail the source's new signature-evidence check; they were preserved unchanged under the existing `NOT VALID` constraint. Their signatures remain outside this recovery accreditation and require a separate review.
 
 Success requires matching full-row fingerprints/counts, table owners, RLS/policies, grants, user function definitions, triggers and constraint definitions, plus zero foreign-key violations in source and target. The report appears only after the temporary stack has been removed and private host files have been deleted. Any mismatch or cleanup failure fails the drill.
 
