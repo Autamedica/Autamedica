@@ -149,7 +149,7 @@ BEGIN
     RAISE EXCEPTION 'dispensation_event_pharmacy_country_mismatch' USING ERRCODE = '23514';
   END IF;
   IF TG_TABLE_NAME = 'dispensation_events'
-     AND NEW.pharmacy_id IS DISTINCT FROM v_order_pharmacy THEN
+     AND (to_jsonb(NEW)->>'pharmacy_id')::uuid IS DISTINCT FROM v_order_pharmacy THEN
     RAISE EXCEPTION 'dispensation_event_pharmacy_identity_mismatch' USING ERRCODE = '23514';
   END IF;
   RETURN NEW;
@@ -206,3 +206,8 @@ USING (
     OR EXISTS (SELECT 1 FROM public.patients p WHERE p.user_id=auth.uid() AND p.active AND p.care_country=pharmacies.care_country)
   )
 );
+
+-- Country-scoped queue lookup for the direct-authenticated portal.
+CREATE INDEX IF NOT EXISTS idx_dispensation_orders_country_unassigned
+  ON public.dispensation_orders(care_country, status, created_at)
+  WHERE pharmacy_id IS NULL AND deleted_at IS NULL;
