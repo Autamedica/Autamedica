@@ -22,6 +22,7 @@ CONTAINER = "supabase_db_" + LOCAL_PROJECT
 # CLI's default PG17 image can contain a different set of extension packages.
 POSTGRES_IMAGE_VERSION = "17.6.1.084"
 SCOPES = ("public", "app_private", "growth_os", "auth", "storage")
+BACKUP_PARTS = ("roles", "schema-pre", "data", "schema-post")
 
 
 def run(args, *, stage, cwd=None, env=None, input_text=None, output=None, timeout=600):
@@ -36,7 +37,7 @@ def run(args, *, stage, cwd=None, env=None, input_text=None, output=None, timeou
         # Do not expose pg_dump/psql output: errors can include a clinical row.
         codes = re.findall(r"ERROR:\s+([0-9A-Z]{5})\b", result.stderr)
         diagnostic = " SQLSTATE=" + ",".join(sorted(set(codes))) if codes else ""
-        locations = re.findall(r"psql:/recovery/((?:roles|schema|data)\.sql:[0-9]+):", result.stderr)
+        locations = re.findall(r"psql:/recovery/((?:roles|schema|schema-pre|schema-post|data)\.sql:[0-9]+):", result.stderr)
         if locations:
             diagnostic += " at " + ",".join(sorted(set(locations)))
         for fragment, reason in (("no password supplied", "local_password_required"),
@@ -58,13 +59,16 @@ def literal(value):
     return "'" + value.replace("'", "''") + "'"
 
 
-def with_snapshot(script, snapshot):
+def with_snapshot(script, snapshot, section=None):
     if not re.fullmatch(r"[0-9A-Fa-f]+-[0-9A-Fa-f]+-[0-9]+", snapshot):
         raise RuntimeError("Invalid exported snapshot identifier")
     if len(re.findall(r"(?m)^pg_dump \\[ \t]*$", script)) != 1:
         raise RuntimeError("Unrecognized pinned CLI pg_dump script")
+    if section not in (None, "pre-data", "post-data"):
+        raise RuntimeError("Unexpected schema export section")
+    section_flag = " --section=" + section if section else ""
     return re.sub(r"(?m)^pg_dump \\[ \t]*$",
-                  lambda _: "pg_dump --snapshot=" + shlex.quote(snapshot) + " \\",
+                  lambda _: "pg_dump --snapshot=" + shlex.quote(snapshot) + section_flag + " \\",
                   script, count=1)
 
 
@@ -246,6 +250,37 @@ def local_psql(sql=None, files=(), stage="Offline destination SQL"):
     return run(args, stage=stage, input_text=sql, timeout=600)
 
 
+def check_section_restore():
+    """Exercise NOT VALID semantics on integers before any production export."""
+    schema = "_recovery_section_guard"
+    local_psql("CREATE SCHEMA " + schema + "; CREATE TABLE " + schema +
+               ".sample (value integer); INSERT INTO " + schema +
+               ".sample VALUES (0); ALTER TABLE " + schema +
+               ".sample ADD CONSTRAINT positive CHECK (value>0) NOT VALID;",
+               stage="Create synthetic restore-order guard")
+    try:
+        parts = []
+        for flags in (("--schema-only", "--section=pre-data"), ("--data-only",),
+                      ("--schema-only", "--section=post-data")):
+            parts.append(run(["docker", "exec", "-e", "PGPASSWORD=postgres", CONTAINER,
+                              "pg_dump", "-h", "127.0.0.1", "-U", "supabase_admin",
+                              "-d", "postgres", "--schema=" + schema, *flags],
+                             stage="Export synthetic restore-order guard"))
+        local_psql("DROP SCHEMA " + schema + " CASCADE;", stage="Reset synthetic guard")
+        local_psql("BEGIN;\n" + "\n".join(parts) + "\nCOMMIT;", stage="Restore synthetic guard")
+        result = local_psql("SELECT count(*),(SELECT convalidated FROM pg_constraint WHERE conrelid='" +
+                            schema + ".sample'::regclass AND conname='positive') FROM " + schema + ".sample;")
+        if result.strip() != "1|f":
+            raise RuntimeError("Synthetic NOT VALID state did not survive restoration")
+        local_psql("DO $$ BEGIN BEGIN INSERT INTO " + schema +
+                   ".sample VALUES (0); RAISE EXCEPTION 'new invalid value accepted'; "
+                   "EXCEPTION WHEN check_violation THEN NULL; END; END $$;",
+                   stage="Verify restored guard rejects new invalid values")
+        print("Synthetic restore-order guard passed; historical rows retained and new invalid writes rejected.", flush=True)
+    finally:
+        local_psql("DROP SCHEMA IF EXISTS " + schema + " CASCADE;", stage="Remove synthetic guard")
+
+
 def require_offline(inspection):
     if inspection.get("Name") != "/" + CONTAINER:
         raise RuntimeError("Unexpected destination container")
@@ -298,6 +333,7 @@ def main():
                 raise RuntimeError("Destination identity mismatch")
             if not inspect["Config"]["Image"].endswith(":" + POSTGRES_IMAGE_VERSION):
                 raise RuntimeError("Destination ignored the verified PostgreSQL image pin")
+            check_section_restore()
             dump_started = time.monotonic()
             with (root / "source-private.log").open("w") as source_log:
                 snapshot = Snapshot(source_env, source_log)
@@ -326,13 +362,16 @@ def main():
                     foreign_key_query = foreign_key_sql(foreign_keys)
                     if int(snapshot.query(foreign_key_query)) != 0:
                         raise RuntimeError("Source contains foreign key violations; recovery cannot be accredited")
-                    for name, flags in (("roles", ["--role-only"]), ("schema", []), ("data", ["--data-only", "--use-copy"])):
+                    for name, flags, section in (("roles", ["--role-only"], None),
+                                                  ("schema-pre", [], "pre-data"),
+                                                  ("data", ["--data-only", "--use-copy"], None),
+                                                  ("schema-post", [], "post-data")):
                         print("Exporting " + name + ".", flush=True)
                         script = run(["supabase", "db", "dump", "--db-url", url, "--dry-run", *flags],
                                      stage="Build " + name + " export", cwd=work, env=clean_env)
                         if name != "roles":
-                            script = with_snapshot(script, snapshot_id)
-                        if name == "schema":
+                            script = with_snapshot(script, snapshot_id, section)
+                        if name.startswith("schema-"):
                             script = include_managed_schema(script)
                         if name == "data":
                             script = include_managed_migration_data(script)
@@ -342,12 +381,16 @@ def main():
                                 stage="Export " + name, input_text=script, output=output)
                         if (root / (name + ".sql")).stat().st_size == 0:
                             raise RuntimeError("Empty backup component")
+                        # Preserve the same transaction while avoiding an idle
+                        # timeout between the separate native dump sections.
+                        if snapshot.query("SELECT 1;") != "1":
+                            raise RuntimeError("Source snapshot keepalive failed")
                     if snapshot.process.poll() is not None:
                         raise RuntimeError("Source snapshot ended before all exports completed")
                 finally:
                     snapshot.close()
             checksums = {name: hashlib.sha256((root / (name + ".sql")).read_bytes()).hexdigest()
-                         for name in ("roles", "schema", "data")}
+                         for name in BACKUP_PARTS}
             dump_seconds = round(time.monotonic() - dump_started, 2)
             print("Consistent schema/data export completed; isolating the destination.", flush=True)
             containers = run(["docker", "ps", "-aq", "--filter", "label=com.supabase.cli.project=" + LOCAL_PROJECT], stage="Find disposable services").split()
@@ -374,9 +417,9 @@ def main():
                 local_psql(extension_setup_sql(name, schema, version), stage="Prepare destination extension " + name)
             verify_extensions(extensions)
             run(["docker", "exec", CONTAINER, "mkdir", "-m", "700", "/recovery"], stage="Prepare private target files")
-            for name in ("roles", "schema", "data"):
+            for name in BACKUP_PARTS:
                 run(["docker", "cp", str(root / (name + ".sql")), CONTAINER + ":/recovery/" + name + ".sql"], stage="Copy private backup")
-            local_psql(files=("roles.sql", "schema.sql", "data.sql"), stage="Atomic database restoration")
+            local_psql(files=tuple(name + ".sql" for name in BACKUP_PARTS), stage="Atomic database restoration")
             actual_data = json.loads(local_psql("SET timezone='UTC'; SET search_path=''; " + manifest_query).strip())
             actual_metadata = json.loads(local_psql("SET search_path=''; " + metadata_sql()).strip())
             if int(local_psql(foreign_key_query).strip()) != 0:
