@@ -50,8 +50,54 @@ created or charged by this change.
 `encrypted_bundle_created` is distinct from confirmed artifact upload, and both
 are distinct from `retained_copy_restore_verified`. The script deliberately
 keeps the latter false. This increment does not yet restore Storage through an
-isolated Storage service, decrypt a downloaded retained copy, or recover Vault
-and external provider configuration. It must not be reported as closing stage 1.
+isolated Storage service or recover Vault and external provider configuration.
+It must not be reported as closing stage 1.
+
+### Recover from an independently retained encrypted file
+
+`scripts/db/restore_retained_bundle.py` consumes a local downloaded ciphertext,
+an expected ciphertext SHA-256 from trusted retention evidence, and a private
+key file recovered from independent escrow. It makes no production DB/API
+request and needs no production credentials. An optional
+`--key-passphrase-file` supports protected escrow keys; never put a passphrase
+in a command argument or chat. The escrow file itself stays with its custodian;
+only temporary imported key material is removed. The home-scoped GnuPG agent is
+terminated even on failure, evicting any cached recovery key/passphrase.
+
+On an approved recovery machine with Docker, GnuPG and the pinned Supabase CLI,
+run the following with paths to private local files. Replace the hash placeholder
+with the trusted ciphertext hash; a checksum supplied by an untrusted sender is
+not an independent authenticity check.
+
+```bash
+python3 scripts/db/restore_retained_bundle.py \
+  --bundle /secure/retained/recovery.tar.gz.gpg \
+  --sha256 TRUSTED_CIPHERTEXT_SHA256 \
+  --key-file /secure/escrow/recovery-private.asc \
+  --key-passphrase-file /secure/escrow/recovery-passphrase \
+  --confirm RESTORE-RETAINED-qxjjrpksmwwrmubhvjew
+```
+
+The reader rejects unexpected archive files, traversal, links, duplicates,
+oversized components, wrong project/image/format, missing replay metadata and
+checksum/inventory mismatches before executing SQL. It reconstructs Storage
+bytes using hashed local filenames and verifies their mapping, sizes and hashes.
+The database receives native SQL sections only after its application services
+and cron are stopped and its networks are disconnected. It compares retained
+row fingerprints, security metadata, exact ACLs, FKs and the Storage catalog.
+Private extracted files and the disposable DB are destroyed before success.
+
+The report distinguishes `retained_database_restore_verified`,
+`retained_storage_bytes_verified` and `storage_service_restore_verified`.
+Reconstructed bytes do not prove that a restored Storage API can serve private
+documents with correct authorization. The production retained-copy drill remains
+unexecuted until an actual uploaded artifact and independent escrow are used.
+
+CI also runs `test_retained_restore_database.py` against disposable **synthetic**
+data: create a pinned source, seed integers and synthetic bytes, export/encrypt,
+destroy the source, then decrypt and restore from the retained file alone.
+This test requires no production credentials and cannot accredit production
+recovery. Its purpose is to test the recovery consumer and cleanup end to end.
 
 ### Level 4 evidence sequence
 
