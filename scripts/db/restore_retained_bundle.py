@@ -236,6 +236,7 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except Exception:
-        print("::error::Retained-copy recovery stopped; private diagnostics withheld", flush=True)
+    except Exception as error:
+        message = str(error) if isinstance(error, RuntimeError) else "Retained-copy recovery stopped (" + type(error).__name__ + "); private diagnostics withheld"
+        print("::error::" + message, flush=True)
         raise SystemExit(1) from None

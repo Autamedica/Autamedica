@@ -117,8 +117,10 @@ class BundleTests(unittest.TestCase):
             root = Path(temporary)
             home = root / "keys"
             home.mkdir(mode=0o700)
+            passphrase_file = root / "synthetic-passphrase"
+            passphrase_file.write_text("synthetic-test-passphrase\n")
             try:
-                bundle.gpg(home, "--pinentry-mode", "loopback", "--passphrase", "",
+                bundle.gpg(home, "--pinentry-mode", "loopback", "--passphrase-file", str(passphrase_file),
                            "--quick-generate-key", "Synthetic recovery test", "rsa2048", "encr", "1d")
             except RuntimeError:
                 # Some Codex containers prohibit AF_UNIX sockets. CI must still
@@ -135,7 +137,8 @@ class BundleTests(unittest.TestCase):
             fingerprint = next(line.split(":")[9] for line in listing.splitlines() if line.startswith("fpr:"))
             public = bundle.gpg(home, "--armor", "--export", fingerprint)
             key_file = root / "escrow.asc"
-            key_file.write_text(bundle.gpg(home, "--armor", "--export-secret-keys", fingerprint))
+            key_file.write_text(bundle.gpg(home, "--pinentry-mode", "loopback", "--passphrase-file", str(passphrase_file),
+                                          "--armor", "--export-secret-keys", fingerprint))
             private = root / "working"
             private.mkdir()
             metadata, content = fixture()
@@ -151,7 +154,7 @@ class BundleTests(unittest.TestCase):
             replay = root / "replay"
             replay.mkdir()
             restored = restore.decrypt(output / "recovery.tar.gz.gpg",
-                (output / "SHA256SUMS").read_text().split()[0], key_file, replay)
+                (output / "SHA256SUMS").read_text().split()[0], key_file, replay, passphrase_file)
             recovered = restore.unpack_verified(restored, replay / "components")
             self.assertEqual(recovered["project"], drill.PROJECT)
             with tarfile.open(restored) as archive:
