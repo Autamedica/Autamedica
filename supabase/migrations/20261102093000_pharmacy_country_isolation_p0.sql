@@ -129,7 +129,11 @@ BEGIN
      OR NEW.patient_id IS DISTINCT FROM v_rx.patient_id THEN
     RAISE EXCEPTION 'dispensation_prescription_identity_mismatch' USING ERRCODE = '23514';
   END IF;
-  SELECT d.care_country INTO v_doctor_country FROM public.doctors d WHERE d.id = v_rx.doctor_id AND d.active;
+  -- Imported directory entries without a linked physician account are not prescribers.
+  SELECT d.care_country INTO v_doctor_country FROM public.doctors d
+  JOIN public.profiles profile ON profile.user_id=d.user_id
+    AND profile.role='doctor' AND profile.active
+  WHERE d.id = v_rx.doctor_id AND d.active AND d.user_id IS NOT NULL;
   SELECT p.care_country INTO v_patient_country FROM public.patients p WHERE p.id = v_rx.patient_id AND p.active;
   IF v_doctor_country IS DISTINCT FROM v_rx.country_code
      OR v_patient_country IS DISTINCT FROM v_rx.country_code THEN
@@ -180,7 +184,9 @@ BEGIN
     INTO v_order_country, v_order_pharmacy, v_prescription_country, v_doctor_country, v_patient_country
   FROM public.dispensation_orders o
   JOIN public.prescriptions rx ON rx.id = o.prescription_id
-  JOIN public.doctors d ON d.id = o.doctor_id AND d.active
+  JOIN public.doctors d ON d.id = o.doctor_id AND d.active AND d.user_id IS NOT NULL
+  JOIN public.profiles acting_profile ON acting_profile.user_id=d.user_id
+    AND acting_profile.role='doctor' AND acting_profile.active
   JOIN public.patients pa ON pa.id = o.patient_id AND pa.active
   WHERE o.id = NEW.order_id;
   SELECT ph.care_country, ph.pharmacy_id INTO v_pharmacist_country, v_pharmacist_pharmacy
@@ -229,8 +235,10 @@ BEGIN
     JOIN public.prescriptions rx ON rx.id=o.prescription_id
       AND rx.country_code=o.care_country
       AND rx.doctor_id=o.doctor_id AND rx.patient_id=o.patient_id
-    JOIN public.doctors d ON d.id=o.doctor_id AND d.active
+    JOIN public.doctors d ON d.id=o.doctor_id AND d.active AND d.user_id IS NOT NULL
       AND d.care_country=o.care_country
+    JOIN public.profiles clinical_profile ON clinical_profile.user_id=d.user_id
+      AND clinical_profile.role='doctor' AND clinical_profile.active
     JOIN public.patients pat ON pat.id=o.patient_id AND pat.active
       AND pat.care_country=o.care_country
     JOIN public.pharmacists ph ON ph.user_id=NEW.requested_by
