@@ -27,6 +27,16 @@ class RecoveryDrillGuards(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 drill.with_snapshot(invalid, '00000002-00000042-1')
 
+    def test_post_data_constraints_follow_data_under_the_same_snapshot(self):
+        script = 'pg_dump \\\n --schema-only\n'
+        for section in ('pre-data', 'post-data'):
+            result = drill.with_snapshot(script, '00000002-00000042-1', section)
+            self.assertIn('--section=' + section, result)
+            self.assertIn('--snapshot=00000002-00000042-1', result)
+        self.assertLess(drill.BACKUP_PARTS.index('data'), drill.BACKUP_PARTS.index('schema-post'))
+        with self.assertRaises(RuntimeError):
+            drill.with_snapshot(script, '00000002-00000042-1', 'data; echo leak')
+
     def test_managed_schemas_and_acls_stay_in_the_same_export(self):
         script = '--exclude-schema "auth|storage|vault|cron"\nACL "auth|storage|vault|cron"'
         self.assertEqual(drill.include_managed_schema(script), '--exclude-schema "vault|cron"\nACL "vault|cron"')
