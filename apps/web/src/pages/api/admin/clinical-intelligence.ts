@@ -1,8 +1,9 @@
 import type { APIRoute } from "astro";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@autamedica/types";
 import { logger } from "@autamedica/shared";
 import { createAstroAdminClient } from "@/lib/supabase";
+
+import { readMetricRows } from "@/lib/admin/patient-intelligence-metrics";
+import type { MetricClient } from "@/lib/admin/patient-intelligence-metrics";
 
 export const prerender = false;
 
@@ -108,14 +109,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const admin = createAstroAdminClient(
-      runtimeEnv,
-    ) as unknown as SupabaseClient<Database>;
+    const admin = createAstroAdminClient(runtimeEnv) as unknown as MetricClient & {
+      rpc<T>(name: string): PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
+    };
 
     // 1. CAPA ORO: Fetch seasonal metrics (preaggregated high-performance OLAP)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: goldMetrics, error: goldError } = await (admin as any)
-      .from("clinical_gold_seasonal_metrics")
+    const { data: goldMetrics, error: goldError } = await admin
+      .from<GoldSeasonalMetric>("clinical_gold_seasonal_metrics")
       .select("season, symptom_name, snomed_code, icd11_code, case_count") as {
         data: GoldSeasonalMetric[] | null;
         error: { message: string } | null;
@@ -124,9 +124,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
     if (goldError) throw new Error(goldError.message);
 
     // 2. DATA SCIENCE: Run Early Warning Engine (Anomalies & Outbreaks detection)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: anomalies, error: anomalyError } = await (admin as any)
-      .rpc("detect_clinical_anomalies") as {
+    const { data: anomalies, error: anomalyError } = await admin
+      .rpc<AnomalyDetectionRow>("detect_clinical_anomalies") as {
         data: AnomalyDetectionRow[] | null;
         error: { message: string } | null;
       };
@@ -135,17 +134,20 @@ export const GET: APIRoute = async ({ request, locals }) => {
       throw new Error("clinical_anomaly_analysis_failed");
     }
 
-    // 3. CAPA PLATA: Fetch current Red Flags for live tracking
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: rawRedFlags, error: rfError } = await (admin as any)
-      .from("clinical_symptom_observations")
-      .select("symptom_name, snomed_code")
-      .eq("is_red_flag", true) as {
-        data: RedFlagObservationRow[] | null;
-        error: { message: string } | null;
-      };
-
-    if (rfError) throw new Error(rfError.message);
+    const metrics = admin as unknown as MetricClient;
+    const [observations, extractionCount] = await Promise.all([
+      readMetricRows<RedFlagObservationRow & { is_red_flag: boolean; anamnesis_extraction_id: string | null }>((from, to) => metrics
+        .from<RedFlagObservationRow & { is_red_flag: boolean; anamnesis_extraction_id: string | null }>("clinical_symptom_observations")
+        .select("symptom_name, snomed_code, is_red_flag, anamnesis_extraction_id")
+        .order("id").range(from, to)),
+      metrics.from("anamnesis_extractions").select("*", { count: "exact", head: true }),
+    ]);
+    if (extractionCount.error || extractionCount.count == null) {
+      throw new Error("clinical_extraction_count_unavailable");
+    }
+    const rawRedFlags = observations.filter(row => row.is_red_flag);
+    const extractionsWithSymptoms = new Set(observations.flatMap(row =>
+      row.anamnesis_extraction_id ? [row.anamnesis_extraction_id] : [])).size;
 
     // Process Seasonal Symptoms from Gold Layer
     const seasonalSymptoms: Record<string, Array<{ name: string; count: number; snomed?: string | null; icd11?: string | null }>> = {
@@ -188,6 +190,12 @@ export const GET: APIRoute = async ({ request, locals }) => {
       success: true,
       data: {
         success: true,
+        metrics: {
+          extraction_records: extractionCount.count,
+          extractions_with_symptoms: extractionsWithSymptoms,
+          symptom_observations: observations.length,
+          red_flag_observations: rawRedFlags.length,
+        },
         seasonal_symptoms: seasonalSymptoms,
         red_flags_ranking: formattedRedFlags,
         early_warning_alerts: (anomalies || []).filter(a => a.is_outbreak_warning || a.percent_increase > 15),
@@ -200,3 +208,4 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return json({ success: false, error: "clinical_intelligence_unavailable" }, 503);
   }
 };
+
