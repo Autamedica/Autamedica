@@ -1,5 +1,7 @@
 """Fail-closed guards for the isolated production recovery drill (no credentials)."""
 import os
+from pathlib import Path
+import tempfile
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -85,6 +87,12 @@ class RecoveryDrillGuards(unittest.TestCase):
     def test_extension_dependency_installation_pins_source_version(self):
         sql = drill.extension_setup_sql('index_advisor', 'extensions', '0.2.0')
         self.assertIn("VERSION '0.2.0' CASCADE;", sql)
+
+    def test_destination_image_pin_uses_verified_build(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = Path(directory)
+            drill.pin_postgres_image(work)
+            self.assertEqual((work / 'supabase' / '.temp' / 'postgres-version').read_text(), '17.6.1.084\n')
 
     @patch.object(drill, 'local_psql')
     def test_extension_preflight_rejects_schema_or_version_drift(self, query):
