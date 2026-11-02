@@ -11,6 +11,7 @@ export interface PharmacistRecord {
   id: string;
   pharmacy_id: string;
   care_country: 'AR' | 'BR';
+  license_number: string | null;
 }
 
 export interface DispensationOrderRow {
@@ -41,9 +42,10 @@ export const dispensationRepo = {
   async findPharmacist(supabase: Client, userId: string): Promise<PharmacistRecord | null> {
     const { data } = await supabase
       .from('pharmacists')
-      .select('id, pharmacy_id, care_country')
+      .select('id, pharmacy_id, care_country, license_number')
       .eq('user_id', userId)
       .eq('active', true)
+      .in('role', ['pharmacist', 'pharmacy_director'])
       .single();
     return data;
   },
