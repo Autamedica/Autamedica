@@ -7,8 +7,8 @@ const profile = { user_id: "profile-1", email, newsletter_subscribed: true, acti
 const contact = { id: "contact-1", email, unsubscribed: false };
 const env = {
   SUPABASE_URL: "https://example.supabase.co",
-  SUPABASE_SERVICE_ROLE_KEY: "test-key",
-  RESEND_API_KEY: "test-key",
+  SUPABASE_SERVICE_ROLE_KEY: "placeholder",
+  RESEND_API_KEY: "placeholder",
   RESEND_AUDIENCE_ID: "newsletter-segment",
 };
 
