@@ -132,7 +132,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     const patient = patientResult.data;
     if (pharmacyResult.error || prescriptionResult.error || doctorResult.error || patientResult.error ||
         !pharmacy?.active || pharmacy.deleted_at || pharmacy.care_country !== order.care_country ||
-        !rx || rx.country_code !== order.care_country ||
+        rx?.country_code !== order.care_country ||
         rx.doctor_id !== order.doctor_id || rx.patient_id !== order.patient_id ||
         !prescriber?.active || prescriber.care_country !== order.care_country ||
         !patient?.active || patient.care_country !== order.care_country) {
