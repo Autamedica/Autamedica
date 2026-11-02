@@ -153,8 +153,13 @@ BEGIN
   UPDATE public.patients SET care_country='AR' WHERE user_id=v_ar_patient_user;
   SELECT id INTO STRICT v_ar_patient FROM public.patients WHERE user_id=v_ar_patient_user;
 
+  -- Signup triggers can precreate a doctor row; reuse that row, as clinical_country_isolation.sql does.
   INSERT INTO public.doctors(id,user_id,license_type,license_number,specialty,active)
-  VALUES(v_ar_doctor,v_ar_doctor_user,'MN','CI-'||v_ar_doctor::text,'Test doctor AR',true);
+  VALUES(v_ar_doctor,v_ar_doctor_user,'MN','CI-'||v_ar_doctor::text,'Test doctor AR',true)
+  ON CONFLICT(user_id) DO UPDATE SET
+    license_type=excluded.license_type,license_number=excluded.license_number,
+    specialty=excluded.specialty,active=true;
+  SELECT id INTO STRICT v_ar_doctor FROM public.doctors WHERE user_id=v_ar_doctor_user;
   IF (SELECT care_country FROM public.doctors WHERE id=v_ar_doctor) IS DISTINCT FROM 'AR' THEN
     RAISE EXCEPTION 'AR doctor credential not classified AR';
   END IF;
