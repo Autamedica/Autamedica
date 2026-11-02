@@ -218,7 +218,7 @@ CREATE OR REPLACE FUNCTION app_private.guard_dispensation_clarification_country(
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = ''
-AS $
+AS $$
 BEGIN
   IF TG_OP='UPDATE' AND NEW.order_id IS NOT DISTINCT FROM OLD.order_id
      AND NEW.requested_by IS NOT DISTINCT FROM OLD.requested_by
@@ -244,7 +244,7 @@ BEGIN
     RAISE EXCEPTION 'dispensation_clarification_country_or_actor_mismatch' USING ERRCODE='23514';
   END IF;
   RETURN NEW;
-END $;
+END $$;
 
 CREATE TRIGGER zz_dispensation_clarifications_country
 BEFORE INSERT OR UPDATE OF order_id,requested_by ON public.dispensation_clarifications
