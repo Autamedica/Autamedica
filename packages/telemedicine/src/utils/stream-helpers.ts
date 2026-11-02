@@ -10,3 +10,8 @@ export function hasRemoteVideoEvidence(summary: StreamQualitySummary): boolean {
     return inboundVideo >= 150 || fps >= 8 || (width >= 160 && height >= 120)
   })
 }
+
+export function hasRemoteMediaEvidence(summary: StreamQualitySummary): boolean {
+  return hasRemoteVideoEvidence(summary) || summary.peers.some((peer) => (peer.inboundAudioBitrateKbps ?? 0) > 0)
+}
+

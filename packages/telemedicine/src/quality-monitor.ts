@@ -4,78 +4,29 @@
  * scoring, and reporting into a single-responsibility class.
  */
 
-import { computeMOS } from './quality/scorer'
+import {
+  computeMOS,
+  classifyQualityLevel,
+  getOverallQualityLevel,
+  levelToScore,
+} from './quality/scorer'
 
-export type StreamQualityLevel = 'unknown' | 'excellent' | 'good' | 'fair' | 'poor'
+import type {
+  StreamQualityLevel,
+  StreamQualityMetrics,
+  StreamQualitySummary,
+  PeerStatsSample,
+} from './quality/types'
+export type {
+  StreamQualityLevel,
+  StreamQualityMetrics,
+  StreamQualitySummary,
+} from './quality/types'
 
-export interface CallQualityTimelineEntry {
-  timestamp: number
-  level: StreamQualityLevel
-  durationMs: number
-}
+import type { CallQualityTimelineEntry, CallQualitySummary } from './quality/types'
+export type { CallQualityTimelineEntry, CallQualitySummary, CallQualityAverageMetrics, CallQualityWorstMetrics } from './quality/types'
 
-export interface CallQualityAverageMetrics {
-  packetsLostPct: number | null
-  jitterMs: number | null
-  roundTripTimeMs: number | null
-  inboundVideoBitrateKbps: number | null
-}
-
-export interface CallQualityWorstMetrics {
-  packetsLostPct: number | null
-  jitterMs: number | null
-  roundTripTimeMs: number | null
-  inboundVideoBitrateKbps: number | null
-  framesPerSecond: number | null
-}
-
-export interface CallQualitySummary {
-  totalDurationMs: number
-  qualityBreakdown: Record<StreamQualityLevel, number>
-  timeline: CallQualityTimelineEntry[]
-  worstMetrics: CallQualityWorstMetrics
-  averageMetrics: CallQualityAverageMetrics
-  iceRestartCount: number
-  audioOnlyPeriods: number
-}
-
-export interface StreamQualityMetrics {
-  userId: string
-  level: StreamQualityLevel
-  timestamp: number
-  outboundVideoBitrateKbps: number | null
-  outboundAudioBitrateKbps: number | null
-  inboundVideoBitrateKbps: number | null
-  inboundAudioBitrateKbps: number | null
-  packetsLostPct: number | null
-  jitterMs: number | null
-  roundTripTimeMs: number | null
-  framesPerSecond: number | null
-  frameWidth: number | null
-  frameHeight: number | null
-  availableOutgoingBitrateKbps: number | null
-  mosScore: number | null
-  concealedSamplesRatio: number | null
-  freezeCount: number | null
-  totalFreezesDurationMs: number | null
-  remoteAudioLevel: number | null
-}
-
-export interface StreamQualitySummary {
-  roomId: string
-  overallLevel: StreamQualityLevel
-  peers: StreamQualityMetrics[]
-}
-
-interface PeerStatsSample {
-  timestampMs: number
-  outboundVideoBytes: number
-  outboundAudioBytes: number
-  inboundVideoBytes: number
-  inboundAudioBytes: number
-  packetsLost: number
-  packetsReceived: number
-}
+export type QualityStatsSource = Pick<RTCPeerConnection, 'getStats' | 'connectionState'>
 
 interface QualityLogger {
   info(message: string, context?: Record<string, unknown>): void
@@ -83,15 +34,16 @@ interface QualityLogger {
 }
 
 import { QUALITY_POLL_INTERVAL_MS, QUALITY_LOG_INTERVAL_MS } from './tuning'
-const QUALITY_SCORE_TO_LEVEL: StreamQualityLevel[] = ['poor', 'fair', 'good', 'excellent']
 
 export class QualityMonitor {
+  private generation = 0
+  private collecting = false
   private qualityInterval: ReturnType<typeof setInterval> | null = null
   private peerStatsSamples = new Map<string, PeerStatsSample>()
   private latestQualityByPeer = new Map<string, StreamQualityMetrics>()
   private qualityLogState = new Map<string, { level: StreamQualityLevel; at: number }>()
 
-  private peerConnections: Map<string, { pc: RTCPeerConnection }> = new Map()
+  private peerConnections: Map<string, { pc: QualityStatsSource }> = new Map()
   private readonly logger: QualityLogger
   private readonly roomId: string
   private callLogger?: import('./logging/call-logger').CallLogger
@@ -132,19 +84,24 @@ export class QualityMonitor {
   private countRoundTripTimeMs = 0
   private countInboundVideoBitrateKbps = 0
 
-  constructor(opts: { logger: QualityLogger; roomId: string; callLogger?: import('./logging/call-logger').CallLogger }) {
+  constructor(opts: {
+    logger: QualityLogger
+    roomId: string
+    callLogger?: import('./logging/call-logger').CallLogger
+  }) {
     this.logger = opts.logger
     this.roomId = opts.roomId
     this.callLogger = opts.callLogger
   }
 
-  start(peerConnections: Map<string, { pc: RTCPeerConnection }>): void {
+  start(peerConnections: Map<string, { pc: QualityStatsSource }>): void {
     this.peerConnections = peerConnections
 
     if (this.qualityInterval) {
       return
     }
 
+    this.generation++
     this.monitoringStartedAt = Date.now()
     this.lastLevelTimestamp = this.monitoringStartedAt
     this.lastOverallLevel = 'unknown'
@@ -158,6 +115,7 @@ export class QualityMonitor {
   }
 
   stop(): void {
+    this.generation++
     if (!this.qualityInterval) {
       return
     }
@@ -170,6 +128,7 @@ export class QualityMonitor {
     this.peerStatsSamples.clear()
     this.latestQualityByPeer.clear()
     this.qualityLogState.clear()
+    this.audioSilentSince.clear()
     this.resetSummaryState()
   }
 
@@ -198,6 +157,7 @@ export class QualityMonitor {
     this.peerStatsSamples.delete(userId)
     this.latestQualityByPeer.delete(userId)
     this.qualityLogState.delete(userId)
+    this.audioSilentSince.delete(userId)
   }
 
   /** Trigger an immediate collection pass (e.g. when a new peer joins). */
@@ -264,7 +224,10 @@ export class QualityMonitor {
         packetsLostPct: avg(this.sumPacketsLostPct, this.countPacketsLostPct),
         jitterMs: avg(this.sumJitterMs, this.countJitterMs),
         roundTripTimeMs: avg(this.sumRoundTripTimeMs, this.countRoundTripTimeMs),
-        inboundVideoBitrateKbps: avg(this.sumInboundVideoBitrateKbps, this.countInboundVideoBitrateKbps),
+        inboundVideoBitrateKbps: avg(
+          this.sumInboundVideoBitrateKbps,
+          this.countInboundVideoBitrateKbps
+        ),
       },
       iceRestartCount,
       audioOnlyPeriods: this.audioOnlyPeriodCount,
@@ -275,7 +238,10 @@ export class QualityMonitor {
   private updateSummaryMetrics(metrics: StreamQualityMetrics): void {
     // Worst: higher is worse for loss/jitter/rtt, lower is worse for bitrate/fps
     if (metrics.packetsLostPct !== null) {
-      this.worstPacketsLostPct = Math.max(this.worstPacketsLostPct ?? -Infinity, metrics.packetsLostPct)
+      this.worstPacketsLostPct = Math.max(
+        this.worstPacketsLostPct ?? -Infinity,
+        metrics.packetsLostPct
+      )
       this.sumPacketsLostPct += metrics.packetsLostPct
       this.countPacketsLostPct++
     }
@@ -285,7 +251,10 @@ export class QualityMonitor {
       this.countJitterMs++
     }
     if (metrics.roundTripTimeMs !== null) {
-      this.worstRoundTripTimeMs = Math.max(this.worstRoundTripTimeMs ?? -Infinity, metrics.roundTripTimeMs)
+      this.worstRoundTripTimeMs = Math.max(
+        this.worstRoundTripTimeMs ?? -Infinity,
+        metrics.roundTripTimeMs
+      )
       this.sumRoundTripTimeMs += metrics.roundTripTimeMs
       this.countRoundTripTimeMs++
     }
@@ -365,7 +334,11 @@ export class QualityMonitor {
     return null
   }
 
-  private computeBitrateKbps(currentBytes: number, previousBytes: number, elapsedMs: number): number | null {
+  private computeBitrateKbps(
+    currentBytes: number,
+    previousBytes: number,
+    elapsedMs: number
+  ): number | null {
     if (elapsedMs <= 0 || currentBytes < previousBytes) {
       return null
     }
@@ -381,114 +354,13 @@ export class QualityMonitor {
     return Math.round(value * factor) / factor
   }
 
-  // --- scoring helpers ---
-
-  private scoreInboundBitrate(kbps: number): number {
-    if (kbps >= 1800) return 3
-    if (kbps >= 1000) return 2
-    if (kbps >= 450) return 1
-    return 0
-  }
-
-  private scoreFps(fps: number): number {
-    if (fps >= 24) return 3
-    if (fps >= 15) return 2
-    if (fps >= 8) return 1
-    return 0
-  }
-
-  private scorePacketLoss(packetsLostPct: number): number {
-    if (packetsLostPct <= 1) return 3
-    if (packetsLostPct <= 3) return 2
-    if (packetsLostPct <= 6) return 1
-    return 0
-  }
-
-  private scoreRoundTripTime(roundTripTimeMs: number): number {
-    if (roundTripTimeMs <= 120) return 3
-    if (roundTripTimeMs <= 220) return 2
-    if (roundTripTimeMs <= 350) return 1
-    return 0
-  }
-
-  private scoreJitter(jitterMs: number): number {
-    if (jitterMs <= 20) return 3
-    if (jitterMs <= 40) return 2
-    if (jitterMs <= 70) return 1
-    return 0
-  }
-
-  private levelToScore(level: StreamQualityLevel): number {
-    switch (level) {
-      case 'excellent':
-        return 3
-      case 'good':
-        return 2
-      case 'fair':
-        return 1
-      case 'poor':
-        return 0
-      default:
-        return -1
-    }
-  }
-
-  // --- classification ---
-
-  private classifyQualityLevel(metrics: Omit<StreamQualityMetrics, 'userId' | 'timestamp' | 'level'>): StreamQualityLevel {
-    const scores: number[] = []
-    const hasRenderableVideoStats =
-      metrics.framesPerSecond !== null || metrics.frameWidth !== null || metrics.frameHeight !== null
-
-    if (metrics.inboundVideoBitrateKbps !== null && hasRenderableVideoStats) {
-      scores.push(this.scoreInboundBitrate(metrics.inboundVideoBitrateKbps))
-    }
-    if (metrics.framesPerSecond !== null) {
-      scores.push(this.scoreFps(metrics.framesPerSecond))
-    }
-    if (metrics.packetsLostPct !== null) {
-      scores.push(this.scorePacketLoss(metrics.packetsLostPct))
-    }
-    if (metrics.roundTripTimeMs !== null) {
-      scores.push(this.scoreRoundTripTime(metrics.roundTripTimeMs))
-    }
-    if (metrics.jitterMs !== null) {
-      scores.push(this.scoreJitter(metrics.jitterMs))
-    }
-
-    if (scores.length === 0) {
-      return 'unknown'
-    }
-
-    const worstScore = Math.min(...scores)
-    return QUALITY_SCORE_TO_LEVEL[worstScore] ?? 'unknown'
-  }
-
-  private getOverallQualityLevel(peers: StreamQualityMetrics[]): StreamQualityLevel {
-    let worstScore = 4
-
-    for (const peer of peers) {
-      const score = this.levelToScore(peer.level)
-      if (score >= 0) {
-        worstScore = Math.min(worstScore, score)
-      }
-    }
-
-    if (worstScore > 3) {
-      return 'unknown'
-    }
-
-    return QUALITY_SCORE_TO_LEVEL[worstScore] ?? 'unknown'
-  }
-
   // --- logging ---
 
   private maybeLogPeerQuality(metrics: StreamQualityMetrics): void {
     const previous = this.qualityLogState.get(metrics.userId)
     const now = Date.now()
     const shouldLog =
-      previous?.level !== metrics.level ||
-      now - (previous?.at ?? 0) >= QUALITY_LOG_INTERVAL_MS
+      previous?.level !== metrics.level || now - (previous?.at ?? 0) >= QUALITY_LOG_INTERVAL_MS
 
     if (!shouldLog) {
       return
@@ -507,11 +379,11 @@ export class QualityMonitor {
         framesPerSecond: metrics.framesPerSecond,
       })
       if (previous && previous.level !== metrics.level) {
-        const improved = this.levelToScore(metrics.level) > this.levelToScore(previous.level)
+        const improved = levelToScore(metrics.level) > levelToScore(previous.level)
         this.callLogger[improved ? 'info' : 'warn'](
           'quality',
           improved ? 'quality_improved' : 'quality_degraded',
-          { peerId: metrics.userId, from: previous.level, to: metrics.level },
+          { peerId: metrics.userId, from: previous.level, to: metrics.level }
         )
       }
     }
@@ -534,7 +406,10 @@ export class QualityMonitor {
 
   // --- metrics collection ---
 
-  private async buildPeerQualityMetrics(userId: string, pc: RTCPeerConnection): Promise<StreamQualityMetrics | null> {
+  private async buildPeerQualityMetrics(
+    userId: string,
+    pc: QualityStatsSource
+  ): Promise<StreamQualityMetrics | null> {
     const stats = await pc.getStats()
     const now = Date.now()
 
@@ -582,7 +457,7 @@ export class QualityMonitor {
           }
         }
 
-        if (kind === 'video') {
+        if (kind === 'video' || kind === 'audio') {
           const currentPacketsLost = this.getStatNumber(stat, 'packetsLost')
           const currentPacketsReceived = this.getStatNumber(stat, 'packetsReceived')
           const jitterSeconds = this.getStatNumber(stat, 'jitter')
@@ -590,9 +465,11 @@ export class QualityMonitor {
           packetsLost += currentPacketsLost ?? 0
           packetsReceived += currentPacketsReceived ?? 0
           if (jitterSeconds !== null) {
-            jitterMs = jitterSeconds * 1000
+            jitterMs = Math.max(jitterMs ?? 0, jitterSeconds * 1000)
           }
+        }
 
+        if (kind === 'video') {
           // Video freeze metrics
           const fc = this.getStatNumber(stat, 'freezeCount')
           const tfd = this.getStatNumber(stat, 'totalFreezesDuration')
@@ -725,14 +602,15 @@ export class QualityMonitor {
       availableOutgoingBitrateKbps: this.roundMetric(availableOutgoingBitrateKbps),
       concealedSamplesRatio: this.roundMetric(concealedSamplesRatio, 4),
       freezeCount: freezeCount,
-      totalFreezesDurationMs: totalFreezesDurationS !== null ? this.roundMetric(totalFreezesDurationS * 1000) : null,
+      totalFreezesDurationMs:
+        totalFreezesDurationS !== null ? this.roundMetric(totalFreezesDurationS * 1000) : null,
       remoteAudioLevel: this.roundMetric(remoteAudioLevel, 3),
     }
 
     const mosScore = computeMOS(
       normalizedMetrics.roundTripTimeMs,
       normalizedMetrics.jitterMs,
-      normalizedMetrics.packetsLostPct,
+      normalizedMetrics.packetsLostPct
     )
 
     const fullMetrics = {
@@ -742,56 +620,71 @@ export class QualityMonitor {
 
     return {
       userId,
-      level: this.classifyQualityLevel(fullMetrics),
+      level:
+        packetsLost + packetsReceived > 0 || inboundVideoBytes > 0 || inboundAudioBytes > 0
+          ? classifyQualityLevel(fullMetrics)
+          : 'unknown',
       timestamp: now,
       ...fullMetrics,
     }
   }
 
   private async collectQualityMetrics(): Promise<void> {
-    const peers: StreamQualityMetrics[] = []
+    if (this.collecting) return
+    this.collecting = true
+    const generation = this.generation
+    try {
+      const peers: StreamQualityMetrics[] = []
 
-    for (const [userId, peerState] of this.peerConnections) {
-      if (peerState.pc.connectionState === 'closed') {
-        continue
-      }
-
-      try {
-        const metrics = await this.buildPeerQualityMetrics(userId, peerState.pc)
-        if (!metrics) {
+      for (const [userId, peerState] of this.peerConnections) {
+        if (peerState.pc.connectionState === 'closed') {
           continue
         }
 
-        peers.push(metrics)
-        this.latestQualityByPeer.set(userId, metrics)
-        this.maybeLogPeerQuality(metrics)
-      } catch (error) {
-        this.logger.warn('Failed collecting stream quality stats', { peerId: userId, error: error as Record<string, unknown> })
+        try {
+          const metrics = await this.buildPeerQualityMetrics(userId, peerState.pc)
+          if (generation !== this.generation) return
+          if (!metrics) {
+            continue
+          }
+
+          peers.push(metrics)
+          this.latestQualityByPeer.set(userId, metrics)
+          this.maybeLogPeerQuality(metrics)
+        } catch (error) {
+          this.logger.warn('Failed collecting stream quality stats', {
+            peerId: userId,
+            error: error as Record<string, unknown>,
+          })
+        }
       }
+
+      // Track per-sample metrics for call summary + backend reporting + audio silence
+      for (const metrics of peers) {
+        this.updateSummaryMetrics(metrics)
+
+        // Emit quality report for backend persistence
+        this.onQualityReport?.(metrics)
+
+        // Audio silence detection
+        this.checkAudioSilence(metrics)
+      }
+
+      if (generation !== this.generation) return
+      const overallLevel = getOverallQualityLevel(peers)
+
+      // Record timeline transition if level changed
+      if (overallLevel !== this.lastOverallLevel) {
+        this.recordLevelTransition(overallLevel)
+      }
+
+      this.onQualitySummary?.({
+        roomId: this.roomId,
+        overallLevel,
+        peers,
+      })
+    } finally {
+      this.collecting = false
     }
-
-    // Track per-sample metrics for call summary + backend reporting + audio silence
-    for (const metrics of peers) {
-      this.updateSummaryMetrics(metrics)
-
-      // Emit quality report for backend persistence
-      this.onQualityReport?.(metrics)
-
-      // Audio silence detection
-      this.checkAudioSilence(metrics)
-    }
-
-    const overallLevel = this.getOverallQualityLevel(peers)
-
-    // Record timeline transition if level changed
-    if (overallLevel !== this.lastOverallLevel) {
-      this.recordLevelTransition(overallLevel)
-    }
-
-    this.onQualitySummary?.({
-      roomId: this.roomId,
-      overallLevel,
-      peers,
-    })
   }
 }

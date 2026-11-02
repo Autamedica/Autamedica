@@ -221,6 +221,16 @@ export class CloudflareCallsSession {
     return sessionId
   }
 
+  /** Read-only diagnostics; never expose the mutable peer connection. */
+  get connectionState(): RTCPeerConnectionState {
+    return this.pc?.connectionState ?? 'closed'
+  }
+
+  async getStats(): Promise<RTCStatsReport> {
+    if (!this.pc) throw new Error('SFU stats unavailable before connection')
+    return this.pc.getStats()
+  }
+
   /** True once connect() finished and the SFU session is usable. */
   isReady(): boolean {
     return this.ready && !this.closed && this.pc !== null && this.sessionId !== null
@@ -550,3 +560,4 @@ export class CloudflareCallsSession {
     this.localAudioSender = null
   }
 }
+
