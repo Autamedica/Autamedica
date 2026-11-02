@@ -194,6 +194,12 @@ export const dispensationRepo = {
     return data ?? [];
   },
 
+  async findDispensationEvent(supabase: Client, id: string): Promise<Record<string, unknown> | null> {
+    const { data, error } = await supabase.from('dispensation_events').select('*').eq('id', id).maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+
   async insertDispensationEvent(
     supabase: Client,
     data: Record<string, unknown>,
@@ -206,10 +212,11 @@ export const dispensationRepo = {
   },
 
   async getTotalDispensed(supabase: Client, orderId: string): Promise<number> {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('dispensation_events')
       .select('dispensed_quantity')
       .eq('order_id', orderId);
+    if (error) throw error;
     return (data ?? []).reduce((sum, e) => sum + (e.dispensed_quantity ?? 0), 0);
   },
 
@@ -238,3 +245,4 @@ export const dispensationRepo = {
     });
   },
 };
+

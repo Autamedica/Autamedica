@@ -121,8 +121,30 @@ BEGIN
 END $invalid_prescription$;
 
 
+-- Signup creates an account/profile, never a licensed membership by metadata.
+DO $signup$
+DECLARE v_user uuid:=gen_random_uuid();
+BEGIN
+  INSERT INTO auth.users(id,email,raw_user_meta_data)
+  VALUES(v_user,'ci-pharmacy-signup-'||v_user||'@example.invalid','{"role":"pharmacist"}'::jsonb);
+  IF NOT EXISTS(SELECT 1 FROM public.profiles WHERE user_id=v_user AND role::text='pharmacist') THEN
+    RAISE EXCEPTION 'Pharmacist signup failed to create its profile';
+  END IF;
+  IF EXISTS(SELECT 1 FROM public.pharmacists WHERE user_id=v_user) THEN
+    RAISE EXCEPTION 'Signup metadata created unlicensed pharmacy membership';
+  END IF;
+END $signup$;
+
 -- Full transaction-only jurisdiction regression: two physician/patient markets,
 -- two pharmacies, licensed pharmacists, and an assigned dispensation order.
+CREATE FUNCTION pg_temp.pharmacy_inject_finalize_failure() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF current_setting('autamedica.test_delivery_failure',true)='on' THEN
+    RAISE EXCEPTION 'isolated_delivery_finalize_failure';
+  END IF;
+  RETURN NEW;
+END $$;
+
 DO $behavior$
 DECLARE
   v_ar_doctor_user uuid := gen_random_uuid();
@@ -193,6 +215,7 @@ BEGIN
   INSERT INTO public.prescriptions(patient_id,doctor_id,country_code,clinical_data,vendor_name,status)
     VALUES(v_ar_patient,v_ar_doctor,'AR','{}'::jsonb,'ci-pharmacy-test','draft')
     RETURNING id INTO v_rx;
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_ar_doctor_user,'role','authenticated')::text,true);
   INSERT INTO public.dispensation_orders (
     prescription_id,patient_id,doctor_id,medication,formulation,
     quantity_units,duration_days,dispense_window_start,dispense_window_end,status
@@ -290,9 +313,9 @@ BEGIN
   -- No direct event creation from a merely reviewed, unsigned order.
   v_rejected:=false;
   BEGIN
-    INSERT INTO public.dispensation_events(order_id,pharmacist_id,pharmacy_id,dispense_status,
+    INSERT INTO public.dispensation_events(id,order_id,pharmacist_id,pharmacy_id,dispense_status,
       dispensed_medication,dispensed_formulation,dispensed_quantity)
-    VALUES(v_order,v_ar_pharmacist,v_ar_pharmacy,'dispensed','Synthetic','tablet',1);
+    VALUES(gen_random_uuid(),v_order,v_ar_pharmacist,v_ar_pharmacy,'dispensed','Synthetic','tablet',1);
   EXCEPTION WHEN check_violation THEN v_rejected:=true;
   END;
   IF NOT v_rejected THEN RAISE EXCEPTION 'Direct authenticated event bypassed clinical approval'; END IF;
@@ -320,9 +343,13 @@ BEGIN
   UPDATE public.prescriptions SET status='signed',signed_pdf_url='synthetic://pharmacy-ci.pdf' WHERE id=v_rx;
   INSERT INTO app_private.pharmacy_prescription_release_evidence(
     prescription_id,doctor_id,patient_id,care_country,clinical_snapshot,signed_pdf_url,
-    document_sha256,certificate_sha256,verifier_reference,provider_authorization_reference,verified_at)
+    document_sha256,certificate_sha256,verifier_reference,provider_authorization_reference,verified_at,order_snapshot)
   VALUES(v_rx,v_ar_doctor,v_ar_patient,'AR','{}'::jsonb,'synthetic://pharmacy-ci.pdf',
-    repeat('0',64),repeat('1',64),'isolated-ci-fixture-not-real-signature','isolated-ci-no-real-authority',now());
+    repeat('0',64),repeat('1',64),'isolated-ci-fixture-not-real-signature','isolated-ci-no-real-authority',now(),
+    (SELECT jsonb_build_object('medication',medication,'formulation',formulation,
+      'dose_mg_per_day',dose_mg_per_day,'quantity_units',quantity_units,'duration_days',duration_days,
+      'prescription_type',prescription_type,'dispense_window_start',dispense_window_start,'dispense_window_end',dispense_window_end)
+      FROM public.dispensation_orders WHERE id=v_order));
 
   EXECUTE 'SET LOCAL ROLE authenticated';
   UPDATE public.dispensation_orders SET status='approved_for_dispensation' WHERE id=v_order;
@@ -348,16 +375,40 @@ BEGIN
 
   v_rejected:=false;
   BEGIN
-    INSERT INTO public.dispensation_events(order_id,pharmacist_id,pharmacy_id,dispense_status,
+    INSERT INTO public.dispensation_events(id,order_id,pharmacist_id,pharmacy_id,dispense_status,
       dispensed_medication,dispensed_formulation,dispensed_quantity)
-    VALUES(v_order,v_ar_pharmacist,v_ar_pharmacy,'dispensed','Synthetic','tablet',2);
+    VALUES(gen_random_uuid(),v_order,v_ar_pharmacist,v_ar_pharmacy,'dispensed','Synthetic','tablet',2);
   EXCEPTION WHEN check_violation THEN v_rejected:=true;
   END;
   IF NOT v_rejected THEN RAISE EXCEPTION 'Direct event over-dispensed remaining quantity'; END IF;
 
-  INSERT INTO public.dispensation_events(order_id,pharmacist_id,pharmacy_id,dispense_status,
+  -- Inject a failure after the event INSERT reaches finalization. The entire
+  -- event/order/prescription/audit unit must roll back, not just its last write.
+  EXECUTE 'RESET ROLE';
+  EXECUTE 'CREATE TRIGGER isolated_delivery_failure BEFORE UPDATE OF status ON public.prescriptions FOR EACH ROW EXECUTE FUNCTION pg_temp.pharmacy_inject_finalize_failure()';
+  PERFORM set_config('autamedica.test_delivery_failure','on',true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  v_rejected:=false;
+  BEGIN
+    INSERT INTO public.dispensation_events(id,order_id,pharmacist_id,pharmacy_id,dispense_status,
+      dispensed_medication,dispensed_formulation,dispensed_quantity)
+    VALUES(gen_random_uuid(),v_order,v_ar_pharmacist,v_ar_pharmacy,'dispensed','Synthetic','tablet',1);
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM<>'isolated_delivery_finalize_failure' THEN RAISE; END IF;
+    v_rejected:=true;
+  END;
+  IF NOT v_rejected OR (SELECT count(*) FROM public.dispensation_events WHERE order_id=v_order)<>1
+     OR (SELECT status FROM public.dispensation_orders WHERE id=v_order)<>'partially_dispensed'
+     OR (SELECT count(*) FROM public.pharmacy_audit_events WHERE order_id=v_order AND event_type='dispensation_executed')<>1 THEN
+    RAISE EXCEPTION 'Partial finalization failure left committed delivery/state/audit';
+  END IF;
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('autamedica.test_delivery_failure','off',true);
+  EXECUTE 'DROP TRIGGER isolated_delivery_failure ON public.prescriptions';
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  INSERT INTO public.dispensation_events(id,order_id,pharmacist_id,pharmacy_id,dispense_status,
     dispensed_medication,dispensed_formulation,dispensed_quantity)
-  VALUES(v_order,v_ar_pharmacist,v_ar_pharmacy,'dispensed','Synthetic','tablet',1);
+  VALUES(gen_random_uuid(),v_order,v_ar_pharmacist,v_ar_pharmacy,'dispensed','Synthetic','tablet',1);
   IF (SELECT status FROM public.dispensation_orders WHERE id=v_order)<>'dispensed' THEN
     RAISE EXCEPTION 'Delivery did not finalize order';
   END IF;

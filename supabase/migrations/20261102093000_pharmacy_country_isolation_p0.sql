@@ -30,6 +30,7 @@ COMMENT ON COLUMN public.dispensation_orders.care_country IS 'Enforced server-si
 CREATE TABLE app_private.pharmacy_prescription_release_evidence (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   prescription_id uuid NOT NULL UNIQUE REFERENCES public.prescriptions(id),
+  order_snapshot jsonb NOT NULL,
   doctor_id uuid NOT NULL REFERENCES public.doctors(id),
   patient_id uuid NOT NULL REFERENCES public.patients(id),
   care_country text NOT NULL CHECK (care_country IN ('AR','BR')),
@@ -63,17 +64,20 @@ $$;
 REVOKE ALL ON FUNCTION app_private.pharmacy_actor_authorized(uuid,text) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION app_private.pharmacy_actor_authorized(uuid,text) TO authenticated;
 
-CREATE FUNCTION app_private.pharmacy_release_evidence_matches(p_prescription uuid)
+CREATE FUNCTION app_private.pharmacy_release_evidence_matches(p_order uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
 AS $$
  SELECT EXISTS (
-   SELECT 1 FROM public.prescriptions rx
+   SELECT 1 FROM public.dispensation_orders o JOIN public.prescriptions rx ON rx.id=o.prescription_id
    JOIN app_private.pharmacy_prescription_release_evidence e
      ON e.prescription_id=rx.id AND e.revoked_at IS NULL
      AND e.doctor_id=rx.doctor_id AND e.patient_id=rx.patient_id
      AND e.care_country=rx.country_code AND e.clinical_snapshot=rx.clinical_data
      AND e.signed_pdf_url=rx.signed_pdf_url
-   WHERE rx.id=p_prescription AND rx.status IN ('signed','sent','dispensed_partial','dispensed_total')
+     AND e.order_snapshot=jsonb_build_object('medication',o.medication,'formulation',o.formulation,
+       'dose_mg_per_day',o.dose_mg_per_day,'quantity_units',o.quantity_units,'duration_days',o.duration_days,
+       'prescription_type',o.prescription_type,'dispense_window_start',o.dispense_window_start,'dispense_window_end',o.dispense_window_end)
+   WHERE o.id=p_order AND rx.status IN ('signed','sent','dispensed_partial','dispensed_total')
  );
 $$;
 REVOKE ALL ON FUNCTION app_private.pharmacy_release_evidence_matches(uuid) FROM PUBLIC,anon,authenticated,service_role;
@@ -101,6 +105,19 @@ AS $$
  );
 $$;
 REVOKE ALL ON FUNCTION app_private.pharmacy_required_validations_passed(uuid) FROM PUBLIC,anon,authenticated,service_role;
+
+-- Enum gained pharmacist in April, but the baseline profile CHECK did not.
+-- Extend its existing expression without removing other role restrictions.
+DO $profile_role$
+DECLARE v_expression text;
+BEGIN
+  SELECT pg_get_expr(conbin,conrelid) INTO v_expression FROM pg_constraint
+    WHERE conrelid='public.profiles'::regclass AND conname='chk_profiles_role';
+  IF v_expression IS NOT NULL THEN
+    ALTER TABLE public.profiles DROP CONSTRAINT chk_profiles_role;
+    EXECUTE format('ALTER TABLE public.profiles ADD CONSTRAINT chk_profiles_role CHECK ((%s) OR role::text=%L)',v_expression,'pharmacist');
+  END IF;
+END $profile_role$;
 
 -- Never default to clinically verified or reconciled merely on order insertion.
 ALTER TABLE public.dispensation_orders
@@ -183,6 +200,11 @@ BEGIN
     RAISE EXCEPTION 'dispensation_order_clinical_identity_immutable' USING ERRCODE = '23514';
   END IF;
 
+  IF TG_OP='INSERT' AND (auth.uid() IS NULL OR NOT EXISTS(
+    SELECT 1 FROM public.doctors acting JOIN public.profiles pr ON pr.user_id=acting.user_id
+    WHERE acting.id=NEW.doctor_id AND acting.user_id=auth.uid() AND acting.active AND pr.active AND pr.role::text='doctor')) THEN
+    RAISE EXCEPTION 'dispensation_order_prescriber_session_required' USING ERRCODE='42501';
+  END IF;
   IF TG_OP='INSERT' AND (NEW.prescriber_verified IS DISTINCT FROM false
        OR NEW.reconciliation_status IS DISTINCT FROM 'pending'
        OR NEW.clinician_decision IS DISTINCT FROM 'under_review'
@@ -277,7 +299,7 @@ BEGIN
        OR NEW.clinician_decision IS DISTINCT FROM 'approved' THEN
       RAISE EXCEPTION 'dispensation_clinical_verification_required' USING ERRCODE = '23514';
     END IF;
-    IF NOT app_private.pharmacy_release_evidence_matches(NEW.prescription_id) THEN
+    IF NOT app_private.pharmacy_release_evidence_matches(NEW.id) THEN
       RAISE EXCEPTION 'dispensation_verified_signature_evidence_required' USING ERRCODE='23514';
     END IF;
     IF NEW.status='approved_for_dispensation' AND NOT app_private.pharmacy_required_validations_passed(NEW.id) THEN
@@ -347,6 +369,10 @@ BEGIN
     RAISE EXCEPTION 'dispensation_event_actor_not_authorized' USING ERRCODE='42501';
   END IF;
   IF TG_TABLE_NAME = 'dispensation_validations' THEN
+    IF NOT EXISTS(SELECT 1 FROM public.dispensation_orders o WHERE o.id=NEW.order_id
+      AND o.status IN ('assigned','under_review','clarification_provided')) THEN
+      RAISE EXCEPTION 'dispensation_order_not_validatable' USING ERRCODE='23514';
+    END IF;
   IF NEW.result='overridden' AND NOT EXISTS (
     SELECT 1 FROM public.pharmacists ph WHERE ph.id=NEW.pharmacist_id
       AND ph.role='pharmacy_director' AND NEW.override_authorized_by=ph.id
@@ -430,48 +456,6 @@ CREATE TRIGGER zz_dispensation_clarifications_country
 BEFORE INSERT OR UPDATE ON public.dispensation_clarifications
 FOR EACH ROW EXECUTE FUNCTION app_private.guard_dispensation_clarification_country();
 
--- Cross-country unassigned queue is not visible/claimable even through PostgREST.
-ALTER POLICY dispensation_orders_select_pharmacist ON public.dispensation_orders
-USING (
-  EXISTS (
-    SELECT 1 FROM public.pharmacists ph JOIN public.pharmacies f ON f.id=ph.pharmacy_id
-    WHERE ph.user_id=auth.uid() AND ph.active
-      AND ph.role IN ('pharmacist','pharmacy_director')
-      AND NULLIF(btrim(ph.license_number),'') IS NOT NULL
-      AND f.active AND f.deleted_at IS NULL
-      AND ph.care_country=f.care_country
-      AND f.care_country=dispensation_orders.care_country
-      AND (dispensation_orders.pharmacy_id=f.id OR
-           (dispensation_orders.pharmacy_id IS NULL AND dispensation_orders.status='pending'))
-  )
-);
-ALTER POLICY dispensation_orders_update_pharmacist ON public.dispensation_orders
-USING (
-  EXISTS (
-    SELECT 1 FROM public.pharmacists ph JOIN public.pharmacies f ON f.id=ph.pharmacy_id
-    WHERE ph.user_id=auth.uid() AND ph.active
-      AND ph.role IN ('pharmacist','pharmacy_director')
-      AND NULLIF(btrim(ph.license_number),'') IS NOT NULL
-      AND f.active AND f.deleted_at IS NULL
-      AND ph.care_country=f.care_country
-      AND f.care_country=dispensation_orders.care_country
-      AND (dispensation_orders.pharmacy_id=f.id OR
-           (dispensation_orders.pharmacy_id IS NULL AND dispensation_orders.status='pending'))
-  )
-)
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM public.pharmacists ph JOIN public.pharmacies f ON f.id=ph.pharmacy_id
-    WHERE ph.user_id=auth.uid() AND ph.active
-      AND ph.role IN ('pharmacist','pharmacy_director')
-      AND NULLIF(btrim(ph.license_number),'') IS NOT NULL
-      AND f.active AND f.deleted_at IS NULL
-      AND ph.care_country=f.care_country
-      AND f.care_country=dispensation_orders.care_country
-      AND dispensation_orders.pharmacy_id=f.id
-  )
-);
-
 -- Prevent browsing establishments in the other country through generic authenticated SELECT.
 ALTER POLICY pharmacies_select_authenticated ON public.pharmacies
 USING (
@@ -525,11 +509,13 @@ BEGIN
      OR NEW.pharmacy_id IS DISTINCT FROM v_order.pharmacy_id THEN
     RAISE EXCEPTION 'dispensation_delivery_actor_required' USING ERRCODE='42501';
   END IF;
+  IF EXISTS(SELECT 1 FROM public.dispensation_events WHERE id=NEW.id) THEN
+    RAISE EXCEPTION 'dispensation_delivery_already_recorded' USING ERRCODE='23505'; END IF;
   IF v_order.status NOT IN ('approved_for_dispensation','partially_dispensed')
      OR NOT v_order.prescriber_verified OR v_order.reconciliation_status IS DISTINCT FROM 'reconciled'
      OR v_order.clinician_decision<>'approved' OR v_order.deleted_at IS NOT NULL
      OR current_date<v_order.dispense_window_start OR current_date>v_order.dispense_window_end
-     OR NOT app_private.pharmacy_release_evidence_matches(v_order.prescription_id)
+     OR NOT app_private.pharmacy_release_evidence_matches(v_order.id)
      OR NOT app_private.pharmacy_required_validations_passed(v_order.id) THEN
     RAISE EXCEPTION 'dispensation_delivery_not_clinically_eligible' USING ERRCODE='23514';
   END IF;
@@ -614,3 +600,73 @@ BEGIN
 END $acl$;
 
 CREATE UNIQUE INDEX pharmacy_one_order_per_prescription ON public.dispensation_orders(prescription_id);
+
+-- The canonical queue is pharmacy_dispatch_requests. Legacy queue writes cannot
+-- create or reactivate clinical work, while historical completion/cancellation is preserved.
+CREATE FUNCTION app_private.guard_pharmacy_dispatch_origin()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $$
+DECLARE v_country text; v_doctor uuid; v_request uuid;
+BEGIN
+  IF TG_TABLE_NAME='pharmacy_consultation_requests' THEN
+    IF TG_OP='INSERT' OR NEW.status::text NOT IN ('completed','cancelled','expired')
+       OR (to_jsonb(NEW)-ARRAY['status','updated_at','completed_at','cancelled_at'])
+          IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['status','updated_at','completed_at','cancelled_at']) THEN
+      RAISE EXCEPTION 'pharmacy_legacy_queue_disabled' USING ERRCODE='42501';
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF TG_TABLE_NAME='pharmacy_dispatch_requests' THEN
+    IF TG_OP='UPDATE' AND (to_jsonb(NEW)-ARRAY['status','updated_at','completed_at','cancelled_at'])
+       IS NOT DISTINCT FROM (to_jsonb(OLD)-ARRAY['status','updated_at','completed_at','cancelled_at'])
+       AND NEW.status::text IN ('completed','cancelled','expired') THEN RETURN NEW; END IF;
+    v_country:=NEW.care_country; v_doctor:=NEW.assigned_doctor_id; v_request:=NEW.id;
+    IF NEW.pharmacy_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.pharmacies f
+      WHERE f.id=NEW.pharmacy_id AND f.care_country=v_country AND f.active AND f.deleted_at IS NULL) THEN
+      RAISE EXCEPTION 'pharmacy_dispatch_origin_country_mismatch' USING ERRCODE='23514';
+    END IF;
+  ELSE
+    IF TG_OP='UPDATE' AND NEW.status::text IN ('rejected','expired','cancelled')
+       AND (NEW.doctor_id,NEW.dispatch_request_id) IS NOT DISTINCT FROM (OLD.doctor_id,OLD.dispatch_request_id)
+    THEN RETURN NEW; END IF;
+    SELECT care_country,id INTO v_country,v_request FROM public.pharmacy_dispatch_requests WHERE id=NEW.dispatch_request_id;
+    v_doctor:=NEW.doctor_id;
+  END IF;
+  IF v_doctor IS NOT NULL AND NOT EXISTS(
+    SELECT 1 FROM public.doctors d JOIN auth.users u ON u.id=d.user_id
+    JOIN public.profiles pr ON pr.user_id=d.user_id AND pr.active AND pr.role::text='doctor'
+    JOIN public.doctor_duty_status duty ON duty.doctor_id=d.id AND duty.is_on_duty
+      AND duty.last_heartbeat_at>now()-interval '90 seconds' AND duty.last_heartbeat_at<=now()+interval '10 seconds'
+    JOIN public.pharmacy_dispatch_requests r ON r.id=v_request
+    WHERE d.id=v_doctor AND d.active AND d.care_country=v_country
+      AND (duty.current_active_request_id IS NULL OR duty.current_active_request_id=v_request)
+      AND r.tier_requested::text=ANY(d.enabled_service_tiers)
+      AND r.tier_requested::text=ANY(duty.active_tiers::text[])
+  ) THEN RAISE EXCEPTION 'pharmacy_dispatch_doctor_not_operationally_eligible' USING ERRCODE='42501'; END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION app_private.guard_pharmacy_dispatch_origin() FROM PUBLIC,anon,authenticated,service_role;
+CREATE TRIGGER zzz_pharmacy_dispatch_origin BEFORE INSERT OR UPDATE ON public.pharmacy_dispatch_requests
+FOR EACH ROW EXECUTE FUNCTION app_private.guard_pharmacy_dispatch_origin();
+CREATE TRIGGER zzz_pharmacy_dispatch_offer_origin BEFORE INSERT OR UPDATE ON public.dispatch_offers
+FOR EACH ROW EXECUTE FUNCTION app_private.guard_pharmacy_dispatch_origin();
+CREATE TRIGGER zzz_pharmacy_legacy_disabled BEFORE INSERT OR UPDATE ON public.pharmacy_consultation_requests
+FOR EACH ROW EXECUTE FUNCTION app_private.guard_pharmacy_dispatch_origin();
+
+GRANT INSERT ON public.dispensation_orders TO authenticated;
+CREATE POLICY pharmacy_prescriber_insert ON public.dispensation_orders FOR INSERT TO authenticated
+WITH CHECK(EXISTS(SELECT 1 FROM public.doctors d WHERE d.id=dispensation_orders.doctor_id AND d.user_id=auth.uid() AND d.active));
+
+ALTER TABLE public.dispensation_events ALTER COLUMN id DROP DEFAULT;
+
+-- Preserve the complete current signup trigger; suppress only the unlicensed
+-- pharmacist placeholder. Trusted enrollment creates membership after signup.
+DO $pharmacy_signup$
+DECLARE v_definition text; v_original text:=E'    WHEN ''pharmacist'' THEN\n      INSERT INTO public.pharmacists (user_id)\n      VALUES (NEW.id)\n      ON CONFLICT DO NOTHING;';
+BEGIN
+  SELECT pg_get_functiondef('public.handle_new_user()'::regprocedure) INTO v_definition;
+  IF position(v_original IN v_definition)=0 THEN
+    RAISE EXCEPTION 'pharmacy_signup_definition_changed_requires_review';
+  END IF;
+  EXECUTE replace(v_definition,v_original,E'    WHEN ''pharmacist'' THEN\n      NULL; -- Membership requires trusted pharmacy enrollment.');
+END $pharmacy_signup$;

@@ -26,6 +26,7 @@ vi.mock('@/lib/runtime-env', () => ({
 
 const REQUEST_RECORD = {
   id: 'req-1',
+  care_country: 'AR',
   requested_by_user_id: 'patient-user-1',
   assigned_doctor_id: 'doc-row-1',
   status: 'searching',
@@ -37,6 +38,8 @@ const REQUEST_RECORD = {
 
 const DOCTOR_ROW = {
   id: 'doc-row-1',
+  care_country: 'AR',
+  active: true,
   user_id: 'doctor-user-1',
   license_number: 'MN12345',
   specialty: 'Clínica Médica',
@@ -108,6 +111,8 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
 
   it('devuelve 404 si la solicitud no existe en la base de datos', async () => {
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'patients') return buildTableChain({ id: 'patient-row' })
+      if (table === 'profiles') return buildTableChain(PROFILE_ROW)
       if (table === 'pharmacy_dispatch_requests') {
         return buildTableChain(null, null)
       }
@@ -122,6 +127,8 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
 
   it('devuelve 401 si no hay sesión ni token de acceso (previene fuga de PHI)', async () => {
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'patients') return buildTableChain({ id: 'patient-row' })
+      if (table === 'profiles') return buildTableChain(PROFILE_ROW)
       if (table === 'pharmacy_dispatch_requests') {
         return buildTableChain(REQUEST_RECORD, null)
       }
@@ -137,6 +144,8 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
 
   it('devuelve 401 si el guest token pertenece a otra solicitud (callId mismatch)', async () => {
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'patients') return buildTableChain({ id: 'patient-row' })
+      if (table === 'profiles') return buildTableChain(PROFILE_ROW)
       if (table === 'pharmacy_dispatch_requests') {
         return buildTableChain(REQUEST_RECORD, null)
       }
@@ -161,14 +170,13 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
 
   it('devuelve 200 y datos de la consulta con guest token válido por query param (?token=)', async () => {
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'patients') return buildTableChain({ id: 'patient-row' })
+      if (table === 'profiles') return buildTableChain(PROFILE_ROW)
       if (table === 'pharmacy_dispatch_requests') {
         return buildTableChain(REQUEST_RECORD, null)
       }
       if (table === 'doctors') {
         return buildTableChain(DOCTOR_ROW, null)
-      }
-      if (table === 'profiles') {
-        return buildTableChain(PROFILE_ROW, null)
       }
       return buildTableChain(null, null)
     })
@@ -194,14 +202,13 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
 
   it('devuelve 200 con guest token en header Authorization: Bearer', async () => {
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'patients') return buildTableChain({ id: 'patient-row' })
+      if (table === 'profiles') return buildTableChain(PROFILE_ROW)
       if (table === 'pharmacy_dispatch_requests') {
         return buildTableChain(REQUEST_RECORD, null)
       }
       if (table === 'doctors') {
         return buildTableChain(DOCTOR_ROW, null)
-      }
-      if (table === 'profiles') {
-        return buildTableChain(PROFILE_ROW, null)
       }
       return buildTableChain(null, null)
     })
@@ -225,14 +232,13 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
 
   it('devuelve 200 si el usuario autenticado es el paciente dueño (requested_by_user_id)', async () => {
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'patients') return buildTableChain({ id: 'patient-row' })
+      if (table === 'profiles') return buildTableChain(PROFILE_ROW)
       if (table === 'pharmacy_dispatch_requests') {
         return buildTableChain(REQUEST_RECORD, null)
       }
       if (table === 'doctors') {
         return buildTableChain(DOCTOR_ROW, null)
-      }
-      if (table === 'profiles') {
-        return buildTableChain(PROFILE_ROW, null)
       }
       return buildTableChain(null, null)
     })
@@ -251,14 +257,13 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
 
   it('devuelve 200 si el usuario autenticado es el médico asignado', async () => {
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'patients') return buildTableChain({ id: 'patient-row' })
+      if (table === 'profiles') return buildTableChain(PROFILE_ROW)
       if (table === 'pharmacy_dispatch_requests') {
         return buildTableChain(REQUEST_RECORD, null)
       }
       if (table === 'doctors') {
         return buildTableChain(DOCTOR_ROW, null)
-      }
-      if (table === 'profiles') {
-        return buildTableChain(PROFILE_ROW, null)
       }
       return buildTableChain(null, null)
     })
@@ -275,11 +280,13 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     expect(body.data.request.id).toBe('req-1')
   })
 
-  it('devuelve 200 si el usuario autenticado es un médico en guardia activa', async () => {
+  it('bloquea un médico de guardia que no está asignado a la solicitud', async () => {
     const unassignedReq = { ...REQUEST_RECORD, assigned_doctor_id: null }
     const otherDoctor = { id: 'other-doc-row', user_id: 'other-doc-user' }
 
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'patients') return buildTableChain({ id: 'patient-row' })
+      if (table === 'profiles') return buildTableChain(PROFILE_ROW)
       if (table === 'pharmacy_dispatch_requests') {
         return buildTableChain(unassignedReq, null)
       }
@@ -298,13 +305,15 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
       }),
     )
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(401)
     const body = await response.json()
-    expect(body.success).toBe(true)
+    expect(body.success).toBe(false)
   })
 
   it('devuelve 401 si un usuario autenticado ajeno (no dueño, no asignado, no guardia) intenta acceder', async () => {
     supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'patients') return buildTableChain({ id: 'patient-row' })
+      if (table === 'profiles') return buildTableChain(PROFILE_ROW)
       if (table === 'pharmacy_dispatch_requests') {
         return buildTableChain(REQUEST_RECORD, null)
       }
@@ -325,3 +334,4 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     expect(body.error.code).toBe('UNAUTHENTICATED')
   })
 })
+

@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
     // If order was 'assigned', transition to 'under_review'
     if (order.status === 'assigned') {
-      await supabaseAdmin
+      await supabaseUser
         .from('dispensation_orders')
         .update({ status: 'under_review' })
         .eq('id', order.id);
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     }
 
     // Record validation
-    const { error: validationError } = await supabaseAdmin
+    const { error: validationError } = await supabaseUser
       .from('dispensation_validations')
       .insert({
         order_id: body.order_id,
@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
 
     // Audit
     const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
-    await supabaseAdmin.from('pharmacy_audit_events').insert({
+    await supabaseUser.from('pharmacy_audit_events').insert({
       order_id: body.order_id,
       event_type: 'validation_performed',
       actor_id: user.id,
@@ -163,12 +163,12 @@ Deno.serve(async (req) => {
 
     // Check if validation failed → block order
     if (body.result === 'fail') {
-      await supabaseAdmin
+      await supabaseUser
         .from('dispensation_orders')
         .update({ status: 'blocked' })
         .eq('id', body.order_id);
 
-      await supabaseAdmin.from('pharmacy_audit_events').insert({
+      await supabaseUser.from('pharmacy_audit_events').insert({
         order_id: body.order_id,
         event_type: 'order_blocked',
         actor_id: user.id,
@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
 
     if (allPassed) {
       // Auto-approve (DB trigger will enforce extraordinary dose check)
-      const { error: approveError } = await supabaseAdmin
+      const { error: approveError } = await supabaseUser
         .from('dispensation_orders')
         .update({ status: 'approved_for_dispensation' })
         .eq('id', body.order_id);
@@ -234,7 +234,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      await supabaseAdmin.from('pharmacy_audit_events').insert({
+      await supabaseUser.from('pharmacy_audit_events').insert({
         order_id: body.order_id,
         event_type: 'dispensation_approved',
         actor_id: user.id,
@@ -266,3 +266,4 @@ Deno.serve(async (req) => {
     });
   }
 });
+

@@ -33,6 +33,7 @@ export interface ValidateInput {
 }
 
 export interface DispenseInput {
+  idempotency_key: string;
   dispensed_medication: string;
   dispensed_formulation: string;
   dispensed_quantity: number;
@@ -54,6 +55,8 @@ export type ServiceError =
   | { code: 'invalid_result' }
   | { code: 'override_requires_reason' }
   | { code: 'missing_fields' }
+  | { code: 'invalid_idempotency_key' }
+  | { code: 'idempotency_conflict' }
   | { code: 'invalid_dispense_quantity' }
   | { code: 'dispense_quantity_exceeds_remaining' }
   | { code: 'bridge_formulation_mismatch' }
@@ -243,42 +246,18 @@ export const dispensationService = {
     orderId: string,
     input: DispenseInput,
   ): Promise<Result<{ status: string; total_dispensed: number; target_quantity: number; prescription_status_updated: string }>> {
-    if (!input.dispensed_medication || !input.dispensed_formulation || !input.dispensed_quantity) {
-      return fail({ code: 'missing_fields' });
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.idempotency_key ?? '')) {
+      return fail({ code: 'invalid_idempotency_key' });
     }
-    if (!Number.isFinite(input.dispensed_quantity) || input.dispensed_quantity <= 0) {
-      return fail({ code: 'invalid_dispense_quantity' });
-    }
-
+    if (!input.dispensed_medication || !input.dispensed_formulation) return fail({ code: 'missing_fields' });
+    if (!Number.isSafeInteger(input.dispensed_quantity) || input.dispensed_quantity <= 0) return fail({ code: 'invalid_dispense_quantity' });
     const pharmacist = await verifiedPharmacist(supabase, userId);
     if (!pharmacist) return fail({ code: 'not_pharmacist' });
-
     const order = await dispensationRepo.findOrderById(supabase, orderId);
     if (!order) return fail({ code: 'order_not_found' });
-    if (!order.pharmacy_id || order.pharmacy_id !== pharmacist.pharmacy_id || order.care_country !== pharmacist.care_country) return fail({ code: 'order_not_in_pharmacy' });
-    if (!DISPENSABLE_STATUSES.includes(order.status)) {
-      return fail({ code: 'invalid_status', status: order.status });
-    }
-
-    // Bridge: exact match
-    if (order.prescription_type === 'transition_bridge') {
-      if (input.dispensed_formulation !== order.formulation) {
-        return fail({ code: 'bridge_formulation_mismatch' });
-      }
-      if (input.dispensed_quantity !== order.quantity_units) {
-        return fail({ code: 'bridge_quantity_mismatch' });
-      }
-    }
-
-    const currentDispensed = await dispensationRepo.getTotalDispensed(supabase, orderId);
-    const targetQuantity = order.quantity_units ?? 0;
-    const remainingQuantity = targetQuantity - currentDispensed;
-    if (targetQuantity <= 0 || input.dispensed_quantity > remainingQuantity) {
-      return fail({ code: 'dispense_quantity_exceeds_remaining' });
-    }
-
-    // Record event
-    await dispensationRepo.insertDispensationEvent(supabase, {
+    if (order.pharmacy_id !== pharmacist.pharmacy_id || order.care_country !== pharmacist.care_country) return fail({ code: 'order_not_in_pharmacy' });
+    const event = {
+      id: input.idempotency_key,
       order_id: orderId,
       pharmacist_id: pharmacist.id,
       pharmacy_id: pharmacist.pharmacy_id,
@@ -292,38 +271,27 @@ export const dispensationService = {
       substitution_reason: input.substitution_reason ?? null,
       substitution_approved_by_prescriber: input.substitution_approved_by_prescriber ?? false,
       pharmacy_notes: input.pharmacy_notes ?? null,
-      dispensed_at: new Date().toISOString(),
-    });
-
-    // Calculate totals
-    const totalDispensed = currentDispensed + input.dispensed_quantity;
-    const newStatus = totalDispensed >= targetQuantity ? 'dispensed' : 'partially_dispensed';
-
-    // Update statuses
-    await dispensationRepo.updateOrderStatus(supabase, orderId, newStatus);
-
-    const prescriptionStatus = newStatus === 'dispensed' ? 'dispensed_total' : 'dispensed_partial';
-    await dispensationRepo.updatePrescriptionStatus(supabase, order.prescription_id, prescriptionStatus);
-
-    // Audit
-    await dispensationRepo.logAudit(supabase, {
-      order_id: orderId,
-      event_type: 'dispensation_executed',
-      actor_id: userId,
-      actor_role: 'pharmacist',
-      details: {
-        dispensed_quantity: input.dispensed_quantity,
-        total_dispensed: totalDispensed,
-        target_quantity: targetQuantity,
-        new_status: newStatus,
-      },
-    });
-
-    return ok({
-      status: newStatus,
-      total_dispensed: totalDispensed,
-      target_quantity: targetQuantity,
-      prescription_status_updated: prescriptionStatus,
-    });
+    };
+    let previous = await dispensationRepo.findDispensationEvent(supabase, input.idempotency_key);
+    if (!previous) {
+      if (!DISPENSABLE_STATUSES.includes(order.status)) return fail({ code: 'invalid_status', status: order.status });
+      try {
+        // PostgreSQL locks the order and commits event, order, Rx and audit together.
+        await dispensationRepo.insertDispensationEvent(supabase, event);
+      } catch (error) {
+        if ((error as { code?: string }).code !== '23505') throw error;
+        previous = await dispensationRepo.findDispensationEvent(supabase, input.idempotency_key);
+        if (!previous) throw error;
+      }
+    }
+    const storedEvent = previous;
+    if (storedEvent && Object.entries(event).some(([key, value]) => storedEvent[key] !== value)) {
+      return fail({ code: 'idempotency_conflict' });
+    }
+    const updated = await dispensationRepo.findOrderById(supabase, orderId);
+    if (!updated || !['dispensed', 'partially_dispensed'].includes(updated.status)) throw new Error('dispensation_commit_not_verified');
+    const total = await dispensationRepo.getTotalDispensed(supabase, orderId);
+    return ok({ status: updated.status, total_dispensed: total, target_quantity: updated.quantity_units ?? 0,
+      prescription_status_updated: updated.status === 'dispensed' ? 'dispensed_total' : 'dispensed_partial' });
   },
 };

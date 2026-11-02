@@ -1,8 +1,9 @@
 import type { APIRoute } from 'astro'
-import { internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
+import { internalError, jsonOk, notFound, unauthorized, conflict } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { resolveGuestSecret } from '@/lib/runtime-env'
 import { verifyGuestToken } from '@/lib/calls/lib/guest-token'
+import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { logger } from '@autamedica/shared'
 
 /**
@@ -31,6 +32,18 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       return notFound('request_not_found')
     }
 
+    if (!['AR', 'BR'].includes(requestRecord.care_country ?? '')) return notFound('request_not_available')
+
+    // Tokens are capabilities, not permanent clinical authorization: honor revocation.
+    if (!requestRecord.requested_by_user_id) return unauthorized()
+    const [owner, ownerProfile] = await Promise.all([
+      supabase.from('patients').select('id').eq('user_id', requestRecord.requested_by_user_id)
+        .eq('care_country', requestRecord.care_country).eq('active', true).maybeSingle(),
+      supabase.from('profiles').select('user_id').eq('user_id', requestRecord.requested_by_user_id)
+        .eq('role', 'patient').eq('active', true).maybeSingle(),
+    ])
+    if (owner.error || ownerProfile.error || !owner.data || !ownerProfile.data) return unauthorized()
+
     // Extraer token de query param o header Authorization
     const url = new URL(request.url)
     const queryToken = url.searchParams.get('token')?.trim() || null
@@ -48,7 +61,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       const secret = resolveGuestSecret(locals.runtime?.env)
       if (secret) {
         const guestPayload = await verifyGuestToken(candidateGuestToken, secret)
-        if (guestPayload?.callId === requestRecord.id) {
+        if (guestPayload?.callId === requestRecord.id && guestPayload.roomId === requestRecord.cloudflare_room_id) {
           isAuthorized = true
         }
       }
@@ -78,32 +91,20 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         if (requestRecord.requested_by_user_id && requestRecord.requested_by_user_id === authUserId) {
           isAuthorized = true
         }
-        // a.2) Doctor asignado directamente (por user_id)
-        else if (requestRecord.assigned_doctor_id && requestRecord.assigned_doctor_id === authUserId) {
-          isAuthorized = true
-        } else {
+        else {
           // Resolver registro de médico
           const { data: doctorRow } = await supabase
             .from('doctors')
-            .select('id')
+            .select('id, care_country, active')
             .eq('user_id', authUserId)
             .maybeSingle()
 
-          if (doctorRow) {
+          const { data: activeProfile } = await supabase.from('profiles').select('user_id')
+            .eq('user_id', authUserId).eq('active', true).eq('role', 'doctor').maybeSingle()
+          if (activeProfile && doctorRow?.active && doctorRow.care_country === requestRecord.care_country) {
             // a.3) Doctor asignado por id en tabla doctors
             if (requestRecord.assigned_doctor_id && requestRecord.assigned_doctor_id === doctorRow.id) {
               isAuthorized = true
-            } else {
-              // a.4) Doctor en guardia activa
-              const { data: dutyStatus } = await supabase
-                .from('doctor_duty_status')
-                .select('is_on_duty')
-                .eq('doctor_id', doctorRow.id)
-                .maybeSingle()
-
-              if (dutyStatus?.is_on_duty) {
-                isAuthorized = true
-              }
             }
           }
         }
@@ -119,11 +120,11 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     if (requestRecord.assigned_doctor_id) {
       const { data: doctorRow } = await supabase
         .from('doctors')
-        .select('id, user_id, license_number, specialty')
+        .select('id, user_id, license_number, specialty, care_country, active')
         .eq('id', requestRecord.assigned_doctor_id)
         .maybeSingle()
 
-      if (doctorRow) {
+      if (doctorRow?.active && doctorRow.care_country === requestRecord.care_country) {
         let fullName = ''
         if (doctorRow.user_id) {
           const { data: profile } = await supabase
@@ -146,4 +147,20 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     logger.error('[api/pharmacy/dispatch/[id]] Exception', { err })
     return internalError()
   }
+}
+
+/** Cancel only the authenticated owner's canonical request, without touching Gen 1. */
+export const DELETE: APIRoute = async ({ params, request, locals }) => {
+  const context = await resolvePatientContext(request, locals)
+  if (!context?.careCountry) return unauthorized()
+  if (!params.id) return notFound()
+  const admin = createAstroAdminClient(locals.runtime?.env)
+  const { data, error } = await admin.from('pharmacy_dispatch_requests')
+    .update({ status: 'cancelled' }).eq('id', params.id)
+    .eq('patient_id', context.patientId).eq('requested_by_user_id', context.userId)
+    .eq('care_country', context.careCountry).eq('status', 'searching')
+    .select('id').maybeSingle()
+  if (error) return internalError()
+  if (!data) return conflict('request_cannot_be_cancelled')
+  return jsonOk({ cancelled: true })
 }

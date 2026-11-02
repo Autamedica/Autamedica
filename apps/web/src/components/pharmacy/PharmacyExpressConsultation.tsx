@@ -177,12 +177,12 @@ export function PharmacyExpressConsultation({
   const handleCancelRequest = async () => {
     if (!requestId) return
     try {
-      await fetchApi('/api/pharmacy/on-demand/cancel', {
-        method: 'POST',
-        body: { requestId },
+      await fetchApi(`/api/pharmacy/dispatch/${encodeURIComponent(requestId)}`, {
+        method: 'DELETE',
       })
-    } catch {
-      // noop
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'No se pudo cancelar la solicitud')
+      return
     } finally {
       setStep('CANCELLED')
     }
@@ -568,3 +568,4 @@ export function PharmacyExpressConsultation({
     </div>
   )
 }
+

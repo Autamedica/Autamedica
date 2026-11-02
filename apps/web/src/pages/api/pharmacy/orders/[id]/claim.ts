@@ -3,21 +3,19 @@ import { logger } from '@autamedica/shared';
 import { withAuthRole, PHARMACIST_ROLES, isAuthed } from '@/lib/api-auth';
 import { jsonOk, internalError } from '@/lib/api-helpers';
 import { dispensationService } from '@/lib/pharmacy/services/dispensation.service';
-import { createAstroAdminClient } from '@/lib/supabase';
 
 export const POST: APIRoute = async ({ request, params, locals }) => {
   try {
-    const auth = await withAuthRole(request, PHARMACIST_ROLES);
+    const auth = await withAuthRole(request, PHARMACIST_ROLES, locals);
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
-    const admin = createAstroAdminClient(locals.runtime?.env);
 
     const orderId = params.id;
     if (!orderId) {
       return new Response(JSON.stringify({ error: 'order_id required' }), { status: 400 });
     }
 
-    const result = await dispensationService.claimOrder(admin, user.id, orderId);
+    const result = await dispensationService.claimOrder(auth.supabase, user.id, orderId);
     if (result.ok) {
       return jsonOk(result.data);
     }
@@ -32,3 +30,4 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     return internalError();
   }
 };
+

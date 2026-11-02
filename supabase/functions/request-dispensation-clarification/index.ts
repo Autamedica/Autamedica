@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
-    const { data: clarification, error: insertError } = await supabaseAdmin
+    const { data: clarification, error: insertError } = await supabaseUser
       .from('dispensation_clarifications')
       .insert({
         order_id: body.order_id,
@@ -137,14 +137,14 @@ Deno.serve(async (req) => {
     }
 
     // Transition order status
-    await supabaseAdmin
+    await supabaseUser
       .from('dispensation_orders')
       .update({ status: 'clarification_requested' })
       .eq('id', body.order_id);
 
     // Audit
     const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
-    await supabaseAdmin.from('pharmacy_audit_events').insert({
+    await supabaseUser.from('pharmacy_audit_events').insert({
       order_id: body.order_id,
       event_type: 'clarification_requested',
       actor_id: user.id,
@@ -201,3 +201,4 @@ Deno.serve(async (req) => {
     });
   }
 });
+

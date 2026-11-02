@@ -56,12 +56,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (prescription.status !== 'signed') {
-      return new Response(JSON.stringify({ error: `Prescription status is "${prescription.status}", expected "signed"` }), {
-        status: 409,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
 
 
     // Do not turn any logged-in account into a service-role prescription processor.
@@ -100,6 +94,12 @@ Deno.serve(async (req) => {
         /^[A-Z]{2}$/.test(license.uf_brazil || '');
     if (!licenseMatchesCountry || doctor.care_country !== country || patient.care_country !== country) {
       return new Response(JSON.stringify({ error: 'Prescription, physician and patient jurisdiction must match' }), {
+        status: 409, headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (prescription.status !== 'signed') {
+      return new Response(JSON.stringify({ error: 'signed_prescription_required' }), {
         status: 409, headers: { 'Content-Type': 'application/json' },
       });
     }
@@ -175,12 +175,19 @@ Deno.serve(async (req) => {
       prescriber_notes: clinicalData.notes || null,
     };
 
-    const { data: order, error: insertError } = await supabaseAdmin
+    const { data: order, error: insertError } = await supabaseUser
       .from('dispensation_orders')
       .insert(orderData)
       .select('id')
       .single();
 
+    if (insertError?.code === '23505') {
+      const { data: existing } = await supabaseUser.from('dispensation_orders')
+        .select('*').eq('prescription_id', prescription.id).maybeSingle();
+      if (existing) return new Response(JSON.stringify({ order: existing, reused: true }), {
+        status: 200, headers: { 'Content-Type': 'application/json' },
+      });
+    }
     if (insertError) {
       captureEdgeException(insertError, {
         layer: 'data-platform',
@@ -257,3 +264,4 @@ Deno.serve(async (req) => {
     });
   }
 });
+

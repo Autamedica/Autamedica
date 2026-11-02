@@ -124,12 +124,10 @@ export async function resolvePatientContext(
     // Role on public.profiles is protected by role-authority guards.
     // Never derive clinical access from self-editable user_metadata.
     const admin = createAstroAdminClient(locals?.runtime?.env)
-    if (!userRole) {
-      const { data: profile, error: profileError } = await admin
-        .from('profiles').select('role').eq('user_id', userId).maybeSingle()
-      if (profileError) return null
-      userRole = profile?.role ?? undefined
-    }
+    const { data: profile, error: profileError } = await admin
+      .from('profiles').select('role, active').eq('user_id', userId).maybeSingle()
+    if (profileError || !profile?.active) return null
+    userRole = profile.role ?? undefined
 
     if (!userRole || !PATIENT_ALLOWED_ROLES.has(userRole)) {
       logger.info('[resolvePatientContext] User role does not grant patient access', {
@@ -142,9 +140,11 @@ export async function resolvePatientContext(
     // 4. Resolve Patient ID
     let { data: patient, error: patientError } = await admin
       .from('patients')
-      .select('id, care_country')
+      .select('id, care_country, active')
       .eq('user_id', userId)
       .maybeSingle()
+
+    if (patient && !patient.active) return null
 
     // 5. Auto-create patient record only for users with the 'patient' role.
     // Admin roles can look up existing patient records but should not trigger creation.
@@ -153,7 +153,7 @@ export async function resolvePatientContext(
       const { data: insertedPatient, error: insertPatientError } = await admin
         .from('patients')
         .upsert({ user_id: userId, active: true }, { onConflict: 'user_id' })
-        .select('id, care_country')
+        .select('id, care_country, active')
         .maybeSingle()
 
       if (insertPatientError) {
@@ -176,4 +176,5 @@ export async function resolvePatientContext(
     return null
   }
 }
+
 

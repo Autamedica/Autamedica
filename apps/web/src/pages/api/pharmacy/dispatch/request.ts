@@ -1,10 +1,11 @@
 import type { APIRoute } from 'astro'
-import { badRequest, forbidden, internalError, jsonOk, serviceUnavailable } from '@/lib/api-helpers'
+import { badRequest, forbidden, internalError, jsonOk, serviceUnavailable, unauthorized, conflict } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
-import { generateCloudflareRoomId, type DispatchTierCategory } from '@/lib/pharmacy/pharmacy-on-demand.service'
+import type { DispatchTierCategory } from '@/lib/pharmacy/pharmacy-on-demand.service'
 import { signGuestToken } from '@/lib/calls/lib/guest-token'
 import { resolveGuestSecret } from '@/lib/runtime-env'
 import { logger } from '@autamedica/shared'
+import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 
 const VALID_TIERS: DispatchTierCategory[] = [
   'general',
@@ -104,23 +105,46 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
       const { data: pharmacy, error: pharmErr } = await supabase
         .from('pharmacies')
-        .select('id')
+        .select('id, active, deleted_at, care_country')
         .eq('id', cleanPharmacyId)
         .maybeSingle()
 
-      if (pharmErr || !pharmacy) {
+      if (pharmErr || !pharmacy?.active || pharmacy.deleted_at) {
         return badRequest('Farmacia no registrada o inválida')
       }
       resolvedPharmacyId = pharmacy.id
     }
 
-    const cloudflareRoomId = generateCloudflareRoomId(selectedTier, sanitizedDni)
+    const context = await resolvePatientContext(request, locals)
+    if (!context) return unauthorized('Inicia sesión como paciente para solicitar atención')
+    if (!context.careCountry) {
+      return conflict('Selecciona tu país de atención en el portal del paciente antes de continuar')
+    }
+    const { data: patient, error: patientError } = await supabase.from('patients')
+      .select('id, care_country').eq('id', context.patientId)
+      .eq('user_id', context.userId).eq('active', true).maybeSingle()
+    if (patientError) return internalError()
+    if (!patient || patient.care_country !== context.careCountry) return forbidden('patient_inactive_or_country_mismatch')
 
-    // Asociar usuario dueño si la petición proviene de un usuario autenticado
-    const sessionUser = (locals as { user?: { id: string } }).user ?? locals.session?.user
-    const requestedByUserId = sessionUser?.id || null
+    // Resolve even a kiosk-only origin through the persisted establishment.
+    if (resolvedPharmacyId) {
+      const { data: origin, error: originError } = await supabase.from('pharmacies')
+        .select('id, active, deleted_at, care_country').eq('id', resolvedPharmacyId).maybeSingle()
+      if (originError) return internalError()
+      if (!origin?.active || origin.deleted_at || origin.care_country !== context.careCountry) {
+        return forbidden('La farmacia y tu país de atención no coinciden. Usa el acceso de tu país')
+      }
+    } else if (resolvedKioskId) {
+      return forbidden('kiosk_country_not_configured')
+    }
+    const secret = resolveGuestSecret(locals.runtime?.env)
+    if (!secret) return serviceUnavailable('guest_token_not_configured')
+    const cloudflareRoomId = `cf-room-${selectedTier}-${crypto.randomUUID()}`
+    const requestedByUserId = context.userId
 
     const insertPayload = {
+      care_country: context.careCountry,
+      patient_id: context.patientId,
       patient_dni: sanitizedDni,
       patient_phone: sanitizedPhone,
       patient_name: sanitizedName,
@@ -144,13 +168,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         return forbidden('care_country_required_or_mismatched')
       }
       logger.error('[api/pharmacy/dispatch/request] Error inserting request', { error })
-      return internalError(error.message)
-    }
-
-    const secret = resolveGuestSecret(locals.runtime?.env)
-    if (!secret) {
-      logger.error('[api/pharmacy/dispatch/request] GUEST_TOKEN_SECRET not configured')
-      return serviceUnavailable('guest_token_not_configured')
+      return internalError()
     }
 
     // Generar token de acceso criptográfico (JWT firmado con HS256)
@@ -169,9 +187,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       accessToken,
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Error inesperado'
     logger.error('[api/pharmacy/dispatch/request] Exception', { err })
-    return internalError(message)
+    return internalError()
   }
 }
+
 

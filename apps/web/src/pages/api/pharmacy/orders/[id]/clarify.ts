@@ -162,7 +162,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     const requestedAt = new Date();
     const expiresAt = new Date(requestedAt.getTime() + 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: clarification, error: clarificationError } = await admin
+    const { data: clarification, error: clarificationError } = await auth.supabase
       .from('dispensation_clarifications')
       .insert({
         order_id: orderId,
@@ -181,7 +181,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return internalError();
     }
 
-    const { error: updateOrderError } = await admin
+    const { error: updateOrderError } = await auth.supabase
       .from('dispensation_orders')
       .update({ status: 'clarification_requested' })
       .eq('id', orderId);
@@ -191,7 +191,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return internalError();
     }
 
-    await admin
+    await auth.supabase
       .from('pharmacy_audit_events')
       .insert({
         order_id: orderId,
@@ -199,7 +199,6 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
         actor_id: user.id,
         actor_role: 'pharmacist',
         details: {
-          question,
           category: questionCategory,
           clarification_id: clarification.id,
           expires_at: expiresAt,
@@ -253,3 +252,4 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     return internalError();
   }
 };
+
