@@ -12,6 +12,7 @@ type QueryResponse<T> = { data: T | null; error: QueryError | null };
 type QueryChain<T> = PromiseLike<QueryResponse<T>> & {
   gte(column: string, value: string): QueryChain<T>;
   neq(column: string, value: string): QueryChain<T>;
+  or(filters: string): QueryChain<T>;
   not(column: string, operator: string, value: string): QueryChain<T>;
   order(column: string, options?: { ascending?: boolean }): QueryChain<T>;
 };
@@ -138,7 +139,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   try {
     const admin = createAstroAdminClient(runtimeEnv);
-    const growth = (admin as any).schema("growth_os") as unknown as GrowthSchemaClient;
+    const growth = (admin as unknown as { schema(name: string): GrowthSchemaClient }).schema("growth_os");
 
     const { data: attribution, error: attrError } = await growth
       .from<LeadAttributionRow>("lead_attribution")
@@ -147,7 +148,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       )
       .gte("lead_created_at", since)
       .neq("lead_status", "unsubscribed")
-      .neq("first_utm_source", "codex")
+      .or("first_utm_source.is.null,first_utm_source.neq.codex")
       .not("lead_email", "ilike", "%@autamedica.test");
 
     if (attrError) throw attrError;
@@ -163,7 +164,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const statsBySource: Record<string, SourceStats> = {};
 
     attribution?.forEach((lead) => {
-      const source = lead.first_utm_source || "direct";
+      const source = lead.first_utm_source || "unknown";
       if (!statsBySource[source]) {
         statsBySource[source] = {
           source,
@@ -230,3 +231,4 @@ export const GET: APIRoute = async ({ request, locals }) => {
     });
   }
 };
+

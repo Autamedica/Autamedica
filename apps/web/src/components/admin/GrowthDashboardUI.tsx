@@ -34,8 +34,15 @@ interface GrowthData {
     source: string;
     profiles_created: number;
     newsletter_subscribed: number;
+    reconciliation?: {
+      profiles_checked: number;
+      matched_profiles: number;
+      unmatched_profiles: number;
+      profiles_without_email: number;
+    };
     recent_profiles: Array<{
       user_id: string;
+      growth_lead_match?: "matched" | "unmatched" | "missing_email" | "unknown";
       email: string | null;
       role: string | null;
       newsletter_subscribed: boolean | null;
@@ -68,6 +75,12 @@ interface GrowthData {
     vertical: string | null;
     enabled: boolean;
   }>;
+  resend?: {
+    sent_events: number;
+    delivered_events: number;
+    clicked_events: number;
+    last_event_at: string | null;
+  };
   newsletter?: {
     source: string;
     sent_broadcasts: number;
@@ -196,6 +209,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
     nurturing_sequences,
     attribution,
     newsletter,
+    resend,
     cac,
   } = data;
   const totalLeads = summary.total_leads || 0;
@@ -212,9 +226,8 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
   const resendDelayed = newsletter?.delayed_emails ?? 0;
   const resendOpened = newsletter?.opened_emails ?? 0;
   const resendClicked = newsletter?.clicked_emails ?? 0;
-  const profileRegistrations = supabase_signups?.profiles_created ?? 0;
-  const growthLeads = summary.total_leads || 0;
-  const profileLeadGap = Math.max(profileRegistrations - growthLeads, 0);
+  const reconciliation = supabase_signups?.reconciliation;
+  const profileLeadGap = reconciliation?.unmatched_profiles;
   const lastNewsletterEvent = newsletter?.last_event_at
     ? formatDateTime(newsletter.last_event_at)
     : "sin eventos";
@@ -224,13 +237,9 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
   const hasAdSpend = Boolean(cac?.spend_rows && cac.spend_rows > 0);
   const hasRecentVerifiedNewsletter = Boolean(newsletter?.last_event_at);
   const recentProfiles = supabase_signups?.recent_profiles ?? [];
-  const leadEmails = new Set(
-    recent_leads.map((lead) => lead.email.toLowerCase()),
+  const unsyncedProfiles = recentProfiles.filter(
+    (profile) => profile.growth_lead_match === "unmatched",
   );
-  const unsyncedProfiles = recentProfiles.filter((profile) => {
-    const email = profile.email?.toLowerCase();
-    return Boolean(email) && !leadEmails.has(email ?? "");
-  });
   const roleCounts = countBy(
     recentProfiles,
     (profile) => profile.role || "unknown",
@@ -238,9 +247,19 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
   const dataHealthItems = [
     {
       label: "Supabase → Growth OS",
-      status: profileLeadGap > 0 ? "warning" : "ok",
-      value: `${profileLeadGap} sin sincronizar`,
-      detail: `${profileRegistrations} perfiles vs ${growthLeads} leads internos`,
+      status: reconciliation && profileLeadGap === 0 && reconciliation.profiles_without_email === 0 ? "ok" : "warning",
+      value: profileLeadGap === undefined ? "sin verificar" : `${profileLeadGap} sin correspondencia`,
+      detail: reconciliation
+        ? `${reconciliation.profiles_checked} perfiles comparados por correo · ${reconciliation.profiles_without_email} sin correo`
+        : "Comparación de identidad no disponible",
+    },
+    {
+      label: "Email Resend (todos)",
+      status: (resend?.delivered_events ?? 0) > 0 ? "ok" : "warning",
+      value: resend ? `${resend.delivered_events} eventos de entrega` : "sin verificar",
+      detail: resend
+        ? `${resend.sent_events} de envío · ${resend.clicked_events} de clic`
+        : "Actividad de correo no disponible",
     },
     {
       label: "Newsletter Resend",
@@ -249,7 +268,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
       detail: `último evento: ${lastNewsletterEvent}`,
     },
     {
-      label: "Audience sync",
+      label: "Ediciones newsletter",
       status: (newsletter?.failed_broadcasts ?? 0) > 0 ? "danger" : "ok",
       value: `${newsletter?.failed_broadcasts ?? 0} fallos`,
       detail: `último envío: ${lastNewsletterSent}`,
@@ -257,7 +276,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
     {
       label: "CAC / ad spend",
       status: hasAdSpend ? "ok" : "warning",
-      value: hasAdSpend ? money(cac?.total_spend ?? 0) : "sin inversión",
+      value: hasAdSpend ? money(cac?.total_spend ?? 0) : "sin costes registrados",
       detail: hasAdSpend
         ? `${cac?.spend_rows ?? 0} registros cargados`
         : "growth_os.ad_spend vacío",
@@ -345,8 +364,8 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
         <strong>Nota de integridad:</strong> Supabase tiene registros reales en{" "}
         <code>public.profiles</code>, pero Growth OS solo ve{" "}
         <code>growth_os.leads</code>. Los leads no deben leerse como adquisición
-        real hasta cerrar la sincronización Supabase → Growth OS y conectar
-        fuentes externas verificadas.
+        real sin atribución verificable. La correspondencia por correo no
+        demuestra adquisición ni consentimiento para comunicaciones.
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -478,9 +497,9 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
               value={recentProfiles.length}
             />
             <MiniMetric
-              label="No sincronizados a leads"
-              value={unsyncedProfiles.length}
-              danger={unsyncedProfiles.length > 0}
+              label="Sin correspondencia (período)"
+              value={profileLeadGap ?? "Sin verificar"}
+              danger={(profileLeadGap ?? 0) > 0}
             />
             <MiniMetric
               label="Newsletter true"
@@ -502,9 +521,9 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
-              <h3 className="font-bold text-gray-950">Desync crítico</h3>
+              <h3 className="font-bold text-gray-950">Perfiles sin correspondencia</h3>
               <p className="text-sm text-gray-500">
-                Perfiles recientes sin fila visible en Growth OS.
+                Muestra reciente sin coincidencia de correo en todos los leads.
               </p>
             </div>
             <Database className="h-5 w-5 text-amber-600" />
@@ -527,7 +546,7 @@ export const GrowthDashboardUI: React.FC<GrowthDashboardUIProps> = ({
               </div>
             ))}
             {unsyncedProfiles.length === 0 && (
-              <EmptyLine text="Sin desincronización visible en los últimos registros." />
+              <EmptyLine text="No hay perfiles sin correspondencia en esta muestra reciente." />
             )}
           </div>
         </div>
@@ -1110,3 +1129,4 @@ function formatDateTime(value: string): string {
 function humanize(value: string): string {
   return value.replace(/_/g, " ");
 }
+
