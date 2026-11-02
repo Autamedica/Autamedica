@@ -6143,6 +6143,7 @@ export type Database = {
       }
       dispensation_orders: {
         Row: {
+          care_country: string
           clinical_semaphore: string | null
           clinician_decision: string
           created_at: string
@@ -6172,6 +6173,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          care_country?: string
           clinical_semaphore?: string | null
           clinician_decision?: string
           created_at?: string
@@ -6201,6 +6203,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          care_country?: string
           clinical_semaphore?: string | null
           clinician_decision?: string
           created_at?: string
@@ -10177,6 +10180,7 @@ export type Database = {
       }
       pharmacies: {
         Row: {
+          care_country: string
           active: boolean
           address: Json
           created_at: string
@@ -10190,6 +10194,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          care_country: string
           active?: boolean
           address?: Json
           created_at?: string
@@ -10203,6 +10208,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          care_country?: string
           active?: boolean
           address?: Json
           created_at?: string
@@ -10227,6 +10233,7 @@ export type Database = {
       }
       pharmacists: {
         Row: {
+          care_country: string
           active: boolean
           created_at: string
           full_name: string | null
@@ -10239,6 +10246,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          care_country?: string
           active?: boolean
           created_at?: string
           full_name?: string | null
@@ -10251,6 +10259,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          care_country?: string
           active?: boolean
           created_at?: string
           full_name?: string | null
