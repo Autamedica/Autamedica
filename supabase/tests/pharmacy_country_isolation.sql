@@ -220,6 +220,18 @@ BEGIN
   END;
   IF NOT v_rejected THEN RAISE EXCEPTION 'BR pharmacist dispensed AR order'; END IF;
 
+  -- Even a privileged database connection without the actual prescriber JWT
+  -- cannot fabricate clinical verification/reconciliation.
+  v_rejected:=false;
+  BEGIN
+    UPDATE public.dispensation_orders
+      SET prescriber_verified=true, reconciliation_status='reconciled',
+          clinician_decision='approved'
+      WHERE id=v_order;
+  EXCEPTION WHEN insufficient_privilege THEN v_rejected:=true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Non-physician elevated clinical verification'; END IF;
+
   v_rejected:=false;
   BEGIN
     UPDATE public.dispensation_orders SET status='approved_for_dispensation' WHERE id=v_order;
