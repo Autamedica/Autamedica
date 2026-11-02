@@ -106,7 +106,8 @@ class RecoveryDrillGuards(unittest.TestCase):
         process.return_value = ''
         drill.local_psql(files=('schema.sql', 'data.sql'))
         args = process.call_args.args[0]
-        self.assertEqual(args[:4], ['docker', 'exec', '-i', drill.CONTAINER])
+        self.assertEqual(args[:6], ['docker', 'exec', '-i', '-e', 'PGPASSWORD=postgres', drill.CONTAINER])
+        self.assertEqual(args[args.index('-h') + 1], '127.0.0.1')
         self.assertIn('--single-transaction', args)
         self.assertNotIn('--dbname', args)
         with patch.object(drill, 'CONTAINER', 'production'):

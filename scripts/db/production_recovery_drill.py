@@ -39,6 +39,13 @@ def run(args, *, stage, cwd=None, env=None, input_text=None, output=None, timeou
         locations = re.findall(r"psql:/recovery/((?:roles|schema|data)\.sql:[0-9]+):", result.stderr)
         if locations:
             diagnostic += " at " + ",".join(sorted(set(locations)))
+        for fragment, reason in (("no password supplied", "local_password_required"),
+                                 ("password authentication failed", "authentication_failed"),
+                                 ("Connection refused", "connection_refused"),
+                                 ("No such file or directory", "local_socket_missing")):
+            if fragment in result.stderr:
+                diagnostic += " reason=" + reason
+                break
         raise RuntimeError(stage + " failed (exit " + str(result.returncode) + ")" + diagnostic)
     return result.stdout or ""
 
@@ -226,7 +233,11 @@ def verify_extensions(extensions):
 def local_psql(sql=None, files=(), stage="Offline destination SQL"):
     if CONTAINER != "supabase_db_autamedica-recovery-drill":
         raise RuntimeError("Unexpected restore destination")
-    args = ["docker", "exec", "-i", CONTAINER, "psql", "-X", "-qAt",
+    # The fresh CLI stack uses its documented default password. Explicit TCP
+    # avoids image-dependent Unix-socket paths/auth; production secrets are
+    # never forwarded to this helper or selected as a restore destination.
+    args = ["docker", "exec", "-i", "-e", "PGPASSWORD=postgres", CONTAINER,
+            "psql", "-X", "--no-password", "-qAt", "-h", "127.0.0.1", "-p", "5432",
             "-U", "supabase_admin", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=sqlstate"]
     if files:
         args.append("--single-transaction")
