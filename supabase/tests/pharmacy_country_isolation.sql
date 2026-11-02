@@ -23,7 +23,7 @@ BEGIN
   FOREACH v_trigger IN ARRAY ARRAY[
     'zz_pharmacy_country','zz_pharmacist_country','zz_dispensation_country',
     'zz_dispensation_validations_country','zz_dispensation_events_country',
-    'zz_prescription_dispensation_country_lock'
+    'zz_dispensation_clarifications_country','zz_prescription_dispensation_country_lock'
   ] LOOP
     IF NOT EXISTS (
       SELECT 1 FROM pg_trigger WHERE tgname=v_trigger AND tgenabled='O'
@@ -224,6 +224,18 @@ BEGIN
   EXCEPTION WHEN check_violation THEN v_rejected:=true;
   END;
   IF NOT v_rejected THEN RAISE EXCEPTION 'BR pharmacist dispensed AR order'; END IF;
+
+  v_rejected:=false;
+  BEGIN
+    INSERT INTO public.dispensation_clarifications(
+      order_id,requested_by,question,question_category,status,expires_at
+    ) VALUES(
+      v_order,v_br_pharmacist_user,'CI cross-country check','identity_concern',
+      'pending',now()+interval '24 hours'
+    );
+  EXCEPTION WHEN check_violation THEN v_rejected:=true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'BR pharmacist requested AR clarification'; END IF;
 
   -- Even a privileged database connection without the actual prescriber JWT
   -- cannot fabricate clinical verification/reconciliation.
