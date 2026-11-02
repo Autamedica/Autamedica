@@ -124,6 +124,28 @@ class RecoveryDrillGuards(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 drill.local_psql('DROP SCHEMA public CASCADE;')
 
+    def test_permission_replay_removes_extra_access_and_preserves_grantor_options(self):
+        wanted = {'schema':'public','name':'sample','kind':'r','owner':'postgres',
+                  'grants':[['postgres','anon','SELECT',True]]}
+        current = dict(wanted, grants=[['postgres','authenticated','INSERT',False]])
+        sql, changed = drill.reconcile_table_acl_sql([wanted], [current])
+        self.assertEqual(changed, 1)
+        self.assertIn('REVOKE ALL PRIVILEGES ON TABLE "public"."sample" FROM "authenticated" CASCADE;', sql)
+        self.assertIn('SET ROLE "postgres";', sql)
+        self.assertIn('GRANT SELECT ON TABLE "public"."sample" TO "anon" WITH GRANT OPTION;', sql)
+        self.assertEqual(drill.reconcile_table_acl_sql([wanted], [wanted])[1], 0)
+
+    def test_permission_replay_rejects_foreign_inventory_or_unsupported_grant_chain(self):
+        wanted = {'schema':'public','name':'sample','kind':'r','owner':'postgres',
+                  'grants':[['postgres','anon','SELECT',False]]}
+        with self.assertRaises(RuntimeError):
+            drill.reconcile_table_acl_sql([wanted], [])
+        with self.assertRaises(RuntimeError):
+            drill.reconcile_table_acl_sql([dict(wanted,schema='pg_catalog')], [dict(wanted,schema='pg_catalog')])
+        for grant in (['other','anon','SELECT',False],['postgres','anon','SELECT; DROP TABLE x',False]):
+            with self.assertRaises(RuntimeError):
+                drill.reconcile_table_acl_sql([dict(wanted,grants=[grant])], [wanted])
+
 
 if __name__ == '__main__':
     unittest.main()

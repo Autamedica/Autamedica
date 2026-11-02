@@ -186,6 +186,80 @@ def foreign_key_catalog_sql():
       WHERE c.contype='f' AND n.nspname IN (%s)) x;""" % scopes
 
 
+def table_acl_catalog_sql():
+    scopes = ",".join(literal(s) for s in SCOPES)
+    return """SELECT coalesce(jsonb_agg(x ORDER BY x.schema,x.name),'[]'::jsonb) FROM (
+      SELECT n.nspname AS schema,c.relname AS name,c.relkind AS kind,
+        pg_get_userbyid(c.relowner) AS owner,
+        (SELECT coalesce(jsonb_agg(jsonb_build_array(pg_get_userbyid(a.grantor),
+          CASE WHEN a.grantee=0 THEN 'PUBLIC' ELSE pg_get_userbyid(a.grantee) END,
+          a.privilege_type,a.is_grantable) ORDER BY a.grantor,a.grantee,a.privilege_type),'[]'::jsonb)
+         FROM aclexplode(coalesce(c.relacl,acldefault(
+           CASE WHEN c.relkind='S' THEN 'S'::"char" ELSE 'r'::"char" END,c.relowner))) a) AS grants
+      FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+      WHERE n.nspname IN (%s) AND c.relkind IN ('r','p','v','m','S')) x;""" % scopes
+
+
+def acl_state(fact):
+    return fact['owner'], fact['kind'], frozenset(tuple(grant) for grant in fact['grants'])
+
+
+def reconcile_table_acl_sql(expected, actual):
+    kinds = {'r': 'TABLE', 'p': 'TABLE', 'v': 'VIEW', 'm': 'MATERIALIZED VIEW', 'S': 'SEQUENCE'}
+    privileges = {'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN', 'USAGE'}
+    source = {(f['schema'], f['name']): f for f in expected}
+    target = {(f['schema'], f['name']): f for f in actual}
+    if source.keys() != target.keys():
+        raise RuntimeError('Source/destination permission object inventories differ')
+    statements, changed = ['BEGIN;'], 0
+    ordered = sorted(source, key=lambda key: (0 if source[key]['kind'] in ('r', 'p') else 2 if source[key]['kind'] == 'S' else 1, key))
+    for key in ordered:
+        wanted = source[key]
+        existing = target[key]
+        if key[0] not in SCOPES or wanted['kind'] not in kinds or wanted['kind'] != existing['kind']:
+            raise RuntimeError('Unexpected permission object')
+        for grantor, grantee, privilege, grantable in wanted['grants']:
+            if grantor != wanted['owner'] or privilege not in privileges or not isinstance(grantable, bool):
+                raise RuntimeError('Unsupported source permission grant chain')
+        if acl_state(wanted) == acl_state(existing):
+            continue
+        changed += 1
+        relation = ident(key[0]) + '.' + ident(key[1])
+        object_type = 'SEQUENCE' if wanted['kind'] == 'S' else 'TABLE'
+        if wanted['owner'] != existing['owner']:
+            statements.append('ALTER ' + kinds[wanted['kind']] + ' ' + relation + ' OWNER TO ' + ident(wanted['owner']) + ';')
+        # Remove only grants on the objects that actually differ. Preserve the
+        # source grantor, privileges and grant options instead of relaxing checks.
+        revocations = set()
+        for grantor, grantee, _, _ in existing['grants']:
+            if grantor == existing['owner']:
+                grantor = wanted['owner']
+            revocations.add((grantor, grantee))
+        for grantor, grantee in sorted(revocations):
+            role = 'PUBLIC' if grantee == 'PUBLIC' else ident(grantee)
+            statements.extend(['SET ROLE ' + ident(grantor) + ';',
+                'REVOKE ALL PRIVILEGES ON ' + object_type + ' ' + relation + ' FROM ' + role + ' CASCADE;', 'RESET ROLE;'])
+        statements.append('SET ROLE ' + ident(wanted['owner']) + ';')
+        for _, grantee, privilege, grantable in wanted['grants']:
+            role = 'PUBLIC' if grantee == 'PUBLIC' else ident(grantee)
+            option = ' WITH GRANT OPTION' if grantable else ''
+            statements.append('GRANT ' + privilege + ' ON ' + object_type + ' ' + relation + ' TO ' + role + option + ';')
+        statements.append('RESET ROLE;')
+    statements.append('COMMIT;')
+    return '\n'.join(statements), changed
+
+
+def reconcile_table_acls(expected):
+    actual = json.loads(local_psql(table_acl_catalog_sql(), stage='Capture offline table permissions'))
+    sql, changed = reconcile_table_acl_sql(expected, actual)
+    local_psql(sql, stage='Restore exact source table permissions')
+    after = json.loads(local_psql(table_acl_catalog_sql(), stage='Verify exact source table permissions'))
+    normalize = lambda facts: {(f['schema'], f['name']): acl_state(f) for f in facts}
+    if normalize(expected) != normalize(after):
+        raise RuntimeError('Source table permission facts still differ after replay')
+    return changed
+
+
 class Snapshot:
     def __init__(self, env, log):
         self.process = subprocess.Popen(
@@ -281,6 +355,27 @@ def check_section_restore():
         local_psql("DROP SCHEMA IF EXISTS " + schema + " CASCADE;", stage="Remove synthetic guard")
 
 
+def check_acl_restore():
+    table = 'public._recovery_acl_guard'
+    local_psql('CREATE TABLE ' + table + ' (value integer); REVOKE ALL ON TABLE ' +
+               table + ' FROM PUBLIC,anon,authenticated,service_role; GRANT SELECT ON TABLE ' +
+               table + ' TO anon WITH GRANT OPTION;', stage='Create synthetic permission guard')
+    def facts():
+        return [f for f in json.loads(local_psql(table_acl_catalog_sql()))
+                if f['schema'] == 'public' and f['name'] == '_recovery_acl_guard']
+    try:
+        expected = facts()
+        local_psql('REVOKE SELECT ON TABLE ' + table + ' FROM anon CASCADE; GRANT INSERT ON TABLE ' +
+                   table + ' TO authenticated;', stage='Alter synthetic permission guard')
+        sql, changed = reconcile_table_acl_sql(expected, facts())
+        local_psql(sql, stage='Restore synthetic permission guard')
+        if changed != 1 or len(expected) != 1 or acl_state(expected[0]) != acl_state(facts()[0]):
+            raise RuntimeError('Synthetic permission replay failed')
+        print('Synthetic permission guard passed; source grantor/options restored and extra access removed.', flush=True)
+    finally:
+        local_psql('DROP TABLE IF EXISTS ' + table + ';', stage='Remove synthetic permission guard')
+
+
 def require_offline(inspection):
     if inspection.get("Name") != "/" + CONTAINER:
         raise RuntimeError("Unexpected destination container")
@@ -334,6 +429,7 @@ def main():
             if not inspect["Config"]["Image"].endswith(":" + POSTGRES_IMAGE_VERSION):
                 raise RuntimeError("Destination ignored the verified PostgreSQL image pin")
             check_section_restore()
+            check_acl_restore()
             dump_started = time.monotonic()
             with (root / "source-private.log").open("w") as source_log:
                 snapshot = Snapshot(source_env, source_log)
@@ -358,6 +454,8 @@ def main():
                     manifest_query = table_manifest_sql(tables)
                     expected_data = json.loads(snapshot.query(manifest_query))
                     expected_metadata = json.loads(snapshot.query(metadata_sql()))
+                    expected_table_acls = json.loads(snapshot.query(table_acl_catalog_sql()))
+                    reconcile_table_acl_sql(expected_table_acls, expected_table_acls)
                     foreign_keys = json.loads(snapshot.query(foreign_key_catalog_sql()))
                     foreign_key_query = foreign_key_sql(foreign_keys)
                     if int(snapshot.query(foreign_key_query)) != 0:
@@ -420,6 +518,7 @@ def main():
             for name in BACKUP_PARTS:
                 run(["docker", "cp", str(root / (name + ".sql")), CONTAINER + ":/recovery/" + name + ".sql"], stage="Copy private backup")
             local_psql(files=tuple(name + ".sql" for name in BACKUP_PARTS), stage="Atomic database restoration")
+            permissions_reconciled = reconcile_table_acls(expected_table_acls)
             actual_data = json.loads(local_psql("SET timezone='UTC'; SET search_path=''; " + manifest_query).strip())
             actual_metadata = json.loads(local_psql("SET search_path=''; " + metadata_sql()).strip())
             if int(local_psql(foreign_key_query).strip()) != 0:
@@ -434,6 +533,8 @@ def main():
                               "rows_verified": sum(row[1] for row in actual_data),
                               "data_fingerprints_match": True, "security_metadata_match": True,
                               "foreign_keys_verified": len(foreign_keys),
+                              "permission_objects_reconciled": permissions_reconciled,
+                              "table_permission_facts_verified": True,
                               "source_read_only": True, "destination_offline": True,
                               "snapshot_consistent": True, "export_seconds": dump_seconds,
                               "restore_and_validation_seconds": round(time.monotonic() - restore_started, 2),
@@ -446,6 +547,7 @@ def main():
             if run(["docker", "ps", "-aq", "--filter", "name=^/" + CONTAINER + "$"], stage="Verify destination removed").strip():
                 raise RuntimeError("Disposable destination cleanup incomplete")
     report["cleanup_verified"] = True
+    report["total_drill_seconds"] = round(time.monotonic() - started, 2)
     print(json.dumps(report, sort_keys=True), flush=True)
 
 
