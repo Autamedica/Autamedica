@@ -7,6 +7,12 @@ describe('population metric definitions', () => {
       expect(coverageLabel(info)).toBe('Cobertura desconocida');
     },
   );
+  it('does not count the legacy Sin especificar placeholder as a reported address', () => {
+    const rows = ['Sin especificar', '  SIN ESPECIFICAR  ', ' ', null, 'Somewhere'].map(address => ({
+      user_id: null, birth_date: null, insurance_info: null, address,
+    }));
+    expect(summarizePatientQuality(rows).quality.with_address).toBe(1);
+  });
   it('accepts an explicitly recorded provider and legacy coverage names', () => {
     expect(coverageLabel({ provider: ' OSDE ', name: 'Other' })).toBe('OSDE');
     expect(coverageLabel({ obra_social: 'Legacy' })).toBe('Legacy');

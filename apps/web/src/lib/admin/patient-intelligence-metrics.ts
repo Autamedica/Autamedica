@@ -53,7 +53,10 @@ export function summarizePatientQuality(rows: PatientQualityRow[]) {
       linked_users: new Set(rows.flatMap(row => row.user_id ? [row.user_id] : [])).size,
       unlinked_records: rows.filter(row => row.user_id === null).length,
       with_birth_date: rows.filter(row => row.birth_date !== null).length,
-      with_address: rows.filter(row => Boolean(row.address?.trim())).length,
+      with_address: rows.filter(row => {
+        const address = row.address?.trim();
+        return Boolean(address) && address?.toLowerCase() !== 'sin especificar';
+      }).length,
       coverage_unknown: byInsurance['Cobertura desconocida'] ?? 0,
     },
   };
