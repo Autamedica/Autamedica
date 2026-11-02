@@ -63,6 +63,45 @@ Deno.serve(async (req) => {
       });
     }
 
+
+    // Do not turn any logged-in account into a service-role prescription processor.
+    // Only the actual, active prescriber may request this order.
+    const { data: doctor, error: doctorError } = await supabaseAdmin
+      .from('doctors')
+      .select('id, care_country, active')
+      .eq('id', prescription.doctor_id)
+      .eq('user_id', user.id)
+      .eq('active', true)
+      .maybeSingle();
+    const { data: patient, error: patientError } = await supabaseAdmin
+      .from('patients')
+      .select('id, care_country, active')
+      .eq('id', prescription.patient_id)
+      .eq('active', true)
+      .maybeSingle();
+    const { data: license, error: licenseError } = await supabaseAdmin
+      .from('doctor_licenses')
+      .select('id, license_type')
+      .eq('doctor_id', prescription.doctor_id)
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle();
+
+    if (doctorError || patientError || licenseError || !doctor || !patient || !license) {
+      return new Response(JSON.stringify({ error: 'Prescriber, patient or license not authorized' }), {
+        status: 403, headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    const country = prescription.country_code;
+    const licenseMatchesCountry = country === 'AR'
+      ? ['MN', 'MP'].includes(license.license_type)
+      : country === 'BR' && license.license_type === 'CRM';
+    if (!licenseMatchesCountry || doctor.care_country !== country || patient.care_country !== country) {
+      return new Response(JSON.stringify({ error: 'Prescription, physician and patient jurisdiction must match' }), {
+        status: 409, headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     // 2. Extract clinical data from the prescription
     const clinicalData = prescription.clinical_data || {};
     const items = clinicalData.items || [];
@@ -112,6 +151,7 @@ Deno.serve(async (req) => {
     // 6. Insert dispensation order
     const orderData = {
       prescription_id: prescription.id,
+      care_country: prescription.country_code,
       patient_id: prescription.patient_id,
       doctor_id: prescription.doctor_id,
       prescription_type: prescriptionType,
@@ -120,11 +160,11 @@ Deno.serve(async (req) => {
       dose_mg_per_day: parseFloat(firstItem.dosage) || 0,
       quantity_units: firstItem.quantity || 0,
       duration_days: durationDays,
-      clinician_decision: 'approved',
+      clinician_decision: 'under_review',
       requires_clarification: false,
       extraordinary_dose_flag: extraordinaryDoseFlag,
-      prescriber_verified: true,
-      reconciliation_status: 'reconciled',
+      prescriber_verified: false,
+      reconciliation_status: 'pending',
       clinical_semaphore: clinicalSemaphore,
       semaphore_reasons: semaphoreReasons,
       dispense_window_start: now.toISOString().split('T')[0],
@@ -161,7 +201,7 @@ Deno.serve(async (req) => {
     const auditBase = {
       order_id: order.id,
       actor_id: user.id,
-      actor_role: 'system',
+      actor_role: 'doctor',
       ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown',
     };
 
