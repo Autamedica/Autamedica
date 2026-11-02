@@ -33,7 +33,7 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='dispensation_orders'
-      AND column_name='prescriber_verified' AND column_default='false'
+      AND column_name='prescriber_verified' AND column_default ~* 'false'
   ) THEN RAISE EXCEPTION 'Prescriber verification defaults to trusted'; END IF;
 
   IF EXISTS (
@@ -69,4 +69,55 @@ BEGIN
       AND with_check LIKE '%care_country%'
   ) THEN RAISE EXCEPTION 'Pharmacist order claims not country scoped'; END IF;
 END $checks$;
+
+-- Behavioral test: a non-AR/BR pharmacy cannot be inserted, despite a valid license string.
+DO $negative_country$
+DECLARE v_rejected boolean := false;
+BEGIN
+  BEGIN
+    INSERT INTO public.pharmacies(name,license_number,care_country)
+      VALUES ('CI invalid jurisdiction', 'CI-PHARM-INVALID-'||gen_random_uuid(), 'CL');
+  EXCEPTION WHEN check_violation THEN v_rejected := true;
+  END;
+  IF NOT v_rejected THEN
+    RAISE EXCEPTION 'Pharmacy accepted a country outside AR/BR';
+  END IF;
+END $negative_country$;
+
+-- Successful AR/BR pharmacy registration and negative country reassignment.
+DO $immutable$
+DECLARE v_id uuid; v_rejected boolean := false;
+BEGIN
+  INSERT INTO public.pharmacies(name,license_number,care_country)
+    VALUES ('CI pharmacy AR', 'CI-PHARM-AR-'||gen_random_uuid(), 'AR')
+    RETURNING id INTO v_id;
+  IF (SELECT care_country FROM public.pharmacies WHERE id=v_id) <> 'AR' THEN
+    RAISE EXCEPTION 'Pharmacy country was not stored';
+  END IF;
+  BEGIN
+    UPDATE public.pharmacies SET care_country='BR' WHERE id=v_id;
+  EXCEPTION WHEN check_violation THEN v_rejected := true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Pharmacy country changed after registration'; END IF;
+END $immutable$;
+
+-- Invalid prescribing identity fails before a foreign key could make an order.
+DO $invalid_prescription$
+DECLARE v_rejected boolean := false;
+BEGIN
+  BEGIN
+    INSERT INTO public.dispensation_orders(
+      prescription_id,doctor_id,patient_id,medication,formulation,
+      quantity_units,duration_days,dispense_window_start,dispense_window_end
+    ) VALUES (
+      gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),
+      'Synthetic medicine','tablet',1,30,current_date,current_date+30
+    );
+  EXCEPTION WHEN check_violation THEN v_rejected := true;
+  END;
+  IF NOT v_rejected THEN
+    RAISE EXCEPTION 'Dispensation order accepted without a country-validated Rx';
+  END IF;
+END $invalid_prescription$;
+
 ROLLBACK;
