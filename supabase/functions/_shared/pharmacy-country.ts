@@ -11,8 +11,10 @@ export async function verifyPharmacyOrderAccess(
     id: string; pharmacy_id: string | null; prescription_id: string;
     care_country: string | null; doctor_id: string; patient_id: string;
   },
-  pharmacist: { id: string; pharmacy_id: string | null; care_country: string | null },
+  pharmacist: { id: string; pharmacy_id: string | null; care_country: string | null; role: string; license_number: string | null },
 ): Promise<string | null> {
+  if (!['pharmacist', 'pharmacy_director'].includes(pharmacist.role) ||
+      !pharmacist.license_number?.trim()) return 'Licensed pharmacist required';
   if (!pharmacist.pharmacy_id || !order.pharmacy_id) return 'Order must be assigned to a pharmacy';
   if (order.pharmacy_id !== pharmacist.pharmacy_id) return 'Order is assigned to another pharmacy';
   if (!['AR', 'BR'].includes(order.care_country ?? '')) return 'Order country is not established';
