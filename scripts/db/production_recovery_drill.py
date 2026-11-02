@@ -1,7 +1,7 @@
 """Restore a consistent production DB export into an offline disposable Supabase DB.
 
-No backups or raw logs are uploaded. Production is only ever read. Storage binaries,
-Vault secrets, external provider settings and deployed functions are outside this drill.
+The default drill uploads no backups or raw logs. Opt-in retention captures Storage
+and encrypts the bundle; Vault, external settings and functions remain excluded.
 """
 import hashlib
 import json
@@ -15,6 +15,7 @@ import tempfile
 import time
 
 from check_recovery_source import PROJECT, SESSION_HOST, connection_options, probe
+import retained_recovery_bundle as retained
 
 LOCAL_PROJECT = "autamedica-recovery-drill"
 CONTAINER = "supabase_db_" + LOCAL_PROJECT
@@ -389,6 +390,16 @@ def require_offline(inspection):
 def main():
     if os.environ.get("RECOVERY_DRILL_CONFIRMATION") != "RESTORE-" + PROJECT:
         raise RuntimeError("Exact source project confirmation required")
+    retain = os.environ.get("RECOVERY_RETAIN_BUNDLE", "false")
+    if retain not in ("true", "false"):
+        raise RuntimeError("Invalid retained backup mode")
+    retain = retain == "true"
+    bundle_report = {}
+    output_dir = Path.cwd() / "recovery-output"
+    if retain:
+        retained.preflight()
+        if output_dir.exists() or output_dir.is_symlink():
+            raise RuntimeError("Recovery output already exists; refusing reuse")
     url, password = os.environ.get("SUPABASE_DB_URL", ""), os.environ.get("SUPABASE_DB_PASSWORD", "")
     options = connection_options(url, password)
     if options["PGHOST"] != SESSION_HOST or options["PGPASSWORD"] != password or not re.fullmatch(r"[a-fA-F0-9]{64}", password):
@@ -436,6 +447,8 @@ def main():
                 try:
                     print("Opening read-only source snapshot.", flush=True)
                     snapshot_id = snapshot.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY; SELECT pg_export_snapshot();")
+                    recovery_point = snapshot.query("SELECT transaction_timestamp();")
+                    storage_inventory = json.loads(snapshot.query(retained.inventory_sql())) if retain else None
                     extensions = json.loads(snapshot.query("SELECT jsonb_agg(jsonb_build_array(e.extname,n.nspname,e.extversion) ORDER BY e.extname) FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace;"))
                     # Only vendor extension SQL runs in this empty stack; no source
                     # application SQL or clinical data is restored before isolation.
@@ -485,6 +498,14 @@ def main():
                             raise RuntimeError("Source snapshot keepalive failed")
                     if snapshot.process.poll() is not None:
                         raise RuntimeError("Source snapshot ended before all exports completed")
+                    if retain:
+                        storage_files = retained.capture_storage(storage_inventory, root / "storage",
+                            os.environ["SUPABASE_SERVICE_ROLE_KEY"], lambda: snapshot.query("SELECT 1;"))
+                        # Leave the exported snapshot only after all SQL and bytes
+                        # are captured. A fresh transaction detects changed objects.
+                        snapshot.query("COMMIT; BEGIN READ ONLY; SELECT 1;")
+                        current_storage = json.loads(snapshot.query(retained.inventory_sql()))
+                        retained.verify_inventory(storage_inventory, current_storage)
                 finally:
                     snapshot.close()
             checksums = {name: hashlib.sha256((root / (name + ".sql")).read_bytes()).hexdigest()
@@ -529,6 +550,17 @@ def main():
                 mismatches = [key for key in expected_metadata if actual_metadata.get(key) != expected_metadata[key]]
                 raise RuntimeError("Restored security metadata differs: " + ",".join(mismatches))
             require_offline(json.loads(run(["docker", "inspect", CONTAINER], stage="Recheck isolation"))[0])
+            if retain:
+                bundle_report = retained.encrypt_bundle(root, {
+                    "postgres_image_version": POSTGRES_IMAGE_VERSION,
+                    "database_snapshot_time_utc": recovery_point, "sql_checksums": checksums,
+                    "extensions": extensions, "tables": tables,
+                    "expected_data": expected_data, "expected_metadata": expected_metadata,
+                    "table_acls": expected_table_acls, "foreign_keys": foreign_keys,
+                    "storage_inventory": storage_inventory,
+                    "database_restore_verified_before_packaging": True,
+                    "vault_secrets_included": False, "external_configuration_included": False,
+                }, storage_files, output_dir)
             report = {"database_restore_verified": True, "verified_tables": len(tables),
                               "rows_verified": sum(row[1] for row in actual_data),
                               "data_fingerprints_match": True, "security_metadata_match": True,
@@ -547,6 +579,9 @@ def main():
             if run(["docker", "ps", "-aq", "--filter", "name=^/" + CONTAINER + "$"], stage="Verify destination removed").strip():
                 raise RuntimeError("Disposable destination cleanup incomplete")
     report["cleanup_verified"] = True
+    report.update(bundle_report)
+    # Only the subsequent artifact upload can prove retention; creation alone
+    # never sets backup_retained=true or accredits a retained-copy restore.
     report["total_drill_seconds"] = round(time.monotonic() - started, 2)
     print(json.dumps(report, sort_keys=True), flush=True)
 
@@ -558,3 +593,4 @@ if __name__ == "__main__":
         message = str(error) if isinstance(error, RuntimeError) else "Recovery drill stopped (" + type(error).__name__ + "); private diagnostics withheld"
         print("::error::" + message, flush=True)
         raise SystemExit(1) from None
+
