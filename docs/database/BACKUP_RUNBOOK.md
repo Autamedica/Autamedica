@@ -2,7 +2,7 @@
 
 ## Evidence status — 2026-11-01
 
-Full platform recovery is **not yet accredited**. The production database-only drill below has been implemented; [execution evidence](https://github.com/ecucondorSA/Autamedica/actions/runs/41351449150) must show a completed successful report before its tested database scope is accepted. Export integrity checks and synthetic orchestration tests alone do not establish recovery. The historical 2026-04-02 report of unavailable managed backups/PITR still requires an authenticated dashboard recheck before selecting a retention strategy. Database drill timings do not constitute a full platform RPO/RTO measurement.
+Full platform recovery is **not yet accredited**. The production database-only drill below has been implemented; [execution evidence](https://github.com/ecucondorSA/Autamedica/actions/runs/41376958887) must show a completed successful report before its tested database scope is accepted. Export integrity checks and synthetic orchestration tests alone do not establish recovery. The historical 2026-04-02 report of unavailable managed backups/PITR still requires an authenticated dashboard recheck before selecting a retention strategy. Database drill timings do not constitute a full platform RPO/RTO measurement.
 
 ## Export and retain
 
@@ -25,6 +25,8 @@ Completed directories contain `roles.sql.gz`, `schema.sql.gz`, `data.sql.gz` and
 Run the **Production database recovery drill** workflow manually from `main`. Existing encrypted `SUPABASE_DB_URL` and `SUPABASE_DB_PASSWORD` secrets must reference the fixed production session endpoint. PR runs execute guard tests without production credentials.
 
 The script exports roles without passwords and uses one read-only exported snapshot for schema, table fingerprints, metadata, foreign-key checks and data. It includes Auth/Storage schemas and migration rows in the logical restore. It restores into a fresh PostgreSQL 17 Supabase container after stopping local application services, disabling cron and disconnecting every container network. The restore helper cannot address a remote destination.
+
+The destination image is pinned to the production build verified through management metadata (`17.6.1.084`). Before exporting application data, the empty destination must install every source extension at its exact version and schema, including required dependencies. A source build change requires reviewing this pin; never bypass the version checks or skip an extension to obtain a pass.
 
 Success requires matching full-row fingerprints/counts, table owners, RLS/policies, grants, user function definitions, triggers and constraint definitions, plus zero foreign-key violations in source and target. The report appears only after the temporary stack has been removed and private host files have been deleted. Any mismatch or cleanup failure fails the drill.
 
