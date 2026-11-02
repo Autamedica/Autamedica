@@ -152,7 +152,9 @@ BEGIN
   SELECT ph.care_country, ph.pharmacy_id INTO v_pharmacist_country, v_pharmacist_pharmacy
   FROM public.pharmacists ph
   JOIN public.pharmacies f ON f.id=ph.pharmacy_id AND f.active AND f.deleted_at IS NULL AND f.care_country=ph.care_country
-  WHERE ph.id = NEW.pharmacist_id AND ph.active;
+  WHERE ph.id = NEW.pharmacist_id AND ph.active
+    AND ph.role IN ('pharmacist','pharmacy_director')
+    AND NULLIF(btrim(ph.license_number),'') IS NOT NULL;
   IF v_order_pharmacy IS NULL OR v_pharmacist_pharmacy IS NULL
      OR v_order_country IS DISTINCT FROM v_prescription_country
      OR v_order_country IS DISTINCT FROM v_doctor_country
@@ -181,7 +183,10 @@ ALTER POLICY dispensation_orders_select_pharmacist ON public.dispensation_orders
 USING (
   EXISTS (
     SELECT 1 FROM public.pharmacists ph JOIN public.pharmacies f ON f.id=ph.pharmacy_id
-    WHERE ph.user_id=auth.uid() AND ph.active AND f.active AND f.deleted_at IS NULL
+    WHERE ph.user_id=auth.uid() AND ph.active
+      AND ph.role IN ('pharmacist','pharmacy_director')
+      AND NULLIF(btrim(ph.license_number),'') IS NOT NULL
+      AND f.active AND f.deleted_at IS NULL
       AND ph.care_country=f.care_country
       AND f.care_country=dispensation_orders.care_country
       AND (dispensation_orders.pharmacy_id=f.id OR
@@ -192,7 +197,10 @@ ALTER POLICY dispensation_orders_update_pharmacist ON public.dispensation_orders
 USING (
   EXISTS (
     SELECT 1 FROM public.pharmacists ph JOIN public.pharmacies f ON f.id=ph.pharmacy_id
-    WHERE ph.user_id=auth.uid() AND ph.active AND f.active AND f.deleted_at IS NULL
+    WHERE ph.user_id=auth.uid() AND ph.active
+      AND ph.role IN ('pharmacist','pharmacy_director')
+      AND NULLIF(btrim(ph.license_number),'') IS NOT NULL
+      AND f.active AND f.deleted_at IS NULL
       AND ph.care_country=f.care_country
       AND f.care_country=dispensation_orders.care_country
       AND (dispensation_orders.pharmacy_id=f.id OR
@@ -202,7 +210,10 @@ USING (
 WITH CHECK (
   EXISTS (
     SELECT 1 FROM public.pharmacists ph JOIN public.pharmacies f ON f.id=ph.pharmacy_id
-    WHERE ph.user_id=auth.uid() AND ph.active AND f.active AND f.deleted_at IS NULL
+    WHERE ph.user_id=auth.uid() AND ph.active
+      AND ph.role IN ('pharmacist','pharmacy_director')
+      AND NULLIF(btrim(ph.license_number),'') IS NOT NULL
+      AND f.active AND f.deleted_at IS NULL
       AND ph.care_country=f.care_country
       AND f.care_country=dispensation_orders.care_country
       AND dispensation_orders.pharmacy_id=f.id
