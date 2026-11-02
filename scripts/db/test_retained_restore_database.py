@@ -63,15 +63,28 @@ def main():
                         "storage_inventory": json.loads(drill.local_psql(bundle.inventory_sql())),
                         "database_restore_verified_before_packaging": True,
                         "synthetic_fixture_only": True}
-            (components / "roles.sql").write_text("SELECT 1;\n")
-            for part, flags in (("schema-pre", ["--schema-only", "--section=pre-data"]),
-                                ("data", ["--data-only"]),
-                                ("schema-post", ["--schema-only", "--section=post-data"])):
+            # Use the actual production CLI transformations (including safe
+            # schema creation), not a similar-looking raw pg_dump archive.
+            # This source is already offline with its writers stopped, so no
+            # live exported snapshot is needed for the synthetic fixture.
+            for part, flags, section in (("roles", ["--role-only"], None),
+                                         ("schema-pre", [], "pre-data"),
+                                         ("data", ["--data-only", "--use-copy"], None),
+                                         ("schema-post", [], "post-data")):
+                script = drill.run(["supabase", "db", "dump", "--db-url",
+                    "postgresql://supabase_admin:postgres@127.0.0.1:5432/postgres?sslmode=disable",
+                    "--dry-run", *flags], stage="Build synthetic production-format export", cwd=source, env=clean)
+                if section:
+                    pattern = r"(?m)^pg_dump \\[ \t]*$"
+                    if len(re.findall(pattern, script)) != 1:
+                        raise RuntimeError("Unrecognized pinned fixture export script")
+                    script = re.sub(pattern, lambda _: "pg_dump --section=" + section + " \\", script, count=1)
+                    script = drill.include_managed_schema(script)
+                if part == "data":
+                    script = drill.include_managed_migration_data(script)
                 with (components / (part + ".sql")).open("w") as output:
-                    drill.run(["docker", "exec", "-e", "PGPASSWORD=postgres", drill.CONTAINER,
-                               "pg_dump", "-h", "127.0.0.1", "-U", "supabase_admin", "-d", "postgres",
-                               *["--schema=" + s for s in drill.SCOPES], *flags],
-                              stage="Export synthetic native section", output=output)
+                    drill.run(["docker", "exec", "-i", drill.CONTAINER, "bash", "-s"],
+                              stage="Export synthetic native section", input_text=script, output=output)
             manifest["sql_checksums"] = {part: hashlib.sha256((components / (part + ".sql")).read_bytes()).hexdigest() for part in bundle.SQL_PARTS}
             filename = "storage/" + hashlib.sha256(json.dumps((row["bucket_id"], row["name"])).encode()).hexdigest() + ".bin"
             (components / "storage").mkdir()
