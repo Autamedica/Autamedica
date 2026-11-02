@@ -1,4 +1,5 @@
 """Credential-free capture failure tests and a real GnuPG recovery round trip."""
+import base64
 import hashlib
 import io
 import json
@@ -28,6 +29,43 @@ class Response(io.BytesIO):
 
 
 class BundleTests(unittest.TestCase):
+    def service_key(self, **changes):
+        claims = {"ref": drill.PROJECT, "role": "service_role", "exp": 9999999999, **changes}
+        payload = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=")
+        return "eyJhbGciOiJIUzI1NiJ9." + payload + ".synthetic_signature"
+
+    def management_response(self, key):
+        url = "https://api.supabase.com/v1/projects/" + drill.PROJECT + "/api-keys?reveal=true"
+        return Response(json.dumps([{"name": "service_role", "api_key": key}]).encode(), url)
+
+    def test_configured_storage_key_does_not_contact_management(self):
+        with patch.dict(os.environ, {"SUPABASE_SERVICE_ROLE_KEY": "configured"}, clear=True), patch.object(bundle, "build_opener") as network:
+            self.assertEqual(bundle.resolve_storage_key(), "configured")
+            network.assert_not_called()
+
+    def test_lookup_selects_existing_fixed_project_service_key(self):
+        key = self.service_key()
+        with patch.dict(os.environ, {"SUPABASE_ACCESS_TOKEN": "synthetic-admin-token", "GITHUB_ACTIONS": "true"}, clear=True), patch.object(bundle, "build_opener") as opener, patch("builtins.print") as output:
+            opener.return_value.open.return_value = self.management_response(key)
+            self.assertEqual(bundle.resolve_storage_key(), key)
+            request = opener.return_value.open.call_args.args[0]
+            self.assertEqual(request.get_method(), "GET")
+            self.assertEqual(request.full_url, "https://api.supabase.com/v1/projects/" + drill.PROJECT + "/api-keys?reveal=true")
+            output.assert_called_once_with("::add-mask::" + key, flush=True)
+
+    def test_lookup_refuses_foreign_role_project_and_expiry(self):
+        for key in (self.service_key(ref="other"), self.service_key(role="anon"), self.service_key(exp=0), "sb_secret_synthetic"):
+            with patch.dict(os.environ, {"SUPABASE_ACCESS_TOKEN": "synthetic"}, clear=True), patch.object(bundle, "build_opener") as opener:
+                opener.return_value.open.return_value = self.management_response(key)
+                with self.assertRaisesRegex(RuntimeError, "^Storage credential lookup failed; private diagnostics withheld$"):
+                    bundle.resolve_storage_key()
+
+    def test_lookup_error_never_exposes_token_or_body(self):
+        with patch.dict(os.environ, {"SUPABASE_ACCESS_TOKEN": "synthetic"}, clear=True), patch.object(bundle, "build_opener") as opener:
+            opener.return_value.open.side_effect = ValueError("private key and private response")
+            with self.assertRaisesRegex(RuntimeError, "^Storage credential lookup failed; private diagnostics withheld$"):
+                bundle.resolve_storage_key()
+
     def row(self, size=3):
         return {"bucket_id": "medical-documents", "name": "patient/report.pdf",
                 "metadata": {"size": size, "eTag": hashlib.md5(b"pdf", usedforsecurity=False).hexdigest()}}
