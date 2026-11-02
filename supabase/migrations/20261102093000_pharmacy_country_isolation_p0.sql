@@ -136,14 +136,27 @@ AS $$
 DECLARE
   v_order_country text;
   v_order_pharmacy uuid;
+  v_prescription_country text;
+  v_doctor_country text;
+  v_patient_country text;
   v_pharmacist_country text;
   v_pharmacist_pharmacy uuid;
 BEGIN
-  SELECT o.care_country, o.pharmacy_id INTO v_order_country, v_order_pharmacy
-  FROM public.dispensation_orders o WHERE o.id = NEW.order_id;
+  SELECT o.care_country, o.pharmacy_id, rx.country_code, d.care_country, pa.care_country
+    INTO v_order_country, v_order_pharmacy, v_prescription_country, v_doctor_country, v_patient_country
+  FROM public.dispensation_orders o
+  JOIN public.prescriptions rx ON rx.id = o.prescription_id
+  JOIN public.doctors d ON d.id = o.doctor_id AND d.active
+  JOIN public.patients pa ON pa.id = o.patient_id AND pa.active
+  WHERE o.id = NEW.order_id;
   SELECT ph.care_country, ph.pharmacy_id INTO v_pharmacist_country, v_pharmacist_pharmacy
-  FROM public.pharmacists ph WHERE ph.id = NEW.pharmacist_id AND ph.active;
+  FROM public.pharmacists ph
+  JOIN public.pharmacies f ON f.id=ph.pharmacy_id AND f.active AND f.deleted_at IS NULL AND f.care_country=ph.care_country
+  WHERE ph.id = NEW.pharmacist_id AND ph.active;
   IF v_order_pharmacy IS NULL OR v_pharmacist_pharmacy IS NULL
+     OR v_order_country IS DISTINCT FROM v_prescription_country
+     OR v_order_country IS DISTINCT FROM v_doctor_country
+     OR v_order_country IS DISTINCT FROM v_patient_country
      OR v_order_pharmacy IS DISTINCT FROM v_pharmacist_pharmacy
      OR v_order_country IS DISTINCT FROM v_pharmacist_country THEN
     RAISE EXCEPTION 'dispensation_event_pharmacy_country_mismatch' USING ERRCODE = '23514';
@@ -211,3 +224,22 @@ USING (
 CREATE INDEX IF NOT EXISTS idx_dispensation_orders_country_unassigned
   ON public.dispensation_orders(care_country, status, created_at)
   WHERE pharmacy_id IS NULL AND deleted_at IS NULL;
+
+-- Once a structured dispensing order exists, do not reclassify its source Rx.
+CREATE OR REPLACE FUNCTION app_private.guard_prescription_country_with_order()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+  IF (NEW.country_code, NEW.patient_id, NEW.doctor_id)
+     IS DISTINCT FROM (OLD.country_code, OLD.patient_id, OLD.doctor_id)
+     AND EXISTS (SELECT 1 FROM public.dispensation_orders o WHERE o.prescription_id=OLD.id)
+  THEN
+    RAISE EXCEPTION 'prescription_country_or_participants_locked_by_dispensation' USING ERRCODE='23514';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER zz_prescription_dispensation_country_lock
+BEFORE UPDATE OF country_code, patient_id, doctor_id ON public.prescriptions
+FOR EACH ROW EXECUTE FUNCTION app_private.guard_prescription_country_with_order();
