@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     // Verify pharmacist
     const { data: pharmacist } = await supabaseAdmin
       .from('pharmacists')
-      .select('id, pharmacy_id, care_country')
+      .select('id, pharmacy_id, care_country, role, license_number')
       .eq('user_id', user.id)
       .eq('active', true)
       .single();
