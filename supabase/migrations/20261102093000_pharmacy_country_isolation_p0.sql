@@ -225,7 +225,7 @@ ALTER POLICY pharmacies_select_authenticated ON public.pharmacies
 USING (
   active AND deleted_at IS NULL AND (
     public.is_system_admin()
-    OR EXISTS (SELECT 1 FROM public.pharmacists ph WHERE ph.user_id=auth.uid() AND ph.active AND ph.care_country=pharmacies.care_country)
+    OR pharmacies.id IN (SELECT public.current_pharmacist_pharmacy_ids())
     OR EXISTS (SELECT 1 FROM public.doctors d WHERE d.user_id=auth.uid() AND d.active AND d.care_country=pharmacies.care_country)
     OR EXISTS (SELECT 1 FROM public.patients p WHERE p.user_id=auth.uid() AND p.active AND p.care_country=pharmacies.care_country)
   )
