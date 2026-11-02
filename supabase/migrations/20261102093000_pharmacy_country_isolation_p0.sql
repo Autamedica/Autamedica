@@ -212,6 +212,44 @@ CREATE TRIGGER zz_dispensation_events_country
 BEFORE INSERT OR UPDATE ON public.dispensation_events
 FOR EACH ROW EXECUTE FUNCTION app_private.guard_dispensation_pharmacist_event();
 
+-- A clarification is clinical data. It must be created by a licensed
+-- pharmacist at the matching, assigned pharmacy, even through service_role.
+CREATE OR REPLACE FUNCTION app_private.guard_dispensation_clarification_country()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $
+BEGIN
+  IF TG_OP='UPDATE' AND NEW.order_id IS NOT DISTINCT FROM OLD.order_id
+     AND NEW.requested_by IS NOT DISTINCT FROM OLD.requested_by
+  THEN RETURN NEW; END IF;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.dispensation_orders o
+    JOIN public.prescriptions rx ON rx.id=o.prescription_id
+      AND rx.country_code=o.care_country
+      AND rx.doctor_id=o.doctor_id AND rx.patient_id=o.patient_id
+    JOIN public.doctors d ON d.id=o.doctor_id AND d.active
+      AND d.care_country=o.care_country
+    JOIN public.patients pat ON pat.id=o.patient_id AND pat.active
+      AND pat.care_country=o.care_country
+    JOIN public.pharmacists ph ON ph.user_id=NEW.requested_by
+      AND ph.active AND ph.role IN ('pharmacist','pharmacy_director')
+      AND NULLIF(btrim(ph.license_number),'') IS NOT NULL
+      AND ph.pharmacy_id=o.pharmacy_id AND ph.care_country=o.care_country
+    JOIN public.pharmacies f ON f.id=ph.pharmacy_id
+      AND f.active AND f.deleted_at IS NULL AND f.care_country=o.care_country
+    WHERE o.id=NEW.order_id AND o.pharmacy_id IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'dispensation_clarification_country_or_actor_mismatch' USING ERRCODE='23514';
+  END IF;
+  RETURN NEW;
+END $;
+
+CREATE TRIGGER zz_dispensation_clarifications_country
+BEFORE INSERT OR UPDATE OF order_id,requested_by ON public.dispensation_clarifications
+FOR EACH ROW EXECUTE FUNCTION app_private.guard_dispensation_clarification_country();
+
 -- Cross-country unassigned queue is not visible/claimable even through PostgREST.
 ALTER POLICY dispensation_orders_select_pharmacist ON public.dispensation_orders
 USING (
