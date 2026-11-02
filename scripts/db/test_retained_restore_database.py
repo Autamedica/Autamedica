@@ -35,6 +35,7 @@ def main():
         components = root / "components"
         components.mkdir()
         try:
+            print("Preparing isolated synthetic source.", flush=True)
             drill.run(["supabase", "start"], stage="Start synthetic source", cwd=source, env=clean, timeout=900)
             inspection = json.loads(drill.run(["docker", "inspect", drill.CONTAINER], stage="Inspect synthetic source"))[0]
             services = drill.run(["docker", "ps", "-aq", "--filter", "label=com.supabase.cli.project=" + drill.LOCAL_PROJECT], stage="Find fixture services").split()
@@ -79,6 +80,7 @@ def main():
         finally:
             drill.run(["supabase", "stop", "--no-backup"], stage="Destroy synthetic source", cwd=source, env=clean, timeout=120)
         # No source container exists from this point forward.
+        print("Synthetic source destroyed; preparing encrypted retained copy.", flush=True)
         if drill.run(["docker", "ps", "-aq", "--filter", "name=^/" + drill.CONTAINER + "$"], stage="Prove synthetic source unavailable").strip():
             raise RuntimeError("Synthetic source still available")
         keys = root / "fixture-keys"
@@ -97,6 +99,7 @@ def main():
             archive = restore.decrypt(output / "recovery.tar.gz.gpg", (output / "SHA256SUMS").read_text().split()[0], private, replay)
             recovered = restore.unpack_verified(archive, replay / "components")
             with patch.object(bundle, "build_opener", side_effect=AssertionError("Unexpected source API access")):
+                print("Restoring from retained synthetic components only.", flush=True)
                 restore.restore_database(replay, recovered)
                 restore.verify_storage(recovered, replay / "components")
         finally:
@@ -112,6 +115,7 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except Exception:
-        print("::error::Synthetic retained restore failed; private diagnostics withheld", flush=True)
+    except Exception as error:
+        message = str(error) if isinstance(error, RuntimeError) else "Synthetic retained restore failed (" + type(error).__name__ + "); private diagnostics withheld"
+        print("::error::" + message, flush=True)
         raise SystemExit(1) from None
