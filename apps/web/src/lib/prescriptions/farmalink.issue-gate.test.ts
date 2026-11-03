@@ -63,6 +63,16 @@ function setup() {
 }
 
 describe('Farmalink once-only persistent issue guard', () => {
+  it('does not silently fall back to an internal AR prescription when Farmalink is disabled', async () => {
+    const supabase = db([]);
+    const alta = vi.fn();
+    vi.spyOn(FarmalinkClient, 'fromEnv').mockReturnValue(null);
+    const result = await __testables.registerFarmalinkIfEnabled({...clinical, supabase});
+    expect(result).toMatchObject({ ok: false, error: { code: 'farmalink_not_enabled' } });
+    expect(alta).not.toHaveBeenCalled();
+    expect((supabase as unknown as { rpc: ReturnType<typeof vi.fn> }).rpc).not.toHaveBeenCalled();
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
     resetRuntimeEnvCache();
