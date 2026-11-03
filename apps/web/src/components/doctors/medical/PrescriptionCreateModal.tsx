@@ -102,6 +102,7 @@ function prescriptionErrorMessage(error: unknown, phase: "save" | "issue"): stri
     missing_refeps_id: "Falta tu identificador REFEPS en el perfil.",
     missing_professional_address: "Falta tu domicilio profesional en el perfil.",
     prescriber_validation_required: "Tu validación profesional aún no permite emitir recetas.",
+    prescription_country_mismatch: "El médico, el paciente y la receta deben pertenecer al mismo país. Completá la jurisdicción de atención antes de emitir.",
     missing_patient_identification: "Falta DNI o CUIL del paciente.",
     missing_patient_address: "Falta el domicilio del paciente.",
     no_medication: "Agregá al menos un medicamento antes de emitir.",
