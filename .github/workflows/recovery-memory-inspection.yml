@@ -62,9 +62,23 @@ jobs:
               if not isinstance(variant_id, str) or len(variant_id) > 48 or not variant_id.startswith("ci_"):
                   sys.exit("Invalid compute variant")
               compute.append(variant_id)
-          if len(compute) != 1:
-              sys.exit("Active compute selection missing or ambiguous")
-          print(json.dumps({"compute_instance": compute[0]}, sort_keys=True), flush=True)
+          selected_types = [item["type"] for item in addons["selected_addons"]
+                            if isinstance(item, dict) and isinstance(item.get("type"), str)
+                            and len(item["type"]) <= 48]
+          project = read("/v1/projects/qxjjrpksmwwrmubhvjew")
+          if not isinstance(project, dict):
+              sys.exit("Unexpected project details response")
+          safe_compute_fields = ("compute_instance", "compute_size", "infra_compute_size",
+                                 "compute_instance_size", "compute_addon")
+          project_compute = {key: project[key] for key in safe_compute_fields
+                             if isinstance(project.get(key), str) and len(project[key]) <= 48}
+          print(json.dumps({"selected_addon_types": selected_types,
+                            "compute_addon": compute,
+                            "project_compute": project_compute}, sort_keys=True), flush=True)
+          if len(compute) > 1:
+              sys.exit("Ambiguous compute selection")
+          if not compute and not project_compute:
+              sys.exit("Active compute size not exposed by available read endpoints")
 
           # Optional v2 override inventory is not an authoritative PG runtime snapshot.
           response = read("/v2/projects/qxjjrpksmwwrmubhvjew/config")
