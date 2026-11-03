@@ -1,4 +1,4 @@
--- Farmalink once-only outbound reservation, guarded by the authenticated prescriber.
+-- Farmalink once-only outbound reservation. RPC access: server-side service_role only.
 -- No migrations are applied to staging or production by this PR.
 -- One row per prescription means duplicate issue requests cannot send another alta.
 CREATE TABLE IF NOT EXISTS public.farmalink_issue_attempts (
@@ -27,16 +27,17 @@ REVOKE ALL ON public.farmalink_issue_attempts FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.claim_farmalink_issue(
   p_prescription_id uuid,
-  p_request_sha256 text
+  p_request_sha256 text,
+  p_actor_user_id uuid
 ) RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = ''
 AS $$
 DECLARE
   v_attempt_id uuid;
   v_state text;
 BEGIN
-  IF (SELECT auth.uid()) IS NULL THEN
-    RAISE EXCEPTION 'farmalink_auth_required' USING ERRCODE = '42501';
+  IF current_user <> 'service_role' OR p_actor_user_id IS NULL THEN
+    RAISE EXCEPTION 'farmalink_server_role_required' USING ERRCODE = '42501';
   END IF;
   IF p_request_sha256 IS NULL OR p_request_sha256 !~ '^[0-9a-f]{64}$' THEN
     RAISE EXCEPTION 'farmalink_invalid_request_hash' USING ERRCODE = '22023';
@@ -48,7 +49,7 @@ BEGIN
   FROM public.prescriptions p
   JOIN public.doctors d ON d.id = p.doctor_id
   WHERE p.id = p_prescription_id
-    AND d.user_id = (SELECT auth.uid())
+    AND d.user_id = p_actor_user_id
     AND p.country_code = 'AR'
     AND p.cuir IS NULL
   FOR UPDATE OF p;
@@ -59,7 +60,7 @@ BEGIN
   INSERT INTO public.farmalink_issue_attempts
     (prescription_id, doctor_user_id, request_sha256)
   VALUES
-    (p_prescription_id, (SELECT auth.uid()), p_request_sha256)
+    (p_prescription_id, p_actor_user_id, p_request_sha256)
   ON CONFLICT (prescription_id) DO NOTHING
   RETURNING attempt_id, state INTO v_attempt_id, v_state;
 
@@ -79,16 +80,17 @@ CREATE OR REPLACE FUNCTION public.record_farmalink_issue(
   p_prescription_id uuid,
   p_attempt_id uuid,
   p_state text,
+  p_actor_user_id uuid,
   p_vendor_id text DEFAULT NULL,
   p_response_code text DEFAULT NULL
 ) RETURNS boolean
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = ''
 AS $$
 DECLARE
   v_rows integer;
 BEGIN
-  IF (SELECT auth.uid()) IS NULL THEN
-    RAISE EXCEPTION 'farmalink_auth_required' USING ERRCODE = '42501';
+  IF current_user <> 'service_role' OR p_actor_user_id IS NULL THEN
+    RAISE EXCEPTION 'farmalink_server_role_required' USING ERRCODE = '42501';
   END IF;
   IF p_state NOT IN ('unknown', 'rejected', 'confirmed') OR p_state IS NULL THEN
     RAISE EXCEPTION 'farmalink_invalid_state' USING ERRCODE = '22023';
@@ -110,8 +112,8 @@ BEGIN
   WHERE a.prescription_id = p_prescription_id
     AND p.id = a.prescription_id
     AND a.attempt_id = p_attempt_id
-    AND a.doctor_user_id = (SELECT auth.uid())
-    AND d.user_id = (SELECT auth.uid())
+    AND a.doctor_user_id = p_actor_user_id
+    AND d.user_id = p_actor_user_id
     AND p.country_code = 'AR'
     AND a.state = 'reserved';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
@@ -119,11 +121,11 @@ BEGIN
 END;
 $$;
 
--- Public exposed functions are not public APIs: authenticate and ownership-check.
-REVOKE ALL ON FUNCTION public.claim_farmalink_issue(uuid, text) FROM PUBLIC, anon;
-REVOKE ALL ON FUNCTION public.record_farmalink_issue(uuid, uuid, text, text, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.claim_farmalink_issue(uuid, text) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.record_farmalink_issue(uuid, uuid, text, text, text) TO authenticated;
+-- Public exposed functions are NOT public APIs: service-role only; doctor ownership checked from server-supplied actor.
+REVOKE ALL ON FUNCTION public.claim_farmalink_issue(uuid, text, uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.record_farmalink_issue(uuid, uuid, text, uuid, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_farmalink_issue(uuid, text, uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.record_farmalink_issue(uuid, uuid, text, uuid, text, text) TO service_role;
 
 COMMENT ON TABLE public.farmalink_issue_attempts IS
  'Once-only outbound registration reservation. Never delete/reset rows to retry without vendor reconciliation; attempts can be ambiguous after HTTP timeouts.';
