@@ -1,4 +1,4 @@
-name: Farmalink TEST OAuth and demo altaReceta (no production)
+name: Farmalink TEST diagnostic (no prescriptions)
 
 on:
   push:
@@ -10,21 +10,45 @@ permissions:
   contents: read
 
 jobs:
-  test-oauth:
-    name: Farmalink TEST login and one official DEMO altaReceta
+  connectivity:
+    name: Safe HTTP diagnostic of TEST recipe endpoint
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # actions/checkout v4.3.1
         with:
           persist-credentials: false
-      - name: Check OAuth token (never print credentials or token)
+      - name: Confirm OAuth token
         env:
           FARMALINK_TEST_OAUTH_PASSWORD: ${{ secrets.FARMALINK_TEST_OAUTH_PASSWORD }}
           FARMALINK_TEST_BASIC_PASSWORD: ${{ secrets.FARMALINK_TEST_BASIC_PASSWORD }}
         run: python3 scripts/farmalink/oauth_smoke.py
-      - name: Send one official DEMO altaReceta to Farmalink TEST only
+      - name: Check recipe API without creating recipes (GET only)
         env:
           FARMALINK_TEST_OAUTH_PASSWORD: ${{ secrets.FARMALINK_TEST_OAUTH_PASSWORD }}
           FARMALINK_TEST_BASIC_PASSWORD: ${{ secrets.FARMALINK_TEST_BASIC_PASSWORD }}
-        run: python3 scripts/farmalink/alta_demo_smoke.py
+        run: |
+          python3 - <<'PY'
+          import base64, json, os, socket, time, urllib.error, urllib.request
+          host = 'test-servicios.farmalink.com.ar'
+          print('DNS_IPV4=' + ','.join(sorted({v[4][0] for v in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)})))
+          token_url = 'https://' + host + '/api/oauth/token/generate'
+          basic = base64.b64encode(('AUTAMEDICAClient:' + os.environ['FARMALINK_TEST_BASIC_PASSWORD']).encode()).decode()
+          opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
+          auth_headers = {'Authorization': 'Basic ' + basic, 'grant_type': 'PASSWORD', 'username': 'autamedica.ws182', 'password': os.environ['FARMALINK_TEST_OAUTH_PASSWORD'], 'scope': 'Switch.RecetaElectRest'}
+          with opener.open(urllib.request.Request(token_url, data=b'', headers=auth_headers, method='POST'), timeout=18) as res:
+              token = json.load(res)['access_token']
+          print('TOKEN_OBTAINED=YES')
+          base = 'https://' + host + '/api/recetaElect/v3'
+          for path in ['', '/altaReceta']:
+              start = time.monotonic()
+              req = urllib.request.Request(base + path, headers={'Authorization':'Bearer ' + token, 'Accept':'application/json'}, method='GET')
+              try:
+                  with opener.open(req,timeout=14) as res:
+                      print('ENDPOINT=' + (path or '/') + ' HTTP_STATUS=' + str(res.status) + ' ELAPSED_S=' + str(round(time.monotonic()-start,1)))
+              except urllib.error.HTTPError as ex:
+                  print('ENDPOINT=' + (path or '/') + ' HTTP_STATUS=' + str(ex.code) + ' ELAPSED_S=' + str(round(time.monotonic()-start,1)))
+              except (OSError,TimeoutError) as ex:
+                  print('ENDPOINT=' + (path or '/') + ' ERROR=' + type(ex).__name__ + ' ELAPSED_S=' + str(round(time.monotonic()-start,1)))
+          print('PRESCRIPTIONS_SENT=0')
+          PY
