@@ -1,4 +1,4 @@
-name: Farmalink TEST one-shot DEMO integration cycle
+name: Farmalink TEST OAuth only - pending DEMO reconciliation
 
 on:
   workflow_dispatch:
@@ -8,15 +8,16 @@ permissions:
 
 jobs:
   one-shot-demo:
-    name: One vendor DEMO alta, then conditional consulta and baja
+    name: Read-only OAuth check - no alta or baja
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
-      - name: Execute single TEST DEMO cycle; no automatic retries
+      - name: Check OAuth only; DEMO attempts remain blocked
         env:
           FARMALINK_TEST_OAUTH_PASSWORD: ${{ secrets.FARMALINK_TEST_OAUTH_PASSWORD }}
           FARMALINK_TEST_BASIC_PASSWORD: ${{ secrets.FARMALINK_TEST_BASIC_PASSWORD }}
-        run: python3 scripts/farmalink/sandbox_demo_cycle.py
+        run: python3 scripts/farmalink/oauth_smoke.py
+

@@ -213,4 +213,29 @@ describe('Farmalink mapper', () => {
     })).toThrow(FarmalinkMappingError);
   });
 
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])('rejects invalid quantity %s', (quantity) => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput, items:[{...baseInput.items[0],quantity}],
+    })).toThrow(FarmalinkMappingError);
+  });
+
+  it.each(['2026-02-30','2026-13-01'])('rejects impossible date %s', (from) => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,validity:{...baseInput.validity,from},
+    })).toThrow(FarmalinkMappingError);
+  });
+
+  it('rejects expiration before the issue date', () => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,validity:{from:'2026-06-17',to:'2026-05-18'},
+    })).toThrow(FarmalinkMappingError);
+  });
+
+  it.each(['ABC123','9007199254740993','0'])('rejects an invalid patient identifier %s', (documentNumber) => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,affiliate:{...baseInput.affiliate,documentNumber},
+    })).toThrow(FarmalinkMappingError);
+  });
+
 });
+

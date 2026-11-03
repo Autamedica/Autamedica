@@ -44,7 +44,7 @@ Evidencia: workflow [alta demo](https://github.com/ecucondorSA/Autamedica/action
 
 **Pendientes con Farmalink:** confirmar existencia de receta de la transaccion DEMO sin respuesta; idOrganizacion y puntoEmisor efectivos; constancia de homologacion y credenciales productivas; dataset de medico real/test autorizado; y correccion de ambiguedades de OpenAPI. En particular, `bajaReceta.recElectronica.receta.nroRecElectronica` se define como numero en el esquema, pero el ejemplo publicado es una cadena. No cambiar formato de anulacion en produccion sin confirmacion del proveedor.
 
-**P0 de idempotencia:** el flujo `issuePrescription` invoca `altaReceta` antes de persistir `vendor_id`. Si Farmalink acepta la solicitud y el cliente pierde respuesta, volver a emitir podria duplicar la receta. La solucion requiere reservar un intento persistente y bloquear reintentos por identificador de receta hasta conciliarlo; no se debe habilitar el servicio sin ese control y sus pruebas transaccionales.
+**P0 de idempotencia corregido en la rama, sin despliegue:** `issuePrescription` reserva un intento persistente antes de `altaReceta`; timeout/504 no liberan la reserva. La reserva verifica médico, país AR de ambas partes, validación profesional y contenido clínico esperado; un trigger congela la receta reservada e impide afirmar validación Farmalink sin un recibo confirmado. La aprobación final depende del CI del commit exacto. No confundir esta protección con conciliación operativa o aprobación del proveedor.
 
 ## Contrato OAuth
 
@@ -142,3 +142,4 @@ Campos minimos para que `FARMALINK_ENABLED=true` no bloquee la emision:
 5. Usar `consultaReceta` para conciliacion y soporte operativo cuando corresponda.
 6. Ejecutar `bajaReceta` solo mediante el flujo autorizado y con auditoria.
 7. Conservar request/response sanitizados como evidencia tecnica, sin exponer PII.
+

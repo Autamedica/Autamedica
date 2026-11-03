@@ -24,12 +24,14 @@ export async function claimFarmalinkIssue(
   prescriptionId: string,
   requestSha256: string,
   actorUserId: string,
+  expectedClinicalData: unknown = null,
 ): Promise<FarmalinkPersistResult<FarmalinkIssueClaim>> {
   try {
     const { data, error } = await supabase.rpc('claim_farmalink_issue', {
       p_prescription_id: prescriptionId,
       p_request_sha256: requestSha256,
       p_actor_user_id: actorUserId,
+      p_expected_clinical_data: expectedClinicalData,
     });
 
     if (error) return { ok: false, reason: 'database_failure' };

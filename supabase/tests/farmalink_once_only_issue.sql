@@ -3,12 +3,12 @@ BEGIN;
 
 DO $privileges$
 BEGIN
- IF has_function_privilege('anon', 'public.claim_farmalink_issue(uuid,text,uuid)', 'EXECUTE')
- OR has_function_privilege('authenticated', 'public.claim_farmalink_issue(uuid,text,uuid)', 'EXECUTE')
+ IF has_function_privilege('anon', 'public.claim_farmalink_issue(uuid,text,uuid,jsonb)', 'EXECUTE')
+ OR has_function_privilege('authenticated', 'public.claim_farmalink_issue(uuid,text,uuid,jsonb)', 'EXECUTE')
  OR has_function_privilege('anon', 'public.record_farmalink_issue(uuid,uuid,text,uuid,text,text)', 'EXECUTE')
  OR has_function_privilege('authenticated', 'public.record_farmalink_issue(uuid,uuid,text,uuid,text,text)', 'EXECUTE')
  THEN RAISE EXCEPTION 'Farmalink RPC must not be callable from browser roles'; END IF;
- IF NOT has_function_privilege('service_role', 'public.claim_farmalink_issue(uuid,text,uuid)', 'EXECUTE')
+ IF NOT has_function_privilege('service_role', 'public.claim_farmalink_issue(uuid,text,uuid,jsonb)', 'EXECUTE')
  THEN RAISE EXCEPTION 'Farmalink claim must be executable by server role'; END IF;
  IF has_table_privilege('anon','public.farmalink_issue_attempts','SELECT')
  OR has_table_privilege('authenticated','public.farmalink_issue_attempts','INSERT')
@@ -64,17 +64,17 @@ DECLARE
  invalid_claim boolean := false;
 BEGIN
  SELECT * INTO x FROM farmalink_fixture LIMIT 1;
- c1 := public.claim_farmalink_issue(x.prescription_id, repeat('a',64),x.uid);
+ c1 := public.claim_farmalink_issue(x.prescription_id, repeat('a',64),x.uid,'{}'::jsonb);
  IF c1->>'claimed' <> 'true' OR c1->>'state' <> 'reserved'
  THEN RAISE EXCEPTION 'First claim must reserve exactly once'; END IF;
  attempt := (c1->>'attempt_id')::uuid;
 
- c2 := public.claim_farmalink_issue(x.prescription_id, repeat('a',64),x.uid);
+ c2 := public.claim_farmalink_issue(x.prescription_id, repeat('a',64),x.uid,'{}'::jsonb);
  IF c2->>'claimed' <> 'false' OR c2->>'attempt_id' <> attempt::text
  THEN RAISE EXCEPTION 'Duplicate claim must fail while preserving attempt identity'; END IF;
 
  BEGIN
-   PERFORM public.claim_farmalink_issue(x.prescription_id, repeat('b',64),x.other_uid);
+   PERFORM public.claim_farmalink_issue(x.prescription_id, repeat('b',64),x.other_uid,'{}'::jsonb);
  EXCEPTION WHEN insufficient_privilege THEN invalid_claim := true;
  END;
  IF NOT invalid_claim THEN RAISE EXCEPTION 'Another doctor may not claim the prescription'; END IF;
@@ -84,7 +84,7 @@ BEGIN
  IF public.record_farmalink_issue(x.prescription_id,attempt,'confirmed',x.uid,'12345678','00')
  THEN RAISE EXCEPTION 'Unknown attempts cannot be upgraded without reconciliation'; END IF;
 
- c3 := public.claim_farmalink_issue(x.prescription_id, repeat('b',64),x.uid);
+ c3 := public.claim_farmalink_issue(x.prescription_id, repeat('b',64),x.uid,'{}'::jsonb);
  IF c3->>'claimed' <> 'false' OR c3->>'state' <> 'unknown'
  THEN RAISE EXCEPTION 'Ambiguous outcome must permanently block automatic alta'; END IF;
 END

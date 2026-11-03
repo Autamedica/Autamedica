@@ -39,3 +39,24 @@ La tabla `public.farmalink_issue_attempts` tiene **clave primaria `prescription_
 - Ejecutar `apps/web/src/lib/prescriptions/farmalink.issue-gate.test.ts` más regresiones PDF/mapper/cliente.
 - Mantener PR en borrador hasta que los jobs de build, typecheck, SQL y seguridad estén en verde y haya revisión técnica.
 - Antes de despliegue: migración **primero**, aplicación después; si RPC no está disponible el flujo debe fallar sin llamar Farmalink.
+
+
+## Auditoría independiente de la rama — 03/11/2026
+
+- La firma de reserva es `claim_farmalink_issue(uuid,text,uuid,jsonb)`: el último argumento es la copia de `clinical_data` leída por el servidor, comparada bajo bloqueo de fila. El overload anterior de tres argumentos se elimina para impedir eludir esa comprobación.
+- La reserva requiere médico y paciente activos de AR, perfil médico activo con estado `valid`, REFEPS y domicilio profesional. Una exención genérica no basta para Farmalink.
+- El contenido clínico, paciente, médico y país quedan bloqueados después de la reserva. Solo se permite guardar `vendor_name=farmalink` con un intento confirmado, mismo número y código funcional `00/0`.
+- CI ejecuta conexiones `psql` concurrentes contra Supabase local descartable. No son mocks de unicidad. Incluye reinicio del proceso cliente, fallo de persistencia, estado incierto, permisos y casos AR/BR.
+- La suite PDF renderiza una receta sintética y decodifica su Code 128 con Poppler y ZBar, independientemente del encoder.
+- El mapper rechaza cantidades no enteras/positivas, fechas inexistentes o invertidas e identificadores numéricos inválidos. La matrícula sale del registro del médico, sin reemplazos de configuración.
+- El circuito Farmalink rechaza pacientes externos representados por otro registro y recetas de varios medicamentos mientras no exista un circuito PDF/mapping completo para esos casos. No emite una receta parcial.
+- El cliente HTTP usa un límite de 30 segundos y no retransmite tras errores. El workflow manual de red ejecuta únicamente OAuth; no alta ni baja mientras las dos DEMO sigan sin conciliar.
+
+### Requisitos todavía incompletos: no habilitar producción
+
+1. **Conciliación funcional auditada:** `record_farmalink_issue` solo finaliza `reserved`. No permite transformar `unknown` en `confirmed`, ni liberar un intento. No existe todavía endpoint/herramienta de conciliación con identidad del operador, evidencia del proveedor y comparación completa de paciente/medicación. No usar un UPDATE manual para suplirlo. Falta confirmar el contrato de consulta y los números de ambas DEMO con Farmalink.
+2. **Recuperación posterior a aprobación:** `regenerateIssuedPrescriptionPdf` recupera documentos con CUIR ya persistido. Si Farmalink aprobó pero falló el PDF o el guardado antes de persistir CUIR en `prescriptions`, el número queda protegido en `farmalink_issue_attempts`, pero el flujo de recuperación de ese caso no está implementado. Reemitir queda bloqueado. Se necesita una instantánea íntegra de emisión y su reconstrucción auditada, sin llamar a `altaReceta`.
+3. **Identidad del prescriptor y cobertura:** la BD verificada no contiene fecha de nacimiento/DNI del médico en `doctors/profiles`. El mapper aún recibe esos valores de metadatos o configuración de homologación. No se acreditó su asociación autoritativa para cada profesional, ni un circuito productivo sin credenciales/códigos DEMO por defecto.
+4. **Contrato externo:** el catálogo oficial suministrado por Farmalink (`https://catalogo-srv.farmalink.com.ar/`) no pudo recuperarse desde este entorno (fallo de conexión/timeout). No se atribuye el 504 a un payload o permiso específico sin trazas del proveedor. Faltan organización, punto emisor y canal efectivamente autorizados, alta/consulta/baja válidas y aprobación formal.
+
+Las comprobaciones técnicas de la rama no son homologación oficial. Staging y producción se consultan solo en modo lectura y no reciben esta migración.

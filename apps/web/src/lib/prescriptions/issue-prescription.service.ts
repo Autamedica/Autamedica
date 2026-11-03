@@ -185,6 +185,7 @@ type UnknownRecord = Record<string, unknown>;
 
 interface IssueDoctor {
   id: string;
+  license_type?: string | null;
   license_number: string;
   specialty?: string | null;
   refeps_id?: string | null;
@@ -287,6 +288,10 @@ function buildFarmalinkPrescriptionMapInput(input: {
   now: string;
   expiresAt: string;
 }): FarmalinkPrescriptionMapInput {
+  // Proxy patient records and multi-item PDF support are not yet verified for Farmalink.
+  // Refuse rather than submit a different identity or silently drop medications.
+  if (input.clinicalData.external_patient) throw new FarmalinkMappingError('external_patient');
+  if ((input.clinicalData.items?.length ?? 0) > 1) throw new FarmalinkMappingError('items');
   const farmalink = asRecord(input.clinicalData.farmalink);
   const organization = readRecord(farmalink, ['organization', 'organizacion']);
   const credential = readRecord(farmalink, ['credential', 'credencial', 'affiliate', 'afiliado']);
@@ -372,18 +377,8 @@ function buildFarmalinkPrescriptionMapInput(input: {
       address: input.doctor.professional_address ?? '',
       refeps: input.doctor.refeps_id ?? undefined,
       license: {
-        tipo: firstText(
-          readString(prescriber, ['licenseType', 'license_type', 'tipoMatricula', 'tipo_matricula']),
-          readEnv(['FARMALINK_PRESCRIBER_LICENSE_TYPE']),
-          input.doctor.enrollment_entity,
-          'MN',
-        ) ?? 'MN',
-        provincia: firstText(
-          readString(prescriber, ['licenseProvince', 'license_province', 'provincia']),
-          readEnv(['FARMALINK_PRESCRIBER_LICENSE_PROVINCE']),
-          input.doctor.enrollment_jurisdiction,
-          'C',
-        ) ?? 'C',
+        tipo: firstText(input.doctor.license_type, input.doctor.enrollment_entity) ?? '',
+        provincia: input.doctor.enrollment_jurisdiction ?? '',
         numero: input.doctor.license_number,
         especialidad: input.doctor.specialty ?? undefined,
       },
@@ -451,7 +446,7 @@ async function registerFarmalinkIfEnabled(input: {
   // If this RPC fails, do not send a request: avoid duplicate issues after
   // process crashes, multiple tabs, or HTTP 504/timeout ambiguity.
   const requestHash = await sha256BytesHex(new TextEncoder().encode(JSON.stringify(request)));
-  const claim = await claimFarmalinkIssue(input.supabase, input.prescriptionId, requestHash, input.actorUserId);
+  const claim = await claimFarmalinkIssue(input.supabase, input.prescriptionId, requestHash, input.actorUserId, input.clinicalData);
   if (claim.ok === false) {
     logger.error('[issuePrescription] Farmalink once-only claim unavailable', {
       prescriptionId: input.prescriptionId,
@@ -1107,3 +1102,4 @@ export const __testables = {
   buildFarmalinkPrescriptionMapInput,
   canIssueWithPrescriberValidationStatus,
 };
+

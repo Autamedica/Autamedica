@@ -202,5 +202,19 @@ describe('Farmalink once-only persistent issue guard', () => {
     expect(alta).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    {external_patient:{name:'Other Person',dni:'40000000'}},
+    {items:[clinical.item,clinical.item]},
+  ])('refuses unverified proxy patients or multiple medications without an alta', async (extra) => {
+    setup();
+    const supabase = db([]);
+    const alta = vi.fn();
+    vi.spyOn(FarmalinkClient, 'fromEnv').mockReturnValue({altaReceta:alta} as unknown as FarmalinkClient);
+    expect(await __testables.registerFarmalinkIfEnabled({
+      ...clinical,supabase,clinicalData:{...clinical.clinicalData,...extra},
+    })).toMatchObject({ok:false,error:{code:'farmalink_mapping_failed'}});
+    expect(alta).not.toHaveBeenCalled();
+  });
+
 });
 
