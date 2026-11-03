@@ -1,22 +1,25 @@
-name: Farmalink TEST consultaReceta (read only)
+name: Farmalink TEST negative contract smoke (no valid prescriptions)
 
 on:
+  push:
+    branches:
+      - test/farmalink-oauth-smoke-20261103
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  consulta-smoke:
-    name: Query unassigned DEMO reference without emitting or cancelling
+  schema-rejections:
+    name: Check safe alta consulta baja format rejections in TEST
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 3
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # actions/checkout v4.3.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
-      - name: One safe POST consultaReceta in TEST
+      - name: Run three non-mutating POST requests with incomplete fields
         env:
           FARMALINK_TEST_OAUTH_PASSWORD: ${{ secrets.FARMALINK_TEST_OAUTH_PASSWORD }}
           FARMALINK_TEST_BASIC_PASSWORD: ${{ secrets.FARMALINK_TEST_BASIC_PASSWORD }}
-        run: python3 scripts/farmalink/consulta_smoke.py
+        run: python3 scripts/farmalink/rejection_smoke.py
