@@ -83,14 +83,14 @@ async function main() {
     data: {
       type: 'usuarios',
       attributes: {
-        external_id: 'autamedica-demo-homologacao-20261103',
-        nome: 'Medico',
-        sobrenome: 'AutaMedica DEMO',
-        cpf: '52998224725', // test fixture used in Memed's public documentation
-        board: { board_code: 'CRM', board_number: '00000', board_state: 'SP' },
+        external_id: 'autamedica-demo-docs-exemplo-20261103',
+        nome: 'Gustavo',
+        sobrenome: 'Ribeiro Sousa',
+        cpf: '53076220403', // DEMO fixture from Memed's own 'Cadastrar o prescritor' example
+        board: { board_code: 'CRM', board_number: '315435435', board_state: 'SP' },
         email: 'medico-autamedica-demo@example.invalid',
         sexo: 'M',
-        data_nascimento: '15/03/1985',
+        data_nascimento: '05/09/1972',
       },
     },
   };
