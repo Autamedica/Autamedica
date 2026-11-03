@@ -9,6 +9,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getServerEnvOrDefault, logger } from '@autamedica/shared';
 import { getRuntimeEnvValue } from '@/lib/runtime-env';
 import { FarmalinkClient } from './farmalink.client';
+import { claimFarmalinkIssue, recordFarmalinkIssue } from './farmalink.issue-gate';
 import {
   FarmalinkMappingError,
   buildFarmalinkAltaRecetaRequest,
@@ -133,7 +134,9 @@ export type IssuanceError =
   | { code: 'farmalink_missing_config' }
   | { code: 'farmalink_mapping_failed' }
   | { code: 'farmalink_registration_failed' }
-  | { code: 'farmalink_rejected'; responseCode?: string };
+  | { code: 'farmalink_rejected'; responseCode?: string }
+  | { code: 'farmalink_pending_reconciliation' }
+  | { code: 'farmalink_idempotency_unavailable' };
 
 type Result = { ok: true; data: IssuanceResult } | { ok: false; error: IssuanceError };
 
@@ -409,6 +412,8 @@ function buildFarmalinkPrescriptionMapInput(input: {
 }
 
 async function registerFarmalinkIfEnabled(input: {
+  supabase: SupabaseClient;
+  prescriptionId: string;
   clinicalData: ClinicalData;
   doctor: IssueDoctor;
   doctorName: string;
@@ -441,12 +446,37 @@ async function registerFarmalinkIfEnabled(input: {
     return { ok: false, error: { code: 'farmalink_mapping_failed' } };
   }
 
+  // Unique, durable claim is COMMITTED before reaching Farmalink.
+  // If this RPC fails, do not send a request: avoid duplicate issues after
+  // process crashes, multiple tabs, or HTTP 504/timeout ambiguity.
+  const requestHash = await sha256BytesHex(new TextEncoder().encode(JSON.stringify(request)));
+  const claim = await claimFarmalinkIssue(input.supabase, input.prescriptionId, requestHash);
+  if (!claim.ok) {
+    logger.error('[issuePrescription] Farmalink once-only claim unavailable', {
+      prescriptionId: input.prescriptionId,
+      reason: claim.reason,
+    });
+    return { ok: false, error: { code: 'farmalink_idempotency_unavailable' } };
+  }
+  if (!claim.value.claimed) {
+    logger.warn('[issuePrescription] Farmalink duplicate alta prevented', {
+      prescriptionId: input.prescriptionId,
+      state: claim.value.state,
+    });
+    return { ok: false, error: { code: 'farmalink_pending_reconciliation' } };
+  }
+
+  const attemptId = claim.value.attempt_id;
   try {
     const result = await client.altaReceta(request);
     if (!result.approved || !result.nroRecElectronica) {
+      const persisted = await recordFarmalinkIssue(
+        input.supabase, input.prescriptionId, attemptId, 'rejected',
+        undefined, result.responseCode,
+      );
+      if (!persisted) return { ok: false, error: { code: 'farmalink_idempotency_unavailable' } };
       logger.warn('[issuePrescription] Farmalink rejected AltaReceta', {
         responseCode: result.responseCode,
-        responseDescription: result.responseDescription,
         reference: result.reference,
       });
       return {
@@ -454,6 +484,14 @@ async function registerFarmalinkIfEnabled(input: {
         error: { code: 'farmalink_rejected', responseCode: result.responseCode },
       };
     }
+
+    // Record the external receipt before any PDF signing/storage can fail.
+    // A subsequent invocation must NOT call altaReceta again.
+    const persisted = await recordFarmalinkIssue(
+      input.supabase, input.prescriptionId, attemptId,
+      'confirmed', result.nroRecElectronica, result.responseCode,
+    );
+    if (!persisted) return { ok: false, error: { code: 'farmalink_pending_reconciliation' } };
 
     return {
       ok: true,
@@ -470,11 +508,14 @@ async function registerFarmalinkIfEnabled(input: {
       },
     };
   } catch (error) {
-    logger.error('[issuePrescription] Farmalink AltaReceta failed', {
+    // Even an HTTP rejection may be ambiguous at the vendor boundary.
+    // This state never releases the claim for automatic retransmission.
+    await recordFarmalinkIssue(input.supabase, input.prescriptionId, attemptId, 'unknown');
+    logger.error('[issuePrescription] Farmalink AltaReceta outcome unknown; retry blocked', {
+      prescriptionId: input.prescriptionId,
       name: error instanceof Error ? error.name : undefined,
-      message: error instanceof Error ? error.message : String(error),
     });
-    return { ok: false, error: { code: 'farmalink_registration_failed' } };
+    return { ok: false, error: { code: 'farmalink_pending_reconciliation' } };
   }
 }
 
@@ -590,6 +631,8 @@ export async function issuePrescription(
   let externalRegistration: FarmalinkRegistration | undefined;
   if (prescriptionCountry === 'AR') {
     const farmalinkRegistration = await registerFarmalinkIfEnabled({
+      supabase,
+      prescriptionId,
       clinicalData,
       doctor,
       doctorName,
