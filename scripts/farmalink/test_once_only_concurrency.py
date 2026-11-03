@@ -31,6 +31,8 @@ def sql(query, *, denied=False):
                 or 'farmalink_server_role_required' in result.stderr
                 or 'farmalink_prescription_not_eligible' in result.stderr
                 or 'farmalink_missing_vendor_id' in result.stderr
+                or 'farmalink_invalid_issue_snapshot' in result.stderr
+                or 'farmalink_actor_snapshot_mismatch' in result.stderr
                 or 'farmalink_snapshot_immutable' in result.stderr
                 or 'farmalink_unconfirmed_vendor' in result.stderr), result.stderr
         return None
@@ -56,8 +58,9 @@ def fixture():
 
 def claim(f, actor=None, role='service_role', denied=False):
     actor_sql = f"'{actor or f['uid']}'" if actor != 'NULL' else 'NULL'
+    snapshot_sql = json.dumps(f['snapshot']).replace("'", "''")
     return sql(f"BEGIN; SET LOCAL ROLE {role}; SELECT public.claim_farmalink_issue("
-               f"'{f['prescription_id']}',repeat('a',64),{actor_sql},'{{}}'::jsonb); COMMIT;", denied=denied)
+               f"'{f['prescription_id']}',repeat('a',64),{actor_sql},'{{}}'::jsonb,'{snapshot_sql}'::jsonb); COMMIT;", denied=denied)
 
 
 def record(f, attempt, state, vendor='NULL', code='NULL', denied=False):
@@ -72,9 +75,10 @@ barrier = Barrier(10)
 
 def contender(_):
     barrier.wait(timeout=10)
+    snapshot_sql = json.dumps(f['snapshot']).replace("'", "''")
     # Hold the prescription row lock until COMMIT, forcing competing sessions to wait.
     query = (f"BEGIN; SET LOCAL ROLE service_role; SET LOCAL lock_timeout='15s'; "
-             f"SELECT public.claim_farmalink_issue('{f['prescription_id']}',repeat('a',64),'{f['uid']}','{{}}'::jsonb); "
+             f"SELECT public.claim_farmalink_issue('{f['prescription_id']}',repeat('a',64),'{f['uid']}','{{}}'::jsonb,'{snapshot_sql}'::jsonb); "
              "SELECT pg_sleep(0.2); COMMIT;")
     return json.loads(sql(query))
 
@@ -89,7 +93,7 @@ check('all contenders retain the same attempt identity', len({c['attempt_id'] fo
 # All issuing processes have exited. A fresh process cannot retransmit.
 check('process restart after durable reservation blocks another alta',
       json.loads(claim(f)) == {'claimed': False, 'attempt_id': attempt, 'state': 'reserved'})
-sql(f"BEGIN; SET LOCAL ROLE service_role; SELECT public.claim_farmalink_issue('{f['prescription_id']}',repeat('a',64),'{f['uid']}',jsonb_build_object('changed',true)); COMMIT;", denied=True)
+sql(f"BEGIN; SET LOCAL ROLE service_role; SELECT public.claim_farmalink_issue('{f['prescription_id']}',repeat('a',64),'{f['uid']}',jsonb_build_object('changed',true),'{json.dumps(f['snapshot'])}'::jsonb); COMMIT;", denied=True)
 check('stale clinical snapshot rejected before transmission', True)
 sql(f"UPDATE public.prescriptions SET clinical_data=jsonb_build_object('changed',true) WHERE id='{f['prescription_id']}';", denied=True)
 check('clinical content cannot change after a reservation', True)
@@ -155,11 +159,20 @@ rejected = fixture()
 r = json.loads(claim(rejected))
 check('explicit rejection persists', record(rejected, r['attempt_id'], 'rejected', code="'55'") == 't')
 check('explicit rejection cannot retransmit', not json.loads(claim(rejected))['claimed'])
-# Fixtures intentionally survive only until CI destroys the entire disposable
-# local database. Cleanup via DELETE would cascade into append-only clinical
-# audit tables and correctly trigger prevent_safety_audit_mutation().
-# Run this test LAST, after all other SQL suites and temporary backup checks.
-# Never disable safety triggers or override immutable audit protections.
-check('all created fixtures remain scoped to this disposable DB',
-      len(fixtures) == 3 and all(x['prescription_id'] for x in fixtures))
+rx_ids = ','.join("'" + f['prescription_id'] + "'" for f in fixtures)
+user_ids = ','.join("'" + f[key] + "'" for f in fixtures for key in ('uid', 'other_uid'))
+# Remove only our committed synthetic fixtures so unrelated RLS tests see a clean DB.
+# The patient user is captured before deleting the prescriptions.
+cleanup = f"""BEGIN;
+CREATE TEMP TABLE farmalink_cleanup_users AS
+ SELECT pt.user_id FROM public.patients pt JOIN public.prescriptions rx ON rx.patient_id=pt.id
+ WHERE rx.id IN ({rx_ids});
+DELETE FROM public.farmalink_issue_attempts WHERE prescription_id IN ({rx_ids});
+DELETE FROM public.prescriptions WHERE id IN ({rx_ids});
+DELETE FROM public.doctors WHERE user_id IN ({user_ids});
+DELETE FROM public.patients WHERE user_id IN ({user_ids}) OR user_id IN (SELECT user_id FROM farmalink_cleanup_users);
+DELETE FROM auth.users WHERE id IN ({user_ids}) OR id IN (SELECT user_id FROM farmalink_cleanup_users);
+SELECT count(*) FROM public.farmalink_issue_attempts WHERE prescription_id IN ({rx_ids});
+COMMIT;"""
+check('synthetic fixtures cleaned without affecting other test suites', sql(cleanup) == '0')
 print(json.dumps({'passed': passed, 'failed': 0, 'concurrent_requests': 10, 'winners': 1, 'blocked': 9}))

@@ -261,5 +261,14 @@ describe('Farmalink once-only persistent issue guard', () => {
       .toMatchObject({p_state:'confirmed',p_vendor_id:'9600000002991'});
   });
 
+  it.each(['00',undefined])('retains an ambiguous successful/missing functional code %s as unknown',async responseCode=>{
+    setup();const supabase=db([
+      {data:{claimed:true,attempt_id:ATTEMPT,state:'reserved'},error:null},{data:true,error:null},
+    ]);
+    vi.spyOn(FarmalinkClient,'fromEnv').mockReturnValue({altaReceta:vi.fn().mockResolvedValue({approved:false,responseCode,raw:{}})} as unknown as FarmalinkClient);
+    expect(await __testables.registerFarmalinkIfEnabled({...clinical,supabase})).toMatchObject({ok:false,error:{code:'farmalink_pending_reconciliation'}});
+    expect((supabase as unknown as {rpc:ReturnType<typeof vi.fn>}).rpc.mock.calls[1][1]).toMatchObject({p_state:'unknown'});
+  });
+
 });
 
