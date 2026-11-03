@@ -5,7 +5,7 @@ import type { FirmArVerifiedReceiptStore } from './firmar-verified-callback-proc
 
 const token = '0123456789abcdef'.repeat(4);
 const source = new TextEncoder().encode('%PDF-1.7\nUnsigned snapshot');
-const signed = new TextEncoder().encode('%PDF-1.7\nSigned test only; NOT cryptographic PAdES');
+const signed = new Uint8Array([...source, ...new TextEncoder().encode('\\n% incremental mock PAdES update')]);
 const certificateId = '00000000-0000-4000-8000-000000000001';
 const fp = 'a'.repeat(64);
 async function hexSha(bytes: Uint8Array) {
