@@ -62,7 +62,7 @@ const baseInput = {
 describe('Farmalink mapper', () => {
   it('normalizes AutaMedica prescription data into AltaRecetaElectRq', () => {
     const request = buildFarmalinkAltaRecetaRequest(baseInput);
-    expect(Object.hasOwn(request.altaRecetaElectRq, 'puntoEmisor')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(request.altaRecetaElectRq, 'puntoEmisor')).toBe(false);
 
     expect(request).toEqual({
       altaRecetaElectRq: {
@@ -126,6 +126,29 @@ describe('Farmalink mapper', () => {
         },
       },
     });
+  });
+
+  it('rejects the obsolete organization 100 before sending a request', () => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,
+      organization: { ...baseInput.organization, id: '100' },
+    })).toThrow(FarmalinkMappingError);
+  });
+
+  it('maps the two required generic S and brand N scenarios without a point emitter', () => {
+    const generic = buildFarmalinkAltaRecetaRequest(baseInput).altaRecetaElectRq;
+    const brand = buildFarmalinkAltaRecetaRequest({
+      ...baseInput,
+      items: [{ ...baseInput.items[0], generic: false, brandRecommended: true }],
+    }).altaRecetaElectRq;
+    expect(generic.recElectronica.detalleRecElectronica.item[0]).toMatchObject({
+      generico: 'S', recomendacionMedica: 'N',
+    });
+    expect(brand.recElectronica.detalleRecElectronica.item[0]).toMatchObject({
+      generico: 'N', recomendacionMedica: 'S',
+    });
+    expect(Object.prototype.hasOwnProperty.call(generic, 'puntoEmisor')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(brand, 'puntoEmisor')).toBe(false);
   });
 
   it('builds consulta and baja requests with the same Farmalink recipe reference shape', () => {
