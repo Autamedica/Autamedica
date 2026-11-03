@@ -1,9 +1,6 @@
 name: Farmalink TEST consultaReceta (read only)
 
 on:
-  push:
-    branches:
-      - test/farmalink-oauth-smoke-20261103
   workflow_dispatch:
 
 permissions:
