@@ -230,6 +230,7 @@ describe('FarmalinkClient', () => {
     const client = new FarmalinkClient({...config,fetch:fetchMock});
     await expect(client.altaReceta(altaRequest)).rejects.toMatchObject({status:504});
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1][1].signal).toBeInstanceOf(AbortSignal);
   });
 
   it('never approves a successful functional code without a recipe number', () => {

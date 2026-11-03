@@ -37,7 +37,7 @@ BEGIN
  UPDATE public.profiles SET role='doctor', active=true, sss_validation_status='valid' WHERE user_id=actor_uid;
  UPDATE public.profiles SET role='patient', active=true WHERE user_id=patient_uid;
  INSERT INTO public.doctors(id,user_id,license_type,license_number,specialty,active,refeps_id,professional_address)
- VALUES(actor_id,actor_uid,'MN','1234567','Clínica médica',true,'54123456789','Fixture CABA')
+ VALUES(actor_id,actor_uid,'MN','CI-'||actor_uid::text,'Clínica médica',true,'54123456789','Fixture CABA')
  ON CONFLICT(user_id) DO UPDATE SET license_type=excluded.license_type,
  license_number=excluded.license_number,active=true,refeps_id=excluded.refeps_id,
  professional_address=excluded.professional_address
