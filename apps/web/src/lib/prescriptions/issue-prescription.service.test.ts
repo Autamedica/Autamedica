@@ -32,6 +32,25 @@ const item = {
 };
 
 describe('issuePrescription Farmalink wiring', () => {
+  it('blocks Argentine prescription issuance when Farmalink is disabled', async () => {
+    primeRuntimeEnv({ FARMALINK_ENABLED: 'false' });
+    const result = await __testables.registerFarmalinkIfEnabled({
+      clinicalData: { diagnosis: 'Control' },
+      doctor,
+      doctorName: 'Profesional de prueba',
+      item,
+      patient,
+      patientName: 'Paciente de prueba',
+      now: '2026-11-02T12:00:00.000Z',
+      expiresAt: '2026-12-02T12:00:00.000Z',
+    });
+    expect(result).toEqual({
+      ok: false,
+      error: { code: 'farmalink_missing_config' },
+    });
+  });
+
+
   afterEach(() => {
     resetRuntimeEnvCache();
   });
