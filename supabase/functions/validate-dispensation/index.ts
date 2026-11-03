@@ -1,5 +1,6 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
+import { verifyPharmacyOrderAccess, pharmacyErrorCode } from '../_shared/pharmacy-country.ts';
 
 function requireEnv(name: string): string {
   const value = Deno.env.get(name);
@@ -49,7 +50,7 @@ Deno.serve(async (req) => {
     // Verify pharmacist role
     const { data: pharmacist, error: pharmacistError } = await supabaseAdmin
       .from('pharmacists')
-      .select('id, pharmacy_id')
+      .select('id, pharmacy_id, care_country, role, license_number')
       .eq('user_id', user.id)
       .eq('active', true)
       .single();
@@ -83,10 +84,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (order.pharmacy_id && order.pharmacy_id !== pharmacist.pharmacy_id) {
-      return new Response(JSON.stringify({ error: 'Order is assigned to a different pharmacy' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
+    const accessError = await verifyPharmacyOrderAccess(supabaseAdmin, order, pharmacist);
+    if (accessError) {
+      return new Response(JSON.stringify({ error: accessError }), {
+        status: 403, headers: { 'Content-Type': 'application/json' },
       });
     }
 
@@ -100,7 +101,7 @@ Deno.serve(async (req) => {
 
     // If order was 'assigned', transition to 'under_review'
     if (order.status === 'assigned') {
-      await supabaseAdmin
+      await supabaseUser
         .from('dispensation_orders')
         .update({ status: 'under_review' })
         .eq('id', order.id);
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
     }
 
     // Record validation
-    const { error: validationError } = await supabaseAdmin
+    const { error: validationError } = await supabaseUser
       .from('dispensation_validations')
       .insert({
         order_id: body.order_id,
@@ -128,7 +129,7 @@ Deno.serve(async (req) => {
       });
 
     if (validationError) {
-      captureEdgeException(validationError, {
+      captureEdgeException(new Error('pharmacy_operation_failed'), {
         layer: 'data-platform',
         surface: 'validate-dispensation:validation-insert',
         owner: 'Pharmacy Platform',
@@ -138,7 +139,7 @@ Deno.serve(async (req) => {
           result: body.result,
         },
       });
-      console.error('[validate-dispensation] Validation insert error:', validationError);
+      console.error('[validate-dispensation] Validation insert error:', { code: pharmacyErrorCode(validationError) });
       return new Response(JSON.stringify({ error: 'Failed to record validation' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -147,7 +148,7 @@ Deno.serve(async (req) => {
 
     // Audit
     const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
-    await supabaseAdmin.from('pharmacy_audit_events').insert({
+    await supabaseUser.from('pharmacy_audit_events').insert({
       order_id: body.order_id,
       event_type: 'validation_performed',
       actor_id: user.id,
@@ -162,12 +163,12 @@ Deno.serve(async (req) => {
 
     // Check if validation failed → block order
     if (body.result === 'fail') {
-      await supabaseAdmin
+      await supabaseUser
         .from('dispensation_orders')
         .update({ status: 'blocked' })
         .eq('id', body.order_id);
 
-      await supabaseAdmin.from('pharmacy_audit_events').insert({
+      await supabaseUser.from('pharmacy_audit_events').insert({
         order_id: body.order_id,
         event_type: 'order_blocked',
         actor_id: user.id,
@@ -216,7 +217,7 @@ Deno.serve(async (req) => {
 
     if (allPassed) {
       // Auto-approve (DB trigger will enforce extraordinary dose check)
-      const { error: approveError } = await supabaseAdmin
+      const { error: approveError } = await supabaseUser
         .from('dispensation_orders')
         .update({ status: 'approved_for_dispensation' })
         .eq('id', body.order_id);
@@ -233,7 +234,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      await supabaseAdmin.from('pharmacy_audit_events').insert({
+      await supabaseUser.from('pharmacy_audit_events').insert({
         order_id: body.order_id,
         event_type: 'dispensation_approved',
         actor_id: user.id,
@@ -253,15 +254,16 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    captureEdgeException(error, {
+    captureEdgeException(new Error('pharmacy_operation_failed'), {
       layer: 'data-platform',
       surface: 'validate-dispensation:unexpected',
       owner: 'Pharmacy Platform',
     });
-    console.error('[validate-dispensation] Unexpected error:', error);
+    console.error('[validate-dispensation] Unexpected error:', { code: pharmacyErrorCode(error) });
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 });
+

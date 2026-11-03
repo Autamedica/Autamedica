@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from './request'
+import { resolvePatientContext } from '@/lib/patients/api/patient-context'
+
+vi.mock('@/lib/patients/api/patient-context', () => ({ resolvePatientContext: vi.fn() }))
 
 vi.mock('@autamedica/shared', () => {
   const logMock = { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn(), child: vi.fn() }
@@ -85,6 +88,7 @@ function makeContext(options?: {
 describe('API: /api/pharmacy/dispatch/request', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(resolvePatientContext).mockResolvedValue({ userId: 'patient-auth-user-99', patientId: 'patient-row-99', careCountry: 'AR' })
   })
 
   it('devuelve 400 si el DNI es inválido o menor a 5 caracteres', async () => {
@@ -221,6 +225,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
       if (table === 'pharmacy_dispatch_requests') {
         return buildTableChain(insertedRow, null)
       }
+      if (table === 'patients') return buildTableChain({ id: 'patient-row-99', care_country: 'AR' })
       return buildTableChain(null, null)
     })
 
@@ -243,4 +248,31 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(body.data.accessToken).toBeDefined()
     expect(body.data.cloudflare_room_id).toBeDefined()
   })
+  it('requires authenticated identity before creating a clinical request', async () => {
+    vi.mocked(resolvePatientContext).mockResolvedValue(null)
+    const response = await POST(makeContext())
+    expect(response.status).toBe(401)
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
+  })
+
+  it('does not infer country for an existing unknown patient', async () => {
+    vi.mocked(resolvePatientContext).mockResolvedValue({ userId: 'p', patientId: 'p-row', careCountry: null })
+    const response = await POST(makeContext())
+    expect(response.status).toBe(409)
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
+  })
+
+  it.each([['AR', 'BR'], ['BR', 'AR']] as const)('blocks QR %s for patient %s before dispatch insert', async (origin, patientCountry) => {
+    vi.mocked(resolvePatientContext).mockResolvedValue({ userId: 'p', patientId: 'p-row', careCountry: patientCountry })
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacies') return buildTableChain({ id: VALID_PHARMACY_ID, active: true, deleted_at: null, care_country: origin })
+      if (table === 'patients') return buildTableChain({ id: 'p-row', care_country: patientCountry })
+      return buildTableChain(null)
+    })
+    const response = await POST(makeContext({ body: { patientDni: 'CI123456', patientPhone: '+55555555555', pharmacyId: VALID_PHARMACY_ID } }))
+    expect(response.status).toBe(403)
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
+  })
+
 })
+

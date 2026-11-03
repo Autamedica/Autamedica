@@ -85,7 +85,14 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
   return sanitized;
 }
 
-function sanitizeEvent(event: Record<string, any>) {
+interface SanitizableEvent {
+  request?: { data?: unknown; headers?: unknown };
+  user?: { email?: unknown; username?: unknown; ip_address?: unknown };
+  extra?: unknown;
+  contexts?: unknown;
+}
+
+function sanitizeEvent<T extends SanitizableEvent>(event: T): T {
   if (event.request) {
     delete event.request.data;
 
@@ -161,7 +168,7 @@ export function initEdgeSentry(functionName: string): void {
     sendDefaultPii: false,
     tracesSampleRate: getEnvironment() === 'development' ? 1 : 0.1,
     beforeSend(event) {
-      return sanitizeEvent(event as Record<string, any>);
+      return sanitizeEvent(event);
     },
     initialScope: {
       tags: {
@@ -208,3 +215,4 @@ export function captureEdgeException(error: unknown, meta: EdgeCaptureMeta): str
     return Sentry.captureException(ensureError(error, meta.surface));
   });
 }
+

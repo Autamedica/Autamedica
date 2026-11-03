@@ -57,7 +57,7 @@ export async function handler(req: Request): Promise<Response> {
     // 2. Verify doctor record exists and is active
     const { data: doctor, error: doctorError } = await serviceClient
       .from('doctors')
-      .select('id, user_id, active, license_number, license_jurisdiction, enrollment_jurisdiction, refeps_id, specialty')
+      .select('id, user_id, active, care_country, license_type, license_number, license_jurisdiction, enrollment_jurisdiction, refeps_id, specialty')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -83,7 +83,10 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     // 3. Country-specific validation (AR defaults to strict REFEPS and SSS validation)
-    const countryCode = String(body.countryCode || 'AR').toUpperCase();
+    const countryCode = body.countryCode;
+    if (countryCode !== 'AR' || doctor.care_country !== 'AR' || !['MN', 'MP'].includes(doctor.license_type)) {
+      return jsonResponse({ error: 'Use the authorized country-specific issuance route', code: 'COUNTRY_ISSUANCE_ROUTE_REQUIRED' }, 409, corsHeaders);
+    }
     if (countryCode === 'AR') {
       if (!doctor.refeps_id || !doctor.refeps_id.trim()) {
         return jsonResponse(
@@ -153,7 +156,10 @@ export async function handler(req: Request): Promise<Response> {
         );
       }
 
-      patientId = patientId || existingRx.patient_id;
+      if (existingRx.country_code !== countryCode || (patientId && patientId !== existingRx.patient_id)) {
+        return jsonResponse({ error: 'Prescription jurisdiction or patient mismatch', code: 'COUNTRY_OR_PATIENT_MISMATCH' }, 409, corsHeaders);
+      }
+      patientId = existingRx.patient_id;
 
       const clinical = (existingRx.clinical_data || {}) as Record<string, unknown>;
       if (items.length === 0 && Array.isArray(clinical.items)) {
@@ -183,11 +189,18 @@ export async function handler(req: Request): Promise<Response> {
       );
     }
 
+    const { data: carePatient, error: careError } = await serviceClient.from('patients')
+      .select('id, active, care_country').eq('id', patientId).maybeSingle();
+    if (careError || !carePatient?.active || carePatient.care_country !== countryCode) {
+      return jsonResponse({ error: 'Patient care country must match prescriber', code: 'CARE_COUNTRY_MISMATCH' }, 409, corsHeaders);
+    }
+
     if (!prescriptionId) {
       const { data: insertedRx, error: insertError } = await serviceClient
         .from('prescriptions')
         .insert({
           doctor_id: doctor.id,
+          country_code: countryCode,
           patient_id: patientId,
           status: 'draft',
           clinical_data: {
@@ -414,3 +427,4 @@ export async function handler(req: Request): Promise<Response> {
 }
 
 Deno.serve(handler);
+

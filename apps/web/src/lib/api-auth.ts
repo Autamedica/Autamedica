@@ -96,21 +96,14 @@ export async function withAuthRole(
   const result = await withAuth(request, locals)
   if (result instanceof Response) return result
 
-  // 1. Fast path: only server-controlled app_metadata can grant a role.
-  const jwtRole = result.user.app_metadata?.role as string | undefined
-  if (jwtRole && allowedRoles.includes(jwtRole as UserRole)) {
-    return result
-  }
-
-  // 2. Reliability path: Fallback to database if JWT role is missing or invalid
-  // This mitigates sync issues where Supabase Auth metadata doesn't match the profiles table.
+  // Clinical role revocations apply immediately, even while an old JWT remains valid.
   const { data: profile, error } = await result.supabase
     .from('profiles')
-    .select('role')
+    .select('role, active')
     .eq('user_id', result.user.id)
     .maybeSingle()
 
-  if (error || !profile?.role || !allowedRoles.includes(profile.role as UserRole)) {
+  if (error || !profile?.active || !profile.role || !allowedRoles.includes(profile.role as UserRole)) {
     return forbidden()
   }
 
@@ -279,3 +272,4 @@ export async function withAuthOrApiKey(
   }
   return withAuth(request, locals)
 }
+
