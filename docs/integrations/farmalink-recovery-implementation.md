@@ -6,7 +6,7 @@ Esta implementación no activa Farmalink ni aplica migraciones remotas. Requiere
 
 La reserva de cinco argumentos guarda los datos originales del PDF, CUIR determinista, fechas de emisión/vencimiento, solicitud y orden de dispensación. La tabla contiene datos clínicos y está restringida al servidor con RLS, sin acceso anon/authenticated. El snapshot no puede modificarse ni completarse retrospectivamente en intentos históricos.
 
-Emisión inicial y recuperación cierran mediante la misma RPC transaccional: receta, una sola orden y auditoría. Solicitudes concurrentes conservan el primer artefacto comprometido; los posteriores quedan registrados como superseded, sin sobrescribirlo ni crear otra orden. No se reactiva una receta cancelada/vencida y se revalida el acceso al finalizar. Una respuesta código 00/0 sin número, o sin código funcional, queda unknown.
+Emisión inicial y recuperación cierran mediante la misma RPC transaccional: receta, una sola orden y auditoría. Solicitudes concurrentes conservan el primer artefacto comprometido; los posteriores quedan registrados como superseded, sin sobrescribirlo ni crear otra orden. La comprobación de intentos no depende de vendor_name: cambiar esa etiqueta no permite usar el generador heredado. Una vez comprometido, el proveedor, CUIR y puntero de PDF no pueden sobrescribirse. No se reactiva una receta cancelada/vencida y se revalida el acceso al finalizar. Una respuesta código 00/0 sin número, o sin código funcional, queda unknown.
 
 ## Operación autenticada
 

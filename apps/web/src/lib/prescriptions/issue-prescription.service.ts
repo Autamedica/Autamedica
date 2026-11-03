@@ -993,7 +993,14 @@ export async function regenerateIssuedPrescriptionPdf(
 
   if (!rx) return fail({ code: 'prescription_not_found' });
   if (rx.doctor_id !== doctor.id) return fail({ code: 'not_your_prescription' });
-  if (rx.vendor_name === 'farmalink') {
+  let hasFarmalinkAttempt = rx.vendor_name === 'farmalink';
+  if (!hasFarmalinkAttempt) {
+    const attempt = await supabase.from('farmalink_issue_attempts').select('prescription_id')
+      .eq('prescription_id',rx.id).maybeSingle();
+    if (attempt.error) return fail({code:'farmalink_idempotency_unavailable'});
+    hasFarmalinkAttempt = Boolean(attempt.data);
+  }
+  if (hasFarmalinkAttempt) {
     const recovered = await recoverFarmalinkPrescription(supabase,rx.id,userId);
     if (recovered.ok === false) return fail({code:'farmalink_pending_reconciliation'});
     return recovered;

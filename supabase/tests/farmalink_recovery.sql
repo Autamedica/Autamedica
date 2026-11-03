@@ -149,6 +149,14 @@ BEGIN
  IF n<>1 THEN RAISE EXCEPTION 'duplicate dispensation order'; END IF;
  IF (SELECT artifact_path FROM public.farmalink_issue_attempts WHERE prescription_id=x.prescription_id)
  <> 'prescriptions/'||(x.snapshot#>>'{pdfInput,existingCuir}')||'/synthetic.pdf' THEN RAISE EXCEPTION 'artifact overwritten'; END IF;
+ BEGIN
+  UPDATE public.prescriptions SET vendor_name='autamedica_internal' WHERE id=x.prescription_id;
+  RAISE EXCEPTION 'provider label bypass succeeded';
+ EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ BEGIN
+  UPDATE public.prescriptions SET signed_pdf_url='https://example.invalid/forged.pdf' WHERE id=x.prescription_id;
+  RAISE EXCEPTION 'canonical artifact pointer overwritten';
+ EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  IF (SELECT count(*) FROM public.farmalink_operation_events WHERE prescription_id=x.prescription_id)<>3
  THEN RAISE EXCEPTION 'operation audit incomplete'; END IF;
  BEGIN

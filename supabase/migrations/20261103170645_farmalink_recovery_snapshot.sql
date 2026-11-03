@@ -289,3 +289,32 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.reconcile_farmalink_issue(uuid,uuid,uuid,text,text,text,text,text,text) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.reconcile_farmalink_issue(uuid,uuid,uuid,text,text,text,text,text,text) TO service_role;
+
+
+-- A provider label is not an authorization boundary. Protect all reserved prescriptions,
+-- including corrupted historical labels, and freeze the committed artifact pointer.
+CREATE OR REPLACE FUNCTION app_private.guard_farmalink_prescription_snapshot()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE a public.farmalink_issue_attempts%ROWTYPE;
+BEGIN
+ SELECT * INTO a FROM public.farmalink_issue_attempts WHERE prescription_id=NEW.id;
+ IF FOUND AND TG_OP='UPDATE' THEN
+  IF (NEW.patient_id,NEW.doctor_id,NEW.country_code,NEW.clinical_data)
+    IS DISTINCT FROM (OLD.patient_id,OLD.doctor_id,OLD.country_code,OLD.clinical_data) THEN
+   RAISE EXCEPTION 'farmalink_snapshot_immutable' USING ERRCODE='42501'; END IF;
+  IF (NEW.cuir,NEW.vendor_name,NEW.vendor_id,NEW.signed_pdf_url,NEW.qr_code_content,NEW.signature_method)
+    IS DISTINCT FROM (OLD.cuir,OLD.vendor_name,OLD.vendor_id,OLD.signed_pdf_url,OLD.qr_code_content,OLD.signature_method) THEN
+   IF current_setting('role',true) IS DISTINCT FROM 'service_role' OR a.artifact_path IS NOT NULL
+    OR a.state <> 'confirmed' OR a.response_code IS NULL OR a.response_code NOT IN ('00','0')
+    OR NEW.vendor_name IS DISTINCT FROM 'farmalink' OR NEW.vendor_id IS DISTINCT FROM a.vendor_id
+    OR a.issue_snapshot IS NULL OR NEW.cuir IS DISTINCT FROM a.issue_snapshot#>>'{pdfInput,existingCuir}' THEN
+     RAISE EXCEPTION 'farmalink_artifact_identity_immutable' USING ERRCODE='42501'; END IF;
+  END IF;
+ END IF;
+ IF NEW.vendor_name='farmalink' AND NOT EXISTS(SELECT 1 FROM public.farmalink_issue_attempts x
+  WHERE x.prescription_id=NEW.id AND x.state='confirmed' AND x.vendor_id=NEW.vendor_id AND x.response_code IN ('00','0')) THEN
+  RAISE EXCEPTION 'farmalink_unconfirmed_vendor' USING ERRCODE='42501'; END IF;
+ RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION app_private.guard_farmalink_prescription_snapshot() FROM PUBLIC,anon,authenticated,service_role;
