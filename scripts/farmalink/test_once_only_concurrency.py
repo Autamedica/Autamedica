@@ -155,6 +155,26 @@ check('approval is persisted before PDF work', record(approved, a, 'confirmed', 
 check('PDF failure/restart cannot authorize another alta',
       json.loads(claim(approved))['state'] == 'confirmed' and not json.loads(claim(approved))['claimed'])
 check('confirmed state cannot be overwritten', record(approved, a, 'unknown') == 'f')
+artifact_barrier = Barrier(2)
+
+
+def finalize_artifact(index):
+    artifact_barrier.wait(timeout=10)
+    cuir = approved['snapshot']['pdfInput']['existingCuir']
+    return json.loads(sql(f"BEGIN; SET LOCAL ROLE service_role; SELECT public.complete_farmalink_artifact("
+                          f"'{approved['prescription_id']}','{a}','{approved['uid']}',"
+                          f"'prescriptions/{cuir}/concurrent-{index}.pdf',repeat('c',64),"
+                          f"'electronic_simple','https://example.invalid/{index}.pdf','recovery'); COMMIT;"))
+
+
+with ThreadPoolExecutor(max_workers=2) as pool:
+    finalized = list(pool.map(finalize_artifact, range(2)))
+check('concurrent artifact recovery retains one canonical file',
+      len({x['artifact_path'] for x in finalized}) == 1)
+check('concurrent recovery creates exactly one dispensation order',
+      sql(f"SELECT count(*) FROM public.dispensation_orders WHERE prescription_id='{approved['prescription_id']}';") == '1')
+check('both concurrent artifact operations have immutable audit evidence',
+      sql(f"SELECT count(*) FROM public.farmalink_operation_events WHERE prescription_id='{approved['prescription_id']}';") == '2')
 rejected = fixture()
 r = json.loads(claim(rejected))
 check('explicit rejection persists', record(rejected, r['attempt_id'], 'rejected', code="'55'") == 't')

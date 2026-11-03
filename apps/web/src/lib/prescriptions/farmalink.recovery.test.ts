@@ -69,4 +69,12 @@ describe('Farmalink receipt recovery without another alta',()=>{
   expect(render).not.toHaveBeenCalled();expect(d.upload).not.toHaveBeenCalled();
  });
 
+ it('does not silently downgrade a failed certificate/signing lookup',async()=>{
+  const d=db({attempt_id:attempt,vendor_id:'9600000002992',response_code:'00',snapshot});
+  vi.spyOn(pdf,'generatePrescriptionPdf').mockResolvedValue({cuir,pdfBuffer:new Uint8Array(4),pdfFilename:'fixture.pdf',qrDataUrl:'',qrContent:'fixture'});
+  vi.spyOn(certificates,'getActiveCertificate').mockRejectedValue(new Error('certificate unavailable'));
+  expect(await recoverFarmalinkPrescription(d.client,rx,actor)).toMatchObject({ok:false,error:'farmalink_recovery_failed'});
+  expect(d.upload).not.toHaveBeenCalled();
+ });
+
 });

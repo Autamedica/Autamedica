@@ -43,4 +43,12 @@ describe('Conservative Farmalink reconciliation - synthetic contract only',()=>{
   setup();const d=db();vi.spyOn(FarmalinkClient.prototype,'consultaReceta').mockResolvedValue({consultaRecetaElectRs:{respuesta:{codigo:'33'}}});
   expect(await reconcileFarmalinkPrescription(d.client,'admin',input)).toMatchObject({ok:false});expect(d.rpc).toHaveBeenCalledTimes(1);
  });
+ it.each(['medication','validity','credential'])('rejects a mismatching %s',field=>{
+  const r=reply();const rx=r.consultaRecetaElectRs.recElectronica;
+  if(field==='medication')rx.detalleRecElectronica.item[0].cantidad=2;
+  if(field==='validity')rx.fechaVigenciaHasta='2027-01-01';
+  if(field==='credential')rx.afiliado.credencial.pan='87654321';
+  expect(matchesFarmalinkConsulta(r,request,input.vendorId)).toBe(false);
+ });
+
 });

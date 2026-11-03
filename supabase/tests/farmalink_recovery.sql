@@ -143,4 +143,12 @@ BEGIN
  RAISE NOTICE 'PASS: snapshot, reconciliation roles, evidence, original validity, one order, immutable audit and artifact reuse';
 END $tests$;
 RESET ROLE;
+DO $privileged_audit$
+BEGIN
+ BEGIN
+  UPDATE public.farmalink_operation_events SET provider_reference='forged'
+  WHERE prescription_id=(SELECT prescription_id FROM farmalink_fixture LIMIT 1);
+  RAISE EXCEPTION 'privileged audit mutation succeeded';
+ EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END $privileged_audit$;
 ROLLBACK;
