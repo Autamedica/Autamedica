@@ -203,10 +203,10 @@ function mockedMemedFetch(input: RequestInfo | URL, options?: RequestInit): Prom
   throw new Error(`Unexpected Memed call in DEMO: ${url.pathname}`);
 }
 
-function request(kind: 'token' | 'event', enabled: boolean) {
+function request(kind: 'token' | 'event', enabled: boolean, providedCpf?: string) {
   const route = kind === 'token' ? 'memed-token' : 'memed-event';
   const body = kind === 'token'
-    ? { patientId, birthDate: '1980-07-25' }
+    ? { patientId, birthDate: '1980-07-25', ...(providedCpf ? { cpf: providedCpf } : {}) }
     : { action: 'issued', patientId, prescriptionId: fakeRx };
   return {
     request: new Request(`https://www.autamedica.com/api/doctors/prescriptions/${route}`, {
@@ -223,8 +223,8 @@ function request(kind: 'token' | 'event', enabled: boolean) {
     } } },
   } as unknown as Parameters<APIRoute>[0];
 }
-async function callToken(enabled = true) {
-  const response = await tokenPOST(request('token', enabled));
+async function callToken(enabled = true, providedCpf?: string) {
+  const response = await tokenPOST(request('token', enabled, providedCpf));
   const wire = await response.json();
   return { status: response.status, data: wire.data, error: wire.error };
 }
@@ -281,7 +281,7 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
   it('onboards a first-time DEMO doctor with DOB + CPF, then verifies a DEMO prescription event', async () => {
     state.privateCpf = null;
     state.providerDoctorExists = false;
-    const token = await callToken();
+    const token = await callToken(true, fakeDoctorCpf);
     expect(token.status).toBe(200);
     expect(state.privateCpf).toBe(fakeDoctorCpf);
     expect(state.providerDoctorExists).toBe(true);
