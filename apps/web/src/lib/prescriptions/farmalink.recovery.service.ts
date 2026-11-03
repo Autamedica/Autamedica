@@ -11,7 +11,7 @@ export interface FarmalinkSnapshot {
   doctorId: string;
   clinicalData: unknown;
   request: unknown;
-  pdfInput: PrescriptionPdfInput;
+  pdfInput: PrescriptionPdfInput & {existingCuir:string;expiresAt:string};
   dispensationOrder: Record<string, unknown>;
 }
 
@@ -20,7 +20,7 @@ export function parseFarmalinkSnapshot(value: unknown, prescriptionId: string, a
   const s = value as FarmalinkSnapshot;
   const p = s.pdfInput;
   if (s.version !== 1 || s.prescriptionId !== prescriptionId || s.actorUserId !== actorUserId
-    || !s.doctorId || !p || p.prescriptionId !== prescriptionId || !/^[0-9]{41}$/.test(p.existingCuir ?? '')
+    || !s.doctorId || p?.prescriptionId !== prescriptionId || !/^[0-9]{41}$/.test(p.existingCuir ?? '')
     || !p.patient?.name || !p.patient.dni || !p.prescriber?.license || !p.medication?.genericName
     || !Number.isSafeInteger(p.medication.quantity) || p.medication.quantity <= 0
     || !Number.isFinite(Date.parse(p.issuedAt)) || !p.expiresAt || !Number.isFinite(Date.parse(p.expiresAt))
@@ -66,8 +66,8 @@ export async function recoverFarmalinkPrescription(db:SupabaseClient, prescripti
     if (data.artifact_path) {
       const {data:url,error:urlError} = await db.storage.from('medical-documents').createSignedUrl(data.artifact_path,365*24*60*60);
       if (urlError || !url?.signedUrl) return {ok:false,error:'farmalink_artifact_url_failed'};
-      return {ok:true,data:{cuir:snapshot.pdfInput.existingCuir!,qrContent:`https://www.autamedica.com/verify/${snapshot.pdfInput.existingCuir}`,
-        signedPdfUrl:url.signedUrl,issuedAt:snapshot.pdfInput.issuedAt,expiresAt:snapshot.pdfInput.expiresAt!,vendorName:'farmalink',vendorId:data.vendor_id}};
+      return {ok:true,data:{cuir:snapshot.pdfInput.existingCuir,qrContent:`https://www.autamedica.com/verify/${snapshot.pdfInput.existingCuir}`,
+        signedPdfUrl:url.signedUrl,issuedAt:snapshot.pdfInput.issuedAt,expiresAt:snapshot.pdfInput.expiresAt,vendorName:'farmalink',vendorId:data.vendor_id}};
     }
     const artifacts = await generatePrescriptionPdf({...snapshot.pdfInput,externalPrescription:{provider:'farmalink',number:data.vendor_id,
       displayLabel:'RECETA FARMALINK',legend:'Número de receta para validación online en farmacia'}});

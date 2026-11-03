@@ -1,5 +1,6 @@
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import type {SupabaseClient} from '@supabase/supabase-js';
+import {regenerateIssuedPrescriptionPdf} from './issue-prescription.service';
 import {FarmalinkClient} from './farmalink.client';
 import * as pdf from './pdf-prescription.service';
 import * as certificates from '../doctors/services/certificate-query.service';
@@ -55,4 +56,17 @@ describe('Farmalink receipt recovery without another alta',()=>{
   expect(await recoverFarmalinkPrescription(d.client,rx,actor)).toMatchObject({ok:false,error:'pdf_upload_failed'});
   expect(d.rpc).toHaveBeenCalledTimes(1);
  });
+ it('routes legacy Farmalink regeneration to the original artifact without renewing validity or overwriting PDF',async()=>{
+  const d=db({attempt_id:attempt,vendor_id:'9600000002992',response_code:'00',snapshot,artifact_path:'original.pdf'});
+  const doctor={id:'doctor',license_number:'1234567',refeps_id:'54123456789',professional_address:'CABA'};
+  Object.assign(d.client,{from:vi.fn((table:string)=>{
+   if(table==='doctors')return {select:()=>({eq:()=>({single:async()=>({data:doctor})})})};
+   if(table==='prescriptions')return {select:()=>({limit:()=>({eq:async()=>({data:[{id:rx,doctor_id:'doctor',cuir,vendor_name:'farmalink',vendor_id:'9600000002992'}]})})})};
+   throw new Error('Legacy generator must not query current clinical identities');
+  })});
+  const render=vi.spyOn(pdf,'generatePrescriptionPdf');
+  expect(await regenerateIssuedPrescriptionPdf(d.client,rx,actor)).toMatchObject({ok:true,data:{issuedAt:snapshot.pdfInput.issuedAt,expiresAt:snapshot.pdfInput.expiresAt}});
+  expect(render).not.toHaveBeenCalled();expect(d.upload).not.toHaveBeenCalled();
+ });
+
 });

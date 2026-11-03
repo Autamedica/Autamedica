@@ -8,7 +8,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getServerEnvOrDefault, logger } from '@autamedica/shared';
 import { getRuntimeEnvValue } from '@/lib/runtime-env';
-import { commitFarmalinkArtifact } from './farmalink.recovery.service';
+import { commitFarmalinkArtifact, recoverFarmalinkPrescription } from './farmalink.recovery.service';
 import { FarmalinkClient, resolveFarmalinkConfig } from './farmalink.client';
 import { claimFarmalinkIssue, recordFarmalinkIssue } from './farmalink.issue-gate';
 import {
@@ -481,7 +481,7 @@ async function registerFarmalinkIfEnabled(input: {
   try {
     const result = await client.altaReceta(request);
     if (!result.approved || !result.nroRecElectronica) {
-      const explicitRejection = Boolean(result.responseCode) && !['00','0'].includes(result.responseCode!);
+      const explicitRejection = typeof result.responseCode === 'string' && !['00','0'].includes(result.responseCode);
       const persisted = await recordFarmalinkIssue(
         input.supabase, input.prescriptionId, attemptId, input.actorUserId, explicitRejection ? 'rejected' : 'unknown',
         undefined, result.responseCode,
@@ -993,6 +993,11 @@ export async function regenerateIssuedPrescriptionPdf(
 
   if (!rx) return fail({ code: 'prescription_not_found' });
   if (rx.doctor_id !== doctor.id) return fail({ code: 'not_your_prescription' });
+  if (rx.vendor_name === 'farmalink') {
+    const recovered = await recoverFarmalinkPrescription(supabase,rx.id,userId);
+    if (recovered.ok === false) return fail({code:'farmalink_pending_reconciliation'});
+    return recovered;
+  }
   if (!rx.cuir) return fail({ code: 'missing_cuir' });
 
   const { data: patient } = await supabase

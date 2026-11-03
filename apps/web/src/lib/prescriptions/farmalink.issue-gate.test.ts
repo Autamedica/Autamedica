@@ -231,7 +231,7 @@ describe('Farmalink once-only persistent issue guard', () => {
         const rows: Record<string, unknown> = {
           doctors:{...clinical.doctor,license_type:'MN'},
           prescriptions:{id:RX,doctor_id:clinical.doctor.id,patient_id:'test-patient',status:'draft',cuir:null,
-            country_code:'AR',clinical_data:{diagnosis:'Control',items:[clinical.item]}},
+            country_code:'AR',clinical_data:{diagnosis:'Control',items:[{...clinical.item,quantity:undefined}]}},
           profiles:{sss_validation_status:'valid',first_name:'Test',last_name:'Person'},
           patients:{...clinical.patient,user_id:'test-patient-user',address:'Fixture CABA'},
         };
@@ -256,6 +256,7 @@ describe('Farmalink once-only persistent issue guard', () => {
       .toMatchObject({ok:false,error:{code:'farmalink_pending_reconciliation'}});
     expect(alta).toHaveBeenCalledOnce();
     expect(pdf).toHaveBeenCalledOnce();
+    expect(pdf).toHaveBeenCalledWith(expect.objectContaining({medication:expect.objectContaining({quantity:1})}));
     expect(upload).toHaveBeenCalledTimes(failure === 'upload' ? 1 : 0);
     expect((supabase as unknown as {rpc:ReturnType<typeof vi.fn>}).rpc.mock.calls[1][1])
       .toMatchObject({p_state:'confirmed',p_vendor_id:'9600000002991'});
