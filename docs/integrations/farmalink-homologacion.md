@@ -10,7 +10,12 @@
 - Precondicion de emision: el prescriptor debe tener validacion profesional
   aceptada en AutaMedica (`profiles.sss_validation_status` `valid` o `exempt`).
 - Emision AutaMedica: cuando `FARMALINK_ENABLED=true`, el servicio de emision intenta `altaReceta` antes de generar el PDF. Si Farmalink aprueba, guarda `vendor_name = "farmalink"` y `vendor_id = nroRecElectronica`, y el PDF imprime `RECETA FARMALINK` en el codigo de barras.
-- Estado de homologacion: completada. AutaMedica esta homologada para emitir recetas electronicas mediante Farmalink (IMED).
+- Estado de homologacion externa: **NO ACREDITADA**. No existe confirmacion externa aportada por Farmalink para habilitar produccion. La frase anterior "completada" era una declaracion local no respaldada por acuse del proveedor.
+- OAuth TEST: verificado en GitHub Actions el 03/11/2026, HTTP 200 y token recibido (sin registrar el token).
+- altaReceta TEST: una sola solicitud con el ejemplo DEMO de SwaggerHub, usando entidad 7100, credencial 12345678 y fechas vigentes, termino en timeout sin numero de receta. No repetir la misma alta hasta conciliar con el proveedor.
+- Conectividad TEST: GET /altaReceta -> 405 en 1,7 s; POST deliberadamente invalido sin paciente/medicamentos -> HTTP 400 en 11,3 s. Estas respuestas NO equivalen a homologacion.
+- El 03/11/2026 se solicito a homologacionre@farmalink.com.ar conciliacion de la posible receta DEMO y confirmacion de idOrganizacion, puntoEmisor, canal tecnologico y aprobacion productiva.
+- Produccion: mantener FARMALINK_ENABLED=false hasta alta aceptada, confirmacion formal de Farmalink, secretos productivos e integracion clinica validada.
 - Las credenciales OAuth y de aplicacion se mantienen exclusivamente en secretos de runtime y no deben documentarse ni versionarse.
 
 ## Contrato OAuth
