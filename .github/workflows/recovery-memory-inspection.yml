@@ -58,4 +58,4 @@ jobs:
               if value is not None and (not isinstance(value, (str, int)) or len(str(value)) > 64):
                   sys.exit("Unexpected configuration value")
               selected[key] = value
-          print(json.dumps({"configuration": selected}, sort_keys=True))
+          print(json.dumps({"response_keys": sorted(config), "configuration": selected}, sort_keys=True))
