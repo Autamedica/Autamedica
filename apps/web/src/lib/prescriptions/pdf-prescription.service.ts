@@ -724,11 +724,11 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
-  doc.text('FIRMA ELECTRÓNICA', infoBoxX + sigInfoOffset, signatureY + 5);
+  doc.text('VERIFICACIÓN DE FIRMA', infoBoxX + sigInfoOffset, signatureY + 5);
   doc.setFontSize(5.5);
   doc.setFont('helvetica', 'normal');
   const signatureLegend = doc.splitTextToSize(
-    `Este documento ha sido firmado -electrónica o digitalmente según corresponda- por ${input.prescriber.name}`,
+    'La validez de la firma debe comprobarse mediante el certificado PDF o el registro de firma del sistema emisor.',
     infoBoxWidth - 6,
   );
   doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
