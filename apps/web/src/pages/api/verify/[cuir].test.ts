@@ -34,7 +34,9 @@ async function verify() {
     locals: { runtime: { env: {} } },
     request: new Request('https://autamedica.com/api/verify/TEST-DOCUMENT-CUIR'),
   } as unknown as Parameters<APIRoute>[0]);
-  return { status: response.status, body: await response.json() };
+  // jsonOk returns the standard { success:true, data:... } API envelope.
+  const wire = await response.json();
+  return { status: response.status, body: wire.data };
 }
 
 describe('public prescription verification must fail closed until trusted signing evidence exists', () => {
