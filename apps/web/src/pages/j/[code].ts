@@ -38,7 +38,16 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
   // Opaque 128-bit visit token. Hash only is stored server-side.
   // If persistence fails, redirect without a claimable token.
   try {
-    const admin = createAstroAdminClient(locals.runtime?.env)
+    const admin = createAstroAdminClient(locals.runtime?.env) as unknown as {
+      from: (name: 'partner_qr_visits') => {
+        insert: (row: Record<string, unknown>) => Promise<{ error: unknown }>
+      }
+      schema: (name: 'growth_os') => {
+        from: (name: 'growth_events') => {
+          insert: (row: Record<string, unknown>) => Promise<{ error: unknown }>
+        }
+      }
+    }
     const token = crypto.randomUUID().replaceAll('-', '')
     const tokenHash = await sha256Hex(token)
     const { error } = await admin.from('partner_qr_visits').insert({
