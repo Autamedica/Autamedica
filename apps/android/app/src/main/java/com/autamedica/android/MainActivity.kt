@@ -15,7 +15,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 import androidx.navigation.compose.rememberNavController
+import com.autamedica.android.data.attribution.PartnerAttributionTracker
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.model.VideoCallStateHolder
 import com.autamedica.android.navigation.AppNavHost
@@ -33,6 +37,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var authRepository: AuthRepository
+
+    @Inject
+    lateinit var partnerAttributionTracker: PartnerAttributionTracker
 
     var isInPipMode by mutableStateOf(false)
         private set
@@ -54,6 +61,12 @@ class MainActivity : ComponentActivity() {
             )
         }
         handleIncomingCallIntent(intent)
+        partnerAttributionTracker.captureInstallReferrer()
+        lifecycleScope.launch {
+            authRepository.observeSession().collect { user ->
+                if (user != null) partnerAttributionTracker.submitPending()
+            }
+        }
         enableEdgeToEdge()
         incomingIntent = intent
         setContent {
