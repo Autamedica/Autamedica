@@ -1,9 +1,6 @@
 name: Farmalink TEST diagnostic (no prescriptions)
 
 on:
-  push:
-    branches:
-      - test/farmalink-oauth-smoke-20261103
   workflow_dispatch:
 
 permissions:
