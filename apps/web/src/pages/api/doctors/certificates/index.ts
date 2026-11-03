@@ -40,7 +40,7 @@ async function resolveAuthedDoctorContext(
   const admin = createAstroAdminClient(locals?.runtime?.env);
   const { data: doctor, error } = await admin
     .from("doctors")
-    .select("id, active, user_id, license_type, uf_brazil")
+    .select("id, active, user_id, license_type, uf_brazil, care_country")
     .eq("user_id", auth.user.id)
     .maybeSingle();
 
@@ -62,9 +62,10 @@ async function resolveAuthedDoctorContext(
     doctorId: doctor.id,
     licenseType: doctor.license_type as string | null,
     ufBrazil: doctor.uf_brazil as string | null,
-    countryCode: doctor.license_type === "CRM" && /^[A-Z]{2}$/.test(doctor.uf_brazil ?? "")
-      ? "BR" as const
-      : ["MN", "MP"].includes(doctor.license_type ?? "") ? "AR" as const : null,
+    // Use the canonical country generated from the primary credential. A
+    // provisional MN/CRM label without a verified jurisdiction is not enough.
+    countryCode: doctor.care_country === "BR" ? "BR" as const
+      : doctor.care_country === "AR" ? "AR" as const : null,
   };
 }
 
