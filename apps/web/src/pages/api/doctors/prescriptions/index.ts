@@ -112,6 +112,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (error instanceof Error && error.message === "external_patient_address_required") {
       return badRequest("Para pacientes sin cuenta debe informar domicilio.");
     }
+    if (error instanceof Error && [
+      "prescription_doctor_country_required",
+      "prescription_country_mismatch",
+      "external_patient_care_country_confirmation_required",
+      "external_patient_country_mismatch_or_unset",
+      "external_patient_cpf_required",
+    ].includes(error.message)) {
+      return badRequest(error.message);
+    }
     if (error instanceof Error && error.message === "strict_prescription_missing_required_fields") {
       return badRequest(
         "Medicación con validación reforzada: debe informar diagnóstico y dosis antes de emitir.",
