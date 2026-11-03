@@ -9,11 +9,11 @@ import {
 
 const baseInput = {
   organization: {
-    id: '100',
+    id: '182',
     type: 'NMD',
     ipOrigin: '8.8.8.8',
     browserInfo: 'AutaMedica Homologacion',
-    issuerPointId: 10000,
+    issuerPointId: 10000, // Legacy input must never be serialized to Farmalink.
   },
   validity: {
     from: '2026-05-18T12:00:00.000Z',
@@ -28,8 +28,8 @@ const baseInput = {
     cuil: '27-30123456-8',
     documentNumber: '30.123.456',
     credential: {
-      codEntidad: 7100,
-      pan: '12345678',
+      codEntidad: 7110,
+      pan: '20123456786',
       plan: 'NO POSEE',
     },
   },
@@ -66,12 +66,11 @@ describe('Farmalink mapper', () => {
     expect(request).toEqual({
       altaRecetaElectRq: {
         infoCabeceraRq: {
-          idOrganizacion: '100',
+          idOrganizacion: '182',
           tipoOrganizacion: 'NMD',
           ipOrigen: '8.8.8.8',
           infoBrowser: 'AutaMedica Homologacion',
         },
-        puntoEmisor: { id: 10000 },
         recElectronica: {
           tipoReceta: '01',
           fechaVigenciaDesde: '2026-05-18',
@@ -88,8 +87,8 @@ describe('Farmalink mapper', () => {
             numeroDocumento: 30123456,
             datosOfuscado: 'N',
             credencial: {
-              codEntidad: 7100,
-              pan: '12345678',
+              codEntidad: 7110,
+              pan: '20123456786',
               plan: 'NO POSEE',
             },
           },
@@ -130,23 +129,23 @@ describe('Farmalink mapper', () => {
 
   it('builds consulta and baja requests with the same Farmalink recipe reference shape', () => {
     const reference = {
-      idOrganizacion: '100',
+      idOrganizacion: '182',
       tipoOrganizacion: 'NMD',
-      codEntidad: 7100,
-      pan: '12345678',
+      codEntidad: 7110,
+      pan: '20123456786',
       nroRecElectronica: '9600000002762',
     };
 
     expect(buildFarmalinkConsultaRecetaRequest(reference)).toEqual({
       consultaRecetaElectRq: {
         infoCabeceraRq: {
-          idOrganizacion: '100',
+          idOrganizacion: '182',
           tipoOrganizacion: 'NMD',
         },
         recElectronica: {
           afiliado: {
-            codEntidad: 7100,
-            pan: '12345678',
+            codEntidad: 7110,
+            pan: '20123456786',
           },
           receta: {
             nroRecElectronica: '9600000002762',
