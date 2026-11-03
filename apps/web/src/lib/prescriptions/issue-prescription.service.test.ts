@@ -126,6 +126,35 @@ describe('issuePrescription Farmalink wiring', () => {
   });
 });
 
+describe('Farmalink branded PDF contract', () => {
+  it('blocks brand mode N if there is no real commercial name to display', () => {
+    expect(() => __testables.buildFarmalinkPrescriptionMapInput({
+      clinicalData: { diagnosis: 'TEST' },
+      doctor,
+      doctorName: 'Dr. Test Prescriber',
+      item: { ...item, commercial_name: undefined, farmalink: { generic: false } },
+      patient,
+      patientName: 'Test Patient',
+      now: '2026-11-03T12:00:00.000Z',
+      expiresAt: '2026-11-19T12:00:00.000Z',
+    })).toThrow('items.0.commercialName');
+  });
+
+  it('preserves explicitly selected generic S even when a brand is available', () => {
+    const mapped = __testables.buildFarmalinkPrescriptionMapInput({
+      clinicalData: { diagnosis: 'TEST' },
+      doctor,
+      doctorName: 'Dr. Test Prescriber',
+      item: { ...item, farmalink: { generic: true } },
+      patient,
+      patientName: 'Test Patient',
+      now: '2026-11-03T12:00:00.000Z',
+      expiresAt: '2026-11-19T12:00:00.000Z',
+    });
+    expect(mapped.items[0]?.generic).toBe(true);
+  });
+});
+
 describe('issuePrescription prescriber validation gate', () => {
   it('allows nationally validated and explicitly exempt prescribers', () => {
     expect(__testables.canIssueWithPrescriberValidationStatus('valid')).toBe(true);
