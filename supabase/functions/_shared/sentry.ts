@@ -85,7 +85,14 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
   return sanitized;
 }
 
-function sanitizeEvent<T extends Record<string, any>>(event: T): T {
+interface SanitizableEvent {
+  request?: { data?: unknown; headers?: unknown };
+  user?: { email?: unknown; username?: unknown; ip_address?: unknown };
+  extra?: unknown;
+  contexts?: unknown;
+}
+
+function sanitizeEvent<T extends SanitizableEvent>(event: T): T {
   if (event.request) {
     delete event.request.data;
 
