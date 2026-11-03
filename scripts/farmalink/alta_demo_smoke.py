@@ -43,8 +43,10 @@ def safe(value):
 
 def demo_payload():
     # Based on SwaggerHub DEMO; organization and affiliate credentials were
-    # corrected from Farmalink's response on 2026-11-03. Other DEMO fields
-    # remain unverified and must be reviewed before a real homologation run.
+    # corrected from Farmalink's response on 2026-11-03. Vendor consultaReceta for test numbers 9600000421228 and 9600000421242
+    # confirmed codDroga 01033 = GLICOLICOAC.ASOC. and codProducto 56800 =
+    # ESFUMEL blanqueadora cr. x 20 g (read-only workflow 41717111174).
+    # Other DEMO fields remain unverified and must be reviewed before clinical use.
     today = datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")).date()
     return {
         "altaRecetaElectRq": {
@@ -102,7 +104,7 @@ def demo_payload():
                         "cantidad": 10,
                         "codProducto": "56800",
                         "codDroga": "01033",
-                        "textoGenerico": "PREDNISOLONA",
+                        "textoGenerico": "GLICOLICOAC.ASOC.",
                         "generico": "N",
                         "recomendacionMedica": "S",
                         "ciclos": 1,
