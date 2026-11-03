@@ -4,10 +4,12 @@ import hashlib
 import io
 import json
 import os
+import ssl
 from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from urllib.error import HTTPError, URLError
 from unittest.mock import patch
 
 import retained_recovery_bundle as bundle
@@ -121,6 +123,67 @@ class BundleTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 bundle.capture_storage({"objects": [row]}, Path(directory) / "storage", "private", lambda: None)
 
+    def test_timeout_retries_same_conditional_request(self):
+        row = self.row()
+        url = bundle.object_url(row['bucket_id'], row['name'])
+        with tempfile.TemporaryDirectory() as directory, patch.object(bundle, 'build_opener') as opener, patch.object(bundle.time, 'sleep'):
+            opener.return_value.open.side_effect = [TimeoutError('private URL and token'), Response(b'pdf', url)]
+            files = bundle.capture_storage({'objects': [row]}, Path(directory) / 'storage', 'private', lambda: None)
+            self.assertEqual(len(files), 1)
+            requests = opener.return_value.open.call_args_list
+            self.assertEqual(len(requests), 2)
+            self.assertIs(requests[0].args[0], requests[1].args[0])
+            self.assertEqual(requests[0].args[0].get_header('If-match'), '"' + row['metadata']['eTag'] + '"')
+
+    def test_partial_transfer_is_discarded_before_retry(self):
+        class Interrupted(Response):
+            def read(self, size=-1):
+                if self.tell():
+                    raise ConnectionResetError('private payload')
+                return super().read(1)
+        row = self.row()
+        url = bundle.object_url(row['bucket_id'], row['name'])
+        with tempfile.TemporaryDirectory() as directory, patch.object(bundle, 'build_opener') as opener, patch.object(bundle.time, 'sleep'):
+            opener.return_value.open.side_effect = [Interrupted(b'pdf', url), Response(b'pdf', url)]
+            files = bundle.capture_storage({'objects': [row]}, Path(directory) / 'storage', 'private', lambda: None)
+            self.assertEqual((Path(directory) / files[0]['file']).read_bytes(), b'pdf')
+
+    def test_timeout_exhaustion_is_bounded_and_private(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(bundle, 'build_opener') as opener, patch.object(bundle.time, 'sleep'):
+            opener.return_value.open.side_effect = URLError(TimeoutError('private token and URL'))
+            with self.assertRaisesRegex(RuntimeError, r'^Storage capture failed \(reason=timeout\); private diagnostics withheld$'):
+                bundle.capture_storage({'objects': [self.row()]}, Path(directory) / 'storage', 'private', lambda: None)
+            self.assertEqual(opener.return_value.open.call_count, 3)
+
+    def test_http_retries_only_transient_statuses(self):
+        row = self.row()
+        url = bundle.object_url(row['bucket_id'], row['name'])
+        for status in (401, 403, 404, 412, 429, 503):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as directory, patch.object(bundle, 'build_opener') as opener, patch.object(bundle.time, 'sleep'):
+                opener.return_value.open.side_effect = [HTTPError(url, status, 'private response', {}, io.BytesIO(b'private')), Response(b'pdf', url)]
+                if status in (429, 503):
+                    self.assertEqual(len(bundle.capture_storage({'objects': [row]}, Path(directory) / 'storage', 'private', lambda: None)), 1)
+                else:
+                    with self.assertRaisesRegex(RuntimeError, 'reason=http_' + str(status)):
+                        bundle.capture_storage({'objects': [row]}, Path(directory) / 'storage', 'private', lambda: None)
+                    self.assertEqual(opener.return_value.open.call_count, 1)
+
+    def test_integrity_and_tls_failures_are_never_retried(self):
+        row = self.row()
+        url = bundle.object_url(row['bucket_id'], row['name'])
+        for error in (URLError(ssl.SSLCertVerificationError('private certificate')),):
+            with tempfile.TemporaryDirectory() as directory, patch.object(bundle, 'build_opener') as opener, patch.object(bundle.time, 'sleep'):
+                opener.return_value.open.side_effect = error
+                with self.assertRaisesRegex(RuntimeError, 'reason=tls_error'):
+                    bundle.capture_storage({'objects': [row]}, Path(directory) / 'storage', 'private', lambda: None)
+                self.assertEqual(opener.return_value.open.call_count, 1)
+        with tempfile.TemporaryDirectory() as directory, patch.object(bundle, 'build_opener') as opener:
+            opener.return_value.open.return_value = Response(b'old', url)
+            with self.assertRaisesRegex(RuntimeError, 'reason=etag_mismatch'):
+                bundle.capture_storage({'objects': [row]}, Path(directory) / 'storage', 'private', lambda: None)
+            self.assertEqual(opener.return_value.open.call_count, 1)
+            self.assertEqual(list((Path(directory) / 'storage').iterdir()), [])
+
     def test_inventory_drift_or_duplicate_objects_are_rejected(self):
         with self.assertRaisesRegex(RuntimeError, "changed during capture"):
             bundle.verify_inventory({"objects": [self.row()]}, {"objects": []})
@@ -208,3 +271,4 @@ class BundleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

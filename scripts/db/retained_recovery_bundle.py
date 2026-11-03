@@ -5,21 +5,92 @@ here. Names, SQL, ACL facts and fingerprints stay inside the encrypted archive.
 """
 import base64
 import hashlib
+from http.client import IncompleteRead
 import json
 import os
 from pathlib import Path
 import re
+import ssl
 import subprocess
 import tarfile
 import tempfile
 import time
 from urllib.parse import quote
+from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from check_recovery_source import PROJECT
 
 BASE_URL = "https://" + PROJECT + ".supabase.co"
 SQL_PARTS = ("roles", "schema-pre", "data", "schema-post")
+STORAGE_ATTEMPTS = 3
+
+
+class StorageIntegrityError(RuntimeError):
+    """An allowlisted diagnostic, never a remote error body or object name."""
+
+
+def storage_failure(error):
+    if isinstance(error, StorageIntegrityError):
+        return str(error), False
+    if isinstance(error, HTTPError):
+        code = error.code
+        error.close()
+        return ("http_" + str(code) if type(code) is int and 100 <= code <= 599 else "http_error",
+                code in (408, 429, 500, 502, 503, 504))
+    if isinstance(error, URLError):
+        error = error.reason
+    if isinstance(error, ssl.SSLError):
+        return "tls_error", False
+    if isinstance(error, TimeoutError):
+        return "timeout", True
+    if isinstance(error, (ConnectionError, IncompleteRead)):
+        return "connection_interrupted", True
+    return "unknown", False
+
+
+def capture_object(opener, request, path, expected_size, expected_etag, keepalive):
+    for attempt in range(STORAGE_ATTEMPTS):
+        created = False
+        size, digest, md5 = 0, hashlib.sha256(), hashlib.md5(usedforsecurity=False)
+        try:
+            with opener.open(request, timeout=60) as response, path.open("xb") as output:
+                created = True
+                if response.status != 200 or response.geturl() != request.full_url:
+                    raise StorageIntegrityError("response_rejected")
+                try:
+                    actual_etag = etag(response.headers.get("ETag"))
+                except RuntimeError:
+                    raise StorageIntegrityError("etag_invalid") from None
+                if actual_etag != expected_etag:
+                    raise StorageIntegrityError("etag_mismatch")
+                while chunk := response.read(1024 * 1024):
+                    size += len(chunk)
+                    if size > expected_size:
+                        raise StorageIntegrityError("size_mismatch")
+                    digest.update(chunk)
+                    md5.update(chunk)
+                    output.write(chunk)
+            if size != expected_size:
+                raise StorageIntegrityError("size_mismatch")
+            if re.fullmatch(r"[a-fA-F0-9]{32}", expected_etag) and md5.hexdigest() != expected_etag.lower():
+                raise StorageIntegrityError("content_mismatch")
+            return digest.hexdigest()
+        except Exception as error:
+            if created:
+                try:
+                    path.unlink()
+                except OSError:
+                    raise RuntimeError("Storage capture cleanup failed; private diagnostics withheld") from None
+            reason, retryable = storage_failure(error)
+            if not retryable or attempt + 1 == STORAGE_ATTEMPTS:
+                diagnostic = "" if reason == "unknown" else " (reason=" + reason + ")"
+                raise RuntimeError("Storage capture failed" + diagnostic + "; private diagnostics withheld") from None
+            # Repeat the same conditional GET from byte zero, never resume or
+            # accept a new ETag. Keep the source snapshot alive during backoff.
+            keepalive()
+            print("Storage transient retry: " + reason, flush=True)
+            time.sleep(2 ** (attempt + 1))
 
 
 def inventory_sql():
@@ -80,31 +151,14 @@ def capture_storage(inventory, directory, key, keepalive):
         request = Request(url, headers={"apikey": key, "Authorization": "Bearer " + key,
                                         "Accept-Encoding": "identity", "Cache-Control": "no-cache",
                                         "If-Match": '"' + expected_etag + '"'})
-        size, digest, md5 = 0, hashlib.sha256(), hashlib.md5(usedforsecurity=False)
-        try:
-            with opener.open(request, timeout=60) as response, (directory / filename).open("xb") as output:
-                if response.status != 200 or response.geturl() != url:
-                    raise RuntimeError("Storage download response rejected")
-                if etag(response.headers.get("ETag")) != expected_etag:
-                    raise RuntimeError("Storage response does not match snapshot ETag")
-                while chunk := response.read(1024 * 1024):
-                    size += len(chunk)
-                    if size > expected_size:
-                        raise RuntimeError("Storage size differs from snapshot")
-                    digest.update(chunk)
-                    md5.update(chunk)
-                    output.write(chunk)
-            if size != expected_size:
-                raise RuntimeError("Storage size differs from snapshot")
-            if re.fullmatch(r"[a-fA-F0-9]{32}", expected_etag) and md5.hexdigest() != expected_etag.lower():
-                raise RuntimeError("Storage content differs from snapshot ETag")
-        except Exception:
-            # URL/error bodies can contain patient identifiers or credentials.
-            raise RuntimeError("Storage capture failed; private diagnostics withheld") from None
+        digest = capture_object(opener, request, directory / filename,
+                                expected_size, expected_etag, keepalive)
         files.append({"bucket_id": identity[0], "name": identity[1],
-                      "file": "storage/" + filename, "bytes": size,
-                      "sha256": digest.hexdigest()})
+                      "file": "storage/" + filename, "bytes": expected_size,
+                      "sha256": digest})
         keepalive()
+        if len(files) % 25 == 0 or len(files) == len(inventory["objects"]):
+            print("Storage objects verified: " + str(len(files)) + "/" + str(len(inventory["objects"])), flush=True)
     return files
 
 
@@ -238,3 +292,4 @@ def encrypt_bundle(root, metadata, storage_files, output_dir):
             "storage_bytes_captured": sum(row["bytes"] for row in storage_files),
             "storage_binaries_included": True, "storage_binaries_restored": False,
             "retained_copy_restore_verified": False}
+
