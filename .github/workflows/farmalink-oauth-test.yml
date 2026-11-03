@@ -1,22 +1,25 @@
-name: Farmalink TEST negative contract smoke (no valid prescriptions)
+name: Farmalink TEST one-shot DEMO integration cycle
 
 on:
+  push:
+    branches:
+      - test/farmalink-oauth-smoke-20261103
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  schema-rejections:
-    name: Check safe alta consulta baja format rejections in TEST
+  one-shot-demo:
+    name: One vendor DEMO alta, then conditional consulta and baja
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
-      - name: Run three non-mutating POST requests with incomplete fields
+      - name: Execute single TEST DEMO cycle; no automatic retries
         env:
           FARMALINK_TEST_OAUTH_PASSWORD: ${{ secrets.FARMALINK_TEST_OAUTH_PASSWORD }}
           FARMALINK_TEST_BASIC_PASSWORD: ${{ secrets.FARMALINK_TEST_BASIC_PASSWORD }}
-        run: python3 scripts/farmalink/rejection_smoke.py
+        run: python3 scripts/farmalink/sandbox_demo_cycle.py
