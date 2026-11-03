@@ -56,6 +56,8 @@ describe('generatePrescriptionPdf', () => {
     expect(artifacts.cuir).toBe('02680042020102000000000000000000000010101');
     expect(artifacts.qrContent).toBe('https://www.autamedica.com/verify/02680042020102000000000000000000000010101');
     expect(pdfText).toContain('CÓDIGO DE BARRAS');
+    expect(pdfText).toContain('VERIFICACIÓN DE FIRMA');
+    expect(pdfText).not.toContain('Este documento ha sido firmado');
     expect(pdfText).toContain('500mg');
     expect(pdfText).toContain('Comprimidos');
     expect(pdfText).toContain('Fecha de registro: 11/05/2026');
