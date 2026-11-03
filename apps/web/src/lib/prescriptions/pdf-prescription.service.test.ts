@@ -258,8 +258,9 @@ describe('generatePrescriptionPdf', () => {
         externalPrescription: {
           provider: 'farmalink',
           number: scenario.number,
-          barcodeTitle: 'FARMALINK TEST - CODIGO DE BARRAS',
-          displayLabel: 'FARMALINK TEST',
+          barcodeTitle: 'FARMALINK TEST',
+          displayLabel: 'FARMALINK',
+          legend: 'Validacion Farmalink TEST',
         },
         issuedAt: '2026-11-03',
         expiresAt: '2026-11-19',
