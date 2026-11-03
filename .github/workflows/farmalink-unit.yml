@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - test/farmalink-oauth-smoke-20261103
+      - fix/farmalink-recovery-20261103
   workflow_dispatch:
 
 permissions:
@@ -32,6 +33,9 @@ jobs:
           src/lib/prescriptions/farmalink.mapper.test.ts
           src/lib/prescriptions/farmalink.homologation.test.ts
           src/lib/prescriptions/farmalink.issue-gate.test.ts
+          src/lib/prescriptions/farmalink.recovery.test.ts
+          src/lib/prescriptions/farmalink.reconciliation.test.ts
+          src/lib/prescriptions/farmalink.routes.test.ts
           src/lib/prescriptions/issue-prescription.service.test.ts
           src/lib/prescriptions/pdf-prescription.service.test.ts
 
@@ -41,3 +45,4 @@ jobs:
           sudo apt-get install -y -qq poppler-utils zbar-tools
           pdftoppm -singlefile -r 300 -png /tmp/autamedica-farmalink-barcode.pdf /tmp/autamedica-farmalink-barcode
           zbarimg --quiet --raw -Sdisable -Scode128.enable /tmp/autamedica-farmalink-barcode.png | grep -Fx '9600000002762'
+

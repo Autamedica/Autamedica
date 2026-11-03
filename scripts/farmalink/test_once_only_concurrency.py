@@ -31,8 +31,11 @@ def sql(query, *, denied=False):
                 or 'farmalink_server_role_required' in result.stderr
                 or 'farmalink_prescription_not_eligible' in result.stderr
                 or 'farmalink_missing_vendor_id' in result.stderr
+                or 'farmalink_invalid_issue_snapshot' in result.stderr
+                or 'farmalink_actor_snapshot_mismatch' in result.stderr
                 or 'farmalink_snapshot_immutable' in result.stderr
-                or 'farmalink_unconfirmed_vendor' in result.stderr), result.stderr
+                or 'farmalink_unconfirmed_vendor' in result.stderr
+                or 'farmalink_artifact_identity_immutable' in result.stderr), result.stderr
         return None
     assert result.returncode == 0, result.stderr
     lines = [line for line in result.stdout.splitlines() if line.strip()]
@@ -56,8 +59,9 @@ def fixture():
 
 def claim(f, actor=None, role='service_role', denied=False):
     actor_sql = f"'{actor or f['uid']}'" if actor != 'NULL' else 'NULL'
+    snapshot_sql = json.dumps(f['snapshot']).replace("'", "''")
     return sql(f"BEGIN; SET LOCAL ROLE {role}; SELECT public.claim_farmalink_issue("
-               f"'{f['prescription_id']}',repeat('a',64),{actor_sql},'{{}}'::jsonb); COMMIT;", denied=denied)
+               f"'{f['prescription_id']}',repeat('a',64),{actor_sql},'{{}}'::jsonb,'{snapshot_sql}'::jsonb); COMMIT;", denied=denied)
 
 
 def record(f, attempt, state, vendor='NULL', code='NULL', denied=False):
@@ -72,9 +76,10 @@ barrier = Barrier(10)
 
 def contender(_):
     barrier.wait(timeout=10)
+    snapshot_sql = json.dumps(f['snapshot']).replace("'", "''")
     # Hold the prescription row lock until COMMIT, forcing competing sessions to wait.
     query = (f"BEGIN; SET LOCAL ROLE service_role; SET LOCAL lock_timeout='15s'; "
-             f"SELECT public.claim_farmalink_issue('{f['prescription_id']}',repeat('a',64),'{f['uid']}','{{}}'::jsonb); "
+             f"SELECT public.claim_farmalink_issue('{f['prescription_id']}',repeat('a',64),'{f['uid']}','{{}}'::jsonb,'{snapshot_sql}'::jsonb); "
              "SELECT pg_sleep(0.2); COMMIT;")
     return json.loads(sql(query))
 
@@ -89,7 +94,7 @@ check('all contenders retain the same attempt identity', len({c['attempt_id'] fo
 # All issuing processes have exited. A fresh process cannot retransmit.
 check('process restart after durable reservation blocks another alta',
       json.loads(claim(f)) == {'claimed': False, 'attempt_id': attempt, 'state': 'reserved'})
-sql(f"BEGIN; SET LOCAL ROLE service_role; SELECT public.claim_farmalink_issue('{f['prescription_id']}',repeat('a',64),'{f['uid']}',jsonb_build_object('changed',true)); COMMIT;", denied=True)
+sql(f"BEGIN; SET LOCAL ROLE service_role; SELECT public.claim_farmalink_issue('{f['prescription_id']}',repeat('a',64),'{f['uid']}',jsonb_build_object('changed',true),'{json.dumps(f['snapshot'])}'::jsonb); COMMIT;", denied=True)
 check('stale clinical snapshot rejected before transmission', True)
 sql(f"UPDATE public.prescriptions SET clinical_data=jsonb_build_object('changed',true) WHERE id='{f['prescription_id']}';", denied=True)
 check('clinical content cannot change after a reservation', True)
@@ -151,15 +156,32 @@ check('approval is persisted before PDF work', record(approved, a, 'confirmed', 
 check('PDF failure/restart cannot authorize another alta',
       json.loads(claim(approved))['state'] == 'confirmed' and not json.loads(claim(approved))['claimed'])
 check('confirmed state cannot be overwritten', record(approved, a, 'unknown') == 'f')
+artifact_barrier = Barrier(2)
+
+
+def finalize_artifact(index):
+    artifact_barrier.wait(timeout=10)
+    cuir = approved['snapshot']['pdfInput']['existingCuir']
+    return json.loads(sql(f"BEGIN; SET LOCAL ROLE service_role; SELECT public.complete_farmalink_artifact("
+                          f"'{approved['prescription_id']}','{a}','{approved['uid']}',"
+                          f"'prescriptions/{cuir}/concurrent-{index}.pdf',repeat('c',64),"
+                          f"'electronic_simple','https://example.invalid/{index}.pdf','recovery'); COMMIT;"))
+
+
+with ThreadPoolExecutor(max_workers=2) as pool:
+    finalized = list(pool.map(finalize_artifact, range(2)))
+check('concurrent artifact recovery retains one canonical file',
+      len({x['artifact_path'] for x in finalized}) == 1)
+check('concurrent recovery creates exactly one dispensation order',
+      sql(f"SELECT count(*) FROM public.dispensation_orders WHERE prescription_id='{approved['prescription_id']}';") == '1')
+check('both concurrent artifact operations have immutable audit evidence',
+      sql(f"SELECT count(*) FROM public.farmalink_operation_events WHERE prescription_id='{approved['prescription_id']}';") == '2')
 rejected = fixture()
 r = json.loads(claim(rejected))
 check('explicit rejection persists', record(rejected, r['attempt_id'], 'rejected', code="'55'") == 't')
 check('explicit rejection cannot retransmit', not json.loads(claim(rejected))['claimed'])
-# Fixtures intentionally survive only until CI destroys the entire disposable
-# local database. Cleanup via DELETE would cascade into append-only clinical
-# audit tables and correctly trigger prevent_safety_audit_mutation().
-# Run this test LAST, after all other SQL suites and temporary backup checks.
-# Never disable safety triggers or override immutable audit protections.
+# Run last in CI. Preserve append-only evidence until the entire disposable DB is destroyed.
+# Never DELETE clinical fixtures through audit-protected relationships.
 check('all created fixtures remain scoped to this disposable DB',
       len(fixtures) == 3 and all(x['prescription_id'] for x in fixtures))
 print(json.dumps({'passed': passed, 'failed': 0, 'concurrent_requests': 10, 'winners': 1, 'blocked': 9}))

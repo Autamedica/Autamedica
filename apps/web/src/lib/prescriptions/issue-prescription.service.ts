@@ -6,166 +6,18 @@
  *       → audit events → create dispensation order
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getServerEnvOrDefault, logger } from '@autamedica/shared';
-import { getRuntimeEnvValue } from '@/lib/runtime-env';
-import { FarmalinkClient } from './farmalink.client';
-import { claimFarmalinkIssue, recordFarmalinkIssue } from './farmalink.issue-gate';
-import {
-  FarmalinkMappingError,
-  buildFarmalinkAltaRecetaRequest,
-} from './farmalink.mapper';
-import type {
-  FarmalinkAltaRecetaRequest,
-  FarmalinkAltaResult,
-  FarmalinkPrescriptionMapInput,
-} from './farmalink.types';
-import { generatePrescriptionPdf, type PrescriptionArtifacts } from './pdf-prescription.service';
+import { logger } from '@autamedica/shared';
+import { commitFarmalinkArtifact, recoverFarmalinkPrescription } from './farmalink.recovery.service';
+import { registerFarmalinkIfEnabled, buildFarmalinkPrescriptionMapInput, canIssueWithPrescriberValidationStatus,
+  type FarmalinkRegistration, type PrescriberValidationStatus } from './farmalink.issuance.service';
+import { addDays, buildControlledSemaphoreReasons, mapDrugCategoryForDatabase, resolveInsurancePlan,
+  sha256BytesHex, fail, resolveProfileName, type ClinicalData, type Result } from './prescription-issuance.shared';
+export type { IssuanceResult, IssuanceError } from './prescription-issuance.shared';
+import { generatePrescriptionPdf, type PrescriptionArtifacts, type PrescriptionPdfInput } from './pdf-prescription.service';
 import { generateBrazilPrescriptionPdf } from './brazil/brazil-pdf-prescription.service';
 import { rctaService } from './rcta.service';
-// Certificate queries are Supabase-only (no node-forge dependency)
 import { getActiveCertificate, loadSigningCredentials } from '../doctors/services/certificate-query.service';
-import {
-  getSubstanceCategory,
-  getValidityPeriodDays,
-  requiresStrictPrescriptionValidation,
-} from './strict-validation';
-
-interface ClinicalItem {
-  generic_name?: string;
-  commercial_name?: string;
-  dosage?: string;
-  presentation?: string;
-  quantity?: number;
-  instructions?: string;
-  farmalink?: Record<string, unknown>;
-}
-
-interface ClinicalData {
-  items?: ClinicalItem[];
-  diagnosis?: string;
-  notes?: string;
-  farmalink?: Record<string, unknown>;
-  external_patient?: {
-    name?: string;
-    dni?: string;
-    cuil?: string;
-    address?: string;
-    birth_date?: string;
-    gender?: string;
-  };
-  care_guide_tips?: string | null;
-  care_guide_forgotten?: string | null;
-  care_guide_warnings?: string | null;
-  care_guide_lifestyle?: string | null;
-}
-
-function addDays(date: Date, days: number): Date {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
-}
-
-function buildControlledSemaphoreReasons(
-  medicationName: string,
-  category: ReturnType<typeof getSubstanceCategory>,
-  validityDays: number,
-): string[] | null {
-  if (category === 'standard') return null;
-
-  return [
-    `Medicacion controlada: ${category}`,
-    `Validez operativa: ${validityDays} dias`,
-    `Requiere validacion farmaceutica de sustancia controlada`,
-    `No repetir sin nueva receta: ${medicationName}`,
-  ];
-}
-
-function mapDrugCategoryForDatabase(
-  category: ReturnType<typeof getSubstanceCategory>,
-): 'default' | 'psychotropic' | 'narcotic' {
-  if (category === 'estupefaciente') return 'narcotic';
-  if (category === 'psicotropico' || category === 'stimulant') return 'psychotropic';
-  return 'default';
-}
-
-function resolveInsurancePlan(insuranceInfo: unknown): string | undefined {
-  if (!insuranceInfo || typeof insuranceInfo !== 'object' || Array.isArray(insuranceInfo)) {
-    return undefined;
-  }
-
-  const data = insuranceInfo as Record<string, unknown>;
-  const pickString = (keys: string[]): string | undefined => {
-    const value = keys.map((key) => data[key]).find((entry) => typeof entry === 'string');
-    return typeof value === 'string' ? value : undefined;
-  };
-  const provider = pickString(['provider', 'insurance_provider', 'obraSocial']);
-  const plan = pickString(['plan', 'insurance_plan', 'planName']);
-
-  return [provider, plan].filter(Boolean).join(' ').trim() || undefined;
-}
-
-export interface IssuanceResult {
-  cuir: string;
-  qrContent: string;
-  signedPdfUrl: string | null;
-  issuedAt: string;
-  expiresAt: string;
-  vendorName: string;
-  vendorId: string;
-}
-
-export type IssuanceError =
-  | { code: 'doctor_not_found' }
-  | { code: 'missing_license_number' }
-  | { code: 'missing_refeps_id' }
-  | { code: 'prescriber_validation_required' }
-  | { code: 'missing_professional_address' }
-  | { code: 'prescription_not_found' }
-  | { code: 'not_your_prescription' }
-  | { code: 'already_issued' }
-  | { code: 'patient_not_found' }
-  | { code: 'missing_patient_identification' }
-  | { code: 'missing_patient_address' }
-  | { code: 'no_medication' }
-  | { code: 'missing_cuir' }
-  | { code: 'pdf_generation_failed'; details?: string }
-  | { code: 'pdf_upload_failed'; details?: string }
-  | { code: 'update_failed'; details?: string }
-  | { code: 'farmalink_missing_config' }
-  | { code: 'farmalink_mapping_failed' }
-  | { code: 'farmalink_registration_failed' }
-  | { code: 'farmalink_rejected'; responseCode?: string }
-  | { code: 'farmalink_pending_reconciliation' }
-  | { code: 'farmalink_idempotency_unavailable' };
-
-type Result = { ok: true; data: IssuanceResult } | { ok: false; error: IssuanceError };
-
-async function sha256BytesHex(bytes: Uint8Array): Promise<string> {
-  const stableBytes = new Uint8Array(bytes);
-  const digest = await crypto.subtle.digest('SHA-256', stableBytes);
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function fail(error: IssuanceError): Result { return { ok: false, error }; }
-
-function getPrescriptionStoragePath(cuir: string, signedPdfUrl?: string | null): string {
-  if (signedPdfUrl) {
-    try {
-      const url = new URL(signedPdfUrl);
-      const marker = '/medical-documents/';
-      const index = url.pathname.indexOf(marker);
-      if (index >= 0) {
-        return decodeURIComponent(url.pathname.slice(index + marker.length));
-      }
-    } catch {
-      // Fall back to the canonical legacy path below.
-    }
-  }
-
-  return `prescriptions/${cuir}/receta-${cuir}.pdf`;
-}
+import { getSubstanceCategory, getValidityPeriodDays, requiresStrictPrescriptionValidation } from './strict-validation';
 
 function resolveExternalPrescriptionForPdf(
   vendorName?: string | null,
@@ -179,354 +31,6 @@ function resolveExternalPrescriptionForPdf(
     displayLabel: 'RECETA FARMALINK',
     legend: 'Número de receta para validación online en farmacia',
   };
-}
-
-type UnknownRecord = Record<string, unknown>;
-
-interface IssueDoctor {
-  id: string;
-  license_type?: string | null;
-  license_number: string;
-  specialty?: string | null;
-  refeps_id?: string | null;
-  enrollment_entity?: string | null;
-  enrollment_jurisdiction?: string | null;
-  professional_address?: string | null;
-}
-
-interface IssuePatient {
-  dni?: string | null;
-  cuil?: string | null;
-  address?: string | null;
-  birth_date?: string | null;
-  gender?: string | null;
-  insurance_info?: unknown;
-}
-
-type PrescriberValidationStatus = 'pending' | 'valid' | 'pending_review' | 'rejected' | 'exempt';
-
-function canIssueWithPrescriberValidationStatus(status?: string | null): boolean {
-  return status === 'valid' || status === 'exempt';
-}
-
-interface FarmalinkRegistration {
-  vendorName: 'farmalink';
-  vendorId: string;
-  result: FarmalinkAltaResult;
-  externalPrescription: Parameters<typeof generatePrescriptionPdf>[0]['externalPrescription'];
-}
-
-function asRecord(value: unknown): UnknownRecord | undefined {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as UnknownRecord
-    : undefined;
-}
-
-function readRecord(source: UnknownRecord | undefined, keys: string[]): UnknownRecord | undefined {
-  for (const key of keys) {
-    const record = asRecord(source?.[key]);
-    if (record) return record;
-  }
-  return undefined;
-}
-
-function readString(source: UnknownRecord | undefined, keys: string[]): string | undefined {
-  for (const key of keys) {
-    const value = source?.[key];
-    if (typeof value === 'string' && value.trim()) return value.trim();
-    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
-  }
-  return undefined;
-}
-
-function readBoolean(source: UnknownRecord | undefined, keys: string[]): boolean | undefined {
-  for (const key of keys) {
-    const value = source?.[key];
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'string') {
-      const normalized = value.trim().toLowerCase();
-      if (['true', '1', 'yes', 'si', 'sí'].includes(normalized)) return true;
-      if (['false', '0', 'no'].includes(normalized)) return false;
-    }
-  }
-  return undefined;
-}
-
-function readNumber(source: UnknownRecord | undefined, keys: string[]): number | undefined {
-  const value = readString(source, keys);
-  if (!value) return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function readEnv(keys: string[], defaultValue?: string): string | undefined {
-  for (const key of keys) {
-    const value = getRuntimeEnvValue(key) ?? getServerEnvOrDefault(key);
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return defaultValue;
-}
-
-function readEnvNumber(keys: string[]): number | undefined {
-  const value = readEnv(keys);
-  if (!value) return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function firstText(...values: Array<string | null | undefined>): string | undefined {
-  return values.find((value): value is string => typeof value === 'string' && value.trim().length > 0)?.trim();
-}
-
-function buildFarmalinkPrescriptionMapInput(input: {
-  clinicalData: ClinicalData;
-  doctor: IssueDoctor;
-  doctorName: string;
-  item: ClinicalItem;
-  patient: IssuePatient;
-  patientName: string;
-  now: string;
-  expiresAt: string;
-}): FarmalinkPrescriptionMapInput {
-  // Proxy patient records and multi-item PDF support are not yet verified for Farmalink.
-  // Refuse rather than submit a different identity or silently drop medications.
-  if (input.clinicalData.external_patient) throw new FarmalinkMappingError('external_patient');
-  if ((input.clinicalData.items?.length ?? 0) > 1) throw new FarmalinkMappingError('items');
-  const farmalink = asRecord(input.clinicalData.farmalink);
-  const organization = readRecord(farmalink, ['organization', 'organizacion']);
-  const credential = readRecord(farmalink, ['credential', 'credencial', 'affiliate', 'afiliado']);
-  const prescriber = readRecord(farmalink, ['prescriber', 'medico']);
-  const itemConfig = asRecord(input.item.farmalink)
-    ?? readRecord(farmalink, ['item', 'defaultItem', 'default_item'])
-    ?? asRecord(Array.isArray(farmalink?.items) ? farmalink?.items[0] : undefined);
-
-  const insurance = asRecord(input.patient.insurance_info);
-  const insuranceFarmalink = readRecord(insurance, ['farmalink', 'farmalink_credential']);
-  const credentialSource = credential ?? insuranceFarmalink ?? insurance;
-
-  return {
-    organization: {
-      id: firstText(
-        readString(organization, ['id', 'idOrganizacion', 'id_organizacion']),
-        readEnv(['FARMALINK_ORG_ID']),
-      ) ?? '',
-      type: firstText(
-        readString(organization, ['type', 'tipoOrganizacion', 'tipo_organizacion']),
-        readEnv(['FARMALINK_ORG_TYPE'], 'NMD'),
-      ) ?? 'NMD',
-      ipOrigin: firstText(
-        readString(organization, ['ipOrigin', 'ip_origen', 'ipOrigen']),
-        readEnv(['FARMALINK_IP_ORIGIN']),
-      ) ?? '',
-      browserInfo: firstText(
-        readString(organization, ['browserInfo', 'infoBrowser', 'info_browser']),
-        readEnv(['FARMALINK_BROWSER_INFO'], 'AutaMedica'),
-      ),
-      issuerPointId: readNumber(organization, ['issuerPointId', 'issuer_point_id', 'puntoEmisorId', 'punto_emisor_id'])
-        ?? readEnvNumber(['FARMALINK_PUNTO_EMISOR_ID']),
-    },
-    validity: {
-      from: input.now,
-      to: input.expiresAt,
-    },
-    prescriptionType: firstText(
-      readString(farmalink, ['prescriptionType', 'tipoReceta', 'tipo_receta']),
-      readEnv(['FARMALINK_PRESCRIPTION_TYPE']),
-    ),
-    treatmentType: readString(farmalink, ['treatmentType', 'tipoTratamiento', 'tipo_tratamiento']) as
-      FarmalinkPrescriptionMapInput['treatmentType'],
-    diagnosisText: input.clinicalData.diagnosis,
-    affiliate: {
-      fullName: input.patientName,
-      sex: input.patient.gender ?? undefined,
-      birthDate: input.patient.birth_date ?? '',
-      cuil: input.patient.cuil ?? undefined,
-      documentNumber: input.patient.dni ?? undefined,
-      credential: {
-        codEntidad: readNumber(credentialSource, ['codEntidad', 'cod_entidad', 'entityCode', 'entity_code'])
-          ?? readEnvNumber(['FARMALINK_HOMOLOGATION_COD_ENTIDAD', 'FARMALINK_COD_ENTIDAD'])
-          ?? Number.NaN,
-        pan: firstText(
-          readString(credentialSource, ['pan', 'credencial', 'credential', 'credentialNumber', 'credential_number']),
-          readEnv(['FARMALINK_HOMOLOGATION_CREDENCIAL', 'FARMALINK_CREDENCIAL']),
-        ) ?? '',
-        plan: firstText(
-          readString(credentialSource, ['plan', 'planName', 'plan_name']),
-          readEnv(['FARMALINK_HOMOLOGATION_PLAN', 'FARMALINK_PLAN'], 'NO POSEE'),
-        ) ?? 'NO POSEE',
-      },
-    },
-    prescriber: {
-      fullName: input.doctorName,
-      sex: firstText(
-        readString(prescriber, ['sex', 'sexo']),
-        readEnv(['FARMALINK_PRESCRIBER_SEX']),
-      ),
-      birthDate: firstText(
-        readString(prescriber, ['birthDate', 'birth_date', 'fechaNacimiento', 'fecha_nacimiento']),
-        readEnv(['FARMALINK_PRESCRIBER_BIRTH_DATE']),
-      ) ?? '',
-      documentNumber: firstText(
-        readString(prescriber, ['documentNumber', 'document_number', 'numeroDocumento', 'numero_documento', 'dni']),
-        readEnv(['FARMALINK_PRESCRIBER_DOCUMENT_NUMBER']),
-      ) ?? '',
-      cuil: firstText(
-        readString(prescriber, ['cuil']),
-        readEnv(['FARMALINK_PRESCRIBER_CUIL']),
-      ),
-      address: input.doctor.professional_address ?? '',
-      refeps: input.doctor.refeps_id ?? undefined,
-      license: {
-        tipo: firstText(input.doctor.license_type, input.doctor.enrollment_entity) ?? '',
-        provincia: input.doctor.enrollment_jurisdiction ?? '',
-        numero: input.doctor.license_number,
-        especialidad: input.doctor.specialty ?? undefined,
-      },
-    },
-    items: [
-      {
-        quantity: input.item.quantity ?? 1,
-        productCode: firstText(
-          readString(itemConfig, ['productCode', 'product_code', 'codProducto', 'cod_producto']),
-          readEnv(['FARMALINK_DEFAULT_PRODUCT_CODE']),
-        ) ?? '',
-        drugCode: firstText(
-          readString(itemConfig, ['drugCode', 'drug_code', 'codDroga', 'cod_droga']),
-          readEnv(['FARMALINK_DEFAULT_DRUG_CODE']),
-        ) ?? '',
-        genericText: firstText(
-          readString(itemConfig, ['genericText', 'generic_text', 'textoGenerico', 'texto_generico']),
-          [input.item.generic_name, input.item.dosage, input.item.presentation].filter(Boolean).join(' '),
-        ) ?? input.item.generic_name ?? '',
-        generic: readBoolean(itemConfig, ['generic', 'generico']) ?? true,
-        brandRecommended: readBoolean(itemConfig, ['brandRecommended', 'brand_recommended', 'recomendacionMedica'])
-          ?? Boolean(input.item.commercial_name),
-      },
-    ],
-  };
-}
-
-async function registerFarmalinkIfEnabled(input: {
-  supabase: SupabaseClient;
-  prescriptionId: string;
-  actorUserId: string;
-  clinicalData: ClinicalData;
-  doctor: IssueDoctor;
-  doctorName: string;
-  item: ClinicalItem;
-  patient: IssuePatient;
-  patientName: string;
-  now: string;
-  expiresAt: string;
-}): Promise<{ ok: true; registration: FarmalinkRegistration | null } | { ok: false; error: IssuanceError }> {
-  let client: FarmalinkClient | null;
-  try {
-    client = FarmalinkClient.fromEnv();
-  } catch (error) {
-    logger.error('[issuePrescription] Farmalink config missing', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return { ok: false, error: { code: 'farmalink_missing_config' } };
-  }
-
-  if (!client) return { ok: true, registration: null };
-
-  let request: FarmalinkAltaRecetaRequest;
-  try {
-    request = buildFarmalinkAltaRecetaRequest(buildFarmalinkPrescriptionMapInput(input));
-  } catch (error) {
-    logger.error('[issuePrescription] Farmalink mapping failed', {
-      field: error instanceof FarmalinkMappingError ? error.field : undefined,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return { ok: false, error: { code: 'farmalink_mapping_failed' } };
-  }
-
-  // Unique, durable claim is COMMITTED before reaching Farmalink.
-  // If this RPC fails, do not send a request: avoid duplicate issues after
-  // process crashes, multiple tabs, or HTTP 504/timeout ambiguity.
-  const requestHash = await sha256BytesHex(new TextEncoder().encode(JSON.stringify(request)));
-  const claim = await claimFarmalinkIssue(input.supabase, input.prescriptionId, requestHash, input.actorUserId, input.clinicalData);
-  if (claim.ok === false) {
-    logger.error('[issuePrescription] Farmalink once-only claim unavailable', {
-      prescriptionId: input.prescriptionId,
-      reason: claim.reason,
-    });
-    return { ok: false, error: { code: 'farmalink_idempotency_unavailable' } };
-  }
-  if (!claim.value.claimed) {
-    logger.warn('[issuePrescription] Farmalink duplicate alta prevented', {
-      prescriptionId: input.prescriptionId,
-      state: claim.value.state,
-    });
-    return { ok: false, error: { code: 'farmalink_pending_reconciliation' } };
-  }
-
-  const attemptId = claim.value.attempt_id;
-  try {
-    const result = await client.altaReceta(request);
-    if (!result.approved || !result.nroRecElectronica) {
-      const persisted = await recordFarmalinkIssue(
-        input.supabase, input.prescriptionId, attemptId, input.actorUserId, 'rejected',
-        undefined, result.responseCode,
-      );
-      if (!persisted) return { ok: false, error: { code: 'farmalink_idempotency_unavailable' } };
-      logger.warn('[issuePrescription] Farmalink rejected AltaReceta', {
-        responseCode: result.responseCode,
-        reference: result.reference,
-      });
-      return {
-        ok: false,
-        error: { code: 'farmalink_rejected', responseCode: result.responseCode },
-      };
-    }
-
-    // Record the external receipt before any PDF signing/storage can fail.
-    // A subsequent invocation must NOT call altaReceta again.
-    const persisted = await recordFarmalinkIssue(
-      input.supabase, input.prescriptionId, attemptId, input.actorUserId,
-      'confirmed', result.nroRecElectronica, result.responseCode,
-    );
-    if (!persisted) return { ok: false, error: { code: 'farmalink_pending_reconciliation' } };
-
-    return {
-      ok: true,
-      registration: {
-        vendorName: 'farmalink',
-        vendorId: result.nroRecElectronica,
-        result,
-        externalPrescription: {
-          provider: 'farmalink',
-          number: result.nroRecElectronica,
-          displayLabel: 'RECETA FARMALINK',
-          legend: 'Número de receta para validación online en farmacia',
-        },
-      },
-    };
-  } catch (error) {
-    // Even an HTTP rejection may be ambiguous at the vendor boundary.
-    // This state never releases the claim for automatic retransmission.
-    await recordFarmalinkIssue(input.supabase, input.prescriptionId, attemptId, input.actorUserId, 'unknown');
-    logger.error('[issuePrescription] Farmalink AltaReceta outcome unknown; retry blocked', {
-      prescriptionId: input.prescriptionId,
-      name: error instanceof Error ? error.name : undefined,
-    });
-    return { ok: false, error: { code: 'farmalink_pending_reconciliation' } };
-  }
-}
-
-async function resolveProfileName(
-  supabase: SupabaseClient,
-  userId: string,
-  prefix: string,
-): Promise<string> {
-  const { data } = await supabase
-    .from('profiles')
-    .select('first_name, last_name')
-    .eq('user_id', userId)
-    .single();
-  if (!data) return prefix === 'Dr.' ? 'Médico' : 'Paciente';
-  return `${prefix} ${data.first_name ?? ''} ${data.last_name ?? ''}`.trim() || prefix;
 }
 
 export async function issuePrescription(
@@ -624,6 +128,76 @@ export async function issuePrescription(
     validityDays,
   );
 
+  const dispensationOrder = {
+    prescription_id: prescriptionId,
+    patient_id: rx.patient_id,
+    doctor_id: rx.doctor_id,
+    prescription_type: 'standard',
+    medication: medicationName,
+    formulation: item.presentation || item.dosage || 'No especificada',
+    quantity_units: item.quantity ?? 1,
+    duration_days: validityDays,
+    dispense_window_start: now.split('T')[0],
+    dispense_window_end: expiresAt.split('T')[0],
+    clinical_semaphore: isControlledSubstance ? 'yellow' : 'green',
+    semaphore_reasons: controlledSemaphoreReasons,
+    requires_clarification: false,
+    internal_notes: isControlledSubstance
+      ? `Medicacion controlada (${substanceCategory}). Requiere validacion farmaceutica especifica.`
+      : null,
+  };
+
+  const pdfInput: PrescriptionPdfInput = {
+        prescriptionId,
+        medication: {
+          genericName: medicationName,
+          commercialName: item.commercial_name,
+          dosage: item.dosage ?? '',
+          presentation: item.presentation ?? '',
+          quantity: item.quantity ?? 1,
+          instructions: item.instructions ?? '',
+        },
+        diagnosis: clinicalData.diagnosis ?? '',
+        notes: clinicalData.notes,
+        patient: {
+          name: patientName,
+          dni: patient.dni ?? externalPatient?.dni ?? (patient as { ci?: string }).ci ?? (externalPatient as { ci?: string })?.ci ?? undefined,
+          cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
+          dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
+          sex: patient.gender ?? externalPatient?.gender ?? undefined,
+          insurancePlan: resolveInsurancePlan(patient.insurance_info),
+          address: patient.address ?? externalPatient?.address ?? undefined,
+        },
+        prescriber: {
+          name: doctorName,
+          license: doctor.license_number,
+          licenseJurisdiction: doctor.enrollment_jurisdiction ?? (prescriptionCountry === 'UY' ? 'Uruguay' : undefined),
+          licenseEntity: doctor.enrollment_entity ?? (prescriptionCountry === 'UY' ? 'MSP' : undefined),
+          refeps: doctor.refeps_id ?? undefined,
+          specialty: doctor.specialty ?? undefined,
+          professionalAddress: doctor.professional_address ?? undefined,
+          signatureImageUrl: doctor.signature_image_url ?? undefined,
+          stampImageUrl: doctor.stamp_image_url ?? undefined,
+        },
+        issuedAt: now,
+        expiresAt,
+        careGuide: {
+          tips: clinicalData.care_guide_tips,
+          forgotten: clinicalData.care_guide_forgotten,
+          warnings: clinicalData.care_guide_warnings,
+          lifestyle: clinicalData.care_guide_lifestyle,
+        },
+        template: doctor.care_guide_template ?? 'neutral',
+      };
+  // Internal CUIR generation is deterministic by prescription ID and makes no network call.
+  // Retain it before Farmalink so PDF recovery cannot create another internal identifier.
+  if (prescriptionCountry === 'AR') {
+    const internal = await rctaService.registerPrescription(doctor.license_number, patient.dni || 'unknown', medicationName, {
+      jurisdiction: doctor.enrollment_jurisdiction ?? undefined, groupId: prescriptionId, expendioType: '02',
+    });
+    pdfInput.existingCuir = internal.cuir;
+  }
+
   let externalRegistration: FarmalinkRegistration | undefined;
   if (prescriptionCountry === 'AR') {
     const farmalinkRegistration = await registerFarmalinkIfEnabled({
@@ -638,6 +212,9 @@ export async function issuePrescription(
       patientName,
       now,
       expiresAt,
+      pdfInput,
+      dispensationOrder: {...dispensationOrder,drug_category:databaseDrugCategory,is_controlled_substance:isControlledSubstance,
+        controlled_substance_list:isControlledSubstance ? substanceCategory : null},
     });
     if (farmalinkRegistration.ok === false) return fail(farmalinkRegistration.error);
     externalRegistration = farmalinkRegistration.registration;
@@ -702,49 +279,7 @@ export async function issuePrescription(
         qrContent: verificationUrl,
       };
     } else {
-      artifacts = await generatePrescriptionPdf({
-        prescriptionId,
-        externalPrescription: externalRegistration?.externalPrescription,
-        medication: {
-          genericName: medicationName,
-          commercialName: item.commercial_name,
-          dosage: item.dosage ?? '',
-          presentation: item.presentation ?? '',
-          quantity: item.quantity ?? 0,
-          instructions: item.instructions ?? '',
-        },
-        diagnosis: clinicalData.diagnosis ?? '',
-        notes: clinicalData.notes,
-        patient: {
-          name: patientName,
-          dni: patient.dni ?? externalPatient?.dni ?? (patient as { ci?: string }).ci ?? (externalPatient as { ci?: string })?.ci ?? undefined,
-          cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
-          dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
-          sex: patient.gender ?? externalPatient?.gender ?? undefined,
-          insurancePlan: resolveInsurancePlan(patient.insurance_info),
-          address: patient.address ?? externalPatient?.address ?? undefined,
-        },
-        prescriber: {
-          name: doctorName,
-          license: doctor.license_number,
-          licenseJurisdiction: doctor.enrollment_jurisdiction ?? (prescriptionCountry === 'UY' ? 'Uruguay' : undefined),
-          licenseEntity: doctor.enrollment_entity ?? (prescriptionCountry === 'UY' ? 'MSP' : undefined),
-          refeps: doctor.refeps_id ?? undefined,
-          specialty: doctor.specialty ?? undefined,
-          professionalAddress: doctor.professional_address ?? undefined,
-          signatureImageUrl: doctor.signature_image_url ?? undefined,
-          stampImageUrl: doctor.stamp_image_url ?? undefined,
-        },
-        issuedAt: now,
-        expiresAt,
-        careGuide: {
-          tips: clinicalData.care_guide_tips,
-          forgotten: clinicalData.care_guide_forgotten,
-          warnings: clinicalData.care_guide_warnings,
-          lifestyle: clinicalData.care_guide_lifestyle,
-        },
-        template: doctor.care_guide_template ?? 'neutral',
-      });
+      artifacts = await generatePrescriptionPdf({...pdfInput, externalPrescription: externalRegistration?.externalPrescription});
     }
   } catch (error) {
     const details = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
@@ -817,6 +352,15 @@ export async function issuePrescription(
     });
   }
 
+  if (externalRegistration) {
+    const completed = await commitFarmalinkArtifact(supabase,{
+      prescriptionId,attemptId:externalRegistration.attemptId,actorUserId:userId,path:pdfPath,
+      hash:await sha256BytesHex(finalPdfBuffer),signatureMethod,signedUrl:signedPdfUrl,operation:'initial',
+    });
+    if (completed.ok === false) return fail({code:'update_failed',details:completed.error});
+    return completed;
+  }
+
   // 8. Update prescription record
   const { error: updateError } = await supabase
     .from('prescriptions')
@@ -884,42 +428,8 @@ export async function issuePrescription(
     },
   ]);
 
-  if (externalRegistration) {
-    await supabase.from('prescription_audit_events').insert({
-      prescription_id: prescriptionId,
-      event_type: 'ACT_FARMALINK_ALTA',
-      user_id: userId,
-      metadata: {
-        provider: externalRegistration.vendorName,
-        vendor_id: externalRegistration.vendorId,
-        response_code: externalRegistration.result.responseCode,
-        response_description: externalRegistration.result.responseDescription,
-        reference: externalRegistration.result.reference,
-      },
-    });
-  }
-
   // 10. Create dispensation order
-  const todayDate = now.split('T')[0];
-  const expiryDate = expiresAt.split('T')[0];
-  const { error: orderError } = await supabase.from('dispensation_orders').insert({
-    prescription_id: prescriptionId,
-    patient_id: rx.patient_id,
-    doctor_id: rx.doctor_id,
-    prescription_type: 'standard',
-    medication: medicationName,
-    formulation: item.presentation || item.dosage || 'No especificada',
-    quantity_units: item.quantity ?? 1,
-    duration_days: validityDays,
-    dispense_window_start: todayDate,
-    dispense_window_end: expiryDate,
-    clinical_semaphore: isControlledSubstance ? 'yellow' : 'green',
-    semaphore_reasons: controlledSemaphoreReasons,
-    requires_clarification: false,
-    internal_notes: isControlledSubstance
-      ? `Medicacion controlada (${substanceCategory}). Requiere validacion farmaceutica especifica.`
-      : null,
-  });
+  const { error: orderError } = await supabase.from('dispensation_orders').insert(dispensationOrder);
 
   if (orderError) {
     logger.warn('[issuePrescription] Dispensation order creation failed', orderError);
@@ -969,6 +479,18 @@ export async function regenerateIssuedPrescriptionPdf(
 
   if (!rx) return fail({ code: 'prescription_not_found' });
   if (rx.doctor_id !== doctor.id) return fail({ code: 'not_your_prescription' });
+  let hasFarmalinkAttempt = rx.vendor_name === 'farmalink';
+  if (!hasFarmalinkAttempt) {
+    const attempt = await supabase.from('farmalink_issue_attempts').select('prescription_id')
+      .eq('prescription_id',rx.id).maybeSingle();
+    if (attempt.error) return fail({code:'farmalink_idempotency_unavailable'});
+    hasFarmalinkAttempt = Boolean(attempt.data);
+  }
+  if (hasFarmalinkAttempt) {
+    const recovered = await recoverFarmalinkPrescription(supabase,rx.id,userId);
+    if (recovered.ok === false) return fail({code:'farmalink_pending_reconciliation'});
+    return recovered;
+  }
   if (!rx.cuir) return fail({ code: 'missing_cuir' });
 
   const { data: patient } = await supabase
@@ -1005,7 +527,7 @@ export async function regenerateIssuedPrescriptionPdf(
       commercialName: item.commercial_name,
       dosage: item.dosage ?? '',
       presentation: item.presentation ?? '',
-      quantity: item.quantity ?? 0,
+      quantity: item.quantity ?? 1,
       instructions: item.instructions ?? '',
     },
     diagnosis: clinicalData.diagnosis ?? '',
@@ -1041,12 +563,13 @@ export async function regenerateIssuedPrescriptionPdf(
     template: doctor.care_guide_template ?? 'neutral',
   });
 
-  const pdfPath = getPrescriptionStoragePath(rx.cuir, rx.signed_pdf_url);
+  // Never trust an old signed URL as a writable Storage path. Preserve the original object.
+  const pdfPath = `prescriptions/${rx.cuir}/regenerated-${rx.id}-${crypto.randomUUID()}.pdf`;
   const { error: uploadError } = await supabase.storage
     .from('medical-documents')
     .upload(pdfPath, artifacts.pdfBuffer, {
       contentType: 'application/pdf',
-      upsert: true,
+      upsert: false,
     });
 
   if (uploadError) {
@@ -1054,10 +577,11 @@ export async function regenerateIssuedPrescriptionPdf(
     return fail({ code: 'pdf_upload_failed', details: uploadError.message || String(uploadError) });
   }
 
-  const { data: urlData } = await supabase.storage
+  const { data: urlData, error: urlError } = await supabase.storage
     .from('medical-documents')
     .createSignedUrl(pdfPath, 365 * 24 * 60 * 60);
-  const signedPdfUrl = urlData?.signedUrl ?? rx.signed_pdf_url ?? null;
+  if (urlError || !urlData?.signedUrl) return fail({code:'pdf_upload_failed'});
+  const signedPdfUrl = urlData.signedUrl;
 
   const { error: updateError } = await supabase
     .from('prescriptions')
@@ -1102,4 +626,5 @@ export const __testables = {
   buildFarmalinkPrescriptionMapInput,
   canIssueWithPrescriberValidationStatus,
 };
+
 
