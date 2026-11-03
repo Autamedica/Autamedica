@@ -1,6 +1,11 @@
 name: Farmalink contract + PDF regression tests (mock only)
 
 on:
+  pull_request:
+    paths:
+      - 'apps/web/src/lib/prescriptions/**'
+      - 'scripts/farmalink/**'
+      - '.github/workflows/farmalink-unit.yml'
   push:
     branches:
       - test/farmalink-oauth-smoke-20261103
@@ -21,6 +26,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+      - name: Validate confirmed test payload without making HTTP calls
+        run: python3 -m unittest discover -s scripts/farmalink -p test_homologation_contract_offline.py
       - uses: ./.github/actions/setup-pnpm
         with:
           node-version: '22'
