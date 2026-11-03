@@ -6,7 +6,7 @@ vi.mock('@/lib/doctors/lib/resolve-room', () => ({
   doctorHasPatientAccess: vi.fn().mockResolvedValue(true),
 }));
 
-function fixture(doctorCountry: string | null, patientCountry: string | null) {
+function fixture(doctorCountry: string | null, patientCountry: string | null, matchedExternalPatient?: Record<string, unknown>) {
   const inserts: Array<Record<string, unknown>> = [];
   const db = {
     from(table: string) {
@@ -15,7 +15,7 @@ function fixture(doctorCountry: string | null, patientCountry: string | null) {
         eq() { return query; },
         async maybeSingle() {
           if (table === 'doctors') return {data:{care_country:doctorCountry,active:true},error:null};
-          if (table === 'patients') return {data:{care_country:patientCountry,active:true},error:null};
+          if (table === 'patients') return {data: matchedExternalPatient ?? {care_country:patientCountry,active:true},error:null};
           return {data:null,error:null};
         },
         insert(input: Record<string,unknown>) {
@@ -114,6 +114,35 @@ describe('doctor prescription creation uses canonical medical-care country', () 
         care_country:'BR',care_country_confirmed:true,
       },
     })).rejects.toThrow('external_patient_cpf_required');
+    expect(inserts).toHaveLength(0);
+  });
+
+
+  it('never modifies a linked patient account from a matching document',async()=>{
+    const {db,inserts}=fixture('AR','AR',{
+      id:'linked-patient',user_id:'registered-user',care_country:'AR',active:true,
+    });
+    await expect(doctorPrescriptionBackendService.create(db as never,doctor,{
+      medication_name:'PARACETAMOL',dosage:'500 mg',
+      external_patient:{
+        name:'Paciente Demo',dni:'12345678',address:'CABA',
+        care_country:'AR',care_country_confirmed:true,
+      },
+    })).rejects.toThrow('external_patient_registered_account_required');
+    expect(inserts).toHaveLength(0);
+  });
+
+  it('does not reassign a pre-existing external patient from AR to BR',async()=>{
+    const {db,inserts}=fixture('BR','BR',{
+      id:'historical-patient',user_id:null,care_country:'AR',active:true,
+    });
+    await expect(doctorPrescriptionBackendService.create(db as never,doctor,{
+      medication_name:'PARACETAMOL',dosage:'500 mg',
+      external_patient:{
+        name:'Paciente Demo',cpf:'52998224725',address:'Rua Teste',
+        care_country:'BR',care_country_confirmed:true,
+      },
+    })).rejects.toThrow('external_patient_country_mismatch_or_unset');
     expect(inserts).toHaveLength(0);
   });
 
