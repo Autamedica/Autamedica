@@ -17,6 +17,7 @@ import type {
 } from "@/lib/doctors/types/medical";
 import type { Database } from "@autamedica/types";
 import { logger } from "@autamedica/shared";
+import { validCpf } from "@/lib/prescriptions/brazil/memed-patient";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Db = SupabaseClient<Database>;
@@ -168,7 +169,7 @@ async function resolveExternalPrescriptionPatient(
   if (doctorCountry === 'AR' && !dni && !cuil) {
     throw new Error("external_patient_identification_required");
   }
-  if (doctorCountry === 'BR' && !cpf) {
+  if (doctorCountry === 'BR' && (!cpf || !validCpf(cpf))) {
     throw new Error("external_patient_cpf_required");
   }
   if (!address) {
@@ -212,15 +213,8 @@ async function resolveExternalPrescriptionPatient(
           active: true,
           address,
           ...(data.care_country === null ? { care_country: doctorCountry } : {}),
-          medical_history: {
-            source: "doctor_prescription_external_patient",
-            name: externalPatient.name.trim(),
-            email,
-            phone,
-            care_country_provenance: "patient_declared_to_physician",
-            care_country_confirmed_at: new Date().toISOString(),
-            care_country_attested_by_doctor_id: doctorId,
-          },
+          // Keep any existing clinical history intact. The attestation
+          // is recorded with the new prescription's clinical_data instead.
         })
         .eq("id", data.id);
       if (updateError) throw updateError;
@@ -487,6 +481,8 @@ function buildClinicalDataFromPayload(
         phone: normalizeOptionalText(sourceExternalPatient.phone),
         birth_date: normalizeOptionalText(sourceExternalPatient.birth_date),
         gender: normalizeOptionalText(sourceExternalPatient.gender),
+        care_country: sourceExternalPatient.care_country ?? null,
+        care_country_confirmed: sourceExternalPatient.care_country_confirmed === true,
       }
     : null;
 
