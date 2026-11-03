@@ -134,9 +134,6 @@ BEGIN
   IF TG_OP = 'UPDATE' AND NEW.care_country IS DISTINCT FROM OLD.care_country THEN
     RAISE EXCEPTION 'pharmacy_country_immutable' USING ERRCODE = '23514';
   END IF;
-  IF NEW.care_country NOT IN ('AR','BR') OR NEW.care_country IS NULL THEN
-    RAISE EXCEPTION 'pharmacy_country_required' USING ERRCODE = '23514';
-  END IF;
   RETURN NEW;
 END $$;
 
@@ -326,6 +323,19 @@ CREATE TRIGGER zz_dispensation_country
 BEFORE INSERT OR UPDATE ON public.dispensation_orders
 FOR EACH ROW EXECUTE FUNCTION app_private.guard_dispensation_country();
 
+CREATE FUNCTION app_private.pharmacy_order_context_aligned(p_order uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
+AS $$ SELECT EXISTS(
+  SELECT 1 FROM public.dispensation_orders o JOIN public.prescriptions rx ON rx.id=o.prescription_id
+    AND rx.country_code=o.care_country AND rx.doctor_id=o.doctor_id AND rx.patient_id=o.patient_id
+  JOIN public.doctors d ON d.id=o.doctor_id AND d.active AND d.user_id IS NOT NULL AND d.care_country=o.care_country
+  JOIN public.profiles pr ON pr.user_id=d.user_id AND pr.active AND pr.role::text='doctor'
+  JOIN public.patients p ON p.id=o.patient_id AND p.active AND p.care_country=o.care_country
+  JOIN public.pharmacies f ON f.id=o.pharmacy_id AND f.active AND f.deleted_at IS NULL AND f.care_country=o.care_country
+  WHERE o.id=p_order
+) $$;
+REVOKE ALL ON FUNCTION app_private.pharmacy_order_context_aligned(uuid) FROM PUBLIC,anon,authenticated,service_role;
+
 CREATE OR REPLACE FUNCTION app_private.guard_dispensation_pharmacist_event()
 RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER
@@ -334,31 +344,18 @@ AS $$
 DECLARE
   v_order_country text;
   v_order_pharmacy uuid;
-  v_prescription_country text;
-  v_doctor_country text;
-  v_patient_country text;
   v_pharmacist_country text;
   v_pharmacist_pharmacy uuid;
 BEGIN
-  SELECT o.care_country, o.pharmacy_id, rx.country_code, d.care_country, pa.care_country
-    INTO v_order_country, v_order_pharmacy, v_prescription_country, v_doctor_country, v_patient_country
-  FROM public.dispensation_orders o
-  JOIN public.prescriptions rx ON rx.id = o.prescription_id
-  JOIN public.doctors d ON d.id = o.doctor_id AND d.active AND d.user_id IS NOT NULL
-  JOIN public.profiles acting_profile ON acting_profile.user_id=d.user_id
-    AND acting_profile.role='doctor' AND acting_profile.active
-  JOIN public.patients pa ON pa.id = o.patient_id AND pa.active
-  WHERE o.id = NEW.order_id;
+  SELECT o.care_country,o.pharmacy_id INTO v_order_country,v_order_pharmacy
+  FROM public.dispensation_orders o WHERE o.id=NEW.order_id;
   SELECT ph.care_country, ph.pharmacy_id INTO v_pharmacist_country, v_pharmacist_pharmacy
   FROM public.pharmacists ph
-  JOIN public.pharmacies f ON f.id=ph.pharmacy_id AND f.active AND f.deleted_at IS NULL AND f.care_country=ph.care_country
   WHERE ph.id = NEW.pharmacist_id AND ph.active
     AND ph.role IN ('pharmacist','pharmacy_director')
     AND NULLIF(btrim(ph.license_number),'') IS NOT NULL;
   IF v_order_pharmacy IS NULL OR v_pharmacist_pharmacy IS NULL
-     OR v_order_country IS DISTINCT FROM v_prescription_country
-     OR v_order_country IS DISTINCT FROM v_doctor_country
-     OR v_order_country IS DISTINCT FROM v_patient_country
+     OR NOT app_private.pharmacy_order_context_aligned(NEW.order_id)
      OR v_order_pharmacy IS DISTINCT FROM v_pharmacist_pharmacy
      OR v_order_country IS DISTINCT FROM v_pharmacist_country THEN
     RAISE EXCEPTION 'dispensation_event_pharmacy_country_mismatch' USING ERRCODE = '23514';
@@ -380,10 +377,6 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'dispensation_override_director_required' USING ERRCODE='42501';
   END IF;
-  END IF;
-  IF TG_TABLE_NAME = 'dispensation_events'
-     AND (to_jsonb(NEW)->>'pharmacy_id')::uuid IS DISTINCT FROM v_order_pharmacy THEN
-    RAISE EXCEPTION 'dispensation_event_pharmacy_identity_mismatch' USING ERRCODE = '23514';
   END IF;
   RETURN NEW;
 END $$;
@@ -428,24 +421,9 @@ BEGIN
     RAISE EXCEPTION 'dispensation_clarification_request_actor_required' USING ERRCODE='42501';
   END IF;
   IF NOT EXISTS (
-    SELECT 1
-    FROM public.dispensation_orders o
-    JOIN public.prescriptions rx ON rx.id=o.prescription_id
-      AND rx.country_code=o.care_country
-      AND rx.doctor_id=o.doctor_id AND rx.patient_id=o.patient_id
-    JOIN public.doctors d ON d.id=o.doctor_id AND d.active AND d.user_id IS NOT NULL
-      AND d.care_country=o.care_country
-    JOIN public.profiles clinical_profile ON clinical_profile.user_id=d.user_id
-      AND clinical_profile.role='doctor' AND clinical_profile.active
-    JOIN public.patients pat ON pat.id=o.patient_id AND pat.active
-      AND pat.care_country=o.care_country
-    JOIN public.pharmacists ph ON ph.user_id=NEW.requested_by
-      AND ph.active AND ph.role IN ('pharmacist','pharmacy_director')
-      AND NULLIF(btrim(ph.license_number),'') IS NOT NULL
-      AND ph.pharmacy_id=o.pharmacy_id AND ph.care_country=o.care_country
-    JOIN public.pharmacies f ON f.id=ph.pharmacy_id
-      AND f.active AND f.deleted_at IS NULL AND f.care_country=o.care_country
-    WHERE o.id=NEW.order_id AND o.pharmacy_id IS NOT NULL
+    SELECT 1 FROM public.dispensation_orders o WHERE o.id=NEW.order_id
+      AND app_private.pharmacy_order_context_aligned(o.id)
+      AND app_private.pharmacy_actor_authorized(o.pharmacy_id,o.care_country)
   ) THEN
     RAISE EXCEPTION 'dispensation_clarification_country_or_actor_mismatch' USING ERRCODE='23514';
   END IF;
@@ -467,7 +445,6 @@ USING (
   )
 );
 
--- Country-scoped queue lookup for the direct-authenticated portal.
 CREATE INDEX IF NOT EXISTS idx_dispensation_orders_country_unassigned
   ON public.dispensation_orders(care_country, status, created_at)
   WHERE pharmacy_id IS NULL AND deleted_at IS NULL;
@@ -612,6 +589,14 @@ RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
 AS $$
 DECLARE v_country text; v_doctor uuid; v_request uuid;
 BEGIN
+  IF TG_TABLE_NAME='doctors' THEN
+    IF ((TG_OP='INSERT' AND cardinality(NEW.enabled_service_tiers)>0) OR
+        (TG_OP='UPDATE' AND NEW.enabled_service_tiers IS DISTINCT FROM OLD.enabled_service_tiers))
+       AND NOT EXISTS(SELECT 1 FROM public.profiles pr WHERE pr.user_id=auth.uid() AND pr.active
+         AND pr.role::text IN ('admin','platform_admin','organization_admin')) THEN
+      RAISE EXCEPTION 'doctor_service_authorization_admin_required' USING ERRCODE='42501'; END IF;
+    RETURN NEW;
+  END IF;
   IF TG_TABLE_NAME='pharmacy_consultation_requests' THEN
     IF TG_OP='INSERT' OR NEW.status::text NOT IN ('completed','cancelled','expired')
        OR (to_jsonb(NEW)-ARRAY['status','updated_at','completed_at','cancelled_at'])
@@ -674,3 +659,41 @@ BEGIN
   END IF;
   EXECUTE replace(v_definition,v_original,E'    WHEN ''pharmacist'' THEN\n      NULL; -- Membership requires trusted pharmacy enrollment.');
 END $pharmacy_signup$;
+
+-- Filter before selecting the FIFO candidate, not only when inserting its offer.
+-- Preserve the existing matcher in full and fail if the reviewed anchor changes.
+DO $eligible_candidates$
+DECLARE v_definition text; v_anchor text:='AND d.care_country = v_req.care_country';
+BEGIN
+  SELECT pg_get_functiondef('public.match_dispatch_doctors(uuid)'::regprocedure) INTO v_definition;
+  IF position(v_anchor IN v_definition)=0 THEN RAISE EXCEPTION 'pharmacy_matcher_definition_changed_requires_review'; END IF;
+  EXECUTE replace(v_definition,v_anchor,v_anchor||E'\n    AND d.user_id IS NOT NULL\n    AND EXISTS(SELECT 1 FROM public.profiles pr WHERE pr.user_id=d.user_id AND pr.active AND pr.role::text=''doctor'')\n    AND v_req.tier_requested::text=ANY(d.enabled_service_tiers)\n    AND v_req.tier_requested=ANY(dds.active_tiers)\n    AND dds.last_heartbeat_at<=now()+interval ''10 seconds''');
+END $eligible_candidates$;
+
+CREATE TRIGGER zzz_pharmacy_doctor_service_authority BEFORE INSERT OR UPDATE OF enabled_service_tiers ON public.doctors
+FOR EACH ROW EXECUTE FUNCTION app_private.guard_pharmacy_dispatch_origin();
+
+-- A request/response and its workflow state/audit are one transaction. Notification
+-- delivery is deliberately outside this transaction and may be retried afterward.
+CREATE FUNCTION app_private.finalize_pharmacy_clarification()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $$
+BEGIN
+  IF TG_OP='INSERT' THEN
+    UPDATE public.dispensation_orders SET status='clarification_requested'
+    WHERE id=NEW.order_id AND status IN ('under_review','blocked');
+  ELSE
+    UPDATE public.dispensation_orders
+      SET status=CASE WHEN NEW.response_decision='cancelled' THEN 'cancelled' ELSE 'clarification_provided' END
+    WHERE id=NEW.order_id AND status='clarification_requested';
+  END IF;
+  IF NOT FOUND THEN RAISE EXCEPTION 'dispensation_clarification_state_conflict' USING ERRCODE='23514'; END IF;
+  INSERT INTO public.pharmacy_audit_events(order_id,event_type,actor_id,actor_role,details)
+  VALUES(NEW.order_id,CASE WHEN TG_OP='INSERT' THEN 'clarification_requested' ELSE 'clarification_responded' END,
+    auth.uid(),CASE WHEN TG_OP='INSERT' THEN 'pharmacist' ELSE 'doctor' END,
+    jsonb_build_object('clarification_id',NEW.id,'category',NEW.question_category));
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION app_private.finalize_pharmacy_clarification() FROM PUBLIC,anon,authenticated,service_role;
+CREATE TRIGGER zzz_pharmacy_clarification_finalize AFTER INSERT OR UPDATE ON public.dispensation_clarifications
+FOR EACH ROW EXECUTE FUNCTION app_private.finalize_pharmacy_clarification();

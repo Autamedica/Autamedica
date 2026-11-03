@@ -160,6 +160,7 @@ DECLARE
   v_rx uuid;
   v_order uuid;
   v_event uuid:=gen_random_uuid();
+  v_clarification uuid;
   v_rejected boolean;
   v_actual_country text;
 BEGIN
@@ -251,6 +252,7 @@ BEGIN
   END;
   IF NOT v_rejected THEN RAISE EXCEPTION 'BR pharmacist dispensed AR order'; END IF;
 
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_br_pharmacist_user,'role','authenticated')::text,true);
   v_rejected:=false;
   BEGIN
     INSERT INTO public.dispensation_clarifications(
@@ -262,6 +264,7 @@ BEGIN
   EXCEPTION WHEN check_violation THEN v_rejected:=true;
   END;
   IF NOT v_rejected THEN RAISE EXCEPTION 'BR pharmacist requested AR clarification'; END IF;
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_ar_pharmacist_user,'role','authenticated')::text,true);
 
   -- Even a privileged database connection without the actual prescriber JWT
   -- cannot fabricate clinical verification/reconciliation.
@@ -282,7 +285,8 @@ BEGIN
   END;
   IF NOT v_rejected THEN RAISE EXCEPTION 'Unverified medical order approved automatically'; END IF;
 
-  -- INSERT may not pre-attest a recipe, even with a privileged connection.
+  -- INSERT may not pre-attest a recipe, even for the actual prescriber.
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_ar_doctor_user,'role','authenticated')::text,true);
   v_rejected:=false;
   BEGIN
     INSERT INTO public.dispensation_orders(prescription_id,patient_id,doctor_id,medication,formulation,
@@ -310,6 +314,21 @@ BEGIN
   END;
   IF NOT v_rejected THEN RAISE EXCEPTION 'Nondirector pharmacist authorized own override'; END IF;
 
+  INSERT INTO public.dispensation_clarifications(order_id,requested_by,question,question_category)
+  VALUES(v_order,v_ar_pharmacist_user,'Isolated synthetic clarification','other') RETURNING id INTO v_clarification;
+  IF (SELECT status FROM public.dispensation_orders WHERE id=v_order)<>'clarification_requested'
+     OR (SELECT count(*) FROM public.pharmacy_audit_events WHERE order_id=v_order AND event_type='clarification_requested')<>1 THEN
+    RAISE EXCEPTION 'Clarification request was not finalized transactionally';
+  END IF;
+  v_rejected:=false;
+  BEGIN
+    INSERT INTO public.dispensation_clarifications(order_id,requested_by,question,question_category)
+    VALUES(v_order,v_ar_pharmacist_user,'Isolated duplicate clarification','other');
+  EXCEPTION WHEN unique_violation THEN v_rejected:=true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Duplicate pending clarification was accepted'; END IF;
+
+
   -- No direct event creation from a merely reviewed, unsigned order.
   v_rejected:=false;
   BEGIN
@@ -324,6 +343,17 @@ BEGIN
   -- Clinical attestation is a real physician session. It is not signature proof.
   PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_ar_doctor_user,'role','authenticated')::text,true);
   EXECUTE 'SET LOCAL ROLE authenticated';
+  UPDATE public.dispensation_clarifications SET status='responded',response='Synthetic clinical response',
+    response_decision='confirmed',responded_by=v_ar_doctor_user WHERE id=v_clarification;
+  IF (SELECT status FROM public.dispensation_orders WHERE id=v_order)<>'clarification_provided' THEN
+    RAISE EXCEPTION 'Prescriber clarification response did not advance state transactionally';
+  END IF;
+  v_rejected:=false;
+  BEGIN
+    UPDATE public.doctors SET enabled_service_tiers=ARRAY['general'] WHERE id=v_ar_doctor;
+  EXCEPTION WHEN insufficient_privilege THEN v_rejected:=true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'Physician self-authorized a clinical service'; END IF;
   UPDATE public.dispensation_orders SET prescriber_verified=true,reconciliation_status='reconciled',
     clinician_decision='approved',quantity_units=2 WHERE id=v_order;
   IF NOT FOUND THEN RAISE EXCEPTION 'Responsible physician could not attest clinical review'; END IF;

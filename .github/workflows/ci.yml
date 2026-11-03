@@ -146,11 +146,29 @@ jobs:
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup
+  pharmacy-edge-types:
+    name: Pharmacy Edge Types
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
+      - name: Typecheck every pharmacy Edge entry point
+        run: >-
+          pnpm dlx deno@2.9.6 check --config supabase/functions/deno.json
+          supabase/functions/create-dispensation-order/index.ts
+          supabase/functions/validate-dispensation/index.ts
+          supabase/functions/execute-dispensation/index.ts
+          supabase/functions/request-dispensation-clarification/index.ts
+          supabase/functions/issue-prescription/index.ts
   ci-status:
     name: CI
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [build-gate, lint-gate, unit-tests, database-tests]
+    needs: [build-gate, lint-gate, unit-tests, database-tests, pharmacy-edge-types]
     if: always()
     steps:
       - name: Evaluate gates
@@ -162,6 +180,8 @@ jobs:
           echo "| Lint | ${{ needs.lint-gate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Database & RLS | ${{ needs.database-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" || "${{ needs.database-tests.result }}" != "success" ]]; then
+          echo "| Pharmacy Edge Types | ${{ needs.pharmacy-edge-types.result }} |" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.pharmacy-edge-types.result }}" != "success" || "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" || "${{ needs.database-tests.result }}" != "success" ]]; then
             exit 1
             fi
+

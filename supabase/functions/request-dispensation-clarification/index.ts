@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 import { verifyPharmacyOrderAccess } from '../_shared/pharmacy-country.ts';
 
 function requireEnv(name: string): string {
@@ -136,27 +136,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Transition order status
-    await supabaseUser
-      .from('dispensation_orders')
-      .update({ status: 'clarification_requested' })
-      .eq('id', body.order_id);
-
-    // Audit
-    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
-    await supabaseUser.from('pharmacy_audit_events').insert({
-      order_id: body.order_id,
-      event_type: 'clarification_requested',
-      actor_id: user.id,
-      actor_role: 'pharmacist',
-      details: {
-        question: body.question,
-        category: body.question_category,
-        clarification_id: clarification.id,
-        expires_at: expiresAt.toISOString(),
-      },
-      ip_address: ipAddress,
-    });
+    // PostgreSQL committed the clarification, order transition and audit together.
 
     // Send push notification to the prescribing doctor
     const { data: doctor } = await supabaseAdmin

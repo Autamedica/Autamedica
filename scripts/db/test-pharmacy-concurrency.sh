@@ -48,9 +48,9 @@ DO \$\$ BEGIN
  UPDATE public.dispensation_orders SET pharmacy_id=pharmacy_ci_concurrency.id('pharmacy_$worker'),status='assigned'
  WHERE id=pharmacy_ci_concurrency.id('order_claim') AND pharmacy_id IS NULL AND status='pending';
  IF FOUND THEN
-   INSERT INTO pharmacy_ci_concurrency.results VALUES('claim','$worker','success');
+   INSERT INTO pharmacy_ci_concurrency.results VALUES('claim_assignment','$worker','success');
    PERFORM pg_sleep(1);
- ELSE INSERT INTO pharmacy_ci_concurrency.results VALUES('claim','$worker','conflict'); END IF;
+ ELSE INSERT INTO pharmacy_ci_concurrency.results VALUES('claim_assignment','$worker','conflict'); END IF;
 END \$\$;
 COMMIT;
 SQL
@@ -61,8 +61,8 @@ wait "$pharmacy_worker_a"
 wait "$pharmacy_worker_b"
 "${pg_cmd[@]}" -q >"$pharmacy_test_dir/prepare.log" <<'SQL'
 DO $$ BEGIN
- IF (SELECT count(*) FROM pharmacy_ci_concurrency.results WHERE kind='claim' AND outcome='success')<>1
- OR (SELECT count(*) FROM pharmacy_ci_concurrency.results WHERE kind='claim' AND outcome='conflict')<>1 THEN
+ IF (SELECT count(*) FROM pharmacy_ci_concurrency.results WHERE kind='claim_assignment' AND outcome='success')<>1
+ OR (SELECT count(*) FROM pharmacy_ci_concurrency.results WHERE kind='claim_assignment' AND outcome='conflict')<>1 THEN
    RAISE EXCEPTION 'concurrent_claims_did_not_have_one_winner'; END IF;
 END $$;
 INSERT INTO pharmacy_ci_concurrency.fixture

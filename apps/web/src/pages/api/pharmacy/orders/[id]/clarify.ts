@@ -27,12 +27,6 @@ function getRuntimeEnv(locals: unknown): Record<string, unknown> | null {
   return runtime?.env ?? null;
 }
 
-function getClientIp(request: Request): string {
-  return request.headers.get('x-forwarded-for')
-    ?? request.headers.get('cf-connecting-ip')
-    ?? 'unknown';
-}
-
 function isClarificationCategory(value: string): value is ClarificationCategory {
   return (VALID_CATEGORIES as readonly string[]).includes(value);
 }
@@ -181,36 +175,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return internalError();
     }
 
-    const { error: updateOrderError } = await auth.supabase
-      .from('dispensation_orders')
-      .update({ status: 'clarification_requested' })
-      .eq('id', orderId);
-
-    if (updateOrderError) {
-      logger.error('[pharmacy/orders/clarify] Order update failed', updateOrderError);
-      return internalError();
-    }
-
-    await auth.supabase
-      .from('pharmacy_audit_events')
-      .insert({
-        order_id: orderId,
-        event_type: 'clarification_requested',
-        actor_id: user.id,
-        actor_role: 'pharmacist',
-        details: {
-          category: questionCategory,
-          clarification_id: clarification.id,
-          expires_at: expiresAt,
-        },
-        ip_address: getClientIp(request),
-      })
-      .then(({ error }) => {
-        if (error) {
-          logger.warn('[pharmacy/orders/clarify] Audit insert failed', error);
-        }
-      });
-
+    // PostgreSQL committed the clarification, order transition and audit together.
     const { data: doctor, error: doctorError } = await admin
       .from('doctors')
       .select('user_id')

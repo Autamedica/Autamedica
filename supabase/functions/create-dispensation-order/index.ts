@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? (() => { throw new Error('SUPABASE_URL is not set') })();

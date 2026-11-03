@@ -1,4 +1,4 @@
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.49.1';
 
 /**
  * Fail-closed jurisdiction and ownership check before using service-role operations.
@@ -44,3 +44,4 @@ export async function verifyPharmacyOrderAccess(
   }
   return null;
 }
+
