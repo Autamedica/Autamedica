@@ -728,7 +728,7 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(5.5);
   doc.setFont('helvetica', 'normal');
   const signatureLegend = doc.splitTextToSize(
-    'La validez de la firma debe comprobarse mediante el certificado PDF o el registro de firma del sistema emisor.',
+    'Verificar la firma en el certificado PDF o registro del emisor.',
     infoBoxWidth - 6,
   );
   doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
