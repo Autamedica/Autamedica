@@ -211,6 +211,7 @@ function canIssueWithPrescriberValidationStatus(status?: string | null): boolean
 
 interface FarmalinkRegistration {
   vendorName: 'farmalink';
+  genericMode: 'S' | 'N';
   vendorId: string;
   result: FarmalinkAltaResult;
   externalPrescription: Parameters<typeof generatePrescriptionPdf>[0]['externalPrescription'];
@@ -303,6 +304,12 @@ function buildFarmalinkPrescriptionMapInput(input: {
   const insurance = asRecord(input.patient.insurance_info);
   const insuranceFarmalink = readRecord(insurance, ['farmalink', 'farmalink_credential']);
   const credentialSource = credential ?? insuranceFarmalink ?? insurance;
+  const genericMode = readBoolean(itemConfig, ['generic', 'generico']) ?? true;
+  // If a clinician selected brand mode, do not send an alta that cannot render
+  // the required commercial product name on the resulting PDF.
+  if (!genericMode && !input.item.commercial_name?.trim()) {
+    throw new FarmalinkMappingError('items.0.commercialName');
+  }
 
   return {
     organization: {
@@ -395,7 +402,7 @@ function buildFarmalinkPrescriptionMapInput(input: {
           readString(itemConfig, ['genericText', 'generic_text', 'textoGenerico', 'texto_generico']),
           [input.item.generic_name, input.item.dosage, input.item.presentation].filter(Boolean).join(' '),
         ) ?? input.item.generic_name ?? '',
-        generic: readBoolean(itemConfig, ['generic', 'generico']) ?? true,
+        generic: genericMode,
         brandRecommended: readBoolean(itemConfig, ['brandRecommended', 'brand_recommended', 'recomendacionMedica'])
           ?? Boolean(input.item.commercial_name),
       },
@@ -490,6 +497,7 @@ async function registerFarmalinkIfEnabled(input: {
       ok: true,
       registration: {
         vendorName: 'farmalink',
+        genericMode: request.altaRecetaElectRq.recElectronica.detalleRecElectronica.item[0]?.generico ?? 'S',
         vendorId: result.nroRecElectronica,
         result,
         externalPrescription: {
@@ -704,7 +712,8 @@ export async function issuePrescription(
         externalPrescription: externalRegistration?.externalPrescription,
         medication: {
           genericName: medicationName,
-          commercialName: item.commercial_name,
+          // Farmalink S (generic-only) must not display a commercial brand.
+          commercialName: externalRegistration?.genericMode === 'S' ? undefined : item.commercial_name,
           dosage: item.dosage ?? '',
           presentation: item.presentation ?? '',
           quantity: item.quantity ?? 0,
