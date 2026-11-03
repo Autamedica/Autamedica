@@ -161,7 +161,7 @@ async function resolveExternalPrescriptionPatient(
 
   const dni = normalizeOptionalText(externalPatient.dni);
   const cuil = normalizeOptionalText(externalPatient.cuil);
-  const cpf = normalizeOptionalText(externalPatient.cpf);
+  const cpf = normalizeOptionalText(externalPatient.cpf)?.replace(/\D/g, '') || null;
   const address = normalizeOptionalText(externalPatient.address);
   const email = normalizeOptionalText(externalPatient.email);
   const phone = normalizeOptionalText(externalPatient.phone);
@@ -200,24 +200,30 @@ async function resolveExternalPrescriptionPatient(
       throw error;
     }
     if (data?.id) {
-      // Never reassign a linked patient or a patient already assigned to
-      // another clinical market. The patient with an account must select
-      // their own country in the authenticated patient portal.
-      if (data.care_country !== doctorCountry &&
-        (data.care_country !== null || data.user_id !== null)) {
+      // A document match is NOT authorization to modify a registered
+      // patient's record. The doctor must use the normal patient selection
+      // and the existing doctor/patient-care authorization checks.
+      if (data.user_id !== null) {
+        throw new Error("external_patient_registered_account_required");
+      }
+      if (data.care_country !== null && data.care_country !== doctorCountry) {
         throw new Error("external_patient_country_mismatch_or_unset");
       }
-      const { error: updateError } = await supabase
-        .from("patients")
-        .update({
-          active: true,
-          address,
-          ...(data.care_country === null ? { care_country: doctorCountry } : {}),
-          // Keep any existing clinical history intact. The attestation
-          // is recorded with the new prescription's clinical_data instead.
-        })
-        .eq("id", data.id);
-      if (updateError) throw updateError;
+      if (data.care_country === null) {
+        // The external patient's declaration is captured in this request and
+        // preserved on the new prescription. Write only the first country;
+        // never change existing clinical history, address or active status.
+        const { data: updated, error: updateError } = await supabase
+          .from("patients")
+          .update({ care_country: doctorCountry })
+          .eq("id", data.id)
+          .is("user_id", null)
+          .is("care_country", null)
+          .select("id")
+          .maybeSingle();
+        if (updateError) throw updateError;
+        if (!updated?.id) throw new Error("external_patient_country_mismatch_or_unset");
+      }
       return data.id as UUID;
     }
   }
