@@ -75,7 +75,20 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   const url = new URL(request.url);
   if (url.searchParams.get("context") === "country") {
-    return jsonOk({ countryCode: context.countryCode });
+    // These are operational availability indicators only, never provider
+    // tokens or private integration configuration. Limit Memed to its
+    // explicitly configured pilot until the clinical E2E is approved.
+    const env = locals.runtime?.env;
+    const externalProvider = context.countryCode === "AR" ? "farmalink"
+      : context.countryCode === "BR" ? "memed" : null;
+    const externalProviderEnabled = context.countryCode === "AR"
+      ? env?.FARMALINK_ENABLED === "true"
+      : context.countryCode === "BR"
+        ? env?.MEMED_RX_ENABLED === "true" && env?.MEMED_PILOT_DOCTOR_ID === context.doctorId
+        : false;
+    const response = jsonOk({ countryCode: context.countryCode, externalProvider, externalProviderEnabled });
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
   }
   const patientId = url.searchParams.get("patientId");
 
