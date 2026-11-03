@@ -76,9 +76,6 @@ export interface FarmalinkAltaRecetaRequest {
   altaRecetaElectRq: {
     infoCabeceraRq: Required<Pick<FarmalinkInfoCabeceraRq, 'idOrganizacion' | 'tipoOrganizacion' | 'ipOrigen'>>
       & Pick<FarmalinkInfoCabeceraRq, 'infoBrowser'>;
-    puntoEmisor?: {
-      id: number;
-    };
     recElectronica: {
       tipoReceta?: string;
       fechaVigenciaDesde: string;
@@ -173,6 +170,7 @@ export interface FarmalinkPrescriptionMapInput {
     type: string;
     ipOrigin: string;
     browserInfo?: string;
+    /** @deprecated Ignored. Farmalink explicitly instructed AutaMedica to omit puntoEmisor. */
     issuerPointId?: number;
   };
   validity: {
