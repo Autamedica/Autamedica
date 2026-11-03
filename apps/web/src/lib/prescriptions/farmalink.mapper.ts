@@ -33,7 +33,7 @@ function optionalText(value: string | undefined): string | undefined {
 
 function digitsOnly(value: string | number | undefined): string | undefined {
   if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? String(value) : undefined;
-  if (value && !/^[0-9.\s-]+$/.test(value)) return undefined;
+  if (value && !/^[0-9][0-9.\s-]*$/.test(value.trim())) return undefined;
   const digits = value?.replace(/\D/g, '');
   return digits || undefined;
 }

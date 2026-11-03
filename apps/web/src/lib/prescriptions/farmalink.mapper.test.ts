@@ -231,7 +231,7 @@ describe('Farmalink mapper', () => {
     })).toThrow(FarmalinkMappingError);
   });
 
-  it.each(['ABC123','9007199254740993','0'])('rejects an invalid patient identifier %s', (documentNumber) => {
+  it.each(['ABC123','9007199254740993','0','-123'])('rejects an invalid patient identifier %s', (documentNumber) => {
     expect(() => buildFarmalinkAltaRecetaRequest({
       ...baseInput,affiliate:{...baseInput.affiliate,documentNumber},
     })).toThrow(FarmalinkMappingError);

@@ -165,6 +165,8 @@ CREATE TEMP TABLE farmalink_cleanup_users AS
  WHERE rx.id IN ({rx_ids});
 DELETE FROM public.farmalink_issue_attempts WHERE prescription_id IN ({rx_ids});
 DELETE FROM public.prescriptions WHERE id IN ({rx_ids});
+DELETE FROM public.doctors WHERE user_id IN ({user_ids});
+DELETE FROM public.patients WHERE user_id IN ({user_ids}) OR user_id IN (SELECT user_id FROM farmalink_cleanup_users);
 DELETE FROM auth.users WHERE id IN ({user_ids}) OR id IN (SELECT user_id FROM farmalink_cleanup_users);
 SELECT count(*) FROM public.farmalink_issue_attempts WHERE prescription_id IN ({rx_ids});
 COMMIT;"""
