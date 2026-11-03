@@ -62,6 +62,7 @@ const baseInput = {
 describe('Farmalink mapper', () => {
   it('normalizes AutaMedica prescription data into AltaRecetaElectRq', () => {
     const request = buildFarmalinkAltaRecetaRequest(baseInput);
+    expect(Object.hasOwn(request.altaRecetaElectRq, 'puntoEmisor')).toBe(false);
 
     expect(request).toEqual({
       altaRecetaElectRq: {
