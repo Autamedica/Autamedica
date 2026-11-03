@@ -103,6 +103,19 @@ async function main() {
     });
     report.demoCfmValidation.httpStatus = validate.status;
     report.demoCfmValidation.providerCodes = authCodes(validate.payload);
+    // Schema metadata only. Do not log provider payload, identity, or tokens.
+    const data = validate.payload?.data;
+    const attributes = data?.attributes;
+    const names = (value) => value && typeof value === 'object'
+      ? Object.keys(value).slice(0, 12) : [];
+    report.demoCfmValidation.responseShape = {
+      rootKeys: names(validate.payload),
+      dataKeys: names(data),
+      attributeKeys: names(attributes),
+      outcome: ['approved', 'rejected', 'pending'].includes(attributes?.outcome)
+        ? attributes.outcome : null,
+      validatedType: typeof attributes?.validated,
+    };
     report.demoCfmValidation.validated = validate.status === 200
       && validate.payload?.data?.attributes?.validated === true
       && validate.payload?.data?.attributes?.outcome === 'approved';
