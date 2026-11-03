@@ -112,13 +112,18 @@ async function main() {
       rootKeys: names(validate.payload),
       dataKeys: names(data),
       attributeKeys: names(attributes),
+      // Actual provider API returns approved + validated booleans, while its
+      // written example shows outcome='approved'. Recognize both formats.
+      approved: attributes?.approved === true,
       outcome: ['approved', 'rejected', 'pending'].includes(attributes?.outcome)
         ? attributes.outcome : null,
       validatedType: typeof attributes?.validated,
+      reasonCode: typeof attributes?.reason_code === 'string'
+        ? attributes.reason_code.slice(0, 64).replace(/[^a-zA-Z0-9_-]/g, '') : null,
     };
     report.demoCfmValidation.validated = validate.status === 200
-      && validate.payload?.data?.attributes?.validated === true
-      && validate.payload?.data?.attributes?.outcome === 'approved';
+      && attributes?.validated === true
+      && (attributes?.approved === true || attributes?.outcome === 'approved');
   }
   // The dry-run never mutates providers; do not register a known invalid doctor.
   if (!REGISTER || (VALIDATE_DEMO && !report.demoCfmValidation.validated)) return;
