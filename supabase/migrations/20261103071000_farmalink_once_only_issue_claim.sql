@@ -49,9 +49,18 @@ BEGIN
   PERFORM 1
   FROM public.prescriptions p
   JOIN public.doctors d ON d.id = p.doctor_id
+  JOIN public.patients pt ON pt.id = p.patient_id
+  JOIN public.profiles pr ON pr.user_id = d.user_id
   WHERE p.id = p_prescription_id
     AND d.user_id = p_actor_user_id
     AND p.country_code = 'AR'
+    AND p.status = 'draft'
+    AND d.care_country = 'AR' AND d.active IS TRUE
+    AND pt.care_country = 'AR' AND pt.active IS TRUE
+    AND pr.active IS TRUE AND pr.role = 'doctor'
+    AND pr.sss_validation_status = 'valid'
+    AND NULLIF(btrim(d.refeps_id), '') IS NOT NULL
+    AND NULLIF(btrim(d.professional_address), '') IS NOT NULL
     AND p.cuir IS NULL
   FOR UPDATE OF p;
   IF NOT FOUND THEN
@@ -96,7 +105,8 @@ BEGIN
   IF p_state NOT IN ('unknown', 'rejected', 'confirmed') OR p_state IS NULL THEN
     RAISE EXCEPTION 'farmalink_invalid_state' USING ERRCODE = '22023';
   END IF;
-  IF p_state = 'confirmed' AND (p_vendor_id IS NULL OR btrim(p_vendor_id) = '') THEN
+  IF p_state = 'confirmed' AND (p_vendor_id IS NULL OR p_vendor_id !~ '^[0-9]{1,32}$'
+      OR p_response_code IS NULL OR p_response_code NOT IN ('00', '0')) THEN
     RAISE EXCEPTION 'farmalink_missing_vendor_id' USING ERRCODE = '22023';
   END IF;
   IF p_state <> 'confirmed' AND p_vendor_id IS NOT NULL THEN
@@ -130,3 +140,4 @@ GRANT EXECUTE ON FUNCTION public.record_farmalink_issue(uuid, uuid, text, uuid, 
 
 COMMENT ON TABLE public.farmalink_issue_attempts IS
  'Once-only outbound registration reservation. Never delete/reset rows to retry without vendor reconciliation; attempts can be ambiguous after HTTP timeouts.';
+

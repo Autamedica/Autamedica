@@ -34,12 +34,17 @@ BEGIN
  (actor_uid, 'farmalink-claim-'||actor_uid||'@example.invalid'),
  (stranger_uid, 'farmalink-stranger-'||stranger_uid||'@example.invalid'),
  (patient_uid, 'farmalink-patient-'||patient_uid||'@example.invalid');
- UPDATE public.profiles SET role='doctor', active=true WHERE user_id=actor_uid;
+ UPDATE public.profiles SET role='doctor', active=true, sss_validation_status='valid' WHERE user_id=actor_uid;
  UPDATE public.profiles SET role='patient', active=true WHERE user_id=patient_uid;
- INSERT INTO public.doctors(id,user_id,license_type,license_number,specialty,active)
- VALUES(actor_id,actor_uid,'MN','1234567','Clínica médica',true);
+ INSERT INTO public.doctors(id,user_id,license_type,license_number,specialty,active,refeps_id,professional_address)
+ VALUES(actor_id,actor_uid,'MN','1234567','Clínica médica',true,'54123456789','Fixture CABA')
+ ON CONFLICT(user_id) DO UPDATE SET license_type=excluded.license_type,
+ license_number=excluded.license_number,active=true,refeps_id=excluded.refeps_id,
+ professional_address=excluded.professional_address
+ RETURNING id INTO actor_id;
  INSERT INTO public.patients(user_id,active) VALUES(patient_uid,true)
- RETURNING id INTO patient_id;
+ ON CONFLICT(user_id) DO UPDATE SET active=true RETURNING id INTO patient_id;
+ UPDATE public.patients SET care_country='AR' WHERE id=patient_id;
  INSERT INTO public.prescriptions(patient_id,doctor_id,country_code,clinical_data,vendor_name,status)
  VALUES(patient_id,actor_id,'AR','{}'::jsonb,'internal','draft')
  RETURNING id INTO rx_id;
@@ -74,9 +79,9 @@ BEGIN
  END;
  IF NOT invalid_claim THEN RAISE EXCEPTION 'Another doctor may not claim the prescription'; END IF;
 
- IF NOT public.record_farmalink_issue(x.prescription_id,attempt,x.uid,'unknown')
+ IF NOT public.record_farmalink_issue(x.prescription_id,attempt,'unknown',x.uid)
  THEN RAISE EXCEPTION 'Reserved attempt must enter unknown on timeout'; END IF;
- IF public.record_farmalink_issue(x.prescription_id,attempt,x.uid,'confirmed','12345678','00')
+ IF public.record_farmalink_issue(x.prescription_id,attempt,'confirmed',x.uid,'12345678','00')
  THEN RAISE EXCEPTION 'Unknown attempts cannot be upgraded without reconciliation'; END IF;
 
  c3 := public.claim_farmalink_issue(x.prescription_id, repeat('b',64),x.uid);
@@ -87,3 +92,4 @@ $atomic_claim$;
 
 RESET ROLE;
 ROLLBACK;
+

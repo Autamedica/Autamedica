@@ -38,6 +38,7 @@ export async function claimFarmalinkIssue(
       || typeof data.claimed !== 'boolean'
       || typeof data.attempt_id !== 'string' || !UUID_RE.test(data.attempt_id)
       || !['reserved', 'unknown', 'rejected', 'confirmed'].includes(data.state)
+      || (data.claimed && data.state !== 'reserved')
     ) return { ok: false, reason: 'unexpected_result' };
 
     return { ok: true, value: data as unknown as FarmalinkIssueClaim };
@@ -74,3 +75,4 @@ export async function recordFarmalinkIssue(
     return false;
   }
 }
+

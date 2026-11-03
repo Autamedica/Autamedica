@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { primeRuntimeEnv, resetRuntimeEnvCache } from '@/lib/runtime-env';
-import { FarmalinkClient } from './farmalink.client';
+import { FarmalinkClient, FarmalinkHttpError } from './farmalink.client';
 import { claimFarmalinkIssue, recordFarmalinkIssue } from './farmalink.issue-gate';
 import { __testables } from './issue-prescription.service';
 
@@ -162,4 +162,45 @@ describe('Farmalink once-only persistent issue guard', () => {
     expect(await recordFarmalinkIssue(supabase,RX,ATTEMPT,USER,'confirmed','9600000002991','00'))
       .toBe(false);
   });
+  it('rejects an inconsistent successful claim in a terminal state', async () => {
+    const supabase = db([{data:{claimed:true,attempt_id:ATTEMPT,state:'confirmed'},error:null}]);
+    expect(await claimFarmalinkIssue(supabase,RX,HASH,USER))
+      .toMatchObject({ok:false,reason:'unexpected_result'});
+  });
+
+  it('keeps HTTP 504 unknown and blocks a subsequent invocation', async () => {
+    setup();
+    const supabase = db([
+      {data:{claimed:true,attempt_id:ATTEMPT,state:'reserved'},error:null},
+      {data:true,error:null},
+      {data:{claimed:false,attempt_id:ATTEMPT,state:'unknown'},error:null},
+    ]);
+    const alta = vi.fn().mockRejectedValueOnce(new FarmalinkHttpError(504, null));
+    vi.spyOn(FarmalinkClient, 'fromEnv').mockReturnValue({altaReceta:alta} as unknown as FarmalinkClient);
+    for (let i=0; i<2; i++) {
+      expect(await __testables.registerFarmalinkIfEnabled({...clinical,supabase}))
+        .toMatchObject({ok:false,error:{code:'farmalink_pending_reconciliation'}});
+    }
+    expect(alta).toHaveBeenCalledOnce();
+    expect((supabase as unknown as {rpc:ReturnType<typeof vi.fn>}).rpc.mock.calls[1][1])
+      .toMatchObject({p_state:'unknown'});
+  });
+
+  it('does not issue again after remote approval even when result persistence fails', async () => {
+    setup();
+    const supabase = db([
+      {data:{claimed:true,attempt_id:ATTEMPT,state:'reserved'},error:null},
+      new Error('database connection lost'),
+      {data:{claimed:false,attempt_id:ATTEMPT,state:'reserved'},error:null},
+    ]);
+    const alta = vi.fn().mockResolvedValue({approved:true,nroRecElectronica:'9600000002991',responseCode:'00',raw:{}});
+    vi.spyOn(FarmalinkClient, 'fromEnv').mockReturnValue({altaReceta:alta} as unknown as FarmalinkClient);
+    for (let i=0; i<2; i++) {
+      expect(await __testables.registerFarmalinkIfEnabled({...clinical,supabase}))
+        .toMatchObject({ok:false,error:{code:'farmalink_pending_reconciliation'}});
+    }
+    expect(alta).toHaveBeenCalledOnce();
+  });
+
 });
+
