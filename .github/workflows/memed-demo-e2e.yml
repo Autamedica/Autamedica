@@ -1,0 +1,38 @@
+name: Memed DEMO full flow (synthetic identities)
+
+on:
+  push:
+    branches:
+      - test/memed-demo-e2e-20261103
+    paths:
+      - 'apps/web/src/lib/prescriptions/brazil/memed-demo-e2e.test.ts'
+      - 'apps/web/src/pages/api/doctors/prescriptions/memed-event.ts'
+      - '.github/workflows/memed-demo-e2e.yml'
+  pull_request:
+    paths:
+      - 'apps/web/src/lib/prescriptions/brazil/memed-demo-e2e.test.ts'
+      - 'apps/web/src/pages/api/doctors/prescriptions/memed-event.ts'
+      - '.github/workflows/memed-demo-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
+
+jobs:
+  memed-demo-contract:
+    name: Mock Memed / real AutaMedica handlers / no clinical mutations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: '22'
+          pnpm-version: '9.15.2'
+      - name: Verify DEMO doctor, patient, country, consent, provider and pending signature
+        run: pnpm --filter @autamedica/web exec vitest run src/lib/prescriptions/brazil/memed-demo-e2e.test.ts
