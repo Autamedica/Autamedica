@@ -1,4 +1,4 @@
-name: Farmalink TEST OAuth connectivity (no prescriptions)
+name: Farmalink TEST OAuth and demo altaReceta (no production)
 
 on:
   push:
@@ -11,15 +11,20 @@ permissions:
 
 jobs:
   test-oauth:
-    name: Request one Farmalink TEST token
+    name: Farmalink TEST login and one official DEMO altaReceta
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # actions/checkout v4.3.1
         with:
           persist-credentials: false
-      - name: Attempt token request (never print tokens or passwords)
+      - name: Check OAuth token (never print credentials or token)
         env:
           FARMALINK_TEST_OAUTH_PASSWORD: ${{ secrets.FARMALINK_TEST_OAUTH_PASSWORD }}
           FARMALINK_TEST_BASIC_PASSWORD: ${{ secrets.FARMALINK_TEST_BASIC_PASSWORD }}
         run: python3 scripts/farmalink/oauth_smoke.py
+      - name: Send one official DEMO altaReceta to Farmalink TEST only
+        env:
+          FARMALINK_TEST_OAUTH_PASSWORD: ${{ secrets.FARMALINK_TEST_OAUTH_PASSWORD }}
+          FARMALINK_TEST_BASIC_PASSWORD: ${{ secrets.FARMALINK_TEST_BASIC_PASSWORD }}
+        run: python3 scripts/farmalink/alta_demo_smoke.py
