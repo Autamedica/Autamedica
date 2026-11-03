@@ -57,6 +57,22 @@ def main():
             if not isinstance(item,dict): continue
             print("REF_"+str(n)+"_KEYS="+",".join(item.keys()))
             exclude={"nombre","apellido","dni","pan","cuil","mail","numeroDocumento"}
+            droga=item.get("droga")
+            if isinstance(droga,dict):
+                for k,v in droga.items():
+                    if isinstance(v,(str,int,float)):
+                        print("DRUG_"+scrub(k)+"="+scrub(v))
+            item_container=item.get("items")
+            prod=item_container.get("item",[]) if isinstance(item_container,dict) else []
+            if isinstance(prod,dict):prod=[prod]
+            for jj,record in enumerate(prod[:3] if isinstance(prod,list) else []):
+                if isinstance(record,dict):
+                    print("PRODUCT_"+str(jj)+"_KEYS="+",".join(record.keys()))
+                    for kk,vv in record.items():
+                        if isinstance(vv,(str,int,float,bool)):
+                            print("PRODUCT_"+str(jj)+"_"+scrub(kk)+"="+scrub(vv))
+                        elif isinstance(vv,dict):
+                            print("PRODUCT_"+str(jj)+"_"+scrub(kk)+"_KEYS="+",".join(vv.keys()))
             for k,v in item.items():
                 if k not in exclude and isinstance(v,(str,int,float,bool)):
                     print("REF_"+str(n)+"_"+scrub(k)+"="+scrub(v))
