@@ -160,8 +160,19 @@ async function main() {
         String(x).trim().toUpperCase() === demo.data.attributes.board.board_state);
     // Do not log or store the returned token, name or CPF.
   }
-  // Only attempt one write when CFM dry-run approves and the test CPF is unused.
-  if (!REGISTER || (VALIDATE_DEMO && !report.demoCfmValidation.validated)) return;
+  // Read-only default: if the same owned demo record exists, independently
+  // verify token presence and all doctor/board identifiers. No further writes.
+  if (!REGISTER) {
+    report.demoDoctor.registered = report.demoCfmValidation.validated
+      && report.demoPrescriberLookup.sameExternalId
+      && report.demoPrescriberLookup.tokenPresent
+      && report.demoPrescriberLookup.crmMatches
+      && report.demoPrescriberLookup.ufMatches;
+    report.demoDoctor.httpStatus = report.demoPrescriberLookup.httpStatus;
+    if (!report.demoDoctor.registered) throw new Error('demo_doctor_identity_mismatch');
+    return;
+  }
+  if (VALIDATE_DEMO && !report.demoCfmValidation.validated) return;
   if (report.demoPrescriberLookup.exists) {
     report.demoDoctor.registered = report.demoPrescriberLookup.sameExternalId
       && report.demoPrescriberLookup.tokenPresent
