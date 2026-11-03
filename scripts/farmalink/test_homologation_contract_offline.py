@@ -20,6 +20,17 @@ class FarmalinkHomologationContractTests(unittest.TestCase):
         self.assertEqual(affiliate["credencial"]["pan"], "20123456786")
         self.assertEqual(affiliate["numeroDocumento"], 12345678)
 
+    def test_vendor_confirmed_drug_and_product_match_demo_fixture(self):
+        # Read-only Farmalink consultaReceta on both approved numbers, run
+        # 41717111174, returned codDroga 01033 / GLICOLICOAC.ASOC.
+        # and product 56800 / ESFUMEL blanqueadora cr. x 20 g.
+        request = demo_payload()["altaRecetaElectRq"]["recElectronica"]
+        item = request["detalleRecElectronica"]["item"][0]
+        self.assertEqual(item["codDroga"], "01033")
+        self.assertEqual(item["codProducto"], "56800")
+        self.assertEqual(item["textoGenerico"], "GLICOLICOAC.ASOC.")
+        self.assertNotIn("PREDNISOLONA", item["textoGenerico"].upper())
+
     def test_requires_reconciliation_before_live_alta(self):
         import os
         from unittest.mock import patch
