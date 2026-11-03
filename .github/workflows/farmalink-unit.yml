@@ -31,5 +31,6 @@ jobs:
           src/lib/prescriptions/farmalink.client.test.ts
           src/lib/prescriptions/farmalink.mapper.test.ts
           src/lib/prescriptions/farmalink.homologation.test.ts
+          src/lib/prescriptions/farmalink.issue-gate.test.ts
           src/lib/prescriptions/issue-prescription.service.test.ts
           src/lib/prescriptions/pdf-prescription.service.test.ts
