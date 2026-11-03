@@ -83,6 +83,40 @@ describe('doctor prescription creation uses canonical medical-care country', () 
     expect(inserts).toHaveLength(0);
   });
 
+
+  it('creates the BR external patient and prescription only with an explicit country attestation and valid CPF',async()=>{
+    const {db,inserts}=fixture('BR','BR');
+    await doctorPrescriptionBackendService.create(db as never,doctor,{
+      medication_name:'PARACETAMOL',dosage:'500 mg',
+      external_patient:{
+        name:'Paciente Demo',cpf:'52998224725',address:'Rua Teste, 100',
+        care_country:'BR',care_country_confirmed:true,
+      },
+    });
+    expect(inserts).toHaveLength(2);
+    expect(inserts[0]).toMatchObject({
+      care_country:'BR',cpf:'52998224725',
+    });
+    expect(inserts[1]).toMatchObject({
+      country_code:'BR',
+      clinical_data: {
+        external_patient: {care_country:'BR',care_country_confirmed:true},
+      },
+    });
+  });
+
+  it('rejects BR external CPF with invalid check digits',async()=>{
+    const {db,inserts}=fixture('BR','BR');
+    await expect(doctorPrescriptionBackendService.create(db as never,doctor,{
+      medication_name:'PARACETAMOL',dosage:'500 mg',
+      external_patient:{
+        name:'Paciente Demo',cpf:'11111111111',address:'Rua Teste, 100',
+        care_country:'BR',care_country_confirmed:true,
+      },
+    })).rejects.toThrow('external_patient_cpf_required');
+    expect(inserts).toHaveLength(0);
+  });
+
   it('cannot accept a doctor-entered mismatched country even with an attestation',async()=>{
     const {db,inserts}=fixture('BR','BR');
     await expect(doctorPrescriptionBackendService.create(db as never,doctor,{
