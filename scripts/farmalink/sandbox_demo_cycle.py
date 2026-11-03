@@ -57,6 +57,10 @@ def code_for_http_error(reply):
     return str(v.get("codigo",""))[:10]
 
 def main():
+    # Do not issue another DEMO prescription while two previous results are ambiguous.
+    if os.environ.get("FARMALINK_DEMO_RECONCILED") != "yes":
+        print("RESULT=BLOCKED_PENDING_DEMO_RECONCILIATION")
+        return 2
     if not all(os.environ.get(k) for k in ("FARMALINK_TEST_OAUTH_PASSWORD","FARMALINK_TEST_BASIC_PASSWORD")):
         print("RESULT=NOT_CONFIGURED")
         return 2
@@ -119,8 +123,8 @@ def main():
 
     # Query exactly the newly approved DEMO record before cancellation.
     reference={
-      "infoCabeceraRq":{"idOrganizacion":"100","tipoOrganizacion":"NMD"},
-      "recElectronica":{"afiliado":{"codEntidad":7100,"pan":"12345678"},
+      "infoCabeceraRq":{"idOrganizacion":"182","tipoOrganizacion":"NMD"},
+      "recElectronica":{"afiliado":{"codEntidad":7110,"pan":"20123456786"},
                       "receta":{"nroRecElectronica":number}}
     }
     consult={"consultaRecetaElectRq":reference}
