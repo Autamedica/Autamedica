@@ -992,6 +992,7 @@ export function DoctorsPrescriptionsPage() {
       {showCreateModal && (certificateCountry === 'AR' || certificateCountry === 'BR') && (
         <PrescriptionCreateModal
           patientId={(selectedPatientId ?? undefined) as UUID | undefined}
+          doctorCareCountry={certificateCountry ?? undefined}
           onClose={() => setShowCreateModal(false)}
           onSaved={handleSaved}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
