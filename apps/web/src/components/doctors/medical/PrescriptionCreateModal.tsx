@@ -110,6 +110,8 @@ function prescriptionErrorMessage(error: unknown, phase: "save" | "issue"): stri
     farmalink_mapping_failed: "No pudimos preparar los datos para Farmalink.",
     farmalink_registration_failed: "Farmalink no registró la receta.",
     farmalink_rejected: "Farmalink rechazó la receta.",
+    farmalink_pending_reconciliation: "Farmalink puede haber recibido la receta. No vuelvas a emitirla: está bloqueada hasta verificar el resultado con soporte.",
+    farmalink_idempotency_unavailable: "No es posible verificar el control de duplicados. No se enviará esta receta a Farmalink.",
     pdf_generation_failed: "La receta se guardó, pero falló la generación del PDF.",
     update_failed: "La receta se generó, pero no pudimos marcarla como emitida.",
     internal_error:

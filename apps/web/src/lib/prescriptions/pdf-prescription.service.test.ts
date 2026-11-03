@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { primeRuntimeEnv, resetRuntimeEnvCache } from '@/lib/runtime-env';
 import { generatePrescriptionPdf } from './pdf-prescription.service';
@@ -190,6 +191,7 @@ describe('generatePrescriptionPdf', () => {
     expect(artifacts.cuir).toBe('02680042020102000000000000000000000010104');
     expect(pdfText).toContain('CUIR: 02680042020102000000000000000000000010104');
     expect(pdfText).toContain('RECETA FARMALINK: 9600000002762');
+    writeFileSync('/tmp/autamedica-farmalink-barcode.pdf', new Uint8Array(artifacts.pdfBuffer));
     expect(pdfText).toContain('Número de receta para validación online en farmacia');
   });
 
@@ -242,3 +244,4 @@ describe('generatePrescriptionPdf', () => {
     expect(pdfTextEmpathetic).toContain('RECETA MÉDICA ELECTRÓNICA');
   });
 });
+

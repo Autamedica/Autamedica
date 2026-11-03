@@ -10,8 +10,41 @@
 - Precondicion de emision: el prescriptor debe tener validacion profesional
   aceptada en AutaMedica (`profiles.sss_validation_status` `valid` o `exempt`).
 - Emision AutaMedica: cuando `FARMALINK_ENABLED=true`, el servicio de emision intenta `altaReceta` antes de generar el PDF. Si Farmalink aprueba, guarda `vendor_name = "farmalink"` y `vendor_id = nroRecElectronica`, y el PDF imprime `RECETA FARMALINK` en el codigo de barras.
-- Estado de homologacion: completada. AutaMedica esta homologada para emitir recetas electronicas mediante Farmalink (IMED).
+- Estado de homologacion externa: **NO ACREDITADA**. No existe confirmacion externa aportada por Farmalink para habilitar produccion. La frase anterior "completada" era una declaracion local no respaldada por acuse del proveedor.
+- OAuth TEST: verificado en GitHub Actions el 03/11/2026, HTTP 200 y token recibido (sin registrar el token).
+- altaReceta TEST: una sola solicitud con el ejemplo DEMO de SwaggerHub, usando entidad 7100, credencial 12345678 y fechas vigentes, termino en timeout sin numero de receta. No repetir la misma alta hasta conciliar con el proveedor.
+- Conectividad TEST: GET /altaReceta -> 405 en 1,7 s; POST deliberadamente invalido sin paciente/medicamentos -> HTTP 400 en 11,3 s. Estas respuestas NO equivalen a homologacion.
+- El 03/11/2026 se solicito a homologacionre@farmalink.com.ar conciliacion de la posible receta DEMO y confirmacion de idOrganizacion, puntoEmisor, canal tecnologico y aprobacion productiva.
+- Produccion: mantener FARMALINK_ENABLED=false hasta alta aceptada, confirmacion formal de Farmalink, secretos productivos e integracion clinica validada.
 - Las credenciales OAuth y de aplicacion se mantienen exclusivamente en secretos de runtime y no deben documentarse ni versionarse.
+
+## Repetición de pruebas pendientes — 03/11/2026
+
+- **Alta DEMO, segundo intento independiente**: POST autenticado con el mismo fixture de SwaggerHub y un identificador de correlación distinto en `infoBrowser` (`AutaMedica-Test-c7db15b7b4`). Farmalink respondió **HTTP 504 Gateway Timeout en 30,6 s**, a pesar de aumentar el timeout del cliente a 85 s. Sin `nroRecElectronica`; resultado remoto incierto. No repetir para evitar duplicados. [Run](https://github.com/ecucondorSA/Autamedica/actions/runs/41587599039).
+- **Tres POST negativos reales**: `altaReceta`, `consultaReceta`, `bajaReceta` con JSON deliberadamente incompleto y SIN datos de paciente, medicamentos ni receta: **HTTP 400 / error interno 5075** en los tres casos. Los rechazos de formato son correctos, pero **NO** homologan operaciones válidas. [Run](https://github.com/ecucondorSA/Autamedica/actions/runs/41587250781).
+- **Baja real**: no ejecutada, porque no existe identificador de receta DEMO aprobado y confirmado por consulta. Está prohibido cancelar una receta de tercero o usar referencias inventadas para una baja.
+- **Escalación a Farmalink**: enviado nuevo correo de seguimiento al hilo de `homologacionre@farmalink.com.ar` solicitando rastrear el 504 por etiqueta, confirmar si hubo altas DEMO creadas y suministrar parámetros de organización/canal de homologación.
+- **Workflow de red**: después de cada prueba quedó en `workflow_dispatch`; sin ejecuciones mutativas en cada push de GitHub. No fusionar con main mientras haya casos P0 sin resolver.
+
+## Evidencia adicional de pruebas (03/11/2026)
+
+| Componente | Prueba | Resultado |
+| --- | --- | --- |
+| Token OAuth TEST | POST /api/oauth/token/generate desde GitHub Actions | HTTP 200, token recibido |
+| Alta demo (UNICA solicitud) | POST /api/recetaElect/v3/altaReceta con ejemplo oficial de SwaggerHub | Timeout tras ~22 segundos; estado remoto NO DETERMINADO |
+| Rutas sin alteraciones | GET /api/recetaElect/v3/altaReceta con token | HTTP 405; ruta alcanzable |
+| Alta con estructura deliberadamente invalida | POST con JSON sin paciente ni medicacion | HTTP 400; sin receta posible |
+| Consulta de numero deliberadamente inexistente | POST /api/recetaElect/v3/consultaReceta | HTTP 200, codigo funcional 33: NUMERO DE RECETA INVALIDO (13,8 s) |
+| Baja de receta | Solo tests unitarios con fetch simulado | No se cancelo ninguna receta externa |
+| PDF/barcode y cliente Farmalink | Vitest con respuestas simuladas | 26 tests aprobados inicialmente; guardar ejecucion posterior para nuevas validaciones |
+
+Evidencia: workflow [alta demo](https://github.com/ecucondorSA/Autamedica/actions/runs/41584218813), [consulta real no mutativa](https://github.com/ecucondorSA/Autamedica/actions/runs/41585851984), [test unitario](https://github.com/ecucondorSA/Autamedica/actions/runs/41586118934).
+
+**Restricciones operativas:** No automatizar repeticion de altaReceta tras timeout, ni bajaReceta sin numero de receta confirmado y autorizacion de cancelacion; no activar Farmalink en produccion. El workflow de acceso TEST quedo en modo manual para evitar pruebas de red inesperadas.
+
+**Pendientes con Farmalink:** confirmar existencia de receta de la transaccion DEMO sin respuesta; idOrganizacion y puntoEmisor efectivos; constancia de homologacion y credenciales productivas; dataset de medico real/test autorizado; y correccion de ambiguedades de OpenAPI. En particular, `bajaReceta.recElectronica.receta.nroRecElectronica` se define como numero en el esquema, pero el ejemplo publicado es una cadena. No cambiar formato de anulacion en produccion sin confirmacion del proveedor.
+
+**P0 de idempotencia corregido en la rama, sin despliegue:** `issuePrescription` reserva un intento persistente antes de `altaReceta`; timeout/504 no liberan la reserva. La reserva verifica médico, país AR de ambas partes, validación profesional y contenido clínico esperado; un trigger congela la receta reservada e impide afirmar validación Farmalink sin un recibo confirmado. La aprobación final depende del CI del commit exacto. No confundir esta protección con conciliación operativa o aprobación del proveedor.
 
 ## Contrato OAuth
 
@@ -109,3 +142,4 @@ Campos minimos para que `FARMALINK_ENABLED=true` no bloquee la emision:
 5. Usar `consultaReceta` para conciliacion y soporte operativo cuando corresponda.
 6. Ejecutar `bajaReceta` solo mediante el flujo autorizado y con auditoria.
 7. Conservar request/response sanitizados como evidencia tecnica, sin exponer PII.
+

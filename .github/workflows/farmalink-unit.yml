@@ -1,0 +1,43 @@
+name: Farmalink contract + PDF regression tests (mock only)
+
+on:
+  push:
+    branches:
+      - test/farmalink-oauth-smoke-20261103
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
+
+jobs:
+  farmalink-unit:
+    name: Farmalink Vitest + PDF smoke (offline)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: '22'
+          pnpm-version: '9.15.2'
+      - name: Farmalink client, mapper, issue wiring and PDF regressions
+        run: >
+          pnpm --filter @autamedica/web exec vitest run
+          src/lib/prescriptions/farmalink.client.test.ts
+          src/lib/prescriptions/farmalink.mapper.test.ts
+          src/lib/prescriptions/farmalink.homologation.test.ts
+          src/lib/prescriptions/farmalink.issue-gate.test.ts
+          src/lib/prescriptions/issue-prescription.service.test.ts
+          src/lib/prescriptions/pdf-prescription.service.test.ts
+
+      - name: Decode rendered PDF barcode independently
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils zbar-tools
+          pdftoppm -singlefile -r 300 -png /tmp/autamedica-farmalink-barcode.pdf /tmp/autamedica-farmalink-barcode
+          zbarimg --quiet --raw -Sdisable -Scode128.enable /tmp/autamedica-farmalink-barcode.png | grep -Fx '9600000002762'
