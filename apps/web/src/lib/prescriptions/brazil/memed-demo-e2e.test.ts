@@ -50,6 +50,8 @@ const state = {
   providerPatientCpf: fakePatientCpf,
   providerPatientExternalId: `autamedica-${patientId}`,
   providerSigned: true,
+  providerDoctorExists: true,
+  privateCpf: fakeDoctorCpf as string | null,
   rows: [] as Row[],
   requests: [] as string[],
 };
@@ -77,6 +79,8 @@ function resetState() {
   state.providerPatientCpf = fakePatientCpf;
   state.providerPatientExternalId = `autamedica-${patientId}`;
   state.providerSigned = true;
+  state.providerDoctorExists = true;
+  state.privateCpf = fakeDoctorCpf;
   state.rows = [];
   state.requests = [];
 }
@@ -91,7 +95,8 @@ function readTable(table: string, filters: Map<string, unknown>): Row | Row[] | 
       return filters.get('user_id') === doctorUserId ? state.doctorProfile
         : filters.get('user_id') === patientUserId ? state.patientProfile : null;
     case 'memed_doctor_identities':
-      return filters.get('doctor_id') === doctorId ? { cpf: fakeDoctorCpf } : null;
+      return filters.get('doctor_id') === doctorId && state.privateCpf
+        ? { cpf: state.privateCpf } : null;
     case 'patient_care_team':
       return state.careLink && filters.get('doctor_id') === doctorId
         && filters.get('patient_id') === patientId ? { id: 'demo-care-link' } : null;
@@ -128,6 +133,13 @@ function db() {
           state.rows.push(row);
           return { error: null };
         },
+        upsert: async (row: Row) => {
+          if (table !== 'memed_doctor_identities' || row.doctor_id !== doctorId) {
+            throw new Error('Unexpected DEMO upsert');
+          }
+          state.privateCpf = String(row.cpf);
+          return { error: null };
+        },
       };
       return query;
     },
@@ -144,7 +156,27 @@ function mockedMemedFetch(input: RequestInfo | URL, options?: RequestInit): Prom
   // No external requests: only the synthetic Memed contract routes are intercepted.
   expect(url.hostname).toBe('api.memed.com.br');
   state.requests.push(`${options?.method ?? 'GET'} ${url.pathname}`);
-  if (url.pathname === `/v1/sinapse-prescricao/usuarios/${fakeDoctorCpf}`) {
+  if (url.pathname === `/v1/sinapse-prescricao/usuarios/${fakeDoctorCpf}`
+    && (options?.method ?? 'GET') === 'GET') {
+    if (!state.providerDoctorExists) return Promise.resolve(new Response(null, { status: 404 }));
+    return Promise.resolve(json({ data: { attributes: {
+      token: 'token-para-teste-apenas', external_id: doctorId,
+      nome: 'Medico', sobrenome: 'Demonstração',
+      cpf: state.providerDoctorCpf, crm: fakeCrm, uf: 'RS',
+    } } }));
+  }
+  if (url.pathname === '/v1/sinapse-prescricao/usuarios' && options?.method === 'POST') {
+    const payload = JSON.parse(String(options?.body ?? '{}')) as {
+      data: { attributes: { cpf: string; data_nascimento: string; board: {
+        board_code: string; board_number: string; board_state: string;
+      }; external_id: string } } };
+    expect(payload.data.attributes).toMatchObject({
+      cpf: fakeDoctorCpf,
+      data_nascimento: '25/07/1980',
+      external_id: doctorId,
+      board: { board_code: 'CRM', board_number: fakeCrm, board_state: 'RS' },
+    });
+    state.providerDoctorExists = true;
     return Promise.resolve(json({ data: { attributes: {
       token: 'token-para-teste-apenas', external_id: doctorId,
       nome: 'Medico', sobrenome: 'Demonstração',
@@ -244,6 +276,27 @@ describe('Memed DEMO flow: synthetic doctor + synthetic patient, no real provide
     expect(duplicate.status).toBe(200);
     expect(duplicate.data).toMatchObject({ duplicate: true, status: 'draft' });
     expect(state.rows).toHaveLength(1);
+  });
+
+  it('onboards a first-time DEMO doctor with DOB + CPF, then verifies a DEMO prescription event', async () => {
+    state.privateCpf = null;
+    state.providerDoctorExists = false;
+    const token = await callToken();
+    expect(token.status).toBe(200);
+    expect(state.privateCpf).toBe(fakeDoctorCpf);
+    expect(state.providerDoctorExists).toBe(true);
+    expect(state.requests).toEqual([
+      `GET /v1/sinapse-prescricao/usuarios/${fakeDoctorCpf}`,
+      'POST /v1/sinapse-prescricao/usuarios',
+    ]);
+    const event = await callEvent();
+    expect(event.status).toBe(200);
+    expect(state.rows).toHaveLength(1);
+    expect(state.rows[0]).toMatchObject({
+      status: 'draft',
+      clinical_data: { signature_verified: false, delivery_verified: false },
+    });
+    expect(state.requests).toContain(`GET /v1/prescricoes/${fakeRx}`);
   });
 
   it('denies demo patient from Argentina before contacting Memed', async () => {
