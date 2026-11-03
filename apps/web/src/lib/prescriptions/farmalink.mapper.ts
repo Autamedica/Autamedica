@@ -144,6 +144,15 @@ export function buildFarmalinkAltaRecetaRequest(
 ): FarmalinkAltaRecetaRequest {
   const affiliateName = resolveName(input.affiliate, 'affiliate');
   const prescriberName = resolveName(input.prescriber, 'prescriber');
+
+  // The Farmalink v3 OpenAPI marks matricula.especialidad as required.
+  // Do not send a prescription that will predictably fail schema validation.
+  const specialty = input.prescriber.license.especialidad;
+  if (!specialty || (typeof specialty === 'string' && !specialty.trim()) ||
+      (typeof specialty === 'object' && !specialty.codigo && !specialty.textoLibre)) {
+    throw new FarmalinkMappingError('prescriber.license.especialidad');
+  }
+
   const items = input.items.map((item, index) => {
     const itemDiagnosis = input.diagnosisText ? undefined : diagnostic(item.diagnosisText);
 
