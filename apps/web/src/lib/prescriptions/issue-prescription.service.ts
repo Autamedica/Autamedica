@@ -452,7 +452,7 @@ async function registerFarmalinkIfEnabled(input: {
   // process crashes, multiple tabs, or HTTP 504/timeout ambiguity.
   const requestHash = await sha256BytesHex(new TextEncoder().encode(JSON.stringify(request)));
   const claim = await claimFarmalinkIssue(input.supabase, input.prescriptionId, requestHash, input.actorUserId);
-  if (!claim.ok) {
+  if (claim.ok === false) {
     logger.error('[issuePrescription] Farmalink once-only claim unavailable', {
       prescriptionId: input.prescriptionId,
       reason: claim.reason,
