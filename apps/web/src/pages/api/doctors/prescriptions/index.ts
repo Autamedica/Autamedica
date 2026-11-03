@@ -117,6 +117,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       "prescription_country_mismatch",
       "external_patient_care_country_confirmation_required",
       "external_patient_country_mismatch_or_unset",
+      "external_patient_registered_account_required",
       "external_patient_cpf_required",
     ].includes(error.message)) {
       return badRequest(error.message);
