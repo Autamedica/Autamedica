@@ -118,6 +118,62 @@ describe('MemedService', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('accepts Memed homologation GET with registry only in attributes.board', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({
+        data: { attributes: {
+          token: 'sandbox-demo-token', external_id: 'demo-doctor',
+          cpf: '52998224725', crm: null, uf: null,
+          board: { board_code: 'CRM', board_number: '90261103', board_state: 'RS' },
+        } },
+      }),
+    }));
+    await expect(new MemedService({ MEMED_API_KEY: 'test-key', MEMED_SECRET_KEY: 'test-secret' })
+      .getOrCreateDoctorToken({
+        externalId: 'demo-doctor', nome: 'Medico', sobrenome: 'DEMO',
+        cpf: '52998224725', crm: '90261103', uf: 'RS',
+      })).resolves.toMatchObject({ token: 'sandbox-demo-token',
+        doctor: { crm: '90261103', uf: 'RS' } });
+  });
+
+  it.each([
+    [{ board_number: '90261104' }, 'wrong CRM'],
+    [{ board_state: 'SP' }, 'wrong UF'],
+    [{ board_code: 'CRO' }, 'wrong board'],
+  ])('rejects mismatched nested CFM board %s (%s)', async (change) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({
+        data: { attributes: {
+          token: 'provider-token', external_id: 'demo-doctor', cpf: '52998224725',
+          crm: null, uf: null,
+          board: { board_code: 'CRM', board_number: '90261103', board_state: 'RS', ...change },
+        } },
+      }),
+    }));
+    await expect(new MemedService({ MEMED_API_KEY: 'test-key', MEMED_SECRET_KEY: 'test-secret' })
+      .getOrCreateDoctorToken({
+        externalId: 'demo-doctor', nome: 'Medico', sobrenome: 'DEMO',
+        cpf: '52998224725', crm: '90261103', uf: 'RS',
+      })).rejects.toThrow('memed_provider_doctor_identity_mismatch');
+  });
+
+  it('rejects inconsistent top-level and nested CRM even if nested CRM matches', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({
+        data: { attributes: {
+          token: 'provider-token', external_id: 'demo-doctor', cpf: '52998224725',
+          crm: '999999', uf: 'RS',
+          board: { board_code: 'CRM', board_number: '90261103', board_state: 'RS' },
+        } },
+      }),
+    }));
+    await expect(new MemedService({ MEMED_API_KEY: 'test-key', MEMED_SECRET_KEY: 'test-secret' })
+      .getOrCreateDoctorToken({
+        externalId: 'demo-doctor', nome: 'Medico', sobrenome: 'DEMO',
+        cpf: '52998224725', crm: '90261103', uf: 'RS',
+      })).rejects.toThrow('memed_provider_doctor_identity_mismatch');
+  });
+
   it('never registers a prescriber after a provider authentication error', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 });
     vi.stubGlobal('fetch', fetchMock);
