@@ -48,25 +48,43 @@ jobs:
               except Exception:
                   sys.exit("Read-only configuration inspection failed; private diagnostics withheld")
 
-          # V1 may return {} for no overrides; the alpha v2 endpoint includes effective defaults.
+          # Read active compute sizing from the official v1 billing addon endpoint.
+          # No pricing or other account details are emitted.
+          addons = read("/v1/projects/qxjjrpksmwwrmubhvjew/billing/addons")
+          if not isinstance(addons, dict) or not isinstance(addons.get("selected_addons"), list):
+              sys.exit("Unexpected compute addon response")
+          compute = []
+          for item in addons["selected_addons"]:
+              if not isinstance(item, dict) or item.get("type") != "compute_instance":
+                  continue
+              variant = item.get("variant")
+              variant_id = variant.get("id") if isinstance(variant, dict) else variant
+              if not isinstance(variant_id, str) or len(variant_id) > 48 or not variant_id.startswith("ci_"):
+                  sys.exit("Invalid compute variant")
+              compute.append(variant_id)
+          if len(compute) != 1:
+              sys.exit("Active compute selection missing or ambiguous")
+          print(json.dumps({"compute_instance": compute[0]}, sort_keys=True), flush=True)
+
+          # Optional v2 override inventory is not an authoritative PG runtime snapshot.
           response = read("/v2/projects/qxjjrpksmwwrmubhvjew/config")
-          if not isinstance(response, dict):
-              sys.exit("Unexpected effective configuration response")
-          data = response.get("data")
-          if not isinstance(data, dict) or data.get("type") != "project_config":
-              sys.exit("Unexpected project configuration envelope")
+          if not isinstance(response, dict) or not isinstance(response.get("data"), dict):
+              sys.exit("Unexpected project config response")
+          data = response["data"]
+          if data.get("type") != "project_config":
+              sys.exit("Unexpected project config envelope")
           attrs = data.get("attributes")
           database = attrs.get("database") if isinstance(attrs, dict) else None
           settings = database.get("postgres_settings") if isinstance(database, dict) else None
-          # Report structure only; never log configuration bodies or Auth secrets.
-          print(json.dumps({"response_structure": {"database_fields": sorted(database) if isinstance(database, dict) else [], "postgres_settings_type": type(settings).__name__}}, sort_keys=True))
-          if not isinstance(settings, dict) or not settings:
-              sys.exit("Effective postgres settings unavailable; empty response is not success")
+          if not isinstance(settings, dict):
+              sys.exit("Unexpected postgres settings type")
+          # Explicitly distinguish no recorded overrides from runtime settings.
           keys = ("shared_buffers", "effective_cache_size", "max_connections", "max_replication_slots", "work_mem", "maintenance_work_mem")
           selected = {}
           for key in keys:
               value = settings.get(key)
-              if isinstance(value, bool) or not isinstance(value, (str, int)) or not str(value).strip() or len(str(value)) > 64:
-                  sys.exit("Missing or invalid effective setting: " + key)
-              selected[key] = value
-          print(json.dumps({"source": "Supabase Management API v2 effective settings", "configuration": selected}, sort_keys=True))
+              if value is not None:
+                  if isinstance(value, bool) or not isinstance(value, (str, int)) or not str(value).strip() or len(str(value)) > 64:
+                      sys.exit("Invalid postgres override")
+                  selected[key] = value
+          print(json.dumps({"source": "Management API project overrides only", "overrides": selected, "overrides_present": bool(settings)}, sort_keys=True))
