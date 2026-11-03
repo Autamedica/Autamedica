@@ -23,11 +23,13 @@ export async function claimFarmalinkIssue(
   supabase: SupabaseClient,
   prescriptionId: string,
   requestSha256: string,
+  actorUserId: string,
 ): Promise<FarmalinkPersistResult<FarmalinkIssueClaim>> {
   try {
     const { data, error } = await supabase.rpc('claim_farmalink_issue', {
       p_prescription_id: prescriptionId,
       p_request_sha256: requestSha256,
+      p_actor_user_id: actorUserId,
     });
 
     if (error) return { ok: false, reason: 'database_failure' };
@@ -53,6 +55,7 @@ export async function recordFarmalinkIssue(
   supabase: SupabaseClient,
   prescriptionId: string,
   attemptId: string,
+  actorUserId: string,
   state: Exclude<FarmalinkAttemptState, 'reserved'>,
   vendorId?: string,
   responseCode?: string,
@@ -62,6 +65,7 @@ export async function recordFarmalinkIssue(
       p_prescription_id: prescriptionId,
       p_attempt_id: attemptId,
       p_state: state,
+      p_actor_user_id: actorUserId,
       p_vendor_id: state === 'confirmed' ? vendorId : null,
       p_response_code: responseCode ?? null,
     });
