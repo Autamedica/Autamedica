@@ -58,6 +58,8 @@ jobs:
           attrs = data.get("attributes")
           database = attrs.get("database") if isinstance(attrs, dict) else None
           settings = database.get("postgres_settings") if isinstance(database, dict) else None
+          # Report structure only; never log configuration bodies or Auth secrets.
+          print(json.dumps({"response_structure": {"database_fields": sorted(database) if isinstance(database, dict) else [], "postgres_settings_type": type(settings).__name__}}, sort_keys=True))
           if not isinstance(settings, dict) or not settings:
               sys.exit("Effective postgres settings unavailable; empty response is not success")
           keys = ("shared_buffers", "effective_cache_size", "max_connections", "max_replication_slots", "work_mem", "maintenance_work_mem")
