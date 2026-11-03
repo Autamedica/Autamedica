@@ -1103,6 +1103,7 @@ export async function regenerateIssuedPrescriptionPdf(
 }
 
 export const __testables = {
+  registerFarmalinkIfEnabled,
   buildFarmalinkPrescriptionMapInput,
   canIssueWithPrescriberValidationStatus,
 };
