@@ -130,7 +130,7 @@ function prescriptionErrorMessage(error: unknown, phase: "save" | "issue"): stri
         : "No pudimos guardar la receta.",
   };
 
-  return messages[error.code ?? ""] ?? error.message;
+  return messages[error.code ?? ""] ?? messages[error.message] ?? error.message;
 }
 
 interface CareGuideResponse {
