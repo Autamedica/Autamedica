@@ -414,6 +414,7 @@ function buildFarmalinkPrescriptionMapInput(input: {
 async function registerFarmalinkIfEnabled(input: {
   supabase: SupabaseClient;
   prescriptionId: string;
+  actorUserId: string;
   clinicalData: ClinicalData;
   doctor: IssueDoctor;
   doctorName: string;
@@ -450,7 +451,7 @@ async function registerFarmalinkIfEnabled(input: {
   // If this RPC fails, do not send a request: avoid duplicate issues after
   // process crashes, multiple tabs, or HTTP 504/timeout ambiguity.
   const requestHash = await sha256BytesHex(new TextEncoder().encode(JSON.stringify(request)));
-  const claim = await claimFarmalinkIssue(input.supabase, input.prescriptionId, requestHash);
+  const claim = await claimFarmalinkIssue(input.supabase, input.prescriptionId, requestHash, input.actorUserId);
   if (!claim.ok) {
     logger.error('[issuePrescription] Farmalink once-only claim unavailable', {
       prescriptionId: input.prescriptionId,
@@ -471,7 +472,7 @@ async function registerFarmalinkIfEnabled(input: {
     const result = await client.altaReceta(request);
     if (!result.approved || !result.nroRecElectronica) {
       const persisted = await recordFarmalinkIssue(
-        input.supabase, input.prescriptionId, attemptId, 'rejected',
+        input.supabase, input.prescriptionId, attemptId, input.actorUserId, 'rejected',
         undefined, result.responseCode,
       );
       if (!persisted) return { ok: false, error: { code: 'farmalink_idempotency_unavailable' } };
@@ -488,7 +489,7 @@ async function registerFarmalinkIfEnabled(input: {
     // Record the external receipt before any PDF signing/storage can fail.
     // A subsequent invocation must NOT call altaReceta again.
     const persisted = await recordFarmalinkIssue(
-      input.supabase, input.prescriptionId, attemptId,
+      input.supabase, input.prescriptionId, attemptId, input.actorUserId,
       'confirmed', result.nroRecElectronica, result.responseCode,
     );
     if (!persisted) return { ok: false, error: { code: 'farmalink_pending_reconciliation' } };
@@ -510,7 +511,7 @@ async function registerFarmalinkIfEnabled(input: {
   } catch (error) {
     // Even an HTTP rejection may be ambiguous at the vendor boundary.
     // This state never releases the claim for automatic retransmission.
-    await recordFarmalinkIssue(input.supabase, input.prescriptionId, attemptId, 'unknown');
+    await recordFarmalinkIssue(input.supabase, input.prescriptionId, attemptId, input.actorUserId, 'unknown');
     logger.error('[issuePrescription] Farmalink AltaReceta outcome unknown; retry blocked', {
       prescriptionId: input.prescriptionId,
       name: error instanceof Error ? error.name : undefined,
@@ -633,6 +634,7 @@ export async function issuePrescription(
     const farmalinkRegistration = await registerFarmalinkIfEnabled({
       supabase,
       prescriptionId,
+      actorUserId: userId,
       clinicalData,
       doctor,
       doctorName,
