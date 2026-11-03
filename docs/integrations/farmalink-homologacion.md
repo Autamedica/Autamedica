@@ -59,6 +59,21 @@ La respuesta de **Homologación Farmalink** al ticket SOL-3144 confirma:
 
 La configuración del servidor debe tomar `FARMALINK_ORG_ID=182` del runtime y rechazar el antiguo ID `100`. Los campos heredados `puntoEmisor` se ignoran y no salen en el JSON transmitido. No activar producción, ni ejecutar scripts de alta/baja mientras falte conciliación. Ningún correo o PDF de homologación debe enviarse sin autorización expresa del responsable de AutaMedica.
 
+## Evidencia real TEST — 03/11/2026 (sin homologación final de PDFs)
+
+Dos `altaReceta` con datos DEMO aprobadas por Farmalink TEST, usando `idOrganizacion=182`, sin `puntoEmisor`, `codEntidad=7110` y PAN `20123456786`:
+
+| Escenario | HTTP / código | nroRecElectronica | Evidencia |
+| --- | --- | --- | --- |
+| `generico=S` (sin marca) | `200 / 0` | `9600000421228` | [run 41703530442](https://github.com/ecucondorSA/Autamedica/actions/runs/41703530442) |
+| `generico=N` (producto comercial sugerido) | `200 / 0` (`OK`) | `9600000421242` | [run 41704314290](https://github.com/ecucondorSA/Autamedica/actions/runs/41704314290) |
+
+Se generaron PDFs de prueba con códigos de barras Code 128 que representan los números reales de receta, conservados como artefactos en los runs de GitHub Actions. Un intento previo de marca con código de producto `60763` fue rechazado con código funcional `30` (sin receta emitida). El segundo caso aprobado usa el código de producto `56800`, ya aceptado en la prueba genérica.
+
+**Pendiente antes de enviar a Farmalink:** validar en el catálogo del proveedor cuál es la **marca comercial** real asociada a `codProducto=56800` y reflejarla en el PDF del caso `generico=N`. Validar el modelo visual oficial, datos/matrícula del prescriptor y autenticidad/firma. Los PDFs actuales están rotulados **TEST / no aptos para dispensar** y contienen médico/paciente sintéticos; no son recetas clínicas ni prueba de homologación visual aprobada. Tampoco está conciliado el destino de los dos intentos anteriores con `idOrganizacion=100` (timeout y 504).
+
+No se enviaron correos y no hubo acciones sobre producción.
+
 ## Contrato OAuth
 
 La generacion del token usa headers:
