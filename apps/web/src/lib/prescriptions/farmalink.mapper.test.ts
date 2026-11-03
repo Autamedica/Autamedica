@@ -186,4 +186,31 @@ describe('Farmalink mapper', () => {
       },
     })).toThrow(FarmalinkMappingError);
   });
+  it('rejects a missing prescriber specialty before contacting Farmalink', () => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,
+      prescriber: {
+        ...baseInput.prescriber,
+        license: {
+          tipo: 'MN',
+          provincia: 'C',
+          numero: '123456',
+        },
+      },
+    })).toThrow(FarmalinkMappingError);
+  });
+
+  it('rejects an empty prescriber specialty before contacting Farmalink', () => {
+    expect(() => buildFarmalinkAltaRecetaRequest({
+      ...baseInput,
+      prescriber: {
+        ...baseInput.prescriber,
+        license: {
+          ...baseInput.prescriber.license,
+          especialidad: '   ',
+        },
+      },
+    })).toThrow(FarmalinkMappingError);
+  });
+
 });
