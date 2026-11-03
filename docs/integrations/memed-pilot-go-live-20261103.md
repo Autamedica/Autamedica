@@ -9,6 +9,9 @@ Fecha de inspección: 2026-11-03. Entorno: Cloudflare Pages y Supabase PRODUCCI�
 - `MEMED_PILOT_DOCTOR_ID` configurado y el registro médico existe en Supabase prod; médico activo CRM con licencia CFM activa y validada, con matrícula/UF coincidentes. No incluir ID/CPF en esta documentación.
 - Hay 0 recetas `vendor_name=memed` registradas, 0 firmas Memed verificadas y 0 registros en `memed_doctor_identities` (la identidad podría provenir de `doctors` o `profiles`).
 - Staging tiene 0 médicos y le faltan objetos de integración que están en producción. No puede utilizarse aún para un E2E clínico representativo.
+- Segunda consulta agregada de producción: el piloto tiene perfil con nombre completo, pero **no** se dispone de CPF de 11 dígitos entre médico/perfil (la tabla privada de Memed sigue vacía); el médico debe proporcionarlo mediante el formulario autenticado de Memed, nunca por chat o en un commit.
+- No existen actualmente pacientes BR con `active=true`, `lgpd_consent=true` y `care_country='BR'` (conteo: 0); el piloto no tiene citas ni vínculos activos con pacientes (0 y 0). El circuito normal rechazará la emisión hasta crear una relación clínica legítima con consentimiento.
+- Estos bloqueos hacen que `readyForControlledPilot` deba permanecer en falso aunque las credenciales sean correctas. No activar `MEMED_RX_ENABLED` basándose solo en el CRM validado.
 - Hay documentos con `signed_pdf_url` no nulo, pero una URL **no equivale a una firma criptográfica válida**.
 
 ## Preflight nuevo
