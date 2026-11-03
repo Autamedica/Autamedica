@@ -12,6 +12,7 @@ import type { Prescription, UUID } from "@/types/medical";
 
 interface PrescriptionCreateModalProps {
   patientId?: UUID;
+  doctorCareCountry?: 'AR' | 'BR';
   onClose: () => void;
   onSaved: () => void;
   addPrescription: (
@@ -30,6 +31,9 @@ interface ExternalPatientForm {
   name: string;
   dni?: string;
   cuil?: string;
+  cpf?: string;
+  care_country?: 'AR' | 'BR';
+  care_country_confirmed?: true;
   address?: string;
   email?: string;
   phone?: string;
@@ -146,6 +150,7 @@ function unwrapCareGuideResponse(payload: unknown): CareGuideResponse | null {
 
 export function PrescriptionCreateModal({
   patientId,
+  doctorCareCountry,
   onClose,
   onSaved,
   addPrescription,
@@ -182,6 +187,7 @@ export function PrescriptionCreateModal({
     care_guide_lifestyle: editingPrescription?.care_guide_lifestyle ?? "",
   });
 
+  const [patientCountryConfirmed, setPatientCountryConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [generatingGuide, setGeneratingGuide] = useState(false);
   const [templates, setTemplates] = useState<PrescriptionTemplate[]>([]);
@@ -200,10 +206,11 @@ export function PrescriptionCreateModal({
   const [error, setError] = useState<string | null>(null);
   const requiresStrictValidation = requiresStrictPrescriptionValidation(form.medication_name);
   const normalizedPatientDocument = form.patient_document.replace(/\D/g, "");
-  const externalPatientDni =
-    normalizedPatientDocument.length === 11 ? "" : normalizedPatientDocument || form.patient_document.trim();
-  const externalPatientCuil =
-    normalizedPatientDocument.length === 11 ? normalizedPatientDocument : "";
+  const externalPatientDni = doctorCareCountry === 'BR' ? ''
+    : normalizedPatientDocument.length === 11 ? '' : normalizedPatientDocument || form.patient_document.trim();
+  const externalPatientCuil = doctorCareCountry === 'AR' && normalizedPatientDocument.length === 11
+    ? normalizedPatientDocument : '';
+  const externalPatientCpf = doctorCareCountry === 'BR' ? normalizedPatientDocument : '';
   const normalizedPatientContact = form.patient_contact.trim();
   const externalPatientEmail = normalizedPatientContact.includes("@")
     ? normalizedPatientContact
@@ -399,6 +406,10 @@ export function PrescriptionCreateModal({
       return;
     }
     if (!patientId) {
+      if (!doctorCareCountry || !patientCountryConfirmed) {
+        setError("Confirmá con el paciente el país donde recibirá atención antes de guardar.");
+        return;
+      }
       if (!form.patient_name.trim()) {
         setError("El nombre del paciente es requerido");
         return;
@@ -451,6 +462,9 @@ export function PrescriptionCreateModal({
             name: form.patient_name.trim(),
             dni: externalPatientDni || undefined,
             cuil: externalPatientCuil || undefined,
+            cpf: externalPatientCpf || undefined,
+            care_country: doctorCareCountry,
+            care_country_confirmed: patientCountryConfirmed ? true : undefined,
             address: form.patient_address.trim() || undefined,
             email: externalPatientEmail,
             phone: externalPatientPhone,
@@ -542,7 +556,7 @@ export function PrescriptionCreateModal({
                       type="text"
                       value={form.patient_document}
                       onChange={set("patient_document")}
-                      placeholder="DNI o CUIL"
+                      placeholder={doctorCareCountry === 'BR' ? "CPF (11 dígitos)" : "DNI o CUIL"}
                       className="w-full rounded-lg border border-am-surface-200 px-3 py-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                     />
                   </div>
@@ -572,6 +586,19 @@ export function PrescriptionCreateModal({
                   />
                 </div>
               </div>
+              <label className="mt-3 flex items-start gap-2 text-sm text-am-surface-700">
+                <input
+                  type="checkbox"
+                  checked={patientCountryConfirmed}
+                  onChange={(event) => setPatientCountryConfirmed(event.target.checked)}
+                  className="mt-1 h-4 w-4"
+                  required
+                />
+                <span>Confirmo que el paciente declaró que recibirá atención médica en
+                  {doctorCareCountry === 'BR' ? ' Brasil' : ' Argentina'}.
+                  Esta elección define el proveedor de recetas y no su nacionalidad.
+                </span>
+              </label>
             </div>
           )}
 
