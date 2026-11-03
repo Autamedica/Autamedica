@@ -147,10 +147,17 @@ async function main() {
       && attrs?.external_id === demo.data.attributes.external_id;
     report.demoPrescriberLookup.tokenPresent = report.demoPrescriberLookup.sameExternalId
       && typeof attrs?.token === 'string' && attrs.token.length > 0;
+    const nonempty = x => x !== undefined && x !== null && String(x).trim() !== '';
+    const crmValues = [attrs?.crm, attrs?.board?.board_number].filter(nonempty);
+    const ufValues = [attrs?.uf, attrs?.board?.board_state].filter(nonempty);
     report.demoPrescriberLookup.crmMatches = report.demoPrescriberLookup.sameExternalId
-      && String(attrs?.crm).replace(/[^0-9]/g, '') === demo.data.attributes.board.board_number;
+      && crmValues.length > 0 && crmValues.every(x =>
+        String(x).replace(/[^0-9]/g, '') === demo.data.attributes.board.board_number)
+      && (!nonempty(attrs?.board?.board_code) ||
+        String(attrs.board.board_code).toUpperCase() === 'CRM');
     report.demoPrescriberLookup.ufMatches = report.demoPrescriberLookup.sameExternalId
-      && String(attrs?.uf).toUpperCase() === demo.data.attributes.board.board_state;
+      && ufValues.length > 0 && ufValues.every(x =>
+        String(x).trim().toUpperCase() === demo.data.attributes.board.board_state);
     // Do not log or store the returned token, name or CPF.
   }
   // Only attempt one write when CFM dry-run approves and the test CPF is unused.
