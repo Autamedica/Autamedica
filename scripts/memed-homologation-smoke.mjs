@@ -11,6 +11,7 @@ import { writeFileSync } from 'node:fs';
 const API_BASE = 'https://integrations.api.memed.com.br/v1';
 const DOC_URL = 'https://doc.memed.com.br/docs/primeiros-passos/';
 const REGISTER = process.env.MEMED_HOMO_REGISTER_DEMO === 'true';
+const VALIDATE_DEMO = process.env.MEMED_HOMO_VALIDATE_DEMO === 'true';
 const report = {
   environment: 'Memed homologacao',
   timestamp: new Date().toISOString(),
@@ -18,6 +19,7 @@ const report = {
   testKeysFromOfficialDocs: false,
   checkKey: { attempted: false, httpStatus: null, valid: false },
   demoDoctor: { attempted: false, httpStatus: null, registered: false, providerCodes: [] },
+  demoCfmValidation: { attempted: false, httpStatus: null, validated: false, providerCodes: [] },
   patientRegistration: 'not_applicable_to_backend_smoke',
   prescriptionIssued: false,
   signatureVerified: false,
@@ -76,7 +78,7 @@ async function main() {
     report.checkKey.providerCodes = authCodes(check.payload);
     throw new Error('homologation_keys_rejected_or_service_unavailable');
   }
-  if (!REGISTER) return;
+  if (!REGISTER && !VALIDATE_DEMO) return;
 
   // All fields are unmistakably DEMO (never from AutaMedica's production DB).
   const demo = {
@@ -94,6 +96,20 @@ async function main() {
       },
     },
   };
+  if (VALIDATE_DEMO) {
+    report.demoCfmValidation.attempted = true;
+    const validate = await endpoint('/sinapse-prescricao/usuarios/validate-board', { apiKey, secretKey }, {
+      method: 'POST', body: JSON.stringify(demo),
+    });
+    report.demoCfmValidation.httpStatus = validate.status;
+    report.demoCfmValidation.providerCodes = authCodes(validate.payload);
+    report.demoCfmValidation.validated = validate.status === 200
+      && validate.payload?.data?.attributes?.validated === true
+      && validate.payload?.data?.attributes?.outcome === 'approved';
+  }
+  // The dry-run never mutates providers; do not register a known invalid doctor.
+  if (!REGISTER || (VALIDATE_DEMO && !report.demoCfmValidation.validated)) return;
+
   report.demoDoctor.attempted = true;
   const result = await endpoint('/sinapse-prescricao/usuarios', { apiKey, secretKey }, {
     method: 'POST', body: JSON.stringify(demo),
