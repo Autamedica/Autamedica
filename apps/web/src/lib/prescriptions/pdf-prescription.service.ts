@@ -743,9 +743,14 @@ export async function generatePrescriptionPdf(
   );
   doc.text(signatureLegend, infoBoxX + 3, signatureY + 10);
   const validatorY = signatureY + 10 + signatureLegend.length * 3.5;
-  doc.text(`Validador RCTA: ${cuir}`, infoBoxX + 3, validatorY);
-  doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, infoBoxX + 3, validatorY + 4);
-  doc.text(`Hash: verificable vía QR`, infoBoxX + 3, validatorY + 8);
+  if (isHomologationTest) {
+    doc.text('Sin registro RCTA ni QR verificado.', infoBoxX + 3, validatorY);
+    doc.text('Entorno: Farmalink TEST.', infoBoxX + 3, validatorY + 4);
+  } else {
+    doc.text(`Validador RCTA: ${cuir}`, infoBoxX + 3, validatorY);
+    doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, infoBoxX + 3, validatorY + 4);
+    doc.text(`Hash: verificable vía QR`, infoBoxX + 3, validatorY + 8);
+  }
 
   // Footer (Compliance & Privacy)
   const footerY = 276;
