@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   test-lookup:
-    if: "github.event.head_commit.message == 'ci(farmalink): inspect accepted TEST item mapping'"
+    if: "github.event.head_commit.message == 'ci(farmalink): inspect nested TEST product name'"
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
