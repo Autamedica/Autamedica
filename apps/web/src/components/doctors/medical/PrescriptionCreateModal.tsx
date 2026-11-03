@@ -110,6 +110,7 @@ function prescriptionErrorMessage(error: unknown, phase: "save" | "issue"): stri
     prescription_doctor_country_required: "El perfil médico no tiene un país de matrícula válido. Verificá la matrícula antes de recetar.",
     external_patient_care_country_confirmation_required: "El paciente sin cuenta debe confirmar expresamente el país de atención del médico.",
     external_patient_country_mismatch_or_unset: "El documento ya corresponde a un paciente de otro país o a una cuenta cuyo país debe confirmar el titular.",
+    external_patient_registered_account_required: "Este documento pertenece a una cuenta existente. Seleccioná al paciente desde su ficha autorizada, no desde Paciente sin cuenta.",
     external_patient_cpf_required: "Para pacientes de Brasil es obligatorio registrar un CPF válido.",
     missing_patient_identification: "Falta DNI o CUIL del paciente.",
     missing_patient_address: "Falta el domicilio del paciente.",
