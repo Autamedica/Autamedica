@@ -23,6 +23,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS farmalink_issue_attempts_vendor_id_unique
 
 ALTER TABLE public.farmalink_issue_attempts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.farmalink_issue_attempts FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.farmalink_issue_attempts TO service_role;
 -- Only tightly scoped database functions below may manage attempts.
 
 CREATE OR REPLACE FUNCTION public.claim_farmalink_issue(
