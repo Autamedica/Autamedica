@@ -20,6 +20,7 @@ const report = {
   checkKey: { attempted: false, httpStatus: null, valid: false },
   demoDoctor: { attempted: false, httpStatus: null, registered: false, providerCodes: [] },
   demoCfmValidation: { attempted: false, httpStatus: null, validated: false, providerCodes: [] },
+  demoPrescriberLookup: { attempted: false, httpStatus: null, exists: false, sameExternalId: false },
   patientRegistration: 'not_applicable_to_backend_smoke',
   prescriptionIssued: false,
   signatureVerified: false,
@@ -125,7 +126,20 @@ async function main() {
       && attributes?.validated === true
       && (attributes?.approved === true || attributes?.outcome === 'approved');
   }
-  // The dry-run never mutates providers; do not register a known invalid doctor.
+  if (VALIDATE_DEMO) {
+    // A shared documentation CPF might already belong to another test user's
+    // record. Never reuse its token or assume ownership based on CPF alone.
+    report.demoPrescriberLookup.attempted = true;
+    const lookup = await endpoint('/sinapse-prescricao/usuarios/' + demo.data.attributes.cpf,
+      { apiKey, secretKey }, { method: 'GET' });
+    report.demoPrescriberLookup.httpStatus = lookup.status;
+    const attrs = lookup.payload?.data?.attributes;
+    report.demoPrescriberLookup.exists = lookup.status === 200 && !!attrs;
+    report.demoPrescriberLookup.sameExternalId = report.demoPrescriberLookup.exists
+      && attrs?.external_id === demo.data.attributes.external_id;
+    // Do not log or store the returned token, name or CPF.
+  }
+  // The dry-run never mutates providers; no repeat registration after Board errors.
   if (!REGISTER || (VALIDATE_DEMO && !report.demoCfmValidation.validated)) return;
 
   report.demoDoctor.attempted = true;
