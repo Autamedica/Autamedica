@@ -239,11 +239,11 @@ describe('Farmalink once-only persistent issue guard', () => {
     Object.assign(supabase, {
       from: vi.fn((table: string) => {
         const rows: Record<string, unknown> = {
-          doctors:{...clinical.doctor,license_type:'MN'},
+          doctors:{...clinical.doctor,license_type:'MN',care_country:'AR',active:true},
           prescriptions:{id:RX,doctor_id:clinical.doctor.id,patient_id:'test-patient',status:'draft',cuir:null,
             country_code:'AR',clinical_data:{diagnosis:'Control',items:[clinical.item]}},
           profiles:{sss_validation_status:'valid',first_name:'Test',last_name:'Person'},
-          patients:{...clinical.patient,user_id:'test-patient-user',address:'Fixture CABA'},
+          patients:{...clinical.patient,user_id:'test-patient-user',address:'Fixture CABA',care_country:'AR',active:true},
         };
         const chain = {
           select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),
