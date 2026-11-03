@@ -48,3 +48,14 @@ jobs:
           sudo apt-get install -y -qq poppler-utils zbar-tools
           pdftoppm -singlefile -r 300 -png /tmp/autamedica-farmalink-barcode.pdf /tmp/autamedica-farmalink-barcode
           zbarimg --quiet --raw -Sdisable -Scode128.enable /tmp/autamedica-farmalink-barcode.png | grep -Fx '9600000002762'
+
+      - name: Upload app-rendered TEST homologation PDFs (no network issuance)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: farmalink-autamedica-app-pdfs-test
+          path: |
+            /tmp/farmalink-autamedica-generica-test.pdf
+            /tmp/farmalink-autamedica-marca-test.pdf
+          if-no-files-found: warn
+          retention-days: 30
