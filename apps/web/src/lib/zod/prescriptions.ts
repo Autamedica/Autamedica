@@ -16,6 +16,9 @@ export const ExternalPrescriptionPatientSchema = z.object({
   cuil: OptionalText(30),
   cpf: OptionalText(20),
   cns: OptionalText(30),
+  // Required by the backend for unregistered patients. No inferred default.
+  care_country: z.enum(['AR', 'BR']).optional(),
+  care_country_confirmed: z.literal(true).optional(),
   address: OptionalText(300),
   email: OptionalText(200),
   phone: OptionalText(80),

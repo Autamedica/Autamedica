@@ -40,7 +40,7 @@ async function resolveAuthedDoctorContext(
   const admin = createAstroAdminClient(locals?.runtime?.env);
   const { data: doctor, error } = await admin
     .from("doctors")
-    .select("id, active, user_id, license_type, uf_brazil")
+    .select("id, active, user_id, license_type, uf_brazil, care_country")
     .eq("user_id", auth.user.id)
     .maybeSingle();
 
@@ -62,9 +62,10 @@ async function resolveAuthedDoctorContext(
     doctorId: doctor.id,
     licenseType: doctor.license_type as string | null,
     ufBrazil: doctor.uf_brazil as string | null,
-    countryCode: doctor.license_type === "CRM" && /^[A-Z]{2}$/.test(doctor.uf_brazil ?? "")
-      ? "BR" as const
-      : ["MN", "MP"].includes(doctor.license_type ?? "") ? "AR" as const : null,
+    // Use the canonical country generated from the primary credential. A
+    // provisional MN/CRM label without a verified jurisdiction is not enough.
+    countryCode: doctor.care_country === "BR" ? "BR" as const
+      : doctor.care_country === "AR" ? "AR" as const : null,
   };
 }
 
@@ -74,7 +75,20 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   const url = new URL(request.url);
   if (url.searchParams.get("context") === "country") {
-    return jsonOk({ countryCode: context.countryCode });
+    // These are operational availability indicators only, never provider
+    // tokens or private integration configuration. Limit Memed to its
+    // explicitly configured pilot until the clinical E2E is approved.
+    const env = locals.runtime?.env;
+    const externalProvider = context.countryCode === "AR" ? "farmalink"
+      : context.countryCode === "BR" ? "memed" : null;
+    const externalProviderEnabled = context.countryCode === "AR"
+      ? env?.FARMALINK_ENABLED === "true"
+      : context.countryCode === "BR"
+        ? env?.MEMED_RX_ENABLED === "true" && env?.MEMED_PILOT_DOCTOR_ID === context.doctorId
+        : false;
+    const response = jsonOk({ countryCode: context.countryCode, externalProvider, externalProviderEnabled });
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
   }
   const patientId = url.searchParams.get("patientId");
 

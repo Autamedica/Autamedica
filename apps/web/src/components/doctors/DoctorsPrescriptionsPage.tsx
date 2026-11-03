@@ -245,18 +245,25 @@ export function DoctorsPrescriptionsPage() {
   const [search, setSearch] = useState("");
   const [docMode, setDocMode] = useState<"prescriptions" | "certificates">("prescriptions");
   const [certificateCountry, setCertificateCountry] = useState<"AR" | "BR" | null>(null);
+  const [externalProviderEnabled, setExternalProviderEnabled] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     void fetch("/api/doctors/certificates?context=country", {
       credentials: "include", signal: controller.signal,
     }).then(async response => {
       if (!response.ok) throw new Error("certificate_country_lookup_failed");
-      const body: { data?: { countryCode?: string } } = await response.json();
+      const body: { data?: { countryCode?: string; externalProviderEnabled?: boolean } } = await response.json();
       if (!controller.signal.aborted) {
         setCertificateCountry(body.data?.countryCode === "BR" ? "BR"
           : body.data?.countryCode === "AR" ? "AR" : null);
+        setExternalProviderEnabled(body.data?.externalProviderEnabled === true);
       }
-    }).catch(() => { if (!controller.signal.aborted) setCertificateCountry(null); });
+    }).catch(() => {
+      if (!controller.signal.aborted) {
+        setCertificateCountry(null);
+        setExternalProviderEnabled(false);
+      }
+    });
     return () => controller.abort();
   }, []);
   const [certificates, setCertificates] = useState<CertificateItem[]>([]);
@@ -453,22 +460,33 @@ export function DoctorsPrescriptionsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => { setEditingPrescription(null); setShowMemedWidget(true); }}
-              disabled={!selectedPatientId}
-              title={selectedPatientId ? "Abrir Memed" : "Selecione um paciente"}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Plus className="h-4 w-4" />
-              Receita BR (Memed)
-            </button>
-            <button
-              onClick={() => { setEditingPrescription(null); setShowCreateModal(true); }}
-              className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-neutral-800 active:scale-[0.97]"
-            >
-              <Plus className="h-4 w-4" />
-              Nueva receta
-            </button>
+            {certificateCountry === 'BR' && externalProviderEnabled && (
+              <button
+                onClick={() => { setEditingPrescription(null); setShowMemedWidget(true); }}
+                disabled={!selectedPatientId}
+                title={selectedPatientId ? "Abrir Memed para paciente BR" : "Selecione um paciente BR"}
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Plus className="h-4 w-4" />
+                Receita BR (Memed)
+              </button>
+            )}
+            {(certificateCountry === 'AR' || certificateCountry === 'BR') && (
+              <button
+                onClick={() => { setEditingPrescription(null); setShowCreateModal(true); }}
+                className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-neutral-800 active:scale-[0.97]"
+              >
+                <Plus className="h-4 w-4" />
+                {certificateCountry === 'AR'
+                  ? externalProviderEnabled ? 'Receta AR (Farmalink)' : 'Receta AR interna'
+                  : 'Receita BR interna'}
+              </button>
+            )}
+            {!certificateCountry && (
+              <span role="status" className="rounded-lg border border-amber-300 px-3 py-2 text-sm text-amber-900">
+                Verificá la matrícula y el país del médico antes de emitir.
+              </span>
+            )}
             <button
               onClick={() => setShowCertificateModal(true)}
               className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-teal-700 active:scale-[0.97]"
@@ -971,9 +989,10 @@ export function DoctorsPrescriptionsPage() {
       </div>
 
       {/* ── PrescriptionCreateModal ── */}
-      {showCreateModal && (
+      {showCreateModal && (certificateCountry === 'AR' || certificateCountry === 'BR') && (
         <PrescriptionCreateModal
           patientId={(selectedPatientId ?? undefined) as UUID | undefined}
+          doctorCareCountry={certificateCountry ?? undefined}
           onClose={() => setShowCreateModal(false)}
           onSaved={handleSaved}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1025,7 +1044,7 @@ export function DoctorsPrescriptionsPage() {
       </AnimatePresence>
 
       {/* ── Memed Widget ── */}
-      {showMemedWidget && selectedPatientId && (
+      {showMemedWidget && certificateCountry === 'BR' && externalProviderEnabled && selectedPatientId && (
         <MemedPrescriptionWidget
           patientId={selectedPatientId}
           onPrescriptionSaved={async (prescriptionId) => {

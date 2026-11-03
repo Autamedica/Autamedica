@@ -17,6 +17,7 @@ import type {
 } from "@/lib/doctors/types/medical";
 import type { Database } from "@autamedica/types";
 import { logger } from "@autamedica/shared";
+import { validCpf } from "@/lib/prescriptions/brazil/memed-patient";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Db = SupabaseClient<Database>;
@@ -117,6 +118,9 @@ export interface ExternalPrescriptionPatient {
   name: string;
   dni?: string;
   cuil?: string;
+  cpf?: string;
+  care_country?: 'AR' | 'BR';
+  care_country_confirmed?: boolean;
   address?: string;
   email?: string;
   phone?: string;
@@ -142,36 +146,53 @@ function normalizeOptionalText(value: string | undefined): string | null {
 async function resolveExternalPrescriptionPatient(
   supabase: Db,
   externalPatient: ExternalPrescriptionPatient | undefined,
+  doctorCountry: 'AR' | 'BR',
+  doctorId: string,
 ): Promise<UUID> {
   if (!externalPatient) {
     throw new Error("patient_id_required");
   }
+  // This is the patient's explicit declaration to the clinician, not a
+  // country inferred from CPF/DNI, telephone, IP address or browser locale.
+  if (externalPatient.care_country_confirmed !== true
+    || externalPatient.care_country !== doctorCountry) {
+    throw new Error("external_patient_care_country_confirmation_required");
+  }
 
   const dni = normalizeOptionalText(externalPatient.dni);
   const cuil = normalizeOptionalText(externalPatient.cuil);
+  const cpf = normalizeOptionalText(externalPatient.cpf)?.replace(/\D/g, '') || null;
   const address = normalizeOptionalText(externalPatient.address);
   const email = normalizeOptionalText(externalPatient.email);
   const phone = normalizeOptionalText(externalPatient.phone);
 
-  if (!dni && !cuil) {
+  if (doctorCountry === 'AR' && !dni && !cuil) {
     throw new Error("external_patient_identification_required");
+  }
+  if (doctorCountry === 'BR' && (!cpf || !validCpf(cpf))) {
+    throw new Error("external_patient_cpf_required");
   }
   if (!address) {
     throw new Error("external_patient_address_required");
   }
 
-  const existingQueries: Array<PromiseLike<{ data: { id: string } | null; error: unknown }>> = [];
+  const existingQueries: Array<PromiseLike<{ data: { id: string; user_id: string | null; care_country: string | null } | null; error: unknown }>> = [];
   if (dni) {
     existingQueries.push(
-      supabase.from("patients").select("id").eq("dni", dni).maybeSingle(),
+      supabase.from("patients").select("id, user_id, care_country").eq("dni", dni).maybeSingle(),
     );
   }
   if (cuil) {
     existingQueries.push(
-      supabase.from("patients").select("id").eq("cuil", cuil).maybeSingle(),
+      supabase.from("patients").select("id, user_id, care_country").eq("cuil", cuil).maybeSingle(),
     );
   }
 
+  if (cpf) {
+    existingQueries.push(
+      supabase.from("patients").select("id, user_id, care_country").eq("cpf", cpf).maybeSingle(),
+    );
+  }
   for (const query of existingQueries) {
     const { data, error } = await query;
     if (error) {
@@ -179,19 +200,30 @@ async function resolveExternalPrescriptionPatient(
       throw error;
     }
     if (data?.id) {
-      await supabase
-        .from("patients")
-        .update({
-          active: true,
-          address,
-          medical_history: {
-            source: "doctor_prescription_external_patient",
-            name: externalPatient.name.trim(),
-            email,
-            phone,
-          },
-        })
-        .eq("id", data.id);
+      // A document match is NOT authorization to modify a registered
+      // patient's record. The doctor must use the normal patient selection
+      // and the existing doctor/patient-care authorization checks.
+      if (data.user_id !== null) {
+        throw new Error("external_patient_registered_account_required");
+      }
+      if (data.care_country !== null && data.care_country !== doctorCountry) {
+        throw new Error("external_patient_country_mismatch_or_unset");
+      }
+      if (data.care_country === null) {
+        // The external patient's declaration is captured in this request and
+        // preserved on the new prescription. Write only the first country;
+        // never change existing clinical history, address or active status.
+        const { data: updated, error: updateError } = await supabase
+          .from("patients")
+          .update({ care_country: doctorCountry })
+          .eq("id", data.id)
+          .is("user_id", null)
+          .is("care_country", null)
+          .select("id")
+          .maybeSingle();
+        if (updateError) throw updateError;
+        if (!updated?.id) throw new Error("external_patient_country_mismatch_or_unset");
+      }
       return data.id as UUID;
     }
   }
@@ -200,16 +232,21 @@ async function resolveExternalPrescriptionPatient(
     .from("patients")
     .insert({
       active: true,
+      care_country: doctorCountry,
       address,
       birth_date: normalizeOptionalText(externalPatient.birth_date),
       cuil,
       dni,
+      cpf,
       gender: normalizeOptionalText(externalPatient.gender),
       medical_history: {
         source: "doctor_prescription_external_patient",
         name: externalPatient.name.trim(),
         email,
         phone,
+        care_country_provenance: "patient_declared_to_physician",
+        care_country_confirmed_at: new Date().toISOString(),
+        care_country_attested_by_doctor_id: doctorId,
       },
     })
     .select("id")
@@ -450,6 +487,8 @@ function buildClinicalDataFromPayload(
         phone: normalizeOptionalText(sourceExternalPatient.phone),
         birth_date: normalizeOptionalText(sourceExternalPatient.birth_date),
         gender: normalizeOptionalText(sourceExternalPatient.gender),
+        care_country: sourceExternalPatient.care_country ?? null,
+        care_country_confirmed: sourceExternalPatient.care_country_confirmed === true,
       }
     : null;
 
@@ -595,10 +634,22 @@ export const doctorPrescriptionBackendService = {
     context: DoctorContext,
     payload: DoctorPrescriptionWritePayload,
   ): Promise<Prescription> {
+    const { data: doctorCountryRecord, error: doctorCountryError } = await supabase
+      .from("doctors").select("care_country, active").eq("id", context.doctorId).maybeSingle();
+    if (doctorCountryError) throw doctorCountryError;
+    const country = doctorCountryRecord?.care_country;
+    if (!doctorCountryRecord?.active || (country !== "AR" && country !== "BR")) {
+      throw new Error("prescription_doctor_country_required");
+    }
     const patientId = payload.patient_id ?? await resolveExternalPrescriptionPatient(
-      supabase,
-      payload.external_patient,
+      supabase, payload.external_patient, country, context.doctorId,
     );
+    const { data: patientCountryRecord, error: patientCountryError } = await supabase
+      .from("patients").select("care_country, active").eq("id", patientId).maybeSingle();
+    if (patientCountryError) throw patientCountryError;
+    if (!patientCountryRecord?.active || patientCountryRecord.care_country !== country) {
+      throw new Error("prescription_country_mismatch");
+    }
     const isExternalPatient = Boolean(payload.external_patient && !payload.patient_id);
     if (!isExternalPatient) {
       const canAccess = await doctorHasPatientAccess(supabase, context.doctorId, patientId);
@@ -621,6 +672,7 @@ export const doctorPrescriptionBackendService = {
       .insert({
         doctor_id: context.doctorId,
         patient_id: patientId,
+        country_code: country,
         status: mapClinicalStatusToCoreStatus(clinicalStatus),
         vendor_name: "pending",
         clinical_data: clinicalData,

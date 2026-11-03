@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@autamedica/shared';
+import { fetchApi } from '@/lib/api-client';
 import type { IssuedPrescription } from '@autamedica/prescriptions';
 import type { Prescription } from '@/lib/doctors/types/medical';
 import { mapLegacyToCore } from '@/lib/doctors/types/prescription-core.dto';
@@ -109,25 +110,11 @@ export function usePrescriptionsCore(
   }, [patientId, filterStatus, filterMedication, filterActive, isClient]);
 
   const createDraft = useCallback(async (data: Record<string, unknown>): Promise<string> => {
-    const res = await fetch('/api/doctors/prescriptions', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+    const created = await fetchApi<Prescription>('/api/doctors/prescriptions', {
+      method: 'POST', body: data,
     });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => 'Unknown error');
-      throw new Error(`HTTP ${res.status}: ${text}`);
-    }
-
-    const json = (await res.json()) as ApiEnvelope<Prescription>;
-    if (!json.success || !json.data) {
-      throw new Error(json.error?.message ?? 'Failed to create prescription');
-    }
-
     window.dispatchEvent(new Event(PRESCRIPTIONS_CHANGED_EVENT));
-    return json.data.id;
+    return created.id;
   }, []);
 
   const updatePrescription = useCallback(async (id: string, updates: Record<string, unknown>): Promise<void> => {
@@ -152,23 +139,11 @@ export function usePrescriptionsCore(
   }, []);
 
   const issuePrescription = useCallback(async (id: string): Promise<IssuanceResult> => {
-    const res = await fetch(`/api/doctors/prescriptions/${id}/issue`, {
+    const issued = await fetchApi<IssuanceResult>(`/api/doctors/prescriptions/${id}/issue`, {
       method: 'POST',
-      credentials: 'include',
     });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => 'Unknown error');
-      throw new Error(`HTTP ${res.status}: ${text}`);
-    }
-
-    const json = (await res.json()) as ApiEnvelope<IssuanceResult>;
-    if (!json.success || !json.data) {
-      throw new Error(json.error?.message ?? 'Failed to issue prescription');
-    }
-
     window.dispatchEvent(new Event(PRESCRIPTIONS_CHANGED_EVENT));
-    return json.data;
+    return issued;
   }, []);
 
   useEffect(() => {
