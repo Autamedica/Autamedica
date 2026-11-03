@@ -20,7 +20,7 @@ const report = {
   checkKey: { attempted: false, httpStatus: null, valid: false },
   demoDoctor: { attempted: false, httpStatus: null, registered: false, providerCodes: [] },
   demoCfmValidation: { attempted: false, httpStatus: null, validated: false, providerCodes: [] },
-  demoPrescriberLookup: { attempted: false, httpStatus: null, exists: false, sameExternalId: false },
+  demoPrescriberLookup: { attempted: false, httpStatus: null, exists: false, sameExternalId: false, tokenPresent: false, crmMatches: false, ufMatches: false },
   patientRegistration: 'not_applicable_to_backend_smoke',
   prescriptionIssued: false,
   signatureVerified: false,
@@ -137,12 +137,25 @@ async function main() {
     report.demoPrescriberLookup.exists = lookup.status === 200 && !!attrs;
     report.demoPrescriberLookup.sameExternalId = report.demoPrescriberLookup.exists
       && attrs?.external_id === demo.data.attributes.external_id;
+    report.demoPrescriberLookup.tokenPresent = report.demoPrescriberLookup.sameExternalId
+      && typeof attrs?.token === 'string' && attrs.token.length > 0;
+    report.demoPrescriberLookup.crmMatches = report.demoPrescriberLookup.sameExternalId
+      && String(attrs?.crm).replace(/\\D/g, '') === demo.data.attributes.board.board_number;
+    report.demoPrescriberLookup.ufMatches = report.demoPrescriberLookup.sameExternalId
+      && String(attrs?.uf).toUpperCase() === demo.data.attributes.board.board_state;
     // Do not log or store the returned token, name or CPF.
   }
   // Only attempt one write when CFM dry-run approves and the test CPF is unused.
   if (!REGISTER || (VALIDATE_DEMO && !report.demoCfmValidation.validated)) return;
   if (report.demoPrescriberLookup.exists) {
-    report.failure = 'demo_practitioner_already_exists';
+    report.demoDoctor.registered = report.demoPrescriberLookup.sameExternalId
+      && report.demoPrescriberLookup.tokenPresent
+      && report.demoPrescriberLookup.crmMatches
+      && report.demoPrescriberLookup.ufMatches;
+    report.demoDoctor.httpStatus = report.demoPrescriberLookup.httpStatus;
+    if (!report.demoDoctor.registered) {
+      throw new Error('demo_doctor_identity_mismatch');
+    }
     return;
   }
 
