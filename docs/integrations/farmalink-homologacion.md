@@ -46,6 +46,19 @@ Evidencia: workflow [alta demo](https://github.com/ecucondorSA/Autamedica/action
 
 **P0 de idempotencia corregido en la rama, sin despliegue:** `issuePrescription` reserva un intento persistente antes de `altaReceta`; timeout/504 no liberan la reserva. La reserva verifica médico, país AR de ambas partes, validación profesional y contenido clínico esperado; un trigger congela la receta reservada e impide afirmar validación Farmalink sin un recibo confirmado. La aprobación final depende del CI del commit exacto. No confundir esta protección con conciliación operativa o aprobación del proveedor.
 
+## Parámetros oficiales recibidos el 03/11/2026 — homologación todavía pendiente
+
+La respuesta de **Homologación Farmalink** al ticket SOL-3144 confirma:
+
+- **idOrganizacion = 182** para el usuario de AutaMedica.
+- **Omitir por completo `puntoEmisor`**, no enviarlo como objeto vacío ni con ID de ejemplo.
+- **Datos exclusivos para nuevas pruebas en TEST:** `codEntidad=7110`, PAN `20123456786` y DNI `12345678`.
+- Se requieren dos altas aprobadas y sus PDFs: una prescripción genérica (`generico=S`, sin marca comercial en PDF) y una prescripción de marca (`generico=N`, con el producto sugerido y marca en PDF). Cada PDF debe seguir el **Modelo Receta digital** del proveedor y las modalidades de prescripción oficiales.
+- La respuesta confirma que observaron las pruebas, **pero no suministra ningún `nroRecElectronica` ni acredita la conciliación de las dos altas DEMO de las 02:30 y 03:05 ART**. Se conserva el bloqueo de nuevas altas hasta resolver la incertidumbre con evidencia del proveedor.
+- Los códigos de medicamento/producto, identidad profesional de prueba y modelo exacto del PDF siguen sujetos a verificación con el contrato oficial; no presentar PDFs generados únicamente en modo mock como homologados.
+
+La configuración del servidor debe tomar `FARMALINK_ORG_ID=182` del runtime y rechazar el antiguo ID `100`. Los campos heredados `puntoEmisor` se ignoran y no salen en el JSON transmitido. No activar producción, ni ejecutar scripts de alta/baja mientras falte conciliación. Ningún correo o PDF de homologación debe enviarse sin autorización expresa del responsable de AutaMedica.
+
 ## Contrato OAuth
 
 La generacion del token usa headers:
@@ -78,9 +91,9 @@ FARMALINK_OAUTH_USERNAME=
 FARMALINK_OAUTH_PASSWORD=
 FARMALINK_BASIC_USER=
 FARMALINK_BASIC_PASSWORD=
-FARMALINK_ORG_ID=
+FARMALINK_ORG_ID=182
 FARMALINK_ORG_TYPE=NMD
-FARMALINK_PUNTO_EMISOR_ID=
+# puntoEmisor se omite para AutaMedica.
 FARMALINK_IP_ORIGIN=
 FARMALINK_BROWSER_INFO=AutaMedica
 FARMALINK_PRESCRIPTION_TYPE=
