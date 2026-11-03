@@ -121,6 +121,8 @@ export type IssuanceError =
   | { code: 'missing_refeps_id' }
   | { code: 'prescriber_validation_required' }
   | { code: 'prescription_country_mismatch' }
+  | { code: 'memed_use_dedicated_flow' }
+  | { code: 'farmalink_not_enabled' }
   | { code: 'missing_professional_address' }
   | { code: 'prescription_not_found' }
   | { code: 'not_your_prescription' }
@@ -431,7 +433,9 @@ async function registerFarmalinkIfEnabled(input: {
     return { ok: false, error: { code: 'farmalink_missing_config' } };
   }
 
-  if (!client) return { ok: true, registration: null };
+  // Never silently issue a local/internal prescription when an AR doctor
+  // explicitly selected Farmalink. Keep the draft until the provider is ready.
+  if (!client) return { ok: false, error: { code: 'farmalink_not_enabled' } };
 
   let request: FarmalinkAltaRecetaRequest;
   try {
@@ -594,6 +598,11 @@ export async function issuePrescription(
   );
   if (!patient.active || !route) {
     return fail({ code: 'prescription_country_mismatch' });
+  }
+  // The BR integration is the independently verified Memed widget/API, not
+  // the generic Brazilian PDF generator. Do not mislabel local PDFs as Memed.
+  if (route.provider === 'memed') {
+    return fail({ code: 'memed_use_dedicated_flow' });
   }
   // 4. Parse clinical data
   const clinicalData = rx.clinical_data as ClinicalData;
