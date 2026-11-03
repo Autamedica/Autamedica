@@ -63,6 +63,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           pnpm-version: ${{ env.PNPM_VERSION }}
+      - name: Test newsletter audience reconciliation safeguards
+        run: node --test apps/newsletter-worker/scripts/sync-newsletter-audience.test.mjs
       - name: Test Memed deployment configuration safeguards
         run: node --test scripts/ops/sync-memed-secrets.test.mjs
       - name: Verify service worker never caches clinical data
@@ -126,6 +128,11 @@ jobs:
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/auth_helper_permissions.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/clinical_rls_initplans.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/native_session_cleanup.sql
+      - name: Verify independent-session pharmacy concurrency
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          AUTAMEDICA_ISOLATED_TEST: 'on'
+        run: bash scripts/db/test-pharmacy-concurrency.sh
       - name: Export and verify a disposable database backup
         env:
           SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
@@ -158,6 +165,3 @@ jobs:
           if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" || "${{ needs.database-tests.result }}" != "success" ]]; then
             exit 1
             fi
-
-
-

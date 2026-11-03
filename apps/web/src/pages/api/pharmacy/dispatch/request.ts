@@ -124,7 +124,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .select('id, care_country').eq('id', context.patientId)
       .eq('user_id', context.userId).eq('active', true).maybeSingle()
     if (patientError) return internalError()
-    if (!patient || patient.care_country !== context.careCountry) return forbidden('patient_inactive_or_country_mismatch')
+    if (patient?.care_country !== context.careCountry) return forbidden('patient_inactive_or_country_mismatch')
 
     // Resolve even a kiosk-only origin through the persisted establishment.
     if (resolvedPharmacyId) {

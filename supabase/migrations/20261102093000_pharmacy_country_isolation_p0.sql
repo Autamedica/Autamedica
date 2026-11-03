@@ -424,7 +424,7 @@ BEGIN
   END IF;
   IF NEW.requested_by IS DISTINCT FROM auth.uid() OR auth.uid() IS NULL
      OR NEW.status<>'pending' OR NEW.response IS NOT NULL OR NEW.responded_by IS NOT NULL
-     OR NEW.response_decision IS NOT NULL OR NEW.modified_fields IS NOT NULL THEN
+     OR NEW.response_decision IS NOT NULL OR COALESCE(NEW.modified_fields,'{}'::jsonb)<>'{}'::jsonb THEN
     RAISE EXCEPTION 'dispensation_clarification_request_actor_required' USING ERRCODE='42501';
   END IF;
   IF NOT EXISTS (
@@ -600,6 +600,10 @@ BEGIN
 END $acl$;
 
 CREATE UNIQUE INDEX pharmacy_one_order_per_prescription ON public.dispensation_orders(prescription_id);
+
+-- This field is consumed by the current app/generated types but absent from the
+-- versioned baseline. Never grant a service implicitly during schema repair.
+ALTER TABLE public.doctors ADD COLUMN IF NOT EXISTS enabled_service_tiers text[] NOT NULL DEFAULT '{}'::text[];
 
 -- The canonical queue is pharmacy_dispatch_requests. Legacy queue writes cannot
 -- create or reactivate clinical work, while historical completion/cancellation is preserved.

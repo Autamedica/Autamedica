@@ -8,6 +8,119 @@ Full platform recovery is **not yet accredited**. This drill retained no backup 
 
 ## Export and retain
 
+### Encrypted DB + Storage bundle implementation — 2026-11-02
+
+Owner: AutaMedica engineering. Review this status before the next recovery drill;
+it is an implementation checkpoint, not full platform recovery accreditation.
+
+The production recovery workflow has an opt-in `retain_bundle` input. The default
+database-only drill remains unchanged. Retention mode requires the existing
+`SUPABASE_SERVICE_ROLE_KEY` secret and two repository variables:
+`RECOVERY_BACKUP_PUBLIC_KEY` (armored OpenPGP public key) and
+`RECOVERY_BACKUP_FINGERPRINT` (full uppercase 40-character primary fingerprint).
+Missing configuration fails before starting a production export. The runner must
+resolve Storage access before exporting: use the configured service-role secret
+when nonempty; otherwise read the existing legacy service-role key through the
+fixed production Management API using the existing `SUPABASE_ACCESS_TOKEN`.
+This read does not create/rotate credentials or write a secret back to GitHub.
+The response is kept in memory, checked for project/role/expiry and masked before
+any subsequent workflow output. Error bodies and tokens are never logged.
+The lookup is manual-retention-only and absent from PR jobs. The runner must
+never receive the private decryption key. Keep that key and its recovery procedure
+in an independently accessible approved secret store and prove decryption before
+relying on this retention mechanism. Do not paste private keys in chat or git.
+
+This increment captures all Storage buckets and object identities in the SQL
+snapshot, downloads object bytes through the fixed production HTTPS endpoint,
+and records sizes and SHA-256 checksums. Each response must match the snapshot
+ETag using `If-Match` and a response-header check; simple MD5 ETags also require
+an independently matching body digest. Multipart ETags are checked as opaque
+server identifiers. Packaging rechecks capture-time Storage hashes/sizes and the
+original SQL hashes used by the successful restore. Object names never become local paths.
+Redirects, size mismatches, missing objects, duplicate identities and versioned
+objects fail closed. A fresh transaction compares the inventory after downloads;
+any concurrent change rejects the candidate. This is a stability check, not a
+transactional snapshot of the object store. A coordinated write freeze or a
+version-aware export remains necessary for a guaranteed atomic DB/Storage point.
+
+After the offline database restore passes, the private archive includes all four
+SQL sections, exact source ACL facts, data/security expectations, table/FK
+catalogs, extension pins, Storage inventory and object bytes. GnuPG encrypts it
+to the fingerprint-checked public key. Only the encrypted archive and its outer
+checksum are eligible for upload, after temporary database cleanup succeeds.
+No raw SQL, filenames, ACL facts, clinical records or private diagnostics are
+uploaded as plaintext. The private repository Actions artifact uses 30-day
+retention and a unique run/attempt identifier. This is provisional retention;
+repository deletion or artifact expiry still loses that copy. No R2 bucket is
+created or charged by this change.
+
+`encrypted_bundle_created` is distinct from confirmed artifact upload, and both
+are distinct from `retained_copy_restore_verified`. The script deliberately
+keeps the latter false. This increment does not yet restore Storage through an
+isolated Storage service or recover Vault and external provider configuration.
+It must not be reported as closing stage 1.
+
+### Recover from an independently retained encrypted file
+
+`scripts/db/restore_retained_bundle.py` consumes a local downloaded ciphertext,
+an expected ciphertext SHA-256 from trusted retention evidence, and a private
+key file recovered from independent escrow. It makes no production DB/API
+request and needs no production credentials. An optional
+`--key-passphrase-file` supports protected escrow keys; never put a passphrase
+in a command argument or chat. The escrow file itself stays with its custodian;
+only temporary imported key material is removed. The home-scoped GnuPG agent is
+terminated even on failure, evicting any cached recovery key/passphrase.
+
+On an approved recovery machine with Docker, GnuPG and the pinned Supabase CLI,
+run the following with paths to private local files. Replace the hash placeholder
+with the trusted ciphertext hash; a checksum supplied by an untrusted sender is
+not an independent authenticity check.
+
+```bash
+python3 scripts/db/restore_retained_bundle.py \
+  --bundle /secure/retained/recovery.tar.gz.gpg \
+  --sha256 TRUSTED_CIPHERTEXT_SHA256 \
+  --key-file /secure/escrow/recovery-private.asc \
+  --key-passphrase-file /secure/escrow/recovery-passphrase \
+  --confirm RESTORE-RETAINED-qxjjrpksmwwrmubhvjew
+```
+
+The reader rejects unexpected archive files, traversal, links, duplicates,
+oversized components, wrong project/image/format, missing replay metadata and
+checksum/inventory mismatches before executing SQL. It reconstructs Storage
+bytes using hashed local filenames and verifies their mapping, sizes and hashes.
+The database receives native SQL sections only after its application services
+and cron are stopped and its networks are disconnected. It compares retained
+row fingerprints, security metadata, exact ACLs, FKs and the Storage catalog.
+Private extracted files and the disposable DB are destroyed before success.
+
+The report distinguishes `retained_database_restore_verified`,
+`retained_storage_bytes_verified` and `storage_service_restore_verified`.
+Reconstructed bytes do not prove that a restored Storage API can serve private
+documents with correct authorization. The production retained-copy drill remains
+unexecuted until an actual uploaded artifact and independent escrow are used.
+
+CI also runs `test_retained_restore_database.py` against disposable **synthetic**
+data: create a pinned source, seed integers and synthetic bytes, export/encrypt,
+destroy the source, then decrypt and restore from the retained file alone.
+This test requires no production credentials and cannot accredit production
+recovery. Its purpose is to test the recovery consumer and cleanup end to end.
+
+### Level 4 evidence sequence
+
+| Gate | Evidence already confirmed | Evidence still required |
+| --- | --- | --- |
+| Retained recovery | PR #640 database drill: 226 tables, 106,411 rows, 317 FKs | Uploaded encrypted copy; independent decryption; DB + Storage restore with origin unavailable; secrets/configuration recovery |
+| Integrity and access | Database permissions reproduced by the drill | BR/AR and role negative tests; private document access; clinical review of four historical certificates |
+| Clinical flow | Existing production functionality is outside this recovery checkpoint | Authorized real patient/doctor web + Android journey, notifications, consultation, record and indicated document |
+| Operation and alerts | Production and staging ACTIVE_HEALTHY on this checkpoint | Controlled failure, delivered alert, recovery, provider errors and truthful admin metrics |
+| Stability | No observation window accredited here | Final version identification; 72 hours with incident/availability/flow evidence and no open critical failures |
+
+Start the 72-hour window only after the final release passes the preceding
+technical gates. A critical release change restarts its affected observation.
+The 5–7 day objective depends on recovery access and authorized medical
+participation; it is not an automatic level upgrade at the end of that period.
+
 **Current-source limitation:** the legacy three-file exporter below is an integrity/export tool, not an accredited recovery format for the current production database. Production has historical rows under a `NOT VALID` check constraint. Loading the entire schema before its data re-enforces that check against those historical rows. A retained recovery strategy must use native pre-data/data/post-data ordering (or a supported archive/PITR restore), retain the same-snapshot source permission facts needed for exact ACL replay, and pass a retained-copy drill; never remove the guard or change clinical records to make a restore pass.
 
 Prerequisites: Bash, Supabase CLI (validated CI version: 2.122.0), Docker, gzip and GNU coreutils. Obtain the production **direct or session-pooler** database connection through the approved secret store; do not use a transaction pooler. Keep credentials out of shell history, git and logs. Run with shell tracing disabled.
@@ -78,4 +191,5 @@ Before releasing the isolated environment for testing:
 A database export does not contain Storage object bytes, deployed Edge Functions, JWT/API secrets, OAuth/SMTP configuration or DNS. These require separate backup/configuration and recovery tests. A database-only drill cannot certify full platform recovery.
 
 Official reference: [Supabase platform-to-self-hosted restore](https://supabase.com/docs/guides/self-hosting/restore-from-platform).
+
 
