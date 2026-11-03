@@ -42,18 +42,18 @@ def safe(value):
 
 
 def demo_payload():
-    # Official SwaggerHub altaReceta 'example1': DEMO identity and codes.
-    # Date fields are the ONLY material changes from the published test example.
+    # Based on SwaggerHub DEMO; organization and affiliate credentials were
+    # corrected from Farmalink's response on 2026-11-03. Other DEMO fields
+    # remain unverified and must be reviewed before a real homologation run.
     today = datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")).date()
     return {
         "altaRecetaElectRq": {
             "infoCabeceraRq": {
-                "idOrganizacion": "100",
+                "idOrganizacion": "182",
                 "tipoOrganizacion": "NMD",
                 "ipOrigen": "8.8.8.8",
                 "infoBrowser": "Mozilla/5.0",
             },
-            "puntoEmisor": {"id": 100},
             "recElectronica": {
                 "tipoReceta": "1",
                 "fechaVigenciaDesde": today.isoformat(),
@@ -70,8 +70,8 @@ def demo_payload():
                     "numeroDocumento": 12345678,
                     "datosOfuscado": "N",
                     "credencial": {
-                        "codEntidad": 7100,
-                        "pan": "12345678",
+                        "codEntidad": 7110,
+                        "pan": "20123456786",
                         "plan": "100",
                         "token": "123456",
                     },
@@ -115,6 +115,11 @@ def demo_payload():
 
 
 def main():
+    # The prior TEST DEMO alta results were ambiguous (timeout / gateway 504).
+    # Block all new mutating calls until both have been reconciled with Farmalink.
+    if os.getenv("FARMALINK_DEMO_RECONCILED") != "yes":
+        print("RESULT=BLOCKED_PENDING_DEMO_RECONCILIATION")
+        return 6
     if not (os.getenv("FARMALINK_TEST_OAUTH_PASSWORD") and os.getenv("FARMALINK_TEST_BASIC_PASSWORD")):
         print("RESULT=NOT_CONFIGURED")
         return 2
