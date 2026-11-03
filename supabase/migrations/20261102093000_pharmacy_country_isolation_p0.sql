@@ -1,23 +1,11 @@
--- P0 security: isolate BR/AR pharmacy fulfillment and deny anonymous-country dispensing.
--- No historical prescription edits. Rollout gate: pharmacy tables must be empty
--- (confirmed on AutaMedica production on 2026-11-02).
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM public.pharmacies LIMIT 1)
-    OR EXISTS (SELECT 1 FROM public.pharmacists LIMIT 1)
-    OR EXISTS (SELECT 1 FROM public.dispensation_orders LIMIT 1)
-    OR EXISTS (SELECT 1 FROM public.dispensation_events LIMIT 1)
-    OR EXISTS (SELECT 1 FROM public.dispensation_validations LIMIT 1)
-  THEN RAISE EXCEPTION 'pharmacy_country_isolation_requires_data_reconciliation';
-  END IF;
-END $$;
-
+-- P0: new AR/BR dispensing is isolated; existing rows remain unclassified and frozen.
+-- No historical jurisdiction, clinical field, status or signature is backfilled.
 ALTER TABLE public.pharmacies
-  ADD COLUMN care_country text NOT NULL CONSTRAINT pharmacies_care_country_check CHECK (care_country IN ('AR','BR'));
+  ADD COLUMN care_country text CONSTRAINT pharmacies_care_country_check CHECK (care_country IN ('AR','BR'));
 ALTER TABLE public.pharmacists
-  ADD COLUMN care_country text NOT NULL CONSTRAINT pharmacists_care_country_check CHECK (care_country IN ('AR','BR'));
+  ADD COLUMN care_country text CONSTRAINT pharmacists_care_country_check CHECK (care_country IN ('AR','BR'));
 ALTER TABLE public.dispensation_orders
-  ADD COLUMN care_country text NOT NULL CONSTRAINT dispensation_orders_care_country_check CHECK (care_country IN ('AR','BR'));
+  ADD COLUMN care_country text CONSTRAINT dispensation_orders_care_country_check CHECK (care_country IN ('AR','BR'));
 
 COMMENT ON COLUMN public.pharmacies.care_country IS 'Required licensed jurisdiction of this dispensing pharmacy (AR/BR).';
 COMMENT ON COLUMN public.pharmacists.care_country IS 'Enforced server-side from the assigned pharmacy, never caller-controlled.';
@@ -131,6 +119,9 @@ LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = ''
 AS $$
 BEGIN
+  IF NEW.care_country IS NULL THEN
+    RAISE EXCEPTION 'pharmacy_country_required_or_historical_quarantined' USING ERRCODE='23514';
+  END IF;
   IF TG_OP = 'UPDATE' AND NEW.care_country IS DISTINCT FROM OLD.care_country THEN
     RAISE EXCEPTION 'pharmacy_country_immutable' USING ERRCODE = '23514';
   END IF;
@@ -149,6 +140,9 @@ AS $$
 DECLARE
   v_country text;
 BEGIN
+  IF TG_OP='UPDATE' AND OLD.care_country IS NULL THEN
+    RAISE EXCEPTION 'pharmacist_historical_country_quarantined' USING ERRCODE='23514';
+  END IF;
   IF TG_OP = 'UPDATE' AND (NEW.care_country IS DISTINCT FROM OLD.care_country
        OR NEW.pharmacy_id IS DISTINCT FROM OLD.pharmacy_id) THEN
     RAISE EXCEPTION 'pharmacist_assignment_requires_reenrollment' USING ERRCODE = '23514';
@@ -184,6 +178,12 @@ DECLARE
   v_pharmacy_country text;
   v_total bigint;
 BEGIN
+  IF TG_OP='UPDATE' AND OLD.care_country IS NULL THEN
+    RAISE EXCEPTION 'dispensation_historical_country_quarantined' USING ERRCODE='23514';
+  END IF;
+  IF TG_OP='INSERT' AND EXISTS(SELECT 1 FROM public.dispensation_orders o WHERE o.prescription_id=NEW.prescription_id AND o.care_country IS NULL) THEN
+    RAISE EXCEPTION 'dispensation_legacy_prescription_requires_reconciliation' USING ERRCODE='23514';
+  END IF;
   SELECT p.country_code, p.patient_id, p.doctor_id
     INTO v_rx FROM public.prescriptions p WHERE p.id = NEW.prescription_id;
   IF NOT FOUND OR v_rx.country_code NOT IN ('AR','BR') THEN
@@ -427,6 +427,9 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'dispensation_clarification_country_or_actor_mismatch' USING ERRCODE='23514';
   END IF;
+  PERFORM 1 FROM public.dispensation_orders WHERE id=NEW.order_id FOR UPDATE;
+  IF EXISTS(SELECT 1 FROM public.dispensation_clarifications WHERE order_id=NEW.order_id AND status='pending') THEN
+    RAISE EXCEPTION 'dispensation_clarification_already_pending' USING ERRCODE='23505'; END IF;
   RETURN NEW;
 END $$;
 
@@ -445,9 +448,7 @@ USING (
   )
 );
 
-CREATE INDEX IF NOT EXISTS idx_dispensation_orders_country_unassigned
-  ON public.dispensation_orders(care_country, status, created_at)
-  WHERE pharmacy_id IS NULL AND deleted_at IS NULL;
+
 
 -- Once a structured dispensing order exists, do not reclassify its source Rx.
 CREATE OR REPLACE FUNCTION app_private.guard_prescription_country_with_order()
@@ -538,8 +539,7 @@ END $$;
 CREATE TRIGGER zz_pharmacy_delivery_finalize AFTER INSERT ON public.dispensation_events
 FOR EACH ROW EXECUTE FUNCTION app_private.finalize_pharmacy_delivery();
 
--- Pending clarification uniqueness serializes racing retries before notifications.
-CREATE UNIQUE INDEX pharmacy_one_pending_clarification ON public.dispensation_clarifications(order_id) WHERE status='pending';
+-- Pending uniqueness is enforced by the parent-row lock in the request guard.
 
 -- Real actor checks apply even when a privileged web/Edge caller bypasses RLS.
 ALTER POLICY dispensation_orders_select_pharmacist ON public.dispensation_orders
@@ -576,7 +576,7 @@ BEGIN
   LOOP EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC,anon,authenticated,service_role',f.signature); END LOOP;
 END $acl$;
 
-CREATE UNIQUE INDEX pharmacy_one_order_per_prescription ON public.dispensation_orders(prescription_id);
+CREATE UNIQUE INDEX pharmacy_one_order_per_prescription ON public.dispensation_orders(prescription_id) WHERE care_country IS NOT NULL;
 
 -- This field is consumed by the current app/generated types but absent from the
 -- versioned baseline. Never grant a service implicitly during schema repair.

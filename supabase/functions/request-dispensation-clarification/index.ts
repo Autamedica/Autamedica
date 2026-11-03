@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
-import { verifyPharmacyOrderAccess } from '../_shared/pharmacy-country.ts';
+import { verifyPharmacyOrderAccess, pharmacyErrorCode } from '../_shared/pharmacy-country.ts';
 
 function requireEnv(name: string): string {
   const value = Deno.env.get(name);
@@ -129,9 +129,9 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertError) {
-      console.error('[request-dispensation-clarification] Insert error:', insertError);
+      console.error('[request-dispensation-clarification] Insert error:', { code: pharmacyErrorCode(insertError) });
       return new Response(JSON.stringify({ error: 'Failed to create clarification request' }), {
-        status: 500,
+        status: insertError.code === '42501' ? 403 : ['23505', '23514'].includes(insertError.code) ? 409 : 500,
         headers: { 'Content-Type': 'application/json' },
       });
     }
@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
       try {
         await supabaseAdmin.functions.invoke('send-push-notification', {
           body: {
-            user_id: doctor.user_id,
+            userId: doctor.user_id,
             title: '📋 Aclaración requerida',
             body: `La farmacia solicita aclaración sobre una receta: ${body.question_category}`,
             data: {
@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
         });
       } catch (notifError) {
         // Non-fatal: log but don't fail the request
-        console.error('[request-dispensation-clarification] Push notification failed:', notifError);
+        console.error('[request-dispensation-clarification] Push notification failed:', { code: pharmacyErrorCode(notifError) });
       }
     }
 
@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('[request-dispensation-clarification] Unexpected error:', error);
+    console.error('[request-dispensation-clarification] Unexpected error:', { code: pharmacyErrorCode(error) });
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

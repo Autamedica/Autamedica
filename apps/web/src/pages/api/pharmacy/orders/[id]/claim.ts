@@ -1,3 +1,4 @@
+import { pharmacyErrorCode } from '@/lib/pharmacy/errors';
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { withAuthRole, PHARMACIST_ROLES, isAuthed } from '@/lib/api-auth';
@@ -26,7 +27,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     const httpStatus = code === 'not_pharmacist' ? 403 : code === 'order_not_in_pharmacy' ? 409 : 400;
     return new Response(JSON.stringify({ error: errorResult.error }), { status: httpStatus });
   } catch (err) {
-    logger.error('[pharmacy/orders/claim] POST error', err);
+    logger.error('[pharmacy/orders/claim] POST error', { code: pharmacyErrorCode(err) });
     return internalError();
   }
 };

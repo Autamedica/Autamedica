@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
-import { verifyPharmacyOrderAccess } from '../_shared/pharmacy-country.ts';
+import { verifyPharmacyOrderAccess, pharmacyErrorCode } from '../_shared/pharmacy-country.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? (() => { throw new Error('SUPABASE_URL is not set') })();
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? (() => { throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set') })();
@@ -145,12 +145,12 @@ Deno.serve(async (req) => {
       prescription_status_updated: updated.data.status === 'dispensed' ? 'dispensed_total' : 'dispensed_partial',
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (error) {
-    captureEdgeException(error, {
+    captureEdgeException(new Error('pharmacy_operation_failed'), {
       layer: 'data-platform',
       surface: 'execute-dispensation:unexpected',
       owner: 'Pharmacy Platform',
     });
-    console.error('[execute-dispensation] Unexpected error:', error);
+    console.error('[execute-dispensation] Unexpected error:', { code: pharmacyErrorCode(error) });
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

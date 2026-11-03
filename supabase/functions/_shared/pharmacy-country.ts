@@ -45,3 +45,9 @@ export async function verifyPharmacyOrderAccess(
   return null;
 }
 
+
+/** Safe structured telemetry: never forward SQL failing rows, messages or details. */
+export function pharmacyErrorCode(error: unknown): string {
+  const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
+  return typeof code === 'string' && /^[A-Z0-9]{5}$/.test(code) ? code : 'INTERNAL';
+}

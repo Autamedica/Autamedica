@@ -2655,7 +2655,7 @@ export type Database = {
       }
       dispensation_orders: {
         Row: {
-          care_country: string
+          care_country: string | null
           clinical_semaphore: string | null
           clinician_decision: string
           created_at: string
@@ -2685,7 +2685,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          care_country?: string
+          care_country?: string | null
           clinical_semaphore?: string | null
           clinician_decision?: string
           created_at?: string
@@ -2715,7 +2715,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          care_country?: string
+          care_country?: string | null
           clinical_semaphore?: string | null
           clinician_decision?: string
           created_at?: string
@@ -5764,7 +5764,7 @@ export type Database = {
         Row: {
           active: boolean
           address: Json
-          care_country: string
+          care_country: string | null
           created_at: string
           deleted_at: string | null
           email: string | null
@@ -5778,7 +5778,7 @@ export type Database = {
         Insert: {
           active?: boolean
           address?: Json
-          care_country: string
+          care_country: string | null
           created_at?: string
           deleted_at?: string | null
           email?: string | null
@@ -5792,7 +5792,7 @@ export type Database = {
         Update: {
           active?: boolean
           address?: Json
-          care_country?: string
+          care_country?: string | null
           created_at?: string
           deleted_at?: string | null
           email?: string | null
@@ -5816,7 +5816,7 @@ export type Database = {
       pharmacists: {
         Row: {
           active: boolean
-          care_country: string
+          care_country: string | null
           created_at: string
           full_name: string | null
           id: string
@@ -5829,7 +5829,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
-          care_country?: string
+          care_country?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
@@ -5842,7 +5842,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
-          care_country?: string
+          care_country?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
@@ -9066,3 +9066,4 @@ export const Constants = {
     },
   },
 } as const
+

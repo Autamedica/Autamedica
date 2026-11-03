@@ -1,3 +1,4 @@
+import { pharmacyErrorCode } from '@/lib/pharmacy/errors';
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { withAuthRole, PHARMACIST_ROLES, isAuthed } from '@/lib/api-auth';
@@ -78,7 +79,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       .maybeSingle();
 
     if (pharmacistError) {
-      logger.error('[pharmacy/orders/clarify] Pharmacist lookup failed', pharmacistError);
+      logger.error('[pharmacy/orders/clarify] Pharmacist lookup failed', { code: pharmacyErrorCode(pharmacistError) });
       return internalError();
     }
 
@@ -96,7 +97,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       .maybeSingle();
 
     if (orderError) {
-      logger.error('[pharmacy/orders/clarify] Order lookup failed', orderError);
+      logger.error('[pharmacy/orders/clarify] Order lookup failed', { code: pharmacyErrorCode(orderError) });
       return internalError();
     }
 
@@ -145,7 +146,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       .maybeSingle();
 
     if (existingError) {
-      logger.error('[pharmacy/orders/clarify] Pending clarification lookup failed', existingError);
+      logger.error('[pharmacy/orders/clarify] Pending clarification lookup failed', { code: pharmacyErrorCode(existingError) });
       return internalError();
     }
 
@@ -171,7 +172,10 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       .single();
 
     if (clarificationError) {
-      logger.error('[pharmacy/orders/clarify] Clarification insert failed', clarificationError);
+      if (pharmacyErrorCode(clarificationError) === '23505') return conflict('clarification_already_pending');
+      if (pharmacyErrorCode(clarificationError) === '42501') return forbidden('pharmacy_authorization_required');
+      if (pharmacyErrorCode(clarificationError) === '23514') return conflict('clarification_state_conflict');
+      logger.error('[pharmacy/orders/clarify] Clarification insert failed', { code: pharmacyErrorCode(clarificationError) });
       return internalError();
     }
 
@@ -183,7 +187,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       .maybeSingle();
 
     if (doctorError) {
-      logger.warn('[pharmacy/orders/clarify] Doctor notification lookup failed', doctorError);
+      logger.warn('[pharmacy/orders/clarify] Doctor notification lookup failed', { code: pharmacyErrorCode(doctorError) });
     }
 
     if (doctor?.user_id) {
@@ -203,7 +207,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
         });
 
       if (notificationError) {
-        logger.warn('[pharmacy/orders/clarify] Notification insert failed', notificationError);
+        logger.warn('[pharmacy/orders/clarify] Notification insert failed', { code: pharmacyErrorCode(notificationError) });
       }
     }
 
@@ -213,7 +217,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       expiresAt,
     }, 201);
   } catch (err) {
-    logger.error('[pharmacy/orders/clarify] POST error', err);
+    logger.error('[pharmacy/orders/clarify] POST error', { code: pharmacyErrorCode(err) });
     return internalError();
   }
 };

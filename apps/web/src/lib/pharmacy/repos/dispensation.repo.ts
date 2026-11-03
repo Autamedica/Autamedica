@@ -4,13 +4,14 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@autamedica/shared';
+import { pharmacyErrorCode } from '../errors';
 
 type Client = SupabaseClient;
 
 export interface PharmacistRecord {
   id: string;
   pharmacy_id: string;
-  care_country: 'AR' | 'BR';
+  care_country: 'AR' | 'BR' | null;
   license_number: string | null;
 }
 
@@ -20,7 +21,7 @@ export interface DispensationOrderRow {
   patient_id: string;
   doctor_id: string;
   pharmacy_id: string | null;
-  care_country: 'AR' | 'BR';
+  care_country: 'AR' | 'BR' | null;
   medication: string | null;
   formulation: string | null;
   dose_mg_per_day: number | null;
@@ -78,7 +79,7 @@ export const dispensationRepo = {
 
     const { data, error } = await query;
     if (error) {
-      logger.error('[dispensationRepo] listOrders error', error);
+      logger.error('[dispensationRepo] listOrders error', { code: pharmacyErrorCode(error) });
       throw error;
     }
     return data ?? [];
@@ -106,7 +107,7 @@ export const dispensationRepo = {
       .order('created_at', { ascending: true })
       .limit(limit);
     if (error) {
-      logger.error('[dispensationRepo] listUnassignedOrders error', error);
+      logger.error('[dispensationRepo] listUnassignedOrders error', { code: pharmacyErrorCode(error) });
       throw error;
     }
     return data ?? [];
@@ -129,7 +130,7 @@ export const dispensationRepo = {
       .maybeSingle();
     if (!data && !error) throw new Error('order_claim_conflict');
     if (error) {
-      logger.error('[dispensationRepo] claimOrder error', { orderId, pharmacyId, error });
+      logger.error('[dispensationRepo] claimOrder error', { orderId, pharmacyId, code: pharmacyErrorCode(error) });
       throw error;
     }
   },
@@ -159,7 +160,7 @@ export const dispensationRepo = {
       .update({ status })
       .eq('id', orderId);
     if (error) {
-      logger.error('[dispensationRepo] updateOrderStatus error', { orderId, status, error });
+      logger.error('[dispensationRepo] updateOrderStatus error', { orderId, status, code: pharmacyErrorCode(error) });
       throw error;
     }
   },
@@ -178,7 +179,7 @@ export const dispensationRepo = {
   ): Promise<void> {
     const { error } = await supabase.from('dispensation_validations').insert(data);
     if (error) {
-      logger.error('[dispensationRepo] insertValidation error', error);
+      logger.error('[dispensationRepo] insertValidation error', { code: pharmacyErrorCode(error) });
       throw error;
     }
   },
@@ -206,7 +207,7 @@ export const dispensationRepo = {
   ): Promise<void> {
     const { error } = await supabase.from('dispensation_events').insert(data);
     if (error) {
-      logger.error('[dispensationRepo] insertEvent error', error);
+      logger.error('[dispensationRepo] insertEvent error', { code: pharmacyErrorCode(error) });
       throw error;
     }
   },
@@ -226,7 +227,7 @@ export const dispensationRepo = {
       .update({ status })
       .eq('id', prescriptionId);
     if (error) {
-      logger.error('[dispensationRepo] updatePrescriptionStatus error', { prescriptionId, status, error });
+      logger.error('[dispensationRepo] updatePrescriptionStatus error', { prescriptionId, status, code: pharmacyErrorCode(error) });
     }
   },
 
@@ -241,7 +242,7 @@ export const dispensationRepo = {
     },
   ): Promise<void> {
     await supabase.from('pharmacy_audit_events').insert(data).then(({ error }) => {
-      if (error) logger.warn('[dispensationRepo] audit log error (non-blocking)', error);
+      if (error) logger.warn('[dispensationRepo] audit log error (non-blocking)', { code: pharmacyErrorCode(error) });
     });
   },
 };

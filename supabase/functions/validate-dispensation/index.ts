@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
-import { verifyPharmacyOrderAccess } from '../_shared/pharmacy-country.ts';
+import { verifyPharmacyOrderAccess, pharmacyErrorCode } from '../_shared/pharmacy-country.ts';
 
 function requireEnv(name: string): string {
   const value = Deno.env.get(name);
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
       });
 
     if (validationError) {
-      captureEdgeException(validationError, {
+      captureEdgeException(new Error('pharmacy_operation_failed'), {
         layer: 'data-platform',
         surface: 'validate-dispensation:validation-insert',
         owner: 'Pharmacy Platform',
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
           result: body.result,
         },
       });
-      console.error('[validate-dispensation] Validation insert error:', validationError);
+      console.error('[validate-dispensation] Validation insert error:', { code: pharmacyErrorCode(validationError) });
       return new Response(JSON.stringify({ error: 'Failed to record validation' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -254,12 +254,12 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    captureEdgeException(error, {
+    captureEdgeException(new Error('pharmacy_operation_failed'), {
       layer: 'data-platform',
       surface: 'validate-dispensation:unexpected',
       owner: 'Pharmacy Platform',
     });
-    console.error('[validate-dispensation] Unexpected error:', error);
+    console.error('[validate-dispensation] Unexpected error:', { code: pharmacyErrorCode(error) });
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

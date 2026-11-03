@@ -13,7 +13,7 @@ if (pharmacyId) {
   const admin = createAstroAdminClient(Astro.locals.runtime?.env);
   const { data } = await admin.from('pharmacies').select('name, care_country, active, deleted_at')
     .eq('id', pharmacyId).maybeSingle();
-  if (data?.active && !data.deleted_at && ['AR', 'BR'].includes(data.care_country)) {
+  if (data?.active && !data.deleted_at && ['AR', 'BR'].includes(data.care_country ?? '')) {
     pharmacyName = data.name;
     originCountry = data.care_country;
     originValid = true;

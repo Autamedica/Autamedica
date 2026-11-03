@@ -16,8 +16,8 @@ BEGIN
     IF NOT EXISTS (
       SELECT 1 FROM information_schema.columns
       WHERE table_schema='public' AND table_name=v_table
-        AND column_name='care_country' AND is_nullable='NO'
-    ) THEN RAISE EXCEPTION 'Missing mandatory care_country on %',v_table; END IF;
+        AND column_name='care_country' AND is_nullable='YES'
+    ) THEN RAISE EXCEPTION 'Missing nullable historical quarantine country on %',v_table; END IF;
   END LOOP;
 
   FOREACH v_trigger IN ARRAY ARRAY[
@@ -82,6 +82,13 @@ BEGIN
   IF NOT v_rejected THEN
     RAISE EXCEPTION 'Pharmacy accepted a country outside AR/BR';
   END IF;
+  v_rejected:=false;
+  BEGIN
+    INSERT INTO public.pharmacies(name,license_number)
+    VALUES('CI missing jurisdiction','CI-PHARM-NULL-'||gen_random_uuid());
+  EXCEPTION WHEN check_violation THEN v_rejected:=true;
+  END;
+  IF NOT v_rejected THEN RAISE EXCEPTION 'New pharmacy accepted an unknown country'; END IF;
 END $negative_country$;
 
 -- Successful AR/BR pharmacy registration and negative country reassignment.

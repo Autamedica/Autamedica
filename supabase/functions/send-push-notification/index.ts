@@ -1,3 +1,4 @@
+import { trustedPushAuthorization } from '../_shared/push-authorization.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -143,18 +144,21 @@ function parseServiceAccount(raw: string | null): ServiceAccount | null {
   }
 }
 
-function isAuthorized(authHeader: string | null): boolean {
-  if (!authHeader) return false
-  const token = authHeader.replace('Bearer ', '')
-  const cronSecret = Deno.env.get('CRON_SECRET') ?? ''
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-  return Boolean(token && (token === cronSecret || token === serviceRoleKey || (anonKey && token === anonKey)))
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'method_not_allowed' }), { status: 405, headers: corsHeaders })
+  }
+  if (!trustedPushAuthorization(req.headers.get('Authorization'), {
+    cronSecret: Deno.env.get('CRON_SECRET'),
+    serviceRoleKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+  })) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 
   let bodyPayload: PushPayload | null = null
@@ -164,15 +168,6 @@ Deno.serve(async (req) => {
     bodyPayload = null
   }
 
-  const isDispatch = bodyPayload?.data?.type === 'pharmacy_dispatch_incoming' ||
-    bodyPayload?.data?.notification_type === 'pharmacy_dispatch_incoming'
-
-  if (!isDispatch && !isAuthorized(req.headers.get('Authorization'))) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
 
   try {
     const supabaseAdmin = createClient(
@@ -199,7 +194,7 @@ Deno.serve(async (req) => {
       .single()
 
     if (profileError || !profile?.fcm_token) {
-      console.warn(`No FCM token found for user ${userId}`)
+      console.warn('[FCM] recipient_token_missing')
       return new Response(JSON.stringify({ success: false, error: 'no_token' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
@@ -254,9 +249,9 @@ Deno.serve(async (req) => {
     const result = await sendFcm(sa, message)
 
     if (!result.ok) {
-      console.error('[FCM] send failed', { status: result.status, body: result.body })
+      console.error('[FCM] send failed', { status: result.status })
       return new Response(
-        JSON.stringify({ success: false, error: 'fcm_send_failed', details: result.body }),
+        JSON.stringify({ success: false, error: 'fcm_send_failed' }),
         { status: result.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
@@ -267,8 +262,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
-  } catch (error) {
-    console.error('send-push-notification error:', error)
+  } catch {
+    console.error('send-push-notification error:', { code: 'push_delivery_failed' })
     return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })

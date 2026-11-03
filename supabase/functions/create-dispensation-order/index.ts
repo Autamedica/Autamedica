@@ -1,3 +1,4 @@
+import { pharmacyErrorCode } from '../_shared/pharmacy-country.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
 
@@ -189,7 +190,7 @@ Deno.serve(async (req) => {
       });
     }
     if (insertError) {
-      captureEdgeException(insertError, {
+      captureEdgeException(new Error('pharmacy_operation_failed'), {
         layer: 'data-platform',
         surface: 'create-dispensation-order:insert',
         owner: 'Supabase Platform',
@@ -199,8 +200,8 @@ Deno.serve(async (req) => {
           doctorId: prescription.doctor_id,
         },
       });
-      console.error('[create-dispensation-order] Insert error:', insertError);
-      return new Response(JSON.stringify({ error: 'Failed to create dispensation order', details: insertError.message }), {
+      console.error('[create-dispensation-order] Insert error:', { code: pharmacyErrorCode(insertError) });
+      return new Response(JSON.stringify({ error: 'Failed to create dispensation order' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -252,12 +253,12 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    captureEdgeException(error, {
+    captureEdgeException(new Error('pharmacy_operation_failed'), {
       layer: 'data-platform',
       surface: 'create-dispensation-order:unexpected',
       owner: 'Supabase Platform',
     });
-    console.error('[create-dispensation-order] Unexpected error:', error);
+    console.error('[create-dispensation-order] Unexpected error:', { code: pharmacyErrorCode(error) });
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

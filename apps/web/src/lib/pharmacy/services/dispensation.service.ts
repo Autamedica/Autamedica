@@ -71,12 +71,12 @@ function fail<T>(error: ServiceError): Result<T> { return { ok: false, error }; 
 async function verifiedPharmacist(supabase: Client, userId: string) {
   const pharmacist = await dispensationRepo.findPharmacist(supabase, userId);
   if (!pharmacist?.pharmacy_id || !pharmacist.license_number?.trim() ||
-      !['AR', 'BR'].includes(pharmacist.care_country)) return null;
+      (pharmacist.care_country !== 'AR' && pharmacist.care_country !== 'BR')) return null;
   const { data: pharmacy } = await supabase.from('pharmacies')
     .select('id, care_country, active, deleted_at')
     .eq('id', pharmacist.pharmacy_id).maybeSingle();
   if (!pharmacy?.active || pharmacy.deleted_at || pharmacy.care_country !== pharmacist.care_country) return null;
-  return pharmacist;
+  return { ...pharmacist, care_country: pharmacist.care_country };
 }
 
 export const dispensationService = {
