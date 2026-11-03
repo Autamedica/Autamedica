@@ -86,14 +86,14 @@ async function main() {
     data: {
       type: 'usuarios',
       attributes: {
-        external_id: 'autamedica-demo-docs-exemplo-20261103',
-        nome: 'Gustavo',
-        sobrenome: 'Ribeiro Sousa',
-        cpf: '53076220403', // DEMO fixture from Memed's own 'Cadastrar o prescritor' example
-        board: { board_code: 'CRM', board_number: '315435435', board_state: 'SP' },
+        external_id: 'autamedica-homologacao-demo-proprio-20261103-01',
+        nome: 'Medico',
+        sobrenome: 'AUTAMEDICA DEMO',
+        cpf: '92716031410', // generated checksum-valid synthetic CPF; sandbox only
+        board: { board_code: 'CRM', board_number: '99091103', board_state: 'RS' },
         email: 'medico-autamedica-demo@example.invalid',
         sexo: 'M',
-        data_nascimento: '05/09/1972',
+        data_nascimento: '25/07/1980',
       },
     },
   };
@@ -139,8 +139,12 @@ async function main() {
       && attrs?.external_id === demo.data.attributes.external_id;
     // Do not log or store the returned token, name or CPF.
   }
-  // The dry-run never mutates providers; no repeat registration after Board errors.
+  // Only attempt one write when CFM dry-run approves and the test CPF is unused.
   if (!REGISTER || (VALIDATE_DEMO && !report.demoCfmValidation.validated)) return;
+  if (report.demoPrescriberLookup.exists) {
+    report.failure = 'demo_practitioner_already_exists';
+    return;
+  }
 
   report.demoDoctor.attempted = true;
   const result = await endpoint('/sinapse-prescricao/usuarios', { apiKey, secretKey }, {
