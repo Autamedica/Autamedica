@@ -45,7 +45,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const tokenHash = await hashToken(clickToken)
-    const { data: claimed, error } = await admin.rpc('claim_partner_attribution', {
+    const typedRpc = admin as unknown as {
+      rpc: (name: 'claim_partner_attribution', args: {
+        p_token_hash: string
+        p_patient_user_id: string
+        p_source: string
+      }) => Promise<{ data: boolean | null; error: unknown }>
+    }
+    const { data: claimed, error } = await typedRpc.rpc('claim_partner_attribution', {
       p_token_hash: tokenHash,
       p_patient_user_id: auth.user.id,
       p_source: source,
