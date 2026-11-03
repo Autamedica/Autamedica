@@ -1,6 +1,13 @@
 name: Prescription public verification P0 (fail-closed)
 
 on:
+  push:
+    branches:
+      - fix/prescription-public-verify-p0-20261103
+    paths:
+      - 'apps/web/src/pages/api/verify/**'
+      - 'apps/web/src/components/prescriptions/PrescriptionVerifyPage.tsx'
+      - '.github/workflows/prescription-verify-p0.yml'
   pull_request:
     paths:
       - 'apps/web/src/pages/api/verify/**'
