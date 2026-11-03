@@ -4,33 +4,23 @@ import { createAstroAdminClient } from '@/lib/supabase'
 
 export const prerender = false
 
-/**
- * Physical QR entry points for AutaMedica partners.
- * Only codes registered here can redirect; visitor input is never a redirect URL.
- * QR scans measure exposure, not verified installs, appointments or commissions.
- */
+/** Strict allowlist: visiting a QR does not itself earn a commission. */
 const LOCATIONS: Record<string, { partner: string; country: string }> = {
   JORDAN01: { partner: 'jordan', country: 'BR' },
   JORDAN02: { partner: 'jordan', country: 'BR' },
 }
 
-type EventsTable = {
-  insert: (row: Record<string, unknown>) => Promise<{ error: unknown }>
-}
-type PartnerGrowthClient = {
-  schema: (name: 'growth_os') => {
-    from: (table: 'growth_events') => EventsTable
-  }
+function sha256Hex(value: string): Promise<string> {
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+    .then(buffer => Array.from(new Uint8Array(buffer), b => b.toString(16).padStart(2, '0')).join(''))
 }
 
 export const GET: APIRoute = async ({ params, request, locals }) => {
   const code = (params.code ?? '').trim().toUpperCase()
   const location = LOCATIONS[code]
-
   if (!location) {
     return new Response('QR não encontrado', {
-      status: 404,
-      headers: { 'Cache-Control': 'no-store' },
+      status: 404, headers: { 'Cache-Control': 'no-store' },
     })
   }
 
@@ -45,22 +35,35 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
     destination.searchParams.set(key, value)
   }
 
-  // An unavailable analytics system must never prevent patients from reaching the app.
+  // Opaque 128-bit visit token. Hash only is stored server-side.
+  // If persistence fails, redirect without a claimable token.
   try {
-    const admin = createAstroAdminClient(locals.runtime?.env) as unknown as PartnerGrowthClient
-    const { error } = await admin.schema('growth_os').from('growth_events').insert({
-      event_type: 'partner_qr_scan',
-      vertical: 'patients',
-      page_url: '/j/' + code,
-      attribution,
-      metadata: {
-        partner_code: location.partner,
-        location_code: code,
-        country_code: location.country,
-      },
+    const admin = createAstroAdminClient(locals.runtime?.env)
+    const token = crypto.randomUUID().replaceAll('-', '')
+    const tokenHash = await sha256Hex(token)
+    const { error } = await admin.from('partner_qr_visits').insert({
+      token_hash: tokenHash,
+      partner_code: location.partner,
+      location_code: code,
+      country_code: location.country,
     })
     if (error) {
-      logger.error('[partner-qr] Unable to record scan', error)
+      logger.error('[partner-qr] Visit persistence failed', error)
+    } else {
+      destination.searchParams.set('utm_term', 'click_' + token)
+      // Optional marketing analytics: must not affect the authoritative visit.
+      try {
+        const { error: eventError } = await admin.schema('growth_os').from('growth_events').insert({
+          event_type: 'partner_qr_scan',
+          vertical: 'patients',
+          page_url: '/j/' + code,
+          attribution,
+          metadata: { partner_code: location.partner, location_code: code, country_code: location.country },
+        })
+        if (eventError) logger.error('[partner-qr] Growth event not recorded', eventError)
+      } catch (eventError) {
+        logger.error('[partner-qr] Growth events unavailable', eventError)
+      }
     }
   } catch (error) {
     logger.error('[partner-qr] Analytics unavailable', error)
