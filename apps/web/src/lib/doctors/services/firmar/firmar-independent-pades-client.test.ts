@@ -49,7 +49,7 @@ describe('FirmAR isolated PAdES verifier adapter (mock transport)', () => {
   });
 
   it('only accepts signed evidence matching original bytes, signer and hashes', async () => {
-    const fetcher = vi.fn(async () =>
+    const fetcher = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
       new Response(JSON.stringify(await fixtureResponse()), { status: 200 }),
     );
     const verify = createFirmArIndependentPadesVerifier(service, fetcher as unknown as typeof fetch);
