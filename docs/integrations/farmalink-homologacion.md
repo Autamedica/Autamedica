@@ -11,6 +11,19 @@
   aceptada en AutaMedica (`profiles.sss_validation_status` `valid` o `exempt`).
 - Emision AutaMedica: cuando `FARMALINK_ENABLED=true`, el servicio de emision intenta `altaReceta` antes de generar el PDF. Si Farmalink aprueba, guarda `vendor_name = "farmalink"` y `vendor_id = nroRecElectronica`, y el PDF imprime `RECETA FARMALINK` en el codigo de barras.
 - Estado de homologacion: completada. AutaMedica esta homologada para emitir recetas electronicas mediante Farmalink (IMED).
+- Verificacion operativa 2026-11-02: no se observaron variables FARMALINK_ en
+  Cloudflare Pages produccion de autamedica-web/autamedica-doctors y ninguna
+  receta en Supabase produccion registra vendor_name='farmalink'. La
+  documentacion interna de homologacion completada NO prueba la
+  configuracion productiva ni un alta exitosa actual.
+- Recuperacion: confirmar credenciales autorizadas de produccion, cargar
+  secretos exclusivamente en Cloudflare Pages, validar conectividad contra
+  endpoints autorizados, y ejecutar alta + consulta controladas en entorno de
+  homologacion antes de habilitar el circuito real.
+- Seguridad del flujo AR: si FARMALINK_ENABLED no esta activo o si AltaReceta
+  no devuelve una aprobacion con numero, la emision debe fallar explicitamente.
+  No registrar vendor_name='autamedica_internal' como sustituto de alta externa
+  para nuevas recetas argentinas.
 - Las credenciales OAuth y de aplicacion se mantienen exclusivamente en secretos de runtime y no deben documentarse ni versionarse.
 
 ## Contrato OAuth
