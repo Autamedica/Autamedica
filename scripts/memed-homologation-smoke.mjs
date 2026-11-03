@@ -135,6 +135,14 @@ async function main() {
     report.demoPrescriberLookup.httpStatus = lookup.status;
     const attrs = lookup.payload?.data?.attributes;
     report.demoPrescriberLookup.exists = lookup.status === 200 && !!attrs;
+    // Inspect only structure, never actual patient/doctor fields or token.
+    report.demoPrescriberLookup.responseShape = {
+      attributeKeys: attrs && typeof attrs === 'object' ? Object.keys(attrs).slice(0,24) : [],
+      boardKeys: attrs?.board && typeof attrs.board === 'object' ? Object.keys(attrs.board).slice(0,12) : [],
+      crmType: typeof attrs?.crm,
+      ufType: typeof attrs?.uf,
+      externalIdType: typeof attrs?.external_id,
+    };
     report.demoPrescriberLookup.sameExternalId = report.demoPrescriberLookup.exists
       && attrs?.external_id === demo.data.attributes.external_id;
     report.demoPrescriberLookup.tokenPresent = report.demoPrescriberLookup.sameExternalId
