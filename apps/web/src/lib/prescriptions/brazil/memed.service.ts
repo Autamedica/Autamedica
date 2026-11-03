@@ -37,9 +37,25 @@ function assertMemedDoctorMatch(attrs: Record<string, unknown>, doctor: MemedDoc
   if (attrs.external_id !== undefined && attrs.external_id !== doctor.externalId) {
     throw new Error('memed_provider_doctor_identity_mismatch');
   }
-  const crm = digits(attrs.crm);
-  const uf = String(attrs.uf ?? '').trim().toUpperCase();
-  if (cpf !== digits(doctor.cpf) || crm !== digits(doctor.crm) || uf !== doctor.uf.toUpperCase()) {
+  // Memed homologation GET returns the professional registry in attrs.board.
+  // Other provider responses can expose attrs.crm / attrs.uf instead.
+  // If both representations exist, ALL values must match; never trust one
+  // representation to conceal a mismatch in the other.
+  const board = attrs.board !== null && typeof attrs.board === 'object'
+    && !Array.isArray(attrs.board) ? attrs.board as Record<string, unknown> : null;
+  const present = (value: unknown): boolean =>
+    value !== undefined && value !== null && String(value).trim() !== '';
+  const crmValues = [attrs.crm, board?.board_number].filter(present);
+  const ufValues = [attrs.uf, board?.board_state].filter(present);
+  const boardCode = board?.board_code;
+  if (
+    cpf !== digits(doctor.cpf) ||
+    crmValues.length === 0 ||
+    !crmValues.every(value => digits(value) === digits(doctor.crm)) ||
+    ufValues.length === 0 ||
+    !ufValues.every(value => String(value).trim().toUpperCase() === doctor.uf.toUpperCase()) ||
+    (present(boardCode) && String(boardCode).trim().toUpperCase() !== 'CRM')
+  ) {
     throw new Error('memed_provider_doctor_identity_mismatch');
   }
 }
