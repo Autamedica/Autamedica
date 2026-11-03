@@ -98,6 +98,8 @@ describe('issuePrescription Farmalink wiring', () => {
       clinicalData: {
         diagnosis: 'Control',
         farmalink: {
+          // An old client-provided organization must not override the vendor-assigned ID.
+          organization: { id: '100' },
           credential: { codEntidad: 7110, pan: '87654321', plan: 'TEST' },
           item: { productCode: '999', drugCode: '888', genericText: 'IBUPROFENO 400 MG' },
         },
@@ -112,6 +114,7 @@ describe('issuePrescription Farmalink wiring', () => {
     });
     const request = buildFarmalinkAltaRecetaRequest(mapInput);
 
+    expect(request.altaRecetaElectRq.infoCabeceraRq.idOrganizacion).toBe('182');
     expect(request.altaRecetaElectRq.recElectronica.afiliado.credencial.pan).toBe('87654321');
     expect(request.altaRecetaElectRq.recElectronica.afiliado.credencial.plan).toBe('TEST');
     expect(request.altaRecetaElectRq.recElectronica.detalleRecElectronica.item[0])
