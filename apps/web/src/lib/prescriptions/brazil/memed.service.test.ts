@@ -137,10 +137,10 @@ describe('MemedService', () => {
   });
 
   it.each([
-    [{ board_number: '90261104' }, 'wrong CRM'],
-    [{ board_state: 'SP' }, 'wrong UF'],
-    [{ board_code: 'CRO' }, 'wrong board'],
-  ])('rejects mismatched nested CFM board %s (%s)', async (change) => {
+    { change: { board_number: '90261104' }, label: 'wrong CRM' },
+    { change: { board_state: 'SP' }, label: 'wrong UF' },
+    { change: { board_code: 'CRO' }, label: 'wrong board' },
+  ])('rejects mismatched nested CFM board: $label', async ({ change }) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true, json: async () => ({
         data: { attributes: {
