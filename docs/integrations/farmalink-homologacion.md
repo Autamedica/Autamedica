@@ -18,6 +18,14 @@
 - Produccion: mantener FARMALINK_ENABLED=false hasta alta aceptada, confirmacion formal de Farmalink, secretos productivos e integracion clinica validada.
 - Las credenciales OAuth y de aplicacion se mantienen exclusivamente en secretos de runtime y no deben documentarse ni versionarse.
 
+## Repetición de pruebas pendientes — 03/11/2026
+
+- **Alta DEMO, segundo intento independiente**: POST autenticado con el mismo fixture de SwaggerHub y un identificador de correlación distinto en `infoBrowser` (`AutaMedica-Test-c7db15b7b4`). Farmalink respondió **HTTP 504 Gateway Timeout en 30,6 s**, a pesar de aumentar el timeout del cliente a 85 s. Sin `nroRecElectronica`; resultado remoto incierto. No repetir para evitar duplicados. [Run](https://github.com/ecucondorSA/Autamedica/actions/runs/41587599039).
+- **Tres POST negativos reales**: `altaReceta`, `consultaReceta`, `bajaReceta` con JSON deliberadamente incompleto y SIN datos de paciente, medicamentos ni receta: **HTTP 400 / error interno 5075** en los tres casos. Los rechazos de formato son correctos, pero **NO** homologan operaciones válidas. [Run](https://github.com/ecucondorSA/Autamedica/actions/runs/41587250781).
+- **Baja real**: no ejecutada, porque no existe identificador de receta DEMO aprobado y confirmado por consulta. Está prohibido cancelar una receta de tercero o usar referencias inventadas para una baja.
+- **Escalación a Farmalink**: enviado nuevo correo de seguimiento al hilo de `homologacionre@farmalink.com.ar` solicitando rastrear el 504 por etiqueta, confirmar si hubo altas DEMO creadas y suministrar parámetros de organización/canal de homologación.
+- **Workflow de red**: después de cada prueba quedó en `workflow_dispatch`; sin ejecuciones mutativas en cada push de GitHub. No fusionar con main mientras haya casos P0 sin resolver.
+
 ## Evidencia adicional de pruebas (03/11/2026)
 
 | Componente | Prueba | Resultado |
