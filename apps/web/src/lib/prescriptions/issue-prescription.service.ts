@@ -119,6 +119,7 @@ export type IssuanceError =
   | { code: 'missing_license_number' }
   | { code: 'missing_refeps_id' }
   | { code: 'prescriber_validation_required' }
+  | { code: 'prescription_country_mismatch' }
   | { code: 'missing_professional_address' }
   | { code: 'prescription_not_found' }
   | { code: 'not_your_prescription' }
@@ -537,11 +538,11 @@ export async function issuePrescription(
   // 1. Resolve and validate doctor
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('id, license_number, license_type, uf_brazil, rqe_number, cpf, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
+    .select('id, active, care_country, license_number, license_type, uf_brazil, rqe_number, cpf, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (!doctor) return fail({ code: 'doctor_not_found' });
+  if (!doctor?.active) return fail({ code: 'doctor_not_found' });
   if (!doctor.license_number) return fail({ code: 'missing_license_number' });
   if (!doctor.professional_address) return fail({ code: 'missing_professional_address' });
 
@@ -556,9 +557,14 @@ export async function issuePrescription(
   if (rx.doctor_id !== doctor.id) return fail({ code: 'not_your_prescription' });
   if (rx.cuir) return fail({ code: 'already_issued' });
 
-  // Determine country jurisdiction from prescription or doctor profile
-  const prescriptionCountry: string = (rx as { country_code?: string })?.country_code
-    || (doctor.license_type === 'CRM' || doctor.uf_brazil ? 'BR' : doctor.license_type === 'MSP' ? 'UY' : 'AR');
+  // Route by the doctor's primary verified jurisdiction, never a client-supplied
+  // prescription country or a fallback based on the presence of CRM/UF.
+  // Do not transmit any data if a clinical document has a different market.
+  const prescriptionCountry = doctor.care_country;
+  if ((prescriptionCountry !== 'AR' && prescriptionCountry !== 'BR')
+    || rx.country_code !== prescriptionCountry) {
+    return fail({ code: 'prescription_country_mismatch' });
+  }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -579,11 +585,14 @@ export async function issuePrescription(
   // 3. Get and validate patient
   const { data: patient } = await supabase
     .from('patients')
-    .select('user_id, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info')
+    .select('user_id, active, care_country, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info')
     .eq('id', rx.patient_id)
     .single();
 
   if (!patient) return fail({ code: 'patient_not_found' });
+  if (!patient.active || patient.care_country !== prescriptionCountry) {
+    return fail({ code: 'prescription_country_mismatch' });
+  }
   // 4. Parse clinical data
   const clinicalData = rx.clinical_data as ClinicalData;
   const externalPatient = clinicalData?.external_patient;
