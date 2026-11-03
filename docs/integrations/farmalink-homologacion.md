@@ -18,6 +18,26 @@
 - Produccion: mantener FARMALINK_ENABLED=false hasta alta aceptada, confirmacion formal de Farmalink, secretos productivos e integracion clinica validada.
 - Las credenciales OAuth y de aplicacion se mantienen exclusivamente en secretos de runtime y no deben documentarse ni versionarse.
 
+## Evidencia adicional de pruebas (03/11/2026)
+
+| Componente | Prueba | Resultado |
+| --- | --- | --- |
+| Token OAuth TEST | POST /api/oauth/token/generate desde GitHub Actions | HTTP 200, token recibido |
+| Alta demo (UNICA solicitud) | POST /api/recetaElect/v3/altaReceta con ejemplo oficial de SwaggerHub | Timeout tras ~22 segundos; estado remoto NO DETERMINADO |
+| Rutas sin alteraciones | GET /api/recetaElect/v3/altaReceta con token | HTTP 405; ruta alcanzable |
+| Alta con estructura deliberadamente invalida | POST con JSON sin paciente ni medicacion | HTTP 400; sin receta posible |
+| Consulta de numero deliberadamente inexistente | POST /api/recetaElect/v3/consultaReceta | HTTP 200, codigo funcional 33: NUMERO DE RECETA INVALIDO (13,8 s) |
+| Baja de receta | Solo tests unitarios con fetch simulado | No se cancelo ninguna receta externa |
+| PDF/barcode y cliente Farmalink | Vitest con respuestas simuladas | 26 tests aprobados inicialmente; guardar ejecucion posterior para nuevas validaciones |
+
+Evidencia: workflow [alta demo](https://github.com/ecucondorSA/Autamedica/actions/runs/41584218813), [consulta real no mutativa](https://github.com/ecucondorSA/Autamedica/actions/runs/41585851984), [test unitario](https://github.com/ecucondorSA/Autamedica/actions/runs/41586118934).
+
+**Restricciones operativas:** No automatizar repeticion de altaReceta tras timeout, ni bajaReceta sin numero de receta confirmado y autorizacion de cancelacion; no activar Farmalink en produccion. El workflow de acceso TEST quedo en modo manual para evitar pruebas de red inesperadas.
+
+**Pendientes con Farmalink:** confirmar existencia de receta de la transaccion DEMO sin respuesta; idOrganizacion y puntoEmisor efectivos; constancia de homologacion y credenciales productivas; dataset de medico real/test autorizado; y correccion de ambiguedades de OpenAPI. En particular, `bajaReceta.recElectronica.receta.nroRecElectronica` se define como numero en el esquema, pero el ejemplo publicado es una cadena. No cambiar formato de anulacion en produccion sin confirmacion del proveedor.
+
+**P0 de idempotencia:** el flujo `issuePrescription` invoca `altaReceta` antes de persistir `vendor_id`. Si Farmalink acepta la solicitud y el cliente pierde respuesta, volver a emitir podria duplicar la receta. La solucion requiere reservar un intento persistente y bloquear reintentos por identificador de receta hasta conciliarlo; no se debe habilitar el servicio sin ese control y sus pruebas transaccionales.
+
 ## Contrato OAuth
 
 La generacion del token usa headers:
