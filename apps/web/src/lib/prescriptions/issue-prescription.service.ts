@@ -151,23 +151,6 @@ async function sha256BytesHex(bytes: Uint8Array): Promise<string> {
 
 function fail(error: IssuanceError): Result { return { ok: false, error }; }
 
-function getPrescriptionStoragePath(cuir: string, signedPdfUrl?: string | null): string {
-  if (signedPdfUrl) {
-    try {
-      const url = new URL(signedPdfUrl);
-      const marker = '/medical-documents/';
-      const index = url.pathname.indexOf(marker);
-      if (index >= 0) {
-        return decodeURIComponent(url.pathname.slice(index + marker.length));
-      }
-    } catch {
-      // Fall back to the canonical legacy path below.
-    }
-  }
-
-  return `prescriptions/${cuir}/receta-${cuir}.pdf`;
-}
-
 function resolveExternalPrescriptionForPdf(
   vendorName?: string | null,
   vendorId?: string | null,
@@ -1077,12 +1060,13 @@ export async function regenerateIssuedPrescriptionPdf(
     template: doctor.care_guide_template ?? 'neutral',
   });
 
-  const pdfPath = getPrescriptionStoragePath(rx.cuir, rx.signed_pdf_url);
+  // Never trust an old signed URL as a writable Storage path. Preserve the original object.
+  const pdfPath = `prescriptions/${rx.cuir}/regenerated-${rx.id}-${crypto.randomUUID()}.pdf`;
   const { error: uploadError } = await supabase.storage
     .from('medical-documents')
     .upload(pdfPath, artifacts.pdfBuffer, {
       contentType: 'application/pdf',
-      upsert: true,
+      upsert: false,
     });
 
   if (uploadError) {
@@ -1090,10 +1074,11 @@ export async function regenerateIssuedPrescriptionPdf(
     return fail({ code: 'pdf_upload_failed', details: uploadError.message || String(uploadError) });
   }
 
-  const { data: urlData } = await supabase.storage
+  const { data: urlData, error: urlError } = await supabase.storage
     .from('medical-documents')
     .createSignedUrl(pdfPath, 365 * 24 * 60 * 60);
-  const signedPdfUrl = urlData?.signedUrl ?? rx.signed_pdf_url ?? null;
+  if (urlError || !urlData?.signedUrl) return fail({code:'pdf_upload_failed'});
+  const signedPdfUrl = urlData.signedUrl;
 
   const { error: updateError } = await supabase
     .from('prescriptions')

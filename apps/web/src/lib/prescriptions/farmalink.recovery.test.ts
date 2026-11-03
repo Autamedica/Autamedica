@@ -78,4 +78,24 @@ describe('Farmalink receipt recovery without another alta',()=>{
   expect(d.upload).not.toHaveBeenCalled();
  });
 
+ it('never uses another prescription signed URL as a writable internal regeneration path',async()=>{
+  const d=db(null);const ownCuir='02680042020102000000000000000000000010102';
+  const rows={id:rx,doctor_id:'doctor',patient_id:'patient',cuir:ownCuir,vendor_name:'autamedica_internal',vendor_id:'internal',
+    signed_pdf_url:'https://example.invalid/object/sign/medical-documents/prescriptions/other-cuir/farmalink-protected.pdf?token=fixture',
+    clinical_data:{items:[{generic_name:'AMOXICILINA',quantity:1,dosage:'500mg'}]}};
+  Object.assign(d.client,{from:vi.fn((table:string)=>{
+   if(table==='prescriptions')return {select:()=>({limit:()=>({eq:async()=>({data:[rows]})})}),update:()=>({eq:async()=>({error:null})})};
+   if(table==='farmalink_issue_attempts')return {select:()=>({eq:()=>({maybeSingle:async()=>({data:null,error:null})})})};
+   if(table==='prescription_audit_events')return {insert:async()=>({error:null})};
+   const value=table==='doctors'?{id:'doctor',license_number:'1234567',refeps_id:'54123456789',professional_address:'CABA'}:
+     table==='patients'?{user_id:'patient-user',dni:'30123456',address:'CABA'}:{first_name:'Persona',last_name:'Fixture'};
+   return {select:()=>({eq:()=>({single:async()=>({data:value})})})};
+  })});
+  vi.spyOn(pdf,'generatePrescriptionPdf').mockResolvedValue({cuir:ownCuir,pdfBuffer:new Uint8Array(4),pdfFilename:'fixture.pdf',qrDataUrl:'',qrContent:'fixture'});
+  expect(await regenerateIssuedPrescriptionPdf(d.client,rx,actor)).toMatchObject({ok:true});
+  const [path,,options]=d.upload.mock.calls[0];
+  expect(path).toMatch(new RegExp(`^prescriptions/${ownCuir}/regenerated-${rx}-`));
+  expect(path).not.toContain('farmalink-protected');expect(options).toMatchObject({upsert:false});
+ });
+
 });
