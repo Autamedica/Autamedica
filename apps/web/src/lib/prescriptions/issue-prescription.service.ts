@@ -306,10 +306,9 @@ function buildFarmalinkPrescriptionMapInput(input: {
 
   return {
     organization: {
-      id: firstText(
-        readString(organization, ['id', 'idOrganizacion', 'id_organizacion']),
-        readEnv(['FARMALINK_ORG_ID']),
-      ) ?? '',
+      // The vendor-assigned organization must come from server-side runtime config,
+      // not mutable prescription metadata (which may still contain the old demo ID 100).
+      id: readEnv(['FARMALINK_ORG_ID']) ?? '',
       type: firstText(
         readString(organization, ['type', 'tipoOrganizacion', 'tipo_organizacion']),
         readEnv(['FARMALINK_ORG_TYPE'], 'NMD'),
@@ -322,8 +321,6 @@ function buildFarmalinkPrescriptionMapInput(input: {
         readString(organization, ['browserInfo', 'infoBrowser', 'info_browser']),
         readEnv(['FARMALINK_BROWSER_INFO'], 'AutaMedica'),
       ),
-      issuerPointId: readNumber(organization, ['issuerPointId', 'issuer_point_id', 'puntoEmisorId', 'punto_emisor_id'])
-        ?? readEnvNumber(['FARMALINK_PUNTO_EMISOR_ID']),
     },
     validity: {
       from: input.now,
