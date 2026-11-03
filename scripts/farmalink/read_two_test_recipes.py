@@ -50,6 +50,18 @@ def main():
         detail=recipe.get("detalleRecElectronica",{})
         if not isinstance(detail,dict): detail={}
         print("DETAIL_KEYS="+",".join(detail.keys()))
+        ref=detail.get("referenciaRx")
+        print("REF_TYPE="+type(ref).__name__)
+        refs=ref if isinstance(ref,list) else [ref] if isinstance(ref,dict) else []
+        for n,item in enumerate(refs[:3]):
+            if not isinstance(item,dict): continue
+            print("REF_"+str(n)+"_KEYS="+",".join(item.keys()))
+            exclude={"nombre","apellido","dni","pan","cuil","mail","numeroDocumento"}
+            for k,v in item.items():
+                if k not in exclude and isinstance(v,(str,int,float,bool)):
+                    print("REF_"+str(n)+"_"+scrub(k)+"="+scrub(v))
+                elif isinstance(v,dict) and k not in exclude:
+                    print("REF_"+str(n)+"_"+scrub(k)+"_KEYS="+",".join(v.keys()))
         items=detail.get("item",[])
         if isinstance(items,dict): items=[items]
         for i,item in enumerate(items[:3] if isinstance(items,list) else []):
