@@ -6,6 +6,8 @@ on:
       - test/memed-demo-e2e-20261103
     paths:
       - 'apps/web/src/lib/prescriptions/brazil/memed-demo-e2e.test.ts'
+      - 'apps/web/src/lib/prescriptions/brazil/memed.service.ts'
+      - 'apps/web/src/lib/prescriptions/brazil/memed.service.test.ts'
       - 'apps/web/src/pages/api/doctors/prescriptions/memed-event.ts'
       - '.github/workflows/memed-demo-e2e.yml'
   pull_request:
@@ -35,4 +37,4 @@ jobs:
           node-version: '22'
           pnpm-version: '9.15.2'
       - name: Verify DEMO doctor, patient, country, consent, provider and pending signature
-        run: pnpm --filter @autamedica/web exec vitest run src/lib/prescriptions/brazil/memed-demo-e2e.test.ts
+        run: pnpm --filter @autamedica/web exec vitest run src/lib/prescriptions/brazil/memed-demo-e2e.test.ts src/lib/prescriptions/brazil/memed.service.test.ts
