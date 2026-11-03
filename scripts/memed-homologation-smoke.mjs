@@ -140,7 +140,7 @@ async function main() {
     report.demoPrescriberLookup.tokenPresent = report.demoPrescriberLookup.sameExternalId
       && typeof attrs?.token === 'string' && attrs.token.length > 0;
     report.demoPrescriberLookup.crmMatches = report.demoPrescriberLookup.sameExternalId
-      && String(attrs?.crm).replace(/\\D/g, '') === demo.data.attributes.board.board_number;
+      && String(attrs?.crm).replace(/[^0-9]/g, '') === demo.data.attributes.board.board_number;
     report.demoPrescriberLookup.ufMatches = report.demoPrescriberLookup.sameExternalId
       && String(attrs?.uf).toUpperCase() === demo.data.attributes.board.board_state;
     // Do not log or store the returned token, name or CPF.
