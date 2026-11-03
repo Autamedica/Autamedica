@@ -103,6 +103,8 @@ function prescriptionErrorMessage(error: unknown, phase: "save" | "issue"): stri
     missing_professional_address: "Falta tu domicilio profesional en el perfil.",
     prescriber_validation_required: "Tu validación profesional aún no permite emitir recetas.",
     prescription_country_mismatch: "El médico, el paciente y la receta deben pertenecer al mismo país. Completá la jurisdicción de atención antes de emitir.",
+    memed_use_dedicated_flow: "Para pacientes de Brasil, emití la receta desde la integración Memed.",
+    farmalink_not_enabled: "Farmalink todavía no está habilitado para emitir recetas electrónicas argentinas. No se generó ninguna receta externa.",
     missing_patient_identification: "Falta DNI o CUIL del paciente.",
     missing_patient_address: "Falta el domicilio del paciente.",
     no_medication: "Agregá al menos un medicamento antes de emitir.",
