@@ -38,11 +38,11 @@ describe('issuePrescription Farmalink wiring', () => {
 
   it('builds a homologation AltaReceta payload from runtime env and prescription data', () => {
     primeRuntimeEnv({
-      FARMALINK_ORG_ID: '100',
+      FARMALINK_ORG_ID: '182',
       FARMALINK_IP_ORIGIN: '8.8.8.8',
       FARMALINK_PUNTO_EMISOR_ID: '10000',
-      FARMALINK_HOMOLOGATION_COD_ENTIDAD: '7100',
-      FARMALINK_HOMOLOGATION_CREDENCIAL: '12345678',
+      FARMALINK_HOMOLOGATION_COD_ENTIDAD: '7110',
+      FARMALINK_HOMOLOGATION_CREDENCIAL: '20123456786',
       FARMALINK_HOMOLOGATION_PLAN: 'NO POSEE',
       FARMALINK_PRESCRIBER_BIRTH_DATE: '1980-01-01',
       FARMALINK_PRESCRIBER_DOCUMENT_NUMBER: '22333444',
@@ -63,15 +63,15 @@ describe('issuePrescription Farmalink wiring', () => {
     const request = buildFarmalinkAltaRecetaRequest(mapInput);
 
     expect(request.altaRecetaElectRq.infoCabeceraRq).toEqual({
-      idOrganizacion: '100',
+      idOrganizacion: '182',
       tipoOrganizacion: 'NMD',
       ipOrigen: '8.8.8.8',
       infoBrowser: 'AutaMedica',
     });
-    expect(request.altaRecetaElectRq.puntoEmisor).toEqual({ id: 10000 });
+    expect(Object.prototype.hasOwnProperty.call(request.altaRecetaElectRq, 'puntoEmisor')).toBe(false);
     expect(request.altaRecetaElectRq.recElectronica.afiliado.credencial).toEqual({
-      codEntidad: 7100,
-      pan: '12345678',
+      codEntidad: 7110,
+      pan: '20123456786',
       plan: 'NO POSEE',
     });
     expect(request.altaRecetaElectRq.recElectronica.detalleRecElectronica.item[0])
@@ -84,10 +84,10 @@ describe('issuePrescription Farmalink wiring', () => {
 
   it('lets clinical Farmalink metadata override generic env defaults', () => {
     primeRuntimeEnv({
-      FARMALINK_ORG_ID: '100',
+      FARMALINK_ORG_ID: '182',
       FARMALINK_IP_ORIGIN: '8.8.8.8',
-      FARMALINK_HOMOLOGATION_COD_ENTIDAD: '7100',
-      FARMALINK_HOMOLOGATION_CREDENCIAL: '12345678',
+      FARMALINK_HOMOLOGATION_COD_ENTIDAD: '7110',
+      FARMALINK_HOMOLOGATION_CREDENCIAL: '20123456786',
       FARMALINK_PRESCRIBER_BIRTH_DATE: '1980-01-01',
       FARMALINK_PRESCRIBER_DOCUMENT_NUMBER: '22333444',
       FARMALINK_DEFAULT_PRODUCT_CODE: '123',
@@ -98,7 +98,7 @@ describe('issuePrescription Farmalink wiring', () => {
       clinicalData: {
         diagnosis: 'Control',
         farmalink: {
-          credential: { codEntidad: 7100, pan: '87654321', plan: 'TEST' },
+          credential: { codEntidad: 7110, pan: '87654321', plan: 'TEST' },
           item: { productCode: '999', drugCode: '888', genericText: 'IBUPROFENO 400 MG' },
         },
       },
