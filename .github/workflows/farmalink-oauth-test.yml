@@ -1,9 +1,6 @@
 name: Farmalink TEST one-shot DEMO integration cycle
 
 on:
-  push:
-    branches:
-      - test/farmalink-oauth-smoke-20261103
   workflow_dispatch:
 
 permissions:
