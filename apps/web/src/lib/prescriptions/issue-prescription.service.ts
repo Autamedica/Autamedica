@@ -428,7 +428,10 @@ async function registerFarmalinkIfEnabled(input: {
     return { ok: false, error: { code: 'farmalink_missing_config' } };
   }
 
-  if (!client) return { ok: true, registration: null };
+  // An Argentine prescription cannot claim an external AltaReceta unless
+  // Farmalink is configured and positively accepts that specific document.
+  // Do not fall back to an internal-only identifier as a dispensable recipe.
+  if (!client) return { ok: false, error: { code: 'farmalink_missing_config' } };
 
   let request: FarmalinkAltaRecetaRequest;
   try {
@@ -601,6 +604,7 @@ export async function issuePrescription(
     });
     if (farmalinkRegistration.ok === false) return fail(farmalinkRegistration.error);
     externalRegistration = farmalinkRegistration.registration;
+    if (!externalRegistration) return fail({ code: 'farmalink_registration_failed' });
   }
 
   const vendorName = externalRegistration?.vendorName ?? 'autamedica_internal';
@@ -1060,4 +1064,5 @@ export async function regenerateIssuedPrescriptionPdf(
 export const __testables = {
   buildFarmalinkPrescriptionMapInput,
   canIssueWithPrescriberValidationStatus,
+  registerFarmalinkIfEnabled,
 };
