@@ -16,7 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 4
     env:
-      MEMED_HOMO_REGISTER_DEMO: 'true'
+      MEMED_HOMO_REGISTER_DEMO: 'false'
+      MEMED_HOMO_VALIDATE_DEMO: 'true'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -24,5 +25,5 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
-      - name: Verify Memed sandbox credentials and register a clearly labeled DEMO physician
+      - name: Check keys and perform a non-mutating CFM dry-run for documented DEMO physician
         run: node scripts/memed-homologation-smoke.mjs
