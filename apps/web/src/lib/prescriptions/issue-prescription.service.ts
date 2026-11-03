@@ -10,6 +10,7 @@ import { getServerEnvOrDefault, logger } from '@autamedica/shared';
 import { getRuntimeEnvValue } from '@/lib/runtime-env';
 import { FarmalinkClient } from './farmalink.client';
 import { claimFarmalinkIssue, recordFarmalinkIssue } from './farmalink.issue-gate';
+import { resolvePrescriptionProviderRoute } from './prescription-provider-route';
 import {
   FarmalinkMappingError,
   buildFarmalinkAltaRecetaRequest,
@@ -557,12 +558,10 @@ export async function issuePrescription(
   if (rx.doctor_id !== doctor.id) return fail({ code: 'not_your_prescription' });
   if (rx.cuir) return fail({ code: 'already_issued' });
 
-  // Route by the doctor's primary verified jurisdiction, never a client-supplied
-  // prescription country or a fallback based on the presence of CRM/UF.
-  // Do not transmit any data if a clinical document has a different market.
+  // Provider selection comes from the doctor's credential country, not
+  // a browser-selected country or a mutable prescription value.
   const prescriptionCountry = doctor.care_country;
-  if ((prescriptionCountry !== 'AR' && prescriptionCountry !== 'BR')
-    || rx.country_code !== prescriptionCountry) {
+  if (prescriptionCountry !== 'AR' && prescriptionCountry !== 'BR') {
     return fail({ code: 'prescription_country_mismatch' });
   }
 
@@ -590,7 +589,10 @@ export async function issuePrescription(
     .single();
 
   if (!patient) return fail({ code: 'patient_not_found' });
-  if (!patient.active || patient.care_country !== prescriptionCountry) {
+  const route = resolvePrescriptionProviderRoute(
+    prescriptionCountry, rx.country_code, patient.care_country,
+  );
+  if (!patient.active || !route) {
     return fail({ code: 'prescription_country_mismatch' });
   }
   // 4. Parse clinical data
