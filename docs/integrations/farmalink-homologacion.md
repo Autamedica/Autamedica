@@ -171,3 +171,44 @@ Campos minimos para que `FARMALINK_ENABLED=true` no bloquee la emision:
 6. Ejecutar `bajaReceta` solo mediante el flujo autorizado y con auditoria.
 7. Conservar request/response sanitizados como evidencia tecnica, sin exponer PII.
 
+
+## Corrección clínica/documental de homologación — 03/11/2026
+
+**Hallazgo P0**: Los dos números Farmalink TEST aceptados por la API no son recetas
+de prednisolona. La consulta autenticada de ambos números en
+[GitHub Actions 41717111174](https://github.com/ecucondorSA/Autamedica/actions/runs/41717111174)
+devolvió:
+- `droga.codigo=01033`, `droga.nombre=GLICOLICOAC.ASOC.`.
+- `producto.codProducto=56800`, `producto.nombre=ESFUMEL blanqueadora cr. x 20 g`.
+- `producto.codBarras=7798095330586`, `codTroquel=9956800`.
+- `referenciaRx.cantidad=1`.
+
+**Números emitidos en Farmalink TEST, no reenviar altas**:
+- `generico=S`: `9600000421228`. En el PDF debe mostrarse el principio activo
+  `GLICOLICOAC.ASOC.` sin marca comercial.
+- `generico=N`: `9600000421242`. En el PDF debe mostrarse
+  `GLICOLICOAC.ASOC.` con sugerencia de marca `ESFUMEL blanqueadora cr. x 20 g`,
+  con el principio activo visualmente predominante.
+
+Los PDFs anteriores con «PREDNISOLONA» son **incorrectos y no se deben remitir**.
+Los PDFs regenerados en la conversación siguen siendo **documentos TEST técnicos no
+homologables de forma definitiva**, porque no tienen CUIR acreditado y el fixture
+usa `DEMO DEMO` como prescriptor sin firma electrónica/digital. No convertir el
+número Farmalink en CUIR; son identificadores distintos.
+
+**Bloqueos verificables para la homologación**:
+1. Obtener de DNSISA/ReNaPDiS los códigos realmente asignados a plataforma y
+   repositorio para componer el CUIR conforme a Res. 2214/2025, Anexo IV;
+   el generador de código numérico local por sí solo no acredita registro.
+2. Usar un médico de TEST cuya identidad, matrícula y firma electrónica/digital
+   puedan acreditarse; el fixture `DEMO DEMO` no es una firma real.
+3. Confirmar con Farmalink si acepta medicamento/diagnóstico DEMO o exige
+   un caso clínico coherente; el ejemplo antiguo usa diagnóstico `I20.9`
+   junto a un producto de crema blanqueadora.
+4. Antes de emitir nuevas recetas, confirmar modalidad de prueba y
+   reconciliar los intentos previos ambiguos. No repetir automáticamente un alta.
+
+La edición de los PDFs no generó una nueva alta, no realizó una baja, no afectó
+producción y no envió correos. Cambios de prevención en el PR #655: fixture
+de droga corregido, rechazo de modo N sin nombre comercial y leyenda de firma
+neutral hasta que pueda comprobarse su validez.
