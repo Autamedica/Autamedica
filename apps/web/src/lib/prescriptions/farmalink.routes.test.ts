@@ -8,7 +8,7 @@ import {POST as recover} from '../../pages/api/doctors/prescriptions/[id]/recove
 import {POST as reconcile} from '../../pages/api/admin/farmalink/reconcile';
 import {GET as pending} from '../../pages/api/admin/farmalink/pending';
 const id='bdbfd64b-4280-41b6-bb8c-630b09a0b9a5';
-function context(body:unknown={}){return {request:new Request('https://example.invalid/api',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}),params:{id},locals:{}} as Parameters<typeof recover>[0];}
+function context(body:unknown={}){return {request:new Request('https://example.invalid/api',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}),params:{id},locals:{}} as unknown as Parameters<typeof recover>[0];}
 describe('Farmalink authenticated routes',()=>{
  beforeEach(()=>{vi.clearAllMocks();m.client.mockReturnValue({});m.auth.mockResolvedValue({user:{id:'session-actor'}});m.recover.mockResolvedValue({ok:true,data:{cuir:'fixture'}});m.reconcile.mockResolvedValue({ok:true});m.pending.mockResolvedValue({ok:true,data:[]});});
  it.each([recover,reconcile,pending])('rejects unauthenticated requests before accessing the server client',async route=>{

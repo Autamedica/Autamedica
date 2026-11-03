@@ -74,6 +74,15 @@ SET LOCAL ROLE service_role;
 DO $tests$
 DECLARE x farmalink_fixture%ROWTYPE; c jsonb; a uuid; adm uuid; r jsonb; n integer; v_status text;
 BEGIN
+ IF EXISTS(SELECT 1 FROM pg_proc f JOIN pg_namespace n ON n.oid=f.pronamespace
+  WHERE n.nspname='public' AND f.proname LIKE '%farmalink%'
+  AND (has_function_privilege('anon',f.oid,'EXECUTE') OR has_function_privilege('authenticated',f.oid,'EXECUTE')))
+ THEN RAISE EXCEPTION 'browser can execute Farmalink RPC'; END IF;
+ IF has_table_privilege('anon','public.farmalink_operation_events','SELECT')
+  OR has_table_privilege('authenticated','public.farmalink_operation_events','INSERT')
+  OR has_table_privilege('service_role','public.farmalink_operation_events','UPDATE')
+  OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.farmalink_operation_events'::regclass)
+ THEN RAISE EXCEPTION 'private Farmalink audit ACL/RLS mismatch'; END IF;
  SELECT * INTO x FROM farmalink_fixture LIMIT 1;
  SELECT uid INTO adm FROM farmalink_admin;
  c:=public.claim_farmalink_issue(x.prescription_id,repeat('a',64),x.uid,'{}',x.snapshot);
@@ -120,6 +129,12 @@ BEGIN
   RAISE EXCEPTION 'disabled profile finalized';
  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  UPDATE public.profiles SET active=true WHERE user_id=x.uid;
+ UPDATE public.farmalink_issue_attempts SET response_code=NULL WHERE prescription_id=x.prescription_id;
+ BEGIN
+  PERFORM public.get_farmalink_recovery(x.prescription_id,x.uid);
+  RAISE EXCEPTION 'NULL functional code accepted';
+ EXCEPTION WHEN object_not_in_prerequisite_state THEN NULL; END;
+ UPDATE public.farmalink_issue_attempts SET response_code='00' WHERE prescription_id=x.prescription_id;
  r:=public.get_farmalink_recovery(x.prescription_id,x.uid);
  IF r#>>'{snapshot,pdfInput,existingCuir}'<>x.snapshot#>>'{pdfInput,existingCuir}' THEN RAISE EXCEPTION 'snapshot lost'; END IF;
  r:=public.complete_farmalink_artifact(x.prescription_id,a,x.uid,
