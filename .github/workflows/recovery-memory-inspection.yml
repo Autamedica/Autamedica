@@ -30,7 +30,7 @@ jobs:
           token = os.environ.get("SUPABASE_ACCESS_TOKEN", "")
           if not token:
               sys.exit("Management credential unavailable")
-          origin = "https://api.supabase.com/v1/projects/qxjjrpksmwwrmubhvjew"
+          origin = "https://api.supabase.com"
           def read(path):
               request = Request(origin + path, headers={"Authorization": "Bearer " + token, "Accept": "application/json"})
               try:
@@ -48,14 +48,23 @@ jobs:
               except Exception:
                   sys.exit("Read-only configuration inspection failed; private diagnostics withheld")
 
-          config = read("/config/database/postgres")
-          if not isinstance(config, dict):
-              sys.exit("Unexpected configuration response")
-          keys = ("shared_buffers", "effective_cache_size", "max_connections", "work_mem", "maintenance_work_mem")
+          # V1 may return {} for no overrides; the alpha v2 endpoint includes effective defaults.
+          response = read("/v2/projects/qxjjrpksmwwrmubhvjew/config")
+          if not isinstance(response, dict):
+              sys.exit("Unexpected effective configuration response")
+          data = response.get("data")
+          if not isinstance(data, dict) or data.get("type") != "project_config":
+              sys.exit("Unexpected project configuration envelope")
+          attrs = data.get("attributes")
+          database = attrs.get("database") if isinstance(attrs, dict) else None
+          settings = database.get("postgres_settings") if isinstance(database, dict) else None
+          if not isinstance(settings, dict) or not settings:
+              sys.exit("Effective postgres settings unavailable; empty response is not success")
+          keys = ("shared_buffers", "effective_cache_size", "max_connections", "max_replication_slots", "work_mem", "maintenance_work_mem")
           selected = {}
           for key in keys:
-              value = config.get(key)
-              if value is not None and (not isinstance(value, (str, int)) or len(str(value)) > 64):
-                  sys.exit("Unexpected configuration value")
+              value = settings.get(key)
+              if isinstance(value, bool) or not isinstance(value, (str, int)) or not str(value).strip() or len(str(value)) > 64:
+                  sys.exit("Missing or invalid effective setting: " + key)
               selected[key] = value
-          print(json.dumps({"response_keys": sorted(config), "configuration": selected}, sort_keys=True))
+          print(json.dumps({"source": "Supabase Management API v2 effective settings", "configuration": selected}, sort_keys=True))
