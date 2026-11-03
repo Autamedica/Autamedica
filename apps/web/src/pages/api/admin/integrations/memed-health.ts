@@ -46,25 +46,28 @@ export const GET: APIRoute = async ({ request, locals }) => {
       : { data: null, error: null };
     if (doctorResult.error) return serviceUnavailable('memed_pilot_readiness_unavailable');
     const doctor = doctorResult.data;
-    const [licensesResult, profileResult, privateCpf] = doctor
-      ? await Promise.all([
+    let readiness = assessMemedPilotReadiness({
+      doctor: null, licenses: [], profile: null, privateCpf: null,
+    });
+    if (doctor) {
+      const [licensesResult, profileResult, privateCpf] = await Promise.all([
         admin.from('doctor_licenses')
           .select('license_number, uf_brazil, license_type, status, cfm_validation_status')
           .eq('doctor_id', doctor.id).eq('license_type', 'CRM').limit(20),
         admin.from('profiles').select('first_name, last_name, cpf')
           .eq('user_id', doctor.user_id).maybeSingle(),
         getMemedDoctorCpf(admin, doctor.id),
-      ])
-      : [{ data: [], error: null }, { data: null, error: null }, null];
-    if (licensesResult.error || profileResult.error) {
-      return serviceUnavailable('memed_pilot_readiness_unavailable');
+      ]);
+      if (licensesResult.error || profileResult.error) {
+        return serviceUnavailable('memed_pilot_readiness_unavailable');
+      }
+      readiness = assessMemedPilotReadiness({
+        doctor,
+        licenses: licensesResult.data ?? [],
+        profile: profileResult.data,
+        privateCpf,
+      });
     }
-    const readiness = assessMemedPilotReadiness({
-      doctor: doctor ?? null,
-      licenses: licensesResult.data ?? [],
-      profile: profileResult.data,
-      privateCpf,
-    });
 
     const response = await fetch(url.toString(), {
       method: 'GET',
