@@ -62,3 +62,21 @@ export async function reconcileFarmalinkPrescription(
   return !saved.error && saved.data===true ? {ok:true} : {ok:false,error:'farmalink_reconciliation_conflict'};
  } catch { return {ok:false,error:'farmalink_reconciliation_unavailable'}; }
 }
+
+
+export async function listPendingFarmalink(db:SupabaseClient,actorUserId:string):Promise<{ok:true;data:unknown[]}|{ok:false;error:string}> {
+ try {
+  const {data,error}=await db.rpc('list_farmalink_pending',{p_actor_user_id:actorUserId,p_limit:100});
+  if (error || !Array.isArray(data) || data.length>100) return {ok:false,error:'farmalink_pending_unavailable'};
+  const safe=[];
+  for (const value of data) {
+   const row=object(value);
+   if (!row || typeof row.prescription_id!=='string' || typeof row.attempt_id!=='string'
+    || !['reserved','unknown'].includes(String(row.state)) || typeof row.created_at!=='string'
+    || typeof row.updated_at!=='string' || typeof row.has_snapshot!=='boolean') return {ok:false,error:'farmalink_pending_unavailable'};
+   safe.push({prescription_id:row.prescription_id,attempt_id:row.attempt_id,state:row.state,
+    created_at:row.created_at,updated_at:row.updated_at,has_snapshot:row.has_snapshot});
+  }
+  return {ok:true,data:safe};
+ } catch {return {ok:false,error:'farmalink_pending_unavailable'};}
+}

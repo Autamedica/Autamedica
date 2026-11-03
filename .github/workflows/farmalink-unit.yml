@@ -35,6 +35,7 @@ jobs:
           src/lib/prescriptions/farmalink.issue-gate.test.ts
           src/lib/prescriptions/farmalink.recovery.test.ts
           src/lib/prescriptions/farmalink.reconciliation.test.ts
+          src/lib/prescriptions/farmalink.routes.test.ts
           src/lib/prescriptions/issue-prescription.service.test.ts
           src/lib/prescriptions/pdf-prescription.service.test.ts
 

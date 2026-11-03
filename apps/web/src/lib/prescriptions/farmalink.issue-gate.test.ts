@@ -270,5 +270,16 @@ describe('Farmalink once-only persistent issue guard', () => {
     expect((supabase as unknown as {rpc:ReturnType<typeof vi.fn>}).rpc.mock.calls[1][1]).toMatchObject({p_state:'unknown'});
   });
 
+  it.each(['PGRST205','42P01'])('fails closed when flag is disabled and reservations cannot be inspected (%s)',async code=>{
+    const supabase={from:vi.fn().mockReturnValue({select:vi.fn().mockReturnValue({eq:vi.fn().mockReturnValue({maybeSingle:vi.fn().mockResolvedValue({data:null,error:{code}})})})})} as unknown as SupabaseClient;
+    vi.spyOn(FarmalinkClient,'fromEnv').mockReturnValue(null);
+    expect(await __testables.registerFarmalinkIfEnabled({...clinical,supabase})).toMatchObject({ok:false,error:{code:'farmalink_idempotency_unavailable'}});
+  });
+  it('does not replace a pending Farmalink attempt with internal issuance after disabling the flag',async()=>{
+    const supabase={from:vi.fn().mockReturnValue({select:vi.fn().mockReturnValue({eq:vi.fn().mockReturnValue({maybeSingle:vi.fn().mockResolvedValue({data:{prescription_id:RX},error:null})})})})} as unknown as SupabaseClient;
+    vi.spyOn(FarmalinkClient,'fromEnv').mockReturnValue(null);
+    expect(await __testables.registerFarmalinkIfEnabled({...clinical,supabase})).toMatchObject({ok:false,error:{code:'farmalink_pending_reconciliation'}});
+  });
+
 });
 

@@ -146,9 +146,9 @@ BEGIN
  JOIN public.profiles pr ON pr.user_id=d.user_id
  WHERE x.prescription_id=p_prescription_id AND x.doctor_user_id=p_actor_user_id
  AND d.user_id=p_actor_user_id AND d.active IS TRUE AND d.care_country='AR'
- AND pr.active IS TRUE AND pr.role='doctor' AND p.country_code='AR' AND p.status IN ('draft','sent');
+ AND pr.active IS TRUE AND pr.role='doctor' AND pr.sss_validation_status='valid' AND p.country_code='AR' AND p.status IN ('draft','sent');
  IF NOT FOUND THEN RAISE EXCEPTION 'farmalink_recovery_forbidden' USING ERRCODE='42501'; END IF;
- IF a.state <> 'confirmed' OR a.issue_snapshot IS NULL OR a.response_code NOT IN ('00','0') THEN
+ IF a.state <> 'confirmed' OR a.issue_snapshot IS NULL OR a.response_code IS NULL OR a.response_code NOT IN ('00','0') THEN
   RAISE EXCEPTION 'farmalink_recovery_not_confirmed' USING ERRCODE='55000'; END IF;
  RETURN jsonb_build_object('attempt_id',a.attempt_id,'vendor_id',a.vendor_id,
   'response_code',a.response_code,'snapshot',a.issue_snapshot,'artifact_path',a.artifact_path);
@@ -173,9 +173,9 @@ BEGIN
  JOIN public.patients pt ON pt.id=p.patient_id
  WHERE x.prescription_id=p.id AND x.attempt_id=p_attempt_id AND x.doctor_user_id=p_actor_user_id
  AND d.user_id=p_actor_user_id AND d.care_country='AR' AND d.active IS TRUE
- AND p.country_code='AR' AND pr.active IS TRUE AND pr.role='doctor'
+ AND p.country_code='AR' AND pr.active IS TRUE AND pr.role='doctor' AND pr.sss_validation_status='valid'
  AND pt.active IS TRUE AND pt.care_country='AR' FOR UPDATE OF x;
- IF NOT FOUND OR a.state <> 'confirmed' OR a.issue_snapshot IS NULL OR a.response_code NOT IN ('00','0') THEN
+ IF NOT FOUND OR a.state <> 'confirmed' OR a.issue_snapshot IS NULL OR a.response_code IS NULL OR a.response_code NOT IN ('00','0') THEN
   RAISE EXCEPTION 'farmalink_recovery_forbidden' USING ERRCODE='42501'; END IF;
  IF p.status NOT IN ('draft','sent') OR (a.artifact_path IS NULL AND p.status <> 'draft') THEN
   RAISE EXCEPTION 'farmalink_recovery_lifecycle_blocked' USING ERRCODE='55000'; END IF;
