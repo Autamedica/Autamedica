@@ -44,6 +44,7 @@ export interface PrescriptionPdfInput {
   existingCuir?: string;
   /** Explicitly unsigned TEST PDF: no RCTA/CUIR claim, no QR and no clinical signing. */
   homologationTest?: boolean;
+  homologationMode?: 'S' | 'N';
   externalPrescription?: {
     provider: 'farmalink' | string;
     number: string;
@@ -324,6 +325,15 @@ export async function generatePrescriptionPdf(
   };
 
   const isHomologationTest = input.homologationTest === true;
+  if (isHomologationTest && input.homologationMode !== 'S' && input.homologationMode !== 'N') {
+    throw new Error('farmalink_homologation_mode_required');
+  }
+  if (isHomologationTest && input.homologationMode === 'S' && input.medication.commercialName) {
+    throw new Error('farmalink_generic_pdf_must_not_show_brand');
+  }
+  if (isHomologationTest && input.homologationMode === 'N' && !input.medication.commercialName) {
+    throw new Error('farmalink_brand_pdf_requires_commercial_name');
+  }
   if (isHomologationTest && !/^[0-9]+$/.test(input.externalPrescription?.number ?? '')) {
     throw new Error('farmalink_homologation_requires_confirmed_numeric_vendor_id');
   }
@@ -436,7 +446,9 @@ export async function generatePrescriptionPdf(
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Sistema Nacional de Trazabilidad de Actos (RCTA)', marginLeft, 26);
+  doc.text(isHomologationTest
+    ? 'AUTAMEDICA - FARMALINK TEST (NO APTA PARA DISPENSA)'
+    : 'Sistema Nacional de Trazabilidad de Actos (RCTA)', marginLeft, 26);
   doc.setTextColor(headerAccentColor[0], headerAccentColor[1], headerAccentColor[2]);
   doc.setFont('helvetica', 'bold');
   doc.text(`CUIR: ${cuir}`, marginLeft, 33);
@@ -448,6 +460,11 @@ export async function generatePrescriptionPdf(
   // QR in header (pharmacy verification)
   if (!isHomologationTest) drawQrCodeVector(doc, qrContent, pageWidth - 50, 8, 30);
 
+  if (isHomologationTest) {
+    doc.setTextColor(71, 85, 105);
+    doc.setFontSize(7);
+    doc.text(`FARMALINK TEST / MODALIDAD GENERICO=${input.homologationMode}`, marginLeft, 50);
+  }
   y = 55;
   doc.setTextColor(30, 41, 59);
 
