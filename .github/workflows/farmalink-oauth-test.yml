@@ -50,5 +50,15 @@ jobs:
                   print('ENDPOINT=' + (path or '/') + ' HTTP_STATUS=' + str(ex.code) + ' ELAPSED_S=' + str(round(time.monotonic()-start,1)))
               except (OSError,TimeoutError) as ex:
                   print('ENDPOINT=' + (path or '/') + ' ERROR=' + type(ex).__name__ + ' ELAPSED_S=' + str(round(time.monotonic()-start,1)))
+          start = time.monotonic()
+          req = urllib.request.Request(base + '/altaReceta', data=b'{"altaRecetaElectRq":{}}', headers={'Authorization':'Bearer ' + token, 'Content-Type':'application/json', 'Accept':'application/json'}, method='POST')
+          try:
+              with opener.open(req,timeout=14) as res:
+                  print('INVALID_DEMO_POST_HTTP=' + str(res.status) + ' ELAPSED_S=' + str(round(time.monotonic()-start,1)))
+          except urllib.error.HTTPError as ex:
+              print('INVALID_DEMO_POST_HTTP=' + str(ex.code) + ' ELAPSED_S=' + str(round(time.monotonic()-start,1)))
+          except (OSError,TimeoutError) as ex:
+              print('INVALID_DEMO_POST_ERROR=' + type(ex).__name__ + ' ELAPSED_S=' + str(round(time.monotonic()-start,1)))
+          print('INVALID_POST_HAS_NO_PATIENT_OR_MEDICATION=YES')
           print('PRESCRIPTIONS_SENT=0')
           PY
