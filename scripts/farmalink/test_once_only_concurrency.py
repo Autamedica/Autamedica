@@ -34,7 +34,8 @@ def sql(query, *, denied=False):
                 or 'farmalink_invalid_issue_snapshot' in result.stderr
                 or 'farmalink_actor_snapshot_mismatch' in result.stderr
                 or 'farmalink_snapshot_immutable' in result.stderr
-                or 'farmalink_unconfirmed_vendor' in result.stderr), result.stderr
+                or 'farmalink_unconfirmed_vendor' in result.stderr
+                or 'farmalink_artifact_identity_immutable' in result.stderr), result.stderr
         return None
     assert result.returncode == 0, result.stderr
     lines = [line for line in result.stdout.splitlines() if line.strip()]
