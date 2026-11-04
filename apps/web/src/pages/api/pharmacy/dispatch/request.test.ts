@@ -296,6 +296,77 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(body.data.accessToken).toBeDefined()
     expect(body.data.cloudflare_room_id).toBeDefined()
   })
+  it('atribuye un QR Jordan válido a la solicitud sin inventar farmacia', async () => {
+    const partnerId = 'aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const row = {
+      id: 'dispatch-jordan-demo',
+      cloudflare_room_id: 'cf-room-test',
+      patient_name: 'Paciente sintético',
+      status: 'searching',
+    }
+    const dispatchTable = buildTableChain(row)
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'commercial_referral_partners') return buildTableChain({ id: partnerId })
+      if (table === 'pharmacy_dispatch_requests') return dispatchTable
+      return buildTableChain(null)
+    })
+
+    const response = await POST(makeContext({
+      body: {
+        careCountry: 'BR', patientCpf: '12345678909',
+        patientPhone: '+5551999998888', patientName: 'Paciente sintético',
+        referralCode: 'JORDAN',
+      },
+    }))
+    expect(response.status).toBe(200)
+    expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({
+      referral_partner_id: partnerId,
+      care_country: 'BR',
+      pharmacy_id: null,
+      patient_dni: null,
+    }))
+  })
+
+  it('no acredita origen de Jordan si no existe código QR', async () => {
+    const dispatchTable = buildTableChain({
+      id: 'dispatch-no-ref-demo', cloudflare_room_id: 'cf-room-demo', status: 'searching',
+    })
+    supabaseMock.from.mockReturnValue(dispatchTable)
+    const response = await POST(makeContext())
+    expect(response.status).toBe(200)
+    expect(dispatchTable.insert).toHaveBeenCalledWith(expect.objectContaining({ referral_partner_id: null }))
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('commercial_referral_partners')
+  })
+
+  it('rechaza referralCode manipulados antes de realizar cualquier escritura', async () => {
+    const response = await POST(makeContext({
+      body: {
+        careCountry: 'BR', patientCpf: '12345678909',
+        patientPhone: '+5551999998888', patientName: 'Paciente sintético',
+        referralCode: 'jordan<script>',
+      },
+    }))
+    expect(response.status).toBe(400)
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('pharmacy_dispatch_requests')
+  })
+
+  it('no inserta una atribución si el QR no corresponde a un socio activo', async () => {
+    const dispatchTable = buildTableChain(null)
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'commercial_referral_partners') return buildTableChain(null)
+      return dispatchTable
+    })
+    const response = await POST(makeContext({
+      body: {
+        careCountry: 'BR', patientCpf: '12345678909',
+        patientPhone: '+5551999998888', patientName: 'Paciente sintético',
+        referralCode: 'FAKEPARTNER',
+      },
+    }))
+    expect(response.status).toBe(400)
+    expect(dispatchTable.insert).not.toHaveBeenCalled()
+  })
+
   it('nunca devuelve detalles clínicos presentes en errores SQL', async () => {
     const table = buildTableChain(null, { code: '23514', message: 'PRIVATE CLINICAL DETAILS 123456789' })
     supabaseMock.from.mockReturnValue(table)
