@@ -127,6 +127,17 @@ class RetainedStorageAPITests(unittest.TestCase):
                     replay.replay("http://127.0.0.1:54321", "anon", "service",
                                   manifest, root, 2)
 
+    def test_docker_public_host_binding_is_rejected(self):
+        visible = '{"NetworkSettings":{"Ports":{"8000/tcp":[{"HostIp":"0.0.0.0","HostPort":"54321"}]}}}'
+        with patch.object(replay.fixture, "run",
+                          side_effect=["container-id", "[" + visible + "]"]):
+            with self.assertRaisesRegex(RuntimeError, "non-loopback"):
+                replay.assert_loopback_docker_ports(None)
+        private = '{"NetworkSettings":{"Ports":{"8000/tcp":[{"HostIp":"127.0.0.1","HostPort":"54321"}]}}}'
+        with patch.object(replay.fixture, "run",
+                          side_effect=["container-id", "[" + private + "]"]):
+            replay.assert_loopback_docker_ports(None)
+
     def test_refuses_environment_with_production_credentials(self):
         with patch.dict(os.environ, {"SUPABASE_ACCESS_TOKEN": "secret"}, clear=True):
             with self.assertRaisesRegex(RuntimeError, "credentials"):
