@@ -220,10 +220,10 @@
     <string name="pharmacy_on_demand_reason_label">Motivo:</string>
     <string name="pharmacy_on_demand_dni_label">CPF / Doc:</string>
     <string name="patient_pharmacy_express_button">Plantão Farmácia</string>
-    <string name="patient_pharmacy_express_desc">Atendimento imediato por plantão para receitas no balcão</string>
+    <string name="patient_pharmacy_express_desc">Solicite uma videoconsulta médica na farmácia</string>
     <string name="patient_pharmacy_express_badge">Plantão ativo</string>
     <string name="pharmacy_on_demand_network_badge">Rede de Farmácias</string>
-    <string name="pharmacy_on_demand_compliance_footer">Plataforma Homologada SISA / REFEPS • Assinatura Digital Oficial</string>
+    <string name="pharmacy_on_demand_compliance_footer">Atendimento médico • Documentos sujeitos a assinatura e validação</string>
 
     <!-- Added for compose UI localization -->
     <string name="greeting_morning">BOM DIA</string>
