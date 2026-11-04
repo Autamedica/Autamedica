@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro'
 import { badRequest, forbidden, internalError, jsonOk, serviceUnavailable } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { generateCloudflareRoomId, type DispatchTierCategory } from '@/lib/pharmacy/pharmacy-on-demand.service'
 import { signGuestToken } from '@/lib/calls/lib/guest-token'
 import { resolveGuestSecret } from '@/lib/runtime-env'
@@ -129,7 +130,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (typeof referralCode !== 'string' || !/^[A-Z0-9_-]{3,32}$/.test(referralCode)) {
         return badRequest('referral_code_invalid')
       }
-      const { data: partner, error: referralError } = await supabase
+      const { data: partner, error: referralError } = await (supabase as unknown as SupabaseClient)
         .from('commercial_referral_partners')
         .select('id')
         .eq('code', referralCode)
