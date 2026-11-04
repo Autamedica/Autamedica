@@ -42,3 +42,18 @@ export function checkDirectPrescriptionIssuance(input: {
   }
   return { ok: true, country: 'AR' };
 }
+
+export function hasEligibleProfessionalPadesCertificate(
+  certificate: {
+    acProvider: string;
+    signatureMethod: string;
+    certValidUntil: string;
+  } | null,
+  nowMs: number = Date.now(),
+): boolean {
+  if (!certificate || !certificate.acProvider ||
+      certificate.acProvider === 'self_signed' ||
+      certificate.signatureMethod !== 'ac_external') return false;
+  const expiresAt = Date.parse(certificate.certValidUntil);
+  return Number.isFinite(expiresAt) && expiresAt > nowMs;
+}
