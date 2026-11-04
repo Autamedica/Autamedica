@@ -48,7 +48,8 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       const secret = resolveGuestSecret(locals.runtime?.env)
       if (secret) {
         const guestPayload = await verifyGuestToken(candidateGuestToken, secret)
-        if (guestPayload?.callId === requestRecord.id) {
+        if (guestPayload?.callId === requestRecord.id &&
+          guestPayload.roomId === requestRecord.cloudflare_room_id) {
           isAuthorized = true
         }
       }
@@ -74,36 +75,39 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       }
 
       if (authUserId) {
-        // a.1) Paciente dueño de la solicitud
-        if (requestRecord.requested_by_user_id && requestRecord.requested_by_user_id === authUserId) {
-          isAuthorized = true
-        }
-        // a.2) Doctor asignado directamente (por user_id)
-        else if (requestRecord.assigned_doctor_id && requestRecord.assigned_doctor_id === authUserId) {
+        // The authenticated owner may read their own request.
+        if (requestRecord.requested_by_user_id === authUserId) {
           isAuthorized = true
         } else {
-          // Resolver registro de médico
           const { data: doctorRow } = await supabase
             .from('doctors')
-            .select('id')
+            .select('id, active, care_country, license_type, uf_brazil')
             .eq('user_id', authUserId)
             .maybeSingle()
 
-          if (doctorRow) {
-            // a.3) Doctor asignado por id en tabla doctors
-            if (requestRecord.assigned_doctor_id && requestRecord.assigned_doctor_id === doctorRow.id) {
+          // A doctor, including an on-duty doctor, may only view requests
+          // matching a verifiable professional registration country.
+          const license = doctorRow?.license_type?.trim().toUpperCase()
+          const credentialCountry = license === 'CRM' && doctorRow?.uf_brazil
+            ? 'BR'
+            : license === 'MN' || license === 'MP'
+              ? 'AR' : null
+          const countryVerified = Boolean(
+            doctorRow?.active && credentialCountry &&
+            requestRecord.care_country === credentialCountry &&
+            (!doctorRow.care_country || doctorRow.care_country === credentialCountry),
+          )
+
+          if (countryVerified && doctorRow) {
+            if (requestRecord.assigned_doctor_id === doctorRow.id) {
               isAuthorized = true
-            } else {
-              // a.4) Doctor en guardia activa
+            } else if (!requestRecord.assigned_doctor_id) {
               const { data: dutyStatus } = await supabase
                 .from('doctor_duty_status')
                 .select('is_on_duty')
                 .eq('doctor_id', doctorRow.id)
                 .maybeSingle()
-
-              if (dutyStatus?.is_on_duty) {
-                isAuthorized = true
-              }
+              isAuthorized = dutyStatus?.is_on_duty === true
             }
           }
         }
