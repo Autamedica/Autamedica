@@ -41,7 +41,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     }
 
     const participants = await resolveRoomParticipants(admin, roomId);
-    if (!isDoctorAssignedToRoom(participants, doctorId)) {
+    if (!isDoctorAssignedToRoom(participants, doctorId, user.id)) {
       return forbidden('room_not_assigned_to_doctor');
     }
     if (!isClinicalPatientId(participants.patientId)) {
