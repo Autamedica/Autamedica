@@ -882,7 +882,8 @@ export async function issuePrescription(
     return fail({ code: 'update_failed', details: updateError.message || String(updateError) });
   }
 
-  // 9. Audit events (batched)
+  // 9. Audit only events supported by the actual PAdES and provider response.
+  // Never fabricate an official national registration identifier or COMPLIANT status.
   const signatureHash = await sha256BytesHex(finalPdfBuffer);
 
   await supabase.from('prescription_audit_events').insert([
@@ -896,20 +897,6 @@ export async function issuePrescription(
         document_hash: signatureHash,
         cert_fingerprint: certFingerprint,
         version: '2.0',
-      },
-    },
-    {
-      prescription_id: prescriptionId,
-      event_type: 'ACT_RCTA_REGISTRATION',
-      user_id: userId,
-      metadata: {
-        cuir: artifacts.cuir,
-        registration_id: `AR-RCTA-${artifacts.cuir}`,
-        jurisdiction: doctor.enrollment_jurisdiction || 'CENTRAL',
-        status: 'COMPLIANT',
-        drug_category: substanceCategory,
-        is_controlled_substance: isControlledSubstance,
-        validity_days: validityDays,
       },
     },
     {
