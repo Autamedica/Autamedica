@@ -193,3 +193,14 @@ A database export does not contain Storage object bytes, deployed Edge Functions
 Official reference: [Supabase platform-to-self-hosted restore](https://supabase.com/docs/guides/self-hosting/restore-from-platform).
 
 
+
+
+### Isolated Storage API authorization smoke (synthetic only)
+
+See [Storage service recovery functional checks](STORAGE_SERVICE_ISOLATED_CHECK.md).
+The CI and Codespaces smoke creates synthetic accounts and a private bucket
+in a disposable local Supabase stack; it verifies owner GET + SHA-256, other
+user/anonymous denial, private bucket public URL denial, and cross-user upload
+denial. This does **not** rehydrate the real 359 files into a served Storage
+backend; therefore `storage_service_restore_verified` stays `false`.
+Never use production credentials or share clinical records with this smoke.
