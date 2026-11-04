@@ -163,6 +163,7 @@ class PharmacyDispatchRepositoryImplTest {
             tierRequested = "general",
             symptomSummary = "synthetic symptom",
             patientCpf = null,
+            careCountry = "AR",
         )
 
         // Fail with the underlying exception, not a generic Boolean assertion.
@@ -191,6 +192,7 @@ class PharmacyDispatchRepositoryImplTest {
             tierRequested = "general",
             symptomSummary = null,
             patientCpf = null,
+            careCountry = "AR",
         )
         assertThat(result.isFailure).isTrue()
     }

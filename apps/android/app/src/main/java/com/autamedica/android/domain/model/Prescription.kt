@@ -1,9 +1,6 @@
 package com.autamedica.android.domain.model
 
-/**
- * Domain model representing an official digital prescription (Receta Digital)
- * Interoperable with SISA WS020, Farmalink (IMED) and digital pharmacy validation.
- */
+/** Clinical prescription record: status and an access URL do not prove signature or homologation. */
 data class Prescription(
     val id: String,
     val status: String,
@@ -30,12 +27,12 @@ data class Prescription(
      * Determines whether this prescription is currently active and valid.
      */
     val isActive: Boolean
-        get() = status.equals("activa", ignoreCase = true) ||
-                status.equals("active", ignoreCase = true) ||
-                status.equals("signed", ignoreCase = true) ||
-                status.equals("firmada", ignoreCase = true) ||
-                status.equals("sent", ignoreCase = true) ||
-                status.equals("emitida", ignoreCase = true)
+        get() = !signedPdfUrl.isNullOrBlank() && (
+            status.equals("activa", ignoreCase = true) ||
+            status.equals("active", ignoreCase = true) ||
+            status.equals("signed", ignoreCase = true) ||
+            status.equals("firmada", ignoreCase = true)
+        )
 
     /**
      * Determines whether this prescription was already dispensed by a pharmacy.
@@ -71,9 +68,11 @@ data class Prescription(
      * Effective QR content for pharmacy scanning (falls back to verification URL if cuir is present).
      */
     val effectiveQrContent: String
-        get() = qrCodeContent?.takeIf { it.isNotBlank() }
-            ?: cuir?.let { "https://autamedica.com/verify/$it" }
-            ?: "https://autamedica.com/prescriptions/$id"
+        get() = if (status.equals("draft", ignoreCase = true)) "" else (
+            qrCodeContent?.takeIf { it.isNotBlank() }
+                ?: cuir?.let { "https://autamedica.com/verify/$it" }
+                ?: ""
+        )
 
     /**
      * Resolved list of items, falling back to primary medication if items list is empty.

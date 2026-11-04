@@ -199,6 +199,7 @@ fun PharmacyIntakeScreen(
                 onPatientNameChanged = viewModel::onPatientNameChanged,
                 onPatientDniChanged = viewModel::onPatientDniChanged,
                 onPatientPhoneChanged = viewModel::onPatientPhoneChanged,
+                onCountrySelected = viewModel::onCountrySelected,
                 onSubmit = viewModel::submitRequest,
                 modifier = Modifier
                     .fillMaxSize()
@@ -217,6 +218,7 @@ private fun PharmacyIntakeFormView(
     onPatientNameChanged: (String) -> Unit,
     onPatientDniChanged: (String) -> Unit,
     onPatientPhoneChanged: (String) -> Unit,
+    onCountrySelected: (String) -> Unit,
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -297,6 +299,30 @@ private fun PharmacyIntakeFormView(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // Explicit clinical jurisdiction is required even for guest kiosk patients.
+        Text(
+            text = "País de atención / País de atendimento *",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = AuTextPrimary,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf("AR" to "Argentina · DNI", "BR" to "Brasil · CPF").forEach { (country, label) ->
+                FilterChip(
+                    selected = uiState.careCountry == country,
+                    onClick = { onCountrySelected(country) },
+                    label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Primary,
+                        selectedLabelColor = Color.White,
+                        containerColor = AuSurface,
+                    ),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+
         // 2. Datos del Paciente (Autocompletados y editables)
         Text(
             text = "Tus datos",
@@ -338,7 +364,7 @@ private fun PharmacyIntakeFormView(
         OutlinedTextField(
             value = uiState.patientDni,
             onValueChange = onPatientDniChanged,
-            label = { Text("DNI / Cédula") },
+            label = { Text(if (uiState.careCountry == "BR") "CPF (11 dígitos)" else "DNI / Documento") },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Outlined.Badge,

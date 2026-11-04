@@ -58,6 +58,7 @@ interface PharmacyDispatchRepository {
         tierRequested: String,
         symptomSummary: String?,
         patientCpf: String? = null,
+        careCountry: String? = null,
     ): Result<PharmacyDispatchRequest>
 
     /** Patient side: Observe a specific on-demand request by id until matched/in_call. */

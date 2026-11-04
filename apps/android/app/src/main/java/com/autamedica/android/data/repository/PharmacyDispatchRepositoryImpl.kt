@@ -234,11 +234,23 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         tierRequested: String,
         symptomSummary: String?,
         patientCpf: String?,
+        careCountry: String?,
     ): Result<PharmacyDispatchRequest> = runCatching {
+        require(careCountry == "AR" || careCountry == "BR") {
+            "Seleccioná Argentina o Brasil como país de atención"
+        }
+        val documentDigits = (if (careCountry == "BR") patientCpf ?: patientDni else patientDni)
+            .filter(Char::isDigit)
+        require(if (careCountry == "BR") documentDigits.length == 11
+                else documentDigits.length in 5..10) {
+            "Documento del paciente inválido para el país seleccionado"
+        }
         val currentUser = authRepository.getCurrentUser()
         if (currentUser == null) {
             val guestPayload = buildJsonObject {
-                put("patientDni", patientDni.trim())
+                put("careCountry", careCountry)
+                if (careCountry == "BR") put("patientCpf", documentDigits)
+                else put("patientDni", documentDigits)
                 put("patientPhone", patientPhone.trim())
                 if (!patientName.isNullOrBlank()) put("patientName", patientName.trim())
                 put("tier", tierRequested.ifBlank { "general" })
@@ -255,13 +267,12 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         val cloudflareRoomId = "cf-room-$tierRequested-$sanitizedDni-$timestamp-$randomSuffix"
 
         val payload = buildJsonObject {
-            put("patient_dni", patientDni.trim())
+            put("care_country", careCountry)
+            if (careCountry == "BR") put("patient_cpf", documentDigits)
+            else put("patient_dni", documentDigits)
             put("patient_phone", patientPhone.trim())
             if (!patientName.isNullOrBlank()) {
                 put("patient_name", patientName.trim())
-            }
-            if (!patientCpf.isNullOrBlank()) {
-                put("patient_cpf", patientCpf.trim())
             }
             put("tier_requested", tierRequested.ifBlank { "general" })
             if (!symptomSummary.isNullOrBlank()) {

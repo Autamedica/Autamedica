@@ -63,6 +63,7 @@ private class FakePharmacyDispatchRepository(
     var lastCreatedName: String? = null
     var lastCreatedTier: String? = null
     var lastCreatedSummary: String? = null
+    var lastCreatedCountry: String? = null
     val statusUpdates = mutableListOf<Pair<String, String>>()
 
     override suspend fun getDoctorDutyStatus(doctorId: String): Result<DoctorDutyStatus> =
@@ -105,12 +106,14 @@ private class FakePharmacyDispatchRepository(
         tierRequested: String,
         symptomSummary: String?,
         patientCpf: String?,
+        careCountry: String?,
     ): Result<PharmacyDispatchRequest> {
         lastCreatedDni = patientDni
         lastCreatedPhone = patientPhone
         lastCreatedName = patientName
         lastCreatedTier = tierRequested
         lastCreatedSummary = symptomSummary
+        lastCreatedCountry = careCountry
         createResult.getOrNull()?.let { requestFlow.value = it }
         return createResult
     }
@@ -207,6 +210,39 @@ class PharmacyIntakeViewModelTest {
     }
 
     @Test
+    fun `brazil form requires CPF and passes explicit country`() = runTest(testDispatcher) {
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+        vm.onPatientNameChanged("PACIENTE DEMO")
+        vm.onPatientPhoneChanged("+5551987654321")
+        vm.onReasonTextChanged("Consulta de demonstração")
+        vm.onCountrySelected("BR")
+        vm.onPatientDniChanged("12345678909")
+        assertThat(vm.uiState.value.isFormValid).isTrue()
+
+        pharmacyRepo.createResult = Result.success(
+            PharmacyDispatchRequest(
+                id = "guest-br-synthetic",
+                patientDni = "",
+                patientPhone = "+5551987654321",
+                patientName = "PACIENTE DEMO",
+                tierRequested = "general",
+                status = "searching",
+                cloudflareRoomId = "cf-room-general-demo",
+                createdAt = "2026-11-04T12:00:00Z",
+            )
+        )
+        vm.submitRequest()
+        testScheduler.runCurrent()
+        assertThat(pharmacyRepo.lastCreatedCountry).isEqualTo("BR")
+    }
+
+    @Test
     fun `reason chip selection populates reason text and chip state`() = runTest(testDispatcher) {
         val vm = PharmacyIntakeViewModel(
             savedStateHandle = SavedStateHandle(),
@@ -236,6 +272,7 @@ class PharmacyIntakeViewModelTest {
         )
         advanceUntilIdle()
 
+        vm.onCountrySelected("AR")
         vm.submitRequest()
         assertThat(vm.uiState.value.error).isNotNull()
         assertThat(vm.uiState.value.activeRequestId).isNull()
@@ -278,6 +315,7 @@ class PharmacyIntakeViewModelTest {
         advanceUntilIdle()
 
         vm.onReasonChipSelected("Presión / Hipertensión")
+        vm.onCountrySelected("AR")
         vm.submitRequest()
         testScheduler.runCurrent()
 
@@ -353,6 +391,7 @@ class PharmacyIntakeViewModelTest {
         vm.onPatientDniChanged("28999888")
         vm.onPatientPhoneChanged("+5491122334455")
         vm.onReasonChipSelected("Presión / Hipertensión")
+        vm.onCountrySelected("AR")
         vm.submitRequest()
         testScheduler.runCurrent()
 
@@ -402,6 +441,7 @@ class PharmacyIntakeViewModelTest {
         vm.onPatientDniChanged("28999888")
         vm.onPatientPhoneChanged("+5491122334455")
         vm.onReasonChipSelected("Dolor Muscular")
+        vm.onCountrySelected("AR")
         vm.submitRequest()
         testScheduler.runCurrent()
 

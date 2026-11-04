@@ -23,6 +23,7 @@ data class PharmacyIntakeUiState(
     val patientName: String = "",
     val patientPhone: String = "",
     val patientDni: String = "",
+    val careCountry: String? = null,
     val selectedReasonChip: String? = null,
     val reasonText: String = "",
     val isAuthenticated: Boolean = false,
@@ -51,7 +52,10 @@ data class PharmacyIntakeUiState(
     val isFormValid: Boolean
         get() = patientName.trim().isNotBlank() &&
             patientPhone.trim().length >= 6 &&
-            patientDni.trim().length >= 5 &&
+            careCountry in setOf("AR", "BR") &&
+            (if (careCountry == "BR")
+                patientDni.count(Char::isDigit) == 11
+             else patientDni.count(Char::isDigit) in 5..10) &&
             effectiveReason.trim().isNotBlank()
 }
 
@@ -156,6 +160,17 @@ class PharmacyIntakeViewModel @Inject constructor(
         _uiState.update { it.copy(patientDni = dni, error = null) }
     }
 
+    fun onCountrySelected(country: String) {
+        require(country == "AR" || country == "BR")
+        _uiState.update {
+            it.copy(
+                careCountry = country,
+                patientDni = if (it.careCountry != null && it.careCountry != country) "" else it.patientDni,
+                error = null,
+            )
+        }
+    }
+
     fun onReasonChipSelected(chip: String) {
         _uiState.update { state ->
             val isSame = state.selectedReasonChip == chip
@@ -176,7 +191,10 @@ class PharmacyIntakeViewModel @Inject constructor(
                 it.copy(
                     error = when {
                         state.patientName.isBlank() -> "Ingresá el nombre completo del paciente"
-                        state.patientDni.length < 5 -> "Ingresá un DNI válido (mínimo 5 caracteres)"
+                        state.careCountry !in setOf("AR", "BR") -> "Seleccioná Argentina o Brasil"
+                        state.careCountry == "BR" && state.patientDni.count(Char::isDigit) != 11 ->
+                            "Ingresá un CPF de 11 dígitos"
+                        state.patientDni.count(Char::isDigit) !in 5..10 -> "Ingresá un DNI válido"
                         state.patientPhone.length < 6 -> "Ingresá un teléfono de contacto válido"
                         state.effectiveReason.isBlank() -> "Indicá el motivo de consulta o medicamento solicitado"
                         else -> "Completá los datos obligatorios"
@@ -194,6 +212,8 @@ class PharmacyIntakeViewModel @Inject constructor(
                 patientName = state.patientName.trim(),
                 tierRequested = "general",
                 symptomSummary = state.effectiveReason.trim(),
+                patientCpf = if (state.careCountry == "BR") state.patientDni.trim() else null,
+                careCountry = state.careCountry,
             ).onSuccess { request ->
                 val hasRoom = request.cloudflareRoomId.isNotBlank()
                 _uiState.update {
