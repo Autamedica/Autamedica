@@ -220,6 +220,23 @@ def replay(api, anon, service, manifest, components, expected_objects):
             **synthetic}
 
 
+def assert_loopback_docker_ports(work):
+    """Reject any Docker host port listening beyond the recovery host loopback."""
+    ids = fixture.run(["docker", "ps", "-aq",
+                       "--filter", "label=com.supabase.cli.project=" + PROJECT],
+                      work, "Inspect only local replay services", timeout=30).split()
+    if not ids:
+        raise RuntimeError("Private replay stack has no identified containers")
+    for container in ids:
+        details = json.loads(fixture.run(["docker", "inspect", container],
+                                         work, "Inspect local replay port bindings", timeout=30))[0]
+        ports = details.get("NetworkSettings", {}).get("Ports", {})
+        for bindings in ports.values():
+            for binding in bindings or []:
+                if binding.get("HostIp") not in ("127.0.0.1", "::1"):
+                    raise RuntimeError("Replay service has non-loopback host port; refusing clinical data")
+
+
 def exercise_stack(root, manifest, components, expected_objects):
     assert_empty_local_stack()
     with tempfile.TemporaryDirectory(prefix="autamedica-private-storage-stack-") as work:
@@ -238,6 +255,7 @@ def exercise_stack(root, manifest, components, expected_objects):
             status = json.loads(fixture.run(["supabase", "status", "--output", "json"],
                                              work, "Read private replay credentials", timeout=60))
             api, anon, service = fixture.validate_status(status)
+            assert_loopback_docker_ports(work)
             result = replay(api, anon, service, manifest, components, expected_objects)
         finally:
             try:
