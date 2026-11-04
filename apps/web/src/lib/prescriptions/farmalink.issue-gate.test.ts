@@ -5,7 +5,6 @@ import { FarmalinkClient, FarmalinkHttpError } from './farmalink.client';
 import { claimFarmalinkIssue, recordFarmalinkIssue } from './farmalink.issue-gate';
 import { __testables, issuePrescription } from './issue-prescription.service';
 import * as pdfService from './pdf-prescription.service';
-import * as certificateQueries from '../doctors/services/certificate-query.service';
 
 const RX = 'bdbfd64b-4280-41b6-bb8c-630b09a0b9a5';
 const USER = 'cac6f6b3-dc8a-4f4f-8833-45207e063f65';
