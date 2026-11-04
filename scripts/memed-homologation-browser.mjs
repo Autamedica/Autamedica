@@ -209,12 +209,30 @@ async function main() {
     } catch { /* iframe inaccessible */ }
   }
   // Count only known DEMO item and official action controls, not personal data.
-  result.uiCounts = { demoItem: 0, addActions: 0, signActions: 0 };
+  result.uiCounts = { demoItem: 0, addActions: 0, signActions: 0, signLinks: 0, signAria: 0 };
   for (const frame of page.frames()) {
     result.uiCounts.demoItem += await frame.getByText('ITEM DEMO AUTAMEDICA - NAO DISPENSAR').count().catch(() => 0);
     result.uiCounts.addActions += await frame.getByRole('button', { name: /adicionar/i }).count().catch(() => 0);
     result.uiCounts.signActions += await frame.getByRole('button', { name: /assinar/i }).count().catch(() => 0);
+    result.uiCounts.signLinks += await frame.getByRole('link', { name: /assinar/i }).count().catch(() => 0);
+    result.uiCounts.signAria += await frame.locator('[aria-label*="Assinar"],[title*="Assinar"]').count().catch(() => 0);
   }
+  // Read-only sandbox history. Only expose numeric count and status, not
+  // prescription IDs, patient identifiers, provider tokens or document URLs.
+  const historyUrl = new URL(API + '/prescricoes');
+  historyUrl.searchParams.set('token', token);
+  try {
+    const historyResponse = await fetch(historyUrl, {
+      redirect: 'error', referrerPolicy: 'no-referrer',
+      headers: { Accept: 'application/vnd.api+json' },
+      signal: AbortSignal.timeout(15000),
+    });
+    const historyJson = historyResponse.ok ? await historyResponse.json() : null;
+    result.sandboxHistory = {
+      status: historyResponse.status,
+      count: Array.isArray(historyJson?.data) ? historyJson.data.length : null,
+    };
+  } catch { result.sandboxHistory = { status: null, count: null, error: 'provider_history_unavailable' }; }
   if (!itemResult.accepted) throw new Error('sandbox_add_item_rejected');
   if (result.productionAccess) throw new Error('production_memed_call_blocked');
 }
