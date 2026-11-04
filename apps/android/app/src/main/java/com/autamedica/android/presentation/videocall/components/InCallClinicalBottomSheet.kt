@@ -83,8 +83,9 @@ fun InCallClinicalBottomSheet(
     initialMode: InCallClinicalMode = InCallClinicalMode.PRESCRIPTION,
     patientName: String,
     chiefComplaint: String? = null,
+    countryCode: String? = null,
     isSubmitting: Boolean,
-    onIssuePrescription: (medicationName: String, dosage: String, instructions: String, onResult: (Boolean, String?) -> Unit) -> Unit,
+    onIssuePrescription: (medicationName: String, dosage: String, instructions: String, diagnosis: String, onResult: (Boolean, String?) -> Unit) -> Unit,
     onIssueCertificate: (type: CertificateType, daysOfRest: Int, diagnosis: String, onResult: (Boolean, String?) -> Unit) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -95,6 +96,7 @@ fun InCallClinicalBottomSheet(
     // Prescription form state
     var medicationName by remember { mutableStateOf("") }
     var dosage by remember { mutableStateOf("") }
+    var prescriptionDiagnosis by remember { mutableStateOf("") }
     var instructions by remember { mutableStateOf("") }
 
     // Certificate form state
@@ -170,7 +172,7 @@ fun InCallClinicalBottomSheet(
                                     .background(AuSuccess, CircleShape)
                             )
                             Text(
-                                text = "Llamada activa • Emisión oficial",
+                                text = "Llamada activa • Documentos sujetos a verificación",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = AuTextTertiary,
                             )
@@ -309,20 +311,20 @@ fun InCallClinicalBottomSheet(
                                 modifier = Modifier.size(22.dp),
                             )
                             Text(
-                                text = "Documento emitido exitosamente",
+                                text = if (currentMode == InCallClinicalMode.CERTIFICATE) "Borrador guardado" else "Receta registrada",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = AuSuccess,
                             )
                         }
                         Text(
-                            text = "CUIR Legal: $successCuir",
+                            text = "Referencia interna: $successCuir",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = AuTextPrimary,
                         )
                         Text(
-                            text = "Se ha notificado y enviado al chat en vivo de la consulta. La llamada continúa sin interrupción.",
+                            text = "Registro enviado al chat de la consulta. No constituye constancia de firma digital ni de homologación del proveedor.",
                             style = MaterialTheme.typography.bodySmall,
                             color = AuTextSecondary,
                         )
@@ -352,7 +354,7 @@ fun InCallClinicalBottomSheet(
                                 shape = RoundedCornerShape(10.dp),
                                 border = BorderStroke(1.dp, AuBorder),
                             ) {
-                                Text("Emitir otro", color = AuTextPrimary)
+                                Text("Preparar otro", color = AuTextPrimary)
                             }
                         }
                     }
@@ -430,6 +432,18 @@ fun InCallClinicalBottomSheet(
                             shape = RoundedCornerShape(10.dp),
                         )
 
+                        // In-call clinical diagnosis must be explicitly entered by the physician.
+                        OutlinedTextField(
+                            value = prescriptionDiagnosis,
+                            onValueChange = { prescriptionDiagnosis = it },
+                            label = { Text("Diagnóstico clínico *") },
+                            placeholder = { Text("Ingrese el diagnóstico evaluado durante la consulta") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            enabled = !isSubmitting,
+                            shape = RoundedCornerShape(10.dp),
+                        )
+
                         // Instrucciones
                         OutlinedTextField(
                             value = instructions,
@@ -450,15 +464,25 @@ fun InCallClinicalBottomSheet(
                             shape = RoundedCornerShape(10.dp),
                         )
 
-                        // Botón emitir receta
+                        if (countryCode != "AR") {
+                            Text(
+                                text = if (countryCode == "BR")
+                                    "Recetas brasileñas: usar Memed desde el portal médico hasta validar la integración Android."
+                                else "País y matrícula médica sin validar. No es posible registrar una receta.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AuDanger,
+                            )
+                        }
+
+                        // Registrar receta solo en Argentina, por emisor autorizado.
                         Button(
                             onClick = {
-                                if (medicationName.isBlank()) {
-                                    errorMessage = "Ingrese el nombre del medicamento"
+                                if (medicationName.isBlank() || prescriptionDiagnosis.isBlank()) {
+                                    errorMessage = "Indique medicamento y diagnóstico clínico"
                                     return@Button
                                 }
                                 errorMessage = null
-                                onIssuePrescription(medicationName, dosage, instructions) { ok, result ->
+                                onIssuePrescription(medicationName, dosage, instructions, prescriptionDiagnosis) { ok, result ->
                                     if (ok) {
                                         successCuir = result
                                     } else {
@@ -466,7 +490,8 @@ fun InCallClinicalBottomSheet(
                                     }
                                 }
                             },
-                            enabled = !isSubmitting && medicationName.isNotBlank(),
+                            enabled = !isSubmitting && medicationName.isNotBlank() &&
+                                prescriptionDiagnosis.isNotBlank() && countryCode == "AR",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
@@ -483,11 +508,11 @@ fun InCallClinicalBottomSheet(
                                     strokeWidth = 2.dp,
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Emitiendo receta oficial...", fontSize = 14.sp)
+                                Text("Registrando receta...", fontSize = 14.sp)
                             } else {
                                 Icon(Icons.Outlined.Medication, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Emitir Receta Digital (CUIR)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("Registrar receta AR", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
                         }
                     }
@@ -613,7 +638,7 @@ fun InCallClinicalBottomSheet(
                                     }
                                 }
                             },
-                            enabled = !isSubmitting,
+                            enabled = !isSubmitting && countryCode in setOf("AR", "BR"),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
@@ -630,11 +655,11 @@ fun InCallClinicalBottomSheet(
                                     strokeWidth = 2.dp,
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Emitiendo certificado oficial...", fontSize = 14.sp)
+                                Text("Guardando borrador...", fontSize = 14.sp)
                             } else {
                                 Icon(Icons.Outlined.Description, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Emitir Certificado Oficial", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("Guardar borrador para firma", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
                         }
                     }
