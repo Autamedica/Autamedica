@@ -142,6 +142,7 @@ describe('pharmacy-on-demand.service', () => {
       mockFetchApi.mockResolvedValue({ request: REQUEST, cloudflare_room_id: 'r', accessToken: 'tok-1' })
 
       await createPharmacyDispatchRequest({
+        careCountry: 'AR',
         patientDni: '  4027041959  ',
         patientPhone: ' 5491155995522 ',
         patientName: ' Marina ',
@@ -152,6 +153,7 @@ describe('pharmacy-on-demand.service', () => {
       expect(mockFetchApi).toHaveBeenCalledWith('/api/pharmacy/dispatch/request', {
         method: 'POST',
         body: expect.objectContaining({
+          careCountry: 'AR',
           patientDni: '4027041959',
           patientPhone: '5491155995522',
           patientName: 'Marina',
@@ -165,6 +167,7 @@ describe('pharmacy-on-demand.service', () => {
       mockFetchApi.mockResolvedValue({ request: REQUEST, cloudflare_room_id: 'r', accessToken: 'tok-1' })
 
       const result = await createPharmacyDispatchRequest({
+        careCountry: 'AR',
         patientDni: '4027041959',
         patientPhone: '5491155995522',
         tier: 'general',
@@ -177,6 +180,7 @@ describe('pharmacy-on-demand.service', () => {
       mockFetchApi.mockRejectedValue(new Error('Network error'))
 
       const result = await createPharmacyDispatchRequest({
+        careCountry: 'AR',
         patientDni: '4027041959',
         patientPhone: '5491155995522',
         tier: 'general',
