@@ -95,3 +95,15 @@ in the production retained-copy script for now.
 
 Vault, external configurations, offsite escrow, clinical workflows and
 observation gates remain separate Level 4 requirements.
+
+
+## New: retained object byte replay through local Storage API
+
+See [Retained Storage API byte replay](RETAINED_STORAGE_API_REPLAY.md).
+The new standalone script decrypts retained ciphertext privately, checks
+manifest integrity, rehydrates captured bytes via a *fresh local* Storage API
+with all test buckets private, and verifies downloaded hashes plus synthetic
+authorization denials. It runs **synthetic only in CI**; real ciphertext and
+escrow are allowed only on a separately approved private machine. It does not
+replay the original object versions/owners or original clinical RLS policies.
+Therefore it **does not** change storage_service_restore_verified=false.

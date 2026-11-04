@@ -6,6 +6,8 @@ on:
     paths:
       - "scripts/db/test_storage_api_isolated.py"
       - "scripts/db/test_storage_api_isolated_unit.py"
+      - "scripts/db/test_retained_storage_api.py"
+      - "scripts/db/test_retained_storage_api_unit.py"
       - "docs/database/STORAGE_SERVICE_ISOLATED_CHECK.md"
       - ".github/workflows/storage-api-isolated-smoke.yml"
 
@@ -34,9 +36,18 @@ jobs:
       - name: Run isolated synthetic Storage API and RLS denial tests
         run: python3 scripts/db/test_storage_api_isolated.py
 
-      - name: Never retain synthetic instance
+      - name: Test retained Storage API byte replay safety gates
+        run: python3 -m unittest -v test_retained_storage_api_unit
+
+      - name: Rehydrate synthetic retained Storage files through local API
+        run: python3 scripts/db/test_retained_storage_api.py --synthetic-fixture
+
+      - name: Verify disposable Storage containers were removed
         if: always()
         run: |
-          set +e
-          docker ps --format '{{.Names}}' | grep 'supabase_db_autamedica-storage-api-fixture' && exit 1
-          exit 0
+          set -euo pipefail
+          containers="$(docker ps -a --format '{{.Names}}')"
+          if printf '%s\n' "$containers" | grep -E -q '^supabase_db_autamedica-(storage-api-fixture|retained-storage-api)$'; then
+            echo "::error::A disposable Storage container remains"
+            exit 1
+          fi
