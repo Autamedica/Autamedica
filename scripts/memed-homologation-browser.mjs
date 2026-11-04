@@ -264,7 +264,8 @@ async function main() {
     };
   } catch { result.sandboxHistory = { status: null, count: null, error: 'provider_history_unavailable' }; }
   result.signFirstStep = { attempted: false, clicked: false };
-  for (const frame of page.frames()) {
+  // Do not advance signing unless the DEMO item is demonstrably in the editor.
+  if (result.demoItemVisible) for (const frame of page.frames()) {
     const link = frame.getByRole('link', { name: /assinar/i });
     if (await link.count().catch(() => 0)) {
       result.signFirstStep.attempted = true;
@@ -309,6 +310,12 @@ async function main() {
     observed: window.__memedDemo?.issuedEvent === true,
     hasProviderId: window.__memedDemo?.eventHasId === true,
   }));
+  result.sdkIssuanceEvent = await page.evaluate(() => ({
+    observed: window.__memedDemo?.issuedEvent === true,
+    hasProviderId: window.__memedDemo?.eventHasId === true,
+  }));
+  result.prescriptionIssued = false;
+  // Command acknowledgements and modal visibility are never issuance proof.
   if (!itemResult.accepted) throw new Error('sandbox_add_item_rejected');
   if (result.productionAccess) throw new Error('production_memed_call_blocked');
 }
