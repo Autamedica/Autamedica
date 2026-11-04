@@ -1,12 +1,12 @@
 /**
  * POST /api/doctors/prescriptions/:id/regenerate-pdf
- * Rebuilds the stored PDF for an already issued prescription without changing its CUIR.
- * The route parameter accepts the internal prescription id or the public CUIR.
+ * Reissuance is disabled until immutable signed PDF versioning is available.
+ * Never overwrite an originally issued and signed document with a new unsigned PDF.
  */
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
-import { jsonOk, badRequest, forbidden, internalError } from '@/lib/api-helpers';
+import { jsonOk, badRequest, forbidden, internalError, conflict } from '@/lib/api-helpers';
 import { regenerateIssuedPrescriptionPdf } from '@/lib/prescriptions/issue-prescription.service';
 import { createAstroAdminClient } from '@/lib/supabase';
 
@@ -29,6 +29,9 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     const code = errorResult.error.code;
     if (code === 'doctor_not_found' || code === 'not_your_prescription') {
       return forbidden(code);
+    }
+    if (code === 'reissue_requires_verified_signature') {
+      return conflict(code);
     }
     if (code === 'update_failed' || code === 'pdf_upload_failed') {
       return internalError();
