@@ -179,7 +179,7 @@ def replay(api, anon, service, manifest, components, expected_objects):
         fixture.require_status(code, {200, 201}, "Create private replay bucket")
 
     # Independent synthetic owner/other/anon RLS test on the SAME local API.
-    fixture.setup_private_policy(None)
+    fixture.setup_private_policy(None, container=CONTAINER)
     synthetic = fixture.check_permissions(api, anon, service)
     _, other_token = fixture.create_user(api, anon, service, "replay-other")
 
