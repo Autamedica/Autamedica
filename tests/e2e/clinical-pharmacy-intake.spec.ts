@@ -46,12 +46,16 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
       await expect(page.getByText('Plataforma Homologada')).toHaveCount(0)
       await expect(page.getByText('Firma Digital Oficial')).toHaveCount(0)
       await page.getByRole('radio', { name: c.countryLabel }).check()
+      await expect(page.getByRole('radio', { name: c.countryLabel })).toBeChecked()
+      await expect(page.getByLabel(c.idLabel)).toBeVisible({ timeout: 10000 })
       await page.getByLabel(c.idLabel).fill(c.document)
       await page.getByLabel('Nombre y Apellido').fill('PACIENTE SINTETICO TEST')
       await page.getByLabel(/Celular \/ WhatsApp/).fill(c.phone)
       await page.getByLabel('Motivo o Medicamento Solicitado').fill('PRUEBA SINTETICA SIN ATENCION')
       await page.getByRole('button', { name: /Solicitar Médico de Guardia Ahora/ }).click()
-      await expect(page.getByRole('heading', { name: /Sala de Espera Exprés AutaMedica/ })).toBeVisible()
+      await expect.poll(() => receivedBody !== null, { timeout: 10000 }).toBe(true)
+      // The mocked API must be reached before any waiting-state assertion.
+      await expect(page.getByRole('heading', { name: /Sala de Espera Exprés AutaMedica/ })).toBeVisible({ timeout: 10000 })
 
       expect(receivedBody).not.toBeNull()
       const body = receivedBody as Record<string, unknown> | null
