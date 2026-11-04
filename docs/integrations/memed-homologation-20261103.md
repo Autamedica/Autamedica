@@ -30,3 +30,15 @@ El script `scripts/memed-homologation-smoke.mjs` está preparado para operar en 
 ## Seguridad
 
 No se guardan tokens, API keys, CPFs reales, fechas privadas o historias clínicas en el repositorio ni los logs. No se cambió `MEMED_RX_ENABLED=false` ni ninguna variable de producción. Todas las identidades de prueba utilizadas en AutaMedica son ficticias; la prueba de médico compartido únicamente consultó su estado y **no reutilizó su token**.
+
+
+## Continuación de cierre documental (bloqueo API; 04/11/2026 UTC)
+
+- La documentación oficial indica explícitamente que una prescripción **no puede emitirse vía REST**; solo el módulo web emite, y el evento `prescricaoImpressa` identifica una emisión.
+- Flujo adicional en PR #664: `newPrescription` + `addItem` con HTML, escucha de evento, distinción entre comando resuelto y receta real, preflight de disponibilidad, historia y verificador read-only de documento en `scripts/memed-homologation-artifact-check.mjs`.
+- El verificador **no genera** recetas, firma ni PDFs. Únicamente comprueba que el historial contenga un ID de la prescripción del paciente DEMO, consulta el enlace digital y valida que el documento obtenido del proveedor tenga contenido PDF y huella SHA-256. Una huella de PDF **no verifica** la firma criptográfica.
+- [GitHub Actions 41758206144](https://github.com/ecucondorSA/Autamedica/actions/runs/41758206144): `check-key` devolvió HTTP **503** a las 02:03 UTC del 04/11/2026; el navegador fue omitido. **No** hay ID, PDF ni firma verificados.
+- Como Memed está indisponible, el test HTML con `addItem` y el verificador PDF **no han podido completarse**, y el PR permanece en borrador. No se cambió producción.
+- Las claves de test vienen de la documentación pública oficial. No copiar nunca los secretos de producción ni tokens de médico/paciente a logs o archivos.
+
+**Criterios de cierre:** (a) `check-key` HTTP 200; (b) médico DEMO autenticado; (c) paciente DEMO + item realmente presente en editor; (d) evento `prescricaoImpressa` + nueva receta en historial Memed; (e) PDF genuino recuperado; (f) estado de firma informado como **no verificado** hasta prueba criptográfica independiente. No declarar homologación completa antes de los criterios verificables.
