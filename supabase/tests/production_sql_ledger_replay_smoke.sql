@@ -80,7 +80,9 @@ BEGIN
   -- carry their own verified user ID, never a user ID supplied by a kiosk.
   IF has_table_privilege('anon','public.pharmacy_dispatch_requests','INSERT')
     OR v_qual IS NULL
-    OR position('requested_by_user_id = auth.uid()' IN v_qual) = 0
+    OR position('requested_by_user_id' IN v_qual) = 0
+    OR position('auth.uid()' IN v_qual) = 0
+    OR position('requested_by_user_id IS NULL' IN v_qual) > 0
   THEN
     RAISE EXCEPTION 'Kiosk spoof protection missing';
   END IF;
