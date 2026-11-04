@@ -84,6 +84,7 @@ fun InCallClinicalBottomSheet(
     patientName: String,
     chiefComplaint: String? = null,
     countryCode: String? = null,
+    patientCareCountryCode: String? = null,
     patientLinked: Boolean = false,
     isSubmitting: Boolean,
     onIssuePrescription: (medicationName: String, dosage: String, instructions: String, diagnosis: String, onResult: (Boolean, String?) -> Unit) -> Unit,
@@ -108,6 +109,7 @@ fun InCallClinicalBottomSheet(
     // Feedback state
     var successCuir by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val countriesMatch = countryCode in setOf("AR", "BR") && countryCode == patientCareCountryCode
 
     ModalBottomSheet(
         onDismissRequest = {
@@ -241,6 +243,22 @@ fun InCallClinicalBottomSheet(
                 ) {
                     Text(
                         "Paciente sin ficha clínica vinculada. Se puede continuar la videoconsulta, pero no preparar documentos hasta verificar el vínculo asistencial.",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuDanger,
+                    )
+                }
+            }
+
+            if (patientLinked && !countriesMatch) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = AuDanger.copy(alpha = 0.10f),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.25f)),
+                ) {
+                    Text(
+                        "País de atención del paciente sin confirmar o diferente del país de matrícula del médico. El paciente debe registrar su país de atención en su perfil antes de preparar documentos.",
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = AuDanger,
@@ -508,7 +526,7 @@ fun InCallClinicalBottomSheet(
                                 }
                             },
                             enabled = !isSubmitting && medicationName.isNotBlank() &&
-                                prescriptionDiagnosis.isNotBlank() && countryCode == "AR" && patientLinked,
+                                prescriptionDiagnosis.isNotBlank() && countryCode == "AR" && patientLinked && countriesMatch,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
@@ -655,7 +673,7 @@ fun InCallClinicalBottomSheet(
                                     }
                                 }
                             },
-                            enabled = !isSubmitting && countryCode in setOf("AR", "BR") && patientLinked,
+                            enabled = !isSubmitting && patientLinked && countriesMatch,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
