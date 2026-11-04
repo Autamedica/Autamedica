@@ -303,26 +303,46 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     fun cancelActiveRequest() {
         val reqId = _uiState.value.activeRequestId ?: return
-        statusPollingJob?.cancel()
-        statusPollingJob = null
+        if (_uiState.value.isSubmitting) return
         viewModelScope.launch {
-            runCatching {
-                pharmacyDispatchRepository.updateDispatchRequestStatus(reqId, "cancelled")
-            }
-            _uiState.update {
-                it.copy(
-                    isSubmitting = false,
-                    activeRequestId = null,
-                    status = null,
-                    queuePosition = 0,
-                    estimatedMinutes = 0,
-                    assignedDoctorName = null,
-                    assignedDoctorSpecialty = null,
-                    roomId = null,
-                    readyToJoinCall = false,
-                    error = null,
-                )
-            }
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            pharmacyDispatchRepository.cancelPatientDispatchRequest(reqId)
+                .onSuccess { cancelled ->
+                    if (cancelled) {
+                        statusPollingJob?.cancel()
+                        statusPollingJob = null
+                        _uiState.update {
+                            it.copy(
+                                isSubmitting = false,
+                                activeRequestId = null,
+                                status = null,
+                                queuePosition = 0,
+                                estimatedMinutes = 0,
+                                assignedDoctorName = null,
+                                assignedDoctorSpecialty = null,
+                                roomId = null,
+                                readyToJoinCall = false,
+                                error = null,
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isSubmitting = false,
+                                error = "No se confirmó la cancelación. Es posible que la solicitud ya haya sido asignada; verificá su estado.",
+                            )
+                        }
+                    }
+                }
+                .onFailure { error ->
+                    SecureLog.error("[PharmacyIntakeVM] Patient cancellation failed", error)
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            error = "No pudimos cancelar la solicitud. Verificá tu conexión e intentá nuevamente.",
+                        )
+                    }
+                }
         }
     }
 
