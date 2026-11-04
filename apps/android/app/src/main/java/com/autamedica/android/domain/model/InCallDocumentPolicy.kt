@@ -30,6 +30,13 @@ object InCallDocumentPolicy {
         return if (daysOfRest == 0) null else startDate.plusDays(daysOfRest.toLong() - 1)
     }
 
+    /** Country isolation is not optional when issuing a clinical document. */
+    fun requireMatchingPatientCountry(patientCountry: String?, doctorCountry: String) {
+        require(patientCountry == doctorCountry) {
+            "El país clínico del paciente no está verificado o no coincide con el médico"
+        }
+    }
+
     /** A non-resolved patient or country must not silently become Argentina. */
     fun requireCountry(country: String?): String {
         require(country == "AR" || country == "BR") { "País y matrícula médica no verificados" }
