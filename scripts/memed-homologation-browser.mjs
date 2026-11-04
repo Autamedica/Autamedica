@@ -260,6 +260,21 @@ async function main() {
   } catch {
     result.sandboxHistoryAfter = { status: null, count: null };
   }
+  result.signingPrompt = { dialogs: 0, visibleTopics: [] };
+  const topics = ['certificado digital', 'certificado', 'assinatura', 'medicamento',
+    'posologia', 'obrigatorio', 'finalizar', 'continuar', 'cancelar',
+    'imprimir', 'erro', 'birdid', 'lacuna'];
+  for (const frame of page.frames()) {
+    result.signingPrompt.dialogs += await frame.getByRole('dialog').count().catch(() => 0);
+    for (const topic of topics) {
+      const locator = frame.getByText(new RegExp(topic, 'i'));
+      if (await locator.count().catch(() => 0) > 0) {
+        if (!result.signingPrompt.visibleTopics.includes(topic)) {
+          result.signingPrompt.visibleTopics.push(topic);
+        }
+      }
+    }
+  }
   if (!itemResult.accepted) throw new Error('sandbox_add_item_rejected');
   if (result.productionAccess) throw new Error('production_memed_call_blocked');
 }
