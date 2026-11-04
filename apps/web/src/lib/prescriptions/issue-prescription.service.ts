@@ -139,6 +139,7 @@ export type IssuanceError =
   | { code: 'ar_production_homologation_required' }
   | { code: 'digital_signature_required' }
   | { code: 'digital_signature_failed' }
+  | { code: 'reissue_requires_verified_signature' }
   | { code: 'farmalink_registration_required' }
   | { code: 'pdf_generation_failed'; details?: string }
   | { code: 'pdf_upload_failed'; details?: string }
@@ -161,37 +162,6 @@ async function sha256BytesHex(bytes: Uint8Array): Promise<string> {
 }
 
 function fail(error: IssuanceError): Result { return { ok: false, error }; }
-
-function getPrescriptionStoragePath(cuir: string, signedPdfUrl?: string | null): string {
-  if (signedPdfUrl) {
-    try {
-      const url = new URL(signedPdfUrl);
-      const marker = '/medical-documents/';
-      const index = url.pathname.indexOf(marker);
-      if (index >= 0) {
-        return decodeURIComponent(url.pathname.slice(index + marker.length));
-      }
-    } catch {
-      // Fall back to the canonical legacy path below.
-    }
-  }
-
-  return `prescriptions/${cuir}/receta-${cuir}.pdf`;
-}
-
-function resolveExternalPrescriptionForPdf(
-  vendorName?: string | null,
-  vendorId?: string | null,
-): Parameters<typeof generatePrescriptionPdf>[0]['externalPrescription'] {
-  if (vendorName !== 'farmalink' || !vendorId) return undefined;
-
-  return {
-    provider: 'farmalink',
-    number: vendorId,
-    displayLabel: 'RECETA FARMALINK',
-    legend: 'Número de receta para validación online en farmacia',
-  };
-}
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -981,160 +951,19 @@ export async function issuePrescription(
   };
 }
 
+/**
+ * Temporarily refuse regeneration of already-issued PDF artifacts.
+ * The previous implementation overwrote the stored signed_pdf_url target
+ * with a newly generated UNSIGNED PDF and retained the original CUIR.
+ * A future implementation must create an immutable, newly signed version
+ * and verify both provider registration and previous document lineage.
+ */
 export async function regenerateIssuedPrescriptionPdf(
-  supabase: SupabaseClient,
-  prescriptionRef: string,
-  userId: string,
+  _supabase: SupabaseClient,
+  _prescriptionRef: string,
+  _userId: string,
 ): Promise<Result> {
-  const { data: doctor } = await supabase
-    .from('doctors')
-    .select('id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
-    .eq('user_id', userId)
-    .single();
-
-  if (!doctor) return fail({ code: 'doctor_not_found' });
-  if (!doctor.license_number) return fail({ code: 'missing_license_number' });
-  if (!doctor.refeps_id) return fail({ code: 'missing_refeps_id' });
-  if (!doctor.professional_address) return fail({ code: 'missing_professional_address' });
-
-  const prescriptionQuery = supabase
-    .from('prescriptions')
-    .select('id, doctor_id, patient_id, status, clinical_data, cuir, signed_pdf_url, vendor_name, vendor_id')
-    .limit(1);
-
-  const { data: rows } = prescriptionRef.startsWith('AM-') || prescriptionRef.startsWith('AR-')
-    ? await prescriptionQuery.eq('cuir', prescriptionRef)
-    : await prescriptionQuery.eq('id', prescriptionRef);
-  const rx = rows?.[0];
-
-  if (!rx) return fail({ code: 'prescription_not_found' });
-  if (rx.doctor_id !== doctor.id) return fail({ code: 'not_your_prescription' });
-  if (!rx.cuir) return fail({ code: 'missing_cuir' });
-
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('user_id, dni, cuil, address, birth_date, gender, insurance_info')
-    .eq('id', rx.patient_id)
-    .single();
-
-  if (!patient) return fail({ code: 'patient_not_found' });
-
-  const clinicalData = rx.clinical_data as ClinicalData;
-  const externalPatient = clinicalData?.external_patient;
-  if (!patient.dni && !patient.cuil && !externalPatient?.dni && !externalPatient?.cuil) {
-    return fail({ code: 'missing_patient_identification' });
-  }
-  if (!patient.address && !externalPatient?.address) return fail({ code: 'missing_patient_address' });
-
-  const item = clinicalData?.items?.[0];
-  if (!item?.generic_name) return fail({ code: 'no_medication' });
-
-  const patientName = externalPatient?.name?.trim()
-    || (patient.user_id ? await resolveProfileName(supabase, patient.user_id, '') : 'Paciente');
-  const doctorName = await resolveProfileName(supabase, userId, 'Dr.');
-  const now = new Date().toISOString();
-  const validityDays = getValidityPeriodDays(item.generic_name);
-  const expiresAt = addDays(new Date(now), validityDays).toISOString();
-
-  const artifacts = await generatePrescriptionPdf({
-    prescriptionId: rx.id,
-    existingCuir: rx.cuir,
-    externalPrescription: resolveExternalPrescriptionForPdf(rx.vendor_name, rx.vendor_id),
-    medication: {
-      genericName: item.generic_name,
-      commercialName: item.commercial_name,
-      dosage: item.dosage ?? '',
-      presentation: item.presentation ?? '',
-      quantity: item.quantity ?? 0,
-      instructions: item.instructions ?? '',
-    },
-    diagnosis: clinicalData.diagnosis ?? '',
-    notes: clinicalData.notes,
-    patient: {
-      name: patientName,
-      dni: patient.dni ?? externalPatient?.dni ?? undefined,
-      cuil: patient.cuil ?? externalPatient?.cuil ?? undefined,
-      dateOfBirth: patient.birth_date ?? externalPatient?.birth_date ?? undefined,
-      sex: patient.gender ?? externalPatient?.gender ?? undefined,
-      insurancePlan: resolveInsurancePlan(patient.insurance_info),
-      address: patient.address ?? externalPatient?.address ?? undefined,
-    },
-    prescriber: {
-      name: doctorName,
-      license: doctor.license_number,
-      licenseJurisdiction: doctor.enrollment_jurisdiction ?? undefined,
-      licenseEntity: doctor.enrollment_entity ?? undefined,
-      refeps: doctor.refeps_id ?? undefined,
-      specialty: doctor.specialty ?? undefined,
-      professionalAddress: doctor.professional_address ?? undefined,
-      signatureImageUrl: doctor.signature_image_url ?? undefined,
-      stampImageUrl: doctor.stamp_image_url ?? undefined,
-    },
-    issuedAt: now,
-    expiresAt,
-    careGuide: {
-      tips: clinicalData.care_guide_tips,
-      forgotten: clinicalData.care_guide_forgotten,
-      warnings: clinicalData.care_guide_warnings,
-      lifestyle: clinicalData.care_guide_lifestyle,
-    },
-    template: doctor.care_guide_template ?? 'neutral',
-  });
-
-  const pdfPath = getPrescriptionStoragePath(rx.cuir, rx.signed_pdf_url);
-  const { error: uploadError } = await supabase.storage
-    .from('medical-documents')
-    .upload(pdfPath, artifacts.pdfBuffer, {
-      contentType: 'application/pdf',
-      upsert: true,
-    });
-
-  if (uploadError) {
-    logger.warn('[regenerateIssuedPrescriptionPdf] PDF upload failed', uploadError);
-    return fail({ code: 'pdf_upload_failed', details: uploadError.message || String(uploadError) });
-  }
-
-  const { data: urlData } = await supabase.storage
-    .from('medical-documents')
-    .createSignedUrl(pdfPath, 365 * 24 * 60 * 60);
-  const signedPdfUrl = urlData?.signedUrl ?? rx.signed_pdf_url ?? null;
-
-  const { error: updateError } = await supabase
-    .from('prescriptions')
-    .update({
-      qr_code_content: artifacts.qrContent,
-      signed_pdf_url: signedPdfUrl,
-    })
-    .eq('id', rx.id);
-
-  if (updateError) {
-    logger.error('[regenerateIssuedPrescriptionPdf] Update failed', updateError);
-    return fail({ code: 'update_failed', details: updateError.message || String(updateError) });
-  }
-
-  await supabase.from('prescription_audit_events').insert({
-    prescription_id: rx.id,
-    event_type: 'pdf_regenerated',
-    user_id: userId,
-    metadata: {
-      cuir: artifacts.cuir,
-      pdfPath,
-      reason: 'refresh_prescription_artifact_template',
-    },
-  });
-
-  return {
-    ok: true,
-    data: {
-      cuir: artifacts.cuir,
-      qrContent: artifacts.qrContent,
-      signedPdfUrl,
-      issuedAt: now,
-      expiresAt,
-      vendorName: rx.vendor_name,
-      vendorId: rx.vendor_id ?? '',
-    },
-  };
+  return fail({ code: 'reissue_requires_verified_signature' });
 }
 
 export const __testables = {
