@@ -18,6 +18,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let initializedPaymentId: string | null = null
   let admin: SupabaseClient | null = null
   try {
+    const rolloutFlag = (locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
+      ?? getRuntimeEnvValue('ENABLE_JORDAN_PAYMENTS')
+      ?? import.meta.env.ENABLE_JORDAN_PAYMENTS
+    if (rolloutFlag !== 'true') return serviceUnavailable('pharmacy_checkout_not_enabled')
+
     const body = await request.json().catch(() => null)
     const requestId = body?.requestId
     const token = body?.accessToken
