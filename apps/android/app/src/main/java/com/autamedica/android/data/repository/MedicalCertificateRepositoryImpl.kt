@@ -3,6 +3,7 @@ package com.autamedica.android.data.repository
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.CreateCertificateRequest
+import com.autamedica.android.domain.model.InCallDocumentPolicy
 import com.autamedica.android.domain.model.MedicalCertificate
 import com.autamedica.android.domain.model.PrescriptionPatientItem
 import com.autamedica.android.domain.repository.MedicalCertificateRepository
@@ -17,6 +18,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -161,22 +163,42 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
 
     override suspend fun createCertificate(request: CreateCertificateRequest): Result<MedicalCertificate> = runCatching {
         require(request.patientId.isNotBlank()) { "ID de paciente requerido" }
+        val startDate = LocalDate.parse(request.startDate)
+        val expectedEndDate = InCallDocumentPolicy.inclusiveEndDate(startDate, request.daysOfRest)?.toString()
+        require(request.endDate == expectedEndDate) { "Período de reposo inconsistente" }
+        require(request.daysOfRest == 0 || !request.diagnosis.isNullOrBlank()) {
+            "El diagnóstico clínico es obligatorio para un certificado de reposo"
+        }
 
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
             ?: throw IllegalStateException("No authenticated user ID found")
 
         val doctor = supabaseClient.postgrest
             .from("doctors")
-            .select(Columns.list("id", "license_number")) {
+            .select(Columns.list("id", "license_number", "license_type", "uf_brazil", "care_country", "active")) {
                 filter { eq("user_id", userId) }
             }
             .decodeSingleOrNull<DoctorRecordDto>()
             ?: throw IllegalStateException("Perfil médico no encontrado")
 
+        check(doctor.active) { "El médico debe tener un perfil activo" }
+        val doctorCountry = InCallDocumentPolicy.doctorCountry(
+            doctor.licenseType, doctor.careCountry, doctor.ufBrazil,
+        )
+        check(doctorCountry == request.countryCode && doctorCountry != null) {
+            "El país del certificado no coincide con la matrícula médica"
+        }
+        val eligiblePatients = prescriptionRepository.getEligiblePatients().getOrElse {
+            throw IllegalStateException("No se pudo verificar la relación médico-paciente", it)
+        }
+        check(eligiblePatients.any { it.patientId == request.patientId }) {
+            "El médico no tiene acceso clínico verificado al paciente"
+        }
+
         val timestampHex = java.lang.Long.toHexString(System.currentTimeMillis()).uppercase()
         val randomHex = UUID.randomUUID().toString().replace("-", "").take(6).uppercase()
-        val cuir = "AR-CERT-$timestampHex-$randomHex"
-        val qrContent = "https://autamedica.com/verify/$cuir"
+        // Internal reference only. A draft has no public verification QR.
+        val cuir = "${request.countryCode}-CERT-$timestampHex-$randomHex"
         val certId = UUID.randomUUID().toString()
         val now = Instant.now().toString()
 
@@ -191,9 +213,8 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             put("start_date", request.startDate)
             request.endDate?.let { put("end_date", it) }
             request.diagnosis?.let { put("diagnosis", it) }
-            put("hide_diagnosis", request.hideDiagnosis)
+            put("hide_diagnosis", request.countryCode == "BR" || request.hideDiagnosis)
             request.observations?.let { put("observations", it) }
-            put("qr_code_content", qrContent)
             put("country_code", request.countryCode)
             put("created_at", now)
             put("updated_at", now)
@@ -213,14 +234,14 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
             startDate = request.startDate,
             endDate = request.endDate,
             diagnosis = if (request.hideDiagnosis) null else request.diagnosis,
-            hideDiagnosis = request.hideDiagnosis,
+            hideDiagnosis = request.countryCode == "BR" || request.hideDiagnosis,
             observations = request.observations,
             doctorName = doctorNameMap[doctor.id],
             doctorLicense = doctorLicenseMap[doctor.id] ?: doctor.licenseNumber,
             patientName = patientNameMap[request.patientId],
             patientDni = patientDniMap[request.patientId],
             signedPdfUrl = null,
-            qrCodeContent = qrContent,
+            qrCodeContent = null,
             countryCode = request.countryCode,
             createdAt = now,
         )
@@ -393,6 +414,10 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         val id: String,
         @SerialName("user_id") val userId: String? = null,
         @SerialName("license_number") val licenseNumber: String? = null,
+        @SerialName("license_type") val licenseType: String? = null,
+        @SerialName("uf_brazil") val ufBrazil: String? = null,
+        @SerialName("care_country") val careCountry: String? = null,
+        val active: Boolean = false,
     )
 
     @Serializable
