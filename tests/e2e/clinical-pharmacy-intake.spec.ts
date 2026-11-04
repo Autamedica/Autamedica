@@ -1,9 +1,16 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 /**
  * Browser-level contract with a mocked API. No real doctor, patient, clinic,
  * clinical data, prescription provider, Supabase write, or videoconference.
  */
+async function waitForPharmacyHydration(page: Page): Promise<void> {
+  // SSR is visible before Astro client:load attaches React onChange handlers.
+  await page.waitForFunction(() => [...document.querySelectorAll('astro-island')].some(
+    (island) => island.textContent?.includes('Consulta Exprés en Farmacia') && !island.hasAttribute('ssr'),
+  ), null, { timeout: 15000 })
+}
+
 test.describe('Pharmacy intake AR/BR clinical country', () => {
   const cases = [
     { country: 'AR', countryLabel: 'Argentina · DNI', idLabel: 'DNI / Documento',
@@ -42,6 +49,7 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
       })
 
       await page.goto('/farmacia/solicitar')
+      await waitForPharmacyHydration(page)
       await expect(page.getByRole('heading', { name: /Consulta Exprés en Farmacia/ })).toBeVisible()
       await expect(page.getByText('Plataforma Homologada')).toHaveCount(0)
       await expect(page.getByText('Firma Digital Oficial')).toHaveCount(0)
@@ -74,6 +82,7 @@ test.describe('Pharmacy intake AR/BR clinical country', () => {
       await route.abort()
     })
     await page.goto('/farmacia/solicitar')
+    await waitForPharmacyHydration(page)
     await expect(page.getByRole('heading', { name: /Consulta Exprés en Farmacia/ })).toBeVisible()
     await page.getByLabel('DNI / Documento').fill('38123456')
     await page.getByLabel('Nombre y Apellido').fill('PACIENTE SINTETICO TEST')
