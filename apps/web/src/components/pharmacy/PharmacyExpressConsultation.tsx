@@ -63,7 +63,6 @@ export function PharmacyExpressConsultation({
   const [requestId, setRequestId] = useState<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
-  const [queuePosition] = useState<number>(1)
 
   // Polling / escucha para consultar GET /api/pharmacy/dispatch/${requestId}?token=${accessToken}
   const checkStatus = useCallback(async (id: string, token: string | null) => {
@@ -456,14 +455,14 @@ export function PharmacyExpressConsultation({
 
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-700/50 text-emerald-400 text-xs font-semibold mb-3">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Guardia Médica AutaMedica Asignando Profesional
+              Buscando un profesional disponible
             </span>
 
             <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
               Sala de Espera Exprés AutaMedica
             </h2>
             <p className="text-sm text-am-surface-300 max-w-sm mb-6">
-              Por favor aguarda unos instantes frente a la pantalla. Un médico de la Red AutaMedica tomará tu consulta para <strong className="text-white">{pharmacyName}</strong>.
+              Estamos buscando un médico disponible para atender tu consulta de <strong className="text-white">{pharmacyName}</strong>.
             </p>
 
             <div className="w-full max-w-xs grid grid-cols-2 gap-3 mb-6">
@@ -472,7 +471,7 @@ export function PharmacyExpressConsultation({
                   <User className="w-3.5 h-3.5 text-am-surface-400" /> Posición en cola
                 </span>
                 <span className="text-xl font-bold text-white">
-                  #{queuePosition}
+                  Por confirmar
                 </span>
               </div>
               <div className="p-3.5 rounded-2xl bg-am-surface-900 border border-am-surface-700/60 flex flex-col items-center">
