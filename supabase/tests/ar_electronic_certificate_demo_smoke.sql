@@ -127,17 +127,19 @@ BEGIN
       'EXECUTE') THEN
     RAISE EXCEPTION 'unprivileged role can execute issuance RPC';
   END IF;
-  -- Historic signed rows without signature_method are still clinical evidence:
+  -- All signed rows, including retained historic records, must be immutable:
   -- their status must never be reverted to draft (the regression fixed by
   -- 20261104024500_ar_certificate_signed_status_immutable.sql).
   INSERT INTO public.medical_certificates
     (id, doctor_id, patient_id, certificate_type, days_of_rest,
      start_date, end_date, diagnosis, hide_diagnosis, cuir, qr_code_content,
-     country_code, status)
+     country_code, status, signed_pdf_url, signature_hash,
+    signature_method, signature_verified_at)
   SELECT '00000000-0000-4000-8000-00000000a402', d.id, p.id,
     'reposo_laboral', 1, current_date, current_date,
-    'SIGNED LEGACY SYNTHETIC', true, 'TEST-AR-LEGACY-NO-VALIDO',
-    'TEST-AR-LEGACY-NO-VALIDO', 'AR', 'signed'
+    'SIGNED SYNTHETIC NO REAL SIGNATURE', true, 'TEST-AR-NO-VALIDO',
+    'TEST-AR-NO-VALIDO', 'AR', 'signed',
+    'test-only/not-a-clinical-pdf.pdf', repeat('a',64), 'ac_external', now()
   FROM public.doctors d CROSS JOIN public.patients p
   WHERE d.user_id = '00000000-0000-4000-8000-00000000a101'
     AND p.user_id = '00000000-0000-4000-8000-00000000a102';
@@ -160,7 +162,7 @@ BEGIN
 
   IF (SELECT status FROM public.medical_certificates
       WHERE id = '00000000-0000-4000-8000-00000000a402') <> 'signed'
-  THEN RAISE EXCEPTION 'legacy signed status changed despite guard'; END IF;
+  THEN RAISE EXCEPTION 'signed certificate status changed despite guard'; END IF;
 END $check$;
 
 ROLLBACK;
