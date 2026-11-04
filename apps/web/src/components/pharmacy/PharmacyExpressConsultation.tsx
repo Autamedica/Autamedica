@@ -25,6 +25,8 @@ interface PharmacyExpressConsultationProps {
   pharmacyId?: string | null
   pharmacyName?: string
   initialDni?: string
+  referralCode?: string | null
+  referralPartnerName?: string | null
 }
 
 type Step = 'FORM' | 'WAITING' | 'CALL' | 'ENDED' | 'CANCELLED'
@@ -42,6 +44,8 @@ export function PharmacyExpressConsultation({
   pharmacyId = null,
   pharmacyName = 'Farmacia Adherida',
   initialDni = '',
+  referralCode = null,
+  referralPartnerName = null,
 }: PharmacyExpressConsultationProps) {
   const dniInputId = useId()
   const nameInputId = useId()
@@ -160,6 +164,7 @@ export function PharmacyExpressConsultation({
           patientPhone: formData.phone.trim(),
           symptomSummary: formData.reason.trim(),
           pharmacyId: pharmacyId || undefined,
+          referralCode: referralCode || undefined,
           tier: 'general',
         },
       })
@@ -213,7 +218,7 @@ export function PharmacyExpressConsultation({
             Guardia Exprés
           </span>
           <span className="text-zinc-500 hidden sm:inline">•</span>
-          <span className="text-zinc-300 hidden sm:inline font-normal">{pharmacyName}</span>
+          <span className="text-zinc-300 hidden sm:inline font-normal">{referralPartnerName ?? pharmacyName}</span>
         </div>
         <GuestCallPage roomId={callRoomId} />
       </div>
@@ -247,7 +252,7 @@ export function PharmacyExpressConsultation({
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-am-surface-800/90 border border-am-surface-700/60 text-xs font-medium mb-2 shadow-md">
             <span className="font-bold text-white tracking-wide">AutaMedica</span>
             <span className="text-am-surface-500">•</span>
-            <span className="text-emerald-400 font-medium">Red de Farmacias Asociadas</span>
+            <span className="text-emerald-400 font-medium">{referralPartnerName ? 'Canal de referidos' : 'Red de Farmacias Asociadas'}</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
@@ -256,7 +261,7 @@ export function PharmacyExpressConsultation({
 
           <div className="flex items-center justify-center gap-2 mt-1.5 text-xs text-am-surface-300">
             <Building2 className="w-3.5 h-3.5 text-am-primary-400 shrink-0" />
-            <span>Punto de Atención Digital: <strong className="text-white font-semibold">{pharmacyName}</strong></span>
+            <span>{referralPartnerName ? 'Origen de referencia: ' : 'Punto de Atención Digital: '}<strong className="text-white font-semibold">{referralPartnerName ?? pharmacyName}</strong></span>
           </div>
           <p className="text-xs text-am-surface-400 mt-1 max-w-md">
             Atención médica por videollamada. La emisión de documentos depende del profesional y de las habilitaciones correspondientes a cada país.
