@@ -194,6 +194,11 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         check(eligiblePatients.any { it.patientId == request.patientId }) {
             "El médico no tiene acceso clínico verificado al paciente"
         }
+        val patientCountry = supabaseClient.postgrest.from("patients")
+            .select(Columns.list("id", "care_country")) {
+                filter { eq("id", request.patientId) }
+            }.decodeSingleOrNull<PatientCountryDto>()?.countryCode
+        InCallDocumentPolicy.requireMatchingPatientCountry(patientCountry, request.countryCode)
 
         val timestampHex = java.lang.Long.toHexString(System.currentTimeMillis()).uppercase()
         val randomHex = UUID.randomUUID().toString().replace("-", "").take(6).uppercase()
@@ -418,6 +423,12 @@ class MedicalCertificateRepositoryImpl @Inject constructor(
         @SerialName("uf_brazil") val ufBrazil: String? = null,
         @SerialName("care_country") val careCountry: String? = null,
         val active: Boolean = false,
+    )
+
+    @Serializable
+    private data class PatientCountryDto(
+        val id: String,
+        @SerialName("care_country") val countryCode: String? = null,
     )
 
     @Serializable
