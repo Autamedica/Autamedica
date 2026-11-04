@@ -1,5 +1,7 @@
 # AutaMedica Database Schema
 
+> **Nota operativa (04/11/2026):** este README contiene afirmaciones históricas de arquitectura y seguridad que no equivalen a evidencia actual de producción ni a acreditación regulatoria. Para el estado verificado y los pendientes del Nivel 4, consultar [NIVEL4_ESTADO_VERIFICADO_2026-11-04.md](NIVEL4_ESTADO_VERIFICADO_2026-11-04.md).
+
 This directory contains the complete database schema for the AutaMedica medical platform.
 
 ## 📁 Files
