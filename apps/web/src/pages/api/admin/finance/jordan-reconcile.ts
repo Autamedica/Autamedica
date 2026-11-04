@@ -70,8 +70,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return internalError('payment_provider_unavailable')
     }
     const result = await response.json() as { results?: VerifiedPharmacyProviderPayment[] }
+    // Detect ALL matching provider charges before enforcing the local payment ID.
+    // A second charge must trigger manual review, never be silently ignored.
+    const withoutPinnedPaymentId: LocalPharmacyPayment = {
+      ...(local as LocalPharmacyPayment), provider_payment_id: null,
+    }
     const candidates = (result.results ?? []).filter(p =>
-      classifyVerifiedPharmacyPayment(local as LocalPharmacyPayment,p) !== null,
+      classifyVerifiedPharmacyPayment(withoutPinnedPaymentId,p) !== null,
     )
     if (candidates.length > 1) {
       return conflict('multiple_matching_payments_manual_review_required')
