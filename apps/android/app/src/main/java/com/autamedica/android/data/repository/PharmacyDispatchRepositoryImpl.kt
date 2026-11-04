@@ -493,6 +493,10 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 // ── DTOs ────────────────────────────────────────────────────
 
 @Serializable
+private data class CancelledDispatchRequestDto(val id: String)
+
+
+@Serializable
 private data class DoctorDutyStatusDto(
     @SerialName("doctor_id") val doctorId: String,
     @SerialName("is_on_duty") val isOnDuty: Boolean = false,
