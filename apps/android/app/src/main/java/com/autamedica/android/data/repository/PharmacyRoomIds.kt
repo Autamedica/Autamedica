@@ -7,7 +7,11 @@ import java.util.UUID
  * or any other patient-supplied identifier in the room name.
  */
 internal fun opaquePharmacyRoomId(tier: String): String {
-    val safeTier = tier.lowercase().replace(Regex("[^a-z0-9_-]"), "")
-        .take(24).ifBlank { "general" }
+    val allowedTiers = setOf(
+        "general", "cardiologia", "salud_mental", "pediatria", "dermatologia",
+        "traumatologia", "salud_femenina", "oftalmo_otorrino", "neumonologia",
+        "gastroenterologia", "urologia", "endocrinologia",
+    )
+    val safeTier = tier.lowercase().takeIf { it in allowedTiers } ?: "general"
     return "cf-room-$safeTier-${UUID.randomUUID().toString().replace("-", "")}"
 }
