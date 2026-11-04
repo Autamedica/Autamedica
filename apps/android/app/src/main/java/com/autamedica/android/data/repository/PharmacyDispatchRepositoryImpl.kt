@@ -261,10 +261,8 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
             return@runCatching createGuestRequestViaSignedApi(guestPayload)
         }
 
-        val sanitizedDni = patientDni.replace("\\D".toRegex(), "").takeLast(4).ifEmpty { "0000" }
-        val randomSuffix = java.util.UUID.randomUUID().toString().take(5)
-        val timestamp = System.currentTimeMillis().toString(36)
-        val cloudflareRoomId = "cf-room-$tierRequested-$sanitizedDni-$timestamp-$randomSuffix"
+        // Room IDs are access-adjacent metadata, never embed DNI/CPF digits.
+        val cloudflareRoomId = opaquePharmacyRoomId(tierRequested)
 
         val payload = buildJsonObject {
             put("care_country", careCountry)

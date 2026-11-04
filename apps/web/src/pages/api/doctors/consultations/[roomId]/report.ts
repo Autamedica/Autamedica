@@ -4,7 +4,7 @@ import {
   updateReportContent,
   generateAndSaveReport,
 } from '@/lib/doctors/services/consultation-report.backend';
-import { resolveDoctorId, resolveRoomParticipants } from '@/lib/doctors/lib/resolve-room';
+import { resolveDoctorId, resolveRoomParticipants, isDoctorAssignedToRoom, isClinicalPatientId } from '@/lib/doctors/lib/resolve-room';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { jsonOk, badRequest, forbidden, notFound, internalError, conflict } from '@/lib/api-helpers';
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
@@ -36,6 +36,9 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
     if (!body.recordId) {
       return badRequest('missing_record_id');
     }
+
+    const participants = await resolveRoomParticipants(admin, roomId);
+    if (!isDoctorAssignedToRoom(participants, doctorId, user.id)) return forbidden('room_not_assigned_to_doctor');
 
     await updateReportContent(
       body.recordId,
@@ -73,9 +76,12 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return notFound('room_not_found');
     }
 
+    if (!isDoctorAssignedToRoom(participants, doctorId, user.id)) {
+      return forbidden('room_not_assigned_to_doctor');
+    }
     const { patientId, appointmentId } = participants;
-    if (!patientId) {
-      return conflict('report_requires_registered_patient');
+    if (!isClinicalPatientId(patientId)) {
+      return conflict('report_requires_linked_patient');
     }
 
     const body = (await request.json()) as { doctorNotes?: string };

@@ -3,7 +3,7 @@ import { logger } from '@autamedica/shared';
 import { fetchApi, ApiError } from '@/lib/api-client';
 
 export interface PatientProfile {
-  id?: string;
+  id?: string | null;
   name: string;
   dateOfBirth: string | null;
   gender: string | null;
@@ -59,7 +59,12 @@ export interface ConsultationContext {
   extractionFromCache?: boolean;
   redFlags: string[];
   suggestedQuestions: SuggestedQuestion[];
-  reason?: 'not_started' | 'not_shared';
+  reason?: 'not_started' | 'not_shared' | 'kiosk_dispatch' | 'guest_call';
+  dispatchTriage?: {
+    patientDni: string | null;
+    symptomSummary: string | null;
+    dispatchRequestId: string;
+  };
 }
 
 interface UseConsultationContextResult {

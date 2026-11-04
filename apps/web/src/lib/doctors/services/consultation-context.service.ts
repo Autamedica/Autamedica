@@ -13,7 +13,7 @@ import {
   isAnamnesisExtractionConfigured,
   ANAMNESIS_EXTRACTION_PROMPT_VERSION,
 } from '@/lib/patients/server/anamnesis-ai-extraction'
-import { resolveDoctorId, resolveRoomParticipants, resolvePatientProfile } from '@/lib/doctors/lib/resolve-room'
+import { resolveDoctorId, resolveRoomParticipants, resolvePatientProfile, isClinicalPatientId, type ResolvedRoomParticipants } from '@/lib/doctors/lib/resolve-room'
 
 type AdminClient = SupabaseClient
 
@@ -126,21 +126,28 @@ export const consultationContextService = {
     return resolveDoctorId(admin, userId)
   },
 
-  async getContext(admin: AdminClient, roomId: string): Promise<ConsultationContextResult> {
-    const participants = await resolveRoomParticipants(admin, roomId)
+  async getContext(
+    admin: AdminClient,
+    roomId: string,
+    authorizedParticipants?: ResolvedRoomParticipants,
+  ): Promise<ConsultationContextResult> {
+    // Routes must perform room-ownership authorization before supplying
+    // participants. Reuse the same verified snapshot to avoid a second lookup.
+    const participants = authorizedParticipants ?? await resolveRoomParticipants(admin, roomId)
     if (!participants) {
       return { hasAnamnesis: false, patient: null, summary: null, extraction: null, redFlags: [], suggestedQuestions: [] }
     }
 
     const { patientId } = participants
 
-    // Short-circuit: pharmacy on-demand kiosk patient (no auth user, no anamnesis)
-    if (patientId.startsWith('dispatch:') && participants.triage) {
+    // Pharmacy visits may use a real, isolated patient UUID; this alone does
+    // not prove identity or authorize issuing prescriptions/certificates.
+    if (participants.triage) {
       const { triage } = participants
       return {
         hasAnamnesis: false,
         patient: {
-          id: patientId,
+          id: isClinicalPatientId(patientId) ? patientId : null,
           name: triage.patientName || 'Paciente Kiosco',
           dateOfBirth: null,
           gender: null,
