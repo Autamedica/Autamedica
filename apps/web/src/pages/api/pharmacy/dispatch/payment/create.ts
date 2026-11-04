@@ -58,14 +58,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (old.status === 'pending' && old.checkout_url) {
         return jsonOk({ status: 'pending', checkoutUrl: old.checkout_url })
       }
-      if (old.status !== 'failed') return serviceUnavailable('checkout_initializing_or_unavailable')
-
-      const { data: claimed, error: claimError } = await admin.from('pharmacy_dispatch_payments')
-        .update({ status: 'initializing' })
-        .eq('id', old.id).eq('status', 'failed').select('id').maybeSingle()
-      if (claimError) throw claimError
-      if (!claimed) return serviceUnavailable('checkout_claim_conflict')
-      initializedPaymentId = old.id
+      // A provider request may have succeeded even if the response was lost.
+      // Do not create a second preference for the same dispatch automatically.
+      return serviceUnavailable('checkout_requires_manual_reconciliation')
     } else {
       const { data: created, error: createError } = await admin.from('pharmacy_dispatch_payments')
         .insert({
