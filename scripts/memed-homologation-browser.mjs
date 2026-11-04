@@ -233,6 +233,33 @@ async function main() {
       count: Array.isArray(historyJson?.data) ? historyJson.data.length : null,
     };
   } catch { result.sandboxHistory = { status: null, count: null, error: 'provider_history_unavailable' }; }
+  result.signFirstStep = { attempted: false, clicked: false };
+  for (const frame of page.frames()) {
+    const link = frame.getByRole('link', { name: /assinar/i });
+    if (await link.count().catch(() => 0)) {
+      result.signFirstStep.attempted = true;
+      result.signFirstStep.clicked = await link.first().click({ timeout: 6500 })
+        .then(() => true).catch(() => false);
+      break;
+    }
+  }
+  await page.waitForTimeout(1800);
+  const afterUrl = new URL(API + '/prescricoes');
+  afterUrl.searchParams.set('token', token);
+  try {
+    const response = await fetch(afterUrl, {
+      headers: { Accept: 'application/vnd.api+json' },
+      redirect: 'error', referrerPolicy: 'no-referrer',
+      signal: AbortSignal.timeout(15000),
+    });
+    const json = response.ok ? await response.json() : null;
+    result.sandboxHistoryAfter = {
+      status: response.status,
+      count: Array.isArray(json?.data) ? json.data.length : null,
+    };
+  } catch {
+    result.sandboxHistoryAfter = { status: null, count: null };
+  }
   if (!itemResult.accepted) throw new Error('sandbox_add_item_rejected');
   if (result.productionAccess) throw new Error('production_memed_call_blocked');
 }
