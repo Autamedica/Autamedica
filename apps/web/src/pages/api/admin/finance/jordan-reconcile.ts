@@ -37,7 +37,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .select('id,referral_partner_id,care_country')
       .eq('id', dispatchId).maybeSingle()
     if (dispatchError) throw dispatchError
-    if (!dispatch || dispatch.care_country !== 'BR' || !dispatch.referral_partner_id) {
+    if (dispatch?.care_country !== 'BR' || !dispatch?.referral_partner_id) {
       return badRequest('jordan_br_dispatch_required')
     }
     const { data: partner, error: partnerError } = await admin
