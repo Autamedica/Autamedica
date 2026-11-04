@@ -8,6 +8,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getServerEnvOrDefault, logger } from '@autamedica/shared';
 import { getRuntimeEnvValue } from '@/lib/runtime-env';
+import { checkDirectPrescriptionIssuance } from './prescription-issuance-gate';
 import { FarmalinkClient } from './farmalink.client';
 import { claimFarmalinkIssue, recordFarmalinkIssue } from './farmalink.issue-gate';
 import {
@@ -128,6 +129,14 @@ export type IssuanceError =
   | { code: 'missing_patient_address' }
   | { code: 'no_medication' }
   | { code: 'missing_cuir' }
+  | { code: 'prescription_country_required' }
+  | { code: 'doctor_country_mismatch' }
+  | { code: 'patient_country_required_or_mismatched' }
+  | { code: 'br_requires_memed_provider' }
+  | { code: 'ar_production_homologation_required' }
+  | { code: 'digital_signature_required' }
+  | { code: 'digital_signature_failed' }
+  | { code: 'farmalink_registration_required' }
   | { code: 'pdf_generation_failed'; details?: string }
   | { code: 'pdf_upload_failed'; details?: string }
   | { code: 'update_failed'; details?: string }
@@ -533,11 +542,12 @@ export async function issuePrescription(
   supabase: SupabaseClient,
   prescriptionId: string,
   userId: string,
+  runtimeEnv?: Record<string, unknown>,
 ): Promise<Result> {
   // 1. Resolve and validate doctor
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('id, license_number, license_type, uf_brazil, rqe_number, cpf, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
+    .select('id, care_country, license_number, license_type, uf_brazil, rqe_number, cpf, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address, signature_image_url, stamp_image_url, care_guide_template')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -556,9 +566,9 @@ export async function issuePrescription(
   if (rx.doctor_id !== doctor.id) return fail({ code: 'not_your_prescription' });
   if (rx.cuir) return fail({ code: 'already_issued' });
 
-  // Determine country jurisdiction from prescription or doctor profile
-  const prescriptionCountry: string = (rx as { country_code?: string })?.country_code
-    || (doctor.license_type === 'CRM' || doctor.uf_brazil ? 'BR' : doctor.license_type === 'MSP' ? 'UY' : 'AR');
+  // Explicit country must be set by the actual clinical encounter. Never
+  // silently infer Argentina from an unknown doctor/patient/prescription.
+  const prescriptionCountry: string | null = rx.country_code ?? null;
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -579,11 +589,26 @@ export async function issuePrescription(
   // 3. Get and validate patient
   const { data: patient } = await supabase
     .from('patients')
-    .select('user_id, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info')
+    .select('user_id, care_country, dni, cuil, cpf, cns, address, birth_date, gender, insurance_info')
     .eq('id', rx.patient_id)
     .single();
 
   if (!patient) return fail({ code: 'patient_not_found' });
+
+  const doctorCountry = doctor.care_country === 'AR' || doctor.care_country === 'BR'
+    ? doctor.care_country
+    : doctor.license_type === 'CRM' && doctor.uf_brazil ? 'BR'
+      : doctor.license_type === 'MN' || doctor.license_type === 'MP' ? 'AR'
+        : null;
+
+  const issuanceGate = checkDirectPrescriptionIssuance({
+    prescriptionCountry,
+    doctorCountry,
+    patientCountry: patient.care_country,
+    argentinaProductionApproved: runtimeEnv?.AR_RX_PRODUCTION_APPROVED === 'true',
+  });
+  if (!issuanceGate.ok) return fail({ code: issuanceGate.code });
+
   // 4. Parse clinical data
   const clinicalData = rx.clinical_data as ClinicalData;
   const externalPatient = clinicalData?.external_patient;
