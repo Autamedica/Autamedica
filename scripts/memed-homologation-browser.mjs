@@ -57,6 +57,7 @@ async function main() {
     redirect: 'error', referrerPolicy: 'no-referrer',
     signal: AbortSignal.timeout(15000),
   });
+  result.prescriberHttpStatus = res.status;
   if (res.status !== 200) throw new Error('demo_prescriber_lookup_not_200');
   const provider = await res.json();
   const attrs = provider?.data?.attributes;
