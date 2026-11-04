@@ -580,7 +580,7 @@ export async function issuePrescription(
     patientCountry: patient.care_country,
     argentinaProductionApproved: runtimeEnv?.AR_RX_PRODUCTION_APPROVED === 'true',
   });
-  if (!issuanceGate.ok) return fail({ code: issuanceGate.code });
+  if ('code' in issuanceGate) return fail({ code: issuanceGate.code });
 
   // 4. Parse clinical data
   const clinicalData = rx.clinical_data as ClinicalData;
