@@ -159,8 +159,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (error.code === '42501' && error.message.includes('care_country')) {
         return forbidden('care_country_required_or_mismatched')
       }
-      logger.error('[api/pharmacy/dispatch/request] Error inserting request', { error })
-      return internalError(error.message)
+      // Database errors may include failing rows with DNI/CPF, symptoms or PHI.
+      logger.error('[api/pharmacy/dispatch/request] insertion_failed', {
+        code: typeof error.code === 'string' && /^[A-Z0-9]{5}$/.test(error.code) ? error.code : 'INTERNAL',
+      })
+      return internalError('dispatch_request_failed')
     }
 
     // Generar token de acceso criptográfico (JWT firmado con HS256)
@@ -178,10 +181,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       cloudflare_room_id: cloudflareRoomId,
       accessToken,
     })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Error inesperado'
-    logger.error('[api/pharmacy/dispatch/request] Exception', { err })
-    return internalError(message)
+  } catch {
+    logger.error('[api/pharmacy/dispatch/request] unexpected_failure')
+    return internalError('dispatch_request_failed')
   }
 }
 
