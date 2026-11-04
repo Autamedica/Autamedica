@@ -25,6 +25,7 @@ const PATIENT = {
 };
 const result = {
   environment: 'memed_homologation_only',
+  phase: 'start',
   productionAccess: false,
   prescriberAuthenticated: false,
   sdkScriptLoaded: false,
@@ -39,6 +40,7 @@ let server;
 let browser;
 
 async function main() {
+  result.phase = 'docs';
   const docs = await fetch(DOC, { redirect: 'error', signal: AbortSignal.timeout(15000) });
   if (!docs.ok) throw new Error('test_credentials_unavailable');
   const html = await docs.text();
@@ -49,6 +51,7 @@ async function main() {
   const endpoint = new URL(API + '/sinapse-prescricao/usuarios/' + DEMO.cpf);
   endpoint.searchParams.set('api-key', key);
   endpoint.searchParams.set('secret-key', secret);
+  result.phase = 'prescriber_api';
   const res = await fetch(endpoint, {
     headers: { Accept: 'application/vnd.api+json' },
     redirect: 'error', referrerPolicy: 'no-referrer',
@@ -66,6 +69,7 @@ async function main() {
     throw new Error('demo_prescriber_identity_rejected');
   }
   const token = attrs.token;
+  result.phase = 'authenticated';
   result.prescriberAuthenticated = true;
 
   server = createServer((_req, res) => {
