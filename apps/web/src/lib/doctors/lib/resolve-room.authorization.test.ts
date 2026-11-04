@@ -18,8 +18,10 @@ describe('doctor room access', () => {
     expect(isDoctorAssignedToRoom(null, assigned.doctorId!)).toBe(false)
   })
 
-  it('allows only an exact assigned doctor ID', () => {
+  it('allows only a verified doctor profile ID or that same doctor auth user ID', () => {
     expect(isDoctorAssignedToRoom(assigned, assigned.doctorId!)).toBe(true)
+    expect(isDoctorAssignedToRoom(assigned, 'other-profile', assigned.doctorId!)).toBe(true)
+    expect(isDoctorAssignedToRoom(assigned, 'other-profile', 'other-user')).toBe(false)
   })
 
   it('never treats synthetic dispatch identifiers as valid patient UUIDs', () => {
