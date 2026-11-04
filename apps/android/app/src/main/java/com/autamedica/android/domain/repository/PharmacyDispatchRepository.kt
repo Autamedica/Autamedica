@@ -61,6 +61,9 @@ interface PharmacyDispatchRepository {
         careCountry: String? = null,
     ): Result<PharmacyDispatchRequest>
 
+    /** Patient side: cancel a still-searching request only after server confirmation. */
+    suspend fun cancelPatientDispatchRequest(requestId: String): Result<Boolean>
+
     /** Patient side: Observe a specific on-demand request by id until matched/in_call. */
     fun observePatientRequest(requestId: String): kotlinx.coroutines.flow.Flow<PharmacyDispatchRequest>
 
