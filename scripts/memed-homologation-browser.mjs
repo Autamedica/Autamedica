@@ -208,6 +208,13 @@ async function main() {
       result.signActionVisible ||= signal.signAction;
     } catch { /* iframe inaccessible */ }
   }
+  // Count only known DEMO item and official action controls, not personal data.
+  result.uiCounts = { demoItem: 0, addActions: 0, signActions: 0 };
+  for (const frame of page.frames()) {
+    result.uiCounts.demoItem += await frame.getByText('ITEM DEMO AUTAMEDICA - NAO DISPENSAR').count().catch(() => 0);
+    result.uiCounts.addActions += await frame.getByRole('button', { name: /adicionar/i }).count().catch(() => 0);
+    result.uiCounts.signActions += await frame.getByRole('button', { name: /assinar/i }).count().catch(() => 0);
+  }
   if (!itemResult.accepted) throw new Error('sandbox_add_item_rejected');
   if (result.productionAccess) throw new Error('production_memed_call_blocked');
 }
