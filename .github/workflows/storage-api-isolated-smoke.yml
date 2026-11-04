@@ -42,9 +42,11 @@ jobs:
       - name: Rehydrate synthetic retained Storage files through local API
         run: python3 scripts/db/test_retained_storage_api.py --synthetic-fixture
 
-      - name: Never retain synthetic instance
+      - name: Verify disposable Storage containers were removed
         if: always()
         run: |
-          set +e
-          docker ps --format '{{.Names}}' | grep 'supabase_db_autamedica-storage-api-fixture' && exit 1
-          exit 0
+          set -euo pipefail
+          if docker ps -a --format '{{.Names}}' | grep -E '^(supabase_db_autamedica-storage-api-fixture|supabase_db_autamedica-retained-storage-api); then
+            echo "::error::A disposable Storage container remains"
+            exit 1
+          fi
