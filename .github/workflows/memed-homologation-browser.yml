@@ -3,7 +3,7 @@ name: Memed homologation browser — demo patient
 on:
   push:
     branches:
-      - test/memed-demo-e2e-20261103
+      - test/memed-sandbox-rx-ui-20261103
     paths:
       - 'scripts/memed-homologation-browser.mjs'
       - '.github/workflows/memed-homologation-browser.yml'
