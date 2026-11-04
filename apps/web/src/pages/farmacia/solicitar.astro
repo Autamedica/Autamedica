@@ -6,7 +6,7 @@ import { createAstroAdminClient } from '@/lib/supabase';
 export const prerender = false;
 
 const pharmacyId = Astro.url.searchParams.get('pharmacyId');
-let pharmacyName = Astro.url.searchParams.get('name') || 'Punto de Farmacia';
+let pharmacyName = 'Punto de Farmacia'; // Pharmacy name is shown only when verified in our database.
 
 if (pharmacyId) {
   try {
