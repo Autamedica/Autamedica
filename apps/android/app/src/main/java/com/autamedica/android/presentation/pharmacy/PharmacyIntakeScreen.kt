@@ -635,6 +635,7 @@ private fun PharmacyWaitingRoomView(
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onCancelRequest()
                 },
+                enabled = !uiState.isSubmitting,
                 shape = RoundedCornerShape(14.dp),
                 border = BorderStroke(1.dp, Primary.copy(alpha = 0.35f)),
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -645,7 +646,7 @@ private fun PharmacyWaitingRoomView(
                     .sizeIn(minHeight = 46.dp),
             ) {
                 Text(
-                    text = "Cancelar solicitud",
+                    text = if (uiState.isSubmitting) "Cancelando..." else "Cancelar solicitud",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -788,6 +789,7 @@ private fun PharmacyWaitingRoomView(
             // 5. Acción de Salir de la fila (Azul AutaMedica outline)
             OutlinedButton(
                 onClick = onCancelRequest,
+                enabled = !uiState.isSubmitting,
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, Primary.copy(alpha = 0.35f)),
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -798,7 +800,7 @@ private fun PharmacyWaitingRoomView(
                     .height(48.dp),
             ) {
                 Text(
-                    text = "Cancelar solicitud",
+                    text = if (uiState.isSubmitting) "Cancelando..." else "Cancelar solicitud",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
