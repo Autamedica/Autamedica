@@ -217,6 +217,7 @@ export function generateCloudflareRoomId(tier: DispatchTierCategory, _document: 
  * `accessToken` que el kiosco necesita para unirse a la sala.
  */
 export async function createPharmacyDispatchRequest(payload: {
+  careCountry: 'AR' | 'BR'
   patientDni: string
   patientPhone: string
   patientName?: string
@@ -238,7 +239,10 @@ export async function createPharmacyDispatchRequest(payload: {
     }>('/api/pharmacy/dispatch/request', {
       method: 'POST',
       body: {
-        patientDni: payload.patientDni.trim(),
+        careCountry: payload.careCountry,
+        ...(payload.careCountry === 'BR'
+          ? { patientCpf: payload.patientDni.replace(/\D/g, '') }
+          : { patientDni: payload.patientDni.replace(/\D/g, '') }),
         patientPhone: payload.patientPhone.trim(),
         patientName: payload.patientName?.trim() || undefined,
         tier: payload.tier,
