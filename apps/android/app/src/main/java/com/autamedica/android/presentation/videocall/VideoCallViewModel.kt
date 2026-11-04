@@ -413,9 +413,14 @@ class VideoCallViewModel @Inject constructor(
             docName = currentUser.displayName.ifBlank { "Dr. ${currentUser.lastName}".trim().ifBlank { "Médico Tratante" } }
             docRole = profile?.specialty?.takeIf { it.isNotBlank() } ?: "Clínica Médica & Telemedicina"
             docCrm = profile?.licenseNumber?.takeIf { it.isNotBlank() } ?: "Matrícula profesional"
-            resolvedDoctorCountry = if (profile?.active == true && profile.sssValidationStatus in setOf("valid", "exempt")) {
-                profile.countryCode
-            } else null
+            // SSS/SISA is Argentina-only. Brazilian CRM doctors must not be
+            // disabled merely because they have no Argentinian registry status.
+            resolvedDoctorCountry = when {
+                profile?.active != true -> null
+                profile.countryCode == "BR" -> "BR"
+                profile.countryCode == "AR" && profile.sssValidationStatus in setOf("valid", "exempt") -> "AR"
+                else -> null
+            }
         } else {
             if (docName.isBlank()) docName = "Profesional Médico"
             if (docRole.isBlank()) docRole = "Telemedicina"
