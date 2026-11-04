@@ -20,6 +20,7 @@ import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.model.CertificateType
 import com.autamedica.android.domain.model.CreateCertificateRequest
 import com.autamedica.android.domain.model.CreatePrescriptionRequest
+import com.autamedica.android.domain.model.InCallDocumentPolicy
 import com.autamedica.android.domain.model.PrescriptionItem
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
@@ -57,6 +58,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.time.ZoneId
 import javax.inject.Inject
 
 data class VideoCallUiState(
@@ -96,6 +98,7 @@ data class VideoCallUiState(
     val doctorName: String = "Profesional Médico",
     val doctorRole: String = "Clínica Médica & Telemedicina",
     val doctorCrm: String = "",
+    val doctorCountryCode: String? = null,
     val patientId: String = "",
     val patientName: String = "",
     val clinicName: String = "AutaMedica",
@@ -350,33 +353,10 @@ class VideoCallViewModel @Inject constructor(
                         if (dispatchPatient.patientName.isNullOrBlank().not()) {
                             resolvedPatientName = cleanPatientName(dispatchPatient.patientName.orEmpty())
                         }
-                        if (dispatchPatient.patientId.isNullOrBlank().not() || dispatchPatient.requestedByUserId.isNullOrBlank().not() || dispatchPatient.patientDni.isNullOrBlank().not() || dispatchPatient.patientCpf.isNullOrBlank().not()) {
-                            val realPatId = runCatching {
-                                val reqUserId = dispatchPatient.requestedByUserId
-                                val patDni = dispatchPatient.patientDni
-                                val patCpf = dispatchPatient.patientCpf
-                                val patId = dispatchPatient.patientId
-                                if (!patId.isNullOrBlank()) {
-                                    patId
-                                } else {
-                                    supabaseClient.postgrest.from("patients")
-                                        .select(Columns.list("id")) {
-                                            filter {
-                                                if (!reqUserId.isNullOrBlank()) {
-                                                    eq("user_id", reqUserId)
-                                                } else if (!patDni.isNullOrBlank()) {
-                                                    eq("dni", patDni)
-                                                } else if (!patCpf.isNullOrBlank()) {
-                                                    eq("cpf", patCpf)
-                                                }
-                                            }
-                                            limit(1)
-                                        }
-                                        .decodeSingleOrNull<PatientRecordIdDto>()?.id
-                                }
-                            }.getOrNull()
-                            resolvedPatientId = realPatId.orEmpty()
-                        }
+                        // A DNI/CPF or a claimed user ID from kiosk triage is not proof of
+                        // patient ownership. Only a patient record explicitly linked by
+                        // the trusted dispatch backend may enable clinical document actions.
+                        resolvedPatientId = dispatchPatient.patientId.orEmpty()
                         if (preReason.isBlank()) {
                             preReason = dispatchPatient.symptomSummary.orEmpty()
                         }
@@ -438,6 +418,9 @@ class VideoCallViewModel @Inject constructor(
                 doctorName = docName,
                 doctorRole = docRole,
                 doctorCrm = docCrm,
+                doctorCountryCode = if (isDoc && profile?.active == true && profile.sssValidationStatus in setOf("valid", "exempt")) {
+                    profile.countryCode
+                } else null,
                 preconsultationReason = if (preReason.isNotBlank()) preReason else it.preconsultationReason,
                 isPreconsultationSaved = preSaved || it.isPreconsultationSaved,
                 isLoadingClinicalContext = isDoc && resolvedPatientId.isNotBlank(),
@@ -1472,20 +1455,26 @@ class VideoCallViewModel @Inject constructor(
         medicationName: String,
         dosage: String,
         instructions: String,
+        diagnosis: String,
         onResult: (Boolean, String?) -> Unit,
     ) {
         val trimmedMed = medicationName.trim()
         val trimmedDosage = dosage.trim()
         val trimmedInstructions = instructions.trim()
+        val trimmedDiagnosis = diagnosis.trim()
 
-        if (trimmedMed.isEmpty()) {
-            onResult(false, "El nombre del medicamento es requerido")
+        if (trimmedMed.isEmpty() || trimmedDiagnosis.isEmpty()) {
+            onResult(false, "Medicamento y diagnóstico clínico son obligatorios")
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isIssuingPrescription = true, inCallClinicalError = null) }
             runCatching {
+                val country = InCallDocumentPolicy.requireCountry(_uiState.value.doctorCountryCode)
+                if (!InCallDocumentPolicy.canUseNativePrescriptionIssuer(country)) {
+                    throw IllegalStateException("Recetas de Brasil: emitir mediante Memed desde el portal médico. El emisor Android aún no está homologado.")
+                }
                 var targetPatientId = _uiState.value.patientId.takeIf { it.isNotBlank() }
                 if (targetPatientId == null && appointmentId.isNotBlank() && !previewOnlyMode) {
                     val appt = runCatching { appointmentRepository.getAppointmentById(appointmentId).getOrNull() }.getOrNull()
@@ -1510,15 +1499,15 @@ class VideoCallViewModel @Inject constructor(
                 val request = CreatePrescriptionRequest(
                     patientId = targetPatientId,
                     items = listOf(item),
-                    diagnosis = _uiState.value.chiefComplaintPeek?.takeIf { it.isNotBlank() } ?: "Consulta médica por telemedicina",
-                    notes = "Emitida en videollamada AutaMedica",
-                    countryCode = "AR",
+                    diagnosis = trimmedDiagnosis,
+                    notes = "Registro durante videollamada AutaMedica; firma externa pendiente de verificación",
+                    countryCode = country,
                 )
 
                 prescriptionRepository.createPrescription(request).getOrThrow()
             }.onSuccess { prescription ->
                 val cuir = prescription.cuir ?: prescription.id.take(8)
-                val chatMsg = "📋 Receta digital emitida: ${prescription.medicationName} | CUIR: $cuir"
+                val chatMsg = "📋 Receta registrada en AutaMedica (verificación de firma pendiente). Referencia: $cuir"
                 engine.sendChatMessage(chatMsg)
                 val localMsg = ChatMessage(
                     id = "local-rx-${System.currentTimeMillis()}",
@@ -1557,11 +1546,16 @@ class VideoCallViewModel @Inject constructor(
         onResult: (Boolean, String?) -> Unit,
     ) {
         val trimmedDiagnosis = diagnosis.trim()
-        val effectiveRest = daysOfRest.coerceAtLeast(0)
+        val effectiveRest = daysOfRest
 
         viewModelScope.launch {
             _uiState.update { it.copy(isIssuingCertificate = true, inCallClinicalError = null) }
             runCatching {
+                val country = InCallDocumentPolicy.requireCountry(_uiState.value.doctorCountryCode)
+                require(effectiveRest in 0..365) { "Los días de reposo deben estar entre 0 y 365" }
+                require(effectiveRest == 0 || trimmedDiagnosis.isNotBlank()) {
+                    "El médico debe indicar el diagnóstico para justificar el reposo"
+                }
                 var targetPatientId = _uiState.value.patientId.takeIf { it.isNotBlank() }
                 if (targetPatientId == null && appointmentId.isNotBlank() && !previewOnlyMode) {
                     val appt = runCatching { appointmentRepository.getAppointmentById(appointmentId).getOrNull() }.getOrNull()
@@ -1574,9 +1568,11 @@ class VideoCallViewModel @Inject constructor(
                     throw IllegalStateException("No se pudo identificar al paciente de la llamada")
                 }
 
-                val today = java.time.LocalDate.now()
+                val zoneId = if (country == "BR") ZoneId.of("America/Sao_Paulo")
+                    else ZoneId.of("America/Argentina/Buenos_Aires")
+                val today = java.time.LocalDate.now(zoneId)
                 val startDateStr = today.toString()
-                val endDateStr = if (effectiveRest > 0) today.plusDays(effectiveRest.toLong()).toString() else null
+                val endDateStr = InCallDocumentPolicy.inclusiveEndDate(today, effectiveRest)?.toString()
 
                 val request = CreateCertificateRequest(
                     patientId = targetPatientId,
@@ -1584,17 +1580,17 @@ class VideoCallViewModel @Inject constructor(
                     daysOfRest = effectiveRest,
                     startDate = startDateStr,
                     endDate = endDateStr,
-                    diagnosis = trimmedDiagnosis.ifBlank { _uiState.value.chiefComplaintPeek?.takeIf { it.isNotBlank() } ?: "Consulta médica por telemedicina" },
-                    hideDiagnosis = false,
-                    observations = "Emitido durante videollamada AutaMedica",
-                    countryCode = "AR",
+                    diagnosis = trimmedDiagnosis.ifBlank { null },
+                    hideDiagnosis = country == "BR",
+                    observations = "Borrador preparado durante videoconsulta AutaMedica; pendiente de firma",
+                    countryCode = country,
                 )
 
                 medicalCertificateRepository.createCertificate(request).getOrThrow()
             }.onSuccess { certificate ->
                 val cuir = certificate.cuir.ifBlank { certificate.id.take(8) }
                 val restText = if (effectiveRest > 0) "$effectiveRest días de reposo" else "Sin reposo"
-                val chatMsg = "📋 Certificado médico emitido: ${type.displayName} ($restText) | CUIR: $cuir"
+                val chatMsg = "📋 Borrador de certificado preparado: ${type.displayName} ($restText). Referencia: $cuir. Pendiente de firma médica."
                 engine.sendChatMessage(chatMsg)
                 val localMsg = ChatMessage(
                     id = "local-cert-${System.currentTimeMillis()}",
