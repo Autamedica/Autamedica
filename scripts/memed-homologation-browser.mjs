@@ -186,19 +186,26 @@ async function main() {
   await page.waitForTimeout(450);
   const itemResult = await page.evaluate(async () => {
     try {
-      await window.MdHub.command.send('plataforma.prescricao', 'addItem', {
+      const response = await window.MdHub.command.send('plataforma.prescricao', 'addItem', {
         nome: 'ITEM DEMO AUTAMEDICA - NAO DISPENSAR',
-        posologia: 'NAO ADMINISTRAR. TESTE TECNICO SEM PRESCRICAO CLINICA.',
+        posologia: '<p>NAO ADMINISTRAR. TESTE TECNICO SEM PRESCRICAO CLINICA.</p>',
         quantidade: 1,
-        unit: 'embalagem',
         descricao: 'Simulacao de homologacao sem medicamento real',
       });
-      return { accepted: true, reason: null };
+      // A fulfilled promise is NOT proof that an item was inserted.
+      // Capture only response type and structural keys, never provider content.
+      const responseType = response === null ? 'null' : typeof response;
+      const responseKeys = response && typeof response === 'object'
+        ? Object.keys(response).filter(key => /^(ok|success|status|error|errors|data|message|result|code)$/.test(key))
+        : [];
+      return { accepted: true, reason: null, responseType, responseKeys };
     } catch {
       return { accepted: false, reason: 'sandbox_add_item_rejected' };
     }
   });
   result.demoItemAdded = itemResult.accepted;
+  result.addItemSdkResult = { responseType: itemResult.responseType ?? null,
+    responseKeys: itemResult.responseKeys ?? [] };
   result.demoItemVisible = false;
   result.signActionVisible = false;
   await page.waitForTimeout(1600);
