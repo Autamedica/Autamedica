@@ -172,6 +172,44 @@ async function main() {
   if (!actions.patientSet) throw new Error('memed_patient_set_rejected');
   if (!actions.moduleShown) throw new Error('memed_module_show_rejected');
   if (result.productionAccess) throw new Error('production_memed_call_blocked');
+
+  // Memed's officially documented addItem command. Pure sandbox fixture:
+  // no real drug or dosage is prescribed; never sign or print it as valid.
+  const itemResult = await page.evaluate(async () => {
+    try {
+      await window.MdHub.command.send('plataforma.prescricao', 'addItem', {
+        nome: 'ITEM DEMO AUTAMEDICA - NAO DISPENSAR',
+        posologia: 'NAO ADMINISTRAR. TESTE TECNICO SEM PRESCRICAO CLINICA.',
+        quantidade: 1,
+        unit: 'embalagem',
+        descricao: 'Simulacao de homologacao sem medicamento real',
+      });
+      return { accepted: true, reason: null };
+    } catch {
+      return { accepted: false, reason: 'sandbox_add_item_rejected' };
+    }
+  });
+  result.demoItemAdded = itemResult.accepted;
+  result.demoItemVisible = false;
+  result.signActionVisible = false;
+  await page.waitForTimeout(1600);
+  for (const frame of page.frames()) {
+    try {
+      const signal = await frame.evaluate(() => {
+        const body = (document.body?.textContent || '').toUpperCase();
+        const buttonText = [...document.querySelectorAll('button,[role="button"]')]
+          .map(b => (b.textContent || '').toUpperCase());
+        return {
+          itemVisible: body.includes('ITEM DEMO AUTAMEDICA'),
+          signAction: buttonText.some(b => b.includes('ASSINAR')),
+        };
+      });
+      result.demoItemVisible ||= signal.itemVisible;
+      result.signActionVisible ||= signal.signAction;
+    } catch { /* iframe inaccessible */ }
+  }
+  if (!itemResult.accepted) throw new Error('sandbox_add_item_rejected');
+  if (result.productionAccess) throw new Error('production_memed_call_blocked');
 }
 
 try { await main(); }
