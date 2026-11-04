@@ -110,10 +110,10 @@
     <string name="pharmacy_on_demand_reason_label">Motivo:</string>
     <string name="pharmacy_on_demand_dni_label">DNI:</string>
     <string name="patient_pharmacy_express_button">Guardia Farmacia</string>
-    <string name="patient_pharmacy_express_desc">Atención inmediata con médico de guardia para recetas en mostrador</string>
+    <string name="patient_pharmacy_express_desc">Solicitá una videoconsulta médica desde la farmacia</string>
     <string name="patient_pharmacy_express_badge">Guardia activa</string>
     <string name="pharmacy_on_demand_network_badge">Red de Farmacias</string>
-    <string name="pharmacy_on_demand_compliance_footer">Plataforma Homologada SISA / REFEPS • Firma Digital Oficial</string>
+    <string name="pharmacy_on_demand_compliance_footer">Atención médica • Documentos sujetos a firma y validación</string>
 
     <!-- Added for compose UI localization -->
     <string name="greeting_morning">BUEN DÍA</string>
