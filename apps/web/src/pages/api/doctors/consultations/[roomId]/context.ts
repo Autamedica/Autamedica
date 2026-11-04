@@ -23,7 +23,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
     // The admin client bypasses RLS. A doctor role alone must never grant
     // access to another physician's room and its confidential anamnesis.
     const participants = await resolveRoomParticipants(admin, roomId);
-    if (!isDoctorAssignedToRoom(participants, doctorId)) {
+    if (!isDoctorAssignedToRoom(participants, doctorId, auth.user.id)) {
       return forbidden('room_not_assigned_to_doctor');
     }
 
