@@ -135,14 +135,14 @@ BEGIN
      start_date, end_date, diagnosis, hide_diagnosis, cuir, qr_code_content,
      country_code, status, signed_pdf_url, signature_hash,
     signature_method, signature_verified_at)
-  SELECT '00000000-0000-4000-8000-00000000a402', d.id, p.id,
+  SELECT '00000000-0000-4000-8000-00000000a402', synthetic_doctor.id, synthetic_patient.id,
     'reposo_laboral', 1, current_date, current_date,
     'SIGNED SYNTHETIC NO REAL SIGNATURE', true, 'TEST-AR-NO-VALIDO',
     'TEST-AR-NO-VALIDO', 'AR', 'signed',
     'test-only/not-a-clinical-pdf.pdf', repeat('a',64), 'ac_external', now()
-  FROM public.doctors d CROSS JOIN public.patients p
-  WHERE d.user_id = '00000000-0000-4000-8000-00000000a101'
-    AND p.user_id = '00000000-0000-4000-8000-00000000a102';
+  FROM public.doctors synthetic_doctor CROSS JOIN public.patients synthetic_patient
+  WHERE synthetic_doctor.user_id = '00000000-0000-4000-8000-00000000a101'
+    AND synthetic_patient.user_id = '00000000-0000-4000-8000-00000000a102';
 
   IF NOT EXISTS (SELECT 1 FROM public.medical_certificates
       WHERE id = '00000000-0000-4000-8000-00000000a402' AND status = 'signed')
