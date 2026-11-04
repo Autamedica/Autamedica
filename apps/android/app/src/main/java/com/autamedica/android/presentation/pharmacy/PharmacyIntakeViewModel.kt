@@ -221,8 +221,9 @@ class PharmacyIntakeViewModel @Inject constructor(
                         isSubmitting = false,
                         activeRequestId = request.id,
                         status = PharmacyConsultationStatus.PENDING,
-                        queuePosition = 1,
-                        estimatedMinutes = 3,
+                        // Queue position and wait time have not been confirmed by the backend.
+                        queuePosition = 0,
+                        estimatedMinutes = 0,
                         roomId = if (hasRoom) request.cloudflareRoomId else null,
                         readyToJoinCall = false,
                         error = null,
@@ -254,8 +255,9 @@ class PharmacyIntakeViewModel @Inject constructor(
                 _uiState.update { state ->
                     state.copy(
                         status = mapDispatchStatus(request.status),
-                        queuePosition = if (request.status == "searching") 1 else state.queuePosition,
-                        estimatedMinutes = if (request.status == "searching") 3 else state.estimatedMinutes,
+                        // A dispatch status does not establish a verified rank or ETA.
+                        queuePosition = 0,
+                        estimatedMinutes = 0,
                         roomId = if (hasRoom) request.cloudflareRoomId else state.roomId,
                         readyToJoinCall = isJoinable && hasRoom,
                     )
@@ -301,26 +303,46 @@ class PharmacyIntakeViewModel @Inject constructor(
 
     fun cancelActiveRequest() {
         val reqId = _uiState.value.activeRequestId ?: return
-        statusPollingJob?.cancel()
-        statusPollingJob = null
+        if (_uiState.value.isSubmitting) return
         viewModelScope.launch {
-            runCatching {
-                pharmacyDispatchRepository.updateDispatchRequestStatus(reqId, "cancelled")
-            }
-            _uiState.update {
-                it.copy(
-                    isSubmitting = false,
-                    activeRequestId = null,
-                    status = null,
-                    queuePosition = 0,
-                    estimatedMinutes = 0,
-                    assignedDoctorName = null,
-                    assignedDoctorSpecialty = null,
-                    roomId = null,
-                    readyToJoinCall = false,
-                    error = null,
-                )
-            }
+            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            pharmacyDispatchRepository.cancelPatientDispatchRequest(reqId)
+                .onSuccess { cancelled ->
+                    if (cancelled) {
+                        statusPollingJob?.cancel()
+                        statusPollingJob = null
+                        _uiState.update {
+                            it.copy(
+                                isSubmitting = false,
+                                activeRequestId = null,
+                                status = null,
+                                queuePosition = 0,
+                                estimatedMinutes = 0,
+                                assignedDoctorName = null,
+                                assignedDoctorSpecialty = null,
+                                roomId = null,
+                                readyToJoinCall = false,
+                                error = null,
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isSubmitting = false,
+                                error = "No se confirmó la cancelación. Es posible que la solicitud ya haya sido asignada; verificá su estado.",
+                            )
+                        }
+                    }
+                }
+                .onFailure { error ->
+                    SecureLog.error("[PharmacyIntakeVM] Patient cancellation failed", error)
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            error = "No pudimos cancelar la solicitud. Verificá tu conexión e intentá nuevamente.",
+                        )
+                    }
+                }
         }
     }
 

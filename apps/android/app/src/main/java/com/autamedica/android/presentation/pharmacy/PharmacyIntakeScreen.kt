@@ -558,7 +558,7 @@ private fun PharmacyWaitingRoomView(
                                     .background(AuEmerald)
                             )
                             Text(
-                                text = "MÉDICO EN SALA • VIDEO HD LISTO",
+                                text = "INGRESO A CONSULTA HABILITADO",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = AuEmerald,
@@ -570,7 +570,7 @@ private fun PharmacyWaitingRoomView(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "¡Tu médico te está esperando!",
+                        text = "Podés ingresar a la videollamada",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = AuTextPrimary,
@@ -578,7 +578,7 @@ private fun PharmacyWaitingRoomView(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = uiState.assignedDoctorName ?: "Dr. de Guardia Médica",
+                        text = uiState.assignedDoctorName ?: "Profesional de guardia",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Primary,
@@ -586,7 +586,7 @@ private fun PharmacyWaitingRoomView(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${uiState.assignedDoctorSpecialty ?: "Medicina General"} • Matrícula Nacional Habilitada",
+                        text = uiState.assignedDoctorSpecialty ?: "Consulta médica por videollamada",
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary,
                         textAlign = TextAlign.Center,
@@ -635,6 +635,7 @@ private fun PharmacyWaitingRoomView(
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onCancelRequest()
                 },
+                enabled = !uiState.isSubmitting,
                 shape = RoundedCornerShape(14.dp),
                 border = BorderStroke(1.dp, Primary.copy(alpha = 0.35f)),
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -645,7 +646,7 @@ private fun PharmacyWaitingRoomView(
                     .sizeIn(minHeight = 46.dp),
             ) {
                 Text(
-                    text = "Cancelar solicitud",
+                    text = if (uiState.isSubmitting) "Cancelando..." else "Cancelar solicitud",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -735,7 +736,7 @@ private fun PharmacyWaitingRoomView(
                         )
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = "#${uiState.queuePosition.coerceAtLeast(1)}",
+                            text = queuePositionLabel(uiState.queuePosition),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = Primary,
@@ -769,7 +770,7 @@ private fun PharmacyWaitingRoomView(
                         }
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = if (hasOnlineDoctors) "~${uiState.estimatedMinutes.coerceAtLeast(1)} min" else "En espera",
+                            text = waitingTimeLabel(uiState.estimatedMinutes),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = AuTextPrimary,
@@ -788,6 +789,7 @@ private fun PharmacyWaitingRoomView(
             // 5. Acción de Salir de la fila (Azul AutaMedica outline)
             OutlinedButton(
                 onClick = onCancelRequest,
+                enabled = !uiState.isSubmitting,
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, Primary.copy(alpha = 0.35f)),
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -798,7 +800,7 @@ private fun PharmacyWaitingRoomView(
                     .height(48.dp),
             ) {
                 Text(
-                    text = "Cancelar solicitud",
+                    text = if (uiState.isSubmitting) "Cancelando..." else "Cancelar solicitud",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                 )

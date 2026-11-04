@@ -69,6 +69,92 @@ class PharmacyDispatchRepositoryImplTest {
         mockWebServer.shutdown()
     }
 
+    private suspend fun createSyntheticGuestRequest(): String {
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{
+                      "success": true,
+                      "data": {
+                        "request": {
+                          "id": "guest-cancel-1",
+                          "patient_dni": "00000000",
+                          "patient_phone": "000000000",
+                          "patient_name": "Synthetic Example",
+                          "tier_requested": "general",
+                          "status": "searching",
+                          "cloudflare_room_id": "synthetic-room-cancel",
+                          "created_at": "2026-11-04T00:00:00Z"
+                        },
+                        "accessToken": "synthetic-signed-cancel-token"
+                      }
+                    }""".trimIndent()
+                )
+        )
+        val result = repository.createPatientDispatchRequest(
+            patientDni = "00000000",
+            patientPhone = "000000000",
+            patientName = "Synthetic Example",
+            tierRequested = "general",
+            symptomSummary = null,
+            patientCpf = null,
+            careCountry = "AR",
+        )
+        val id = result.getOrThrow().id
+        assertThat(mockWebServer.takeRequest().path).isEqualTo("/api/pharmacy/dispatch/request")
+        return id
+    }
+
+    @Test
+    fun `guest cancellation without a signed intake token fails closed`() = runTest {
+        val result = repository.cancelPatientDispatchRequest("no-issued-token")
+        assertThat(result.isFailure).isTrue()
+        assertThat(mockWebServer.requestCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `guest cancellation uses signed API and requires confirmed true`() = runTest {
+        val id = createSyntheticGuestRequest()
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"success":true,"data":{"cancelled":true}}""")
+        )
+        assertThat(repository.cancelPatientDispatchRequest(id).getOrThrow()).isTrue()
+        val sent = mockWebServer.takeRequest()
+        assertThat(sent.method).isEqualTo("POST")
+        assertThat(sent.path).isEqualTo("/api/pharmacy/on-demand/cancel")
+        val body = sent.body.readUtf8()
+        assertThat(body).contains(id)
+        assertThat(body).contains("synthetic-signed-cancel-token")
+        assertThat(sent.getHeader("Authorization")).isNull()
+
+        // Token was consumed only after confirmation; subsequent attempts fail closed.
+        assertThat(repository.cancelPatientDispatchRequest(id).isFailure).isTrue()
+        assertThat(mockWebServer.requestCount).isEqualTo(2)
+    }
+
+    @Test
+    fun `refused cancellation retains guest token for status updates and retry`() = runTest {
+        val id = createSyntheticGuestRequest()
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"success":true,"data":{"cancelled":false}}""")
+        )
+        assertThat(repository.cancelPatientDispatchRequest(id).getOrThrow()).isFalse()
+        mockWebServer.takeRequest()
+
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(401)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"success":false,"error":{"code":"UNAUTHENTICATED"}}""")
+        )
+        assertThat(repository.cancelPatientDispatchRequest(id).isFailure).isTrue()
+        assertThat(mockWebServer.takeRequest().path).isEqualTo("/api/pharmacy/on-demand/cancel")
+    }
+
     @Test
     fun `getDoctorDutyStatus returns successful duty status and active tiers`() = runTest {
         val doctorId = "doc-uuid-123"

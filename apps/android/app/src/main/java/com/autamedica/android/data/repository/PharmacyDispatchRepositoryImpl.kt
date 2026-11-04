@@ -192,6 +192,53 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
         SecureLog.error("[PharmacyDispatch] Failed claiming request", it)
     }
 
+    /**
+     * A patient may only leave the waiting queue after a confirmed cancellation.
+     * Guests use the room-bound token returned by the signed intake API. Authenticated
+     * owners use their own Supabase session with RLS and a searching-only condition.
+     */
+    override suspend fun cancelPatientDispatchRequest(requestId: String): Result<Boolean> = runCatching {
+        require(requestId.isNotBlank()) { "Missing request ID" }
+        val guestToken = guestAccessTokens[requestId]
+        if (guestToken != null) {
+            val payload = buildJsonObject {
+                put("requestId", requestId)
+                put("accessToken", guestToken)
+            }
+            val request = Request.Builder()
+                .url("$guestApiOrigin/api/pharmacy/on-demand/cancel")
+                .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+            val confirmed = withContext(ioDispatcher) {
+                guestClient.newCall(request).execute().use { response ->
+                    check(response.isSuccessful) { "Guest cancellation API returned HTTP ${response.code}" }
+                    val data = json.parseToJsonElement(response.body?.string() ?: error("Empty cancellation response"))
+                        .jsonObject["data"]?.jsonObject ?: error("Missing cancellation response data")
+                    val answer = data["cancelled"]?.jsonPrimitive?.content
+                    check(answer == "true" || answer == "false") { "Missing cancellation confirmation" }
+                    answer == "true"
+                }
+            }
+            if (confirmed) guestAccessTokens.remove(requestId)
+            confirmed
+        } else {
+            check(authRepository.getCurrentUser() != null) { "Missing authenticated owner or guest token" }
+            val result = supabaseClient.postgrest
+                .from("pharmacy_dispatch_requests")
+                .update(buildJsonObject { put("status", "cancelled") }) {
+                    filter {
+                        eq("id", requestId)
+                        eq("status", "searching")
+                    }
+                    select(Columns.list("id"))
+                }
+                .decodeSingleOrNull<CancelledDispatchRequestDto>()
+            result != null
+        }
+    }.onFailure {
+        SecureLog.error("[PharmacyDispatch] Patient cancellation not confirmed", it)
+    }
+
     override suspend fun updateDispatchRequestStatus(
         requestId: String,
         status: String,
@@ -444,6 +491,10 @@ class PharmacyDispatchRepositoryImpl @Inject constructor(
 }
 
 // ── DTOs ────────────────────────────────────────────────────
+
+@Serializable
+private data class CancelledDispatchRequestDto(val id: String)
+
 
 @Serializable
 private data class DoctorDutyStatusDto(

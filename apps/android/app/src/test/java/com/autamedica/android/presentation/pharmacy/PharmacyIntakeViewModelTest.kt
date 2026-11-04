@@ -65,6 +65,13 @@ private class FakePharmacyDispatchRepository(
     var lastCreatedSummary: String? = null
     var lastCreatedCountry: String? = null
     val statusUpdates = mutableListOf<Pair<String, String>>()
+    var cancelResult: Result<Boolean> = Result.success(true)
+    val cancellationAttempts = mutableListOf<String>()
+
+    override suspend fun cancelPatientDispatchRequest(requestId: String): Result<Boolean> {
+        cancellationAttempts.add(requestId)
+        return cancelResult
+    }
 
     override suspend fun getDoctorDutyStatus(doctorId: String): Result<DoctorDutyStatus> =
         Result.success(DoctorDutyStatus(doctorId = doctorId))
@@ -451,7 +458,7 @@ class PharmacyIntakeViewModelTest {
         vm.cancelActiveRequest()
         advanceUntilIdle()
 
-        assertThat(pharmacyRepo.statusUpdates).containsExactly("req-cancel-123" to "cancelled")
+        assertThat(pharmacyRepo.cancellationAttempts).containsExactly("req-cancel-123")
         assertThat(vm.uiState.value.activeRequestId).isNull()
         assertThat(vm.uiState.value.status).isNull()
         assertThat(vm.uiState.value.queuePosition).isEqualTo(0)
@@ -472,9 +479,57 @@ class PharmacyIntakeViewModelTest {
         vm.cancelActiveRequest()
         advanceUntilIdle()
 
-        assertThat(pharmacyRepo.statusUpdates).isEmpty()
+        assertThat(pharmacyRepo.cancellationAttempts).isEmpty()
         assertThat(vm.uiState.value.patientName).isEqualTo("Esteban Quito")
         assertThat(vm.uiState.value.activeRequestId).isNull()
+    }
+
+    @Test
+    fun `refused or failed cancellation preserves active request and displays error`() = runTest(testDispatcher) {
+        val created = PharmacyDispatchRequest(
+            id = "req-no-cancel-123",
+            patientDni = "28999888",
+            patientPhone = "+5491122334455",
+            patientName = "Paciente sintético",
+            tierRequested = "general",
+            symptomSummary = "Prueba sintética",
+            status = "searching",
+            cloudflareRoomId = "cf-room-uncancelled",
+            createdAt = "2026-11-04T00:00:00Z",
+        )
+        pharmacyRepo.createResult = Result.success(created)
+        val vm = PharmacyIntakeViewModel(
+            savedStateHandle = SavedStateHandle(),
+            authRepository = authRepo,
+            profileRepository = profileRepo,
+            pharmacyDispatchRepository = pharmacyRepo,
+        )
+        advanceUntilIdle()
+        vm.onPatientNameChanged("Paciente sintético")
+        vm.onPatientDniChanged("28999888")
+        vm.onPatientPhoneChanged("+5491122334455")
+        vm.onCountrySelected("AR")
+        vm.onReasonTextChanged("Prueba sintética")
+        vm.submitRequest()
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.activeRequestId).isEqualTo(created.id)
+        assertThat(vm.uiState.value.queuePosition).isEqualTo(0)
+        assertThat(vm.uiState.value.estimatedMinutes).isEqualTo(0)
+
+        pharmacyRepo.cancelResult = Result.success(false)
+        vm.cancelActiveRequest()
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.activeRequestId).isEqualTo(created.id)
+        assertThat(vm.uiState.value.error).contains("No se confirmó")
+        assertThat(vm.uiState.value.isSubmitting).isFalse()
+
+        pharmacyRepo.cancelResult = Result.failure(IllegalStateException("Synthetic network error"))
+        vm.cancelActiveRequest()
+        testScheduler.runCurrent()
+        assertThat(vm.uiState.value.activeRequestId).isEqualTo(created.id)
+        assertThat(vm.uiState.value.error).contains("No pudimos cancelar")
+        assertThat(vm.uiState.value.isSubmitting).isFalse()
+        assertThat(pharmacyRepo.cancellationAttempts).containsExactly(created.id, created.id)
     }
 
     @Test
