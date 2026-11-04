@@ -63,7 +63,7 @@ export async function reconcilePharmacyProviderPayment(
   const dispatchId = typeof payment.metadata?.dispatch_id === 'string'
     ? payment.metadata.dispatch_id : ''
   const validRef = /^pharm:([0-9a-f-]{36})$/i.exec(payment.external_reference ?? '')
-  if (!validRef || validRef[1] !== dispatchId) {
+  if (validRef?.[1] !== dispatchId) {
     return { handled: false, reason: 'unmatched_pharmacy_payment_reference' }
   }
 
