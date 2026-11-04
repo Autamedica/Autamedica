@@ -208,7 +208,8 @@ async function main() {
       return { accepted: false, reason: 'sandbox_add_item_rejected' };
     }
   });
-  result.demoItemAdded = itemResult.accepted;
+  // A fulfilled SDK promise does not prove an item was inserted.
+  result.demoItemCommandFulfilled = itemResult.accepted;
   result.addItemSdkResult = { responseType: itemResult.responseType ?? null,
     responseKeys: itemResult.responseKeys ?? [] };
   result.demoItemVisible = false;
