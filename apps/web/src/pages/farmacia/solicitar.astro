@@ -6,7 +6,7 @@ import { createAstroAdminClient } from '@/lib/supabase';
 export const prerender = false;
 
 const pharmacyId = Astro.url.searchParams.get('pharmacyId');
-let pharmacyName = Astro.url.searchParams.get('name') || 'Punto de Farmacia';
+let pharmacyName = 'Punto de Farmacia'; // Display only a DB-verified pharmacy name.
 
 if (pharmacyId) {
   try {
@@ -26,7 +26,7 @@ if (pharmacyId) {
 }
 
 const title = 'Consulta Exprés en Farmacia • Red AutaMedica';
-const description = 'Punto de atención médica digital AutaMedica en farmacia con videoconsulta de guardia inmediata y receta oficial con firma digital.';
+const description = 'Solicitá una videoconsulta médica en farmacia. Las recetas y constancias se preparan únicamente cuando el médico las indica y existe validación aplicable al país de atención.';
 ---
 
 <CallLayout title={title} description={description}>
