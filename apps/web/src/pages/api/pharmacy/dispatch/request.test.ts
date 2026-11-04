@@ -66,7 +66,6 @@ function makeContext(options?: {
         ? options.body
         : {
             careCountry: 'AR',
-            careCountry: 'AR',
           patientDni: '38123456',
             patientPhone: '+5491122334455',
             patientName: 'Ana Gomez',
@@ -147,7 +146,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
 
     expect(response.status).toBe(400)
     const body = await response.json()
-    expect(body.error.message).toBe('Número de documento inválido')
+    expect(body.error.message).toBe('DNI inválido')
   })
 
   it('devuelve 400 si el teléfono es inválido o menor a 6 dígitos', async () => {
