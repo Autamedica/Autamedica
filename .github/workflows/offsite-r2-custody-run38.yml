@@ -1,0 +1,133 @@
+name: Offsite encrypted recovery 38 to private R2
+
+# Trusted main branch only. No backup data or cloud credentials on PR workflows.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/offsite-r2-custody-run38.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: autamedica-offsite-run38
+  cancel-in-progress: false
+
+jobs:
+  transfer:
+    if: github.repository == 'ecucondorSA/Autamedica'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 5b448192fe4b369642b68ad8f53a7603
+      WRANGLER_SEND_METRICS: "false"
+      BUCKET: autamedica-recovery-offsite-2026
+      PREFIX: encrypted-recovery-41734833692-1
+    steps:
+      - name: Require Cloudflare R2 credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::R2 token missing"; exit 1; }
+
+      - name: Install isolated Cloudflare Wrangler
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/r2-cli" --no-save --no-package-lock wrangler@4.59.1
+          echo "$RUNNER_TEMP/r2-cli/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Test R2 read and write before transferring backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/preflight"
+          printf 'encrypted backup transfer preflight only\n' > "$RUNNER_TEMP/preflight/plain"
+          wrangler r2 object put "$BUCKET/$PREFIX/preflight.txt" --remote --file "$RUNNER_TEMP/preflight/plain" --content-type text/plain
+          wrangler r2 object get "$BUCKET/$PREFIX/preflight.txt" --remote --file "$RUNNER_TEMP/preflight/readback"
+          cmp -s "$RUNNER_TEMP/preflight/plain" "$RUNNER_TEMP/preflight/readback"
+
+      - name: Retrieve verified encrypted GitHub artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/custody38/original"
+          gh run download 41734833692 --repo ecucondorSA/Autamedica \
+            --name encrypted-recovery-41734833692-1 --dir "$RUNNER_TEMP/custody38/original"
+          cd "$RUNNER_TEMP/custody38/original"
+          test -f recovery.tar.gz.gpg
+          test -f SHA256SUMS
+          test "$(stat -c %s recovery.tar.gz.gpg)" -ge 400000000
+          sha256sum -c SHA256SUMS
+
+      - name: Split encrypted ciphertext into 128MiB segments
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/custody38/parts"
+          cd "$RUNNER_TEMP/custody38/parts"
+          split -b 128M -d -a 2 "$RUNNER_TEMP/custody38/original/recovery.tar.gz.gpg" recovery.tar.gz.gpg.part-
+          cp "$RUNNER_TEMP/custody38/original/SHA256SUMS" SHA256SUMS
+          sha256sum recovery.tar.gz.gpg.part-* > PARTS.sha256
+          EXPECTED="$(awk '$2=="recovery.tar.gz.gpg"{print $1}' SHA256SUMS)"
+          ACTUAL="$(cat recovery.tar.gz.gpg.part-* | sha256sum | cut -d' ' -f1)"
+          test -n "$EXPECTED"
+          test "$EXPECTED" = "$ACTUAL" || { echo "::error::Local ciphertext digest mismatch"; exit 1; }
+          printf 'source_run=41734833692\nsource_artifact=encrypted-recovery-41734833692-1\nciphertext_sha256=%s\nciphertext_bytes=%s\n' \
+            "$EXPECTED" "$(stat -c %s "$RUNNER_TEMP/custody38/original/recovery.tar.gz.gpg")" > MANIFEST.txt
+
+      - name: Transfer encrypted parts to private Cloudflare R2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/custody38/parts"
+          for f in recovery.tar.gz.gpg.part-*; do
+            wrangler r2 object put "$BUCKET/$PREFIX/$f" --remote --file "$f" --content-type application/octet-stream
+            echo "Uploaded ciphertext segment"
+          done
+
+      - name: Re-download every part and prove full remote SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/custody38/readback"
+          cd "$RUNNER_TEMP/custody38/readback"
+          for f in "$RUNNER_TEMP/custody38/parts"/recovery.tar.gz.gpg.part-*; do
+            base="$(basename "$f")"
+            wrangler r2 object get "$BUCKET/$PREFIX/$base" --remote --file "$base"
+            cmp -s "$f" "$base"
+          done
+          cp "$RUNNER_TEMP/custody38/parts/PARTS.sha256" PARTS.sha256
+          sha256sum -c PARTS.sha256
+          EXPECTED="$(awk '$2=="recovery.tar.gz.gpg"{print $1}' "$RUNNER_TEMP/custody38/original/SHA256SUMS")"
+          ACTUAL="$(cat recovery.tar.gz.gpg.part-* | sha256sum | cut -d' ' -f1)"
+          test "$EXPECTED" = "$ACTUAL" || { echo "::error::R2 ciphertext roundtrip failed"; exit 1; }
+          echo "All remote ciphertext chunks reconstruct the original GitHub #38 SHA256"
+
+      - name: Publish custody manifest only after verified download
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/custody38/parts"
+          for f in SHA256SUMS PARTS.sha256 MANIFEST.txt; do
+            wrangler r2 object put "$BUCKET/$PREFIX/$f" --remote --file "$f" --content-type text/plain
+            wrangler r2 object get "$BUCKET/$PREFIX/$f" --remote --file "$RUNNER_TEMP/custody38/readback/verified-$f"
+            cmp -s "$f" "$RUNNER_TEMP/custody38/readback/verified-$f"
+          done
+          echo "OFFSITE_CIPHERTEXT_CUSTODY_VERIFIED=true"
+          echo "No GPG private key, passphrase, clinical plaintext or SQL exported"
+
+      - name: Remove runner working copies
+        if: always()
+        shell: bash
+        run: |
+          rm -rf "$RUNNER_TEMP/custody38" "$RUNNER_TEMP/preflight"
