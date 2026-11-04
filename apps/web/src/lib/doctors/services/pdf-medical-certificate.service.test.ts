@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import QRCode from 'qrcode';
 import { generateMedicalCertificatePdf, type MedicalCertificatePdfInput } from './pdf-medical-certificate.service';
 
 const caseFile: MedicalCertificatePdfInput = {
@@ -26,6 +27,19 @@ describe('medical certificate PDF', () => {
     expect(text).toContain('AR-CERT-TEST-001');
     expect(text).toContain('Paciente Prueba');
     expect(text).not.toContain('https://autamedica.com/verify/');
+  });
+
+  it('encodes the internal verification link in the signing-source QR without claiming signature', () => {
+    const qr = vi.spyOn(QRCode, 'create');
+    try {
+      const pdf = generateMedicalCertificatePdf(caseFile, 'signing-source');
+      expect(Buffer.from(pdf).toString('latin1')).toContain('Original pendiente de firma');
+      expect(qr).toHaveBeenCalledWith('https://autamedica.com/verify/AR-CERT-TEST-001', {
+        errorCorrectionLevel: 'M',
+      });
+    } finally {
+      qr.mockRestore();
+    }
   });
 
   it('omits confidential diagnosis in both draft preview and signing source', () => {
