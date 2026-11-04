@@ -221,8 +221,9 @@ class PharmacyIntakeViewModel @Inject constructor(
                         isSubmitting = false,
                         activeRequestId = request.id,
                         status = PharmacyConsultationStatus.PENDING,
-                        queuePosition = 1,
-                        estimatedMinutes = 3,
+                        // Queue position and wait time have not been confirmed by the backend.
+                        queuePosition = 0,
+                        estimatedMinutes = 0,
                         roomId = if (hasRoom) request.cloudflareRoomId else null,
                         readyToJoinCall = false,
                         error = null,
@@ -254,8 +255,9 @@ class PharmacyIntakeViewModel @Inject constructor(
                 _uiState.update { state ->
                     state.copy(
                         status = mapDispatchStatus(request.status),
-                        queuePosition = if (request.status == "searching") 1 else state.queuePosition,
-                        estimatedMinutes = if (request.status == "searching") 3 else state.estimatedMinutes,
+                        // A dispatch status does not establish a verified rank or ETA.
+                        queuePosition = 0,
+                        estimatedMinutes = 0,
                         roomId = if (hasRoom) request.cloudflareRoomId else state.roomId,
                         readyToJoinCall = isJoinable && hasRoom,
                     )
