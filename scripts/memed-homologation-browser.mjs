@@ -144,6 +144,31 @@ async function main() {
   }, PATIENT);
   result.patientSet = actions.patientSet;
   result.moduleShown = actions.moduleShown;
+
+  // Read-only inspection of the actual homologation UI to identify a safe
+  // next step. Report only an allowlist of action keywords, not DOM,
+  // names, patient details, tokens, requests or screenshots.
+  await page.waitForTimeout(1600);
+  const keywords = ['nova prescri', 'medicamento', 'adicionar', 'imprimir',
+    'finalizar', 'assinar', 'emitir', 'salvar', 'continuar', 'pesquisar',
+    'buscar', 'receita', 'prescrever', 'teste'];
+  result.uiInspection = [];
+  for (const frame of page.frames()) {
+    try {
+      const matches = await frame.evaluate((words) => {
+        const strings = [...document.querySelectorAll(
+          'button,[role="button"],input[placeholder],a,[aria-label]'
+        )].map(el => (el.getAttribute('aria-label') ||
+          el.getAttribute('placeholder') || el.textContent || '')
+          .toLowerCase().trim()).filter(value => value.length < 90);
+        return words.filter(word => strings.some(x => x.includes(word)));
+      }, keywords);
+      result.uiInspection.push({ accessible: true, keywords: matches,
+        frameKind: frame === page.mainFrame() ? 'host' : 'iframe' });
+    } catch {
+      result.uiInspection.push({ accessible: false, keywords: [], frameKind: 'iframe' });
+    }
+  }
   if (!actions.patientSet) throw new Error('memed_patient_set_rejected');
   if (!actions.moduleShown) throw new Error('memed_module_show_rejected');
   if (result.productionAccess) throw new Error('production_memed_call_blocked');
