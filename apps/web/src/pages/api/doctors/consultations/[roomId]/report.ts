@@ -38,7 +38,7 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
     }
 
     const participants = await resolveRoomParticipants(admin, roomId);
-    if (!isDoctorAssignedToRoom(participants, doctorId)) return forbidden('room_not_assigned_to_doctor');
+    if (!isDoctorAssignedToRoom(participants, doctorId, user.id)) return forbidden('room_not_assigned_to_doctor');
 
     await updateReportContent(
       body.recordId,
@@ -76,7 +76,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return notFound('room_not_found');
     }
 
-    if (!isDoctorAssignedToRoom(participants, doctorId)) {
+    if (!isDoctorAssignedToRoom(participants, doctorId, user.id)) {
       return forbidden('room_not_assigned_to_doctor');
     }
     const { patientId, appointmentId } = participants;
