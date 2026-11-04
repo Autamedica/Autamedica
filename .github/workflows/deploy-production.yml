@@ -50,6 +50,25 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm hardcode:check
+      - name: Require encrypted guest call signing secret in every public portal
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_API_TOKEN}" || -z "${CLOUDFLARE_ACCOUNT_ID}" ]]; then
+            echo "::error::Missing Cloudflare deploy credentials"
+            exit 1
+          fi
+          for project in autamedica-web autamedica-doctors autamedica-patients autamedica-companies autamedica-admin; do
+            settings=$(curl --fail --silent --show-error --max-time 30 \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$project" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")
+            if ! jq -e '.success == true and .result.deployment_configs.production.env_vars.GUEST_TOKEN_SECRET.type == "secret_text"' <<< "$settings" > /dev/null; then
+              echo "::error::$project is missing encrypted GUEST_TOKEN_SECRET"
+              exit 1
+            fi
+          done
 
   deploy-db:
     name: DB Migrations
