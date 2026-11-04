@@ -200,13 +200,13 @@ export function computeTierWaitTime(
 }
 
 /**
- * Genera una sala única y determinista para Cloudflare Calls
+ * Generate an opaque room identifier. DNI/CPF, even the last four digits,
+ * must never appear in video URLs, logs or room names.
  */
-export function generateCloudflareRoomId(tier: DispatchTierCategory, dni: string): string {
-  const sanitizedDni = dni.replace(/\D/g, '').slice(-4) || '0000'
-  const randomSuffix = Math.random().toString(36).substring(2, 7)
+export function generateCloudflareRoomId(tier: DispatchTierCategory, _document: string): string {
+  const opaque = crypto.randomUUID().replace(/-/g, '')
   const timestamp = Date.now().toString(36)
-  return `cf-room-${tier}-${sanitizedDni}-${timestamp}-${randomSuffix}`
+  return `cf-room-${tier}-${opaque.slice(0, 12)}-${timestamp}-${opaque.slice(12, 20)}`
 }
 
 /**
