@@ -405,7 +405,7 @@ export function PharmacyExpressConsultation({
               </div>
 
               <p className="text-[10px] text-center text-am-surface-400 pt-1">
-                Al solicitar la consulta aceptas la atención bajo la Ley 27.553 de Telemedicina y firma digital de prescripciones con validez oficial.
+                La atención y la eventual emisión de documentos dependen de la verificación profesional, del país elegido y de las integraciones habilitadas.
               </p>
 
               {/* Institutional Trust & Regulatory Seals */}
@@ -413,22 +413,22 @@ export function PharmacyExpressConsultation({
                 <div className="flex items-start gap-2 p-2.5 rounded-xl bg-am-surface-900/80 border border-am-surface-700/50">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[11px] font-semibold text-white">Plataforma Homologada</p>
-                    <p className="text-[10px] text-am-surface-400 leading-tight">Telemedicina y prescripción clínica oficial</p>
+                    <p className="text-[11px] font-semibold text-white">Consulta por Videollamada</p>
+                    <p className="text-[10px] text-am-surface-400 leading-tight">Atención remota con controles clínicos y de identidad</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2 p-2.5 rounded-xl bg-am-surface-900/80 border border-am-surface-700/50">
                   <FileCheck className="w-4 h-4 text-am-primary-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[11px] font-semibold text-white">Firma Digital Oficial</p>
-                    <p className="text-[10px] text-am-surface-400 leading-tight">Ley 27.553 y Decreto 63 • SISA / REFEPS</p>
+                    <p className="text-[11px] font-semibold text-white">Documentación Médica</p>
+                    <p className="text-[10px] text-am-surface-400 leading-tight">Emisión sujeta a habilitación y validación según país</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2 p-2.5 rounded-xl bg-am-surface-900/80 border border-am-surface-700/50">
                   <Lock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[11px] font-semibold text-white">Protección de Datos</p>
-                    <p className="text-[10px] text-am-surface-400 leading-tight">Ley 25.326 • Cifrado clínico hospitalario</p>
+                    <p className="text-[10px] text-am-surface-400 leading-tight">Acceso controlado a información clínica</p>
                   </div>
                 </div>
               </div>
@@ -480,7 +480,7 @@ export function PharmacyExpressConsultation({
                   <Clock className="w-3.5 h-3.5 text-am-surface-400" /> Espera estimada
                 </span>
                 <span className="text-xl font-bold text-emerald-400">
-                  ~1-3 min
+                  Variable
                 </span>
               </div>
             </div>
