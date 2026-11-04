@@ -99,8 +99,9 @@ async function main() {
 
   await page.goto('http://127.0.0.1:' + port, { waitUntil: 'domcontentloaded' });
   await page.evaluate(({ token, scriptUrl }) => {
-    window.__memedDemo = { loaded: false, ready: false, failed: false };
+    window.__memedDemo = { loaded: false, ready: false, failed: false, issuedEvent: false, eventHasId: false };
     const script = document.createElement('script');
+    script.id = 'memed-prescricao-script';
     script.src = scriptUrl;
     script.type = 'text/javascript';
     script.setAttribute('data-token', token);
@@ -112,7 +113,12 @@ async function main() {
         return;
       }
       window.MdSinapsePrescricao.event.add('core:moduleInit', module => {
-        if (module?.name === 'plataforma.prescricao') window.__memedDemo.ready = true;
+        if (module?.name !== 'plataforma.prescricao') return;
+        window.MdHub?.event?.add?.('prescricaoImpressa', issued => {
+          window.__memedDemo.issuedEvent = true;
+          window.__memedDemo.eventHasId = Boolean(issued?.prescricao?.id || issued?.id || issued?.prescricao?.prescriptionUuid);
+        });
+        window.__memedDemo.ready = true;
       });
     };
     script.onerror = () => { window.__memedDemo.failed = true; };
@@ -136,8 +142,10 @@ async function main() {
     let patientSet = false;
     try {
       await hub.command.send('plataforma.prescricao', 'setFeatureToggle', {
-        deletePatient: false, editPatient: false, editIdentification: false,
-        forceSign: true, allowShareModal: false,
+        deletePatient: false, removePatient: false,
+        editPatient: false, editIdentification: false,
+        // Isolated sandbox test: unsigned PDF is NOT a clinically valid Rx.
+        forceSign: false, allowShareModal: false,
       });
       await hub.command.send('plataforma.prescricao', 'setPaciente', patient);
       patientSet = true;
@@ -297,6 +305,10 @@ async function main() {
       }
     }
   }
+  result.sdkIssuanceEvent = await page.evaluate(() => ({
+    observed: window.__memedDemo?.issuedEvent === true,
+    hasProviderId: window.__memedDemo?.eventHasId === true,
+  }));
   if (!itemResult.accepted) throw new Error('sandbox_add_item_rejected');
   if (result.productionAccess) throw new Error('production_memed_call_blocked');
 }
