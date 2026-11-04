@@ -114,7 +114,7 @@ def parse_json(body, label):
     return value
 
 
-def setup_private_policy(directory):
+def setup_private_policy(directory, container=DB_CONTAINER):
     # Fixture policies only. Never read, modify, or replay production policies.
     policy = """
 CREATE POLICY autamedica_smoke_select ON storage.objects FOR SELECT TO authenticated
@@ -124,7 +124,7 @@ CREATE POLICY autamedica_smoke_insert ON storage.objects FOR INSERT TO authentic
   WITH CHECK (bucket_id = 'autamedica-private-smoke'
          AND split_part(name, '/', 1) = (select auth.uid()::text));
 """
-    run(["docker", "exec", "-i", DB_CONTAINER, "psql", "-X",
+    run(["docker", "exec", "-i", container, "psql", "-X",
          "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1"],
         directory, "Install synthetic owner policy", data=policy, timeout=60)
 
