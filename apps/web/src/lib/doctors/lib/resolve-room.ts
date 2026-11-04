@@ -2,6 +2,20 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 type AdminClient = SupabaseClient;
 
+// A room identifier is never an authorization credential. Check the assigned
+// professional before using a service-role client to read clinical material.
+export function isDoctorAssignedToRoom(
+  participants: ResolvedRoomParticipants | null,
+  doctorId: string,
+): boolean {
+  return Boolean(participants && doctorId && participants.doctorId === doctorId);
+}
+
+export function isClinicalPatientId(value: string | null | undefined): boolean {
+  return typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
 export async function resolveDoctorId(admin: AdminClient, userId: string): Promise<string | null> {
   const { data, error } = await admin
     .from('doctors')
@@ -84,10 +98,10 @@ export async function resolveRoomParticipants(
     return { patientId: session.patient_id, doctorId: session.doctor_id, appointmentId: session.appointment_id };
   }
 
-  // 3. Final fallback: pharmacy on-demand kiosk dispatch (no auth user — uses DNI/CPF as identity)
+  // 3. Pharmacy dispatch: a document number is NOT patient identity verification.
   const { data: dispatchRow, error: dispatchError } = await admin
     .from('pharmacy_dispatch_requests')
-    .select('id, patient_dni, patient_name, assigned_doctor_id, symptom_summary')
+    .select('id, patient_id, patient_dni, patient_name, assigned_doctor_id, symptom_summary')
     .eq('cloudflare_room_id', roomId)
     .in('status', ['matched', 'in_call', 'transferring', 'transferred', 'completed'])
     .order('created_at', { ascending: false })
@@ -97,17 +111,20 @@ export async function resolveRoomParticipants(
   if (!dispatchError && dispatchRow) {
     const dispatch = dispatchRow as {
       id: string;
+      patient_id: string | null;
       patient_dni: string | null;
       patient_name: string | null;
       assigned_doctor_id: string | null;
       symptom_summary: string | null;
     };
 
-    // Pharmacy kiosk patients don't have an auth user_id; use a synthetic patientId
-    // that the ConsultationContextPanel can identify as a dispatch-only patient.
-    const syntheticPatientId = `dispatch:${dispatch.id}`;
+    // New dispatches have a visit-scoped UUID. Legacy requests without a
+    // linked record remain triage-only and must never be used for documents.
+    const patientId = isClinicalPatientId(dispatch.patient_id)
+      ? dispatch.patient_id!
+      : `dispatch:${dispatch.id}`;
     return {
-      patientId: syntheticPatientId,
+      patientId,
       doctorId: dispatch.assigned_doctor_id,
       appointmentId: null,
       triage: {
