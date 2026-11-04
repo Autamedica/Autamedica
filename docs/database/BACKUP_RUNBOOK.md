@@ -1,5 +1,7 @@
 # Backup and isolated recovery runbook
 
+> **Estado actualizado del Nivel 4 (04/11/2026):** consultar [NIVEL4_ESTADO_VERIFICADO_2026-11-04.md](NIVEL4_ESTADO_VERIFICADO_2026-11-04.md) para la evidencia vigente de recuperación real #38, custodia cifrada en Cloudflare R2, riesgos y puertas pendientes. La sección del 02/11 siguiente es un **hito histórico**, no el estado actual.
+
 ## Evidence status — 2026-11-02
 
 The [production database-only drill passed](https://github.com/ecucondorSA/Autamedica/actions/runs/41381103309): 226 tables and 106,411 rows matched, 317 foreign keys were verified, and data/security metadata plus exact table permission facts matched the source snapshot. Three destination permission objects required reconciliation to the source facts. The source was read-only, the restore destination was offline, and cleanup was verified. Restore plus validation took 8.85 seconds; the complete measured drill took 641.86 seconds, including export and disposable stack setup/cleanup.
