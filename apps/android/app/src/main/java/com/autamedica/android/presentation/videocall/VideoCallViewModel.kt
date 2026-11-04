@@ -99,6 +99,7 @@ data class VideoCallUiState(
     val doctorRole: String = "Clínica Médica & Telemedicina",
     val doctorCrm: String = "",
     val doctorCountryCode: String? = null,
+    val patientCareCountryCode: String? = null,
     val patientId: String = "",
     val patientName: String = "",
     val clinicName: String = "AutaMedica",
@@ -397,6 +398,16 @@ class VideoCallViewModel @Inject constructor(
             }.getOrDefault("")
         }
 
+        val resolvedPatientCareCountry = if (isDoc && resolvedPatientId.isNotBlank()) {
+            runCatching {
+                supabaseClient.postgrest.from("patients")
+                    .select(Columns.list("care_country")) {
+                        filter { eq("id", resolvedPatientId) }
+                        limit(1)
+                    }.decodeSingleOrNull<CallPatientCareCountryDto>()?.careCountry
+            }.getOrNull()
+        } else null
+
         if (isDoc) {
             val profile = runCatching { doctorRepository.getDoctorProfile(currentUser.id).getOrNull() }.getOrNull()
             docName = currentUser.displayName.ifBlank { "Dr. ${currentUser.lastName}".trim().ifBlank { "Médico Tratante" } }
@@ -423,6 +434,7 @@ class VideoCallViewModel @Inject constructor(
                 doctorRole = docRole,
                 doctorCrm = docCrm,
                 doctorCountryCode = resolvedDoctorCountry,
+                patientCareCountryCode = resolvedPatientCareCountry,
                 preconsultationReason = if (preReason.isNotBlank()) preReason else it.preconsultationReason,
                 isPreconsultationSaved = preSaved || it.isPreconsultationSaved,
                 isLoadingClinicalContext = isDoc && resolvedPatientId.isNotBlank(),
@@ -1624,6 +1636,11 @@ class VideoCallViewModel @Inject constructor(
         }
     }
 }
+
+@Serializable
+private data class CallPatientCareCountryDto(
+    @SerialName("care_country") val careCountry: String? = null,
+)
 
 @Serializable
 private data class DoctorRecordIdDto(val id: String)
