@@ -653,7 +653,11 @@ export async function issuePrescription(
   // This does not constitute signature verification: the actual PDF must
   // still be signed successfully before it can be stored as 'sent'.
   const activeSigningCertificate = await getActiveCertificate(supabase, doctor.id);
-  if (!activeSigningCertificate) return fail({ code: 'digital_signature_required' });
+  const certificateExpiry = Date.parse(activeSigningCertificate?.certValidUntil ?? '');
+  if (!activeSigningCertificate ||
+      !Number.isFinite(certificateExpiry) || certificateExpiry <= Date.now()) {
+    return fail({ code: 'digital_signature_required' });
+  }
   try {
     await loadSigningCredentials(supabase, doctor.id, activeSigningCertificate.certFingerprint);
     await import('./pdf-signer.service');
@@ -802,6 +806,8 @@ export async function issuePrescription(
   // physician's signature is not evidence of a valid digital signature.
   // Never emit an ACT_DIGITAL_SIGNATURE event for electronic_simple fallback.
   let finalPdfBuffer: Uint8Array;
+  // Application classification only. Actual trust-chain/legal validation
+  // remains a separate production approval condition.
   const signatureMethod = 'ac_external';
   const certFingerprint = activeSigningCertificate.certFingerprint;
   try {
