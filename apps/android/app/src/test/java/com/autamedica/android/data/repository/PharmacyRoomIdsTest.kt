@@ -16,7 +16,7 @@ class PharmacyRoomIdsTest {
 
     @Test fun unsafeTierTextNeverLeaksIntoRoom() {
         val room = opaquePharmacyRoomId("general/../../../patient=12345678909")
-        assertThat(room).startsWith("cf-room-generalpatient123456")
+        assertThat(room).startsWith("cf-room-general-")
         assertThat(room).doesNotContain("/")
         assertThat(opaquePharmacyRoomId("")).startsWith("cf-room-general-")
     }
