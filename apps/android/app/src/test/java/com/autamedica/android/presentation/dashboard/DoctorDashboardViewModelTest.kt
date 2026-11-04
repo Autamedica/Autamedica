@@ -140,7 +140,8 @@ private class FakePharmacyDispatchRepo : PharmacyDispatchRepository {
         patientName: String?,
         tierRequested: String,
         symptomSummary: String?,
-        patientCpf: String?
+        patientCpf: String?,
+        careCountry: String?
     ): Result<PharmacyDispatchRequest> = Result.failure(NotImplementedError())
     override fun observePatientRequest(requestId: String): Flow<PharmacyDispatchRequest> = flowOf()
     override suspend fun getActiveOnDutyDoctors(): Result<List<com.autamedica.android.presentation.pharmacy.components.OnDutyDoctorInfo>> = Result.success(emptyList())
