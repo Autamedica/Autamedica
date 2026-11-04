@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { resolveDoctorId, resolveRoomParticipants } from '@/lib/doctors/lib/resolve-room';
+import { resolveDoctorId, resolveRoomParticipants, isDoctorAssignedToRoom, isClinicalPatientId } from '@/lib/doctors/lib/resolve-room';
 import {
   consultationTranscriptsRepo,
   type TranscriptSegment,
@@ -41,8 +41,11 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     }
 
     const participants = await resolveRoomParticipants(admin, roomId);
-    if (!participants) {
-      return notFound('room_not_found');
+    if (!isDoctorAssignedToRoom(participants, doctorId)) {
+      return forbidden('room_not_assigned_to_doctor');
+    }
+    if (!isClinicalPatientId(participants.patientId)) {
+      return forbidden('pharmacy_patient_identity_not_linked');
     }
 
     const body = (await request.json()) as TranscriptionBody;
