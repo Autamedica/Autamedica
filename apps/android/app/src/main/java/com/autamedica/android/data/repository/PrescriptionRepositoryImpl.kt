@@ -209,11 +209,16 @@ class PrescriptionRepositoryImpl @Inject constructor(
 
         val doctor = supabaseClient.postgrest
             .from("doctors")
-            .select(Columns.list("id", "license_number")) {
+            .select(Columns.list("id", "license_number", "license_type", "uf_brazil", "care_country", "active")) {
                 filter { eq("user_id", userId) }
             }
             .decodeSingleOrNull<DoctorRecordDto>()
             ?: throw IllegalStateException("Perfil médico no encontrado")
+        check(doctor.active && InCallDocumentPolicy.doctorCountry(
+            doctor.licenseType, doctor.careCountry, doctor.ufBrazil,
+        ) == request.countryCode) {
+            "País y matrícula profesional no coinciden o el médico está inactivo"
+        }
 
         // The trusted issuer creates the reference. Never fabricate a CUIR in Android
         // or present a storage signed URL as proof of professional signature.
@@ -234,6 +239,11 @@ class PrescriptionRepositoryImpl @Inject constructor(
             request.patientId
         }.getOrDefault(request.patientId)
         requireDoctorPatientAccess(doctor.id, actualPatientId)
+        val patientCountry = supabaseClient.postgrest.from("patients")
+            .select(Columns.list("id", "care_country")) {
+                filter { eq("id", actualPatientId) }
+            }.decodeSingleOrNull<PatientCountryDto>()?.countryCode
+        InCallDocumentPolicy.requireMatchingPatientCountry(patientCountry, request.countryCode)
 
         // 2. Build structured clinical_data JSONB
         val firstItem = request.items.first()
@@ -854,6 +864,16 @@ class PrescriptionRepositoryImpl @Inject constructor(
         val id: String,
         @SerialName("user_id") val userId: String? = null,
         @SerialName("license_number") val licenseNumber: String? = null,
+        @SerialName("license_type") val licenseType: String? = null,
+        @SerialName("uf_brazil") val ufBrazil: String? = null,
+        @SerialName("care_country") val careCountry: String? = null,
+        val active: Boolean = false,
+    )
+
+    @Serializable
+    private data class PatientCountryDto(
+        val id: String,
+        @SerialName("care_country") val countryCode: String? = null,
     )
 
     @Serializable
