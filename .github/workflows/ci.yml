@@ -121,6 +121,7 @@ jobs:
           SUPABASE_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: |
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/clinical_country_isolation.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "SET autamedica.isolated_test = 'on'" -f supabase/tests/pharmacy_guest_identity_isolation.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_core_tables.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/farmalink_once_only_issue.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/memed_provider_integrity_smoke.sql

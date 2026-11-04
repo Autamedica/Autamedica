@@ -24,9 +24,18 @@ BEGIN
     IF has_table_privilege('anon','public.pharmacy_dispatch_requests','SELECT')
       OR has_table_privilege('anon','public.pharmacy_dispatch_requests','UPDATE')
     THEN RAISE EXCEPTION 'Anonymous dispatch read/update unexpectedly available'; END IF;
-    IF NOT has_table_privilege('anon','public.pharmacy_dispatch_requests','INSERT') THEN
-      RAISE EXCEPTION 'Kiosk anonymous intake INSERT grant unexpectedly removed';
+    -- Guest intake must go through the signed, validated server API.
+    -- A DNI/CPF alone is not authorization to create/read a clinical identity.
+    IF has_table_privilege('anon','public.pharmacy_dispatch_requests','INSERT') THEN
+      RAISE EXCEPTION 'Direct anonymous pharmacy dispatch INSERT unexpectedly granted';
     END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname='public'
+        AND tablename='pharmacy_dispatch_requests'
+        AND policyname='pharmacy_dispatch_requests_insert_kiosk_or_owner'
+        AND roles='{authenticated}'::name[]
+    ) THEN RAISE EXCEPTION 'Authenticated owner-scoped dispatch INSERT policy missing'; END IF;
     IF NOT has_table_privilege('service_role','public.pharmacy_dispatch_requests','SELECT') THEN
       RAISE EXCEPTION 'Internal dispatch access unexpectedly removed';
     END IF;

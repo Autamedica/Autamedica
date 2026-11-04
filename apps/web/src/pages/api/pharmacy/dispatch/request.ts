@@ -30,16 +30,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('Cuerpo de solicitud inválido')
     }
 
-    const { patientDni, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary } = body
+    const { patientDni, patientCpf, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary } = body
 
-    // 1. Validar campos mínimos obligatorios y sanitizar
-    if (!patientDni || typeof patientDni !== 'string') {
+    // Choose the country explicitly. A DNI/CPF or mobile dialing prefix cannot
+    // determine clinical jurisdiction or grant access to an existing patient.
+    if (careCountry !== 'AR' && careCountry !== 'BR') {
+      return badRequest('Seleccioná Argentina o Brasil como país de atención')
+    }
+
+    const rawDocument = careCountry === 'BR' ? (patientCpf ?? patientDni) : patientDni
+    if (typeof rawDocument !== 'string' || !rawDocument.trim()) {
       return badRequest('Número de documento requerido')
     }
-    const sanitizedDni = patientDni.trim().replace(/[^\w.-]/g, '')
-    if (sanitizedDni.length < 5 || sanitizedDni.length > 20) {
-      return badRequest('Número de documento inválido')
+    const normalizedDocument = rawDocument.replace(/\D/g, '')
+    if (careCountry === 'BR' ? normalizedDocument.length !== 11 : normalizedDocument.length < 5 || normalizedDocument.length > 10) {
+      return badRequest(careCountry === 'BR' ? 'CPF inválido: ingresar 11 dígitos' : 'DNI inválido')
     }
+    const sanitizedDni = careCountry === 'AR' ? normalizedDocument : null
+    const sanitizedCpf = careCountry === 'BR' ? normalizedDocument : null
 
     if (!patientPhone || typeof patientPhone !== 'string') {
       return badRequest('Teléfono celular requerido')
@@ -114,14 +122,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
       resolvedPharmacyId = pharmacy.id
     }
 
-    const cloudflareRoomId = generateCloudflareRoomId(selectedTier, sanitizedDni)
+    const cloudflareRoomId = generateCloudflareRoomId(selectedTier, normalizedDocument)
 
     // Asociar usuario dueño si la petición proviene de un usuario autenticado
     const sessionUser = (locals as { user?: { id: string } }).user ?? locals.session?.user
     const requestedByUserId = sessionUser?.id || null
 
+    const secret = resolveGuestSecret(locals.runtime?.env)
+    if (!secret) {
+      logger.error('[api/pharmacy/dispatch/request] GUEST_TOKEN_SECRET not configured')
+      return serviceUnavailable('guest_token_not_configured')
+    }
+
     const insertPayload = {
+      care_country: careCountry,
       patient_dni: sanitizedDni,
+      patient_cpf: sanitizedCpf,
       patient_phone: sanitizedPhone,
       patient_name: sanitizedName,
       tier_requested: selectedTier,
@@ -145,12 +161,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
       logger.error('[api/pharmacy/dispatch/request] Error inserting request', { error })
       return internalError(error.message)
-    }
-
-    const secret = resolveGuestSecret(locals.runtime?.env)
-    if (!secret) {
-      logger.error('[api/pharmacy/dispatch/request] GUEST_TOKEN_SECRET not configured')
-      return serviceUnavailable('guest_token_not_configured')
     }
 
     // Generar token de acceso criptográfico (JWT firmado con HS256)

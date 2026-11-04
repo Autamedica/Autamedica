@@ -76,7 +76,14 @@ BEGIN
   SELECT pg_get_expr(polwithcheck,polrelid) INTO v_qual FROM pg_policy
     WHERE polrelid='public.pharmacy_dispatch_requests'::regclass
       AND polname='pharmacy_dispatch_requests_insert_kiosk_or_owner';
-  IF v_qual IS NULL OR position('requested_by_user_id IS NULL' IN v_qual)=0 THEN
+  -- Anonymous users cannot INSERT directly. Authenticated requests must
+  -- carry their own verified user ID, never a user ID supplied by a kiosk.
+  IF has_table_privilege('anon','public.pharmacy_dispatch_requests','INSERT')
+    OR v_qual IS NULL
+    OR position('requested_by_user_id' IN v_qual) = 0
+    OR position('auth.uid()' IN v_qual) = 0
+    OR position('requested_by_user_id IS NULL' IN v_qual) > 0
+  THEN
     RAISE EXCEPTION 'Kiosk spoof protection missing';
   END IF;
 END
