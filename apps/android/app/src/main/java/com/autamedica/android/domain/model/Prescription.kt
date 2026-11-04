@@ -27,12 +27,12 @@ data class Prescription(
      * Determines whether this prescription is currently active and valid.
      */
     val isActive: Boolean
-        get() = status.equals("activa", ignoreCase = true) ||
-                status.equals("active", ignoreCase = true) ||
-                status.equals("signed", ignoreCase = true) ||
-                status.equals("firmada", ignoreCase = true) ||
-                status.equals("sent", ignoreCase = true) ||
-                status.equals("emitida", ignoreCase = true)
+        get() = !signedPdfUrl.isNullOrBlank() && (
+            status.equals("activa", ignoreCase = true) ||
+            status.equals("active", ignoreCase = true) ||
+            status.equals("signed", ignoreCase = true) ||
+            status.equals("firmada", ignoreCase = true)
+        )
 
     /**
      * Determines whether this prescription was already dispensed by a pharmacy.
