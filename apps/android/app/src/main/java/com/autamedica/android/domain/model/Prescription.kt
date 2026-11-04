@@ -71,9 +71,10 @@ data class Prescription(
      * Effective QR content for pharmacy scanning (falls back to verification URL if cuir is present).
      */
     val effectiveQrContent: String
-        get() = qrCodeContent?.takeIf { it.isNotBlank() }
-            ?: cuir?.let { "https://autamedica.com/verify/$it" }
-            ?: "https://autamedica.com/prescriptions/$id"
+        get() = if (status.equals("draft", ignoreCase = true)) "" else
+            qrCodeContent?.takeIf { it.isNotBlank() }
+                ?: cuir?.let { "https://autamedica.com/verify/$it" }
+                ?: ""
 
     /**
      * Resolved list of items, falling back to primary medication if items list is empty.
