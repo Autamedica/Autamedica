@@ -49,3 +49,5 @@ jobs:
         run: pnpm exec playwright install chromium --with-deps
       - name: Open Memed sandbox SDK with owned DEMO doctor and set DEMO patient
         run: node scripts/memed-homologation-browser.mjs
+      - name: Inspect sandbox-issued prescription ID and provider PDF (read-only)
+        run: node scripts/memed-homologation-artifact-check.mjs
