@@ -310,6 +310,7 @@ class VideoCallViewModel @Inject constructor(
         var docName = ""
         var docRole = ""
         var docCrm = ""
+        var resolvedDoctorCountry: String? = null
         var preReason = ""
         var preSaved = false
         var resolvedPatientId = ""
@@ -401,6 +402,9 @@ class VideoCallViewModel @Inject constructor(
             docName = currentUser.displayName.ifBlank { "Dr. ${currentUser.lastName}".trim().ifBlank { "Médico Tratante" } }
             docRole = profile?.specialty?.takeIf { it.isNotBlank() } ?: "Clínica Médica & Telemedicina"
             docCrm = profile?.licenseNumber?.takeIf { it.isNotBlank() } ?: "Matrícula profesional"
+            resolvedDoctorCountry = if (profile?.active == true && profile.sssValidationStatus in setOf("valid", "exempt")) {
+                profile.countryCode
+            } else null
         } else {
             if (docName.isBlank()) docName = "Profesional Médico"
             if (docRole.isBlank()) docRole = "Telemedicina"
@@ -418,9 +422,7 @@ class VideoCallViewModel @Inject constructor(
                 doctorName = docName,
                 doctorRole = docRole,
                 doctorCrm = docCrm,
-                doctorCountryCode = if (isDoc && profile?.active == true && profile.sssValidationStatus in setOf("valid", "exempt")) {
-                    profile.countryCode
-                } else null,
+                doctorCountryCode = resolvedDoctorCountry,
                 preconsultationReason = if (preReason.isNotBlank()) preReason else it.preconsultationReason,
                 isPreconsultationSaved = preSaved || it.isPreconsultationSaved,
                 isLoadingClinicalContext = isDoc && resolvedPatientId.isNotBlank(),
@@ -1580,7 +1582,7 @@ class VideoCallViewModel @Inject constructor(
                     daysOfRest = effectiveRest,
                     startDate = startDateStr,
                     endDate = endDateStr,
-                    diagnosis = trimmedDiagnosis.ifBlank { null },
+                    diagnosis = trimmedDiagnosis.takeIf { it.isNotBlank() },
                     hideDiagnosis = country == "BR",
                     observations = "Borrador preparado durante videoconsulta AutaMedica; pendiente de firma",
                     countryCode = country,
