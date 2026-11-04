@@ -7,7 +7,7 @@ import {
   consultationTranscriptsRepo,
   type TranscriptSegment,
 } from '@/lib/doctors/lib/repos/consultation-transcripts.repo';
-import { jsonOk, badRequest, forbidden, notFound, internalError } from '@/lib/api-helpers';
+import { jsonOk, badRequest, forbidden, internalError } from '@/lib/api-helpers';
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 
 
