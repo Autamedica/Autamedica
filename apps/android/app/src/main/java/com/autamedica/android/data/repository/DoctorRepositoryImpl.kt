@@ -5,6 +5,7 @@ import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.DoctorAvailabilitySlot
 import com.autamedica.android.domain.model.DoctorProfile
+import com.autamedica.android.domain.model.InCallDocumentPolicy
 import com.autamedica.android.domain.model.DoctorStats
 import com.autamedica.android.domain.model.PatientClinicalContext
 import com.autamedica.android.domain.model.PatientDetail
@@ -533,6 +534,8 @@ private data class DoctorDto(
     @SerialName("consultation_fee") val consultationFee: Double? = null,
     val active: Boolean = true,
     @SerialName("uf_brazil") val ufBrazil: String? = null,
+    @SerialName("license_type") val licenseType: String? = null,
+    @SerialName("care_country") val careCountry: String? = null,
     @SerialName("refeps_id") val refepsId: String? = null,
 ) {
     fun toDomain(sssValidationStatus: String? = null) = DoctorProfile(
@@ -546,11 +549,11 @@ private data class DoctorDto(
         consultationFee = consultationFee,
         active = active,
         sssValidationStatus = sssValidationStatus,
-        countryCode = when {
-            !ufBrazil.isNullOrBlank() && refepsId.isNullOrBlank() -> "BR"
-            !refepsId.isNullOrBlank() && ufBrazil.isNullOrBlank() -> "AR"
-            else -> null
-        },
+        countryCode = InCallDocumentPolicy.doctorCountry(
+            licenseType = licenseType,
+            careCountry = careCountry,
+            ufBrazil = ufBrazil,
+        ),
     )
 }
 
