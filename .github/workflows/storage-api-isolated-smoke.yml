@@ -46,11 +46,8 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
-          if docker ps -a --format '{{.Names}}' | grep -Eq '^(supabase_db_autamedica-storage-api-fixture|supabase_db_autamedica-retained-storage-api)
-            echo "::error::A disposable Storage container remains"
-            exit 1
-          fi
-; then
+          containers="$(docker ps -a --format '{{.Names}}')"
+          if printf '%s\n' "$containers" | grep -E -q '^supabase_db_autamedica-(storage-api-fixture|retained-storage-api)$'; then
             echo "::error::A disposable Storage container remains"
             exit 1
           fi
