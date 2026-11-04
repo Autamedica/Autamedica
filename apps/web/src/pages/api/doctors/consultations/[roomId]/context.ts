@@ -27,7 +27,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       return forbidden('room_not_assigned_to_doctor');
     }
 
-    const result = await consultationContextService.getContext(admin, roomId);
+    const result = await consultationContextService.getContext(admin, roomId, participants);
     return jsonOk(result);
   } catch (error) {
     logger.error('[consultation-context] GET error', error);
