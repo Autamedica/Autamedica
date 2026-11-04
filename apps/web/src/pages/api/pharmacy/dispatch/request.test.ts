@@ -65,7 +65,9 @@ function makeContext(options?: {
       options?.body !== undefined
         ? options.body
         : {
-            patientDni: '38123456',
+            careCountry: 'AR',
+            careCountry: 'AR',
+          patientDni: '38123456',
             patientPhone: '+5491122334455',
             patientName: 'Ana Gomez',
             tier: 'general',
@@ -87,10 +89,56 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     vi.clearAllMocks()
   })
 
+  it('rechaza una solicitud sin país explícito antes de consultar la base', async () => {
+    const response = await POST(makeContext({
+      body: { patientDni: '38123456', patientPhone: '+5491122334455', patientName: 'Solo demo' },
+    }))
+    expect(response.status).toBe(400)
+    expect(supabaseMock.from).not.toHaveBeenCalled()
+  })
+
+  it('crea un dispatch brasileño usando CPF y no DNI', async () => {
+    const dispatch = {
+      id: 'dispatch-br-synthetic',
+      patient_cpf: '12345678909',
+      care_country: 'BR',
+      cloudflare_room_id: 'cf-room-general-8909-test',
+      status: 'searching',
+    }
+    const table = buildTableChain(dispatch)
+    supabaseMock.from.mockReturnValue(table)
+
+    const response = await POST(makeContext({
+      body: {
+        careCountry: 'BR',
+        patientCpf: '12345678909',
+        patientPhone: '+5551987654321',
+        patientName: 'PACIENTE DEMO',
+        tier: 'general',
+      },
+    }))
+    expect(response.status).toBe(200)
+    expect(table.insert).toHaveBeenCalledWith(expect.objectContaining({
+      care_country: 'BR',
+      patient_cpf: '12345678909',
+      patient_dni: null,
+      requested_by_user_id: null,
+    }))
+  })
+
+  it('rechaza CPF brasileño incompleto', async () => {
+    const response = await POST(makeContext({
+      body: { careCountry: 'BR', patientCpf: '1234', patientPhone: '+5551987654321' },
+    }))
+    expect(response.status).toBe(400)
+    expect(supabaseMock.from).not.toHaveBeenCalled()
+  })
+
   it('devuelve 400 si el DNI es inválido o menor a 5 caracteres', async () => {
     const response = await POST(
       makeContext({
         body: {
+          careCountry: 'AR',
           patientDni: '12',
           patientPhone: '+5491122334455',
         },
@@ -106,6 +154,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const response = await POST(
       makeContext({
         body: {
+          careCountry: 'AR',
           patientDni: '38123456',
           patientPhone: '123',
         },
@@ -121,6 +170,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const response = await POST(
       makeContext({
         body: {
+          careCountry: 'AR',
           patientDni: '38123456',
           patientPhone: '+5491122334455',
           kioskId: 'not-a-uuid',
@@ -144,6 +194,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const response = await POST(
       makeContext({
         body: {
+          careCountry: 'AR',
           patientDni: '38123456',
           patientPhone: '+5491122334455',
           kioskId: VALID_KIOSK_ID,
@@ -167,6 +218,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const response = await POST(
       makeContext({
         body: {
+          careCountry: 'AR',
           patientDni: '38123456',
           patientPhone: '+5491122334455',
           kioskId: VALID_KIOSK_ID,
@@ -193,6 +245,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const response = await POST(
       makeContext({
         body: {
+          careCountry: 'AR',
           patientDni: '38123456',
           patientPhone: '+5491122334455',
           kioskId: VALID_KIOSK_ID,
@@ -227,6 +280,7 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     const response = await POST(
       makeContext({
         body: {
+          careCountry: 'AR',
           patientDni: '38123456',
           patientPhone: '+5491122334455',
           patientName: 'Ana Gomez',
