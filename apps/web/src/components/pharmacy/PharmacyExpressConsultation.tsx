@@ -20,6 +20,7 @@ import {
 import { fetchApi } from '@/lib/api-client'
 import type { DispatchRequest } from '@/lib/pharmacy/pharmacy-on-demand.service'
 import GuestCallPage from '@/components/calls/GuestCallPage'
+import { JordanPaymentWidget } from './JordanPaymentWidget'
 
 interface PharmacyExpressConsultationProps {
   pharmacyId?: string | null
@@ -221,6 +222,9 @@ export function PharmacyExpressConsultation({
           <span className="text-zinc-300 hidden sm:inline font-normal">{referralPartnerName ?? pharmacyName}</span>
         </div>
         <GuestCallPage roomId={callRoomId} />
+        {referralCode === 'JORDAN' && formData.careCountry === 'BR' && requestId && accessToken && (
+          <JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} />
+        )}
       </div>
     )
   }
@@ -467,7 +471,7 @@ export function PharmacyExpressConsultation({
               Sala de Espera Exprés AutaMedica
             </h2>
             <p className="text-sm text-am-surface-300 max-w-sm mb-6">
-              Estamos buscando un médico disponible para atender tu consulta de <strong className="text-white">{pharmacyName}</strong>.
+              Estamos buscando un médico disponible para atender tu consulta de <strong className="text-white">{referralPartnerName ?? pharmacyName}</strong>.
             </p>
 
             <div className="w-full max-w-xs grid grid-cols-2 gap-3 mb-6">
