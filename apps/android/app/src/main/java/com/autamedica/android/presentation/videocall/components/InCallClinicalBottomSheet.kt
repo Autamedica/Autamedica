@@ -84,6 +84,7 @@ fun InCallClinicalBottomSheet(
     patientName: String,
     chiefComplaint: String? = null,
     countryCode: String? = null,
+    patientLinked: Boolean = false,
     isSubmitting: Boolean,
     onIssuePrescription: (medicationName: String, dosage: String, instructions: String, diagnosis: String, onResult: (Boolean, String?) -> Unit) -> Unit,
     onIssueCertificate: (type: CertificateType, daysOfRest: Int, diagnosis: String, onResult: (Boolean, String?) -> Unit) -> Unit,
@@ -228,6 +229,22 @@ fun InCallClinicalBottomSheet(
                             )
                         }
                     }
+                }
+            }
+
+            if (!patientLinked) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = AuDanger.copy(alpha = 0.10f),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, AuDanger.copy(alpha = 0.25f)),
+                ) {
+                    Text(
+                        "Paciente sin ficha clínica vinculada. Se puede continuar la videoconsulta, pero no preparar documentos hasta verificar el vínculo asistencial.",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuDanger,
+                    )
                 }
             }
 
@@ -491,7 +508,7 @@ fun InCallClinicalBottomSheet(
                                 }
                             },
                             enabled = !isSubmitting && medicationName.isNotBlank() &&
-                                prescriptionDiagnosis.isNotBlank() && countryCode == "AR",
+                                prescriptionDiagnosis.isNotBlank() && countryCode == "AR" && patientLinked,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
@@ -638,7 +655,7 @@ fun InCallClinicalBottomSheet(
                                     }
                                 }
                             },
-                            enabled = !isSubmitting && countryCode in setOf("AR", "BR"),
+                            enabled = !isSubmitting && countryCode in setOf("AR", "BR") && patientLinked,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
