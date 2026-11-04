@@ -31,12 +31,11 @@ data class MedicalCertificate(
                 status.equals("emitida", ignoreCase = true)
 
     val effectiveQrContent: String
-        get() = qrCodeContent?.takeIf { it.isNotBlank() }
+        get() = if (!isActive) "" else qrCodeContent?.takeIf { it.isNotBlank() }
             ?: "https://autamedica.com/verify/$cuir"
 
     val effectivePdfUrl: String?
-        get() = signedPdfUrl?.takeIf { it.isNotBlank() }
-            ?: "https://autamedica.com/verify/$cuir"
+        get() = if (!isActive) null else signedPdfUrl?.takeIf { it.isNotBlank() }
 
     val displayDaysOfRest: String
         get() = when {
