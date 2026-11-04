@@ -3,6 +3,7 @@ import CallLayout from '@/layouts/CallLayout.astro';
 import { PharmacyExpressConsultation } from '@/components/pharmacy/PharmacyExpressConsultation';
 import { createAstroAdminClient } from '@/lib/supabase';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access';
 
 export const prerender = false;
 
@@ -52,7 +53,7 @@ if (pharmacyId) {
 const jordanPaymentsEnabled = (
   (Astro.locals.runtime?.env?.ENABLE_JORDAN_PAYMENTS as string | undefined)
   ?? import.meta.env.ENABLE_JORDAN_PAYMENTS
-) === 'true';
+) === 'true' && hasSecureGuestPaymentSecret(Astro.locals.runtime?.env);
 
 const title = 'Consulta Exprés en Farmacia • Red AutaMedica';
 const description = 'Punto de atención de telemedicina de AutaMedica. Los documentos médicos dependen del profesional y de la habilitación correspondiente al país de atención.';

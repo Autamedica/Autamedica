@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { signGuestToken } from '@/lib/calls/lib/guest-token'
-import { authorizePharmacyPaymentRequest } from './guest-payment-access'
+import { authorizePharmacyPaymentRequest, hasSecureGuestPaymentSecret } from './guest-payment-access'
+import { resolveGuestSecret } from '@/lib/runtime-env'
 
 vi.mock('@/lib/runtime-env', () => ({
   resolveGuestSecret: vi.fn(() => 'synthetic-secret-for-test-only-minimum-32'),
@@ -37,6 +38,22 @@ describe('pharmacy payment guest authorization', () => {
     const authorized = await authorizePharmacyPaymentRequest(admin,ID,guest)
     expect(authorized?.id).toBe(ID)
     expect(authorized?.care_country).toBe('BR')
+  })
+  it('refuses checkout based on the known legacy guest-token fallback', async () => {
+    vi.mocked(resolveGuestSecret).mockReturnValueOnce('am-guest-default-fallback-secret-2026')
+    expect(hasSecureGuestPaymentSecret()).toBe(false)
+    vi.mocked(resolveGuestSecret).mockReturnValueOnce('am-guest-default-fallback-secret-2026')
+    const insecure = await signGuestToken(
+      { callId: ID, roomId: ROOM, guestName: 'Synthetic' },
+      'am-guest-default-fallback-secret-2026',
+    )
+    const { admin } = mockAdmin(ROOM)
+    expect(await authorizePharmacyPaymentRequest(admin, ID, insecure)).toBeNull()
+    expect(admin.from).not.toHaveBeenCalled()
+  })
+  it('handles malformed guest JWT without exposing an HTTP 500', async () => {
+    const { admin } = mockAdmin(ROOM)
+    expect(await authorizePharmacyPaymentRequest(admin, ID, 'a'.repeat(40))).toBeNull()
   })
   it('rejects room mismatch even if request ID and JWT signature are valid', async () => {
     const guest = await signGuestToken({ callId: ID, roomId: ROOM, guestName:'Synthetic' },'synthetic-secret-for-test-only-minimum-32')

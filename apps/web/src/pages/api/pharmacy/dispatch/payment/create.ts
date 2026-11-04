@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { badRequest, internalError, jsonOk, serviceUnavailable, unauthorized } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
-import { authorizePharmacyPaymentRequest } from '@/lib/pharmacy/payments/guest-payment-access'
+import { authorizePharmacyPaymentRequest, hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access'
 import { GENERAL_PHARMACY_BR_PRICE_CENTS } from '@/lib/pharmacy/payments/referral-finance'
 import { logger } from '@autamedica/shared'
 
@@ -22,6 +22,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       ?? getRuntimeEnvValue('ENABLE_JORDAN_PAYMENTS')
       ?? import.meta.env.ENABLE_JORDAN_PAYMENTS
     if (rolloutFlag !== 'true') return serviceUnavailable('pharmacy_checkout_not_enabled')
+    if (!hasSecureGuestPaymentSecret(locals.runtime?.env)) return serviceUnavailable('pharmacy_checkout_guest_security_not_configured')
 
     const body = await request.json().catch(() => null)
     const requestId = body?.requestId
