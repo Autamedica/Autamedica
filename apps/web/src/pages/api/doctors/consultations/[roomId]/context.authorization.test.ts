@@ -27,8 +27,8 @@ vi.mock('@/lib/supabase', () => ({
 
 vi.mock('@/lib/doctors/lib/resolve-room', () => ({
   resolveRoomParticipants: mocks.resolveParticipants,
-  isDoctorAssignedToRoom: (participants: { doctorId: string | null } | null, doctorId: string) =>
-    Boolean(participants && participants.doctorId === doctorId),
+  isDoctorAssignedToRoom: (participants: { doctorId: string | null } | null, doctorId: string, doctorUserId?: string) =>
+    Boolean(participants && (participants.doctorId === doctorId || participants.doctorId === doctorUserId)),
 }))
 
 vi.mock('@/lib/doctors/services/consultation-context.service', () => ({
@@ -64,6 +64,13 @@ describe('doctor consultation context room authorization', () => {
     const response = await GET(context())
     expect(response.status).toBe(403)
     expect(mocks.getContext).not.toHaveBeenCalled()
+  })
+
+  it('recognizes rooms that store the assigned doctor auth ID', async () => {
+    mocks.resolveParticipants.mockResolvedValueOnce({ ...mocks.room, doctorId: 'user-self' })
+    const response = await GET(context())
+    expect(response.status).toBe(200)
+    expect(mocks.getContext).toHaveBeenCalledOnce()
   })
 
   it('permits only the doctor assigned to this room and reuses checked participants', async () => {
