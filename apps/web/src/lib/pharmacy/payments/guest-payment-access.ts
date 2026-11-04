@@ -35,6 +35,6 @@ export async function authorizePharmacyPaymentRequest(
     .select('id,cloudflare_room_id,care_country,tier_requested,status')
     .eq('id', requestId).maybeSingle()
   if (error) throw error
-  if (!data || guest.roomId !== data.cloudflare_room_id) return null
+  if (guest.roomId !== data?.cloudflare_room_id) return null
   return data as AuthorizedPharmacyPaymentRequest
 }
