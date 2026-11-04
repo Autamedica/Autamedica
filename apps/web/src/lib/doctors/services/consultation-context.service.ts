@@ -13,7 +13,7 @@ import {
   isAnamnesisExtractionConfigured,
   ANAMNESIS_EXTRACTION_PROMPT_VERSION,
 } from '@/lib/patients/server/anamnesis-ai-extraction'
-import { resolveDoctorId, resolveRoomParticipants, resolvePatientProfile } from '@/lib/doctors/lib/resolve-room'
+import { resolveDoctorId, resolveRoomParticipants, resolvePatientProfile, isClinicalPatientId } from '@/lib/doctors/lib/resolve-room'
 
 type AdminClient = SupabaseClient
 
@@ -134,13 +134,14 @@ export const consultationContextService = {
 
     const { patientId } = participants
 
-    // Short-circuit: pharmacy on-demand kiosk patient (no auth user, no anamnesis)
-    if (patientId.startsWith('dispatch:') && participants.triage) {
+    // Pharmacy visits may use a real, isolated patient UUID; this alone does
+    // not prove identity or authorize issuing prescriptions/certificates.
+    if (participants.triage) {
       const { triage } = participants
       return {
         hasAnamnesis: false,
         patient: {
-          id: patientId,
+          id: isClinicalPatientId(patientId) ? patientId : null,
           name: triage.patientName || 'Paciente Kiosco',
           dateOfBirth: null,
           gender: null,
