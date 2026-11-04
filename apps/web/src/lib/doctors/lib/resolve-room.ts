@@ -7,7 +7,7 @@ type AdminClient = SupabaseClient;
 export function isDoctorAssignedToRoom(
   participants: ResolvedRoomParticipants | null,
   doctorId: string,
-): boolean {
+): participants is ResolvedRoomParticipants {
   return Boolean(participants && doctorId && participants.doctorId === doctorId);
 }
 
