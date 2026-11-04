@@ -1,4 +1,4 @@
-import { assertEquals, assertMatch } from "jsr:@std/assert";
+import { assertEquals } from "jsr:@std/assert";
 import { handler } from "../issue-prescription/index.ts";
 
 const DUMMY_ENV = () => {
@@ -192,138 +192,68 @@ Deno.test("issue-prescription - Argentina SSS validation required", async () => 
   }
 });
 
-Deno.test("issue-prescription - Successful issuance with CUIR, QR, PDF, and sent status", async () => {
+Deno.test("issue-prescription - legacy AR and BR issuance never fabricate signed artifacts", async () => {
   DUMMY_ENV();
   const originalFetch = globalThis.fetch;
+  const mutations: string[] = [];
+
   globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-
     if (url.includes("/auth/v1/user")) {
-      return new Response(JSON.stringify({ id: "doc-user-123" }), { status: 200 });
+      return new Response(JSON.stringify({ id: "doctor-demo-user" }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
     }
-    if (url.includes("/rest/v1/profiles") && !url.includes("pat-user")) {
-      return new Response(
-        JSON.stringify({
-          first_name: "Luciana",
-          last_name: "Valenzuela",
-          role: "doctor",
-          active: true,
-          sss_validation_status: "valid",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+    if (url.includes("/rest/v1/profiles")) {
+      return new Response(JSON.stringify({
+        role: "doctor", active: true, sss_validation_status: "valid",
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
     if (url.includes("/rest/v1/doctors")) {
-      return new Response(
-        JSON.stringify({
-          id: "doc-rec-123",
-          user_id: "doc-user-123",
-          active: true,
-          license_number: "MN 991122",
-          license_jurisdiction: "CABA",
-          refeps_id: "REF-889900",
-          specialty: "Infectología",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({
+        id: "doctor-demo", active: true, refeps_id: "REFEPS-DEMO",
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
-    if (url.includes("/rest/v1/patients")) {
-      return new Response(
-        JSON.stringify({
-          id: "pat-123",
-          user_id: "pat-user-456",
-          dni: "34567890",
-          cuil: "20-34567890-9",
-          address: "Av. Libertador 2200",
-          insurance_info: { provider: "Medifé" },
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+    if (["POST", "PUT", "PATCH", "DELETE"].includes((init?.method || "GET").toUpperCase())) {
+      mutations.push(url);
     }
-    if (url.includes("/rest/v1/profiles") && url.includes("pat-user")) {
-      return new Response(
-        JSON.stringify({
-          first_name: "Carlos",
-          last_name: "García",
-          dni: "34567890",
-          cuil: "20-34567890-9",
-          address: "Av. Libertador 2200",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
-    }
-    if (url.includes("/storage/v1/object/upload/sign/medical-documents") || url.includes("/storage/v1/object/medical-documents")) {
-      return new Response(
-        JSON.stringify({ Key: "medical-documents/prescriptions/test.pdf" }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
-    }
-    if (url.includes("/storage/v1/object/sign/medical-documents")) {
-      return new Response(
-        JSON.stringify({ signedURL: "/storage/v1/render/image/sign/test.pdf?token=dummy" }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
-    }
-    if (url.includes("/rest/v1/prescriptions")) {
-      if (init?.method === "POST") {
-        return new Response(
-          JSON.stringify({ id: "rx-generated-123", created_at: "2026-09-12T10:00:00Z" }),
-          { status: 201, headers: { "Content-Type": "application/json" } },
-        );
-      }
-      if (init?.method === "PATCH") {
-        const bodyObj = JSON.parse(String(init?.body || "{}"));
-        return new Response(
-          JSON.stringify({
-            id: "rx-generated-123",
-            cuir: bodyObj.cuir,
-            qr_code_content: bodyObj.qr_code_content,
-            signed_pdf_url: bodyObj.signed_pdf_url,
-            status: "sent",
-            created_at: "2026-09-12T10:00:00Z",
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        );
-      }
-    }
-    if (url.includes("/rest/v1/prescription_audit_events") || url.includes("/rest/v1/dispensation_orders")) {
-      return new Response(JSON.stringify({ id: "audit-123" }), { status: 201 });
-    }
-
     return originalFetch(input, init);
   };
 
   try {
-    const req = new Request("http://localhost/issue-prescription", {
+    for (const countryCode of ["AR", "BR"]) {
+      const req = new Request("http://localhost/issue-prescription", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer synthetic-token",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          patientId: "synthetic-patient",
+          countryCode,
+          items: [{ generic_name: "SYNTHETIC ONLY" }],
+        }),
+      });
+      const res = await handler(req);
+      assertEquals(res.status, 409);
+      const body = await res.json();
+      assertEquals(body.code, "OFFICIAL_ISSUANCE_PROVIDER_REQUIRED");
+      assertEquals(body.success, false);
+      assertEquals(body.data, undefined);
+    }
+
+    const unknownCountryReq = new Request("http://localhost/issue-prescription", {
       method: "POST",
       headers: {
-        Authorization: "Bearer doc-token",
+        Authorization: "Bearer synthetic-token",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        patientId: "pat-123",
-        countryCode: "AR",
-        items: [
-          {
-            name: "Amoxicilina 500mg",
-            generic_name: "Amoxicilina",
-            dosage: "500mg",
-            frequency: "Cada 8h",
-            duration: "7 días",
-          },
-        ],
-        diagnosis: "Faringitis aguda",
-      }),
+      body: JSON.stringify({ patientId: "synthetic-patient", items: [{ generic_name: "TEST" }] }),
     });
-
-    const res = await handler(req);
-    assertEquals(res.status, 200);
-    const body = await res.json();
-    assertEquals(body.success, true);
-    assertEquals(body.data.status, "sent");
-    assertMatch(body.data.cuir, /^AR-MD-[0-9A-F]+-[0-9A-F]+$/);
-    assertEquals(body.data.qr_code_content, `https://autamedica.com/verify/${body.data.cuir}`);
-    assertEquals(typeof body.data.signed_pdf_url, "string");
+    const response = await handler(unknownCountryReq);
+    assertEquals(response.status, 422);
+    assertEquals((await response.json()).code, "COUNTRY_REQUIRED");
+    assertEquals(mutations, []);
   } finally {
     globalThis.fetch = originalFetch;
   }

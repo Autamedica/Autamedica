@@ -97,6 +97,24 @@ jobs:
         env:
           RENAPDIS_RL_NUMBER: ${{ secrets.RENAPDIS_RL_NUMBER || 'RL-2026-47574120-APN-SSVEIYES#MS' }}
 
+  clinical-edge-prescription:
+    name: Clinical Edge RX (Deno)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check legacy mobile prescription endpoint
+        run: deno check --no-lock supabase/functions/issue-prescription/index.ts
+      - name: Prove AR/BR endpoint rejects unverified official issuance without writes
+        run: deno test --no-lock --allow-env --allow-net supabase/functions/tests/issue-prescription.test.ts
+
   database-tests:
     name: Database & RLS
     runs-on: ubuntu-latest
