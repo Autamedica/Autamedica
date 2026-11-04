@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, Json } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
+import { reconcilePharmacyProviderPayment } from '@/lib/pharmacy/payments/referral-finance'
 import {
   APPOINTMENT_PAYMENT_COMMISSION_BPS,
   APPOINTMENT_PAYMENT_CURRENCY,
@@ -601,6 +602,20 @@ export const appointmentPaymentsService = {
         return { handled: false, ignored: true, reason: 'payment_not_found_or_simulated' }
       }
       throw fetchError
+    }
+
+    // Pharmacy QR consultations are paid against an explicitly authorized
+    // dispatch, not an appointment guessed from DNI/CPF/name/phone.
+    if (payment.metadata?.payment_type === 'pharmacy_consultation' ||
+        payment.external_reference?.startsWith('pharm:')) {
+      const reconciliation = await reconcilePharmacyProviderPayment(
+        supabase as unknown as SupabaseClient, payment,
+      )
+      return {
+        handled: reconciliation.handled,
+        ignored: !reconciliation.handled,
+        reason: reconciliation.reason,
+      }
     }
 
     const isWalletTopup = payment.metadata?.type === 'wallet_topup'
