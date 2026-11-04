@@ -7,8 +7,15 @@ type AdminClient = SupabaseClient;
 export function isDoctorAssignedToRoom(
   participants: ResolvedRoomParticipants | null,
   doctorId: string,
+  doctorUserId?: string,
 ): participants is ResolvedRoomParticipants {
-  return Boolean(participants && doctorId && participants.doctorId === doctorId);
+  // Legacy calls may store doctors.id or auth.users.id as doctor_id.
+  // Both identities must come from the authenticated caller, never the URL.
+  return Boolean(
+    participants && doctorId &&
+    (participants.doctorId === doctorId ||
+      (doctorUserId && participants.doctorId === doctorUserId)),
+  );
 }
 
 export function isClinicalPatientId(value: string | null | undefined): boolean {
