@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { issuePrescription } from './issue-prescription.service';
+import { issuePrescription, regenerateIssuedPrescriptionPdf } from './issue-prescription.service';
 
 function fakeDb(country: 'AR' | 'BR', patientCountry: 'AR' | 'BR' | null = country) {
   const doctor = {
@@ -59,6 +59,17 @@ describe('official prescription issue denies unverified issuance before any writ
     expect(writes.insert).not.toHaveBeenCalled();
     expect(writes.update).not.toHaveBeenCalled();
     expect(writes.rpc).not.toHaveBeenCalled();
+  });
+
+  it('never overwrites an issued signed PDF with an unsigned regenerated PDF', async () => {
+    const { client, from, writes } = fakeDb('AR');
+    const result = await regenerateIssuedPrescriptionPdf(client, 'rx-demo', 'user-doctor');
+    expect(result).toEqual({
+      ok: false, error: { code: 'reissue_requires_verified_signature' },
+    });
+    expect(from).not.toHaveBeenCalled();
+    expect(writes.update).not.toHaveBeenCalled();
+    expect(writes.upload).not.toHaveBeenCalled();
   });
 
   it('mismatched patient country fails even if production flag were enabled', async () => {
