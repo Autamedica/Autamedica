@@ -175,6 +175,15 @@ async function main() {
 
   // Memed's officially documented addItem command. Pure sandbox fixture:
   // no real drug or dosage is prescribed; never sign or print it as valid.
+  // Ensure the provider has opened a fresh demo prescription editor before
+  // addItem; equivalent to clicking "Nova Prescrição" in the sandbox UI.
+  result.newPrescriptionOpened = await page.evaluate(async () => {
+    try {
+      await window.MdHub.command.send('plataforma.prescricao', 'newPrescription');
+      return true;
+    } catch { return false; }
+  });
+  await page.waitForTimeout(450);
   const itemResult = await page.evaluate(async () => {
     try {
       await window.MdHub.command.send('plataforma.prescricao', 'addItem', {
