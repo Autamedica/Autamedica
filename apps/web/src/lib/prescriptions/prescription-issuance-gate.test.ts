@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { checkDirectPrescriptionIssuance as check } from './prescription-issuance-gate';
+import {
+  checkDirectPrescriptionIssuance as check,
+  hasEligibleProfessionalPadesCertificate as eligibleCertificate,
+} from './prescription-issuance-gate';
 
 const approvedAR = {
   prescriptionCountry: 'AR',
@@ -38,6 +41,20 @@ describe('proof-of-issuance clinical gate', () => {
     expect(check({ ...approvedAR, argentinaProductionApproved: false })).toEqual({
       ok: false, code: 'ar_production_homologation_required',
     });
+  });
+
+  it('rejects self-signed and expired certificates before external provider calls', () => {
+    const now = Date.parse('2026-11-04T12:00:00Z');
+    const base = {
+      acProvider: 'accredited_demo_ca',
+      signatureMethod: 'ac_external',
+      certValidUntil: '2027-11-04T12:00:00Z',
+    };
+    expect(eligibleCertificate(null, now)).toBe(false);
+    expect(eligibleCertificate({ ...base, acProvider: 'self_signed' }, now)).toBe(false);
+    expect(eligibleCertificate({ ...base, signatureMethod: 'electronic_simple' }, now)).toBe(false);
+    expect(eligibleCertificate({ ...base, certValidUntil: '2025-11-04T12:00:00Z' }, now)).toBe(false);
+    expect(eligibleCertificate(base, now)).toBe(true);
   });
 
   it('only allows matched Argentine clinical country with explicit approval', () => {
