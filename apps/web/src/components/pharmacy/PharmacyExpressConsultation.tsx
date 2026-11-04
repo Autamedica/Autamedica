@@ -50,6 +50,7 @@ export function PharmacyExpressConsultation({
 
   const [step, setStep] = useState<Step>('FORM')
   const [formData, setFormData] = useState({
+    careCountry: '' as '' | 'AR' | 'BR',
     dni: initialDni,
     name: '',
     phone: '',
@@ -121,8 +122,13 @@ export function PharmacyExpressConsultation({
     e.preventDefault()
     setFormError(null)
 
-    if (!formData.dni.trim() || formData.dni.trim().length < 5) {
-      setFormError('Por favor ingresa un número de DNI o documento válido.')
+    if (!formData.careCountry) {
+      setFormError('Seleccioná el país donde recibirás atención: Argentina o Brasil.')
+      return
+    }
+    const documentNumber = formData.dni.replace(/\D/g, '')
+    if (formData.careCountry === 'BR' ? documentNumber.length !== 11 : documentNumber.length < 5 || documentNumber.length > 10) {
+      setFormError(formData.careCountry === 'BR' ? 'Ingresá un CPF de 11 dígitos.' : 'Ingresá un DNI válido.')
       return
     }
     if (!formData.name.trim() || formData.name.trim().length < 3) {
@@ -149,7 +155,8 @@ export function PharmacyExpressConsultation({
       }>('/api/pharmacy/dispatch/request', {
         method: 'POST',
         body: {
-          patientDni: formData.dni.trim(),
+          careCountry: formData.careCountry,
+          ...(formData.careCountry === 'BR' ? { patientCpf: documentNumber } : { patientDni: documentNumber }),
           patientName: formData.name.trim(),
           patientPhone: formData.phone.trim(),
           symptomSummary: formData.reason.trim(),
@@ -270,17 +277,35 @@ export function PharmacyExpressConsultation({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <fieldset className="rounded-xl border border-am-surface-700/80 p-3">
+                <legend className="text-xs font-medium text-am-surface-300 px-1">País de atención / País de atendimento *</legend>
+                <div className="flex flex-wrap gap-4 mt-2 text-sm text-white">
+                  {(['AR', 'BR'] as const).map((country) => (
+                    <label key={country} className="inline-flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="careCountry"
+                        required
+                        checked={formData.careCountry === country}
+                        onChange={() => setFormData({ ...formData, careCountry: country, dni: '' })}
+                        className="accent-emerald-500"
+                      />
+                      {country === 'AR' ? 'Argentina · DNI' : 'Brasil · CPF'}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor={dniInputId} className="block text-xs font-medium text-am-surface-300 mb-1.5 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-am-surface-400" />
-                    DNI / Documento
+                    {formData.careCountry === 'BR' ? 'CPF (11 dígitos)' : 'DNI / Documento'}
                   </label>
                   <input
                     id={dniInputId}
                     type="text"
                     required
-                    placeholder="Ej. 35123456"
+                    placeholder={formData.careCountry === 'BR' ? 'Ej. 12345678909' : 'Ej. 35123456'}
                     value={formData.dni}
                     onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-am-surface-900 border border-am-surface-700/80 text-white placeholder-am-surface-500 text-sm focus:outline-none focus:border-am-primary-400 focus:ring-1 focus:ring-am-primary-400 transition"
@@ -457,7 +482,7 @@ export function PharmacyExpressConsultation({
             <div className="w-full max-w-md p-3.5 rounded-2xl bg-am-surface-900/80 border border-am-surface-700/40 text-left text-xs text-am-surface-300 space-y-1.5 mb-6">
               <div className="flex justify-between">
                 <span className="text-am-surface-400">Paciente:</span>
-                <strong className="text-white">{formData.name} (DNI {formData.dni})</strong>
+                <strong className="text-white">{formData.name} ({formData.careCountry === 'BR' ? 'CPF' : 'DNI'} {formData.dni})</strong>
               </div>
               <div className="flex justify-between">
                 <span className="text-am-surface-400">Red Médica:</span>
@@ -515,12 +540,12 @@ export function PharmacyExpressConsultation({
               Atención Concluida • Red AutaMedica
             </h2>
             <p className="text-sm text-am-surface-300 max-w-sm mb-6 leading-relaxed">
-              Tu consulta fue finalizada con éxito. Si el médico te prescribió medicamentos, tu receta digital oficial con firma electrónica y código QR llegará a tu WhatsApp para que puedas retirarla directamente en el mostrador de <strong className="text-white">{pharmacyName}</strong>.
+              La consulta finalizó. Si el médico prepara una receta o un certificado, su entrega dependerá de la firma profesional, verificación y homologación correspondientes. No se considera emitido un borrador ni se garantiza el envío automático por WhatsApp.
             </p>
             <button
               type="button"
               onClick={() => {
-                setFormData({ dni: '', name: '', phone: '', reason: '' })
+                setFormData({ careCountry: '', dni: '', name: '', phone: '', reason: '' })
                 setStep('FORM')
               }}
               className="py-2.5 px-6 rounded-xl bg-am-primary-600 hover:bg-am-primary-500 text-white font-medium text-xs transition"
