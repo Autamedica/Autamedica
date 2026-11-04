@@ -137,8 +137,8 @@ BEGIN
     signature_method, signature_verified_at)
   SELECT '00000000-0000-4000-8000-00000000a402', synthetic_doctor.id, synthetic_patient.id,
     'reposo_laboral', 1, current_date, current_date,
-    'SIGNED SYNTHETIC NO REAL SIGNATURE', true, 'TEST-AR-NO-VALIDO',
-    'TEST-AR-NO-VALIDO', 'AR', 'signed',
+    'SIGNED SYNTHETIC NO REAL SIGNATURE', true, 'TEST-AR-SIGNED-SYNTHETIC',
+    'TEST-AR-SIGNED-SYNTHETIC', 'AR', 'signed',
     'test-only/not-a-clinical-pdf.pdf', repeat('a',64), 'ac_external', now()
   FROM public.doctors synthetic_doctor CROSS JOIN public.patients synthetic_patient
   WHERE synthetic_doctor.user_id = '00000000-0000-4000-8000-00000000a101'
