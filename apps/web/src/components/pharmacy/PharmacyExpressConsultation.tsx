@@ -28,6 +28,7 @@ interface PharmacyExpressConsultationProps {
   initialDni?: string
   referralCode?: string | null
   referralPartnerName?: string | null
+  jordanPaymentsEnabled?: boolean
 }
 
 type Step = 'FORM' | 'WAITING' | 'CALL' | 'ENDED' | 'CANCELLED'
@@ -47,6 +48,7 @@ export function PharmacyExpressConsultation({
   initialDni = '',
   referralCode = null,
   referralPartnerName = null,
+  jordanPaymentsEnabled = false,
 }: PharmacyExpressConsultationProps) {
   const dniInputId = useId()
   const nameInputId = useId()
@@ -222,7 +224,7 @@ export function PharmacyExpressConsultation({
           <span className="text-zinc-300 hidden sm:inline font-normal">{referralPartnerName ?? pharmacyName}</span>
         </div>
         <GuestCallPage roomId={callRoomId} />
-        {referralCode === 'JORDAN' && formData.careCountry === 'BR' && requestId && accessToken && (
+        {jordanPaymentsEnabled && referralCode === 'JORDAN' && formData.careCountry === 'BR' && requestId && accessToken && (
           <JordanPaymentWidget dispatchId={requestId} guestToken={accessToken} />
         )}
       </div>
