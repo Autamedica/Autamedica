@@ -162,6 +162,10 @@ export function resolveCloudflareCallsEnv(runtimeEnv?: RuntimeEnvRecord): {
   return { appId, appSecret, turnKeyId, turnToken };
 }
 
+export function isStrongGuestSigningSecret(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{64,128}$/i.test(value);
+}
+
 export function resolveGuestSecret(runtimeEnv?: RuntimeEnvRecord): string | undefined {
   primeRuntimeEnv(runtimeEnv);
 
@@ -175,7 +179,7 @@ export function resolveGuestSecret(runtimeEnv?: RuntimeEnvRecord): string | unde
 
   // Documented provisioning: openssl rand -hex 32 (256 bits).
   // Missing, placeholder or low-entropy-looking secrets fail closed.
-  return /^[0-9a-f]{64,128}$/i.test(configured ?? '') ? configured : undefined;
+  return isStrongGuestSigningSecret(configured) ? configured : undefined;
 }
 
 export function resolvePublicClientEnv(runtimeEnv?: RuntimeEnvRecord): {
