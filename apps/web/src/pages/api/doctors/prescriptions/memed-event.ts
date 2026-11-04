@@ -206,7 +206,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (insertError) throw insertError;
     return jsonOk({ status: 'recorded_pending_signature_and_delivery', prescriptionId });
   } catch (error) {
-    if (error instanceof Error && error.message === 'doctor_patient_access_required') return forbidden(error.message);
+    if (error instanceof Error && ['doctor_patient_access_required',
+      'memed_patient_country_required'].includes(error.message)) return forbidden(error.message);
     if (error instanceof Error && ['memed_patient_required', 'memed_patient_consent_required',
       'memed_patient_identity_incomplete'].includes(error.message)) return badRequest(error.message);
     logger.error('[memed-event] verification/persistence failed');
