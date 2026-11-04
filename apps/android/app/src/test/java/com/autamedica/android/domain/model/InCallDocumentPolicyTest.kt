@@ -46,6 +46,17 @@ class InCallDocumentPolicyTest {
         }
     }
 
+    @Test fun patientAndDoctorMustHaveSameExplicitCountry() {
+        InCallDocumentPolicy.requireMatchingPatientCountry("AR", "AR")
+        InCallDocumentPolicy.requireMatchingPatientCountry("BR", "BR")
+        assertThrows(IllegalArgumentException::class.java) {
+            InCallDocumentPolicy.requireMatchingPatientCountry(null, "AR")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            InCallDocumentPolicy.requireMatchingPatientCountry("BR", "AR")
+        }
+    }
+
     @Test fun brazilMustNotFallBackToGenericPrescriptionIssuer() {
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("AR")).isTrue()
         assertThat(InCallDocumentPolicy.canUseNativePrescriptionIssuer("BR")).isFalse()
