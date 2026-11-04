@@ -51,7 +51,7 @@ export function hasEligibleProfessionalPadesCertificate(
   } | null,
   nowMs: number = Date.now(),
 ): boolean {
-  if (!certificate || !certificate.acProvider ||
+  if (!certificate?.acProvider ||
       certificate.acProvider === 'self_signed' ||
       certificate.signatureMethod !== 'ac_external') return false;
   const expiresAt = Date.parse(certificate.certValidUntil);
