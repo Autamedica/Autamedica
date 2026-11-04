@@ -1,9 +1,6 @@
 package com.autamedica.android.domain.model
 
-/**
- * Domain model representing an official digital prescription (Receta Digital)
- * Interoperable with SISA WS020, Farmalink (IMED) and digital pharmacy validation.
- */
+/** Clinical prescription record: status and an access URL do not prove signature or homologation. */
 data class Prescription(
     val id: String,
     val status: String,
@@ -71,10 +68,11 @@ data class Prescription(
      * Effective QR content for pharmacy scanning (falls back to verification URL if cuir is present).
      */
     val effectiveQrContent: String
-        get() = if (status.equals("draft", ignoreCase = true)) "" else
+        get() = if (status.equals("draft", ignoreCase = true)) "" else (
             qrCodeContent?.takeIf { it.isNotBlank() }
                 ?: cuir?.let { "https://autamedica.com/verify/$it" }
                 ?: ""
+        )
 
     /**
      * Resolved list of items, falling back to primary medication if items list is empty.
