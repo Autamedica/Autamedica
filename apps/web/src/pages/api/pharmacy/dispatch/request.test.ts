@@ -296,4 +296,17 @@ describe('API: /api/pharmacy/dispatch/request', () => {
     expect(body.data.accessToken).toBeDefined()
     expect(body.data.cloudflare_room_id).toBeDefined()
   })
+  it('nunca devuelve detalles clínicos presentes en errores SQL', async () => {
+    const table = buildTableChain(null, { code: '23514', message: 'PRIVATE CLINICAL DETAILS 123456789' })
+    supabaseMock.from.mockReturnValue(table)
+
+    const response = await POST(makeContext())
+    expect(response.status).toBe(500)
+    const json = JSON.stringify(await response.json())
+    expect(json).not.toContain('PRIVATE CLINICAL DETAILS')
+    expect(json).not.toContain('123456789')
+    const { logger } = await import('@autamedica/shared')
+    expect(JSON.stringify(vi.mocked(logger.error).mock.calls)).not.toContain('PRIVATE CLINICAL DETAILS')
+  })
+
 })

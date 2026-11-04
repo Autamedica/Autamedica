@@ -182,16 +182,22 @@ export function PharmacyExpressConsultation({
   }
 
   const handleCancelRequest = async () => {
-    if (!requestId) return
+    if (!requestId || !accessToken) {
+      setFormError('No se puede cancelar sin autorización de esta consulta.')
+      return
+    }
     try {
-      await fetchApi('/api/pharmacy/on-demand/cancel', {
+      const result = await fetchApi<{ cancelled: boolean }>('/api/pharmacy/on-demand/cancel', {
         method: 'POST',
-        body: { requestId },
+        body: { requestId, accessToken },
       })
-    } catch {
-      // noop
-    } finally {
+      if (!result.cancelled) {
+        setFormError('La consulta ya fue asignada o no pudo cancelarse.')
+        return
+      }
       setStep('CANCELLED')
+    } catch {
+      setFormError('No se pudo cancelar la solicitud. Volvé a intentar.')
     }
   }
 
@@ -254,7 +260,7 @@ export function PharmacyExpressConsultation({
             <span>Punto de Atención Digital: <strong className="text-white font-semibold">{pharmacyName}</strong></span>
           </div>
           <p className="text-xs text-am-surface-400 mt-1 max-w-md">
-            Guardia médica remota inmediata y emisión de recetas oficiales con firma digital verificable.
+            Atención médica por videollamada. La emisión de documentos depende del profesional y de las habilitaciones correspondientes a cada país.
           </p>
         </header>
 

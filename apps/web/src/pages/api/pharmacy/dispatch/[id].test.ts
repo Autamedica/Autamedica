@@ -30,6 +30,7 @@ const REQUEST_RECORD = {
   assigned_doctor_id: 'doc-row-1',
   status: 'searching',
   cloudflare_room_id: 'cf-room-1',
+  care_country: 'AR',
   patient_dni: '12345678',
   patient_phone: '+5491122334455',
   patient_name: 'Carlos Test',
@@ -40,6 +41,10 @@ const DOCTOR_ROW = {
   user_id: 'doctor-user-1',
   license_number: 'MN12345',
   specialty: 'Clínica Médica',
+  active: true,
+  care_country: 'AR',
+  license_type: 'MN',
+  uf_brazil: null,
 }
 
 const PROFILE_ROW = {
@@ -277,7 +282,7 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
 
   it('devuelve 200 si el usuario autenticado es un médico en guardia activa', async () => {
     const unassignedReq = { ...REQUEST_RECORD, assigned_doctor_id: null }
-    const otherDoctor = { id: 'other-doc-row', user_id: 'other-doc-user' }
+    const otherDoctor = { id: 'other-doc-row', user_id: 'other-doc-user', active: true, license_type: 'MN', care_country: 'AR', uf_brazil: null }
 
     supabaseMock.from.mockImplementation((table: string) => {
       if (table === 'pharmacy_dispatch_requests') {
@@ -324,4 +329,53 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     const body = await response.json()
     expect(body.error.code).toBe('UNAUTHENTICATED')
   })
+  it('rechaza un token firmado para esta solicitud pero para otra sala', async () => {
+    supabaseMock.from.mockImplementation((table: string) =>
+      buildTableChain(table === 'pharmacy_dispatch_requests' ? REQUEST_RECORD : null),
+    )
+    const otherRoomToken = await signGuestToken(
+      { callId: 'req-1', roomId: 'unrelated-room', guestName: 'Synthetic guest' }, TEST_SECRET,
+    )
+    const response = await GET(makeContext({ headers: { authorization: `Bearer ${otherRoomToken}` } }))
+    expect(response.status).toBe(401)
+  })
+
+  it('niega lectura de solicitud AR al médico BR asignado incluso con guardia activa', async () => {
+    const brDoctor = { ...DOCTOR_ROW, license_type: 'CRM', care_country: 'BR', uf_brazil: 'RS' }
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_requests') return buildTableChain(REQUEST_RECORD)
+      if (table === 'doctors') return buildTableChain(brDoctor)
+      if (table === 'doctor_duty_status') return buildTableChain({ is_on_duty: true })
+      return buildTableChain(null)
+    })
+    const response = await GET(makeContext({ session: { user: { id: 'doctor-user-1' } } }))
+    expect(response.status).toBe(401)
+    expect(supabaseMock.from).toHaveBeenCalledWith('doctors')
+  })
+
+  it('niega lectura AR a médico en guardia BR no asignado', async () => {
+    const unassigned = { ...REQUEST_RECORD, assigned_doctor_id: null }
+    const brDoctor = { id: 'doctor-br-id', active: true, care_country: 'BR', license_type: 'CRM', uf_brazil: 'RS' }
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_requests') return buildTableChain(unassigned)
+      if (table === 'doctors') return buildTableChain(brDoctor)
+      if (table === 'doctor_duty_status') return buildTableChain({ is_on_duty: true })
+      return buildTableChain(null)
+    })
+    const response = await GET(makeContext({ session: { user: { id: 'doctor-br-user' } } }))
+    expect(response.status).toBe(401)
+    expect(supabaseMock.from).not.toHaveBeenCalledWith('doctor_duty_status')
+  })
+
+  it('niega lectura al médico sin matrícula/country verificables', async () => {
+    const unverifiedDoctor = { ...DOCTOR_ROW, license_type: 'unknown', care_country: null }
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_requests') return buildTableChain(REQUEST_RECORD)
+      if (table === 'doctors') return buildTableChain(unverifiedDoctor)
+      return buildTableChain(null)
+    })
+    const response = await GET(makeContext({ session: { user: { id: 'doctor-user-1' } } }))
+    expect(response.status).toBe(401)
+  })
+
 })
