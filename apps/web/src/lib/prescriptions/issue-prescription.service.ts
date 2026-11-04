@@ -649,6 +649,22 @@ export async function issuePrescription(
     validityDays,
   );
 
+  // Preflight professional signing BEFORE any Farmalink AltaReceta.
+  // This does not constitute signature verification: the actual PDF must
+  // still be signed successfully before it can be stored as 'sent'.
+  const activeSigningCertificate = await getActiveCertificate(supabase, doctor.id);
+  if (!activeSigningCertificate) return fail({ code: 'digital_signature_required' });
+  try {
+    await loadSigningCredentials(supabase, doctor.id, activeSigningCertificate.certFingerprint);
+    await import('./pdf-signer.service');
+  } catch (error) {
+    logger.warn('[issuePrescription] Digital signing preflight unavailable', {
+      prescriptionId,
+      errorName: error instanceof Error ? error.name : 'unknown',
+    });
+    return fail({ code: 'digital_signature_required' });
+  }
+
   let externalRegistration: FarmalinkRegistration | undefined;
   if (prescriptionCountry === 'AR') {
     const farmalinkRegistration = await registerFarmalinkIfEnabled({
@@ -668,8 +684,10 @@ export async function issuePrescription(
     externalRegistration = farmalinkRegistration.registration;
   }
 
-  const vendorName = externalRegistration?.vendorName ?? 'autamedica_internal';
-  const vendorId = externalRegistration?.vendorId ?? `am-${Date.now()}`;
+  // A locally manufactured vendor identifier is NOT official registration.
+  if (!externalRegistration) return fail({ code: 'farmalink_registration_required' });
+  const vendorName = externalRegistration.vendorName;
+  const vendorId = externalRegistration.vendorId;
 
   // 6. Generate artifacts (PDF + QR + CUIR)
   let artifacts: PrescriptionArtifacts;
@@ -780,39 +798,39 @@ export async function issuePrescription(
     return fail({ code: 'pdf_generation_failed', details });
   }
 
-  // 6b. Attempt PAdES digital signing if doctor has a certificate
-  let finalPdfBuffer = artifacts.pdfBuffer;
-  let signatureMethod = 'electronic_simple';
-  let certFingerprint: string | null = null;
-
+  // 6b. PAdES must actually succeed. A generated PDF or an image of a
+  // physician's signature is not evidence of a valid digital signature.
+  // Never emit an ACT_DIGITAL_SIGNATURE event for electronic_simple fallback.
+  let finalPdfBuffer: Uint8Array;
+  const signatureMethod = 'ac_external';
+  const certFingerprint = activeSigningCertificate.certFingerprint;
   try {
-    const activeCert = await getActiveCertificate(supabase, doctor.id);
-    if (activeCert) {
-      const { p12Buffer, password } = await loadSigningCredentials(
-        supabase,
-        doctor.id,
-        activeCert.certFingerprint,
-      );
-      // Dynamic import: @signpdf depends on Node.js APIs not available in Cloudflare Workers
-      const { signPdfWithP12 } = await import('./pdf-signer.service');
-      const signResult = await signPdfWithP12({
-        pdfBuffer: artifacts.pdfBuffer,
-        p12Buffer,
-        password,
-        signerName: doctorName,
-        reason: `Receta ${artifacts.cuir} - ${doctorName}`,
-        location: doctor.enrollment_jurisdiction ?? 'Argentina',
-      });
-      finalPdfBuffer = signResult.signedPdfBuffer;
-      signatureMethod = 'ac_external';
-      certFingerprint = activeCert.certFingerprint;
-      logger.info('[issuePrescription] PDF signed with PAdES', { cuir: artifacts.cuir });
-    }
+    const { p12Buffer, password } = await loadSigningCredentials(
+      supabase, doctor.id, certFingerprint,
+    );
+    const { signPdfWithP12 } = await import('./pdf-signer.service');
+    const signResult = await signPdfWithP12({
+      pdfBuffer: artifacts.pdfBuffer,
+      p12Buffer,
+      password,
+      signerName: doctorName,
+      reason: `Receta ${artifacts.cuir} - ${doctorName}`,
+      location: doctor.enrollment_jurisdiction ?? 'Argentina',
+    });
+    finalPdfBuffer = signResult.signedPdfBuffer;
+    if (!finalPdfBuffer?.byteLength) throw new Error('empty_signed_pdf');
+    logger.info('[issuePrescription] PDF signed with PAdES', { cuir: artifacts.cuir });
   } catch (signError) {
-    logger.warn('[issuePrescription] PAdES signing failed, using electronic_simple', signError);
+    // Farmalink Alta may already exist. Do not silently retry and create a
+    // second official registration. Never store the unsigned PDF as issued.
+    logger.error('[issuePrescription] PAdES failed after external registration', {
+      prescriptionId,
+      errorName: signError instanceof Error ? signError.name : 'unknown',
+    });
+    return fail({ code: 'farmalink_pending_reconciliation' });
   }
 
-  // 7. Store PDF (signed if PAdES succeeded, unsigned otherwise)
+  // 7. Store digitally signed PDF only
   const pdfPath = `prescriptions/${artifacts.cuir}/${artifacts.pdfFilename}`;
   const { error: uploadError } = await supabase.storage
     .from('medical-documents')
@@ -874,7 +892,7 @@ export async function issuePrescription(
       user_id: userId,
       signature_hash: signatureHash,
       metadata: {
-        method: signatureMethod === 'ac_external' ? 'PAdES_SELF_SIGNED' : 'ELECTRONIC_SIMPLE',
+        method: 'PAdES_AC_EXTERNAL',
         document_hash: signatureHash,
         cert_fingerprint: certFingerprint,
         version: '2.0',
