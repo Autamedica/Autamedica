@@ -13,7 +13,7 @@ import {
   isAnamnesisExtractionConfigured,
   ANAMNESIS_EXTRACTION_PROMPT_VERSION,
 } from '@/lib/patients/server/anamnesis-ai-extraction'
-import { resolveDoctorId, resolveRoomParticipants, resolvePatientProfile, isClinicalPatientId } from '@/lib/doctors/lib/resolve-room'
+import { resolveDoctorId, resolveRoomParticipants, resolvePatientProfile, isClinicalPatientId, type ResolvedRoomParticipants } from '@/lib/doctors/lib/resolve-room'
 
 type AdminClient = SupabaseClient
 
@@ -126,8 +126,14 @@ export const consultationContextService = {
     return resolveDoctorId(admin, userId)
   },
 
-  async getContext(admin: AdminClient, roomId: string): Promise<ConsultationContextResult> {
-    const participants = await resolveRoomParticipants(admin, roomId)
+  async getContext(
+    admin: AdminClient,
+    roomId: string,
+    authorizedParticipants?: ResolvedRoomParticipants,
+  ): Promise<ConsultationContextResult> {
+    // Routes must perform room-ownership authorization before supplying
+    // participants. Reuse the same verified snapshot to avoid a second lookup.
+    const participants = authorizedParticipants ?? await resolveRoomParticipants(admin, roomId)
     if (!participants) {
       return { hasAnamnesis: false, patient: null, summary: null, extraction: null, redFlags: [], suggestedQuestions: [] }
     }
