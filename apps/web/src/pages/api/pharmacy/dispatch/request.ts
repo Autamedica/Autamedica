@@ -30,7 +30,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest('Cuerpo de solicitud inválido')
     }
 
-    const { patientDni, patientCpf, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary } = body
+    const { patientDni, patientCpf, careCountry, patientPhone, patientName, tier, kioskId, pharmacyId, symptomSummary, referralCode } = body
 
     // Choose the country explicitly. A DNI/CPF or mobile dialing prefix cannot
     // determine clinical jurisdiction or grant access to an existing patient.
@@ -122,6 +122,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
       resolvedPharmacyId = pharmacy.id
     }
 
+    // Attribution only at creation time, resolving the QR code on the server.
+    // Never trust a client-submitted partner ID or pharmacy ID as commercial proof.
+    let referralPartnerId: string | null = null
+    if (referralCode != null) {
+      if (typeof referralCode !== 'string' || !/^[A-Z0-9_-]{3,32}$/.test(referralCode)) {
+        return badRequest('referral_code_invalid')
+      }
+      const { data: partner, error: referralError } = await supabase
+        .from('commercial_referral_partners')
+        .select('id')
+        .eq('code', referralCode)
+        .eq('active', true)
+        .maybeSingle()
+      if (referralError) {
+        logger.error('[api/pharmacy/dispatch/request] referral_lookup_failed', {
+          code: typeof referralError.code === 'string' ? referralError.code : 'INTERNAL',
+        })
+        return serviceUnavailable('referral_lookup_unavailable')
+      }
+      if (!partner) return badRequest('referral_code_not_found')
+      referralPartnerId = partner.id
+    }
+
     const cloudflareRoomId = generateCloudflareRoomId(selectedTier, normalizedDocument)
 
     // Asociar usuario dueño si la petición proviene de un usuario autenticado
@@ -143,6 +166,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       tier_requested: selectedTier,
       kiosk_id: resolvedKioskId,
       pharmacy_id: resolvedPharmacyId,
+      referral_partner_id: referralPartnerId,
       symptom_summary: sanitizedSymptoms,
       cloudflare_room_id: cloudflareRoomId,
       status: 'searching' as const,
