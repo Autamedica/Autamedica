@@ -51,7 +51,7 @@ jobs:
 
       - name: Run critical routing test
         run: |
-          npx playwright test tests/e2e/astro-bridge-routing.spec.ts \
+          npx playwright test tests/e2e/astro-bridge-routing.spec.ts tests/e2e/clinical-pharmacy-intake.spec.ts \
             --config=tests/e2e/playwright.astro-bridge.config.ts \
             --reporter=github
         env:
