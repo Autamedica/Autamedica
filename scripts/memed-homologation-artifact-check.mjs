@@ -70,7 +70,8 @@ function downloadUrlFromJson(data) {
   return [attr?.url, attr?.pdf_url, attr?.url_document, attr?.urlDocument, attr?.link]
     .find(x => typeof x === 'string' && x.startsWith('https://')) ?? null;
 }
-async function pdfCheck(response) {
+async function pdfCheck(response, depth = 0) {
+  if (depth > 2) return false;
   const mime = response.headers.get('content-type') ?? '';
   if (mime.includes('application/pdf')) {
     const size = Number(response.headers.get('content-length') ?? 0);
@@ -91,7 +92,7 @@ async function pdfCheck(response) {
   const res = await fetch(url, { redirect: 'error', referrerPolicy: 'no-referrer',
     signal: AbortSignal.timeout(15000) });
   if (!res.ok) return false;
-  return pdfCheck(res);
+  return pdfCheck(res, depth + 1);
 }
 async function run() {
   const doc = await fetch(DOCS, { redirect: 'error', signal: AbortSignal.timeout(15000) });
