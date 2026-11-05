@@ -9,8 +9,9 @@ vi.mock('@autamedica/shared', () => {
 })
 
 const { supabaseMock } = vi.hoisted(() => ({
-  supabaseMock: { from: vi.fn() } as {
+  supabaseMock: { from: vi.fn(), rpc: vi.fn() } as {
     from: ReturnType<typeof vi.fn>
+    rpc: ReturnType<typeof vi.fn>
   },
 }))
 
@@ -105,6 +106,7 @@ function makeContext(options?: {
 describe('API: /api/pharmacy/dispatch/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    supabaseMock.rpc.mockResolvedValue({ data: true, error: null })
   })
 
   it('devuelve 404 si falta el id', async () => {
@@ -323,6 +325,21 @@ describe('API: /api/pharmacy/dispatch/[id]', () => {
     const response = await GET(makeContext({ session: { user: { id: 'doctor-other-user' } } }))
     expect(response.status).toBe(401)
     expect(supabaseMock.from).toHaveBeenCalledWith('dispatch_offers')
+  })
+
+  it('rechaza a un médico argentino pendiente de aprobación aunque su cuenta figure activa', async () => {
+    supabaseMock.rpc.mockResolvedValue({ data: false, error: null })
+    supabaseMock.from.mockImplementation((table: string) => {
+      if (table === 'pharmacy_dispatch_requests') return buildTableChain(REQUEST_RECORD)
+      if (table === 'doctors') return buildTableChain(DOCTOR_ROW)
+      return buildTableChain(null)
+    })
+
+    const response = await GET(makeContext({ session: { user: { id: 'doctor-user-1' } } }))
+    expect(response.status).toBe(401)
+    expect(supabaseMock.rpc).toHaveBeenCalledWith(
+      'admin_is_dispatch_doctor_approved', { p_doctor_id: DOCTOR_ROW.id }
+    )
   })
 
   it('devuelve 401 si un usuario autenticado ajeno (no dueño, no asignado, no guardia) intenta acceder', async () => {
