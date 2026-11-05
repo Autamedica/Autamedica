@@ -5,6 +5,7 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
 import { authorizePharmacyPaymentRequest, hasSecureGuestPaymentSecret } from '@/lib/pharmacy/payments/guest-payment-access'
 import { GENERAL_PHARMACY_BR_PRICE_CENTS } from '@/lib/pharmacy/payments/referral-finance'
+import { isEligibleJordanBrClinicalPair } from '@/lib/pharmacy/payments/br-clinical-pair'
 import { logger } from '@autamedica/shared'
 
 interface CheckoutPreference {
@@ -66,14 +67,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (patientResult.error || doctorResult.error) {
       return serviceUnavailable('brazilian_clinical_pair_unavailable')
     }
-    const patient = patientResult.data
-    const doctor = doctorResult.data
-    const clinicianCredential = typeof doctor?.license_number === 'string'
-      ? doctor.license_number.trim() : ''
-    if (!patient?.active || patient.care_country !== 'BR' ||
-        !doctor?.active || doctor.care_country !== 'BR' ||
-        doctor.license_type !== 'CRM' ||
-        !clinicianCredential || /^PENDING/i.test(clinicianCredential)) {
+    if (!isEligibleJordanBrClinicalPair(patientResult.data, doctorResult.data)) {
       return badRequest('brazilian_clinical_pair_required')
     }
 
