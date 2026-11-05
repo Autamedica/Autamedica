@@ -11,6 +11,12 @@ import kotlinx.coroutines.flow.StateFlow
  * On-Demand pharmacy dispatch ("Uber para médicos"): doctor duty status,
  * private offer stream and atomic claim via the `claim_pharmacy_request_tier` RPC.
  */
+/** Server-confirmed financial status only. Never infer paid from browser return URLs. */
+data class DispatchCheckoutResult(
+    val status: String,
+    val checkoutUrl: String? = null,
+)
+
 interface PharmacyDispatchRepository {
 
     /** Server-authoritative administrator approval for this authenticated doctor.
@@ -82,6 +88,15 @@ interface PharmacyDispatchRepository {
 
     /** Patient side: Observe a specific on-demand request by id until matched/in_call. */
     fun observePatientRequest(requestId: String): kotlinx.coroutines.flow.Flow<PharmacyDispatchRequest>
+
+    /** Starts the private BR partner checkout through the scoped patient token.
+     * Unsupported backends fail closed; no client-side payment confirmation. */
+    suspend fun startDispatchCheckout(requestId: String): Result<DispatchCheckoutResult> =
+        Result.failure(UnsupportedOperationException("Commercial checkout unavailable"))
+
+    /** Reads payment state from server (which reconciles against the PSP). */
+    suspend fun getDispatchPaymentStatus(requestId: String): Result<String> =
+        Result.failure(UnsupportedOperationException("Commercial payment status unavailable"))
 
     /** Public aggregate for patient radar: doctors accepting consults in AR or BR.
      * Does not expose clinician identities or return doctors from another country. */
