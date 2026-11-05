@@ -28,8 +28,8 @@ const clinical = {
   doctorName: 'Dr. Medico Prueba',
   item: { generic_name: 'AMOXICILINA', quantity: 1, dosage: '500 MG' },
   patient: {
-    dni: '30123456', birth_date: '1990-01-01', gender: 'female',
-    insurance_info: { farmalink: { codEntidad: 7100, pan: '12345678', plan: 'NO POSEE' } },
+    dni: '30123456', cuil: '27301234560', birth_date: '1990-01-01', gender: 'female',
+    insurance_info: { farmalink: { codEntidad: 7110, pan: '20123456786', plan: 'NO POSEE' } },
   },
   patientName: 'Paciente Prueba',
   now: '2026-11-03T09:00:00.000Z',
