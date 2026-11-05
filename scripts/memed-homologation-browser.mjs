@@ -328,6 +328,29 @@ async function main() {
     }));
     result.prescriptionIssued = Boolean(await page.evaluate(() => window.__memedDemo?.emissionEventReceived));
   }
+  // In the isolated SDK sandbox, suppress all delivery channels before issuance.
+  if (result.postGenerateControls.emit) {
+    let deliveryControlsFound = false;
+    for (const frame of page.frames()) {
+      const email = frame.locator('input[name="option_send_enviar_prescricao_digital_email"]');
+      const sms = frame.locator('input[name="option_send_enviar_prescricao_digital_sms"]');
+      const sign = frame.locator('input[name="option_send_digital_signature"]');
+      try {
+        if (await email.count() && await sms.count() && await sign.count()) {
+          deliveryControlsFound = true;
+          if (await email.isChecked()) await email.uncheck({ force: true });
+          if (await sms.isChecked()) await sms.uncheck({ force: true });
+          if (await email.isChecked() || await sms.isChecked() || await sign.isChecked()) {
+            throw new Error('sandbox_delivery_not_disabled');
+          }
+          break;
+        }
+      } catch (err) {
+        if (err?.message === 'sandbox_delivery_not_disabled') throw err;
+      }
+    }
+    result.deliveryChannelsOff = deliveryControlsFound;
+  }
   result.sandboxDemoPreflight = true;
   if (!actions.patientSet) throw new Error('memed_patient_set_rejected');
   if (!actions.moduleShown) throw new Error('memed_module_show_rejected');
