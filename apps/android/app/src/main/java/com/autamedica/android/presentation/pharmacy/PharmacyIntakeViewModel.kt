@@ -211,7 +211,14 @@ class PharmacyIntakeViewModel @Inject constructor(
         _uiState.update { state ->
             val isSame = state.selectedReasonChip == chip
             val newChip = if (isSame) null else chip
-            val newText = if (state.reasonText.isBlank() && newChip != null) newChip else state.reasonText
+            // A previous auto-filled chip is never a second clinical reason.
+            // Preserve only genuinely custom text entered by the patient.
+            val previousWasAutoFilled = state.reasonText == state.selectedReasonChip
+            val newText = when {
+                newChip != null && (state.reasonText.isBlank() || previousWasAutoFilled) -> newChip
+                newChip == null && previousWasAutoFilled -> ""
+                else -> state.reasonText
+            }
             state.copy(selectedReasonChip = newChip, reasonText = newText, error = null)
         }
     }
