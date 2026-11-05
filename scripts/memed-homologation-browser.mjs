@@ -33,6 +33,8 @@ const result = {
   moduleShown: false,
   prescriptionIssued: false,
   demoItemAdded: false,
+  generateClicked: false,
+  postGenerateControls: { continue: false, emit: false, confirm: false },
   demoUiButtons: { generate: false, continue: false, emit: false },
   signatureVerified: false,
   errorCode: null,
@@ -192,6 +194,35 @@ async function main() {
       } catch { return { buttons: -1, inputs: -1, headings: -1 }; }
     })),
   })));
+  if (result.demoUiButtons.generate) {
+    for (const frame of page.frames()) {
+      const generate = frame.getByRole('button', { name: /gerar prescri[cç][aã]o|gerar receita/i }).first();
+      try {
+        if (await generate.isVisible({ timeout: 300 }) && await generate.isEnabled()) {
+          await generate.click({ timeout: 4000 });
+          result.generateClicked = true;
+          break;
+        }
+      } catch { /* test UI can move into a modal */ }
+    }
+  }
+  if (result.generateClicked) {
+    await page.waitForTimeout(2500);
+    for (const frame of page.frames()) {
+      for (const [name, pattern] of [
+        ['continue', /continuar|avan[cç]ar/i],
+        ['emit', /emitir|concluir|gerar/i],
+        ['confirm', /confirmar|salvar/i],
+      ]) {
+        try {
+          if (await frame.getByRole('button', { name: pattern }).first().isVisible({ timeout: 200 })) {
+            result.postGenerateControls[name] = true;
+          }
+        } catch { /* modal not ready */ }
+      }
+    }
+    result.prescriptionIssued = Boolean(await page.evaluate(() => window.__memedDemo?.emissionEventReceived));
+  }
   result.sandboxDemoPreflight = true;
   if (!actions.patientSet) throw new Error('memed_patient_set_rejected');
   if (!actions.moduleShown) throw new Error('memed_module_show_rejected');
